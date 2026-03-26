@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from unittest.mock import patch
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -114,7 +115,7 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
     @patch(
         "sentry.notifications.platform.templates.metric_alert.eventstore.backend.get_event_by_id"
     )
-    def test_render_produces_blocks(self, mock_get_event, mock_chart) -> None:
+    def test_render_produces_blocks(self, mock_get_event: MagicMock, mock_chart: MagicMock) -> None:
         mock_get_event.return_value = self.group_event
 
         result = SlackMetricAlertRenderer.render(
@@ -123,7 +124,8 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
         )
 
         # Without a chart: exactly one section block with the metric text
-        blocks = result["blocks"]
+        # This is annoying but since Block is not indexable and we want to test the structure we need to say Any
+        blocks: list[Any] = result["blocks"]
         assert len(blocks) == 1
         assert blocks[0]["type"] == "section"
         assert blocks[0]["text"]["type"] == "mrkdwn"
@@ -140,7 +142,7 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
     )
     @with_feature({"organizations:metric-alert-chartcuterie": True})
     def test_render_includes_image_block_when_chart_enabled(
-        self, mock_get_event, mock_chart
+        self, mock_get_event: MagicMock, mock_chart: MagicMock
     ) -> None:
         mock_get_event.return_value = self.group_event
 
@@ -150,7 +152,8 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
         )
 
         # With a chart: section block + image block
-        blocks = result["blocks"]
+        # This is annoying but since Block is not indexable and we want to test the structure we need to say Any
+        blocks: list[Any] = result["blocks"]
         assert len(blocks) == 2
         assert blocks[0]["type"] == "section"
         assert "123.45 events in the last minute" in blocks[0]["text"]["text"]
@@ -166,7 +169,9 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
     @patch(
         "sentry.notifications.platform.templates.metric_alert.eventstore.backend.get_event_by_id"
     )
-    def test_render_continues_when_chart_fails(self, mock_get_event, mock_chart, mock_sdk) -> None:
+    def test_render_continues_when_chart_fails(
+        self, mock_get_event: MagicMock, mock_chart: MagicMock, mock_sdk: MagicMock
+    ) -> None:
         mock_get_event.return_value = self.group_event
 
         with self.feature("organizations:metric-alert-chartcuterie"):
@@ -177,6 +182,7 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
 
         mock_sdk.capture_exception.assert_called_once()
         # Render completes without the chart — just the section block
-        blocks = result["blocks"]
+        # This is annoying but since Block is not indexable and we want to test the structure we need to say Any
+        blocks: list[Any] = result["blocks"]
         assert len(blocks) == 1
         assert blocks[0]["type"] == "section"
