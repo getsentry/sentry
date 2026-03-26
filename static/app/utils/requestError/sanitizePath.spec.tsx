@@ -1,3 +1,4 @@
+// test: verifying changedSince
 import {sanitizePath} from 'sentry/utils/requestError/sanitizePath';
 
 describe('sanitizePath', () => {
