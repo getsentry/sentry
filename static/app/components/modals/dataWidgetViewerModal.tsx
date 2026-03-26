@@ -70,7 +70,11 @@ import type {
   DashboardPermissions,
   Widget,
 } from 'sentry/views/dashboards/types';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  DisplayType,
+  PREBUILT_DASHBOARD_LABEL,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
 import {
   dashboardFiltersToString,
   eventViewFromWidget,
@@ -129,6 +133,7 @@ export interface DataWidgetViewerModalOptions {
   dashboardCreator?: User;
   dashboardFilters?: DashboardFilters;
   dashboardPermissions?: DashboardPermissions;
+  isPrebuiltDashboard?: boolean;
   onEdit?: () => void;
   widgetInterval?: string;
 }
@@ -197,6 +202,7 @@ function DataWidgetViewerModal(props: Props) {
     widgetLegendState,
     dashboardPermissions,
     dashboardCreator,
+    isPrebuiltDashboard,
     widgetInterval,
   } = props;
   const theme = useTheme();
@@ -616,13 +622,14 @@ function DataWidgetViewerModal(props: Props) {
 
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
-  const hasEditAccess = checkUserHasEditAccess(
-    currentUser,
-    userTeams,
-    organization,
-    dashboardPermissions,
-    dashboardCreator
-  );
+  const hasEditAccess =
+    checkUserHasEditAccess(
+      currentUser,
+      userTeams,
+      organization,
+      dashboardPermissions,
+      dashboardCreator
+    ) && !isPrebuiltDashboard;
 
   const shouldRenderChartVisualization =
     widget.displayType !== DisplayType.TABLE &&
@@ -840,9 +847,13 @@ function DataWidgetViewerModal(props: Props) {
                           }}
                           disabled={!hasEditAccess}
                           tooltipProps={{
-                            title:
-                              !hasEditAccess &&
-                              t('You do not have permission to edit this widget'),
+                            title: hasEditAccess
+                              ? undefined
+                              : isPrebuiltDashboard
+                                ? tct('[label] dashboards cannot be edited', {
+                                    label: PREBUILT_DASHBOARD_LABEL,
+                                  })
+                                : t('You do not have permission to edit this widget'),
                           }}
                         >
                           {t('Edit Widget')}
