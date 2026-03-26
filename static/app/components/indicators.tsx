@@ -37,7 +37,7 @@ export default Indicators;
 
 const Toasts = styled('div')`
   position: fixed;
-  right: 30px;
+  right: calc(30px + var(--scrollbar-size, 0));
   bottom: 30px;
   z-index: ${p => p.theme.zIndex.toast};
 `;

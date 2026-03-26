@@ -291,9 +291,10 @@ export function GlobalModal({onClose}: Props) {
 
 const fullPageCss = css`
   position: fixed;
-  top: 50vh;
-  left: 50vw;
-  transform: translate(-50vh, -50vw);
+  top: 0;
+  right: var(--scrollbar-size, 0);
+  bottom: 0;
+  left: 0;
 `;
 
 const Backdrop = styled('div')`
