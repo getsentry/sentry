@@ -335,8 +335,6 @@ const FlamegraphGrid = styled('div')<{
         ? `min-content auto`
         : `auto min-content`};
 
-  /* false positive for grid layout */
-  /* stylelint-disable */
   grid-template-areas: ${({layout}) =>
     layout === 'table bottom'
       ? `

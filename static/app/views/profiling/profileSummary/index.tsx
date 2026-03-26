@@ -624,8 +624,6 @@ const ProfileDigestContainer = styled('div')`
 // @ts-expect-error TS(7008): Member 'hideRegressions' implicitly has an 'any' t... Remove this comment to see the full error message
 const ProfileVisualizationContainer = styled('div')<{hideRegressions}>`
   display: grid;
-  /* false positive for grid layout */
-  /* stylelint-disable */
   grid-template-areas: ${p =>
     p.hideRegressions ? "'visualization'" : "'visualization digest'"};
   grid-template-columns: ${p => (p.hideRegressions ? `100%` : `60% 40%`)};

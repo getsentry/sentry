@@ -1063,13 +1063,10 @@ const TraceStylingWrapper = styled('div')`
         --pattern-even: ${p => p.theme.colors.red400};
       }
 
-      /* false positive for grid layout */
-      /* stylelint-disable */
       &.default {
       }
       &.unknown {
       }
-      /* stylelint-enable */
     }
   }
 
@@ -1104,12 +1101,10 @@ const TraceStylingWrapper = styled('div')`
         --pattern-odd: ${p => p.theme.colors.red500};
         --pattern-even: ${p => p.theme.colors.red400};
       }
-      /* stylelint-disable */
       &.default {
       }
       &.unknown {
       }
-      /* stylelint-enable */
     }
   }
 
@@ -1130,8 +1125,6 @@ const TraceStylingWrapper = styled('div')`
     --row-outline: ${p => p.theme.tokens.focus.default};
     --row-children-button-border-color: ${p => p.theme.tokens.border.neutral.muted};
 
-    /* allow empty blocks so we can keep an exhaustive list of classnames for future reference */
-    /* stylelint-disable */
     &.info {
     }
     &.warning {

@@ -1661,7 +1661,6 @@ static/gsAdmin/views/userDetails.tsx
 static/gsAdmin/views/users.tsx
 static/index.ejs
 static/robots-dev.txt
-stylelint.config.js
 tests/AGENTS.md
 tests/CLAUDE.md
 tests/__init__.py

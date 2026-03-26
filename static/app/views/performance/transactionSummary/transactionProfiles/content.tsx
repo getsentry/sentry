@@ -329,8 +329,6 @@ function IconDoubleChevron(props: React.ComponentProps<typeof IconChevron>) {
 
 const TransactionProfilesContentContainer = styled('div')`
   display: grid;
-  /* false positive for grid layout */
-  /* stylelint-disable */
   grid-template-areas: 'visualization digest';
   grid-template-columns: 1fr min-content;
   flex: 1;

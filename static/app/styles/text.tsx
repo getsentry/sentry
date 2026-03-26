@@ -4,7 +4,6 @@ import {css} from '@emotion/react';
  * @deprecated Use `Text` from `@sentry/scraps/text` instead.
  */
 export const textStyles = () => css`
-  /* stylelint-disable no-descending-specificity */
   h1,
   h2,
   h3,
@@ -29,5 +28,4 @@ export const textStyles = () => css`
       margin-bottom: 0;
     }
   }
-  /* stylelint-enable */
 `;

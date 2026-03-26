@@ -764,8 +764,6 @@ export const TraceGrid = styled('div')<{
   overflow: hidden;
   position: relative;
 
-  /* false positive for grid layout */
-  /* stylelint-disable */
   grid-template-areas: ${p =>
     p.layout === 'drawer bottom'
       ? `

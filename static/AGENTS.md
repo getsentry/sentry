@@ -18,7 +18,6 @@
 - `rspack.config.ts`: Frontend build configuration
 - `tsconfig.json`: TypeScript configuration
 - `eslint.config.ts`: ESLint configuration
-- `stylelint.config.js`: CSS/styling linting
 - **Components**: `static/app/components/{component}/`
 - **Views**: `static/app/views/{area}/{page}.tsx`
 - **Stores**: `static/app/stores/{store}Store.tsx`
