@@ -37,20 +37,6 @@ interface Props {
 
 const EMPTY_ARRAY: any = [];
 
-function getProjectRateErrors(rates: Record<string, string>): Record<string, string> {
-  const errors: Record<string, string> = {};
-  for (const [projectId, rate] of Object.entries(rates)) {
-    if (rate === '') {
-      errors[projectId] = t('This field is required');
-    } else if (isNaN(Number(rate))) {
-      errors[projectId] = t('Please enter a valid number');
-    } else if (Number(rate) < 0 || Number(rate) > 100) {
-      errors[projectId] = t('Must be between 0% and 100%');
-    }
-  }
-  return errors;
-}
-
 export function ProjectsEditTable({
   actions,
   isLoading: isLoadingProp,
@@ -67,11 +53,6 @@ export function ProjectsEditTable({
   const [orgRate, setOrgRate] = useState<string>('');
 
   const projectRateSnapshotRef = useRef<Record<string, string>>({});
-
-  const projectRateErrors = useMemo(
-    () => getProjectRateErrors(projectRates),
-    [projectRates]
-  );
 
   const dataByProjectId = useMemo(
     () =>
@@ -153,10 +134,9 @@ export function ProjectsEditTable({
           project,
           initialSampleRate: savedProjectRates[project.id]!,
           sampleRate: projectRates[project.id]!,
-          error: projectRateErrors[project.id],
         };
       }),
-    [dataByProjectId, projectRateErrors, savedProjectRates, projects, projectRates]
+    [dataByProjectId, savedProjectRates, projects, projectRates]
   );
 
   const totalSpanCount = useMemo(
