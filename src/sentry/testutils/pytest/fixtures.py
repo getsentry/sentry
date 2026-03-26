@@ -10,7 +10,7 @@ import os
 import re
 import sys
 from collections.abc import Callable, Generator
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor  # noqa: S016 - test infra, no tracing needed
 from string import Template
 from typing import Any, ContextManager, Protocol, overload
 

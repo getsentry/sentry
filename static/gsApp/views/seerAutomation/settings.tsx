@@ -17,7 +17,10 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {AutofixOverviewSection} from 'sentry/views/settings/seer/overview/autofixOverviewSection';
-import {CodeReviewOverviewSection} from 'sentry/views/settings/seer/overview/codeReviewOverviewSection';
+import {
+  CodeReviewOverviewSection,
+  useCodeReviewOverviewSection,
+} from 'sentry/views/settings/seer/overview/codeReviewOverviewSection';
 import {
   SCMOverviewSection,
   useSCMOverviewSection,
@@ -41,10 +44,11 @@ export function SeerAutomationSettings() {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
 
-  const showSeerOverview = organization.features.includes('seer-overview');
+  const showSeerOverview = true; //  organization.features.includes('seer-overview');
 
   const scmOverviewData = useSCMOverviewSection();
-  const overviewData = useSeerOverviewData();
+  const autofixOverviewData = useSeerOverviewData();
+  const codeReviewOverviewData = useCodeReviewOverviewSection();
 
   const orgEndpoint = `/organizations/${organization.slug}/`;
   const orgMutationOpts = mutationOptions({
@@ -89,15 +93,19 @@ export function SeerAutomationSettings() {
       />
       <SeerSettingsPageContent>
         <SCMOverviewSection
-          organizationSlug={organization.slug}
-          canWrite={canWrite}
           {...scmOverviewData}
+          canWrite={canWrite}
+          organizationSlug={organization.slug}
         />
         {showSeerOverview ? (
-          <div>
-            <AutofixOverviewSection {...overviewData} />
-            <CodeReviewOverviewSection {...overviewData} />
-          </div>
+          <Fragment>
+            <AutofixOverviewSection {...autofixOverviewData} />
+            <CodeReviewOverviewSection
+              {...codeReviewOverviewData}
+              canWrite={canWrite}
+              organization={organization}
+            />
+          </Fragment>
         ) : (
           <Fragment>
             <FieldGroup
@@ -204,6 +212,7 @@ export function SeerAutomationSettings() {
                 )}
               </AutoSaveForm>
             </FieldGroup>
+
             <FieldGroup
               title={
                 <Flex gap="md">

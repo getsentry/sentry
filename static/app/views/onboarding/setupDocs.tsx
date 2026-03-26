@@ -23,7 +23,6 @@ export function SetupDocs({recentCreatedProject: project}: StepProps) {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-
   const products = useMemo<ProductSolution[]>(
     () => decodeList(location.query.product ?? []) as ProductSolution[],
     [location.query.product]

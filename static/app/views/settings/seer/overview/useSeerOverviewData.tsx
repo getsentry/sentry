@@ -3,7 +3,7 @@ import uniqBy from 'lodash/uniqBy';
 
 import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {organizationRepositoriesInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
-import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
+import {useSeerSupportedProviderIds} from 'sentry/components/events/autofix/utils';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {useInfiniteQuery, useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -11,6 +11,7 @@ import {organizationIntegrationsQueryOptions} from 'sentry/views/settings/seer/o
 
 export function useSeerOverviewData() {
   const organization = useOrganization();
+  const seerSupportedProviderIds = useSeerSupportedProviderIds();
 
   // SCM Data
   const {data: integrationData, isPending: isIntegrationsPending} = useQuery({
@@ -21,10 +22,7 @@ export function useSeerOverviewData() {
         integration.provider.features.includes('commits')
       );
       const seerIntegrations = scmIntegrations.filter(integration =>
-        isSupportedAutofixProvider({
-          id: integration.provider.key,
-          name: integration.provider.name,
-        })
+        seerSupportedProviderIds.includes(integration.provider.key)
       );
       return {
         integrations: allIntegrations,
@@ -45,7 +43,9 @@ export function useSeerOverviewData() {
         pages.flatMap(page => page.json),
         'externalId'
       ).filter(repository => repository.externalId);
-      const seerRepos = allRepos.filter(r => isSupportedAutofixProvider(r.provider));
+      const seerRepos = allRepos.filter(r =>
+        seerSupportedProviderIds.includes(r.provider.id)
+      );
       return {
         allRepos,
         seerRepos,

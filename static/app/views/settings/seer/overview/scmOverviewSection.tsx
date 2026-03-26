@@ -17,7 +17,10 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
+import {
+  isSeerSupportedProvider,
+  useSeerSupportedProviderIds,
+} from 'sentry/components/events/autofix/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import {getProviderConfigUrl} from 'sentry/components/repositories/scmIntegrationTree/providerConfigLink';
@@ -57,13 +60,17 @@ export function useSCMOverviewSection(): SCMOverviewSectionData {
     isPending,
     isError,
   } = useScmIntegrationTreeData();
+  const supportedProviderIds = useSeerSupportedProviderIds();
 
   const supportedScmIntegrations = useMemo(
     () =>
       scmIntegrations.filter(i =>
-        isSupportedAutofixProvider({id: i.provider.key, name: i.provider.name})
+        isSeerSupportedProvider(
+          {id: i.provider.key, name: i.provider.name},
+          supportedProviderIds
+        )
       ),
-    [scmIntegrations]
+    [scmIntegrations, supportedProviderIds]
   );
 
   const isReposPending = Object.values(reposPendingByIntegrationId).some(Boolean);

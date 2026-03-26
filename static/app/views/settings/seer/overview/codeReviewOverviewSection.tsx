@@ -1,4 +1,6 @@
+import {useCallback} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
+import uniqBy from 'lodash/uniqBy';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
@@ -7,24 +9,70 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import {hasEveryAccess} from 'sentry/components/acl/access';
-import {IconSettings} from 'sentry/icons';
+import {organizationRepositoriesInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
+import {useSeerSupportedProviderIds} from 'sentry/components/events/autofix/utils';
+import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
+import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
+import {IconRefresh, IconSettings} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {DEFAULT_CODE_REVIEW_TRIGGERS} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {useInfiniteQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useSeerOverviewData} from 'sentry/views/settings/seer/overview/useSeerOverviewData';
 
-interface Props {
-  isLoading: boolean;
-  stats: ReturnType<typeof useSeerOverviewData>['stats'];
+export function useCodeReviewOverviewSection() {
+  const organization = useOrganization();
+  const seerSupportedProviderIds = useSeerSupportedProviderIds();
+
+  const queryOptions = organizationRepositoriesInfiniteOptions({
+    organization,
+    query: {per_page: 100},
+  });
+  const repositoriesResult = useInfiniteQuery({
+    ...queryOptions,
+    select: ({pages}) => {
+      const repos = uniqBy(
+        pages.flatMap(page => page.json),
+        'externalId'
+      ).filter(repository => repository.externalId);
+      const seerRepos = repos.filter(r =>
+        seerSupportedProviderIds.includes(r.provider.id)
+      );
+      const reposWithCodeReview = seerRepos.filter(r => r.settings?.enabledCodeReview);
+      return {
+        queryKey: queryOptions.queryKey,
+        seerRepos,
+        reposWithCodeReview,
+      };
+    },
+  });
+  useFetchAllPages({result: repositoriesResult});
+
+  return repositoriesResult;
 }
 
-export function CodeReviewOverviewSection({stats, isLoading}: Props) {
-  const organization = useOrganization();
-  const canWrite = hasEveryAccess(['org:write'], {organization});
+type Props = ReturnType<typeof useCodeReviewOverviewSection> & {
+  canWrite: boolean;
+  organization: Organization;
+};
+
+export function CodeReviewOverviewSection({
+  canWrite,
+  isPending,
+  organization,
+  data,
+  refetch,
+}: Props) {
+  const queryClient = useQueryClient();
+
+  const {queryKey, seerRepos = [], reposWithCodeReview = []} = data ?? {};
+
+  const seerReposCount = seerRepos.length;
+  const reposWithCodeReviewCount = reposWithCodeReview.length;
 
   const schema = z.object({
     autoEnableCodeReview: z.boolean(),
@@ -32,20 +80,110 @@ export function CodeReviewOverviewSection({stats, isLoading}: Props) {
   });
 
   const orgMutationOpts = mutationOptions({
-    mutationFn: (data: Partial<Organization>) =>
+    mutationFn: (updateData: Partial<Organization>) =>
       fetchMutation<Organization>({
         method: 'PUT',
         url: `/organizations/${organization.slug}/`,
-        data,
+        data: updateData,
       }),
     onSuccess: updateOrganization,
   });
+
+  const {mutate: mutateRepositorySettings} = useBulkUpdateRepositorySettings({
+    onSettled: mutations => {
+      // Invalidate the repositories query to get the updated settings
+      if (queryKey) {
+        queryClient.invalidateQueries({queryKey});
+      }
+      (mutations ?? []).forEach(mutation => {
+        // Invalidate related queries
+        queryClient.invalidateQueries({
+          queryKey: getRepositoryWithSettingsQueryKey(organization, mutation.id),
+        });
+      });
+    },
+  });
+
+  const handleToggleCodeReview = useCallback(
+    (enabledCodeReview: boolean) => {
+      const repositoryIds = (
+        enabledCodeReview
+          ? seerRepos.filter(repo => !repo.settings?.enabledCodeReview)
+          : reposWithCodeReview
+      ).map(repo => repo.id);
+      mutateRepositorySettings(
+        {enabledCodeReview, repositoryIds},
+        {
+          onError: (_, variables) => {
+            addErrorMessage(
+              tn(
+                'Failed to update code review for %s repository',
+                'Failed to update code review for %s repositories',
+                variables.repositoryIds.length
+              )
+            );
+          },
+          onSuccess: (_, variables) => {
+            addSuccessMessage(
+              tn(
+                'Code review updated for %s repository',
+                'Code review updated for %s repositories',
+                variables.repositoryIds.length
+              )
+            );
+          },
+        }
+      );
+    },
+    [mutateRepositorySettings, reposWithCodeReview, seerRepos]
+  );
+
+  const handleChangeTriggers = useCallback(
+    (newTriggers: string[]) => {
+      mutateRepositorySettings(
+        {
+          codeReviewTriggers: newTriggers,
+          repositoryIds: seerRepos.map(repo => repo.id),
+        },
+        {
+          onError: (_, variables) => {
+            addErrorMessage(
+              tn(
+                'Failed to update triggers for %s repository',
+                'Failed to update triggers for %s repositories',
+                variables.repositoryIds.length
+              )
+            );
+          },
+          onSuccess: (_, variables) => {
+            addSuccessMessage(
+              tn(
+                'Triggers updated for %s repository',
+                'Triggers updated for %s repositories',
+                variables.repositoryIds.length
+              )
+            );
+          },
+        }
+      );
+    },
+    [mutateRepositorySettings, seerRepos]
+  );
 
   return (
     <FieldGroup
       title={
         <Flex justify="between" gap="md" flexGrow={1}>
-          <span>{t('Code Review')}</span>
+          <Flex align="center" gap="md">
+            <span>{t('Code Review')}</span>
+            <Button
+              size="zero"
+              priority="link"
+              icon={<IconRefresh size="xs" />}
+              aria-label={t('Reload repositories')}
+              onClick={() => refetch()}
+            />
+          </Flex>
           <Text uppercase={false}>
             <Link to={`/settings/${organization.slug}/seer/repos/`}>
               <Flex align="center" gap="xs">
@@ -79,40 +217,43 @@ export function CodeReviewOverviewSection({stats, isLoading}: Props) {
               </Container>
             </field.Layout.Row>
 
-            <Flex align="center" alignSelf="end" gap="md" width="50%" paddingLeft="md">
+            <Flex align="center" alignSelf="end" gap="md" width="50%" paddingLeft="xl">
               <Button
                 size="xs"
-                busy={isLoading}
+                busy={isPending}
                 disabled={
-                  !canWrite || stats.projectsWithReposCount === stats.totalProjects
+                  !canWrite ||
+                  (field.state.value
+                    ? reposWithCodeReviewCount === seerReposCount
+                    : seerReposCount - reposWithCodeReviewCount === seerReposCount)
                 }
                 onClick={() => {
-                  // TODO
+                  handleToggleCodeReview(field.state.value);
                 }}
               >
                 {field.state.value
                   ? tn(
                       'Enable for existing repo',
                       'Enable for all existing repos',
-                      stats.seerRepoCount - stats.reposWithCodeReviewCount
+                      seerReposCount - reposWithCodeReviewCount
                     )
                   : tn(
                       'Disable for the existing repo',
                       'Disable for all existing repos',
-                      stats.seerRepoCount - stats.reposWithCodeReviewCount
+                      reposWithCodeReviewCount
                     )}
               </Button>
               <Text variant="secondary" size="sm">
                 {field.state.value
                   ? t(
                       '%s of %s existing repos have code review enabled',
-                      stats.reposWithCodeReviewCount,
-                      stats.seerRepoCount
+                      reposWithCodeReviewCount,
+                      seerReposCount
                     )
                   : t(
                       '%s of %s existing repos have code review disabled',
-                      stats.seerRepoCount - stats.reposWithCodeReviewCount,
-                      stats.seerRepoCount
+                      seerReposCount - reposWithCodeReviewCount,
+                      seerReposCount
                     )}
               </Text>
             </Flex>
@@ -150,21 +291,19 @@ export function CodeReviewOverviewSection({stats, isLoading}: Props) {
                 />
               </Container>
             </field.Layout.Row>
-            <Flex align="center" alignSelf="end" gap="md" width="50%" paddingLeft="md">
+            <Flex align="center" alignSelf="end" gap="md" width="50%" paddingLeft="xl">
               <Button
                 size="xs"
-                busy={isLoading}
-                disabled={
-                  !canWrite || stats.projectsWithReposCount === stats.seerRepoCount
-                }
+                busy={isPending}
+                disabled={!canWrite}
                 onClick={() => {
-                  // TODO
+                  handleChangeTriggers(field.state.value);
                 }}
               >
                 {tn(
                   'Set for the existing repo',
                   'Set for all existing repos',
-                  stats.seerRepoCount
+                  seerReposCount
                 )}
               </Button>
             </Flex>

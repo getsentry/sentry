@@ -831,6 +831,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             span=request.GET.getlist("spanQuery"),
             log=request.GET.getlist("logQuery"),
             metric=request.GET.getlist("metricQuery"),
+            occurrences=request.GET.getlist("occurrencesQuery"),
         )
 
 
