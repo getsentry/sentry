@@ -18,7 +18,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {slugify} from 'sentry/utils/slugify';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
-import {useCreateNotificationAction} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {
   DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
   getRequestDataFragment,
@@ -37,8 +36,6 @@ export function ScmProjectDetails({onComplete}: StepProps) {
     useOnboardingContext();
   const {teams} = useTeams();
   const createProjectAndRules = useCreateProjectAndRules();
-  const {createNotificationAction, notificationProps} = useCreateNotificationAction();
-
   useEffect(() => {
     trackAnalytics('onboarding.scm_project_details_step_viewed', {organization});
   }, [organization]);
@@ -97,7 +94,7 @@ export function ScmProjectDetails({onComplete}: StepProps) {
         platform: selectedPlatform,
         team: teamSlugResolved,
         alertRuleConfig: getRequestDataFragment(alertRuleConfig),
-        createNotificationAction,
+        createNotificationAction: () => undefined,
       });
 
       // Store the project slug separately so onboarding.tsx can find
@@ -124,7 +121,6 @@ export function ScmProjectDetails({onComplete}: StepProps) {
     projectNameResolved,
     teamSlugResolved,
     alertRuleConfig,
-    createNotificationAction,
     selectedFeatures,
     setCreatedProjectSlug,
     onComplete,
@@ -205,11 +201,7 @@ export function ScmProjectDetails({onComplete}: StepProps) {
             <Text variant="muted" size="lg" density="comfortable" align="center">
               {t('Get notified when things go wrong')}
             </Text>
-            <ScmAlertFrequency
-              {...alertRuleConfig}
-              onFieldChange={handleAlertChange}
-              notificationProps={notificationProps}
-            />
+            <ScmAlertFrequency {...alertRuleConfig} onFieldChange={handleAlertChange} />
           </Stack>
         </MotionStack>
 
