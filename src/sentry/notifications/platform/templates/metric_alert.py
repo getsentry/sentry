@@ -10,6 +10,7 @@ from sentry.incidents.typings.metric_detector import (
     MetricIssueContext,
     OpenPeriodContext,
 )
+from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.notifications.platform.registry import template_registry
@@ -107,36 +108,23 @@ class SerializableOpenPeriodContext(BaseModel):
         )
 
 
-class MetricAlertNotificationData(NotificationData):
-    source: NotificationSource = NotificationSource.METRIC_ALERT
+class BaseMetricAlertNotificationData(NotificationData):
+    """
+    Shared fields and properties for metric alert notification data.
 
-    # For re-fetching GroupEvent via eventstore (MetricIssueContext has ORM instances)
-    event_id: str
-    project_id: int
+    Subclasses differ only in how they source MetricIssueContext
+    - MetricAlertNotificationData: re-fetches GroupEvent from Snuba
+    - ActivityMetricAlertNotificationData: re-fetches Activity
+    """
+
     group_id: int
-
-    # For feature flag check(chartcuterie) + message builder
     organization_id: int
-    # To rebuild the contexts
     detector_id: int
 
-    # Pre-computed serializable contexts
     alert_context: SerializableAlertContext
     open_period_context: SerializableOpenPeriodContext
 
     notification_uuid: str
-
-    @property
-    def event(self) -> GroupEvent:
-        event = eventstore.backend.get_event_by_id(
-            self.project_id, self.event_id, group_id=self.group_id
-        )
-        if event is None:
-            raise ValueError(f"Event {self.event_id} not found")
-        elif not isinstance(event, GroupEvent):
-            raise ValueError(f"Event {self.event_id} is not a GroupEvent")
-
-        return event
 
     @property
     def organization(self) -> Organization:
@@ -166,19 +154,66 @@ class MetricAlertNotificationData(NotificationData):
 
         return get_detector_serializer(self.detector)
 
-    @classmethod
-    def get_metric_issue_context(cls, event: GroupEvent) -> MetricIssueContext:
+    def build_metric_issue_context(self) -> MetricIssueContext:
+        raise NotImplementedError
+
+
+class MetricAlertNotificationData(BaseMetricAlertNotificationData):
+    source: NotificationSource = NotificationSource.METRIC_ALERT
+
+    event_id: str
+    project_id: int
+
+    @property
+    def event(self) -> GroupEvent:
+        event = eventstore.backend.get_event_by_id(
+            self.project_id, self.event_id, group_id=self.group_id
+        )
+        if event is None:
+            raise ValueError(f"Event {self.event_id} not found")
+        elif not isinstance(event, GroupEvent):
+            raise ValueError(f"Event {self.event_id} is not a GroupEvent")
+
+        return event
+
+    def build_metric_issue_context(self) -> MetricIssueContext:
         from sentry.notifications.notification_action.types import BaseMetricAlertHandler
 
+        event = self.event
         evidence_data, priority = BaseMetricAlertHandler._extract_from_group_event(event)
         return MetricIssueContext.from_group_event(event.group, evidence_data, priority)
+
+
+class ActivityMetricAlertNotificationData(BaseMetricAlertNotificationData):
+    source: NotificationSource = NotificationSource.ACTIVITY_METRIC_ALERT
+
+    activity_id: int
+
+    @property
+    def activity(self) -> Activity:
+        return Activity.objects.get(id=self.activity_id)
+
+    def build_metric_issue_context(self) -> MetricIssueContext:
+        from sentry.notifications.notification_action.types import BaseMetricAlertHandler
+
+        evidence_data, priority = BaseMetricAlertHandler._extract_from_activity(self.activity)
+        return MetricIssueContext.from_group_event(self.group, evidence_data, priority)
+
+
+_EXAMPLE_ALERT_CONTEXT = SerializableAlertContext(
+    name="Example Alert",
+    action_identifier_id=1,
+    detection_type="static",
+)
+_EXAMPLE_OPEN_PERIOD_CONTEXT = SerializableOpenPeriodContext(
+    id=1,
+    date_started=datetime(2024, 1, 1, 0, 0, 0),
+)
 
 
 @template_registry.register(NotificationSource.METRIC_ALERT)
 class MetricAlertNotificationTemplate(NotificationTemplate[MetricAlertNotificationData]):
     category = NotificationCategory.METRIC_ALERT
-    # hide_from_debugger because this template uses a custom renderer that bypasses
-    # the standard NotificationRenderedTemplate rendering path so wouldn't load correctly in the debugger.
     hide_from_debugger = True
     example_data = MetricAlertNotificationData(
         event_id="abc123",
@@ -186,21 +221,30 @@ class MetricAlertNotificationTemplate(NotificationTemplate[MetricAlertNotificati
         group_id=1,
         organization_id=1,
         detector_id=1,
-        alert_context=SerializableAlertContext(
-            name="Example Alert",
-            action_identifier_id=1,
-            detection_type="static",
-        ),
-        open_period_context=SerializableOpenPeriodContext(
-            id=1,
-            date_started=datetime(2024, 1, 1, 0, 0, 0),
-        ),
+        alert_context=_EXAMPLE_ALERT_CONTEXT,
+        open_period_context=_EXAMPLE_OPEN_PERIOD_CONTEXT,
         notification_uuid="test-uuid",
     )
 
     def render(self, data: MetricAlertNotificationData) -> NotificationRenderedTemplate:
-        # The actual rendering is handled by the provider-specific custom renderer
-        # (e.g. SlackMetricAlertRenderer), which rebuilds MetricIssueContext from the
-        # re-fetched GroupEvent and builds the full payload via SlackIncidentsMessageBuilder.
-        # This method returns a minimal fallback for providers without a custom renderer.
+        return NotificationRenderedTemplate(subject="Metric Alert", body=[])
+
+
+@template_registry.register(NotificationSource.ACTIVITY_METRIC_ALERT)
+class ActivityMetricAlertNotificationTemplate(
+    NotificationTemplate[ActivityMetricAlertNotificationData]
+):
+    category = NotificationCategory.METRIC_ALERT
+    hide_from_debugger = True
+    example_data = ActivityMetricAlertNotificationData(
+        group_id=1,
+        organization_id=1,
+        detector_id=1,
+        alert_context=_EXAMPLE_ALERT_CONTEXT,
+        open_period_context=_EXAMPLE_OPEN_PERIOD_CONTEXT,
+        notification_uuid="test-uuid",
+        activity_id=1,
+    )
+
+    def render(self, data: ActivityMetricAlertNotificationData) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(subject="Metric Alert", body=[])

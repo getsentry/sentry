@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+from dataclasses import asdict
 from datetime import datetime, timezone
+from typing import Any
 
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
+from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import AlertContext, OpenPeriodContext
+from sentry.models.activity import Activity
 from sentry.notifications.platform.templates.metric_alert import (
+    ActivityMetricAlertNotificationData,
+    ActivityMetricAlertNotificationTemplate,
     MetricAlertNotificationData,
     MetricAlertNotificationTemplate,
     SerializableAlertContext,
@@ -13,31 +19,31 @@ from sentry.notifications.platform.templates.metric_alert import (
 from sentry.notifications.platform.types import NotificationRenderedTemplate, NotificationSource
 from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
 from sentry.testutils.cases import TestCase
+from sentry.types.activity import ActivityType
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
     MetricAlertHandlerBase,
 )
 
 
-def _make_notification_data(**overrides: object) -> MetricAlertNotificationData:
-    """Build a minimal MetricAlertNotificationData with sensible defaults."""
-    defaults: dict[str, object] = dict(
-        event_id="abc123",
-        project_id=1,
-        group_id=1,
-        organization_id=1,
-        detector_id=1,
-        alert_context=SerializableAlertContext(
+def _make_notification_data(**overrides: Any) -> MetricAlertNotificationData:
+    defaults = {
+        "event_id": "abc123",
+        "project_id": 1,
+        "group_id": 1,
+        "organization_id": 1,
+        "detector_id": 1,
+        "alert_context": SerializableAlertContext(
             name="Test Alert",
             action_identifier_id=1,
             detection_type="static",
         ),
-        open_period_context=SerializableOpenPeriodContext(
+        "open_period_context": SerializableOpenPeriodContext(
             id=1,
             date_started=datetime(2024, 1, 1, tzinfo=timezone.utc),
         ),
-        notification_uuid="test-uuid",
-    )
+        "notification_uuid": "test-uuid",
+    }
     defaults.update(overrides)
     return MetricAlertNotificationData(**defaults)
 
@@ -179,6 +185,63 @@ class MetricAlertNotificationDataTest(TestCase):
         assert restored.source == NotificationSource.METRIC_ALERT
 
 
+def _make_activity_notification_data(**overrides: Any) -> ActivityMetricAlertNotificationData:
+    defaults = {
+        "group_id": 1,
+        "organization_id": 1,
+        "detector_id": 1,
+        "alert_context": SerializableAlertContext(
+            name="Test Alert",
+            action_identifier_id=1,
+            detection_type="static",
+        ),
+        "open_period_context": SerializableOpenPeriodContext(
+            id=1,
+            date_started=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        ),
+        "activity_id": 1,
+        "notification_uuid": "test-uuid",
+    }
+    defaults.update(overrides)
+    return ActivityMetricAlertNotificationData(**defaults)
+
+
+class ActivityMetricAlertNotificationDataTest(TestCase):
+    def test_source(self) -> None:
+        data = _make_activity_notification_data()
+        assert data.source == NotificationSource.ACTIVITY_METRIC_ALERT
+
+    def test_pydantic_serialization_round_trip(self) -> None:
+        original = _make_activity_notification_data(
+            group_id=10,
+            organization_id=20,
+            detector_id=30,
+            notification_uuid="activity-uuid",
+        )
+
+        as_dict = original.dict()
+        restored = ActivityMetricAlertNotificationData.validate(as_dict)
+
+        assert restored.group_id == original.group_id
+        assert restored.organization_id == original.organization_id
+        assert restored.detector_id == original.detector_id
+        assert restored.notification_uuid == original.notification_uuid
+        assert restored.activity_id == original.activity_id
+        assert restored.source == NotificationSource.ACTIVITY_METRIC_ALERT
+
+
+class ActivityMetricAlertNotificationTemplateTest(TestCase):
+    def test_render_returns_minimal_rendered_template(self) -> None:
+        template = ActivityMetricAlertNotificationTemplate()
+        data = _make_activity_notification_data()
+
+        result = template.render(data)
+
+        assert isinstance(result, NotificationRenderedTemplate)
+        assert result.subject == "Metric Alert"
+        assert result.body == []
+
+
 class MetricAlertNotificationDataContextsTest(MetricAlertHandlerBase):
     def setUp(self) -> None:
         super().setUp()
@@ -200,6 +263,40 @@ class MetricAlertNotificationDataContextsTest(MetricAlertHandlerBase):
         assert restored.threshold_type == alert_context.threshold_type
         assert restored.comparison_delta == alert_context.comparison_delta
 
+    def test_activity_build_metric_issue_context_uses_ok_priority(self) -> None:
+        activity = Activity(
+            project=self.project,
+            group=self.group,
+            type=ActivityType.SET_RESOLVED.value,
+            data=asdict(self.evidence_data),
+        )
+        activity.save()
+
+        open_period_context = OpenPeriodContext.from_group(self.group)
+        alert_context = AlertContext.from_workflow_engine_models(
+            self.detector,
+            self.evidence_data,
+            self.group.status,
+            DetectorPriorityLevel.HIGH,
+        )
+        data = ActivityMetricAlertNotificationData(
+            group_id=self.group.id,
+            organization_id=self.organization.id,
+            detector_id=self.detector.id,
+            alert_context=SerializableAlertContext.from_alert_context(alert_context),
+            open_period_context=SerializableOpenPeriodContext.from_open_period_context(
+                open_period_context
+            ),
+            activity_id=activity.id,
+            notification_uuid="test-uuid",
+        )
+
+        context = data.build_metric_issue_context()
+
+        # Activity path always uses DetectorPriorityLevel.OK → IncidentStatus.CLOSED
+        assert context.new_status == IncidentStatus.CLOSED
+        assert context.metric_value == self.evidence_data.value
+
     def test_open_period_context_round_trips_from_real_group(self) -> None:
         open_period_context = OpenPeriodContext.from_group(self.group)
         serialized = SerializableOpenPeriodContext.from_open_period_context(open_period_context)
@@ -211,9 +308,6 @@ class MetricAlertNotificationDataContextsTest(MetricAlertHandlerBase):
 
 
 class MetricAlertNotificationTemplateTest(TestCase):
-    def test_hide_from_debugger_is_true(self) -> None:
-        assert MetricAlertNotificationTemplate.hide_from_debugger is True
-
     def test_render_returns_minimal_rendered_template(self) -> None:
         template = MetricAlertNotificationTemplate()
         data = _make_notification_data()
@@ -223,11 +317,3 @@ class MetricAlertNotificationTemplateTest(TestCase):
         assert isinstance(result, NotificationRenderedTemplate)
         assert result.subject == "Metric Alert"
         assert result.body == []
-
-    def test_render_example_returns_rendered_template(self) -> None:
-        template = MetricAlertNotificationTemplate()
-
-        result = template.render_example()
-
-        assert isinstance(result, NotificationRenderedTemplate)
-        assert result.subject == "Metric Alert"

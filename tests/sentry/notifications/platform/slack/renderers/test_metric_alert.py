@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import asdict
 from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -7,9 +8,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from sentry.incidents.typings.metric_detector import AlertContext, OpenPeriodContext
+from sentry.models.activity import Activity
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider
 from sentry.notifications.platform.slack.renderers.metric_alert import SlackMetricAlertRenderer
 from sentry.notifications.platform.templates.metric_alert import (
+    ActivityMetricAlertNotificationData,
     MetricAlertNotificationData,
     SerializableAlertContext,
     SerializableOpenPeriodContext,
@@ -21,6 +24,7 @@ from sentry.notifications.platform.types import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.types.activity import ActivityType
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
     MetricAlertHandlerBase,
@@ -186,3 +190,72 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
         blocks: list[Any] = result["blocks"]
         assert len(blocks) == 1
         assert blocks[0]["type"] == "section"
+
+
+class SlackActivityMetricAlertRendererTest(MetricAlertHandlerBase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.create_models()
+
+        activity = Activity(
+            project=self.project,
+            group=self.group,
+            type=ActivityType.SET_RESOLVED.value,
+            data=asdict(self.evidence_data),
+        )
+        activity.save()
+
+        alert_context = AlertContext.from_workflow_engine_models(
+            self.detector,
+            self.evidence_data,
+            self.group.status,
+            DetectorPriorityLevel.HIGH,
+        )
+        open_period_context = OpenPeriodContext.from_group(self.group)
+
+        self.notification_data = ActivityMetricAlertNotificationData(
+            group_id=self.group.id,
+            organization_id=self.organization.id,
+            detector_id=self.detector.id,
+            alert_context=SerializableAlertContext.from_alert_context(alert_context),
+            open_period_context=SerializableOpenPeriodContext.from_open_period_context(
+                open_period_context
+            ),
+            activity_id=activity.id,
+            notification_uuid="test-uuid",
+        )
+        self.rendered_template = NotificationRenderedTemplate(subject="Metric Alert", body=[])
+
+    def test_render_produces_blocks_without_snuba(self) -> None:
+        # The Activity path re-fetches from Postgres only (no Snuba) — no eventstore mock needed
+        result = SlackMetricAlertRenderer.render(
+            data=self.notification_data,
+            rendered_template=self.rendered_template,
+        )
+
+        blocks: list[Any] = result["blocks"]
+        assert len(blocks) == 1
+        assert blocks[0]["type"] == "section"
+        assert blocks[0]["text"]["type"] == "mrkdwn"
+        # "Resolved" appears in the fallback title (result["text"]), not the metric body block
+        assert "Resolved" in result["text"]
+        assert self.detector.name in result["text"]
+
+    @patch(
+        "sentry.notifications.platform.slack.renderers.metric_alert.build_metric_alert_chart",
+        return_value=MOCK_CHART_URL,
+    )
+    @with_feature({"organizations:metric-alert-chartcuterie": True})
+    def test_render_includes_image_block_when_chart_enabled(self, mock_chart: MagicMock) -> None:
+        result = SlackMetricAlertRenderer.render(
+            data=self.notification_data,
+            rendered_template=self.rendered_template,
+        )
+
+        blocks: list[Any] = result["blocks"]
+        assert len(blocks) == 2
+        assert blocks[0]["type"] == "section"
+        assert "Resolved" in result["text"]
+        assert blocks[1]["type"] == "image"
+        assert blocks[1]["image_url"] == MOCK_CHART_URL
+        assert blocks[1]["alt_text"] == "Metric Alert Chart"

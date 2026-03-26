@@ -7,7 +7,7 @@ from sentry.incidents.charts import build_metric_alert_chart
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
-from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
+from sentry.notifications.platform.templates.metric_alert import BaseMetricAlertNotificationData
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -22,15 +22,13 @@ class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
     def render[DataT: NotificationData](
         cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
     ) -> SlackRenderable:
-        if not isinstance(data, MetricAlertNotificationData):
+        if not isinstance(data, BaseMetricAlertNotificationData):
             raise ValueError(f"SlackMetricAlertRenderer does not support {data.__class__.__name__}")
 
-        # Re-fetch GroupEvent — needed to rebuild MetricIssueContext
-        event = data.event
         organization = data.organization
 
-        # Rebuild MetricIssueContext (the only context that holds ORM instances)
-        metric_issue_context = MetricAlertNotificationData.get_metric_issue_context(event)
+        # Rebuild MetricIssueContext — each subclass implements this differently
+        metric_issue_context = data.build_metric_issue_context()
 
         # Deserialize pre-computed contexts (no Action/Detector/GroupOpenPeriod re-queries)
         alert_context = data.alert_context.to_alert_context()
