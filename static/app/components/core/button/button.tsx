@@ -76,10 +76,13 @@ export function Button({
             as="span"
             align="center"
             style={{
-              transition: busy ? theme.motion.smooth.fast : theme.motion.exit.fast,
-              transitionProperty: 'opacity, transform',
+              transition: busy
+                ? `opacity ${theme.motion.smooth.fast}, transform ${theme.motion.smooth.fast}`
+                : `opacity ${theme.motion.exit.fast}, transform ${theme.motion.exit.fast}`,
               opacity: busy ? 0 : 1,
-              transform: busy ? `translateY(${theme.space['2xs']})` : 'translateY(0)',
+              transform: busy
+                ? `translateY(${theme.space['2xs']}) scale(0.95)`
+                : 'translateY(0) scale(1)',
             }}
           >
             {props.icon && (
@@ -111,10 +114,13 @@ export function Button({
               inset="0"
               style={{
                 marginInline: '-4px',
-                transition: busy ? theme.motion.exit.fast : theme.motion.smooth.fast,
-                transitionProperty: 'opacity, transform',
+                transition: busy
+                  ? `opacity ${theme.motion.exit.fast}, transform ${theme.motion.exit.fast}`
+                  : `opacity ${theme.motion.smooth.fast}, transform ${theme.motion.smooth.fast}`,
                 opacity: busy ? 1 : 0,
-                transform: busy ? 'translateY(0)' : `translateY(-${theme.space['2xs']})`,
+                transform: busy
+                  ? 'translateY(0) scale(1)'
+                  : `translateY(-${theme.space['2xs']}) scale(0.95)`,
                 pointerEvents: busy ? undefined : 'none',
               }}
             >
