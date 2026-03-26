@@ -29,7 +29,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.users.services.user.service import user_service
 
 
-class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
+class CellRunScheduleDeletionTest(abc.ABC, TestCase):
     __test__ = Abstract(__module__, __qualname__)
 
     @property
@@ -209,7 +209,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
         assert not self.ScheduledDeletion.objects.filter(id=schedule.id).exists()
 
 
-class RunCellScheduledDeletionTest(RegionalRunScheduleDeletionTest):
+class RunCellScheduledDeletionTest(CellRunScheduleDeletionTest):
     @property
     def ScheduledDeletion(self) -> type[BaseScheduledDeletion]:
         return CellScheduledDeletion
@@ -236,7 +236,7 @@ class RunCellScheduledDeletionTest(RegionalRunScheduleDeletionTest):
 
 
 @control_silo_test
-class RunControlScheduledDeletionTest(RegionalRunScheduleDeletionTest):
+class RunControlScheduledDeletionTest(CellRunScheduleDeletionTest):
     @property
     def ScheduledDeletion(self) -> type[BaseScheduledDeletion]:
         return ScheduledDeletion

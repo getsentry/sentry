@@ -3,18 +3,24 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
+import {RepositoryFixture} from 'sentry-fixture/repository';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {
+  act,
   render,
   renderGlobalModal,
+  renderHookWithProviders,
   screen,
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
+import {
+  OnboardingContextProvider,
+  useOnboardingContext,
+} from 'sentry/components/onboarding/onboardingContext';
 import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRecentCreatedProject';
 import {OnboardingDrawerStore} from 'sentry/stores/onboardingDrawerStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -631,6 +637,15 @@ describe('Onboarding', () => {
       features: ['commits'],
     });
 
+    const nextJsPlatform = {
+      key: 'javascript-nextjs' as PlatformKey,
+      type: 'framework' as const,
+      language: 'javascript' as const,
+      category: 'browser' as const,
+      name: 'Next.js',
+      link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/',
+    };
+
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/organizations/${scmOrganization.slug}/config/integrations/`,
@@ -714,9 +729,8 @@ describe('Onboarding', () => {
 
       // Should auto-select the existing integration and show connected view
       expect(
-        await screen.findByText('Connected to github.com/getsentry')
+        await screen.findByText('Connected to GitHub org getsentry')
       ).toBeInTheDocument();
-      expect(screen.getByRole('link', {name: 'Manage in Settings'})).toBeInTheDocument();
     });
 
     it('skip for now advances to next step without skipping onboarding', async () => {
@@ -761,18 +775,7 @@ describe('Onboarding', () => {
 
     it('renders scm-project-details step with project details form', () => {
       render(
-        <OnboardingContextProvider
-          initialValue={{
-            selectedPlatform: {
-              key: 'javascript-nextjs' as PlatformKey,
-              type: 'framework',
-              language: 'javascript',
-              category: 'browser',
-              name: 'Next.js',
-              link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/',
-            },
-          }}
-        >
+        <OnboardingContextProvider initialValue={{selectedPlatform: nextJsPlatform}}>
           <OnboardingWithoutContext />
         </OnboardingContextProvider>,
         {
@@ -829,14 +832,7 @@ describe('Onboarding', () => {
       });
 
       const initialContext = {
-        selectedPlatform: {
-          key: nextJsProject.slug as PlatformKey,
-          type: 'framework',
-          language: 'javascript',
-          category: 'browser',
-          name: 'Next.js',
-          link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/',
-        },
+        selectedPlatform: nextJsPlatform,
         selectedFeatures: [ProductSolution.ERROR_MONITORING],
       };
 
@@ -870,6 +866,55 @@ describe('Onboarding', () => {
       expect(stored.selectedFeatures).toBeDefined();
       // createdProjectSlug should be cleared so the user can re-create
       expect(stored.createdProjectSlug).toBeUndefined();
+    });
+
+    it('clears derived state but preserves integration and repo on repo change', () => {
+      const initialContext = {
+        selectedIntegration: OrganizationIntegrationsFixture({
+          id: '1',
+          provider: {
+            key: 'github',
+            slug: 'github',
+            name: 'GitHub',
+            canAdd: true,
+            canDisable: false,
+            features: ['commits'],
+            aspects: {},
+          },
+        }),
+        selectedRepository: RepositoryFixture({
+          id: '42',
+          name: 'getsentry/sentry',
+          externalSlug: 'getsentry/sentry',
+        }),
+        selectedPlatform: nextJsPlatform,
+        selectedFeatures: [ProductSolution.ERROR_MONITORING],
+        createdProjectSlug: 'javascript-nextjs',
+      };
+
+      sessionStorage.setItem('onboarding', JSON.stringify(initialContext));
+
+      const {result} = renderHookWithProviders(() => useOnboardingContext(), {
+        organization: scmOrganization,
+        additionalWrapper: ({children}) => (
+          <OnboardingContextProvider initialValue={initialContext}>
+            {children}
+          </OnboardingContextProvider>
+        ),
+      });
+
+      act(() => {
+        result.current.clearDerivedState();
+      });
+
+      const stored = JSON.parse(sessionStorage.getItem('onboarding') ?? '{}');
+      // Derived state should be cleared
+      expect(stored.selectedPlatform).toBeUndefined();
+      expect(stored.selectedFeatures).toBeUndefined();
+      expect(stored.createdProjectSlug).toBeUndefined();
+      // Integration and repo should be preserved
+      expect(stored.selectedIntegration).toBeDefined();
+      expect(stored.selectedRepository).toBeDefined();
     });
 
     it('navigates back from scm-connect to welcome', async () => {

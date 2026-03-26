@@ -6,6 +6,7 @@ from sentry.search.eap.occurrences.attributes import (
     OCCURRENCE_ATTRIBUTE_DEFINITIONS,
     OCCURRENCE_VIRTUAL_CONTEXTS,
 )
+from sentry.search.eap.occurrences.filter_aliases import OCCURRENCE_FILTER_ALIASES
 from sentry.search.eap.occurrences.formulas import OCCURRENCE_FORMULA_DEFINITIONS
 
 OCCURRENCE_DEFINITIONS = ColumnDefinitions(
@@ -14,7 +15,7 @@ OCCURRENCE_DEFINITIONS = ColumnDefinitions(
     columns=OCCURRENCE_ATTRIBUTE_DEFINITIONS,
     contexts=OCCURRENCE_VIRTUAL_CONTEXTS,
     trace_item_type=TraceItemType.TRACE_ITEM_TYPE_OCCURRENCE,
-    filter_aliases={},
+    filter_aliases=OCCURRENCE_FILTER_ALIASES,
     alias_to_column=None,
     column_to_alias=None,
 )
