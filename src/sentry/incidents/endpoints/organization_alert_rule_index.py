@@ -3,6 +3,7 @@ from collections.abc import Sequence
 from copy import deepcopy
 from datetime import UTC, datetime
 
+from django.db import connections, router, transaction
 from django.db.models import (
     Case,
     DateTimeField,
@@ -515,33 +516,45 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 ),
             )
 
-        # Build intermediaries for pagination
-        intermediaries: list[CombinedQuerysetIntermediary] = []
-
         def has_type(rule_type: str) -> bool:
             return not type_filter or rule_type in type_filter
 
-        if has_type("alert_rule"):
-            intermediaries.append(CombinedQuerysetIntermediary(metric_detectors, sort_key))
-        if has_type("rule"):
-            intermediaries.append(CombinedQuerysetIntermediary(issue_workflows, sort_key))
-        if has_type("uptime"):
-            intermediaries.append(CombinedQuerysetIntermediary(uptime_rules, sort_key))
-        if has_type("monitor"):
-            intermediaries.append(CombinedQuerysetIntermediary(crons_rules, sort_key))
+        # Disable JIT for the combined paginator queries.
+        # The planner thinks our metric detector query is going to be very slow because DetectorGroup
+        # in general has many Groups per Detector, even though for metrics detectors (our case here) it's effectively
+        # one-to-one.
+        # It decides to spend ~400ms JITing the query, thinking it is justified due to the bulk of the data, but it is
+        # wrong. What's worse, we send this query twice, and pay for the JIT twice.
+        # Disabling it makes this endpoint considerably faster.
+        # The risk of other regression here should be low; our API endpoint isn't generally doing the sort of bulk
+        # work that benefits from JIT.
+        db = router.db_for_write(Detector)
+        with transaction.atomic(using=db):
+            with connections[db].cursor() as cursor:
+                cursor.execute("SET LOCAL jit = off")
 
-        response = self.paginate(
-            request,
-            paginator_cls=CombinedQuerysetPaginator,
-            on_results=lambda x: serialize(
-                x, request.user, WorkflowEngineCombinedRuleSerializer(expand=expand)
-            ),
-            default_per_page=25,
-            intermediaries=intermediaries,
-            desc=not is_asc,
-            cursor_cls=StringCursor if case_insensitive else Cursor,
-            case_insensitive=case_insensitive,
-        )
+            intermediaries: list[CombinedQuerysetIntermediary] = []
+            if has_type("alert_rule"):
+                intermediaries.append(CombinedQuerysetIntermediary(metric_detectors, sort_key))
+            if has_type("rule"):
+                intermediaries.append(CombinedQuerysetIntermediary(issue_workflows, sort_key))
+            if has_type("uptime"):
+                intermediaries.append(CombinedQuerysetIntermediary(uptime_rules, sort_key))
+            if has_type("monitor"):
+                intermediaries.append(CombinedQuerysetIntermediary(crons_rules, sort_key))
+
+            response = self.paginate(
+                request,
+                paginator_cls=CombinedQuerysetPaginator,
+                on_results=lambda x: serialize(
+                    x, request.user, WorkflowEngineCombinedRuleSerializer(expand=expand)
+                ),
+                default_per_page=25,
+                intermediaries=intermediaries,
+                desc=not is_asc,
+                cursor_cls=StringCursor if case_insensitive else Cursor,
+                case_insensitive=case_insensitive,
+            )
         response[MAX_QUERY_SUBSCRIPTIONS_HEADER] = get_max_metric_alert_subscriptions(organization)
         return response
 
