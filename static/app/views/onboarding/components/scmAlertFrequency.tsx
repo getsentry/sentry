@@ -46,8 +46,8 @@ function AlertOptionCard({
   children,
 }: AlertOptionCardProps) {
   return (
-    <Stack gap="md">
-      <ScmCardButton role="radio" aria-checked={isSelected} onClick={onSelect}>
+    <ScmCardButton aria-checked={isSelected} onClick={onSelect}>
+      <Stack gap="md">
         <Container
           border={isSelected ? 'accent' : 'secondary'}
           padding="lg"
@@ -71,9 +71,9 @@ function AlertOptionCard({
             </Flex>
           </Flex>
         </Container>
-      </ScmCardButton>
-      {children}
-    </Stack>
+        {children}
+      </Stack>
+    </ScmCardButton>
   );
 }
 
