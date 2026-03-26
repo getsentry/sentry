@@ -74,12 +74,32 @@ export function useScmRepoSelection({
     const optimistic = buildOptimisticRepo(repo, integration);
     onSelect(optimistic);
 
-    // Always try POST first. If the background link_all_repos task already
-    // created this repo, the POST will fail and we fall back to fetching
-    // the existing record. This avoids relying on a potentially stale cache
-    // that may not have caught up with the background task yet.
+    // Check if the repo already exists in Sentry (e.g. created by the
+    // background link_all_repos task or a previous session). Use a targeted
+    // query filtered by name to avoid pagination issues with the full list.
     setBusy(true);
     try {
+      const api = new Client();
+      const matches = await api.requestPromise(
+        `/organizations/${organization.slug}/repos/`,
+        {
+          query: {
+            status: 'active',
+            integration_id: integration.id,
+            query: repo.identifier,
+          },
+        }
+      );
+      const existing = (matches as Repository[])?.find(
+        r => r.externalSlug === repo.identifier
+      );
+
+      if (existing) {
+        onSelect({...optimistic, ...existing});
+        return;
+      }
+
+      // Repo not found — create it.
       const created = await fetchMutation<Repository>({
         url: `/organizations/${organization.slug}/repos/`,
         method: 'POST',
@@ -92,32 +112,7 @@ export function useScmRepoSelection({
       onSelect({...optimistic, ...created});
       addedRepoIdRef.current = created.id;
     } catch {
-      // POST failed — likely because the repo already exists (created by
-      // link_all_repos or a previous session). Query for it by name to
-      // avoid pagination issues with the full repo list.
-      try {
-        const api = new Client();
-        const matches = await api.requestPromise(
-          `/organizations/${organization.slug}/repos/`,
-          {
-            query: {
-              status: 'active',
-              integration_id: integration.id,
-              query: repo.identifier,
-            },
-          }
-        );
-        const existing = (matches as Repository[])?.find(
-          r => r.externalSlug === repo.identifier
-        );
-        if (existing) {
-          onSelect({...optimistic, ...existing});
-        } else {
-          onSelect(undefined);
-        }
-      } catch {
-        onSelect(undefined);
-      }
+      onSelect(undefined);
     } finally {
       setBusy(false);
     }
