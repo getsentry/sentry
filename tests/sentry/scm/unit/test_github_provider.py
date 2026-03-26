@@ -48,11 +48,13 @@ class FakeResponse:
         payload: Any,
         *,
         headers: dict[str, str] | None = None,
+        status_code: int | None = None,
         text: str | None = None,
         url: str = "",
     ) -> None:
         self._payload = payload
         self.headers = headers or {}
+        self.status_code = status_code
         self.text = text if text is not None else ""
         self.url = url
 
@@ -735,6 +737,7 @@ ACTION_CASES: list[dict[str, Any]] = [
         "name": "get_archive_link",
         "id": "get_archive_link_tarball",
         "operation": "get",
+        "status_code": 302,
         "kwargs": {"ref": "main"},
         "path": "/repos/test-org/test-repo/tarball/main",
         "headers": {
@@ -750,6 +753,7 @@ ACTION_CASES: list[dict[str, Any]] = [
         "name": "get_archive_link",
         "id": "get_archive_link_zip",
         "operation": "get",
+        "status_code": 302,
         "kwargs": {"ref": "main", "archive_format": "zip"},
         "path": "/repos/test-org/test-repo/zipball/main",
         "headers": {
@@ -874,7 +878,10 @@ def test_paginated_methods(case: dict[str, Any]) -> None:
 @pytest.mark.parametrize("case", ACTION_CASES)
 def test_action_methods(case: dict[str, Any]) -> None:
     provider, client = make_provider()
-    client.queue(case["operation"], FakeResponse(case["raw"], headers=case.get("headers")))
+    client.queue(
+        case["operation"],
+        FakeResponse(case["raw"], headers=case.get("headers"), status_code=case.get("status_code")),
+    )
 
     result = getattr(provider, case["name"])(**case["kwargs"])
 
