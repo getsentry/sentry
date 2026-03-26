@@ -159,6 +159,7 @@ export const NOTIFICATION_SETTING_FIELDS = {
     choices: [
       ['email', t('Email')],
       ['slack', t('Slack')],
+      ['slack-staging', t('Slack (Staging)')],
       ['msteams', t('Microsoft Teams')],
     ],
     help: t('Where personal notifications will be sent.'),

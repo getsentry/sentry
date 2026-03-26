@@ -39,7 +39,7 @@ class SlackStagingIntegrationProvider(SlackIntegrationProvider):
         )
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
-        production_integration = self.build_integration(state=state)
+        production_integration = super().build_integration(state=state)
         production_integration["user_identity"]["type"] = (
             IntegrationProviderSlug.SLACK_STAGING.value
         )
