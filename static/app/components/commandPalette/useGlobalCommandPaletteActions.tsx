@@ -209,16 +209,15 @@ function useNavigationActions(): CommandPaletteAction[] {
       }))
     );
 
-  const projectSettingsChildren: CommandPaletteActionChild[] =
-    organization.features.includes('cmd-k-supercharged')
-      ? projects.map(project => ({
-          display: {
-            label: project.name,
-            icon: <ProjectAvatar project={project} size={16} />,
-          },
-          to: `/settings/${slug}/projects/${project.slug}/`,
-        }))
-      : [];
+  const projectSettingsChildren: CommandPaletteActionChild[] = projects.map(project =>
+    makeCommandPaletteLink({
+      display: {
+        label: project.name,
+        icon: <ProjectAvatar project={project} size={16} />,
+      },
+      to: `/settings/${slug}/projects/${project.slug}/`,
+    })
+  );
 
   return [
     {
@@ -261,18 +260,16 @@ function useNavigationActions(): CommandPaletteAction[] {
         icon: <IconSettings />,
       },
       actions: settingsChildren,
-    },
-    organization.features.includes('cmd-k-supercharged')
-      ? {
-          groupingKey: 'navigate',
-          display: {
-            label: t('Project Settings'),
-            icon: <IconSettings />,
-          },
-          actions: projectSettingsChildren,
-        }
-      : null,
-  ].filter(x => x !== null) as CommandPaletteAction[];
+    }),
+    makeCommandPaletteGroup({
+      groupingKey: 'navigate',
+      display: {
+        label: t('Project Settings'),
+        icon: <IconSettings />,
+      },
+      actions: projectSettingsChildren,
+    }),
+  ];
 }
 
 function useNavigationToggleCollapsed(): CommandPaletteAction {
