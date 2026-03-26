@@ -40,7 +40,8 @@ function addKeysToChildActions(
 ): Array<CommandPaletteActionLinkWithKey | CommandPaletteActionCallbackWithKey> {
   return actions.map(action => {
     const label = action.display.label.toLowerCase().replace(/ /g, '-');
-    const disambiguator = action.type === 'navigate' ? `:${action.to}` : '';
+    const disambiguator =
+      action.type === 'navigate' ? `:${JSON.stringify(action.to)}` : '';
     const actionKey = `${id}:${action.type}:${label}${disambiguator}`;
     return {
       ...action,
