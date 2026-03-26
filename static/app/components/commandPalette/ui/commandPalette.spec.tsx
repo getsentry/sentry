@@ -259,7 +259,7 @@ describe('CommandPalette', () => {
         {
           display: {label: 'Group'},
           groupingKey: 'navigate',
-          actions: [{to: '/child/', display: {label: 'Issues child'}}],
+          actions: [{type: 'navigate', to: '/child/', display: {label: 'Issues child'}}],
         },
         {
           to: '/top/',

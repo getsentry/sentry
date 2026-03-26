@@ -116,6 +116,7 @@ export function CommandPalette(props: CommandPaletteProps) {
     children: sections.flatMap(({key: sectionKey, label, children}) => [
       <Item<CommandPaletteActionMenuItem & {hideCheck: boolean; label: string}>
         key={`section-${sectionKey}`}
+        textValue={label as string}
         {...{
           label: (
             <Text size="sm" bold variant="primary">
@@ -491,11 +492,6 @@ const StyledInputGroupInput = styled(InputGroup.Input)`
 `;
 
 const ResultsList = styled(Flex)`
-  ul {
-    padding: 0;
-    margin: 0;
-  }
-
   ul {
     padding: 0;
     margin: 0;
