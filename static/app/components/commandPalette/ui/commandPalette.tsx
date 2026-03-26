@@ -175,6 +175,7 @@ export function CommandPalette(props: CommandPaletteProps) {
       }
 
       if (action.type === 'group') {
+        analytics.recordGroupAction(action, resultIndex);
         dispatch({type: 'push action', action});
         return;
       }

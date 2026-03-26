@@ -37,6 +37,7 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
     resultIndex: number,
     group: string
   ) => void;
+  recordGroupAction: (action: CommandPaletteActionWithKey, resultIndex: number) => void;
 } {
   const organization = useOrganization();
   const state = useCommandPaletteState();
@@ -54,36 +55,6 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
   const completedRef = useRef(false);
   const maxDrillDepthRef = useRef(0);
   const hadInteractionRef = useRef(false);
-
-  // Track group drill-downs by watching state.action changes
-  const prevActionRef = useRef(state.action);
-  useEffect(() => {
-    const prev = prevActionRef.current;
-    const curr = state.action;
-    prevActionRef.current = curr;
-
-    // Detect a push (drill-down into a group)
-    if (curr !== null && curr !== prev && curr.previous === prev) {
-      const groupAction = curr.value.action;
-      actionsSelectedRef.current++;
-      hadInteractionRef.current = true;
-
-      const depth = getLinkedListDepth(curr);
-      if (depth > maxDrillDepthRef.current) {
-        maxDrillDepthRef.current = depth;
-      }
-
-      trackAnalytics('command_palette.action_selected', {
-        organization,
-        action: groupAction.display.label,
-        query: curr.value.query,
-        action_type: 'group',
-        group: groupAction.groupingKey ?? '',
-        result_index: -1,
-        session_id: sessionIdRef.current,
-      });
-    }
-  }, [state.action, organization]);
 
   // Track any query input as interaction immediately (not debounced)
   useEffect(() => {
@@ -194,6 +165,25 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
         hadInteractionRef.current = true;
         actionsSelectedRef.current++;
         completedRef.current = true;
+      },
+      recordGroupAction(action: CommandPaletteActionWithKey, resultIndex: number) {
+        trackAnalytics('command_palette.action_selected', {
+          organization,
+          action: action.display.label,
+          query: stateRef.current.query,
+          action_type: 'group',
+          group: action.groupingKey ?? '',
+          result_index: resultIndex,
+          session_id: sessionIdRef.current,
+        });
+
+        hadInteractionRef.current = true;
+        actionsSelectedRef.current++;
+
+        const depth = getLinkedListDepth(stateRef.current.action) + 1;
+        if (depth > maxDrillDepthRef.current) {
+          maxDrillDepthRef.current = depth;
+        }
       },
     }),
     [organization]
