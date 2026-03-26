@@ -95,13 +95,17 @@ describe('useSeerOverviewData', () => {
 
     expect(result.current.stats).toEqual({
       integrationCount: 0,
-      totalRepoCount: 0,
-      seerRepoCount: 0,
-      reposWithSettingsCount: 0,
-      projectsWithReposCount: 0,
       projectsWithAutomationCount: 0,
-      totalProjects: 0,
+      projectsWithCreatePrCount: 0,
+      projectsWithReposCount: 0,
       reposWithCodeReviewCount: 0,
+      reposWithSettingsCount: 0,
+      scmIntegrationCount: 0,
+      seerIntegrationCount: 0,
+      seerIntegrations: expect.any(Array),
+      seerRepoCount: 0,
+      totalProjects: 0,
+      totalRepoCount: 0,
     });
   });
 
@@ -138,9 +142,20 @@ describe('useSeerOverviewData', () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(result.current.stats.totalRepoCount).toBe(3);
-    expect(result.current.stats.seerRepoCount).toBe(3);
-    expect(result.current.stats.integrationCount).toBe(2); // only integrations with 'commits'
+    expect(result.current.stats).toEqual({
+      integrationCount: 3,
+      projectsWithAutomationCount: 0,
+      projectsWithCreatePrCount: 0,
+      projectsWithReposCount: 0,
+      reposWithCodeReviewCount: 0,
+      reposWithSettingsCount: 0,
+      scmIntegrationCount: 2,
+      seerIntegrationCount: 2,
+      seerIntegrations: expect.any(Array),
+      seerRepoCount: 3,
+      totalProjects: 0,
+      totalRepoCount: 3,
+    });
   });
 
   it('only counts repos with supported providers toward seerRepoCount', async () => {
