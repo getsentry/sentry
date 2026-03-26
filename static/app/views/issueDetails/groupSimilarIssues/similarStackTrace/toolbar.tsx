@@ -30,7 +30,7 @@ const initialState = {
 
 type State = typeof initialState;
 
-class SimilarToolbar extends Component<Props, State> {
+export class SimilarToolbar extends Component<Props, State> {
   state: State = initialState;
 
   componentWillUnmount() {
@@ -106,7 +106,6 @@ class SimilarToolbar extends Component<Props, State> {
     );
   }
 }
-export default SimilarToolbar;
 
 const StyledToolbarHeader = styled(ToolbarHeader)`
   flex: 1;

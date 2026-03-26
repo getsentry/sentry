@@ -32,7 +32,7 @@ INVERSE_GROUPBY_TRANSLATION = {value: key for key, value in GROUPBY_TRANSLATION.
 
 @cell_silo_endpoint
 class OrganizationIssueTimeSeriesEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.REPLAY
+    owner = ApiOwner.DATA_BROWSING
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
 
     def get(self, request: Request, organization: Organization) -> Response:

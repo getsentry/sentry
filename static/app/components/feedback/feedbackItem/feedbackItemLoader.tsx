@@ -1,6 +1,6 @@
 import {useEffect} from 'react';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackEmptyDetails} from 'sentry/components/feedback/details/feedbackEmptyDetails';
 import {FeedbackErrorDetails} from 'sentry/components/feedback/details/feedbackErrorDetails';
 import {FeedbackItem} from 'sentry/components/feedback/feedbackItem/feedbackItem';

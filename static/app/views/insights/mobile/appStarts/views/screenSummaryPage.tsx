@@ -2,7 +2,7 @@ import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {DurationUnit} from 'sentry/utils/discover/fields';

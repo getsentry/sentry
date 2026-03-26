@@ -73,6 +73,8 @@ export type RowWithScoreAndOpportunity = Row & Score & Opportunity;
 
 export type WebVitals = 'lcp' | 'fcp' | 'cls' | 'ttfb' | 'inp';
 
+export const ORDER: WebVitals[] = ['lcp', 'fcp', 'inp', 'cls', 'ttfb'];
+
 // TODO: Refactor once stored scores are GA'd
 const SORTABLE_SCORE_FIELDS = [
   'totalScore',

@@ -1333,10 +1333,10 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         if rebalanced_projects is not None:
             for rebalanced_item in rebalanced_projects:
                 if int(rebalanced_item.id) in project_ids:
-                    ProjectOption.objects.create_or_update(
+                    ProjectOption.objects.update_or_create(
                         project_id=rebalanced_item.id,
                         key="sentry:target_sample_rate",
-                        values={"value": round(rebalanced_item.new_sample_rate, 4)},
+                        defaults={"value": round(rebalanced_item.new_sample_rate, 4)},
                     )
 
     def handle_delete(self, request: Request, organization: Organization):

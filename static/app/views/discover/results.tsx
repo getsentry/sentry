@@ -1,4 +1,4 @@
-import {Component, Fragment, useCallback, useMemo} from 'react';
+import {Component, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
@@ -41,7 +41,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
-import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
+import {EventView, isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/fields';
 import {
   DiscoverDatasets,
@@ -836,7 +836,7 @@ export class Results extends Component<Props, State> {
 
     return (
       <SentryDocumentTitle title={title} orgSlug={organization.slug}>
-        <Fragment>
+        <Layout.Page>
           <ResultsHeader
             setSavedQuery={setSavedQuery}
             errorCode={errorCode}
@@ -941,7 +941,7 @@ export class Results extends Component<Props, State> {
               </Confirm>
             </CustomMeasurementsProvider>
           </Layout.Body>
-        </Fragment>
+        </Layout.Page>
       </SentryDocumentTitle>
     );
   }

@@ -34,7 +34,7 @@ import {
 
 const MIN_SIBLING_GROUP_SIZE = 5;
 
-class SpanTreeModel {
+export class SpanTreeModel {
   api: Client;
 
   // readonly state
@@ -847,5 +847,3 @@ class SpanTreeModel {
     };
   };
 }
-
-export default SpanTreeModel;

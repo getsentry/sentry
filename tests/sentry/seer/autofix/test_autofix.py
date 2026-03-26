@@ -828,7 +828,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     @patch("sentry.seer.autofix.autofix._get_profile_from_trace_tree")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.seer.autofix.autofix._call_autofix")
-    @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
+    @patch("sentry.tasks.seer.autofix.check_autofix_status.apply_async")
     def test_trigger_autofix_with_event_id(
         self,
         mock_check_autofix_status,
@@ -934,7 +934,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     @patch("sentry.seer.autofix.autofix._get_profile_from_trace_tree")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.seer.autofix.autofix._call_autofix")
-    @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
+    @patch("sentry.tasks.seer.autofix.check_autofix_status.apply_async")
     def test_trigger_autofix_with_web_vitals_issue(
         self,
         mock_check_autofix_status,

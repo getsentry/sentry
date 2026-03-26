@@ -1,60 +1,23 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
-import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {CommitRow} from 'sentry/components/commitRow';
-import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {
   CodingAgentProvider,
   getResultButtonLabel,
 } from 'sentry/components/events/autofix/types';
-import type {
-  ImpactAssessmentArtifact,
-  ImpactItem,
-  RootCauseArtifact,
-  SolutionArtifact,
-  SuspectCommit,
-  TriageArtifact,
-} from 'sentry/components/events/autofix/useExplorerAutofix';
+import type {SolutionArtifact} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {
   cardAnimationProps,
   StyledMarkedText,
 } from 'sentry/components/events/autofix/v2/utils';
-import {
-  AssigneeSelector,
-  useHandleAssigneeChange,
-} from 'sentry/components/group/assigneeSelector';
-import {Panel} from 'sentry/components/panels/panel';
-import {Timeline} from 'sentry/components/timeline';
 import {TimeSince} from 'sentry/components/timeSince';
-import {
-  IconCheckmark,
-  IconChevron,
-  IconCircle,
-  IconCode,
-  IconFatal,
-  IconFire,
-  IconFix,
-  IconFocus,
-  IconGroup,
-  IconOpen,
-  IconUser,
-  IconWarning,
-} from 'sentry/icons';
+import {IconCode, IconFix, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Group} from 'sentry/types/group';
-import type {Commit} from 'sentry/types/integrations';
-import type {Member, Organization} from 'sentry/types/organization';
-import type {AvatarUser} from 'sentry/types/user';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/fileDiffViewer';
 import type {
   ExplorerCodingAgentState,
@@ -68,24 +31,13 @@ export type ArtifactData = Record<string, unknown>;
  * Get the colored icon for an artifact type.
  * Shared utility for consistent icon styling across artifact displays.
  */
-export function getArtifactIcon(
-  artifactType:
-    | 'root_cause'
-    | 'solution'
-    | 'impact_assessment'
-    | 'triage'
-    | 'code_changes',
+function getArtifactIcon(
+  artifactType: 'solution' | 'code_changes',
   size: 'xs' | 'sm' | 'md' | 'lg' = 'md'
 ): React.ReactNode {
   switch (artifactType) {
-    case 'root_cause':
-      return <IconFocus size={size} variant="promotion" />;
     case 'solution':
       return <IconFix size={size} variant="success" />;
-    case 'impact_assessment':
-      return <IconFire size={size} variant="danger" />;
-    case 'triage':
-      return <IconGroup size={size} variant="accent" />;
     case 'code_changes':
       return <IconCode size={size} variant="accent" />;
     default:
@@ -120,72 +72,7 @@ function ArtifactCard({title, icon, children}: CardProps) {
 }
 
 /**
- * Recursively renders a "why" item and its children in a tree structure.
- */
-function WhyTreeRow({
-  index,
-  why,
-  whys,
-  spacerCount = 0,
-}: {
-  index: number;
-  why: string;
-  whys: string[];
-  spacerCount?: number;
-}) {
-  const hasChild = index < whys.length - 1;
-  const nextWhy = whys[index + 1];
-
-  return (
-    <Fragment>
-      <TreeRow>
-        <TreeKeyTrunk spacerCount={spacerCount}>
-          {spacerCount > 0 && (
-            <Fragment>
-              <TreeSpacer spacerCount={spacerCount} hasStem={false} />
-              <TreeBranchIcon />
-            </Fragment>
-          )}
-          <TreeKey as="div">
-            <StyledMarkedText text={why} inline as="span" />
-          </TreeKey>
-        </TreeKeyTrunk>
-      </TreeRow>
-      {hasChild && nextWhy !== undefined && (
-        <WhyTreeRow
-          index={index + 1}
-          why={nextWhy}
-          whys={whys}
-          spacerCount={spacerCount + 1}
-        />
-      )}
-    </Fragment>
-  );
-}
-
-/**
- * Renders the 5 whys as a nested tree structure.
- */
-function FiveWhysTree({whys}: {whys: string[]}) {
-  if (whys.length === 0) {
-    return null;
-  }
-
-  const firstWhy = whys[0];
-  if (!firstWhy) {
-    return null;
-  }
-
-  return (
-    <TreeContainer columnCount={0}>
-      <WhyTreeRow index={0} why={firstWhy} whys={whys} spacerCount={0} />
-    </TreeContainer>
-  );
-}
-
-/**
  * Renders a tree row with title as key and description as value.
- * Shared component for both impact items and solution steps.
  */
 function TreeRowWithDescription({
   description,
@@ -235,175 +122,6 @@ function TreeRowWithDescription({
 }
 
 /**
- * Renders an impact item in a tree structure with label as key, description as value, and evidence as sub-value.
- */
-function ImpactTreeRow({
-  impact,
-  spacerCount = 0,
-}: {
-  impact: ImpactItem;
-  spacerCount?: number;
-}) {
-  // Only low-rated items are collapsible
-  const isCollapsible = impact.rating === 'low';
-  const [isExpanded, setIsExpanded] = useState(!isCollapsible);
-
-  const getSeverityIcon = () => {
-    if (impact.rating === 'high') {
-      return <IconFatal size="xs" variant="danger" />;
-    }
-    if (impact.rating === 'medium') {
-      return <IconWarning size="xs" variant="warning" />;
-    }
-    if (impact.rating === 'low') {
-      return <IconCheckmark size="xs" variant="success" />;
-    }
-    return null;
-  };
-
-  const hasSubItems = impact.impact_description || impact.evidence;
-  const showSubItems = !isCollapsible || isExpanded;
-
-  const handleToggle = () => {
-    if (isCollapsible) {
-      setIsExpanded(!isExpanded);
-    }
-  };
-
-  return (
-    <Fragment>
-      {/* Label as key */}
-      <TreeRow
-        as={isCollapsible ? 'div' : undefined}
-        onClick={isCollapsible ? handleToggle : undefined}
-        role={isCollapsible ? 'button' : undefined}
-        tabIndex={isCollapsible ? 0 : undefined}
-        onKeyDown={
-          isCollapsible
-            ? e => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  handleToggle();
-                }
-              }
-            : undefined
-        }
-        $isClickable={isCollapsible}
-      >
-        <TreeKeyTrunk spacerCount={spacerCount}>
-          {spacerCount > 0 && (
-            <Fragment>
-              <TreeSpacer spacerCount={spacerCount} hasStem={false} />
-              <TreeBranchIcon />
-            </Fragment>
-          )}
-          <Flex align="center" gap="xs">
-            {isCollapsible && hasSubItems && (
-              <IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />
-            )}
-            <ImpactTreeKey as="div">
-              <StyledMarkedText text={impact.label} inline as="span" />
-            </ImpactTreeKey>
-            {getSeverityIcon()}
-          </Flex>
-        </TreeKeyTrunk>
-      </TreeRow>
-
-      {/* Description as value */}
-      {showSubItems && (
-        <TreeRow>
-          <TreeKeyTrunk spacerCount={spacerCount + 1}>
-            <TreeSpacer spacerCount={spacerCount + 1} hasStem={false} />
-            <TreeBranchIcon />
-            <TreeValue as="div">
-              <StyledMarkedText text={impact.impact_description} inline as="span" />
-            </TreeValue>
-          </TreeKeyTrunk>
-        </TreeRow>
-      )}
-
-      {/* Evidence as sub-value */}
-      {showSubItems && impact.evidence && (
-        <TreeRow>
-          <TreeKeyTrunk spacerCount={spacerCount + 2}>
-            <TreeSpacer spacerCount={spacerCount + 2} hasStem={false} />
-            <TreeBranchIcon />
-            <TreeSubValue as="div">
-              <StyledMarkedText text={impact.evidence} inline as="span" />
-            </TreeSubValue>
-          </TreeKeyTrunk>
-        </TreeRow>
-      )}
-    </Fragment>
-  );
-}
-
-/**
- * Renders impacts as a tree structure.
- */
-function ImpactTree({impacts}: {impacts: ImpactItem[]}) {
-  if (impacts.length === 0) {
-    return null;
-  }
-
-  // Sort impacts by rating: high > medium > low
-  const sortedImpacts = [...impacts].sort((a, b) => {
-    const ratingOrder: Record<'high' | 'medium' | 'low', number> = {
-      high: 0,
-      medium: 1,
-      low: 2,
-    };
-    return ratingOrder[a.rating] - ratingOrder[b.rating];
-  });
-
-  return (
-    <TreeContainer columnCount={0}>
-      {sortedImpacts.map((impact, index) => (
-        <ImpactTreeRow key={index} impact={impact} spacerCount={0} />
-      ))}
-    </TreeContainer>
-  );
-}
-
-/**
- * Root Cause artifact card.
- */
-export function RootCauseCard({data}: {data: ArtifactData}) {
-  const typedData = data as unknown as RootCauseArtifact;
-
-  return (
-    <ArtifactCard title={t('Root Cause')} icon={getArtifactIcon('root_cause')}>
-      <Text size="lg" as="div">
-        <StyledMarkedText text={typedData.one_line_description} inline as="span" />
-      </Text>
-
-      {typedData.five_whys.length > 0 && <FiveWhysTree whys={typedData.five_whys} />}
-
-      {typedData.reproduction_steps && typedData.reproduction_steps.length > 0 && (
-        <Flex direction="column" gap="sm">
-          <Text size="sm" bold>
-            {t('Reproduction Steps')}
-          </Text>
-          <Timeline.Container>
-            {typedData.reproduction_steps.map((step, index) => (
-              <DenseTimelineItem
-                key={index}
-                icon={<IconCircle size="xs" />}
-                title={
-                  <NonBoldTitle size="sm" as="div">
-                    <StyledMarkedText text={step} inline as="span" />
-                  </NonBoldTitle>
-                }
-              />
-            ))}
-          </Timeline.Container>
-        </Flex>
-      )}
-    </ArtifactCard>
-  );
-}
-
-/**
  * Renders solution steps as a tree structure.
  */
 function SolutionTree({steps}: {steps: SolutionArtifact['steps']}) {
@@ -441,283 +159,6 @@ export function SolutionCard({data}: {data: ArtifactData}) {
     </ArtifactCard>
   );
 }
-
-/**
- * Impact Assessment artifact card.
- */
-export function ImpactCard({data}: {data: ArtifactData}) {
-  const typedData = data as unknown as ImpactAssessmentArtifact;
-
-  return (
-    <ArtifactCard title={t('Impact')} icon={getArtifactIcon('impact_assessment')}>
-      <Text size="lg" as="div">
-        <StyledMarkedText text={typedData.one_line_description} inline as="span" />
-      </Text>
-
-      {typedData.impacts.length > 0 && <ImpactTree impacts={typedData.impacts} />}
-    </ArtifactCard>
-  );
-}
-
-interface TriageCardProps {
-  data: ArtifactData;
-  group: Group;
-  organization: Organization;
-}
-
-/**
- * Hook to look up a Sentry member by email, falling back to name.
- */
-function useMemberLookup(organization: Organization, email?: string, name?: string) {
-  // Try matching by email first
-  const {data: memberDataByEmail} = useApiQuery<Member[]>(
-    email
-      ? [
-          getApiUrl('/organizations/$organizationIdOrSlug/members/', {
-            path: {organizationIdOrSlug: organization.slug},
-          }),
-        ]
-      : ([''] as unknown as ApiQueryKey),
-    {
-      enabled: !!email,
-      staleTime: 0,
-    }
-  );
-
-  // If no email match, try matching by name
-  const shouldTryNameMatch = name && !memberDataByEmail?.length;
-  const {data: memberDataByName} = useApiQuery<Member[]>(
-    shouldTryNameMatch
-      ? [
-          getApiUrl('/organizations/$organizationIdOrSlug/members/', {
-            path: {organizationIdOrSlug: organization.slug},
-          }),
-          {query: {query: name}},
-        ]
-      : ([''] as unknown as ApiQueryKey),
-    {
-      enabled: !!shouldTryNameMatch,
-      staleTime: 0,
-    }
-  );
-
-  const member = memberDataByEmail?.[0] || memberDataByName?.[0];
-  return member?.user;
-}
-
-/**
- * Build a Commit object from suspect commit data for use with CommitRow.
- */
-function useSuspectCommitData(
-  suspectCommit: SuspectCommit | null | undefined,
-  organization: Organization
-): Commit | null {
-  const {data: repositories} = useOrganizationRepositories();
-
-  // Look up commit author in Sentry members
-  const authorUser = useMemberLookup(
-    organization,
-    suspectCommit?.author_email,
-    suspectCommit?.author_name
-  );
-
-  return useMemo((): Commit | null => {
-    if (!suspectCommit) {
-      return null;
-    }
-
-    // Find matching repository by name
-    const repository = repositories?.find(repo => repo.name === suspectCommit.repo_name);
-
-    // Build author - use Sentry user if matched, otherwise create a minimal author object
-    // CommitRow only uses name/email/id with optional chaining, so this is safe
-    const author =
-      authorUser ??
-      ({
-        name: suspectCommit.author_name,
-        email: suspectCommit.author_email,
-      } as Commit['author']);
-
-    return {
-      id: suspectCommit.sha,
-      message: suspectCommit.message,
-      dateCreated: suspectCommit.committed_date,
-      releases: [],
-      author,
-      repository,
-    };
-  }, [suspectCommit, repositories, authorUser]);
-}
-
-/**
- * Triage artifact card.
- */
-export function TriageCard({data, group, organization}: TriageCardProps) {
-  const typedData = data as unknown as TriageArtifact;
-  const hasSuspect = typedData.suspect_commit;
-  const hasAssignee = typedData.suggested_assignee;
-  const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
-    group,
-    organization,
-    onError: () => {
-      addErrorMessage(t('Failed to assign issue'));
-    },
-    onSuccess: () => {
-      addSuccessMessage(t('Issue assigned successfully'));
-    },
-  });
-
-  const commit = useSuspectCommitData(typedData.suspect_commit, organization);
-
-  const assigneeUser = useMemberLookup(
-    organization,
-    typedData.suggested_assignee?.email,
-    typedData.suggested_assignee?.name
-  );
-
-  const handleAssignSuggested = () => {
-    if (!assigneeUser) {
-      addErrorMessage(t('Unable to find user to assign'));
-      return;
-    }
-
-    handleAssigneeChange(
-      {
-        assignee: assigneeUser,
-        id: assigneeUser.id,
-        type: 'user',
-      },
-      {assignedBy: 'suggested_assignee'}
-    );
-  };
-
-  // Create a minimal user object for avatar display
-  // Use the email from Sentry's member data (assigneeUser.email) instead of the AI-suggested email
-  const userForAvatar: AvatarUser | undefined = assigneeUser
-    ? {
-        email: assigneeUser.email,
-        name: typedData.suggested_assignee?.name || assigneeUser.email,
-        id: assigneeUser.id,
-        username: assigneeUser.username || assigneeUser.email.split('@')[0] || '',
-        ip_address: '',
-      }
-    : undefined;
-
-  const hasAssigneeMatch = !!assigneeUser;
-
-  if (!hasSuspect && !hasAssignee) {
-    return (
-      <ArtifactCard title={t('Triage')} icon={getArtifactIcon('triage')}>
-        <Text variant="muted">{t('No triage information available.')}</Text>
-      </ArtifactCard>
-    );
-  }
-
-  return (
-    <ArtifactCard title={t('Triage')} icon={getArtifactIcon('triage')}>
-      <Flex direction="column" gap="sm">
-        {hasSuspect && commit && (
-          <Flex direction="column" gap="lg">
-            <Flex direction="column" gap="xl">
-              <SuspectCommitPanel>
-                <CommitRow commit={commit} />
-                {typedData.suspect_commit?.description && (
-                  <Container padding="lg" paddingTop="0">
-                    <Text size="sm" variant="muted">
-                      <StyledMarkedText
-                        text={typedData.suspect_commit.description}
-                        inline
-                        as="span"
-                      />
-                    </Text>
-                  </Container>
-                )}
-              </SuspectCommitPanel>
-            </Flex>
-          </Flex>
-        )}
-
-        {hasSuspect && hasAssignee && (
-          <Container paddingBottom="lg">
-            <Separator orientation="horizontal" border="primary" />
-          </Container>
-        )}
-
-        {hasAssignee && (
-          <Flex direction="column" gap="lg">
-            <Container>
-              <Flex direction="column" gap="xl">
-                <SuspectCommitPanel>
-                  <Container padding="md" paddingTop="0" paddingBottom="0">
-                    <Flex justify="between">
-                      <Flex align="center" gap="md" paddingLeft="xs">
-                        {hasAssigneeMatch && userForAvatar ? (
-                          <UserAvatar user={userForAvatar} size={24} />
-                        ) : (
-                          <IconUser size="md" variant="muted" />
-                        )}
-                        <Flex direction="column" gap="xs">
-                          <Text size="lg">{typedData.suggested_assignee?.name}</Text>
-                        </Flex>
-                      </Flex>
-                    </Flex>
-
-                    {typedData.suggested_assignee?.why && (
-                      <Container
-                        padding="md"
-                        paddingTop="lg"
-                        paddingBottom="lg"
-                        paddingLeft="xs"
-                      >
-                        <Text size="sm" variant="muted">
-                          <StyledMarkedText
-                            text={typedData.suggested_assignee.why}
-                            inline
-                            as="span"
-                          />
-                        </Text>
-                      </Container>
-                    )}
-
-                    <Flex justify="end">
-                      {hasAssigneeMatch ? (
-                        <Button
-                          size="sm"
-                          onClick={handleAssignSuggested}
-                          disabled={assigneeLoading}
-                        >
-                          {assigneeLoading
-                            ? t('Assigning...')
-                            : t(
-                                'Assign to %s',
-                                typedData.suggested_assignee?.name.split(' ')[0]
-                              )}
-                        </Button>
-                      ) : (
-                        <AssigneeSelector
-                          group={group}
-                          assigneeLoading={assigneeLoading}
-                          handleAssigneeChange={handleAssigneeChange}
-                          showLabel
-                        />
-                      )}
-                    </Flex>
-                  </Container>
-                </SuspectCommitPanel>
-              </Flex>
-            </Container>
-          </Flex>
-        )}
-      </Flex>
-    </ArtifactCard>
-  );
-}
-
-const SuspectCommitPanel = styled(Panel)`
-  line-height: 1.2;
-  border: none;
-  margin: 0;
-`;
 
 interface CodeChangesCardProps {
   patches: ExplorerFilePatch[];
@@ -950,7 +391,7 @@ const TreeContainer = styled('div')<{columnCount: number}>`
   white-space: normal;
 `;
 
-const TreeRow = styled('div')<{$isClickable?: boolean}>`
+const TreeRow = styled('div')`
   border-radius: ${p => p.theme.space.xs};
   padding-left: ${p => p.theme.space.md};
   position: relative;
@@ -964,15 +405,6 @@ const TreeRow = styled('div')<{$isClickable?: boolean}>`
   }
   color: ${p => p.theme.tokens.content.secondary};
   background-color: ${p => p.theme.tokens.background.primary};
-  ${p =>
-    p.$isClickable &&
-    `
-    cursor: pointer;
-
-    &:hover {
-      background-color: ${p.theme.tokens.interactive.transparent.neutral.background.hover};
-    }
-  `}
 `;
 
 const TreeSpacer = styled('div')<{hasStem: boolean; spacerCount: number}>`
@@ -1020,10 +452,6 @@ const ImpactTreeKey = styled(TreeKey)`
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
-const TreeSubValue = styled(TreeValue)`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
 const SolutionTreeValue = styled(TreeValue)`
   color: ${p => p.theme.tokens.content.secondary};
 `;
@@ -1042,13 +470,4 @@ const RepoSection = styled('div')`
 
 const AnimatedCard = styled(motion.div)`
   transform-origin: top center;
-`;
-
-const NonBoldTitle = styled(Text)`
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  margin-top: ${p => p.theme.space.xs};
-`;
-
-const DenseTimelineItem = styled(Timeline.Item)`
-  margin: 0;
 `;
