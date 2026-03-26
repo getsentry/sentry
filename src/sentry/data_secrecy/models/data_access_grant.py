@@ -16,6 +16,7 @@ class DataAccessGrant(DefaultFieldsModel):
 
     class GrantType(StrEnum):
         ZENDESK = "zendesk"
+        INTERCOM = "intercom"
         MANUAL = "manual"
 
     class RevocationReason(StrEnum):
@@ -103,14 +104,15 @@ def get_active_tickets_for_organization(organization_id: int) -> list[str]:
     Separate function to get ticket info for UI display.
     Called only when needed (not on every access check).
     Fast query since we can filter by time.
+    Returns ticket/conversation IDs from both Zendesk and Intercom.
     """
     now = timezone.now()
-    active_zendesk_tickets = DataAccessGrant.objects.filter(
+    active_tickets = DataAccessGrant.objects.filter(
         organization_id=organization_id,
-        grant_type=DataAccessGrant.GrantType.ZENDESK,
+        grant_type__in=[DataAccessGrant.GrantType.ZENDESK, DataAccessGrant.GrantType.INTERCOM],
         grant_start__lte=now,
         grant_end__gt=now,
         revocation_date__isnull=True,
         ticket_id__isnull=False,
     ).values_list("ticket_id", flat=True)
-    return [ticket_id for ticket_id in active_zendesk_tickets if ticket_id is not None]
+    return [ticket_id for ticket_id in active_tickets if ticket_id is not None]

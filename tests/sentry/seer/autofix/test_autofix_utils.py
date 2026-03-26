@@ -6,6 +6,7 @@ import pytest
 
 from sentry.constants import DataCategory
 from sentry.seer.autofix.constants import AutofixStatus
+from sentry.seer.autofix.trigger import is_issue_eligible_for_seer_automation
 from sentry.seer.autofix.utils import (
     AutofixState,
     AutofixTriggerSource,
@@ -15,7 +16,6 @@ from sentry.seer.autofix.utils import (
     get_autofix_prompt,
     get_coding_agent_prompt,
     has_project_connected_repos,
-    is_issue_eligible_for_seer_automation,
     is_seer_seat_based_tier_enabled,
     resolve_repository_ids,
     set_project_seer_preference,

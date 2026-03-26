@@ -34,6 +34,13 @@ function SubscriptionBox({
 }: Props) {
   const {features} = organization;
 
+  if (
+    resource === 'preprod_artifact' &&
+    !features.includes('preprod-artifact-webhooks')
+  ) {
+    return null;
+  }
+
   let disabled = disabledFromPermissions || webhookDisabled;
   let message = t(
     "Must have at least 'Read' permissions enabled for %s",
@@ -56,6 +63,7 @@ function SubscriptionBox({
     error: 'created',
     comment: 'created, edited, deleted',
     seer: 'root_cause_started, root_cause_completed, solution_started, solution_completed, coding_started, coding_completed, pr_created',
+    preprod_artifact: 'size_analysis_completed, build_distribution_completed',
   };
 
   return (

@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -17,6 +19,8 @@ from sentry.snuba.metrics.query_builder import parse_field
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
+
+logger = logging.getLogger(__name__)
 
 
 @cell_silo_endpoint
@@ -93,9 +97,10 @@ class OrganizationReleaseHealthDataEndpoint(OrganizationEndpoint):
                     allow_mri=True,
                     paginator_kwargs={"limit": limit, "offset": offset},
                 )
+                metrics_query = query.to_metrics_query()
                 data = get_series(
                     projects,
-                    metrics_query=query.to_metrics_query(),
+                    metrics_query=metrics_query,
                     use_case_id=get_use_case_id(request),
                     tenant_ids={"organization_id": organization.id},
                 )
@@ -109,6 +114,25 @@ class OrganizationReleaseHealthDataEndpoint(OrganizationEndpoint):
                 )
 
                 data["query"] = query.query
+
+                # EAP shadow read for session metrics
+                try:
+                    from sentry import features
+                    from sentry.release_health.eap_sessions_rollout import (
+                        compare_get_series_results,
+                        get_series_eap,
+                        is_session_metrics_query,
+                    )
+
+                    if features.has(
+                        "organizations:session-health-eap", organization
+                    ) and is_session_metrics_query(metrics_query):
+                        eap_result = get_series_eap(metrics_query, organization.id)
+                        if eap_result is not None:
+                            compare_get_series_results(data, eap_result)
+                except Exception:
+                    logger.exception("eap_sessions.get_series_double_read_failed")
+
             except (
                 InvalidParams,
                 DerivedMetricException,
