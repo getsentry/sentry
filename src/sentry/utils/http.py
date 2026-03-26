@@ -229,7 +229,11 @@ def is_using_customer_domain(request: HttpRequest) -> TypeGuard[_HttpRequestWith
 
 class BodyAsyncWrapper:
     def __init__(self, body: Any):
+        self._bool = bool(body)
         self.body = [body] if isinstance(body, bytes) else body
+
+    def __bool__(self) -> bool:
+        return self._bool
 
     def __aiter__(self):
         return BodyAsyncIter(self)

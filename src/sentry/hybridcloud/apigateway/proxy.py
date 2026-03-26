@@ -167,8 +167,9 @@ async def proxy_cell_request(
     else:
         data = BodyAsyncWrapper(request.body)
         # With request streaming, and without `Content-Length` header,
-        # `httpx` will set chunked transfer encoding. Upstream doesn't support that,
-        # thus we re-add this header if it was present in the original request.
+        # `httpx` will set chunked transfer encoding.
+        # Upstream doesn't necessarily support this,
+        # thus we re-add the header if it was present in the original request.
         if content_length:
             header_dict["Content-Length"] = content_length
 
@@ -179,7 +180,7 @@ async def proxy_cell_request(
                 target_url,
                 headers=header_dict,
                 params=dict(query_params) if query_params is not None else None,
-                content=_stream_request(data),  # type: ignore[arg-type]
+                content=_stream_request(data) if data else None,  # type: ignore[arg-type]
                 timeout=timeout,
             )
             resp = await proxy_client.send(req, stream=True, follow_redirects=False)
