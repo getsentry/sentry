@@ -888,16 +888,95 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         assert response.data["detail"] == "Invalid repository"
         mock_bulk_set_preferences.assert_not_called()
 
+
+class OrganizationAutofixAutomationSettingsSentryDbEndpointTest(APITestCase):
+    """Tests for reading from Sentry DB behind feature flag."""
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+        self.url = reverse(
+            "sentry-api-0-organization-autofix-automation-settings",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+
+    def test_get_reads_project_preferences(self):
+        project1 = self.create_project(organization=self.organization, name="Project One")
+        project2 = self.create_project(organization=self.organization, name="Project Two")
+
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="test-org/test-repo",
+            provider="integrations:github",
+            external_id="12345",
+            integration_id=111,
+        )
+        SeerProjectRepository.objects.create(project=project1, repository=repo, branch_name="main")
+        project1.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
+        project1.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM.value
+        )
+
+        with self.feature("organizations:seer-project-settings-read-from-sentry"):
+            response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        results_by_id = {r["projectId"]: r for r in response.data}
+
+        p1 = results_by_id[project1.id]
+        assert p1["automatedRunStoppingPoint"] == "open_pr"
+        assert p1["autofixAutomationTuning"] == AutofixAutomationTuningSettings.MEDIUM.value
+        assert p1["reposCount"] == 1
+
+        p2 = results_by_id[project2.id]
+        assert p2["automatedRunStoppingPoint"] == AutofixStoppingPoint.CODE_CHANGES.value
+        assert p2["autofixAutomationTuning"] == AutofixAutomationTuningSettings.OFF.value
+        assert p2["reposCount"] == 0
+
     @patch(
         "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
     )
+    def test_post_reads_existing_prefs_for_merge(self, mock_bulk_set_preferences):
+        project = self.create_project(organization=self.organization)
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="test-org/test-repo",
+            provider="integrations:github",
+            external_id="12345",
+            integration_id=111,
+        )
+        SeerProjectRepository.objects.create(project=project, repository=repo, branch_name="main")
+
+        with self.feature(
+            [
+                "organizations:seer-project-settings-read-from-sentry",
+                "organizations:seer-project-settings-dual-write",
+            ]
+        ):
+            response = self.client.post(
+                self.url,
+                {
+                    "projectIds": [project.id],
+                    "automatedRunStoppingPoint": AutofixStoppingPoint.OPEN_PR.value,
+                },
+            )
+
+        assert response.status_code == 204
+
+        mock_bulk_set_preferences.assert_called_once()
+        prefs = mock_bulk_set_preferences.call_args[0][1]
+        assert len(prefs) == 1
+        assert prefs[0]["automated_run_stopping_point"] == "open_pr"
+        assert len(prefs[0]["repositories"]) == 1
+
+        assert project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
+        seer_repo = SeerProjectRepository.objects.get(project=project)
+        assert seer_repo.repository_id == repo.id
+
     @patch(
-        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
     )
-    def test_post_creates_seer_project_repository(
-        self, mock_bulk_get_preferences, mock_bulk_set_preferences
-    ):
-        """Test that POST creates SeerProjectRepository when feature flag is enabled."""
+    def test_post_creates_seer_project_repository(self, mock_bulk_set_preferences):
         project = self.create_project(organization=self.organization)
         repo = Repository.objects.create(
             organization_id=self.organization.id,
@@ -905,8 +984,6 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             provider="github",
             external_id="12345",
         )
-
-        mock_bulk_get_preferences.return_value = {}
 
         repo_data = {
             "provider": "github",
@@ -916,7 +993,12 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             "organizationId": self.organization.id,
         }
 
-        with self.feature("organizations:seer-project-settings-dual-write"):
+        with self.feature(
+            [
+                "organizations:seer-project-settings-read-from-sentry",
+                "organizations:seer-project-settings-dual-write",
+            ]
+        ):
             response = self.client.post(
                 self.url,
                 {
@@ -937,13 +1019,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
     @patch(
         "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
     )
-    @patch(
-        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
-    )
-    def test_post_append_resolves_repo_id_for_existing_repos(
-        self, mock_bulk_get_preferences, mock_bulk_set_preferences
-    ):
-        """Test that appending repos resolves repository_id for existing Seer API repos during write to SeerProjectRepository."""
+    def test_post_append_resolves_repo_id_for_existing_repos(self, mock_bulk_set_preferences):
         project = self.create_project(organization=self.organization)
         existing_repo = Repository.objects.create(
             organization_id=self.organization.id,
@@ -957,22 +1033,16 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             provider="github",
             external_id="22222",
         )
+        SeerProjectRepository.objects.create(
+            project=project, repository=existing_repo, branch_name="main"
+        )
 
-        mock_bulk_get_preferences.return_value = {
-            str(project.id): {
-                "repositories": [
-                    {
-                        "provider": "github",
-                        "owner": "test-org",
-                        "name": "existing-repo",
-                        "external_id": "11111",
-                        "organization_id": self.organization.id,
-                    }
-                ],
-            }
-        }
-
-        with self.feature("organizations:seer-project-settings-dual-write"):
+        with self.feature(
+            [
+                "organizations:seer-project-settings-read-from-sentry",
+                "organizations:seer-project-settings-dual-write",
+            ]
+        ):
             response = self.client.post(
                 self.url,
                 {

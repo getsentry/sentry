@@ -19,6 +19,7 @@ from sentry.seer.autofix.constants import (
 )
 from sentry.seer.autofix.utils import (
     bulk_get_project_preferences,
+    bulk_read_preferences_from_sentry_db,
     bulk_set_project_preferences,
     bulk_write_preferences_to_sentry_db,
     deduplicate_repositories,
@@ -237,7 +238,11 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
                 "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
             )
 
-    preferences_by_id = bulk_get_project_preferences(organization_id, project_ids)
+    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
+        raw_preferences = bulk_read_preferences_from_sentry_db(organization_id, project_ids)
+        preferences_by_id = {str(pid): pref.dict() for pid, pref in raw_preferences.items()}
+    else:
+        preferences_by_id = bulk_get_project_preferences(organization_id, project_ids)
 
     # Determine which projects need updates
     preferences_to_set = []

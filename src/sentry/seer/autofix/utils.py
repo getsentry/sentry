@@ -770,20 +770,25 @@ def has_project_connected_repos(
     has_repos = False
 
     try:
-        project_preferences = get_project_seer_preferences(project_id)
-        has_repos = bool(
-            project_preferences.preference and project_preferences.preference.repositories
-        )
-    except (SeerApiError, SeerApiResponseValidationError):
-        pass
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
+        cache.set(cache_key, False, timeout=60 * 15)
+        return False
+
+    if features.has("organizations:seer-project-settings-read-from-sentry", project.organization):
+        preference = read_preference_from_sentry_db(project)
+        has_repos = bool(preference and preference.repositories)
+    else:
+        try:
+            project_preferences = get_project_seer_preferences(project_id)
+            has_repos = bool(
+                project_preferences.preference and project_preferences.preference.repositories
+            )
+        except (SeerApiError, SeerApiResponseValidationError):
+            pass
 
     if not has_repos:
-        # If it's the first autofix run of project we check code mapping.
-        try:
-            project = Project.objects.get(id=project_id)
-            has_repos = bool(get_autofix_repos_from_project_code_mappings(project))
-        except Project.DoesNotExist:
-            pass
+        has_repos = bool(get_autofix_repos_from_project_code_mappings(project))
 
     logger.info(
         "Checking if project has repositories connected",

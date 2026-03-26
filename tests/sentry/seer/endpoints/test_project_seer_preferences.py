@@ -3,8 +3,16 @@ from unittest.mock import MagicMock, Mock, patch
 from django.urls import reverse
 
 from sentry.models.repository import Repository
-from sentry.seer.models import PreferenceResponse, SeerProjectPreference, SeerRepoDefinition
-from sentry.seer.models.project_repository import SeerProjectRepository
+from sentry.seer.models import (
+    PreferenceResponse,
+    SeerAutomationHandoffConfiguration,
+    SeerProjectPreference,
+    SeerRepoDefinition,
+)
+from sentry.seer.models.project_repository import (
+    SeerProjectRepository,
+    SeerProjectRepositoryBranchOverride,
+)
 from sentry.testutils.cases import APITestCase
 
 
@@ -380,7 +388,6 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         self, mock_get_autofix_repos: MagicMock, mock_request: MagicMock
     ) -> None:
         """Test that GET method correctly returns automation_handoff in the response"""
-        from sentry.seer.models import SeerAutomationHandoffConfiguration
 
         # Create preference with automation_handoff
         project_preference_with_handoff = SeerProjectPreference(
@@ -469,7 +476,6 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         self, mock_get_autofix_repos: MagicMock, mock_request: MagicMock
     ) -> None:
         """Test that GET method correctly returns auto_create_pr in automation_handoff"""
-        from sentry.seer.models import SeerAutomationHandoffConfiguration
 
         # Create preference with auto_create_pr in automation_handoff
         project_preference_with_handoff = SeerProjectPreference(
@@ -684,9 +690,36 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert response.data["detail"] == "Invalid repository"
         mock_request.assert_not_called()
 
+
+class ProjectSeerPreferencesSentryDbEndpointTest(APITestCase):
+    """Tests for Sentry DB read/write behavior behind feature flags."""
+
+    endpoint = "sentry-api-0-project-seer-preferences"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.user = self.create_user(email="user@example.com")
+        self.org = self.create_organization(owner=self.user)
+        self.team = self.create_team(organization=self.org)
+        self.project = self.create_project(teams=[self.team], organization=self.org)
+        self.login_as(user=self.user)
+        self.url = reverse(
+            self.endpoint,
+            kwargs={
+                "organization_id_or_slug": self.org.slug,
+                "project_id_or_slug": self.project.slug,
+            },
+        )
+        self.repository = Repository.objects.create(
+            organization_id=self.org.id,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="123456",
+            integration_id=111,
+        )
+
     @patch("sentry.seer.endpoints.project_seer_preferences.make_set_project_preference_request")
     def test_post_creates_seer_project_repository(self, mock_request: MagicMock) -> None:
-        """Test that POST writes to SeerProjectRepository when feature flag is enabled."""
         mock_response = Mock()
         mock_response.status = 200
         mock_request.return_value = mock_response
@@ -696,7 +729,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
                 {
                     "organization_id": self.org.id,
                     "integration_id": "111",
-                    "provider": "github",
+                    "provider": "integrations:github",
                     "owner": "getsentry",
                     "name": "sentry",
                     "external_id": "123456",
@@ -715,3 +748,73 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         seer_repo = SeerProjectRepository.objects.get(project=self.project)
         assert seer_repo.repository_id == self.repository.id
         assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
+
+    @patch(
+        "sentry.seer.endpoints.project_seer_preferences.get_autofix_repos_from_project_code_mappings",
+        return_value=[
+            {
+                "provider": "github",
+                "owner": "getsentry",
+                "name": "sentry",
+                "external_id": "123456",
+            }
+        ],
+    )
+    def test_get_unconfigured_project_returns_none_preference_with_code_mappings(
+        self, mock_get_autofix_repos: MagicMock
+    ):
+        with self.feature("organizations:seer-project-settings-read-from-sentry"):
+            response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert response.data["preference"] is None
+        assert len(response.data["code_mapping_repos"]) == 1
+
+    def test_get_configured_project_with_repos(self):
+        spr = SeerProjectRepository.objects.create(
+            project=self.project,
+            repository=self.repository,
+            branch_name="main",
+            instructions="Be helpful",
+        )
+        SeerProjectRepositoryBranchOverride.objects.create(
+            seer_project_repository=spr,
+            tag_name="environment",
+            tag_value="production",
+            branch_name="release",
+        )
+
+        with self.feature("organizations:seer-project-settings-read-from-sentry"):
+            response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        pref = response.data["preference"]
+        assert pref is not None
+        assert len(pref["repositories"]) == 1
+        assert pref["repositories"][0]["owner"] == "getsentry"
+        assert pref["repositories"][0]["name"] == "sentry"
+        assert pref["repositories"][0]["branch_name"] == "main"
+        assert pref["repositories"][0]["instructions"] == "Be helpful"
+        assert len(pref["repositories"][0]["branch_overrides"]) == 1
+        assert pref["automated_run_stopping_point"] == "code_changes"
+        assert pref["automation_handoff"] is None
+
+    def test_get_configured_project_with_handoff(self):
+        self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
+        self.project.update_option(
+            "sentry:seer_automation_handoff_target", "cursor_background_agent"
+        )
+        self.project.update_option("sentry:seer_automation_handoff_integration_id", 42)
+        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
+
+        with self.feature("organizations:seer-project-settings-read-from-sentry"):
+            response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        pref = response.data["preference"]
+        assert pref is not None
+        assert pref["repositories"] == []
+        assert pref["automation_handoff"]["handoff_point"] == "root_cause"
+        assert pref["automation_handoff"]["target"] == "cursor_background_agent"
+        assert pref["automation_handoff"]["integration_id"] == 42
+        assert pref["automation_handoff"]["auto_create_pr"] is True
