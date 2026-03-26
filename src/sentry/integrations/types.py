@@ -11,6 +11,7 @@ class ExternalProviders(ValueEqualityEnum):
 
     EMAIL = 100
     SLACK = 110
+    SLACK_STAGING = 111
     MSTEAMS = 120
     PAGERDUTY = 130
     DISCORD = 140
@@ -57,6 +58,7 @@ class ExternalProviderEnum(StrEnum):
     EMAIL = "email"
     CUSTOM = "custom_scm"
     SLACK = IntegrationProviderSlug.SLACK
+    SLACK_STAGING = IntegrationProviderSlug.SLACK_STAGING
     MSTEAMS = IntegrationProviderSlug.MSTEAMS
     PAGERDUTY = IntegrationProviderSlug.PAGERDUTY
     DISCORD = IntegrationProviderSlug.DISCORD
@@ -71,6 +73,7 @@ class ExternalProviderEnum(StrEnum):
 EXTERNAL_PROVIDERS_REVERSE = {
     ExternalProviderEnum.EMAIL: ExternalProviders.EMAIL,
     ExternalProviderEnum.SLACK: ExternalProviders.SLACK,
+    ExternalProviderEnum.SLACK_STAGING: ExternalProviders.SLACK_STAGING,
     ExternalProviderEnum.MSTEAMS: ExternalProviders.MSTEAMS,
     ExternalProviderEnum.PAGERDUTY: ExternalProviders.PAGERDUTY,
     ExternalProviderEnum.DISCORD: ExternalProviders.DISCORD,
@@ -87,6 +90,7 @@ EXTERNAL_PROVIDERS_REVERSE_VALUES = {k.value: v for k, v in EXTERNAL_PROVIDERS_R
 EXTERNAL_PROVIDERS = {
     ExternalProviders.EMAIL: ExternalProviderEnum.EMAIL.value,
     ExternalProviders.SLACK: ExternalProviderEnum.SLACK.value,
+    ExternalProviders.SLACK_STAGING: ExternalProviderEnum.SLACK_STAGING.value,
     ExternalProviders.MSTEAMS: ExternalProviderEnum.MSTEAMS.value,
     ExternalProviders.PAGERDUTY: ExternalProviderEnum.PAGERDUTY.value,
     ExternalProviders.DISCORD: ExternalProviderEnum.DISCORD.value,
@@ -102,6 +106,7 @@ EXTERNAL_PROVIDERS = {
 PERSONAL_NOTIFICATION_PROVIDERS = [
     ExternalProviderEnum.EMAIL.value,
     ExternalProviderEnum.SLACK.value,
+    ExternalProviderEnum.SLACK_STAGING.value,
     ExternalProviderEnum.MSTEAMS.value,
 ]
 

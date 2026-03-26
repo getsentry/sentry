@@ -86,21 +86,22 @@ export function NotificationSettingsByType({notificationType}: Props) {
       ],
       {staleTime: 30_000}
     );
-  const {data: identities = [], status: identitiesStatus} = useApiQuery<Identity[]>(
-    [
-      getApiUrl('/users/$userId/identities/', {path: {userId: 'me'}}),
-      {query: {provider: 'slack'}},
-    ],
+  const {data: allIdentities = [], status: identitiesStatus} = useApiQuery<Identity[]>(
+    [getApiUrl('/users/$userId/identities/', {path: {userId: 'me'}})],
     {staleTime: 30_000}
   );
-  const {data: organizationIntegrations = [], status: organizationIntegrationStatus} =
+  const identities = allIdentities.filter(identity =>
+    SUPPORTED_PROVIDERS.includes(identity?.identityProvider?.type as SupportedProviders)
+  );
+
+  const {data: allOrgIntegrations = [], status: organizationIntegrationStatus} =
     useApiQuery<OrganizationIntegration[]>(
-      [
-        getApiUrl('/users/$userId/organization-integrations/', {path: {userId: 'me'}}),
-        {query: {provider: 'slack'}},
-      ],
+      [getApiUrl('/users/$userId/organization-integrations/', {path: {userId: 'me'}})],
       {staleTime: 30_000}
     );
+  const organizationIntegrations = allOrgIntegrations.filter(orgIntegration =>
+    SUPPORTED_PROVIDERS.includes(orgIntegration.provider.key as SupportedProviders)
+  );
   const {data: defaultSettings, status: defaultSettingsStatus} =
     useApiQuery<DefaultSettings>([getApiUrl('/notification-defaults/')], {
       staleTime: 30_000,
