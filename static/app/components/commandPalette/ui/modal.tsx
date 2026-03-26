@@ -4,10 +4,10 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {CommandPaletteContent} from 'sentry/components/commandPalette/ui/content';
 import type {Theme} from 'sentry/utils/theme';
 
-function CommandPaletteModal({Body}: ModalRenderProps) {
+function CommandPaletteModal({Body, closeModal}: ModalRenderProps) {
   return (
     <Body>
-      <CommandPaletteContent />
+      <CommandPaletteContent onClose={closeModal} />
     </Body>
   );
 }
