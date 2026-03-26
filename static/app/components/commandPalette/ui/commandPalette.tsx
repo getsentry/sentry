@@ -1,4 +1,4 @@
-import {Fragment, useLayoutEffect, useMemo, useEffect, useCallback} from 'react';
+import {Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef} from 'react';
 import {preload} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -65,7 +65,13 @@ type CommandPaletteActionWithPriority = CommandPaletteActionWithKey & {
 };
 
 interface CommandPaletteProps {
-  onAction: (action: Exclude<CommandPaletteActionWithKey, {type: 'group'}>) => void;
+  onAction: (
+    action: Exclude<CommandPaletteActionWithKey, {type: 'group'}>,
+    resultIndex: number,
+    group: string
+  ) => void;
+  onQueryTracked?: () => void;
+  sessionId?: string;
 }
 
 export function CommandPalette(props: CommandPaletteProps) {
@@ -75,6 +81,10 @@ export function CommandPalette(props: CommandPaletteProps) {
   const organization = useOrganization();
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
+
+  // Debounced query tracking (500ms)
+  const queryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTrackedQueryRef = useRef('');
 
   // Preload the empty state image so it's ready if/when there are no results
   // Guard against non-string imports (e.g. SVG objects in test environments)
@@ -96,6 +106,31 @@ export function CommandPalette(props: CommandPaletteProps) {
     () => search(state.query, displayedActions),
     [state.query, displayedActions]
   );
+
+  // Debounced query analytics
+  useEffect(() => {
+    if (queryTimerRef.current) {
+      clearTimeout(queryTimerRef.current);
+    }
+    if (state.query.length > 0 && state.query !== lastTrackedQueryRef.current) {
+      queryTimerRef.current = setTimeout(() => {
+        lastTrackedQueryRef.current = state.query;
+        trackAnalytics('command_palette.query', {
+          organization,
+          query: state.query,
+          result_count: filteredActions.length,
+          session_id: props.sessionId ?? '',
+        });
+        props.onQueryTracked?.();
+      }, 500);
+    }
+    return () => {
+      if (queryTimerRef.current) {
+        clearTimeout(queryTimerRef.current);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.query, filteredActions.length]);
 
   const sections = useMemo(
     () => groupActionsBySection(filteredActions),
@@ -169,23 +204,30 @@ export function CommandPalette(props: CommandPaletteProps) {
 
   const onActionSelection = useCallback(
     (key: ReturnType<typeof treeState.collection.getFirstKey> | null) => {
-      const action = filteredActions.find(a => a.key === key);
+      const resultIndex = filteredActions.findIndex(a => a.key === key);
+      const action = resultIndex >= 0 ? filteredActions[resultIndex] : undefined;
       if (!action) {
         return;
       }
+
+      const group = action.groupingKey ?? '';
 
       if (action.type === 'group') {
         trackAnalytics('command_palette.action_selected', {
           organization,
           action: action.display.label,
           query: state.query,
+          action_type: 'group',
+          group,
+          result_index: resultIndex,
+          session_id: props.sessionId ?? '',
         });
         dispatch({type: 'push action', action});
         return;
       }
 
       dispatch({type: 'trigger action'});
-      props.onAction(action);
+      props.onAction(action, resultIndex, group);
     },
     [filteredActions, dispatch, props, treeState, organization, state.query]
   );
@@ -445,7 +487,7 @@ function flattenActions(
 
 function CommandPaletteNoResults() {
   const organization = useOrganization();
-  const {query, action} = useCommandPaletteState();
+  const {query, action, session_id} = useCommandPaletteState();
 
   useEffect(() => {
     const actionLabel =
@@ -456,12 +498,13 @@ function CommandPaletteNoResults() {
       organization,
       query,
       action: actionLabel,
+      session_id,
     });
     Sentry.logger.info('Command palette returned no results', {
       query,
       action: actionLabel,
     });
-  }, [organization, query, action]);
+  }, [organization, query, action, session_id]);
 
   return (
     <Flex
