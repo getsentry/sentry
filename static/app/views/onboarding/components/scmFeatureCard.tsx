@@ -60,18 +60,24 @@ export function ScmFeatureCard({
                     ". cell4"
                   `}
             >
-              <Flex area="cell1">
-                <Icon size="md" variant={isSelected ? 'accent' : undefined} />
-              </Flex>
+              <Container area="cell1">
+                {containerProps => (
+                  <Icon
+                    {...containerProps}
+                    size="md"
+                    variant={isSelected ? 'accent' : undefined}
+                  />
+                )}
+              </Container>
 
-              <Flex area="cell2">
+              <Container area="cell2">
                 <Text bold size="lg">
                   {label}
                 </Text>
-              </Flex>
-              <Flex area="cell4">
+              </Container>
+              <Container area="cell4">
                 <Text variant="muted">{description}</Text>
-              </Flex>
+              </Container>
             </Grid>
             <Flex align="start">
               <Checkbox
