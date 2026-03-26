@@ -54,7 +54,7 @@ describe('PartnerPlanEndingModal', () => {
     expect(mockCall).toHaveBeenCalled();
   });
 
-  it('shows an upgrade now button with billing permission', () => {
+  it('shows an upgrade to a paid plan button with billing permission', () => {
     const org = OrganizationFixture({access: ['org:billing']});
     const sub = SubscriptionFixture({organization: org, contractPeriodEnd: '2024-08-08'});
     SubscriptionStore.set(org.slug, sub);
@@ -68,7 +68,12 @@ describe('PartnerPlanEndingModal', () => {
     );
 
     expect(screen.getByTestId('partner-plan-ending-modal')).toBeInTheDocument();
-    expect(screen.getByLabelText('Upgrade Now')).toBeInTheDocument();
+    const upgradeButton = screen.getByLabelText('Upgrade to a Paid Plan');
+    expect(upgradeButton).toBeInTheDocument();
+    expect(upgradeButton.closest('a')).toHaveAttribute(
+      'href',
+      `/checkout/${org.slug}/?referrer=partner_plan_ending_modal`
+    );
   });
 
   it('displays 7 days left', () => {
