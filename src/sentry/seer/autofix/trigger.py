@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, Union
 
 from django.utils import timezone
 
@@ -15,32 +15,29 @@ if TYPE_CHECKING:
     from sentry.models.group import Group
     from sentry.utils.locking.manager import LockManager
 
-SeerAutomationSkipReason = Literal[
-    "already_has_fixability_score",
-    "already_triggered",
-    "already_triggered_explorer",
-    "automation_already_dispatched",
-    "fixability_too_low",
-    "issue_too_old",
-    "lock_already_held",
-    "no_connected_repos",
-    "not_eligible.ai_features_hidden",
-    "not_eligible.gen_ai_feature_disabled",
-    "not_eligible.issue_category_ineligible",
-    "not_eligible.no_budget",
-    "not_eligible.scanner_not_enabled",
-    "rate_limited",
-    "summary_already_cached",
-    "summary_already_dispatched",
-]
-
-
 SeerAutomationIneligibilityReason = Literal[
     "not_eligible.issue_category_ineligible",
     "not_eligible.gen_ai_feature_disabled",
     "not_eligible.ai_features_hidden",
     "not_eligible.scanner_not_enabled",
     "not_eligible.no_budget",
+]
+
+SeerAutomationSkipReason = Union[
+    Literal[
+        "already_has_fixability_score",
+        "already_triggered",
+        "already_triggered_explorer",
+        "automation_already_dispatched",
+        "fixability_too_low",
+        "issue_too_old",
+        "lock_already_held",
+        "no_connected_repos",
+        "rate_limited",
+        "summary_already_cached",
+        "summary_already_dispatched",
+    ],
+    SeerAutomationIneligibilityReason,
 ]
 
 
