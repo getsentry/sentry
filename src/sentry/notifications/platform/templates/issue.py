@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 from sentry.models.rule import Rule
 from sentry.notifications.platform.registry import template_registry
@@ -62,8 +62,6 @@ class IssueNotificationData(NotificationData):
     group_id: int
     event_id: str | None = None
     rule: SerializableRuleProxy | None = None
-    tags: set[str] = Field(default_factory=set)
-    notes: str = ""
     notification_uuid: str = ""
 
 
@@ -73,11 +71,16 @@ class IssueNotificationTemplate(NotificationTemplate[IssueNotificationData]):
     example_data = IssueNotificationData(
         group_id=1,
         event_id="abc123",
-        tags={"environment", "level"},
-        notes="example note",
         notification_uuid="test-uuid",
         rule=SerializableRuleProxy(
-            id=1, project_id=2, environment_id=3, label="Example Rule", data={}
+            id=1,
+            project_id=2,
+            label="Example Rule",
+            data={
+                "actions": [{"workflow_id": 3}],
+                "tags": "environment,level",
+                "notes": "example note",
+            },
         ),
     )
     hide_from_debugger = True
