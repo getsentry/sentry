@@ -14,7 +14,6 @@ function createPartnerSubscription(
   organization: ReturnType<typeof OrganizationFixture>,
   overrides: Record<string, unknown> = {}
 ) {
-  const now = moment();
   return SubscriptionFixture({
     plan: 'am2_sponsored_team_auf',
     planDetails: PlanFixture({}),
@@ -31,7 +30,7 @@ function createPartnerSubscription(
     },
     organization,
     canSelfServe: true,
-    contractPeriodEnd: now.add(15, 'days').toISOString(),
+    contractPeriodEnd: moment().add(15, 'days').toISOString(),
     ...overrides,
   });
 }

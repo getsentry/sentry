@@ -39,11 +39,11 @@ export function PartnerPlanEndingBanner({
       subscription,
       organization,
       daysLeft,
-      partner: subscription.partner?.partnership.id,
+      partner: subscription.partner.partnership.id,
     });
   };
 
-  const partnerPlanName = subscription.partner?.partnership.displayName;
+  const partnerPlanName = subscription.partner.partnership.displayName;
 
   return (
     <Flex
@@ -73,7 +73,7 @@ export function PartnerPlanEndingBanner({
             analyticsEventKey="partner_plan_ending_banner.manage_subscription"
             analyticsEventName="Partner Plan Ending Banner: Manage Subscription"
             size="md"
-            onClick={() => handleAnalytics()}
+            onClick={handleAnalytics}
             to={`/checkout/${organization.slug}/?referrer=partner_plan_ending_banner`}
           >
             {t('Upgrade to a Paid Plan')}
@@ -105,5 +105,7 @@ const IllustrationContainer = styled('img')`
     border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
     pointer-events: none;
     flex-grow: 1;
+    max-height: 155px;
+    object-fit: cover;
   }
 `;
