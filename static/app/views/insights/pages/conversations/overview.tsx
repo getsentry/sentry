@@ -201,9 +201,11 @@ function PageWithProviders() {
   });
 
   return (
-    <DomainOverviewPageProviders maxPickableDays={datePageFilterProps.maxPickableDays}>
-      <ConversationsOverviewPage datePageFilterProps={datePageFilterProps} />
-    </DomainOverviewPageProviders>
+    <Layout.Page>
+      <DomainOverviewPageProviders maxPickableDays={datePageFilterProps.maxPickableDays}>
+        <ConversationsOverviewPage datePageFilterProps={datePageFilterProps} />
+      </DomainOverviewPageProviders>
+    </Layout.Page>
   );
 }
 

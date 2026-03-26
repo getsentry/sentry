@@ -781,10 +781,12 @@ const ProfileDigestLabel = styled('span')`
 
 export default function ProfileSummaryPageToggle() {
   return (
-    <ProfileSummaryContainer data-test-id="profile-summary-redesign">
-      <ErrorBoundary>
-        <ProfileSummaryPage />
-      </ErrorBoundary>
-    </ProfileSummaryContainer>
+    <Layout.Page>
+      <ProfileSummaryContainer data-test-id="profile-summary-redesign">
+        <ErrorBoundary>
+          <ProfileSummaryPage />
+        </ErrorBoundary>
+      </ProfileSummaryContainer>
+    </Layout.Page>
   );
 }
