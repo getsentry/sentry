@@ -235,4 +235,11 @@ describe('marked', () => {
       `<pre><code class="language-javascript"><span class="token keyword">const</span> x <span class="token operator">=</span> <span class="token number">1</span><span class="token punctuation">;</span>\n</code></pre>`
     );
   });
+
+  it('renders unknown language code blocks as plaintext via asyncSanitizedMarked', async () => {
+    const markdown = '```unknown\nconst x = 1;\n```';
+    expect(await asyncSanitizedMarked(markdown)).toBe(
+      `<pre><code class="language-unknown">const x = 1;\n</code></pre>`
+    );
+  });
 });

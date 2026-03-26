@@ -490,6 +490,7 @@ function IssueListOverview({
     page: parsePageQueryParam(location, 0),
     query,
     num_issues: groups.length,
+    group_ids: groups.map(group => group.id),
     total_issues_count: queryCount,
     sort,
     realtime_active: realtimeActive,

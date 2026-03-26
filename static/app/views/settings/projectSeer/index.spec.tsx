@@ -1230,4 +1230,88 @@ describe('ProjectSeer', () => {
       ).not.toBeInTheDocument();
     });
   });
+
+  describe('GitLab support', () => {
+    const reposWithGitlab = [
+      RepositoryFixture({
+        id: '1',
+        name: 'getsentry/sentry',
+        externalId: '101',
+        provider: {id: 'integrations:github', name: 'GitHub'},
+        integrationId: '201',
+      }),
+      RepositoryFixture({
+        id: '3',
+        name: 'getsentry/gitlab-repo',
+        externalId: '103',
+        provider: {id: 'integrations:gitlab', name: 'GitLab'},
+        integrationId: '203',
+      }),
+    ];
+
+    it('shows GitLab repos as selectable when seer-gitlab-support flag is on', async () => {
+      const orgWithGitlabSupport = OrganizationFixture({
+        features: ['seer-gitlab-support'],
+      });
+
+      // Override the repos mock from beforeEach to include a GitLab repo
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithGitlabSupport.slug}/repos/`,
+        query: {status: 'active'},
+        method: 'GET',
+        body: reposWithGitlab,
+      });
+
+      render(<ProjectSeer />, {
+        organization: orgWithGitlabSupport,
+        outletContext: {project},
+      });
+      renderGlobalModal({organization: orgWithGitlabSupport});
+
+      // Wait for repos to load (sentry is pre-selected via code_mapping_repos in beforeEach)
+      expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
+
+      // Open the add repo modal — it shows only unselected repos
+      await userEvent.click(screen.getByRole('button', {name: 'Add Repos'}));
+
+      const modal = await screen.findByRole('dialog');
+
+      // GitLab repo should appear in the modal and not be visually disabled
+      const gitlabRepoItem = await within(modal).findByText('getsentry/gitlab-repo');
+      expect(gitlabRepoItem).toBeInTheDocument();
+
+      // The checkbox for GitLab repo should not be disabled (since the flag is on)
+      const gitlabCheckbox = within(modal).getByRole('checkbox', {
+        checked: false,
+      });
+      expect(gitlabCheckbox).toBeEnabled();
+    });
+
+    it('shows GitLab repos as disabled when seer-gitlab-support flag is off', async () => {
+      // Override the repos mock from beforeEach to include a GitLab repo
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/`,
+        query: {status: 'active'},
+        method: 'GET',
+        body: reposWithGitlab,
+      });
+
+      render(<ProjectSeer />, {
+        organization,
+        outletContext: {project},
+      });
+      renderGlobalModal();
+
+      // Wait for repos to load (sentry is pre-selected via code_mapping_repos in beforeEach)
+      expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
+
+      // Open the add repo modal — it shows only unselected repos
+      await userEvent.click(screen.getByRole('button', {name: 'Add Repos'}));
+
+      const modal = await screen.findByRole('dialog');
+
+      // GitLab repo should appear in the list but be disabled (not selectable without the flag)
+      expect(within(modal).getByText('getsentry/gitlab-repo')).toBeInTheDocument();
+    });
+  });
 });

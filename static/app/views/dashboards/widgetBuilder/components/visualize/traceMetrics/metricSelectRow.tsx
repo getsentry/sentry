@@ -16,7 +16,10 @@ import {
   getTraceMetricAggregateActionType,
   getTraceMetricAggregateSource,
 } from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
-import {OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
+import {
+  DEFAULT_YAXIS_BY_TYPE,
+  OPTIONS_BY_TYPE,
+} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
 
@@ -39,7 +42,8 @@ function getUpdatedAggregatesMultiMetric(
 
   const nextAggregateKey = isValid
     ? currentAggregateKey
-    : (validAggregateOptions[0]?.value as AggregationKeyWithAlias | undefined);
+    : ((DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] ??
+        validAggregateOptions[0]?.value) as AggregationKeyWithAlias);
 
   if (!nextAggregateKey) {
     return undefined;
@@ -103,7 +107,8 @@ export function MetricSelectRow({
 
                   if (!isValid && validAggregateOptions.length > 0) {
                     return buildTraceMetricAggregate(
-                      validAggregateOptions[0]!.value as AggregationKeyWithAlias,
+                      (DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] ??
+                        validAggregateOptions[0]?.value) as AggregationKeyWithAlias,
                       newTraceMetric
                     );
                   }
