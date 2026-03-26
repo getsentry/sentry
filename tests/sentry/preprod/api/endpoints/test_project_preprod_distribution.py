@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import orjson
 from django.test import override_settings
 
@@ -29,22 +31,37 @@ class ProjectPreprodDistributionEndpointTest(TestCase):
         )
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=[SHARED_SECRET_FOR_TESTS])
-    def test_bad_auth(self) -> None:
+    @patch(
+        "sentry.preprod.api.endpoints.project_preprod_distribution.send_build_distribution_webhook"
+    )
+    def test_bad_auth(self, mock_send_webhook) -> None:
         response = self._put(b"{}", secret="wrong secret")
         assert response.status_code == 401
+        mock_send_webhook.assert_not_called()
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=[SHARED_SECRET_FOR_TESTS])
-    def test_missing_fields(self) -> None:
+    @patch(
+        "sentry.preprod.api.endpoints.project_preprod_distribution.send_build_distribution_webhook"
+    )
+    def test_missing_fields(self, mock_send_webhook) -> None:
         response = self._put(b"{}")
         assert response.status_code == 400
+        mock_send_webhook.assert_not_called()
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=[SHARED_SECRET_FOR_TESTS])
-    def test_bad_json(self) -> None:
+    @patch(
+        "sentry.preprod.api.endpoints.project_preprod_distribution.send_build_distribution_webhook"
+    )
+    def test_bad_json(self, mock_send_webhook) -> None:
         response = self._put(b"{")
         assert response.status_code == 400
+        mock_send_webhook.assert_not_called()
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=[SHARED_SECRET_FOR_TESTS])
-    def test_set_error(self) -> None:
+    @patch(
+        "sentry.preprod.api.endpoints.project_preprod_distribution.send_build_distribution_webhook"
+    )
+    def test_set_error(self, mock_send_webhook) -> None:
         response = self._put(
             orjson.dumps({"error_code": 3, "error_message": "Unsupported artifact type"})
         )
@@ -56,6 +73,11 @@ class ProjectPreprodDistributionEndpointTest(TestCase):
             == PreprodArtifact.InstallableAppErrorCode.PROCESSING_ERROR
         )
         assert self.artifact.installable_app_error_message == "Unsupported artifact type"
+
+        # Verify webhook was sent
+        mock_send_webhook.assert_called_once()
+        call_kwargs = mock_send_webhook.call_args
+        assert call_kwargs.kwargs["organization_id"] == self.project.organization_id
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=[SHARED_SECRET_FOR_TESTS])
     def test_invalid_error_code(self) -> None:
