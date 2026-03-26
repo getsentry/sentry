@@ -258,7 +258,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
             },
         )
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state)
-        mock_push_changes.assert_called_once_with(self.group, 123)
+        mock_push_changes.assert_called_once_with(self.group, 123, state=state)
 
 
 class TestPipelineConstants(TestCase):
