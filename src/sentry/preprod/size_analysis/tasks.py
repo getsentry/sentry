@@ -84,7 +84,10 @@ def compare_preprod_artifact_size_analysis(
                 if artifact.build_configuration != base_artifact.build_configuration:
                     logger.info(
                         "preprod.size_analysis.compare.artifact_different_build_configurations",
-                        extra={"head_artifact_id": artifact_id, "base_artifact_id": base_artifact.id},
+                        extra={
+                            "head_artifact_id": artifact_id,
+                            "base_artifact_id": base_artifact.id,
+                        },
                     )
                     # Update the status check even though we can't compare to avoid leaving it in a loading state
                     create_preprod_status_check_task.apply_async(
@@ -129,7 +132,10 @@ def compare_preprod_artifact_size_analysis(
                                 },
                             )
                             comparisons.append(
-                                {"head_metric": matching_head_size_metric, "base_metric": base_metric},
+                                {
+                                    "head_metric": matching_head_size_metric,
+                                    "base_metric": base_metric,
+                                },
                             )
                         else:
                             logger.info(
@@ -155,7 +161,10 @@ def compare_preprod_artifact_size_analysis(
                 if head_artifact.build_configuration != artifact.build_configuration:
                     logger.info(
                         "preprod.size_analysis.compare.head_artifact_different_build_configurations",
-                        extra={"head_artifact_id": head_artifact.id, "base_artifact_id": artifact_id},
+                        extra={
+                            "head_artifact_id": head_artifact.id,
+                            "base_artifact_id": artifact_id,
+                        },
                     )
                     continue
 
@@ -247,7 +256,9 @@ def compare_preprod_artifact_size_analysis(
                     )
 
             try:
-                artifact_type_name = PreprodArtifact.ArtifactType(artifact.artifact_type).name.lower()
+                artifact_type_name = PreprodArtifact.ArtifactType(
+                    artifact.artifact_type
+                ).name.lower()
             except (ValueError, AttributeError, TypeError):
                 artifact_type_name = "unknown"
 
