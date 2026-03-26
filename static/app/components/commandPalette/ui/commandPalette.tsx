@@ -135,6 +135,11 @@ export function CommandPalette(props: CommandPaletteProps) {
       }
 
       if (action.type === 'group') {
+        trackAnalytics('command_palette.action_selected', {
+          organization,
+          action: action.display.label as string,
+          query: state.query,
+        });
         dispatch({type: 'push action', action});
         return;
       }
@@ -142,7 +147,7 @@ export function CommandPalette(props: CommandPaletteProps) {
       dispatch({type: 'trigger action'});
       props.onAction(action);
     },
-    [filteredActions, dispatch, props, treeState]
+    [filteredActions, dispatch, props, treeState, state.query]
   );
 
   return (
