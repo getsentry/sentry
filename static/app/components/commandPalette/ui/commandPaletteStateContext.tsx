@@ -156,5 +156,5 @@ export function getActionPath(state: CommandPaletteState): string {
     path.unshift(label);
     node = node.previous;
   }
-  return path.reverse().join(' -> ');
+  return path.join(' → ');
 }

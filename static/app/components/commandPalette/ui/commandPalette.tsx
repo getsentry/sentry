@@ -1,4 +1,5 @@
-import {Fragment, useCallback, useEffect, useLayoutEffect, useMemo} from 'react';
+import {Fragment, useLayoutEffect, useMemo, useEffect, useCallback} from 'react';
+import {preload} from 'react-dom';
 import styled from '@emotion/styled';
 import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selection';
 import {mergeProps} from '@react-aria/utils';
@@ -6,7 +7,7 @@ import {Item, Section} from '@react-stately/collections';
 import {useTreeState} from '@react-stately/tree';
 import * as Sentry from '@sentry/react';
 
-import error from 'sentry-images/spot/computer-missing.svg';
+import errorIllustration from 'sentry-images/spot/computer-missing.svg';
 
 import {Button} from '@sentry/scraps/button';
 import {ListBox} from '@sentry/scraps/compactSelect';
@@ -26,6 +27,7 @@ import {
   useCommandPaletteDispatch,
   useCommandPaletteState,
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IconArrow, IconClose, IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
@@ -52,6 +54,12 @@ export function CommandPalette(props: CommandPaletteProps) {
 
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
+
+  // Preload the empty state image so it's ready if/when there are no results
+  // Guard against non-string imports (e.g. SVG objects in test environments)
+  if (typeof errorIllustration === 'string') {
+    preload(errorIllustration, {as: 'image'});
+  }
 
   const displayedActions = useMemo<CommandPaletteActionWithPriority[]>(() => {
     if (
@@ -396,17 +404,31 @@ function CommandPaletteNoResults() {
       align="center"
       justify="center"
       gap="lg"
-      padding="xl lg"
+      padding="2xl lg"
       height="400px"
     >
-      <Image src={error} alt="No results" width="400px" />
+      <Image src={errorIllustration} alt="No results" width="400px" />
       <Stack align="center" gap="md">
-        <Text size="md" align="center">
-          {t("Whoops… we couldn't find any results matching your search.")}
-        </Text>
-        <Text size="md" align="center">
-          {t('Try rephrasing your query maybe?')}
-        </Text>
+        <Container padding="0 2xl">
+          <Stack gap="sm">
+            <Text size="md" align="center">
+              {t("Whoops… we couldn't find any results matching your search.")}
+            </Text>
+            <Text size="md" align="center">
+              {t('May we suggest rephrasing your query?')}
+            </Text>
+          </Stack>
+        </Container>
+        <Container paddingTop="xl">
+          <FeedbackButton
+            priority="primary"
+            feedbackOptions={{
+              tags: {
+                ['feedback.source']: 'command_palette',
+              },
+            }}
+          />
+        </Container>
       </Stack>
     </Flex>
   );
