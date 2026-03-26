@@ -199,6 +199,10 @@ export function AutoSaveForm<
         setFieldErrors(formApi, {[name]: {message: t('Failed to save')}} as never);
       };
 
+      const onSuccess = () => {
+        formApi.reset();
+      };
+
       const fieldValue = value[name];
 
       // Determine confirmation message
@@ -215,7 +219,9 @@ export function AutoSaveForm<
               pendingConfirmRef.current = false;
               // Resolve on both success and failure - error handling is done by
               // TanStack Query (onError callback, mutation.isError state)
-              mutation.mutateAsync(value, {onError}).then(() => resolve(), resolve);
+              mutation.mutateAsync(value, {onError, onSuccess}).then(() => {
+                resolve();
+              }, resolve);
             },
             onClose: () => {
               // onClose is always called, even after confirming,
@@ -233,7 +239,7 @@ export function AutoSaveForm<
 
       // Resolve on both success and failure - error handling is done by
       // TanStack Query (onError callback, mutation.isError state)
-      return mutation.mutateAsync(value, {onError}).catch(() => {});
+      return mutation.mutateAsync(value, {onError, onSuccess}).catch(() => {});
     },
   });
 

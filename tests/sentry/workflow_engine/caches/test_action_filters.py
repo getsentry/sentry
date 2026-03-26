@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.caches.action_filters import (
     ActionFiltersByWorkflow,
+    _action_filters_cache,
     _CacheResults,
     _populate_cache,
     get_action_filters_by_workflows,
@@ -13,6 +14,7 @@ from sentry.workflow_engine.models import (
     DataConditionGroup,
     Workflow,
 )
+from sentry.workflow_engine.types import WorkflowId
 
 
 @contextmanager
@@ -37,14 +39,13 @@ def mock_check_action_filters_cache(
         yield mock_cache
 
 
-class TestActionFilterCache(TestCase):
-    def create_workflow_with_filters(
-        self, num_filters: int = 1, num_conditions: int = 1
-    ) -> tuple[
-        Workflow,
-        list[DataConditionGroup],
-    ]:
-        workflow = self.create_workflow()
+class ActionFilterTestCase(TestCase):
+    def create_action_filters_for_workflow(
+        self,
+        workflow: Workflow,
+        num_filters: int = 1,
+        num_conditions: int = 0,
+    ) -> list[DataConditionGroup]:
         action_filters: list[DataConditionGroup] = [
             self.create_data_condition_group() for _ in range(num_filters)
         ]
@@ -61,7 +62,26 @@ class TestActionFilterCache(TestCase):
                 ]
             )
 
-        return workflow, action_filters
+        return action_filters
+
+    def populate_action_filter_cache(
+        self,
+        cache_data: ActionFiltersByWorkflow,
+    ) -> list[WorkflowId]:
+        _populate_cache(cache_data)
+        cache_keys = list(cache_data.keys())
+
+        for cache_key in cache_keys:
+            assert _action_filters_cache.get(cache_key) == cache_data[cache_key]
+
+        return cache_keys
+
+    def get_data_from_cache(
+        self,
+        cache_keys: list[WorkflowId],
+    ) -> dict[WorkflowId, list[DataConditionGroup] | None]:
+        cache_results = _action_filters_cache.get_many(cache_keys)
+        return {key: values for key, values in cache_results.items()}
 
     def assert_cache_result(
         self,
@@ -85,13 +105,18 @@ class TestActionFilterCache(TestCase):
             ):
                 assert result_cond.id == expected_cond.id
 
+
+class TestActionFilterCache(ActionFilterTestCase):
     def test_no_workflows_passed(self) -> None:
         result = get_action_filters_by_workflows([])
         assert result == {}
 
     def test_all_cache_miss__one_workflow(self) -> None:
-        num_conditions = 2
-        workflow, action_filters = self.create_workflow_with_filters(num_conditions=num_conditions)
+        workflow = self.create_workflow()
+        action_filters = self.create_action_filters_for_workflow(
+            workflow=workflow,
+            num_conditions=2,
+        )
 
         with mock_check_action_filters_cache(_CacheResults(cached={}, missed_ids=[workflow.id])):
             results = get_action_filters_by_workflows([workflow])
@@ -99,8 +124,11 @@ class TestActionFilterCache(TestCase):
         self.assert_cache_result(results, workflow, action_filters)
 
     def test_all_cache_hits__one_workflow(self) -> None:
-        num_conditions = 2
-        workflow, action_filters = self.create_workflow_with_filters(num_conditions=num_conditions)
+        workflow = self.create_workflow()
+        action_filters = self.create_action_filters_for_workflow(
+            workflow=workflow,
+            num_conditions=2,
+        )
 
         _populate_cache({workflow.id: action_filters})
 
@@ -111,8 +139,17 @@ class TestActionFilterCache(TestCase):
         self.assert_cache_result(results, workflow, action_filters)
 
     def test_all_cache_miss__many_workflows(self) -> None:
-        workflow, action_filters = self.create_workflow_with_filters()
-        workflow_two, action_filters_two = self.create_workflow_with_filters(num_filters=2)
+        workflow = self.create_workflow()
+        action_filters = self.create_action_filters_for_workflow(
+            workflow=workflow,
+            num_conditions=1,
+        )
+
+        workflow_two = self.create_workflow()
+        action_filters_two = self.create_action_filters_for_workflow(
+            workflow=workflow_two,
+            num_filters=2,
+        )
 
         with mock_check_action_filters_cache(
             _CacheResults(cached={}, missed_ids=[workflow.id, workflow_two.id])
@@ -123,8 +160,18 @@ class TestActionFilterCache(TestCase):
         self.assert_cache_result(results, workflow_two, action_filters_two)
 
     def test_all_cache_hits__many_workflows(self) -> None:
-        workflow, action_filters = self.create_workflow_with_filters()
-        workflow_two, action_filters_two = self.create_workflow_with_filters(num_filters=2)
+        workflow = self.create_workflow()
+        action_filters = self.create_action_filters_for_workflow(
+            workflow=workflow,
+            num_conditions=1,
+        )
+
+        workflow_two = self.create_workflow()
+        action_filters_two = self.create_action_filters_for_workflow(
+            workflow=workflow_two,
+            num_filters=2,
+            num_conditions=1,
+        )
 
         _populate_cache(
             {
@@ -141,8 +188,18 @@ class TestActionFilterCache(TestCase):
         self.assert_cache_result(results, workflow_two, action_filters_two)
 
     def test_mixed_cache_hits(self) -> None:
-        workflow, action_filters = self.create_workflow_with_filters()
-        workflow_two, action_filters_two = self.create_workflow_with_filters(num_filters=2)
+        workflow = self.create_workflow()
+        action_filters = self.create_action_filters_for_workflow(
+            workflow=workflow,
+            num_conditions=1,
+        )
+
+        workflow_two = self.create_workflow()
+        action_filters_two = self.create_action_filters_for_workflow(
+            workflow=workflow_two,
+            num_filters=2,
+            num_conditions=1,
+        )
 
         _populate_cache(
             {
@@ -156,8 +213,17 @@ class TestActionFilterCache(TestCase):
         self.assert_cache_result(results, workflow_two, action_filters_two)
 
     def test_mixed_cache_hits__filters_query(self) -> None:
-        workflow, action_filters = self.create_workflow_with_filters()
-        workflow_two, action_filters_two = self.create_workflow_with_filters(num_filters=2)
+        workflow = self.create_workflow()
+        action_filters = self.create_action_filters_for_workflow(
+            workflow=workflow,
+            num_conditions=1,
+        )
+        workflow_two = self.create_workflow()
+        action_filters_two = self.create_action_filters_for_workflow(
+            workflow=workflow_two,
+            num_filters=2,
+            num_conditions=1,
+        )
 
         _populate_cache(
             {
@@ -187,7 +253,11 @@ class TestActionFilterCache(TestCase):
         assert result[workflow.id] == []
 
     def test_prefetched_conditions_survive_cache(self) -> None:
-        workflow, _ = self.create_workflow_with_filters(num_conditions=2)
+        workflow = self.create_workflow()
+        self.create_action_filters_for_workflow(
+            workflow=workflow,
+            num_conditions=2,
+        )
 
         # First call populates cache
         get_action_filters_by_workflows([workflow])

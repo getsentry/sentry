@@ -26,7 +26,7 @@ import type {BaseGroup, Group, PriorityLevel} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import CursorPoller from 'sentry/utils/cursorPoller';
+import {CursorPoller} from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getCurrentSentryReactRootSpan} from 'sentry/utils/getCurrentSentryReactRootSpan';
 import {parseApiError} from 'sentry/utils/parseApiError';
@@ -490,6 +490,7 @@ function IssueListOverview({
     page: parsePageQueryParam(location, 0),
     query,
     num_issues: groups.length,
+    group_ids: groups.map(group => group.id),
     total_issues_count: queryCount,
     sort,
     realtime_active: realtimeActive,

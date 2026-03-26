@@ -1,9 +1,10 @@
+import {useEffect} from 'react';
 import type {QueryFunctionContext} from '@tanstack/react-query';
 
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {ApiQueryKey, InfiniteApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
-import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
+import {QUERY_API_CLIENT, type UseInfiniteQueryResult} from 'sentry/utils/queryClient';
 
 export type ApiResponse<TResponseData = unknown> = {
   headers: {
@@ -67,4 +68,19 @@ export async function apiFetchInfinite<TQueryFnData = unknown>(
     },
     json: json as TQueryFnData,
   };
+}
+
+export function useFetchAllPages<TQueryFnData = unknown>({
+  result,
+  enabled = true,
+}: {
+  result: UseInfiniteQueryResult<TQueryFnData, Error>;
+  enabled?: boolean;
+}) {
+  const {fetchNextPage, hasNextPage, isError, isFetchingNextPage} = result;
+  useEffect(() => {
+    if (enabled && !isError && !isFetchingNextPage && hasNextPage) {
+      fetchNextPage();
+    }
+  }, [enabled, hasNextPage, fetchNextPage, isError, isFetchingNextPage]);
 }

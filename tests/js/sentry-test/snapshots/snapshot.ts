@@ -55,7 +55,7 @@ function renderToHTML(element: ReactElement): string {
   <style>${getFontFaceCSS()}</style>
   ${styleTags}
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; animation: none !important; transition: none !important; }
     body { font-family: 'Rubik', sans-serif; background: transparent; }
     #root { display: inline-block; }
   </style>
@@ -134,7 +134,7 @@ export async function takeSnapshot({
 
     const relativePath = path.relative(PROJECT_ROOT, testFilePath);
     const dirOfTestFile = path.dirname(relativePath);
-    const coreFilename = fileSlug.replace(/[^a-zA-Z0-9_-]/g, '-');
+    const coreFilename = fileSlug.replace(/[^\w-]/g, '-');
     const imageFilename = `${coreFilename}.png`;
 
     const outputDir = path.join(getOutputDir(), dirOfTestFile);

@@ -3,13 +3,11 @@ import {useCallback, useState} from 'react';
 import type {PageFilters} from 'sentry/types/core';
 import type {Confidence} from 'sentry/types/organization';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
-import {
-  EMPTY_METRIC_SELECTION,
-  TraceMetricsConfig,
-} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
+import {TraceMetricsConfig} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
@@ -107,11 +105,19 @@ function TraceMetricsWidgetQueriesSingleRequestImpl({
     });
   };
 
-  // TODO: Handle the "default" empty state better.
-  // This is required because metrics loads async and we need to wait for it to load and
-  // select a default metric before firing the query.
+  // Trace metric aggregates encode the metric name and type in the function
+  // arguments: fn(value, metricName, metricType, unit). We must wait for
+  // the metric selector to load and populate these before firing the query.
   const disabled = widget.queries.some(q =>
-    q.aggregates.includes(EMPTY_METRIC_SELECTION)
+    q.aggregates.some(agg => {
+      const parsed = parseFunction(agg);
+      if (!parsed) {
+        return true;
+      }
+      const metricName = parsed.arguments[1];
+      const metricType = parsed.arguments[2];
+      return !metricName || !metricType;
+    })
   );
 
   const props = useGenericWidgetQueries<SeriesResult, TableResult>({

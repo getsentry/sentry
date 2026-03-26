@@ -112,6 +112,7 @@ export function useScrollLock(container: HTMLElement) {
     return {
       acquire: () => lock.acquire(id),
       release: () => lock.release(id),
+      held: () => lock.held(),
     };
   }, [lock, id]);
 }

@@ -63,16 +63,14 @@ export function SolutionPreview({section}: ArtifactPreviewProps) {
   }, [section]);
 
   return (
-    <ArtifactCard icon={<IconList />} title={t('Implementation Plan')}>
+    <ArtifactCard icon={<IconList />} title={t('Plan')}>
       {section.status === 'processing' ? (
         <Placeholder height="3rem" />
       ) : artifact?.data ? (
         <Text>{artifact.data.one_line_summary}</Text>
       ) : (
         <Text variant="muted">
-          {t(
-            'Seer failed to generate an implementation plan. This one is on us. Try running it again.'
-          )}
+          {t('Seer failed to generate a plan. This one is on us. Try running it again.')}
         </Text>
       )}
     </ArtifactCard>

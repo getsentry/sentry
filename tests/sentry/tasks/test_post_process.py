@@ -50,6 +50,11 @@ from sentry.models.projectteam import ProjectTeam
 from sentry.models.userreport import UserReport
 from sentry.replays.lib import kafka as replays_kafka
 from sentry.replays.lib.kafka import clear_replay_publisher
+from sentry.seer.autofix.constants import (
+    AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD,
+    FixabilityScoreThresholds,
+)
+from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
 from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.silo.base import SiloMode
@@ -2778,7 +2783,7 @@ class ProcessSimilarityTestMixin(BasePostProcessGroupMixin):
 
 
 class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
-    @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
+    @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
     def test_kick_off_seer_automation_with_features(self, mock_generate_summary_and_run_automation):
         self.project.update_option("sentry:seer_scanner_automation", True)
@@ -2798,7 +2803,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
             event.group.id, trigger_path="old_seer_automation"
         )
 
-    @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
+    @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     def test_kick_off_seer_automation_without_org_feature(
         self, mock_generate_summary_and_run_automation
     ):
@@ -2816,7 +2821,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
 
         mock_generate_summary_and_run_automation.assert_not_called()
 
-    @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
+    @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
     def test_kick_off_seer_automation_without_scanner_on(
         self, mock_generate_summary_and_run_automation
@@ -2837,7 +2842,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
 
         mock_generate_summary_and_run_automation.assert_not_called()
 
-    @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
+    @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
     def test_kick_off_seer_automation_skips_existing_fixability_score(
         self, mock_generate_summary_and_run_automation
@@ -2862,7 +2867,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
 
         mock_generate_summary_and_run_automation.assert_not_called()
 
-    @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
+    @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
     def test_kick_off_seer_automation_runs_with_missing_fixability_score(
         self, mock_generate_summary_and_run_automation
@@ -2888,7 +2893,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
             group.id, trigger_path="old_seer_automation"
         )
 
-    @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
+    @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
     def test_kick_off_seer_automation_skips_with_existing_fixability_score(
         self, mock_generate_summary_and_run_automation
@@ -2921,7 +2926,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
 
     @patch("sentry.seer.autofix.utils.is_seer_scanner_rate_limited")
     @patch("sentry.quotas.backend.check_seer_quota")
-    @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
+    @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
     def test_rate_limit_only_checked_after_all_other_checks_pass(
         self,
@@ -2992,7 +2997,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         mock_is_rate_limited.assert_not_called()
         mock_generate_summary_and_run_automation.assert_not_called()
 
-    @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
+    @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
     def test_kick_off_seer_automation_skips_when_lock_held(
         self, mock_generate_summary_and_run_automation
@@ -3041,7 +3046,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
             event2.group.id, trigger_path="old_seer_automation"
         )
 
-    @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
+    @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
     def test_kick_off_seer_automation_with_hide_ai_features_enabled(
         self, mock_generate_summary_and_run_automation
@@ -3069,7 +3074,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
 class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
     """Tests for the triage signals V0 flow."""
 
-    @patch("sentry.tasks.autofix.generate_issue_summary_only.delay")
+    @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
     @with_feature({"organizations:gen-ai-features": True})
     def test_triage_signals_event_count_less_than_10_no_cache(
         self, mock_generate_summary_only, mock_seat_based_tier
@@ -3097,7 +3102,7 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         # Should call generate_issue_summary_only (not generate_summary_and_run_automation)
         mock_generate_summary_only.assert_called_once_with(group.id)
 
-    @patch("sentry.tasks.autofix.generate_issue_summary_only.delay")
+    @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
     @with_feature({"organizations:gen-ai-features": True})
     def test_triage_signals_event_count_less_than_10_with_cache(
         self, mock_generate_summary_only, mock_seat_based_tier
@@ -3130,7 +3135,7 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         "sentry.seer.autofix.utils.has_project_connected_repos",
         return_value=True,
     )
-    @patch("sentry.tasks.autofix.run_automation_only_task.delay")
+    @patch("sentry.tasks.seer.autofix.run_automation_only_task.delay")
     @with_feature({"organizations:gen-ai-features": True})
     def test_triage_signals_event_count_gte_10_with_cache(
         self, mock_run_automation, mock_has_repos, mock_seat_based_tier
@@ -3177,7 +3182,7 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         "sentry.seer.autofix.utils.has_project_connected_repos",
         return_value=True,
     )
-    @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
+    @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @with_feature({"organizations:gen-ai-features": True})
     def test_triage_signals_event_count_gte_10_no_cache(
         self,
@@ -3223,7 +3228,7 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         "sentry.seer.autofix.utils.has_project_connected_repos",
         return_value=False,
     )
-    @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
+    @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @with_feature({"organizations:gen-ai-features": True})
     def test_triage_signals_event_count_gte_10_skips_without_connected_repos(
         self,
@@ -3262,7 +3267,7 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         # Should not call automation since no connected repos
         mock_generate_summary_and_run_automation.assert_not_called()
 
-    @patch("sentry.tasks.autofix.run_automation_only_task.delay")
+    @patch("sentry.tasks.seer.autofix.run_automation_only_task.delay")
     @with_feature({"organizations:gen-ai-features": True})
     def test_triage_signals_event_count_gte_10_skips_with_seer_last_triggered(
         self, mock_run_automation, mock_seat_based_tier
@@ -3306,7 +3311,44 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         # Should not call automation since seer_autofix_last_triggered is set
         mock_run_automation.assert_not_called()
 
-    @patch("sentry.tasks.autofix.run_automation_only_task.delay")
+    @patch("sentry.tasks.seer.autofix.run_automation_only_task.delay")
+    @with_feature({"organizations:gen-ai-features": True})
+    def test_triage_signals_skips_with_explorer_last_triggered(
+        self, mock_run_automation, mock_seat_based_tier
+    ):
+        """Test that with event count >= 10 and seer_explorer_autofix_last_triggered set + feature flag, we skip automation."""
+        self.project.update_option("sentry:seer_scanner_automation", True)
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        # Update group times_seen and seer_explorer_autofix_last_triggered
+        group = event.group
+        group.times_seen = AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD
+        group.seer_explorer_autofix_last_triggered = timezone.now()
+        group.seer_fixability_score = FixabilityScoreThresholds.MEDIUM.value
+        group.save()
+
+        def mock_buffer_get(model, columns, filters):
+            return {"times_seen": 9}
+
+        with patch.object(buffer.backend, "get", side_effect=mock_buffer_get):
+            cache_key = get_issue_summary_cache_key(group.id)
+            cache.set(cache_key, {"summary": "test summary"}, 3600)
+            cache.set(f"seer-project-has-repos:{self.organization.id}:{self.project.id}", True)
+
+            self.call_post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                event=event,
+            )
+
+        # Should not call automation since seer_explorer_autofix_last_triggered is set
+        mock_run_automation.assert_not_called()
+
+    @patch("sentry.tasks.seer.autofix.run_automation_only_task.delay")
     @with_feature({"organizations:gen-ai-features": True})
     def test_triage_signals_event_count_gte_10_skips_with_existing_fixability_score(
         self, mock_run_automation, mock_seat_based_tier
@@ -3351,8 +3393,8 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         # Should not call automation since seer_fixability_score is below MEDIUM threshold
         mock_run_automation.assert_not_called()
 
-    @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
-    @patch("sentry.tasks.autofix.run_automation_only_task.delay")
+    @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
+    @patch("sentry.tasks.seer.autofix.run_automation_only_task.delay")
     @with_feature({"organizations:gen-ai-features": True})
     def test_triage_signals_skips_automation_for_old_issues(
         self,
@@ -3400,7 +3442,7 @@ class SeerAutomationHelperFunctionsTestMixin(BasePostProcessGroupMixin):
         """Test permission check with various failure conditions."""
         from sentry.constants import DataCategory
         from sentry.issues.grouptype import GroupCategory
-        from sentry.seer.autofix.utils import is_issue_eligible_for_seer_automation
+        from sentry.seer.autofix.trigger import is_issue_eligible_for_seer_automation
 
         self.project.update_option("sentry:seer_scanner_automation", True)
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)

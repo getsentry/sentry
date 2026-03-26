@@ -1,5 +1,4 @@
 import logging
-from concurrent.futures import ThreadPoolExecutor
 from typing import TypedDict
 
 import sentry_sdk
@@ -28,6 +27,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import RPCBase, TableQuery
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import _run_uptime_results_query, _uptime_results_query
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -208,7 +208,7 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
             # parallelizing the queries here, but ideally this parallelization happens by calling run_bulk_table_queries
             include_uptime = request.GET.get("include_uptime", "0") == "1"
             max_workers = 3 + (1 if include_uptime else 0)
-            with ThreadPoolExecutor(
+            with ContextPropagatingThreadPoolExecutor(
                 thread_name_prefix=__name__,
                 max_workers=max_workers,
             ) as query_thread_pool:

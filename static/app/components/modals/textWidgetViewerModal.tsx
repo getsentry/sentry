@@ -6,7 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
@@ -19,9 +19,10 @@ import type {
   DashboardPermissions,
   Widget,
 } from 'sentry/views/dashboards/types';
+import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
-import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 
 interface TextWidgetViewerModalOptions {
   organization: Organization;
@@ -30,6 +31,7 @@ interface TextWidgetViewerModalOptions {
   dashboardCreator?: User;
   dashboardFilters?: DashboardFilters;
   dashboardPermissions?: DashboardPermissions;
+  isPrebuiltDashboard?: boolean;
   onEdit?: () => void;
 }
 
@@ -53,16 +55,18 @@ function TextWidgetViewerModal(props: Props) {
     widgetLegendState,
     dashboardPermissions,
     dashboardCreator,
+    isPrebuiltDashboard,
   } = props;
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
-  const hasEditAccess = checkUserHasEditAccess(
-    currentUser,
-    userTeams,
-    organization,
-    dashboardPermissions,
-    dashboardCreator
-  );
+  const hasEditAccess =
+    checkUserHasEditAccess(
+      currentUser,
+      userTeams,
+      organization,
+      dashboardPermissions,
+      dashboardCreator
+    ) && !isPrebuiltDashboard;
 
   return (
     <Fragment>
@@ -94,8 +98,13 @@ function TextWidgetViewerModal(props: Props) {
               }}
               disabled={!hasEditAccess}
               tooltipProps={{
-                title:
-                  !hasEditAccess && t('You do not have permission to edit this widget'),
+                title: hasEditAccess
+                  ? undefined
+                  : isPrebuiltDashboard
+                    ? tct('[label] dashboards cannot be edited', {
+                        label: PREBUILT_DASHBOARD_LABEL,
+                      })
+                    : t('You do not have permission to edit this widget'),
               }}
             >
               {t('Edit Widget')}

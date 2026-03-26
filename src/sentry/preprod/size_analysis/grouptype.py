@@ -66,11 +66,11 @@ class SizeAnalysisMetadata(TypedDict):
 
     platform: str  # "android", "apple", or "unknown"
     head_metric_id: int
-    base_metric_id: int
+    base_metric_id: NotRequired[int]
     head_artifact_id: int
-    base_artifact_id: int
+    base_artifact_id: NotRequired[int]
     head_artifact: PreprodArtifact
-    base_artifact: PreprodArtifact
+    base_artifact: NotRequired[PreprodArtifact]
 
 
 class SizeAnalysisValue(TypedDict):
@@ -222,17 +222,20 @@ class PreprodSizeAnalysisDetectorHandler(
         }
         if metadata:
             evidence_data["head_artifact_id"] = metadata["head_artifact_id"]
-            evidence_data["base_artifact_id"] = metadata["base_artifact_id"]
+            if "base_artifact_id" in metadata:
+                evidence_data["base_artifact_id"] = metadata["base_artifact_id"]
             evidence_data["head_size_metric_id"] = metadata["head_metric_id"]
-            evidence_data["base_size_metric_id"] = metadata["base_metric_id"]
+            if "base_metric_id" in metadata:
+                evidence_data["base_size_metric_id"] = metadata["base_metric_id"]
 
         tags: dict[str, str] = {}
         if metadata:
             tags["regression_kind"] = measurement.replace("_size", "")
             for key, value in _artifact_to_tags(metadata["head_artifact"]).items():
                 tags[f"head.{key}"] = value
-            for key, value in _artifact_to_tags(metadata["base_artifact"]).items():
-                tags[f"base.{key}"] = value
+            if "base_artifact" in metadata:
+                for key, value in _artifact_to_tags(metadata["base_artifact"]).items():
+                    tags[f"base.{key}"] = value
 
             commit_comparison = metadata["head_artifact"].commit_comparison
             if commit_comparison is not None:

@@ -23,11 +23,17 @@ from sentry.preprod.size_analysis.grouptype import (
 )
 from sentry.preprod.size_analysis.models import ComparisonResults, SizeAnalysisResults
 from sentry.preprod.size_analysis.utils import build_size_metrics_map, can_compare_size_metrics
+from sentry.preprod.size_analysis.webhooks import send_size_analysis_webhook
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
 from sentry.utils import metrics
+
+# Threshold type categories for filtering detectors by path.
+# These must stay in sync with the enum in PreprodSizeAnalysisGroupType.detector_settings.config_schema.
+DIFF_THRESHOLD_TYPES = frozenset({"absolute_diff", "relative_diff"})
+ABSOLUTE_THRESHOLD_TYPES = frozenset({"absolute"})
 from sentry.utils.json import dumps_htmlsafe
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.processors.detector import process_detectors
@@ -67,195 +73,201 @@ def compare_preprod_artifact_size_analysis(
         )
         return
 
-    if not artifact.commit_comparison:
-        logger.info(
-            "preprod.size_analysis.compare.artifact_no_commit_comparison",
-            extra={"artifact_id": artifact_id},
-        )
-        return
-
-    comparisons: list[dict[str, PreprodArtifactSizeMetrics]] = []
-    preprod_artifact_status_check_updates: set[int] = {artifact.id}
-
-    # Create all comparisons with artifact as head
-    base_artifact = artifact.get_base_artifact_for_commit().first()
-    if base_artifact:
-        if artifact.build_configuration != base_artifact.build_configuration:
+    try:
+        if not artifact.commit_comparison:
             logger.info(
-                "preprod.size_analysis.compare.artifact_different_build_configurations",
-                extra={"head_artifact_id": artifact_id, "base_artifact_id": base_artifact.id},
-            )
-            # Update the status check even though we can't compare to avoid leaving it in a loading state
-            create_preprod_status_check_task.apply_async(
-                kwargs={
-                    "preprod_artifact_id": artifact_id,
-                    "caller": "compare_build_config_mismatch",
-                }
+                "preprod.size_analysis.compare.artifact_no_commit_comparison",
+                extra={"artifact_id": artifact_id},
             )
             return
 
-        base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-            preprod_artifact_id__in=[base_artifact.id],
-            preprod_artifact__project__organization_id=org_id,
-            preprod_artifact__project_id=project_id,
-        ).select_related("preprod_artifact", "preprod_artifact__mobile_app_info")
-        base_size_metrics = list(base_size_metrics_qs)
+        comparisons: list[dict[str, PreprodArtifactSizeMetrics]] = []
+        preprod_artifact_status_check_updates: set[int] = {artifact.id}
 
-        head_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-            preprod_artifact_id__in=[artifact_id],
-            preprod_artifact__project__organization_id=org_id,
-            preprod_artifact__project_id=project_id,
-        ).select_related(
-            "preprod_artifact",
-            "preprod_artifact__mobile_app_info",
-            "preprod_artifact__commit_comparison",
-        )
-        head_size_metrics = list(head_size_metrics_qs)
+        # Create all comparisons with artifact as head
+        base_artifact = artifact.get_base_artifact_for_commit().first()
+        if base_artifact:
+            if artifact.build_configuration != base_artifact.build_configuration:
+                logger.info(
+                    "preprod.size_analysis.compare.artifact_different_build_configurations",
+                    extra={"head_artifact_id": artifact_id, "base_artifact_id": base_artifact.id},
+                )
+                # Update the status check even though we can't compare to avoid leaving it in a loading state
+                create_preprod_status_check_task.apply_async(
+                    kwargs={
+                        "preprod_artifact_id": artifact_id,
+                        "caller": "compare_build_config_mismatch",
+                    }
+                )
+                return
 
-        validation_result = can_compare_size_metrics(head_size_metrics, base_size_metrics)
-        if validation_result.can_compare:
-            base_metrics_map = build_size_metrics_map(base_size_metrics)
+            base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
+                preprod_artifact_id=base_artifact.id,
+                preprod_artifact__project__organization_id=org_id,
+                preprod_artifact__project_id=project_id,
+            ).select_related("preprod_artifact", "preprod_artifact__mobile_app_info")
+            base_size_metrics = list(base_size_metrics_qs)
+
+            head_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
+                preprod_artifact_id=artifact_id,
+                preprod_artifact__project__organization_id=org_id,
+                preprod_artifact__project_id=project_id,
+            ).select_related(
+                "preprod_artifact",
+                "preprod_artifact__mobile_app_info",
+                "preprod_artifact__commit_comparison",
+            )
+            head_size_metrics = list(head_size_metrics_qs)
+
+            validation_result = can_compare_size_metrics(head_size_metrics, base_size_metrics)
+            if validation_result.can_compare:
+                base_metrics_map = build_size_metrics_map(base_size_metrics)
+                head_metrics_map = build_size_metrics_map(head_size_metrics)
+
+                for key, base_metric in base_metrics_map.items():
+                    matching_head_size_metric = head_metrics_map.get(key)
+                    if matching_head_size_metric:
+                        logger.info(
+                            "preprod.size_analysis.compare.create_comparison",
+                            extra={
+                                "head_artifact_id": artifact_id,
+                                "base_artifact_id": base_artifact.id,
+                            },
+                        )
+                        comparisons.append(
+                            {"head_metric": matching_head_size_metric, "base_metric": base_metric},
+                        )
+                    else:
+                        logger.info(
+                            "preprod.size_analysis.compare.no_matching_base_size_metric",
+                            extra={
+                                "head_artifact_id": artifact_id,
+                                "size_metric_id": base_metric.id,
+                            },
+                        )
+            else:
+                logger.info(
+                    "preprod.size_analysis.compare.cannot_compare_size_metrics",
+                    extra={
+                        "head_artifact_id": artifact_id,
+                        "base_artifact_id": base_artifact.id,
+                        "error_message": validation_result.error_message,
+                    },
+                )
+
+        # Also create comparisons with artifact as base
+        head_artifacts = artifact.get_head_artifacts_for_commit()
+        for head_artifact in head_artifacts:
+            if head_artifact.build_configuration != artifact.build_configuration:
+                logger.info(
+                    "preprod.size_analysis.compare.head_artifact_different_build_configurations",
+                    extra={"head_artifact_id": head_artifact.id, "base_artifact_id": artifact_id},
+                )
+                continue
+
+            head_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
+                preprod_artifact_id=head_artifact.id,
+                preprod_artifact__project__organization_id=org_id,
+                preprod_artifact__project_id=project_id,
+            ).select_related(
+                "preprod_artifact",
+                "preprod_artifact__mobile_app_info",
+                "preprod_artifact__commit_comparison",
+            )
+            head_size_metrics = list(head_size_metrics_qs)
+
+            base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
+                preprod_artifact_id=artifact_id,
+                preprod_artifact__project__organization_id=org_id,
+                preprod_artifact__project_id=project_id,
+            ).select_related("preprod_artifact", "preprod_artifact__mobile_app_info")
+            base_size_metrics = list(base_size_metrics_qs)
+
+            validation_result = can_compare_size_metrics(head_size_metrics, base_size_metrics)
+            if not validation_result.can_compare:
+                logger.info(
+                    "preprod.size_analysis.compare.cannot_compare_size_metrics",
+                    extra={
+                        "head_artifact_id": head_artifact.id,
+                        "base_artifact_id": artifact_id,
+                        "error_message": validation_result.error_message,
+                    },
+                )
+                continue
+
             head_metrics_map = build_size_metrics_map(head_size_metrics)
+            base_metrics_map = build_size_metrics_map(base_size_metrics)
 
-            for key, base_metric in base_metrics_map.items():
-                matching_head_size_metric = head_metrics_map.get(key)
-                if matching_head_size_metric:
+            for key, head_metric in head_metrics_map.items():
+                matching_base_size_metric = base_metrics_map.get(key)
+                if matching_base_size_metric:
                     logger.info(
                         "preprod.size_analysis.compare.create_comparison",
                         extra={
-                            "head_artifact_id": artifact_id,
-                            "base_artifact_id": base_artifact.id,
+                            "head_artifact_id": head_artifact.id,
+                            "base_artifact_id": artifact.id,
                         },
                     )
                     comparisons.append(
-                        {"head_metric": matching_head_size_metric, "base_metric": base_metric},
+                        {"head_metric": head_metric, "base_metric": matching_base_size_metric},
                     )
+                    preprod_artifact_status_check_updates.add(head_artifact.id)
                 else:
                     logger.info(
                         "preprod.size_analysis.compare.no_matching_base_size_metric",
-                        extra={"head_artifact_id": artifact_id, "size_metric_id": base_metric.id},
+                        extra={
+                            "head_artifact_id": head_artifact.id,
+                            "size_metric_id": head_metric.id,
+                        },
                     )
-        else:
-            logger.info(
-                "preprod.size_analysis.compare.cannot_compare_size_metrics",
-                extra={
-                    "head_artifact_id": artifact_id,
-                    "base_artifact_id": base_artifact.id,
-                    "error_message": validation_result.error_message,
-                },
-            )
 
-    # Also create comparisons with artifact as base
-    head_artifacts = artifact.get_head_artifacts_for_commit()
-    for head_artifact in head_artifacts:
-        if head_artifact.build_configuration != artifact.build_configuration:
-            logger.info(
-                "preprod.size_analysis.compare.head_artifact_different_build_configurations",
-                extra={"head_artifact_id": head_artifact.id, "base_artifact_id": artifact_id},
-            )
-            continue
+        # Create PENDING comparison records in DB and run comparisons
+        with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
+            for comp in comparisons:
+                head_metric = comp["head_metric"]
+                base_metric = comp["base_metric"]
+                comparison, created = PreprodArtifactSizeComparison.objects.get_or_create(
+                    head_size_analysis=head_metric,
+                    base_size_analysis=base_metric,
+                    organization_id=org_id,
+                    defaults={"state": PreprodArtifactSizeComparison.State.PENDING},
+                )
 
-        head_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-            preprod_artifact_id__in=[head_artifact.id],
-            preprod_artifact__project__organization_id=org_id,
-            preprod_artifact__project_id=project_id,
-        ).select_related(
-            "preprod_artifact",
-            "preprod_artifact__mobile_app_info",
-            "preprod_artifact__commit_comparison",
-        )
-        head_size_metrics = list(head_size_metrics_qs)
-
-        base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-            preprod_artifact_id__in=[artifact_id],
-            preprod_artifact__project__organization_id=org_id,
-            preprod_artifact__project_id=project_id,
-        ).select_related("preprod_artifact", "preprod_artifact__mobile_app_info")
-        base_size_metrics = list(base_size_metrics_qs)
-
-        validation_result = can_compare_size_metrics(head_size_metrics, base_size_metrics)
-        if not validation_result.can_compare:
-            logger.info(
-                "preprod.size_analysis.compare.cannot_compare_size_metrics",
-                extra={
-                    "head_artifact_id": head_artifact.id,
-                    "base_artifact_id": artifact_id,
-                    "error_message": validation_result.error_message,
-                },
-            )
-            continue
-
-        head_metrics_map = build_size_metrics_map(head_size_metrics)
-        base_metrics_map = build_size_metrics_map(base_size_metrics)
-
-        for key, head_metric in head_metrics_map.items():
-            matching_base_size_metric = base_metrics_map.get(key)
-            if matching_base_size_metric:
                 logger.info(
-                    "preprod.size_analysis.compare.create_comparison",
+                    "preprod.size_analysis.compare.running_comparison",
                     extra={
-                        "head_artifact_id": head_artifact.id,
-                        "base_artifact_id": artifact.id,
+                        "head_metric_id": head_metric.id,
+                        "base_metric_id": base_metric.id,
+                        "comparison_created": created,
                     },
                 )
-                comparisons.append(
-                    {"head_metric": head_metric, "base_metric": matching_base_size_metric},
+                _run_size_analysis_comparison(org_id, head_metric, base_metric)
+
+            for artifact_id in preprod_artifact_status_check_updates:
+                # Update all artifact's status check with the new comparison
+                create_preprod_status_check_task.apply_async(
+                    kwargs={
+                        "preprod_artifact_id": artifact_id,
+                        "caller": "compare_completion",
+                    }
                 )
-                preprod_artifact_status_check_updates.add(head_artifact.id)
-            else:
-                logger.info(
-                    "preprod.size_analysis.compare.no_matching_base_size_metric",
-                    extra={"head_artifact_id": head_artifact.id, "size_metric_id": head_metric.id},
-                )
 
-    # Create PENDING comparison records in DB and run comparisons
-    with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
-        for comp in comparisons:
-            head_metric = comp["head_metric"]
-            base_metric = comp["base_metric"]
-            comparison, created = PreprodArtifactSizeComparison.objects.get_or_create(
-                head_size_analysis=head_metric,
-                base_size_analysis=base_metric,
-                organization_id=org_id,
-                defaults={"state": PreprodArtifactSizeComparison.State.PENDING},
-            )
-
-            logger.info(
-                "preprod.size_analysis.compare.running_comparison",
-                extra={
-                    "head_metric_id": head_metric.id,
-                    "base_metric_id": base_metric.id,
-                    "comparison_created": created,
-                },
-            )
-            _run_size_analysis_comparison(org_id, head_metric, base_metric)
-
-        for artifact_id in preprod_artifact_status_check_updates:
-            # Update all artifact's status check with the new comparison
-            create_preprod_status_check_task.apply_async(
-                kwargs={
-                    "preprod_artifact_id": artifact_id,
-                    "caller": "compare_completion",
-                }
-            )
-
-    artifact_type_name = "unknown"
-    if artifact.artifact_type is not None:
         try:
             artifact_type_name = PreprodArtifact.ArtifactType(artifact.artifact_type).name.lower()
-        except (ValueError, AttributeError):
+        except (ValueError, AttributeError, TypeError):
             artifact_type_name = "unknown"
 
-    time_now = timezone.now()
-    e2e_size_analysis_compare_duration = time_now - artifact.date_added
-    metrics.distribution(
-        "preprod.size_analysis.compare.results_e2e",
-        e2e_size_analysis_compare_duration.total_seconds(),
-        sample_rate=1.0,
-        tags={
-            "artifact_type": artifact_type_name,
-        },
-    )
+        e2e_size_analysis_compare_duration = timezone.now() - artifact.date_added
+        metrics.distribution(
+            "preprod.size_analysis.compare.results_e2e",
+            e2e_size_analysis_compare_duration.total_seconds(),
+            sample_rate=1.0,
+            tags={
+                "artifact_type": artifact_type_name,
+            },
+        )
+    finally:
+        send_size_analysis_webhook(artifact=artifact, organization_id=org_id)
 
 
 @instrumented_task(
@@ -583,6 +595,15 @@ def _maybe_emit_issues(
         )
         return
 
+    # Only process diff-based detectors from the comparison path
+    detectors = [d for d in detectors if d.config.get("threshold_type") in DIFF_THRESHOLD_TYPES]
+    if not detectors:
+        logger.info(
+            "preprod.size_analysis.no_diff_detectors",
+            extra={"project_id": project_id},
+        )
+        return
+
     diff = comparison_results.size_metric_diff_item
     head_artifact = head_metric.preprod_artifact
     base_artifact = base_metric.preprod_artifact
@@ -620,6 +641,92 @@ def _maybe_emit_issues(
     results = process_detectors(data_packet, detectors)
     logger.info(
         "preprod.size_analysis.process_detectors.completed",
+        extra={
+            "project_id": project_id,
+            "detector_count": len(results),
+        },
+    )
+
+
+def maybe_emit_issues_from_absolute_size_results(
+    head_metric: PreprodArtifactSizeMetrics,
+) -> None:
+    try:
+        _maybe_emit_issues_from_absolute_size_results(head_metric=head_metric)
+    except Exception:
+        logger.exception("Error emitting issues from absolute size results")
+
+
+def _maybe_emit_issues_from_absolute_size_results(
+    head_metric: PreprodArtifactSizeMetrics,
+) -> None:
+    project = head_metric.preprod_artifact.project
+    project_id = project.id
+    organization_id = project.organization.id
+
+    if not features.has("organizations:preprod-issues", project.organization):
+        logger.info(
+            "preprod.size_analysis.size_results.issues.disabled",
+            extra={
+                "project_id": project_id,
+                "organization_id": organization_id,
+            },
+        )
+        return
+
+    detectors = list(
+        Detector.objects.filter(
+            project_id=project_id,
+            type=PreprodSizeAnalysisGroupType.slug,
+            enabled=True,
+        )
+    )
+    if not detectors:
+        logger.info(
+            "preprod.size_analysis.size_results.no_detectors",
+            extra={"project_id": project_id},
+        )
+        return
+
+    # Only process absolute detectors from the single-build path
+    detectors = [d for d in detectors if d.config.get("threshold_type") in ABSOLUTE_THRESHOLD_TYPES]
+    if not detectors:
+        logger.info(
+            "preprod.size_analysis.size_results.no_absolute_detectors",
+            extra={"project_id": project_id},
+        )
+        return
+
+    head_artifact = head_metric.preprod_artifact
+
+    metadata: SizeAnalysisMetadata = {
+        "platform": _get_platform(head_artifact),
+        "head_metric_id": head_metric.id,
+        "head_artifact_id": head_artifact.id,
+        "head_artifact": head_artifact,
+    }
+
+    size_data: SizeAnalysisValue = {
+        "head_install_size_bytes": head_metric.max_install_size or 0,
+        "head_download_size_bytes": head_metric.max_download_size or 0,
+        "metadata": metadata,
+    }
+
+    data_packet: SizeAnalysisDataPacket = DataPacket(
+        source_id=f"preprod-size-analysis:{project_id}",
+        packet=size_data,
+    )
+
+    logger.info(
+        "preprod.size_analysis.size_results.process_detectors.starting",
+        extra={
+            "project_id": project_id,
+            "detector_count": len(detectors),
+        },
+    )
+    results = process_detectors(data_packet, detectors)
+    logger.info(
+        "preprod.size_analysis.size_results.process_detectors.completed",
         extra={
             "project_id": project_id,
             "detector_count": len(results),

@@ -21,7 +21,7 @@ type State = {
 /**
  * Rendered as part of a openAdminConfirmModal call
  */
-class SuspendAccountAction extends Component<AdminConfirmRenderProps, State> {
+export class SuspendAccountAction extends Component<AdminConfirmRenderProps, State> {
   state: State = {
     suspensionReason: null,
   };
@@ -62,5 +62,3 @@ class SuspendAccountAction extends Component<AdminConfirmRenderProps, State> {
     ));
   }
 }
-
-export default SuspendAccountAction;

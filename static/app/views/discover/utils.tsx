@@ -17,8 +17,7 @@ import {defined} from 'sentry/utils';
 import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import type EventView from 'sentry/utils/discover/eventView';
-import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
+import type {EventData, EventView, MetaType} from 'sentry/utils/discover/eventView';
 import type {
   Aggregation,
   Column,
@@ -368,7 +367,7 @@ function generateAdditionalConditions(
       const shouldQuote =
         value === null || value === undefined
           ? false
-          : /[\s()\\"]/g.test(String(value).trim());
+          : /[\s()\\"]/.test(String(value).trim());
       const nextValue =
         value === null || value === undefined
           ? ''

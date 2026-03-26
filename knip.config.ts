@@ -1,4 +1,3 @@
-import {compile} from '@mdx-js/mdx';
 import type {KnipConfig} from 'knip';
 
 const isProductionMode = process.argv.includes('--production');
@@ -20,6 +19,8 @@ const productionEntryPoints = [
   'static/app/icons/**/*.{js,ts,tsx}',
   // todo find out how chartcuterie works
   'static/app/chartcuterie/**/*.{js,ts,tsx}',
+  // TODO: Remove when used
+  'static/app/components/pipeline/**/*.{js,ts,tsx}',
 ];
 
 const testingEntryPoints = [
@@ -62,9 +63,6 @@ const config: KnipConfig = {
     // ignore eslint plugins in production
     '!static/eslint/**/*.ts!',
   ],
-  compilers: {
-    mdx: async text => String(await compile(text)),
-  },
   ignoreExportsUsedInFile: isProductionMode,
   ignoreDependencies: [
     'core-js',
@@ -87,6 +85,9 @@ const config: KnipConfig = {
     unlisted: 'off',
   },
   include: ['nsExports', 'nsTypes'],
+  mdx: {
+    config: 'tsconfig.mdx.json',
+  },
 };
 
 export default config;

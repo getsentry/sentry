@@ -37,6 +37,7 @@ import noRelativeImportPaths from 'eslint-plugin-no-relative-import-paths';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactYouMightNotNeedAnEffect from 'eslint-plugin-react-you-might-not-need-an-effect';
+import regexp from 'eslint-plugin-regexp';
 // @ts-expect-error TS(7016): Could not find a declaration file
 import sentry from 'eslint-plugin-sentry';
 import testingLibrary from 'eslint-plugin-testing-library';
@@ -831,6 +832,20 @@ export default typescript.config([
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     // https://github.com/testing-library/eslint-plugin-jest-dom/tree/main?tab=readme-ov-file#supported-rules
     ...jestDom.configs['flat/recommended'],
+  },
+  {
+    extends: [regexp.configs.recommended],
+    name: 'plugin/regexp',
+    rules: {
+      'prefer-regex-literals': 'off', // TODO(JoshuaKGoldberg): do we want this?
+      'regexp/no-misleading-capturing-group': 'off', // TODO(JoshuaKGoldberg): do we want this?
+      'regexp/no-obscure-range': 'off', // TODO(JoshuaKGoldberg): do we want this?
+      'regexp/no-super-linear-backtracking': 'off', // TODO(JoshuaKGoldberg): do we want this?
+      'regexp/no-unused-capturing-group': 'off', // TODO(JoshuaKGoldberg): do we want this?
+      'regexp/optimal-quantifier-concatenation': 'off', // TODO(JoshuaKGoldberg): do we want this?
+      'regexp/strict': 'off', // TODO(JoshuaKGoldberg): do we want this?
+      'regexp/use-ignore-case': 'off', // TODO(JoshuaKGoldberg): do we want this?
+    },
   },
   {
     name: 'plugin/testing-library',
