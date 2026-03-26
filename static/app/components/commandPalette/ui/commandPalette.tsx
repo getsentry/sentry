@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selection';
 import {mergeProps} from '@react-aria/utils';
-import {Item, Section} from '@react-stately/collections';
+import {Item} from '@react-stately/collections';
 import {useTreeState} from '@react-stately/tree';
 import * as Sentry from '@sentry/react';
 import {AnimatePresence, motion} from 'framer-motion';
@@ -102,22 +102,42 @@ export function CommandPalette(props: CommandPaletteProps) {
     [filteredActions]
   );
 
+  const sectionHeaderKeys = useMemo(
+    () => new Set(sections.map(({key}) => `section-${key}`)),
+    [sections]
+  );
+
   const treeState = useTreeState({
-    children: sections.map(({key: sectionKey, label, children}) => (
-      <Section key={sectionKey} title={label}>
-        {children.map(({key: actionKey, ...action}) => (
-          <Item<CommandPaletteActionMenuItem> key={actionKey} {...action}>
-            {action.label}
-          </Item>
-        ))}
-      </Section>
-    )),
+    disabledKeys: [...sectionHeaderKeys],
+    children: sections.flatMap(({key: sectionKey, label, children}) => [
+      <Item<CommandPaletteActionMenuItem & {hideCheck: boolean; label: string}>
+        key={`section-${sectionKey}`}
+        {...{
+          label: (
+            <Text size="sm" bold variant="primary">
+              {label}
+            </Text>
+          ),
+          hideCheck: true,
+          children: [],
+        }}
+      />,
+      ...children.map(({key: actionKey, ...action}) => (
+        <Item<CommandPaletteActionMenuItem> key={actionKey} {...action}>
+          {action.label}
+        </Item>
+      )),
+    ]),
   });
 
   const firstFocusableKey = useMemo(() => {
-    const firstItem = treeState.collection.at(0);
-    return firstItem?.type === 'section' ? [...firstItem.childNodes][0] : firstItem;
-  }, [treeState.collection]);
+    for (const item of treeState.collection) {
+      if (!sectionHeaderKeys.has(String(item.key))) {
+        return item;
+      }
+    }
+    return undefined;
+  }, [treeState.collection, sectionHeaderKeys]);
 
   useLayoutEffect(() => {
     if (treeState.selectionManager.focusedKey !== null) {
@@ -126,8 +146,6 @@ export function CommandPalette(props: CommandPaletteProps) {
 
     if (firstFocusableKey) {
       treeState.selectionManager.setFocusedKey(firstFocusableKey.key);
-    } else {
-      treeState.selectionManager.setFocusedKey(treeState.collection.getFirstKey());
     }
   }, [treeState.collection, treeState.selectionManager, firstFocusableKey]);
 
@@ -285,6 +303,7 @@ export function CommandPalette(props: CommandPaletteProps) {
             listState={treeState}
             keyDownHandler={() => true}
             overlayIsOpen
+            virtualized
             size="md"
             aria-label={t('Search results')}
             selectionMode="none"
@@ -491,6 +510,11 @@ const ResultsList = styled(Flex)`
   ul,
   li {
     scroll-margin: ${p => p.theme.space['3xl']} 0;
+  }
+
+  ul {
+    padding: 0;
+    margin: 0;
   }
 
   ${InnerWrap} {
