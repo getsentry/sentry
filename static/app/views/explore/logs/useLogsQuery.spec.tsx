@@ -849,3 +849,4 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
     expect(ids).toEqual(['2', '1', '3']);
   });
 });
+// trivial change for CI testing

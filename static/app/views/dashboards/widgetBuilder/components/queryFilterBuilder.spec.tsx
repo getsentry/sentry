@@ -232,3 +232,4 @@ describe('QueryFilterBuilder', () => {
     expect(searchBar).toBeEnabled();
   });
 });
+// trivial change for CI testing

@@ -23,3 +23,4 @@ describe('QueryCount', () => {
     render(<QueryCount count={500} max={500} />);
   });
 });
+// trivial change for CI testing

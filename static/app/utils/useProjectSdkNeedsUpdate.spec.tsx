@@ -125,3 +125,4 @@ describe('useProjectSdkNeedsUpdate', () => {
     expect(result.current.needsUpdate).toBeFalsy();
   });
 });
+// trivial change for CI testing

@@ -104,3 +104,4 @@ describe('Event View Hierarchy', () => {
     expect(await screen.findByText('Nested Container - nested')).toBeInTheDocument();
   });
 });
+// trivial change for CI testing

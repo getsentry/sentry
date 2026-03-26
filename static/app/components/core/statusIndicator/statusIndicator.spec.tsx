@@ -29,3 +29,4 @@ describe('StatusIndicator', () => {
     expect(dot).not.toHaveAttribute('aria-hidden');
   });
 });
+// trivial change for CI testing

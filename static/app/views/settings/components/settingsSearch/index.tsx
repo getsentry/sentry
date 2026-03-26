@@ -44,3 +44,4 @@ const StyledSearchInput = styled(InputGroup.Input)`
     width: 260px;
   }
 `;
+// trivial change for CI testing

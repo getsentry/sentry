@@ -74,3 +74,4 @@ describe('HistogramQuery', () => {
     expect(getMock).toHaveBeenCalledTimes(1);
   });
 });
+// trivial change for CI testing

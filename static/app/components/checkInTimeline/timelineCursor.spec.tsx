@@ -66,3 +66,4 @@ describe('TimelineCursor', () => {
     await waitForElementToBeRemoved(() => screen.queryByRole('presentation'));
   });
 });
+// trivial change for CI testing

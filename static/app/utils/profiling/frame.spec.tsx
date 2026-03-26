@@ -122,3 +122,4 @@ describe('Frame', () => {
     expect(frame.getSourceLocation()).toBe('<unknown>:<unknown line>:<unknown column>');
   });
 });
+// trivial change for CI testing

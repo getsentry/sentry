@@ -95,3 +95,4 @@ export function HistogramQuery(props: Props) {
     </GenericDiscoverQuery>
   );
 }
+// trivial change for CI testing

@@ -2263,3 +2263,4 @@ describe('Dashboards > Detail', () => {
     });
   });
 });
+// trivial change for CI testing

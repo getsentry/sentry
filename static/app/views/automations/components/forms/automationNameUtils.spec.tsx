@@ -251,3 +251,4 @@ describe('automationNameUtils', () => {
     });
   });
 });
+// trivial change for CI testing

@@ -105,3 +105,4 @@ export function EventTags({
     </Fragment>
   );
 }
+// trivial change for CI testing

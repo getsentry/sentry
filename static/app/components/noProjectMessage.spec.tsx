@@ -150,3 +150,4 @@ describe('NoProjectMessage', () => {
     ).toBeInTheDocument();
   });
 });
+// trivial change for CI testing

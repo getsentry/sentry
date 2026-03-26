@@ -47,3 +47,4 @@ describe('BreadcrumbItem', () => {
     expect(mockClick).toHaveBeenCalled();
   });
 });
+// trivial change for CI testing

@@ -27,3 +27,4 @@ describe('Duration', () => {
     expect(time).toHaveAttribute('title', '01:23.000');
   });
 });
+// trivial change for CI testing

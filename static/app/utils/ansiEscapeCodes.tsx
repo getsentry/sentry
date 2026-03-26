@@ -8,3 +8,4 @@ export function stripAnsi(input: string): string {
   const ansiRegex = /\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g;
   return input.replace(ansiRegex, '');
 }
+// trivial change for CI testing

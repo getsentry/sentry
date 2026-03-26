@@ -78,3 +78,4 @@ describe('SettingsSearch', () => {
     );
   });
 });
+// trivial change for CI testing

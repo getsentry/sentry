@@ -217,3 +217,4 @@ describe('Thresholds', () => {
     expect(capturedState.thresholds).toBeNull();
   });
 });
+// trivial change for CI testing

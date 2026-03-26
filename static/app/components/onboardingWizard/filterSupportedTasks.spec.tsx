@@ -78,3 +78,4 @@ describe('filterSupportedTasks', () => {
     ).toHaveLength(2);
   });
 });
+// trivial change for CI testing

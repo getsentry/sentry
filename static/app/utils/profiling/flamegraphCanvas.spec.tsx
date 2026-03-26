@@ -84,3 +84,4 @@ describe('flamegraphCanvas', () => {
     expect(flamegraphCanvas.physicalSpace).toEqual(new Rect(0, 0, 200, 200));
   });
 });
+// trivial change for CI testing

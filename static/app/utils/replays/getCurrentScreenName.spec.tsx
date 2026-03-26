@@ -52,3 +52,4 @@ describe('getCurrentScreenName', () => {
     expect(screenName3).toBe('ConfirmPayment');
   });
 });
+// trivial change for CI testing

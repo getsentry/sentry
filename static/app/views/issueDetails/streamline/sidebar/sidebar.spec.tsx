@@ -124,3 +124,4 @@ describe('StreamlinedSidebar', () => {
     expect(screen.getByRole('button', {name: 'View Merged Issues'})).toBeInTheDocument();
   });
 });
+// trivial change for CI testing

@@ -24,3 +24,4 @@ describe('CollapsePanel', () => {
     expect(screen.getByText('expanded: true')).toBeInTheDocument();
   });
 });
+// trivial change for CI testing

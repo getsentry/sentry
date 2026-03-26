@@ -115,3 +115,4 @@ describe('StacktraceBanners', () => {
     );
   });
 });
+// trivial change for CI testing
