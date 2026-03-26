@@ -24,6 +24,7 @@ class NotificationCategory(StrEnum):
     REPOSITORY = "repository"
     SEER = "seer"
     ISSUE = "issue"
+    METRIC_ALERT = "metric-alert"
 
     def get_sources(self) -> list[NotificationSource]:
         return NOTIFICATION_SOURCE_MAP[self]
@@ -54,6 +55,9 @@ class NotificationSource(StrEnum):
 
     # ISSUE_ALERT
     ISSUE = "issue"
+
+    # METRIC_ALERT
+    METRIC_ALERT = "metric-alert"
 
     # SEER
     SEER_AUTOFIX_ERROR = "seer-autofix-error"
@@ -86,6 +90,9 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
     ],
     NotificationCategory.ISSUE: [
         NotificationSource.ISSUE,
+    ],
+    NotificationCategory.METRIC_ALERT: [
+        NotificationSource.METRIC_ALERT,
     ],
     NotificationCategory.SEER: [
         NotificationSource.SEER_AUTOFIX_TRIGGER,
