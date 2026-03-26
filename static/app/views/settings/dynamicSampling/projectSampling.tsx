@@ -14,6 +14,7 @@ import {
 import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
 import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
+import {sampleRateField} from 'sentry/views/settings/dynamicSampling/organizationSampling';
 import {ProjectionPeriodControl} from 'sentry/views/settings/dynamicSampling/projectionPeriodControl';
 import {ProjectsEditTable} from 'sentry/views/settings/dynamicSampling/projectsEditTable';
 import {SamplingModeSwitch} from 'sentry/views/settings/dynamicSampling/samplingModeSwitch';
@@ -33,10 +34,8 @@ const UNSAVED_CHANGES_MESSAGE = t(
   'You have unsaved changes, are you sure you want to leave?'
 );
 
-// Zod schema for type correctness. Per-project validation errors are computed
-// in projectsEditTable via getProjectRateErrors.
-const schema = z.object({
-  projectRates: z.record(z.string(), z.string()),
+const projectSamplingSchema = z.object({
+  projectRates: z.record(z.string(), sampleRateField),
 });
 
 export function ProjectSampling() {
@@ -68,7 +67,7 @@ export function ProjectSampling() {
       projectRates: {} as Record<string, string>,
     },
     validators: {
-      onDynamic: schema,
+      onDynamic: projectSamplingSchema,
     },
     onSubmit: async ({value, formApi}) => {
       const ratesArray = Object.entries(value.projectRates).map(([id, rate]) => ({
@@ -134,53 +133,37 @@ export function ProjectSampling() {
               <LoadingError onRetry={sampleCountsQuery.refetch} />
             ) : (
               <form.AppField name="projectRates">
-                {field => {
-                  const hasProjectRateErrors =
-                    field.state.value &&
-                    Object.values(field.state.value).some(rate => {
-                      if (!rate) return true;
-                      const n = Number(rate);
-                      return isNaN(n) || n < 0 || n > 100;
-                    });
-                  return (
-                    <ProjectsEditTable
-                      period={period}
-                      editMode={editMode}
-                      onEditModeChange={setEditMode}
-                      isLoading={
-                        sampleRatesQuery.isPending || sampleCountsQuery.isPending
-                      }
-                      sampleCounts={sampleCountsQuery.data}
-                      projectRates={field.state.value}
-                      savedProjectRates={savedProjectRates}
-                      onProjectRatesChange={field.handleChange}
-                      actions={
-                        <Fragment>
-                          <Button
-                            disabled={!isDirty || updateSamplingProjectRates.isPending}
-                            onClick={() => {
-                              form.reset();
-                              setEditMode('single');
-                            }}
-                          >
-                            {t('Reset')}
-                          </Button>
-                          <form.SubmitButton
-                            disabled={
-                              !hasAccess ||
-                              !canSubmit ||
-                              !!hasProjectRateErrors ||
-                              updateSamplingProjectRates.isPending
-                            }
-                            formNoValidate
-                          >
-                            {t('Apply Changes')}
-                          </form.SubmitButton>
-                        </Fragment>
-                      }
-                    />
-                  );
-                }}
+                {field => (
+                  <ProjectsEditTable
+                    period={period}
+                    editMode={editMode}
+                    onEditModeChange={setEditMode}
+                    isLoading={sampleRatesQuery.isPending || sampleCountsQuery.isPending}
+                    sampleCounts={sampleCountsQuery.data}
+                    projectRates={field.state.value}
+                    savedProjectRates={savedProjectRates}
+                    onProjectRatesChange={field.handleChange}
+                    actions={
+                      <Fragment>
+                        <Button
+                          disabled={!isDirty || updateSamplingProjectRates.isPending}
+                          onClick={() => {
+                            form.reset();
+                            setEditMode('single');
+                          }}
+                        >
+                          {t('Reset')}
+                        </Button>
+                        <form.SubmitButton
+                          disabled={!hasAccess || !canSubmit}
+                          formNoValidate
+                        >
+                          {t('Apply Changes')}
+                        </form.SubmitButton>
+                      </Fragment>
+                    }
+                  />
+                )}
               </form.AppField>
             )}
             <FormActions />
