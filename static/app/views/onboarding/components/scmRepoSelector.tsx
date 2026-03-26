@@ -51,13 +51,7 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
 
   const {busy, handleSelect, handleRemove} = useScmRepoSelection({
     integration,
-    onSelect: repo => {
-      setSelectedRepository(repo);
-
-      // Changing repos invalidates downstream state (platform, features,
-      // created project) which are all derived from the selected repo.
-      clearDerivedState();
-    },
+    onSelect: setSelectedRepository,
     reposByIdentifier,
   });
 
@@ -79,6 +73,12 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
   }, [dropdownItems, selectedRepository]);
 
   function handleChange(option: {value: string} | null) {
+    // Changing or clearing the repo invalidates downstream state (platform,
+    // features, created project) which are all derived from the selected repo.
+    // Called here rather than inside onSelect so error-recovery paths in the
+    // hook (which restore the previous repo) don't wipe derived state.
+    clearDerivedState();
+
     if (option === null) {
       handleRemove();
     } else {
