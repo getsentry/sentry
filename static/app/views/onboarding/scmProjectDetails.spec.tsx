@@ -11,6 +11,7 @@ import {
 } from 'sentry/components/onboarding/onboardingContext';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import * as analytics from 'sentry/utils/analytics';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 
 import {ScmProjectDetails} from './scmProjectDetails';
@@ -43,10 +44,62 @@ describe('ScmProjectDetails', () => {
   beforeEach(() => {
     sessionStorageWrapper.clear();
     TeamStore.loadInitialData([teamWithAccess]);
+
+    // useCreateNotificationAction queries messaging integrations on mount
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      body: [],
+      match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
+    });
+    // SetupMessagingIntegrationButton queries integration config
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      body: {providers: []},
+    });
   });
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+  });
+
+  it('renders step header with step counter and heading', async () => {
+    render(
+      <ScmProjectDetails
+        onComplete={jest.fn()}
+        stepIndex={3}
+        genSkipOnboardingLink={() => null}
+      />,
+      {
+        organization,
+        additionalWrapper: makeOnboardingWrapper({
+          selectedPlatform: mockPlatform,
+        }),
+      }
+    );
+
+    expect(await screen.findByText('Step 3 of 3')).toBeInTheDocument();
+    expect(screen.getByText('Project details')).toBeInTheDocument();
+  });
+
+  it('renders section headers with icons', async () => {
+    render(
+      <ScmProjectDetails
+        onComplete={jest.fn()}
+        stepIndex={3}
+        genSkipOnboardingLink={() => null}
+      />,
+      {
+        organization,
+        additionalWrapper: makeOnboardingWrapper({
+          selectedPlatform: mockPlatform,
+        }),
+      }
+    );
+
+    expect(await screen.findByText('Give your project a name')).toBeInTheDocument();
+    expect(screen.getByText('Assign a team')).toBeInTheDocument();
+    expect(screen.getByText('Alert frequency')).toBeInTheDocument();
+    expect(screen.getByText('Get notified when things go wrong')).toBeInTheDocument();
   });
 
   it('renders project name defaulted from platform key', async () => {
@@ -88,7 +141,7 @@ describe('ScmProjectDetails', () => {
     expect(input).toHaveValue('javascript-nextjs');
   });
 
-  it('renders alert frequency options', async () => {
+  it('renders card-style alert frequency options', async () => {
     render(
       <ScmProjectDetails
         onComplete={jest.fn()}
@@ -103,9 +156,8 @@ describe('ScmProjectDetails', () => {
       }
     );
 
-    expect(
-      await screen.findByText('Alert me on high priority issues')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('High priority issues')).toBeInTheDocument();
+    expect(screen.getByText('Custom')).toBeInTheDocument();
     expect(screen.getByText("I'll create my own alerts later")).toBeInTheDocument();
   });
 
@@ -277,5 +329,78 @@ describe('ScmProjectDetails', () => {
     await waitFor(() => {
       expect(onComplete).not.toHaveBeenCalled();
     });
+  });
+
+  it('fires step viewed analytics on mount', async () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+
+    render(
+      <ScmProjectDetails
+        onComplete={jest.fn()}
+        stepIndex={3}
+        genSkipOnboardingLink={() => null}
+      />,
+      {
+        organization,
+        additionalWrapper: makeOnboardingWrapper({
+          selectedPlatform: mockPlatform,
+        }),
+      }
+    );
+
+    await screen.findByText('Project details');
+
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'onboarding.scm_project_details_step_viewed',
+      expect.objectContaining({organization})
+    );
+  });
+
+  it('fires create analytics on successful project creation', async () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+
+    MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${teamWithAccess.slug}/projects/`,
+      method: 'POST',
+      body: ProjectFixture({slug: 'javascript-nextjs', name: 'javascript-nextjs'}),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      body: organization,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      body: [teamWithAccess],
+    });
+
+    const onComplete = jest.fn();
+
+    render(
+      <ScmProjectDetails
+        onComplete={onComplete}
+        stepIndex={3}
+        genSkipOnboardingLink={() => null}
+      />,
+      {
+        organization,
+        additionalWrapper: makeOnboardingWrapper({
+          selectedPlatform: mockPlatform,
+        }),
+      }
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Create project'}));
+
+    await waitFor(() => {
+      expect(onComplete).toHaveBeenCalled();
+    });
+
+    const eventKeys = trackAnalyticsSpy.mock.calls.map(call => call[0]);
+    expect(eventKeys).toContain('onboarding.scm_project_details_create_clicked');
+    expect(eventKeys).toContain('onboarding.scm_project_details_create_succeeded');
   });
 });
