@@ -1,3 +1,4 @@
+import Feature from 'sentry/components/acl/feature';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {t} from 'sentry/locale';
@@ -12,16 +13,18 @@ export default function AutofixRecentlyRunPage() {
   const organization = useOrganization();
 
   return (
-    <IssueListContainer title={label}>
-      <PageFiltersContainer>
-        <NoProjectMessage organization={organization}>
-          <IssueListOverview
-            initialQuery={QUERY}
-            title={label}
-            titleDescription={t('Issues where Seer has identified a root cause.')}
-          />
-        </NoProjectMessage>
-      </PageFiltersContainer>
-    </IssueListContainer>
+    <Feature features="seer-issue-view" renderDisabled>
+      <IssueListContainer title={label}>
+        <PageFiltersContainer>
+          <NoProjectMessage organization={organization}>
+            <IssueListOverview
+              initialQuery={QUERY}
+              title={label}
+              titleDescription={t('Issues where Seer has identified a root cause.')}
+            />
+          </NoProjectMessage>
+        </PageFiltersContainer>
+      </IssueListContainer>
+    </Feature>
   );
 }

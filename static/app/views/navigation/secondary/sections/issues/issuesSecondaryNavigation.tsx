@@ -97,7 +97,7 @@ export function IssuesSecondaryNavigation() {
               <SecondaryNavigation.List>
                 <SecondaryNavigation.ListItem>
                   <SecondaryNavigation.Link
-                    to={`${baseUrl}/autofix/recent`}
+                    to={`${baseUrl}/autofix/recent/`}
                     analyticsItemName="issues_autofix"
                     end
                   >
