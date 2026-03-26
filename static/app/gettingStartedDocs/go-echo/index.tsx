@@ -8,7 +8,7 @@ import {
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader';
 
-const docs: Docs = {
+export const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   crashReportOnboarding: crashReport({
@@ -21,5 +21,3 @@ const docs: Docs = {
   }),
   metricsOnboarding: metrics,
 };
-
-export default docs;

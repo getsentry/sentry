@@ -20,6 +20,8 @@ from django.utils import timezone
 from google.cloud.devtools.cloudbuild_v1 import Build
 from google.cloud.devtools.cloudbuild_v1 import CloudBuildClient as CloudBuildClient
 from sentry_sdk import capture_exception
+from taskbroker_client.retry import LastAction, Retry
+from taskbroker_client.task import Task
 
 from sentry import analytics
 from sentry.analytics.events.relocation_organization_imported import (
@@ -78,9 +80,7 @@ from sentry.signals import relocated, relocation_redeem_promo_code
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import relocation_tasks
-from sentry.taskworker.retry import LastAction, Retry
-from sentry.taskworker.task import Task
-from sentry.types.region import get_local_cell
+from sentry.types.cell import get_local_cell
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.user import User
 from sentry.users.services.lost_password_hash import lost_password_hash_service

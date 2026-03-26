@@ -12,7 +12,7 @@ import type {Client} from 'sentry/api';
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import {ChartContainer} from 'sentry/components/charts/styles';
 import {Count} from 'sentry/components/count';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {NotAvailable} from 'sentry/components/notAvailable';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {Panel} from 'sentry/components/panels/panel';
@@ -92,7 +92,7 @@ type IssuesTotals = {
   unhandled: number;
 } | null;
 
-export default function ReleaseComparisonChart({
+export function ReleaseComparisonChart({
   release,
   project,
   releaseSessions,

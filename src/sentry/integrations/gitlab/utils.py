@@ -36,10 +36,35 @@ class GitLabApiClientPath:
     hooks = "/hooks"
     issue = "/projects/{project}/issues/{issue}"
     issues = "/projects/{project}/issues"
-    create_issue_note = "/projects/{project}/issues/{issue_id}/notes"
-    update_issue_note = "/projects/{project}/issues/{issue_id}/notes/{note_id}"
-    create_pr_note = "/projects/{project}/merge_requests/{pr_key}/notes"
-    update_pr_note = "/projects/{project}/merge_requests/{pr_key}/notes/{note_id}"
+    issue_awards = "/projects/{project_id}/issues/{issue_id}/award_emoji"
+    issue_award = "/projects/{project_id}/issues/{issue_id}/award_emoji/{award_id}"
+    issue_notes = "/projects/{project_id}/issues/{issue_id}/notes"
+    issue_note = "/projects/{project_id}/issues/{issue_id}/notes/{note_id}"
+    issue_note_awards = "/projects/{project_id}/issues/{issue_id}/notes/{note_id}/award_emoji"
+    issue_note_award = (
+        "/projects/{project_id}/issues/{issue_id}/notes/{note_id}/award_emoji/{award_id}"
+    )
+    merge_requests = "/projects/{project_id}/merge_requests"
+    merge_request = "/projects/{project_id}/merge_requests/{pr_key}"
+    merge_request_commits = "/projects/{project_id}/merge_requests/{pr_key}/commits"
+    merge_request_awards = "/projects/{project_id}/merge_requests/{pr_key}/award_emoji"
+    merge_request_award = "/projects/{project_id}/merge_requests/{pr_key}/award_emoji/{award_id}"
+    merge_request_notes = "/projects/{project_id}/merge_requests/{pr_key}/notes"
+    merge_request_note = "/projects/{project_id}/merge_requests/{pr_key}/notes/{note_id}"
+    merge_request_note_awards = (
+        "/projects/{project_id}/merge_requests/{pr_key}/notes/{note_id}/award_emoji"
+    )
+    merge_request_note_award = (
+        "/projects/{project_id}/merge_requests/{pr_key}/notes/{note_id}/award_emoji/{award_id}"
+    )
+    merge_request_versions = "/projects/{project_id}/merge_requests/{pr_key}/versions"
+    merge_request_discussions = "/projects/{project_id}/merge_requests/{pr_key}/discussions"
+    merge_request_discussion = (
+        "/projects/{project_id}/merge_requests/{pr_key}/discussions/{discussion_id}"
+    )
+    merge_request_discussion_notes = (
+        "/projects/{project_id}/merge_requests/{pr_key}/discussions/{discussion_id}/notes"
+    )
     pr_diffs = "/projects/{project}/merge_requests/{pr_key}/diffs"
     project = "/projects/{project}"
     project_issues = "/projects/{project}/issues"
@@ -48,6 +73,9 @@ class GitLabApiClientPath:
     projects = "/projects"
     statuses = "/projects/{project}/statuses/{sha}"
     commit_statuses = "/projects/{project}/repository/commits/{sha}/statuses"
+    archive = "/projects/{project}/repository/archive{format}"
+    branches = "/projects/{project_id}/repository/branches"
+    branch = "/projects/{project_id}/repository/branches/{branch}"
     user = "/user"
     users = "/users"
 

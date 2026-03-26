@@ -59,7 +59,7 @@ export function renderPerformanceHovercard() {
   );
 }
 
-function VolumeSliders({
+export function VolumeSliders({
   currentSliderValues,
   checkoutTier,
   activePlan,
@@ -233,8 +233,6 @@ function VolumeSliders({
     </SlidersContainer>
   );
 }
-
-export default VolumeSliders;
 
 const SlidersContainer = styled('div')`
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.xl};

@@ -12,7 +12,7 @@ import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/e
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
+import {SearchBar as TransactionNameSearchBar} from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -103,7 +103,7 @@ export function Am1MobileOverviewPage({datePageFilterProps}: Am1MobileOverviewPa
   const eventView = generateMobilePerformanceEventView(
     location,
     projects,
-    generateGenericPerformanceEventView(location, withStaticFilters, organization),
+    generateGenericPerformanceEventView(location, withStaticFilters),
     withStaticFilters
   );
   const searchBarEventView = eventView.clone();
@@ -156,12 +156,10 @@ export function Am1MobileOverviewPage({datePageFilterProps}: Am1MobileOverviewPa
   if (organization.features.includes('insight-modules')) {
     doubleChartRowCharts[0] = PerformanceWidgetSetting.SLOW_SCREENS_BY_TTID;
   }
-  if (organization.features.includes('starfish-mobile-appstart')) {
-    doubleChartRowCharts.push(
-      PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START,
-      PerformanceWidgetSetting.SLOW_SCREENS_BY_WARM_START
-    );
-  }
+  doubleChartRowCharts.push(
+    PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START,
+    PerformanceWidgetSetting.SLOW_SCREENS_BY_WARM_START
+  );
 
   if (organization.features.includes('insight-modules')) {
     doubleChartRowCharts.push(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);

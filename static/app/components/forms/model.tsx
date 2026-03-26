@@ -5,7 +5,7 @@ import {action, computed, makeObservable, observable} from 'mobx';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {addUndoableFormChangeMessage} from 'sentry/components/forms/formIndicators';
-import FormState from 'sentry/components/forms/state';
+import {FormState} from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
 import type {Choice} from 'sentry/types/core';
 import {defined} from 'sentry/utils';

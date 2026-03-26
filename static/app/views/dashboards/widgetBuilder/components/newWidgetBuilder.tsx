@@ -17,7 +17,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -67,7 +67,7 @@ type WidgetBuilderV2Props = {
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
 };
 
-function WidgetBuilderV2({
+export function WidgetBuilderV2({
   isOpen,
   onClose,
   onSave,
@@ -226,8 +226,6 @@ function WidgetBuilderV2({
     </AnimatePresence>
   );
 }
-
-export default WidgetBuilderV2;
 
 export function WidgetPreviewContainer({
   dashboardFilters,

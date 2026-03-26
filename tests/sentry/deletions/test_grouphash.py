@@ -47,7 +47,7 @@ class DeleteGroupHashTest(TestCase):
             patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True),
             patch(
                 "sentry.grouping.ingest.seer.get_seer_similar_issues",
-                return_value=(0.01, existing_grouphash),
+                return_value=(0.01, existing_grouphash, "v1"),
             ),
         ):
             new_event = self.store_event(
@@ -91,7 +91,7 @@ class DeleteGroupHashTest(TestCase):
             patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True),
             patch(
                 "sentry.grouping.ingest.seer.get_seer_similar_issues",
-                return_value=(0.01, existing_grouphash),
+                return_value=(0.01, existing_grouphash, "v1"),
             ),
         ):
             new_event = self.store_event(

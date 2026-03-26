@@ -8,6 +8,10 @@ import {
   type AlertsEventParameters,
 } from 'sentry/utils/analytics/alertsAnalyticsEvents';
 import {
+  commandPaletteEventMap,
+  type CommandPaletteEventParameters,
+} from 'sentry/utils/analytics/commandPaletteAnalyticsEvents';
+import {
   exploreAnalyticsEventMap,
   type ExploreAnalyticsEventParameters,
 } from 'sentry/utils/analytics/exploreAnalyticsEvents';
@@ -104,6 +108,7 @@ import {workflowEventMap} from './analytics/workflowAnalyticsEvents';
 
 interface EventParameters
   extends
+    CommandPaletteEventParameters,
     GrowthEventParameters,
     AgentMonitoringEventParameters,
     AlertsEventParameters,
@@ -146,6 +151,7 @@ interface EventParameters
     Record<string, Record<string, any>> {}
 
 const allEventMap: Record<string, string | null> = {
+  ...commandPaletteEventMap,
   ...agentMonitoringEventMap,
   ...alertsEventMap,
   ...conversationsEventMap,
@@ -295,7 +301,7 @@ export const metric: RecordMetric = (name, value, tags) =>
   HookStore.get('metrics:event').forEach(cb => cb(name, value, tags));
 
 // JSDOM implements window.performance but not window.performance.mark
-const CAN_MARK =
+export const CAN_MARK =
   window.performance &&
   typeof window.performance.mark === 'function' &&
   typeof window.performance.measure === 'function' &&

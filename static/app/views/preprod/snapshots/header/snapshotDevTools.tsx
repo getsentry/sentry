@@ -9,7 +9,7 @@ import {Text} from '@sentry/scraps/text';
 import {Client} from 'sentry/api';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import formatDuration from 'sentry/utils/duration/formatDuration';
+import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import {
   ComparisonState,
   type SnapshotComparisonRunInfo,
@@ -17,6 +17,8 @@ import {
 
 interface SnapshotDevToolsProps {
   hasBaseArtifact: boolean;
+  isSoloView: boolean;
+  onToggleView: () => void;
   organizationSlug: string;
   refetch: () => void;
   snapshotId: string;
@@ -29,6 +31,8 @@ export function SnapshotDevTools({
   comparisonRunInfo,
   hasBaseArtifact,
   refetch,
+  isSoloView,
+  onToggleView,
 }: SnapshotDevToolsProps) {
   const comparisonState = comparisonRunInfo?.state;
   const comparisonCompletedAt = comparisonRunInfo?.completed_at;
@@ -187,6 +191,16 @@ export function SnapshotDevTools({
           {hasBaseArtifact && (
             <Button size="xs" onClick={handleRecompare} disabled={recompareLoading}>
               {recompareLoading ? t('Queuing...') : t('Re-run Comparison')}
+            </Button>
+          )}
+          {hasBaseArtifact && (
+            <Text size="xs" variant="muted">
+              {'|'}
+            </Text>
+          )}
+          {hasBaseArtifact && (
+            <Button size="xs" onClick={onToggleView}>
+              {isSoloView ? 'View as diff' : 'View as solo'}
             </Button>
           )}
         </Flex>

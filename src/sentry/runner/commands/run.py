@@ -5,11 +5,11 @@ import os
 import random
 import signal
 import time
-from typing import Any, cast
+from typing import Any
 
 import click
+import taskbroker_client.constants as taskworker_constants
 
-import sentry.taskworker.constants as taskworker_constants
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.runner.decorators import configuration, log_options
 from sentry.utils.kafka import run_processor_with_signals
@@ -31,42 +31,6 @@ def _address_validate(
         host = value
         port = None
     return host, port
-
-
-class QueueSetType(click.ParamType):
-    name = "text"
-
-    def convert(self, value: str | None, param: object, ctx: object) -> frozenset[str] | None:
-        if value is None:
-            return None
-        # Providing a compatibility with splitting
-        # the `events` queue until multiple queues
-        # without the need to explicitly add them.
-        queues = set()
-        for queue in value.split(","):
-            if queue == "events":
-                queues.add("events.preprocess_event")
-                queues.add("events.process_event")
-                queues.add("events.save_event")
-
-                from sentry.runner.initializer import show_big_error
-
-                show_big_error(
-                    [
-                        "DEPRECATED",
-                        "`events` queue no longer exists.",
-                        "Switch to using:",
-                        "- events.preprocess_event",
-                        "- events.process_event",
-                        "- events.save_event",
-                    ]
-                )
-            else:
-                queues.add(queue)
-        return frozenset(queues)
-
-
-QueueSet = QueueSetType()
 
 
 @click.group()
@@ -141,153 +105,33 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     All tasks defined in settings.TASKWORKER_SCHEDULES will be scheduled as required.
     """
     from django.conf import settings
+    from taskbroker_client.scheduler import RunStorage, ScheduleRunner
 
-    if settings.TASKWORKER_USE_LIBRARY:
-        from taskbroker_client.app import TaskbrokerApp
-        from taskbroker_client.scheduler import RunStorage as TbRunStorage
-        from taskbroker_client.scheduler import ScheduleRunner as TbScheduleRunner
-        from taskbroker_client.scheduler.config import ScheduleConfig as TbScheduleConfig
-        from taskbroker_client.scheduler.config import crontab as tb_crontab
+    from sentry.taskworker.adapters import SentryMetricsBackend
+    from sentry.taskworker.runtime import app
+    from sentry.utils.redis import redis_clusters
 
-        from sentry.conf.types.taskworker import crontab
-        from sentry.taskworker.adapters import SentryMetricsBackend
-        from sentry.taskworker.runtime import app
-        from sentry.utils.redis import redis_clusters
+    app.load_modules()
+    run_storage = RunStorage(
+        metrics=SentryMetricsBackend(), redis=redis_clusters.get(redis_cluster)
+    )
 
-        tb_app = cast(TaskbrokerApp, app)
-        tb_app.load_modules()
-        tb_run_storage = TbRunStorage(
-            metrics=SentryMetricsBackend(), redis=redis_clusters.get(redis_cluster)
+    with managed_bgtasks(role="taskworker-scheduler"):
+        runner = ScheduleRunner(app, run_storage)
+        for key, schedule_data in settings.TASKWORKER_SCHEDULES.items():
+            runner.add(key, schedule_data)
+
+        logger.info(
+            "taskworker.scheduler.schedule_data",
+            extra={
+                "schedule_keys": list(settings.TASKWORKER_SCHEDULES.keys()),
+            },
         )
 
-        with managed_bgtasks(role="taskworker-scheduler"):
-            tb_runner = TbScheduleRunner(tb_app, tb_run_storage)
-            for key, schedule_data in settings.TASKWORKER_SCHEDULES.items():
-                schedule = cast(TbScheduleConfig, schedule_data.copy())
-                if isinstance(schedule["schedule"], crontab):
-                    schedule["schedule"] = tb_crontab(
-                        minute=schedule["schedule"].minute,
-                        hour=schedule["schedule"].hour,
-                        day_of_week=schedule["schedule"].day_of_week,
-                        day_of_month=schedule["schedule"].day_of_month,
-                        month_of_year=schedule["schedule"].month_of_year,
-                    )
-                tb_runner.add(key, schedule)
-
-            logger.info(
-                "taskworker.scheduler.schedule_data",
-                extra={
-                    "schedule_keys": list(settings.TASKWORKER_SCHEDULES.keys()),
-                },
-            )
-
-            tb_runner.log_startup()
-            while True:
-                sleep_time = tb_runner.tick()
-                time.sleep(sleep_time)
-    else:
-        from sentry.taskworker.runtime import app
-        from sentry.taskworker.scheduler.runner import RunStorage, ScheduleRunner
-        from sentry.utils.redis import redis_clusters
-
-        app.load_modules()
-        run_storage = RunStorage(redis_clusters.get(redis_cluster))
-
-        with managed_bgtasks(role="taskworker-scheduler"):
-            runner = ScheduleRunner(app, run_storage)
-            for key, schedule_data in settings.TASKWORKER_SCHEDULES.items():
-                runner.add(key, schedule_data)
-
-            logger.info(
-                "taskworker.scheduler.schedule_data",
-                extra={
-                    "schedule_keys": list(settings.TASKWORKER_SCHEDULES.keys()),
-                },
-            )
-
-            runner.log_startup()
-            while True:
-                sleep_time = runner.tick()
-                time.sleep(sleep_time)
-
-
-@run.command()
-@click.option(
-    "--pidfile",
-    help=(
-        "Optional file used to store the process pid. The "
-        "program will not start if this file already exists and "
-        "the pid is still alive."
-    ),
-)
-@click.option(
-    "--logfile", "-f", help=("Path to log file. If no logfile is specified, stderr is used.")
-)
-@click.option("--quiet", "-q", is_flag=True, default=False)
-@click.option("--no-color", is_flag=True, default=False)
-@click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
-@click.option("--without-gossip", is_flag=True, default=False)
-@click.option("--without-mingle", is_flag=True, default=False)
-@click.option("--without-heartbeat", is_flag=True, default=False)
-@log_options()
-@configuration
-def cron(**options: Any) -> None:
-    # TODO(taskworker) Remove this stub command
-    while True:
-        click.secho(
-            "The cron command has been removed. Use `sentry run taskworker-scheduler` instead.",
-            fg="yellow",
-        )
-        time.sleep(5)
-
-
-@run.command()
-@click.option(
-    "--hostname",
-    "-n",
-    help=("Set custom hostname, e.g. 'w1.%h'. Expands: %h(hostname), %n (name) and %d, (domain)."),
-)
-@click.option(
-    "--queues",
-    "-Q",
-    type=QueueSet,
-    help=(
-        "List of queues to enable for this worker, separated by "
-        "comma. By default all configured queues are enabled. "
-        "Example: -Q video,image"
-    ),
-)
-@click.option("--exclude-queues", "-X", type=QueueSet)
-@click.option(
-    "--concurrency",
-    "-c",
-    default=1,
-    help=(
-        "Number of child processes processing the queue. The "
-        "default is the number of CPUs available on your "
-        "system."
-    ),
-)
-@click.option(
-    "--logfile", "-f", help=("Path to log file. If no logfile is specified, stderr is used.")
-)
-@click.option("--quiet", "-q", is_flag=True, default=False)
-@click.option("--no-color", is_flag=True, default=False)
-@click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
-@click.option("--without-gossip", is_flag=True, default=False)
-@click.option("--without-mingle", is_flag=True, default=False)
-@click.option("--without-heartbeat", is_flag=True, default=False)
-@click.option("--max-tasks-per-child", default=10000)
-@click.option("--ignore-unknown-queues", is_flag=True, default=False)
-@log_options()
-@configuration
-def worker(ignore_unknown_queues: bool, **options: Any) -> None:
-    # TODO(taskworker) Remove this stub command
-    while True:
-        click.secho(
-            "The worker command has been removed. Use `sentry run taskworker` instead.", fg="yellow"
-        )
-        time.sleep(5)
+        runner.log_startup()
+        while True:
+            sleep_time = runner.tick()
+            time.sleep(sleep_time)
 
 
 @run.command()
@@ -371,55 +215,28 @@ def run_taskworker(
     """
     taskworker factory that can be reloaded
     """
-    from django.conf import settings
+    from taskbroker_client.worker import TaskWorker
+    from taskbroker_client.worker.client import make_broker_hosts
 
-    if settings.TASKWORKER_USE_LIBRARY:
-        from taskbroker_client.worker import TaskWorker as TbTaskWorker
-
-        from sentry.taskworker.client.client import make_broker_hosts
-
-        with managed_bgtasks(role="taskworker"):
-            worker = TbTaskWorker(
-                app_module="sentry.taskworker.bootstrap:app",
-                broker_hosts=make_broker_hosts(
-                    host_prefix=rpc_host, num_brokers=num_brokers, host_list=rpc_host_list
-                ),
-                max_child_task_count=max_child_task_count,
-                namespace=namespace,
-                concurrency=concurrency,
-                child_tasks_queue_maxsize=child_tasks_queue_maxsize,
-                result_queue_maxsize=result_queue_maxsize,
-                rebalance_after=rebalance_after,
-                processing_pool_name=processing_pool_name,
-                health_check_file_path=health_check_file_path,
-                health_check_sec_per_touch=health_check_sec_per_touch,
-                **options,
-            )
-            exitcode = worker.start()
-            raise SystemExit(exitcode)
-    else:
-        from sentry.taskworker.client.client import make_broker_hosts
-        from sentry.taskworker.worker import TaskWorker as TaskWorker
-
-        with managed_bgtasks(role="taskworker"):
-            sentry_worker = TaskWorker(
-                app_module="sentry.taskworker.runtime:app",
-                broker_hosts=make_broker_hosts(
-                    host_prefix=rpc_host, num_brokers=num_brokers, host_list=rpc_host_list
-                ),
-                max_child_task_count=max_child_task_count,
-                namespace=namespace,
-                concurrency=concurrency,
-                child_tasks_queue_maxsize=child_tasks_queue_maxsize,
-                result_queue_maxsize=result_queue_maxsize,
-                rebalance_after=rebalance_after,
-                processing_pool_name=processing_pool_name,
-                health_check_file_path=health_check_file_path,
-                health_check_sec_per_touch=health_check_sec_per_touch,
-                **options,
-            )
-            exitcode = sentry_worker.start()
-            raise SystemExit(exitcode)
+    with managed_bgtasks(role="taskworker"):
+        worker = TaskWorker(
+            app_module="sentry.taskworker.bootstrap:app",
+            broker_hosts=make_broker_hosts(
+                host_prefix=rpc_host, num_brokers=num_brokers, host_list=rpc_host_list
+            ),
+            max_child_task_count=max_child_task_count,
+            namespace=namespace,
+            concurrency=concurrency,
+            child_tasks_queue_maxsize=child_tasks_queue_maxsize,
+            result_queue_maxsize=result_queue_maxsize,
+            rebalance_after=rebalance_after,
+            processing_pool_name=processing_pool_name,
+            health_check_file_path=health_check_file_path,
+            health_check_sec_per_touch=health_check_sec_per_touch,
+            **options,
+        )
+        exitcode = worker.start()
+        raise SystemExit(exitcode)
 
 
 @run.command()

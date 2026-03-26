@@ -3,11 +3,12 @@ import type {Location} from 'history';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {
   decodeFilterFromLocation,
   filterToLocationQuery,
@@ -38,6 +39,7 @@ function TransactionEvents() {
 
   const navigate = useNavigate();
   const location = useLocation();
+  const shouldUseEAP = useTransactionSummaryEAP();
   const eventsDisplayFilterName = decodeEventsDisplayFilterFromLocation(location);
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
   const webVital = getWebVital(location);
@@ -120,6 +122,26 @@ function TransactionEvents() {
       query: nextQuery,
     });
   };
+
+  if (shouldUseEAP) {
+    return (
+      <EventsContent
+        location={location}
+        organization={organization}
+        eventView={eventView}
+        transactionName={transactionName}
+        spanOperationBreakdownFilter={spanOperationBreakdownFilter}
+        onChangeSpanOperationBreakdownFilter={onChangeSpanOperationBreakdownFilter}
+        eventsDisplayFilterName={EventsDisplayFilterName.P100}
+        onChangeEventsDisplayFilter={onChangeEventsDisplayFilter}
+        percentileValues={undefined}
+        projectId={projectId}
+        projects={projects}
+        webVital={webVital}
+        setError={setError}
+      />
+    );
+  }
 
   return (
     <DiscoverQuery

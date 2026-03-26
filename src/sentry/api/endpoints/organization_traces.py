@@ -1,7 +1,6 @@
 import dataclasses
 from collections import defaultdict
 from collections.abc import Callable, Generator, Mapping, MutableMapping
-from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from datetime import timedelta
 from typing import Any, Literal, NotRequired, TypedDict
@@ -56,6 +55,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.occurrences_rpc import OccurrenceCategory
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.numbers import clip
 from sentry.utils.sdk import set_span_attribute
 from sentry.utils.snuba import bulk_snuba_queries_with_referrers
@@ -253,7 +253,7 @@ class TracesExecutor:
         # issue
         if len(self.snuba_params.projects) < len(all_projects) and self.offset == 0:
             selected_project_request = self.get_traces_rpc(list(self.snuba_params.projects))
-            with ThreadPoolExecutor(
+            with ContextPropagatingThreadPoolExecutor(
                 thread_name_prefix=__name__, max_workers=2
             ) as query_thread_pool:
                 all_project_future = query_thread_pool.submit(get_traces_rpc, all_project_request)
@@ -311,6 +311,7 @@ class TracesExecutor:
                 "sdk.name",
                 "span.op",
                 "parent_span",
+                "transaction",
                 "span.name",
                 "precise.start_ts",
                 "precise.finish_ts",
@@ -379,7 +380,7 @@ class TracesExecutor:
                 snuba_params=snuba_params,
                 trace_ids=trace_ids,
                 referrer=Referrer.API_TRACE_EXPLORER_TRACES_OCCURRENCES.value,
-                occurrence_category=OccurrenceCategory.GENERIC,
+                occurrence_category=OccurrenceCategory.ISSUE_PLATFORM,
             )
             traces_occurrences = EAPOccurrencesComparator.check_and_choose(
                 traces_occurrences,
@@ -446,7 +447,8 @@ class TracesExecutor:
 
             name: tuple[str, str, float] = (
                 span["project"],
-                span["span.name"],
+                # transaction for Sentry SDK spans, span.name for OTel spans
+                span.get("transaction") or span["span.name"],
                 # to minmimize the impact of floating point errors,
                 # multiply by 1e3 first then do the subtraction
                 # once we move to eap_items, this can be just `span["span.duration"]`

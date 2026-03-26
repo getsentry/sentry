@@ -54,6 +54,17 @@ type FileStatus = Literal[
 - unknown: file status could not be positively identified
 """
 
+type ArchiveFormat = Literal["tarball", "zip"]
+"""Normalized archive format identifiers shared across all SCM providers."""
+
+
+class ArchiveLink(TypedDict):
+    """A download URL bundled with the authentication headers required to fetch it."""
+
+    url: str
+    headers: dict[str, str]
+
+
 type BuildStatus = Literal["pending", "running", "completed"]
 """The lifecycle stage of a CI build.
 
@@ -187,20 +198,20 @@ class ReactionResult(TypedDict):
 class PullRequestBranch(TypedDict):
     """A branch reference within a pull request (head or base)."""
 
-    sha: SHA
+    sha: SHA | None
     ref: BranchName
 
 
 class PullRequest(TypedDict):
     """Provider-agnostic representation of a pull request."""
 
+    # @todo Why do we have two ids here? Confusing.
     id: ResourceId
-    number: int
+    number: str
     title: str
     body: str | None
     state: PullRequestState
     merged: bool
-    url: str
     html_url: str
     head: PullRequestBranch
     base: PullRequestBranch
@@ -244,6 +255,7 @@ class Repository(TypedDict):
     name: str
     organization_id: int
     is_active: bool
+    external_id: str | None
 
 
 class GitRef(TypedDict):
@@ -281,7 +293,7 @@ class Commit(TypedDict):
     id: SHA
     message: str
     author: CommitAuthor | None
-    files: list[CommitFile]
+    files: list[CommitFile] | None
 
 
 class CommitComparison(TypedDict):
@@ -351,7 +363,7 @@ class ReviewComment(TypedDict):
     """Provider-agnostic representation of a review comment."""
 
     id: ResourceId
-    html_url: str
+    html_url: str | None
     path: str
     body: str
 

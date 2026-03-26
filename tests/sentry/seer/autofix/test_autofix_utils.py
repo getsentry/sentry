@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import Mock, patch
 
 import orjson
@@ -9,14 +10,28 @@ from sentry.seer.autofix.utils import (
     AutofixState,
     AutofixTriggerSource,
     CodingAgentStatus,
+    bulk_write_preferences_to_sentry_db,
+    deduplicate_repositories,
     get_autofix_prompt,
     get_coding_agent_prompt,
     has_project_connected_repos,
     is_issue_eligible_for_seer_automation,
     is_seer_seat_based_tier_enabled,
+    resolve_repository_ids,
     set_project_seer_preference,
+    write_preference_to_sentry_db,
 )
-from sentry.seer.models import SeerApiError, SeerProjectPreference
+from sentry.seer.models import (
+    BranchOverride,
+    SeerApiError,
+    SeerAutomationHandoffConfiguration,
+    SeerProjectPreference,
+    SeerRepoDefinition,
+)
+from sentry.seer.models.project_repository import (
+    SeerProjectRepository,
+    SeerProjectRepositoryBranchOverride,
+)
 from sentry.testutils.cases import TestCase
 from sentry.utils.cache import cache
 
@@ -188,7 +203,7 @@ class TestGetCodingAgentPrompt(TestCase):
         )
 
         assert "Fixes AIML-2301" in result
-        assert "Include 'Fixes AIML-2301' in the pull request description" in result
+        assert "Include 'Fixes AIML-2301' in the commit message" in result
         assert "Please fix the following issue" in result
         assert "This is the autofix prompt" in result
 
@@ -662,3 +677,544 @@ class TestSetProjectSeerPreference(TestCase):
 
         with pytest.raises(SeerApiError):
             set_project_seer_preference(preference)
+
+
+class TestResolveRepositoryIds(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+        self.repo_bare_provider = self.create_repo(
+            project=self.project,
+            provider="github",
+            external_id="ext123",
+            name="test-org/test-repo",
+        )
+        self.repo_prefixed_provider = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="ext456",
+            name="test-org/test-repo-2",
+        )
+
+    def test_resolves_when_input_and_stored_providers_are_bare(self):
+        preferences = [
+            SeerProjectPreference(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                repositories=[
+                    SeerRepoDefinition(
+                        provider="github", external_id="ext123", owner="test-org", name="test-repo"
+                    )
+                ],
+            )
+        ]
+
+        result = resolve_repository_ids(self.organization.id, preferences)
+
+        assert result[0].repositories[0].repository_id == self.repo_bare_provider.id
+
+    def test_resolves_when_input_and_stored_providers_are_prefixed(self):
+        preferences = [
+            SeerProjectPreference(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                repositories=[
+                    SeerRepoDefinition(
+                        provider="integrations:github",
+                        external_id="ext456",
+                        owner="test-org",
+                        name="test-repo-2",
+                    )
+                ],
+            )
+        ]
+
+        result = resolve_repository_ids(self.organization.id, preferences)
+
+        assert result[0].repositories[0].repository_id == self.repo_prefixed_provider.id
+
+    def test_resolves_when_input_provider_is_bare_and_stored_provider_is_prefixed(self):
+        preferences = [
+            SeerProjectPreference(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                repositories=[
+                    SeerRepoDefinition(
+                        provider="github",
+                        external_id="ext456",
+                        owner="test-org",
+                        name="test-repo-2",
+                    )
+                ],
+            )
+        ]
+
+        result = resolve_repository_ids(self.organization.id, preferences)
+
+        assert result[0].repositories[0].repository_id == self.repo_prefixed_provider.id
+
+    def test_resolves_when_input_provider_is_prefixed_and_stored_provider_is_bare(self):
+        preferences = [
+            SeerProjectPreference(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                repositories=[
+                    SeerRepoDefinition(
+                        provider="integrations:github",
+                        external_id="ext123",
+                        owner="test-org",
+                        name="test-repo",
+                    )
+                ],
+            ),
+        ]
+
+        result = resolve_repository_ids(self.organization.id, preferences)
+
+        assert result[0].repositories[0].repository_id == self.repo_bare_provider.id
+
+    def test_skips_unresolvable_repos(self):
+        """Repos with empty provider, empty external_id, existing repository_id, or inactive status are skipped."""
+        from sentry.constants import ObjectStatus
+
+        inactive_repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="ext_inactive",
+            name="test-org/inactive-repo",
+        )
+        inactive_repo.status = ObjectStatus.HIDDEN
+        inactive_repo.save()
+
+        preferences = [
+            SeerProjectPreference(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                repositories=[
+                    SeerRepoDefinition(
+                        provider="github",
+                        external_id="ext123",
+                        owner="test-org",
+                        name="test-repo",
+                        repository_id=999,
+                    ),
+                    SeerRepoDefinition(
+                        provider="github",
+                        external_id="ext_inactive",
+                        owner="test-org",
+                        name="inactive-repo",
+                    ),
+                    SeerRepoDefinition(
+                        provider="github", external_id="nonexistent", owner="test-org", name="nope"
+                    ),
+                ],
+            )
+        ]
+
+        result = resolve_repository_ids(self.organization.id, preferences)
+
+        repos = result[0].repositories
+        assert repos[0].repository_id == 999  # existing id preserved
+        assert repos[1].repository_id is None  # inactive repo
+        assert repos[2].repository_id is None  # nonexistent external_id
+
+
+class TestDeduplicateRepositories(TestCase):
+    def test_keys_by_provider_and_external_id(self):
+        repositories: list[dict[str, Any]] = [
+            {
+                "provider": "github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+                "organization_id": None,
+            },
+            {
+                "provider": "github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+                "organization_id": 42,
+            },
+        ]
+
+        result = deduplicate_repositories(repositories)
+
+        assert result == [
+            {
+                "provider": "github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+                "organization_id": None,
+            }
+        ]
+
+    def test_also_keys_by_org_id(self):
+        repositories: list[dict[str, Any]] = [
+            {
+                "provider": "github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+                "organization_id": None,
+            },
+            {
+                "provider": "github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+                "organization_id": 42,
+            },
+        ]
+
+        result = deduplicate_repositories(repositories, key_by_org_id=True)
+
+        assert result == [
+            {
+                "provider": "github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+                "organization_id": None,
+            },
+            {
+                "provider": "github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+                "organization_id": 42,
+            },
+        ]
+
+    def test_normalizes_provider_alias_in_key(self):
+        repositories: list[dict[str, Any]] = [
+            {
+                "provider": "github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+            },
+            {
+                "provider": "integrations:github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+            },
+        ]
+
+        result = deduplicate_repositories(repositories)
+
+        assert result == [
+            {
+                "provider": "github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+            }
+        ]
+
+
+class TestWritePreferencesToSentryDb(TestCase):
+    """Tests for _write_preferences_to_sentry_db via write_preference_to_sentry_db
+    and bulk_write_preferences_to_sentry_db."""
+
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+        self.repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="ext123",
+            name="test-org/test-repo",
+        )
+
+    def test_writes_project_options(self):
+        preference = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[],
+            automated_run_stopping_point="open_pr",
+            automation_handoff=SeerAutomationHandoffConfiguration(
+                handoff_point="root_cause",
+                target="cursor_background_agent",
+                integration_id=42,
+                auto_create_pr=True,
+            ),
+        )
+
+        write_preference_to_sentry_db(self.project, preference)
+
+        assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
+        assert self.project.get_option("sentry:seer_automation_handoff_point") == "root_cause"
+        assert (
+            self.project.get_option("sentry:seer_automation_handoff_target")
+            == "cursor_background_agent"
+        )
+        assert self.project.get_option("sentry:seer_automation_handoff_integration_id") == 42
+        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
+        assert SeerProjectRepository.objects.filter(project=self.project).count() == 0
+
+    def test_deletes_project_options_when_defaults(self):
+        preference = SeerProjectPreference(
+            organization_id=self.organization.id, project_id=self.project.id, repositories=[]
+        )
+
+        write_preference_to_sentry_db(self.project, preference)
+
+        assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "code_changes"
+        assert self.project.get_option("sentry:seer_automation_handoff_point") is None
+        assert self.project.get_option("sentry:seer_automation_handoff_target") is None
+        assert self.project.get_option("sentry:seer_automation_handoff_integration_id") is None
+        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
+
+    def test_creates_seer_project_repository_with_branch_overrides(self):
+        preference = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[
+                SeerRepoDefinition(
+                    repository_id=self.repo.id,
+                    provider="github",
+                    owner="test-org",
+                    name="test-repo",
+                    external_id="ext123",
+                    branch_name="develop",
+                    instructions="Use conventional commits",
+                    branch_overrides=[
+                        BranchOverride(
+                            tag_name="environment",
+                            tag_value="production",
+                            branch_name="main",
+                        ),
+                        BranchOverride(
+                            tag_name="environment",
+                            tag_value="staging",
+                            branch_name="staging",
+                        ),
+                    ],
+                ),
+            ],
+        )
+
+        write_preference_to_sentry_db(self.project, preference)
+
+        seer_repo = SeerProjectRepository.objects.get(project=self.project)
+        assert seer_repo.repository_id == self.repo.id
+        assert seer_repo.branch_name == "develop"
+        assert seer_repo.instructions == "Use conventional commits"
+
+        overrides = SeerProjectRepositoryBranchOverride.objects.filter(
+            seer_project_repository=seer_repo
+        ).order_by("tag_value")
+        assert len(overrides) == 2
+        assert overrides[0].tag_name == "environment"
+        assert overrides[0].tag_value == "production"
+        assert overrides[0].branch_name == "main"
+        assert overrides[1].tag_name == "environment"
+        assert overrides[1].tag_value == "staging"
+        assert overrides[1].branch_name == "staging"
+
+    def test_replaces_existing_preference_on_write(self):
+        preference_to_replace = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[
+                SeerRepoDefinition(
+                    repository_id=self.repo.id,
+                    provider="github",
+                    owner="test-org",
+                    name="test-repo",
+                    external_id="ext123",
+                    branch_overrides=[
+                        BranchOverride(
+                            tag_name="environment",
+                            tag_value="production",
+                            branch_name="main",
+                        ),
+                    ],
+                ),
+            ],
+        )
+        write_preference_to_sentry_db(self.project, preference_to_replace)
+
+        assert SeerProjectRepository.objects.filter(project=self.project).count() == 1
+        assert (
+            SeerProjectRepositoryBranchOverride.objects.filter(
+                seer_project_repository__project=self.project
+            ).count()
+            == 1
+        )
+
+        # Replace with a different repo, no overrides
+        repo2 = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="ext456",
+            name="test-org/other-repo",
+        )
+        new_preference = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[
+                SeerRepoDefinition(
+                    repository_id=repo2.id,
+                    provider="github",
+                    owner="test-org",
+                    name="other-repo",
+                    external_id="ext456",
+                ),
+            ],
+        )
+        write_preference_to_sentry_db(self.project, new_preference)
+
+        repos = SeerProjectRepository.objects.filter(project=self.project)
+        assert len(repos) == 1
+        assert repos[0].repository_id == repo2.id
+        assert (
+            SeerProjectRepositoryBranchOverride.objects.filter(
+                seer_project_repository__project=self.project
+            ).count()
+            == 0
+        )
+
+    def test_multiple_repos_for_one_project(self):
+        repo2 = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="ext456",
+            name="test-org/other-repo",
+        )
+
+        preference = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[
+                SeerRepoDefinition(
+                    repository_id=self.repo.id,
+                    provider="github",
+                    owner="test-org",
+                    name="test-repo",
+                    external_id="ext123",
+                    branch_name="develop",
+                ),
+                SeerRepoDefinition(
+                    repository_id=repo2.id,
+                    provider="github",
+                    owner="test-org",
+                    name="other-repo",
+                    external_id="ext456",
+                    instructions="Deploy carefully",
+                ),
+            ],
+        )
+
+        write_preference_to_sentry_db(self.project, preference)
+
+        repos = SeerProjectRepository.objects.filter(project=self.project).order_by("repository_id")
+        assert len(repos) == 2
+        assert repos[0].repository_id == self.repo.id
+        assert repos[0].branch_name == "develop"
+        assert repos[1].repository_id == repo2.id
+        assert repos[1].instructions == "Deploy carefully"
+
+    def test_bulk_write_multiple_projects(self):
+        project2 = self.create_project(organization=self.organization)
+        repo2 = self.create_repo(
+            project=project2,
+            provider="integrations:github",
+            external_id="ext456",
+            name="test-org/other-repo",
+        )
+
+        preferences = [
+            SeerProjectPreference(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                repositories=[
+                    SeerRepoDefinition(
+                        repository_id=self.repo.id,
+                        provider="github",
+                        owner="test-org",
+                        name="test-repo",
+                        external_id="ext123",
+                        branch_name="develop",
+                    ),
+                ],
+                automated_run_stopping_point="open_pr",
+            ),
+            SeerProjectPreference(
+                organization_id=self.organization.id,
+                project_id=project2.id,
+                repositories=[
+                    SeerRepoDefinition(
+                        repository_id=repo2.id,
+                        provider="github",
+                        owner="test-org",
+                        name="other-repo",
+                        external_id="ext456",
+                        instructions="Be careful",
+                    ),
+                ],
+                automated_run_stopping_point="code_changes",
+            ),
+        ]
+
+        bulk_write_preferences_to_sentry_db([self.project, project2], preferences)
+
+        p1_repos = SeerProjectRepository.objects.filter(project=self.project)
+        assert len(p1_repos) == 1
+        assert p1_repos[0].repository_id == self.repo.id
+        assert p1_repos[0].branch_name == "develop"
+        assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
+
+        p2_repos = SeerProjectRepository.objects.filter(project=project2)
+        assert len(p2_repos) == 1
+        assert p2_repos[0].repository_id == repo2.id
+        assert p2_repos[0].instructions == "Be careful"
+        assert project2.get_option("sentry:seer_automated_run_stopping_point") == "code_changes"
+
+    def test_bulk_write_replaces_per_project(self):
+        project2 = self.create_project(organization=self.organization)
+        repo2 = self.create_repo(
+            project=project2,
+            provider="integrations:github",
+            external_id="ext456",
+            name="test-org/other-repo",
+        )
+
+        SeerProjectRepository.objects.create(
+            project=self.project, repository_id=self.repo.id, branch_name="project-1-branch"
+        )
+        SeerProjectRepository.objects.create(
+            project=project2, repository_id=repo2.id, branch_name="project-2-branch"
+        )
+
+        bulk_write_preferences_to_sentry_db(
+            [self.project, project2],
+            [
+                SeerProjectPreference(
+                    organization_id=self.organization.id,
+                    project_id=self.project.id,
+                    repositories=[
+                        SeerRepoDefinition(
+                            repository_id=self.repo.id,
+                            provider="github",
+                            owner="test-org",
+                            name="test-repo",
+                            external_id="ext123",
+                            branch_name="new-branch",
+                        ),
+                    ],
+                ),
+            ],
+        )
+
+        # When bulk writing, existing repos for included projects are replaced,
+        # but repos for projects NOT in the preferences list are untouched.
+        p1_repo = SeerProjectRepository.objects.get(project=self.project)
+        assert p1_repo.branch_name == "new-branch"
+        p2_repo = SeerProjectRepository.objects.get(project=project2)
+        assert p2_repo.branch_name == "project-2-branch"

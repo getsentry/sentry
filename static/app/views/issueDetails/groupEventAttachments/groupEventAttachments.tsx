@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
+import {Pagination} from 'sentry/components/pagination';
 import {IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group, IssueAttachment} from 'sentry/types/group';
@@ -17,10 +17,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
-import GroupEventAttachmentsFilter, {
+import {
   EventAttachmentFilter,
+  GroupEventAttachmentsFilter,
 } from './groupEventAttachmentsFilter';
 import {GroupEventAttachmentsTable} from './groupEventAttachmentsTable';
 import {ScreenshotCard} from './screenshotCard';
@@ -37,7 +37,6 @@ const DEFAULT_ATTACHMENTS_TAB = EventAttachmentFilter.ALL;
 export function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
   const location = useLocation();
   const organization = useOrganization();
-  const hasStreamlinedUI = useHasStreamlinedUI();
   const eventQuery = useEventQuery();
   const eventView = useIssueDetailsEventView({group});
   const navigate = useNavigate();
@@ -84,12 +83,11 @@ export function GroupEventAttachments({project, group}: GroupEventAttachmentsPro
       group,
       orgSlug: organization.slug,
       cursor: location.query.cursor as string | undefined,
-      // We only want to filter by date/query/environment if we're using the Streamlined UI
-      environment: hasStreamlinedUI ? (eventView.environment as string[]) : undefined,
-      start: hasStreamlinedUI ? eventView.start : undefined,
-      end: hasStreamlinedUI ? eventView.end : undefined,
-      statsPeriod: hasStreamlinedUI ? eventView.statsPeriod : undefined,
-      eventQuery: hasStreamlinedUI ? eventQuery : undefined,
+      environment: eventView.environment as string[],
+      start: eventView.start,
+      end: eventView.end,
+      statsPeriod: eventView.statsPeriod,
+      eventQuery,
     });
   };
 
@@ -152,19 +150,15 @@ export function GroupEventAttachments({project, group}: GroupEventAttachmentsPro
 
   return (
     <Stack gap="xl">
-      {hasStreamlinedUI ? (
-        <Flex justify="between">
-          <Flex align="center" gap="md">
-            <IconFilter size="xs" />
-            {t('Results are filtered by the selections above.')}
-          </Flex>
-          <GroupEventAttachmentsFilter
-            onChange={key => setPreviouslyUsedAttachmentsTab(key)}
-          />
+      <Flex justify="between">
+        <Flex align="center" gap="md">
+          <IconFilter size="xs" />
+          {t('Results are filtered by the selections above.')}
         </Flex>
-      ) : (
-        <GroupEventAttachmentsFilter />
-      )}
+        <GroupEventAttachmentsFilter
+          onChange={key => setPreviouslyUsedAttachmentsTab(key)}
+        />
+      </Flex>
       {activeAttachmentsTab === EventAttachmentFilter.SCREENSHOT
         ? renderScreenshotGallery()
         : renderAttachmentsTable()}

@@ -1,21 +1,15 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
-import {useLocation} from 'sentry/utils/useLocation';
-import SampleImages from 'sentry/views/insights/browser/resources/components/sampleImages';
+import {SampleImages} from 'sentry/views/insights/browser/resources/components/sampleImages';
 import {SpanFields} from 'sentry/views/insights/types';
 
 const {SPAN_GROUP, HTTP_RESPONSE_CONTENT_LENGTH, RAW_DOMAIN, SPAN_DESCRIPTION} =
   SpanFields;
-
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('SampleImages', () => {
   const organization = OrganizationFixture({
@@ -62,18 +56,6 @@ describe('SampleImages', () => {
 const setupMocks = () => {
   const mockProjects = [ProjectFixture()];
   ProjectsStore.loadInitialData(mockProjects);
-
-  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
-
-  jest.mocked(useLocation).mockReturnValue({
-    pathname: '',
-    search: '',
-    query: {statsPeriod: '10d'},
-    hash: '',
-    state: undefined,
-    action: 'PUSH',
-    key: '',
-  });
 };
 
 const setupMockRequests = (

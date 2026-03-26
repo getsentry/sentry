@@ -13,15 +13,15 @@ from sentry.middleware.integrations.classifications import IntegrationClassifica
 from sentry.middleware.integrations.parsers.jira import JiraRequestParser
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.cell import override_cells
 from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
-from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Cell, Locality, RegionCategory
+from sentry.types.cell import Cell, Locality, RegionCategory
 
 region = Cell("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)
 eu_region = Cell("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT)
-locality = Locality("us", frozenset(["us"]), RegionCategory.MULTI_TENANT)
-eu_locality = Locality("eu", frozenset(["eu"]), RegionCategory.MULTI_TENANT)
+locality = Locality("us", frozenset(["us"]), RegionCategory.MULTI_TENANT, new_org_cell="us")
+eu_locality = Locality("eu", frozenset(["eu"]), RegionCategory.MULTI_TENANT, new_org_cell="eu")
 
 region_config = (region, eu_region)
 
@@ -41,7 +41,7 @@ class JiraRequestParserTest(TestCase):
         )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_get_integration_from_request(self) -> None:
         request = self.factory.post(path=f"{self.path_base}/issue-updated/")
         parser = JiraRequestParser(request, self.get_response)
@@ -55,7 +55,7 @@ class JiraRequestParserTest(TestCase):
             assert parser.get_integration_from_request() == integration
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_get_response_routing_to_control(self) -> None:
         paths = [
             "/ui-hook/",
@@ -77,7 +77,7 @@ class JiraRequestParserTest(TestCase):
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_get_response_routing_to_region_sync(self) -> None:
         responses.add(
             responses.POST,
@@ -99,7 +99,7 @@ class JiraRequestParserTest(TestCase):
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_get_response_routing_to_region_sync_retry_errors(self) -> None:
         responses.add(
             responses.POST,
@@ -123,7 +123,7 @@ class JiraRequestParserTest(TestCase):
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_get_response_routing_to_region_async(self) -> None:
         request = self.factory.post(path=f"{self.path_base}/issue-updated/")
         parser = JiraRequestParser(request, self.get_response)
@@ -145,7 +145,7 @@ class JiraRequestParserTest(TestCase):
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_get_response_missing_org_integration(self) -> None:
         request = self.factory.post(path=f"{self.path_base}/issue-updated/")
         parser = JiraRequestParser(request, self.get_response)
@@ -166,7 +166,7 @@ class JiraRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()
 
-    @override_regions(region_config)
+    @override_cells(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @responses.activate
     def test_get_response_invalid_path(self) -> None:
@@ -184,7 +184,7 @@ class JiraRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()
 
-    @override_regions(region_config)
+    @override_cells(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @responses.activate
     def test_get_response_multiple_regions(self) -> None:

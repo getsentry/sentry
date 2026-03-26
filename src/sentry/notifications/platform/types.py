@@ -3,7 +3,9 @@ from __future__ import annotations
 import abc
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any, Literal, Protocol, Self
+from typing import Any, Literal, Protocol
+
+from pydantic import BaseModel
 
 from sentry.integrations.types import ExternalProviderEnum
 
@@ -21,6 +23,7 @@ class NotificationCategory(StrEnum):
     DYNAMIC_SAMPLING = "dynamic-sampling"
     REPOSITORY = "repository"
     SEER = "seer"
+    ISSUE = "issue"
 
     def get_sources(self) -> list[NotificationSource]:
         return NOTIFICATION_SOURCE_MAP[self]
@@ -49,12 +52,17 @@ class NotificationSource(StrEnum):
     # REPOSITORY
     UNABLE_TO_DELETE_REPOSITORY = "unable-to-delete-repository"
 
+    # ISSUE_ALERT
+    ISSUE = "issue"
+
     # SEER
     SEER_AUTOFIX_ERROR = "seer-autofix-error"
     SEER_AUTOFIX_UPDATE = "seer-autofix-update"
     SEER_AUTOFIX_TRIGGER = "seer-autofix-trigger"
     SEER_AUTOFIX_FOOTER = "seer-autofix-footer"
     SEER_AUTOFIX_SUCCESS = "seer-autofix-success"
+    SEER_EXPLORER_RESPONSE = "seer-explorer-response"
+    SEER_EXPLORER_ERROR = "seer-explorer-error"
 
 
 NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = {
@@ -76,11 +84,16 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
     NotificationCategory.REPOSITORY: [
         NotificationSource.UNABLE_TO_DELETE_REPOSITORY,
     ],
+    NotificationCategory.ISSUE: [
+        NotificationSource.ISSUE,
+    ],
     NotificationCategory.SEER: [
         NotificationSource.SEER_AUTOFIX_TRIGGER,
         NotificationSource.SEER_AUTOFIX_ERROR,
         NotificationSource.SEER_AUTOFIX_SUCCESS,
         NotificationSource.SEER_AUTOFIX_UPDATE,
+        NotificationSource.SEER_EXPLORER_RESPONSE,
+        NotificationSource.SEER_EXPLORER_ERROR,
     ],
 }
 
@@ -106,21 +119,19 @@ class NotificationTargetResourceType(StrEnum):
     DIRECT_MESSAGE = "direct_message"
 
 
-class NotificationTarget(Protocol):
+class NotificationTarget(BaseModel):
     """
-    All targets of the notification platform must adhere to this protocol.
+    All targets of the notification platform must adhere to this base class.
     """
 
-    is_prepared: bool
+    class Config:
+        frozen = True
+        use_enum_values = True
+
     provider_key: NotificationProviderKey
     resource_type: NotificationTargetResourceType
     resource_id: str
-    specific_data: dict[str, Any] | None
-
-    def to_dict(self) -> dict[str, Any]: ...
-
-    @classmethod
-    def from_dict(self, data: dict[str, Any]) -> Self: ...
+    specific_data: dict[str, Any] | None = None
 
 
 class NotificationStrategy(Protocol):
@@ -131,10 +142,14 @@ class NotificationStrategy(Protocol):
     def get_targets(self) -> list[NotificationTarget]: ...
 
 
-class NotificationData(Protocol):
+class NotificationData(BaseModel):
     """
-    All data passing through the notification platform must adhere to this protocol.
+    All data passing through the notification platform must adhere to this base class.
     """
+
+    class Config:
+        frozen = True
+        use_enum_values = True
 
     source: NotificationSource
     """

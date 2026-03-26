@@ -18,8 +18,8 @@ import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {openConfirmModal} from 'sentry/components/confirm';
-import ErrorBoundary from 'sentry/components/errorBoundary';
-import Placeholder from 'sentry/components/placeholder';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
 import {t, tctCode} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -42,8 +42,10 @@ import {
 import {AxisRangeSection} from 'sentry/views/dashboards/widgetBuilder/components/axisRangeSection';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import {WidgetBuilderDatasetSelector} from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
+import {WidgetBuilderDescriptionField} from 'sentry/views/dashboards/widgetBuilder/components/descriptionField';
 import {WidgetBuilderFilterBar} from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
 import {WidgetBuilderGroupBySelector} from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
+import {LegendTypeSelector} from 'sentry/views/dashboards/widgetBuilder/components/legendTypeSelector';
 import {WidgetBuilderNameAndDescription} from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
 import {
   WidgetPreviewContainer,
@@ -54,7 +56,7 @@ import {SaveButtonGroup} from 'sentry/views/dashboards/widgetBuilder/components/
 import {WidgetBuilderSortBySelector} from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
 import {ThresholdsSection} from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
 import {WidgetBuilderTypeSelector} from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
-import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
+import {Visualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {WidgetTemplatesList} from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
 import {WidgetBuilderXAxisSelector} from 'sentry/views/dashboards/widgetBuilder/components/xAxisSelector';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -64,7 +66,7 @@ import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 
@@ -138,17 +140,20 @@ export function WidgetBuilderSlideout({
       : t('Custom Widget Builder');
   const isTimeSeriesWidget = usesTimeSeriesData(state.displayType);
   const isCategoricalBarWidget = state.displayType === DisplayType.CATEGORICAL_BAR;
+  const isTextWidget = state.displayType === DisplayType.TEXT;
 
-  const showVisualizeSection = state.displayType !== DisplayType.DETAILS;
-  const showQueryFilterBuilder = !(
-    state.dataset === WidgetType.ISSUE && usesTimeSeriesData(state.displayType)
-  );
+  const showVisualizeSection = state.displayType !== DisplayType.DETAILS && !isTextWidget;
+  const showQueryFilterBuilder =
+    !isTextWidget &&
+    !(state.dataset === WidgetType.ISSUE && usesTimeSeriesData(state.displayType));
 
   // Group By is used by time-series chart widgets to break down data by a field.
   // - Time-series widgets: show Group By to allow breaking down by fields
   // - Issue widgets: don't support Group By (issues have their own grouping)
   // - Categorical Bar widgets: group by is not supported yet, but may be in the future
-  const showGroupBySelector = isTimeSeriesWidget && !(state.dataset === WidgetType.ISSUE);
+  // - Text widgets: don't support Group By (no data visualization)
+  const showGroupBySelector =
+    isTimeSeriesWidget && !(state.dataset === WidgetType.ISSUE) && !isTextWidget;
 
   // X-Axis selector is only for Categorical Bar widgets, other chart widgets
   // always use time as the X-axis
@@ -160,10 +165,17 @@ export function WidgetBuilderSlideout({
   // - Table: Always show to control row ordering
   // - Line, Area, Bar (Time Series): Show to control which top N groups are displayed
   // - Bar (Categorical): Show to control category ordering (like tables)
+  // - Text: don't need Sort By (no data)
   const showSortByStep =
-    isCategoricalBarWidget ||
-    (isTimeSeriesWidget && state.fields && state.fields.length > 0) ||
-    state.displayType === DisplayType.TABLE;
+    (isCategoricalBarWidget ||
+      (isTimeSeriesWidget && state.fields && state.fields.length > 0) ||
+      state.displayType === DisplayType.TABLE) &&
+    !isTextWidget;
+
+  // Dataset Selector is used by widgets to know which dataset to query.
+  // - Text: doesn't need a dataset because it does not query any data
+  // - Other widgets: need to select a dataset to query the appropriate data
+  const showDatasetSelector = !isTextWidget;
 
   const observer = useMemo(
     () =>
@@ -205,9 +217,7 @@ export function WidgetBuilderSlideout({
         // clears the widget to start fresh on the library page
         dispatch({
           type: 'SET_STATE',
-          payload: convertWidgetToBuilderStateParams(
-            widgetLibraryWidgets[0] ?? ({} as Widget)
-          ),
+          payload: convertWidgetToBuilderState(widgetLibraryWidgets[0] ?? ({} as Widget)),
         });
       }}
     >
@@ -385,14 +395,26 @@ export function WidgetBuilderSlideout({
                       />
                     </Section>
                   </DisableTransactionWidget>
-                  <Section>
-                    <WidgetBuilderDatasetSelector />
-                  </Section>
+                  {showDatasetSelector && (
+                    <Section>
+                      <WidgetBuilderDatasetSelector />
+                    </Section>
+                  )}
                   <DisableTransactionWidget>
                     <Section>
                       <WidgetBuilderTypeSelector error={error} setError={setError} />
                       {isTimeSeriesWidget && <AxisRangeSection />}
+                      {isTimeSeriesWidget && <LegendTypeSelector />}
                     </Section>
+                    {isTextWidget && (
+                      <Section>
+                        <WidgetBuilderDescriptionField
+                          rows={12}
+                          placeholder={t('Write your markdown here...')}
+                          autosize={false}
+                        />
+                      </Section>
+                    )}
                     <div ref={observeForDraggablePreview}>
                       {isSmallScreen && (
                         <Section>
@@ -413,19 +435,16 @@ export function WidgetBuilderSlideout({
                         />
                       </Section>
                     )}
-
                     {showXAxisSelector && (
                       <Section>
                         <WidgetBuilderXAxisSelector />
                       </Section>
                     )}
-
                     {showVisualizeSection && (
                       <Section>
                         <Visualize error={error} setError={setError} />
                       </Section>
                     )}
-
                     {showQueryFilterBuilder && (
                       <Section>
                         <WidgetBuilderQueryFilterBuilder

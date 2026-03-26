@@ -1,5 +1,5 @@
 import {EmptyMessage} from 'sentry/components/emptyMessage';
-import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
+import {Content as StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import {NativeContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/nativeContent';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {Panel} from 'sentry/components/panels/panel';

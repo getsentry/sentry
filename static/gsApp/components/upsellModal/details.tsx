@@ -19,7 +19,7 @@ import {testableTransition} from 'sentry/utils/testableTransition';
 
 import type {Subscription} from 'getsentry/types';
 import {getTrialLength, hasPerformance, isTrialPlan} from 'getsentry/utils/billing';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 import {FeatureList} from './featureList';
 import {Footer} from './footer';
@@ -208,7 +208,7 @@ const PERFORMANCE_FEATURES = selectFeatures([
   'user-misery',
 ]).filter(Boolean);
 
-class Body extends Component<Props, State> {
+export class Details extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
@@ -486,5 +486,3 @@ const featureContentAnimation = {
     }),
   },
 };
-
-export default Body;

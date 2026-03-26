@@ -8,7 +8,7 @@ import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import {LeadHint} from 'sentry/components/events/interfaces/frame/leadHint';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
@@ -30,8 +30,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {withSentryAppComponents} from 'sentry/utils/withSentryAppComponents';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 
-import Context from './context';
-import DefaultTitle from './defaultTitle';
+import {Context} from './context';
+import {DefaultTitle} from './defaultTitle';
 import {OpenInContextLine} from './openInContextLine';
 import {
   getPlatform,

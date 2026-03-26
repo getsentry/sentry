@@ -491,7 +491,6 @@ class BaseTestProvider(Provider):
                 body=raw["body"],
                 state=raw["state"],
                 merged=raw["merged"],
-                url=raw["url"],
                 html_url=raw["html_url"],
                 head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
                 base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
@@ -789,8 +788,22 @@ class BaseTestProvider(Provider):
 
     def get_commits(
         self,
-        sha: str | None = None,
-        path: str | None = None,
+        ref: str | None = None,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[Commit]:
+        inner = self.get_commit("abc123")
+        return PaginatedActionResult(
+            data=[inner["data"]],
+            type="github",
+            raw={},
+            meta=_DEFAULT_PAGINATED_META,
+        )
+
+    def get_commits_by_path(
+        self,
+        path: str,
+        ref: str | None = None,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]:
@@ -969,7 +982,6 @@ class BaseTestProvider(Provider):
                     body=raw["body"],
                     state=raw["state"],
                     merged=raw["merged"],
-                    url=raw["url"],
                     html_url=raw["html_url"],
                     head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
                     base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
@@ -986,7 +998,6 @@ class BaseTestProvider(Provider):
         body: str,
         head: str,
         base: str,
-        draft: bool = False,
     ) -> ActionResult[PullRequest]:
         raw = make_github_pull_request(title=title, body=body)
         return ActionResult(
@@ -997,7 +1008,31 @@ class BaseTestProvider(Provider):
                 body=raw["body"],
                 state=raw["state"],
                 merged=raw["merged"],
-                url=raw["url"],
+                html_url=raw["html_url"],
+                head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
+                base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
+            ),
+            type="github",
+            raw=raw,
+            meta={},
+        )
+
+    def create_pull_request_draft(
+        self,
+        title: str,
+        body: str,
+        head: str,
+        base: str,
+    ) -> ActionResult[PullRequest]:
+        raw = make_github_pull_request(title=title, body=body)
+        return ActionResult(
+            data=PullRequest(
+                id=str(raw["id"]),
+                number=raw["number"],
+                title=raw["title"],
+                body=raw["body"],
+                state=raw["state"],
+                merged=raw["merged"],
                 html_url=raw["html_url"],
                 head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
                 base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
@@ -1027,7 +1062,6 @@ class BaseTestProvider(Provider):
                 body=raw["body"],
                 state=raw["state"],
                 merged=raw["merged"],
-                url=raw["url"],
                 html_url=raw["html_url"],
                 head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
                 base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
@@ -1213,6 +1247,7 @@ class FakeGitHubApiClient(GitHubApiClient):
         self.review_data: dict[str, Any] | None = None
         self.check_run_data: dict[str, Any] | None = None
         self.updated_check_run_data: dict[str, Any] | None = None
+        self.archive_link_data: str = "https://codeload.github.com/test-org/test-repo/legacy.tar.gz/refs/heads/main?token=fake"
 
         self.raise_api_error: bool = False
         self.calls: list[tuple[str, tuple[Any, ...], dict[str, Any]]] = []
@@ -1523,3 +1558,12 @@ class FakeGitHubApiClient(GitHubApiClient):
             status=data.get("status", "completed"),
             conclusion=data.get("conclusion"),
         )
+
+    def get_access_token(self, token_minimum_validity_time=None):
+        self._record_call("get_access_token")
+        return {"access_token": "fake-github-token", "permissions": None}
+
+    def get_archive_link(self, repo: str, archive_format: str, ref: str) -> str:
+        self._record_call("get_archive_link", repo, archive_format, ref)
+        self._maybe_raise()
+        return self.archive_link_data

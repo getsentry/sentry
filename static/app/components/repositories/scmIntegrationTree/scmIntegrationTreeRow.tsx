@@ -12,10 +12,16 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
+import {ProviderConfigLink} from 'sentry/components/repositories/scmIntegrationTree/providerConfigLink';
+import {DISCONNECTED_SECTION_KEY} from 'sentry/components/repositories/scmIntegrationTree/scmIntegrationTreeNodes';
 import type {TreeNode} from 'sentry/components/repositories/scmIntegrationTree/types';
 import {IconAdd, IconChevron, IconClose, IconDelete, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {Integration, IntegrationRepository} from 'sentry/types/integrations';
+import type {
+  Integration,
+  IntegrationRepository,
+  Repository,
+} from 'sentry/types/integrations';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTimeout} from 'sentry/utils/useTimeout';
@@ -28,6 +34,7 @@ import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegratio
 type Props = {
   node: TreeNode;
   onAddIntegration: () => void;
+  onRemoveDisconnectedRepo: (repo: Repository) => void;
   onToggleIntegration: (integrationId: string) => void;
   onToggleProvider: (providerKey: string) => void;
   onToggleRepo: (
@@ -44,6 +51,7 @@ export function ScmIntegrationTreeRow({
   onToggleProvider,
   onToggleIntegration,
   onToggleRepo,
+  onRemoveDisconnectedRepo,
   style,
 }: Props) {
   const organization = useOrganization();
@@ -171,13 +179,16 @@ export function ScmIntegrationTreeRow({
                   )}
                 </Text>
               </Flex>
-              {node.isReposPending ? (
-                <LoadingReposMessage />
-              ) : (
-                <Badge variant="muted">
-                  {t('%s/%s repos connected', node.connectedRepoCount, node.repoCount)}
-                </Badge>
-              )}
+              <Flex align="center" gap="sm">
+                {node.isReposPending ? (
+                  <LoadingReposMessage />
+                ) : (
+                  <Badge variant="muted">
+                    {t('%s/%s repos connected', node.connectedRepoCount, node.repoCount)}
+                  </Badge>
+                )}
+                <ProviderConfigLink integration={node.integration} />
+              </Flex>
             </Flex>
           </Flex>
         </RowButton>
@@ -230,6 +241,40 @@ export function ScmIntegrationTreeRow({
     );
   }
 
+  if (node.type === 'disconnected-section') {
+    return (
+      <RowContainer style={style} role="row" aria-level={1}>
+        <RowButton
+          onClick={() => onToggleProvider(DISCONNECTED_SECTION_KEY)}
+          aria-expanded={node.isExpanded}
+          aria-label={t('Other repositories')}
+        >
+          <InteractionStateLayer hasSelectedBackground={false} />
+          <Flex align="center" gap="lg" flex={1}>
+            <IconChevron direction={node.isExpanded ? 'down' : 'right'} size="xs" />
+            <Flex align="center" gap="sm" flex={1} justify="between">
+              <Text bold size="md">
+                {t('Other')}
+              </Text>
+              <Badge variant="muted">{t('%s repos', node.repoCount)}</Badge>
+            </Flex>
+          </Flex>
+        </RowButton>
+      </RowContainer>
+    );
+  }
+
+  if (node.type === 'disconnected-repo') {
+    return (
+      <DisconnectedRepoRow
+        node={node}
+        style={style}
+        canAccess={canAccess}
+        onRemoveDisconnectedRepo={onRemoveDisconnectedRepo}
+      />
+    );
+  }
+
   // node.type === 'repo'
   return (
     <RepoRow
@@ -252,8 +297,6 @@ function RepoRow({
   onToggleRepo: Props['onToggleRepo'];
   style: CSSProperties;
 }) {
-  const [isConfirming, setIsConfirming] = useState(false);
-
   return (
     <RowContainer style={style} role="row" aria-level={3}>
       <Flex align="center" gap="sm" height="100%" paddingRight="lg">
@@ -265,17 +308,7 @@ function RepoRow({
           marginLeft="2xl"
           paddingLeft="3xl"
         >
-          {isConfirming ? (
-            <Text size="xs" variant="muted">
-              {tct(
-                'Are you sure you want to remove [repoName]?[break]All associated commit data will be removed in addition to the repository.',
-                {
-                  repoName: <Text monospace>{node.repo.name}</Text>,
-                  break: <br />,
-                }
-              )}
-            </Text>
-          ) : node.integration.domainName ? (
+          {node.integration.domainName ? (
             <ExternalLink
               href={`https://${node.integration.domainName}/${node.repo.name}`}
             >
@@ -294,46 +327,12 @@ function RepoRow({
           )}
         </Flex>
         {node.isConnected ? (
-          isConfirming ? (
-            <Flex align="center" gap="sm">
-              <Button
-                size="xs"
-                priority="danger"
-                disabled={node.isToggling}
-                onClick={() => {
-                  onToggleRepo(node.repo, node.integration, true);
-                  setIsConfirming(false);
-                }}
-                aria-label={t('Confirm remove %s', node.repo.name)}
-              >
-                {t('Confirm')}
-              </Button>
-              <Button
-                size="xs"
-                icon={<IconClose size="xs" />}
-                disabled={node.isToggling}
-                onClick={() => setIsConfirming(false)}
-                aria-label={t('Cancel')}
-              />
-            </Flex>
-          ) : (
-            <Tooltip
-              disabled={canAccess}
-              title={t(
-                'You must be an organization owner, manager or admin to uninstall'
-              )}
-            >
-              <Button
-                size="xs"
-                icon={<IconDelete />}
-                disabled={!canAccess || node.isToggling}
-                onClick={() => setIsConfirming(true)}
-                aria-label={t('Remove %s', node.repo.name)}
-              >
-                {t('Remove')}
-              </Button>
-            </Tooltip>
-          )
+          <RemoveButton
+            repoName={node.repo.name}
+            isToggling={node.isToggling}
+            canAccess={canAccess}
+            onRemove={() => onToggleRepo(node.repo, node.integration, true)}
+          />
         ) : (
           <Tooltip
             disabled={canAccess}
@@ -352,6 +351,102 @@ function RepoRow({
         )}
       </Flex>
     </RowContainer>
+  );
+}
+
+function DisconnectedRepoRow({
+  node,
+  style,
+  canAccess,
+  onRemoveDisconnectedRepo,
+}: {
+  canAccess: boolean;
+  node: Extract<TreeNode, {type: 'disconnected-repo'}>;
+  onRemoveDisconnectedRepo: Props['onRemoveDisconnectedRepo'];
+  style: CSSProperties;
+}) {
+  return (
+    <RowContainer style={style} role="row" aria-level={2}>
+      <Flex align="center" gap="sm" height="100%" paddingRight="lg">
+        <Flex
+          flex={1}
+          align="center"
+          gap="sm"
+          height="100%"
+          marginLeft="2xl"
+          paddingLeft="3xl"
+        >
+          <ExternalLink href={node.repo.url}>
+            <Flex align="center" gap="sm">
+              {node.repo.name}
+              <IconOpen size="xs" />
+            </Flex>
+          </ExternalLink>
+        </Flex>
+        <RemoveButton
+          repoName={node.repo.name}
+          isToggling={node.isToggling}
+          canAccess={canAccess}
+          onRemove={() => onRemoveDisconnectedRepo(node.repo)}
+        />
+      </Flex>
+    </RowContainer>
+  );
+}
+
+function RemoveButton({
+  repoName,
+  isToggling,
+  canAccess,
+  onRemove,
+}: {
+  canAccess: boolean;
+  isToggling: boolean;
+  onRemove: () => void;
+  repoName: string;
+}) {
+  const [isConfirming, setIsConfirming] = useState(false);
+
+  if (isConfirming) {
+    return (
+      <Flex align="center" gap="sm">
+        <Button
+          size="xs"
+          priority="danger"
+          disabled={isToggling}
+          onClick={() => {
+            onRemove();
+            setIsConfirming(false);
+          }}
+          aria-label={t('Confirm remove %s', repoName)}
+        >
+          {t('Confirm')}
+        </Button>
+        <Button
+          size="xs"
+          icon={<IconClose size="xs" />}
+          disabled={isToggling}
+          onClick={() => setIsConfirming(false)}
+          aria-label={t('Cancel')}
+        />
+      </Flex>
+    );
+  }
+
+  return (
+    <Button
+      size="xs"
+      icon={<IconDelete />}
+      disabled={!canAccess || isToggling}
+      onClick={() => setIsConfirming(true)}
+      aria-label={t('Remove %s', repoName)}
+      tooltipProps={{
+        disabled: canAccess,
+        title: t('You must be an organization owner, manager or admin to uninstall'),
+      }}
+    >
+      {t('Remove')}
+    </Button>
   );
 }
 
@@ -378,7 +473,7 @@ function LoadingReposMessage() {
   return (
     <Flex align="center" gap="sm">
       <Text size="sm" variant="muted">
-        {messages[messageIndex]}
+        {messages[Math.min(messageIndex, messages.length - 1)]}
       </Text>
       <LoadingIndicator size={16} />
     </Flex>
@@ -390,9 +485,13 @@ const RowContainer = styled('div')`
   top: 0;
   left: 0;
   width: 100%;
-  border-bottom: 1px solid ${p => p.theme.tokens.border.neutral.muted};
-  &:last-child {
-    border-bottom: none;
+  &:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-bottom: 1px solid ${p => p.theme.tokens.border.neutral.muted};
   }
 `;
 

@@ -33,7 +33,7 @@ from sentry.constants import (
     SAMPLING_MODE_DEFAULT,
     ObjectStatus,
 )
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling import get_supported_biases_ids, get_user_biases
 from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, has_dynamic_sampling
@@ -57,7 +57,7 @@ from sentry.models.projectredirect import ProjectRedirect
 from sentry.notifications.utils import has_alert_integration
 from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
-from sentry.tasks.delete_seer_grouping_records import call_seer_delete_project_grouping_records
+from sentry.tasks.seer.delete_seer_grouping_records import call_seer_delete_project_grouping_records
 from sentry.tempest.utils import has_tempest_access
 
 logger = logging.getLogger(__name__)
@@ -1075,7 +1075,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             status=ObjectStatus.PENDING_DELETION
         )
         if updated:
-            scheduled = RegionScheduledDeletion.schedule(project, days=0, actor=request.user)
+            scheduled = CellScheduledDeletion.schedule(project, days=0, actor=request.user)
 
             common_audit_data = {
                 "organization": project.organization,

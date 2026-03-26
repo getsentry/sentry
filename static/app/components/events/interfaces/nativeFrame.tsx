@@ -8,7 +8,7 @@ import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FRAME_TOOLTIP_MAX_WIDTH} from 'sentry/components/events/interfaces/frame/defaultTitle';
 import {OpenInContextLine} from 'sentry/components/events/interfaces/frame/openInContextLine';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
@@ -49,7 +49,7 @@ import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSectio
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {combineStatus} from './debugMeta/utils';
-import Context from './frame/context';
+import {Context} from './frame/context';
 import {SymbolicatorStatus} from './types';
 
 type Props = {

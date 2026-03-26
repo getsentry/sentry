@@ -1,6 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
-import {Reorder} from 'framer-motion';
-import debounce from 'lodash/debounce';
+import {Fragment} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
@@ -11,13 +9,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {IssueViewParams} from 'sentry/views/issueList/issueViews/utils';
 import {useUpdateGroupSearchViewStarredOrder} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarredOrder';
-import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {IssueViewItem} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViewItem';
 import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useStarredIssueViews';
-
-interface IssueViewsProps {
-  sectionRef: React.RefObject<HTMLDivElement | null>;
-}
 
 export interface IssueView extends IssueViewParams {
   createdBy: AvatarUser | null;
@@ -29,64 +23,42 @@ export interface IssueView extends IssueViewParams {
   stars: number;
 }
 
-export function IssueViews({sectionRef}: IssueViewsProps) {
+export function IssueViews() {
   const organization = useOrganization();
   const {viewId} = useParams<{orgId?: string; viewId?: string}>();
 
   const {starredViews: views, setStarredIssueViews: setViews} = useStarredIssueViews();
 
-  const [isDragging, setIsDragging] = useState<string | null>(null);
-
   const {mutate: updateStarredViewsOrder} = useUpdateGroupSearchViewStarredOrder();
-
-  const debounceUpdateStarredViewsOrder = useMemo(
-    () =>
-      debounce((newViews: IssueView[]) => {
-        updateStarredViewsOrder({
-          orgSlug: organization.slug,
-          viewIds: newViews.map(view => parseInt(view.id, 10)),
-        });
-      }, 500),
-    [organization.slug, updateStarredViewsOrder]
-  );
-
-  const handleReorderComplete = useCallback(() => {
-    debounceUpdateStarredViewsOrder(views);
-
-    trackAnalytics('issue_views.reordered_views', {
-      leftNav: true,
-      organization: organization.slug,
-    });
-  }, [debounceUpdateStarredViewsOrder, organization.slug, views]);
 
   if (!views.length) {
     return null;
   }
 
   return (
-    <SecondaryNavigation.Section id="issues-starred-views" title={t('Starred Views')}>
-      <Reorder.Group
-        as="div"
-        axis="y"
-        values={views}
-        onReorder={newOrder => setViews(newOrder)}
-        initial={false}
-        ref={sectionRef}
-      >
-        {views.map(view => (
-          <IssueViewItem
-            key={view.id}
-            view={view}
-            sectionRef={sectionRef}
-            isActive={view.id === viewId}
-            onReorderComplete={handleReorderComplete}
-            isLastView={views.length === 1}
-            isDragging={isDragging}
-            setIsDragging={setIsDragging}
-          />
-        ))}
-      </Reorder.Group>
-    </SecondaryNavigation.Section>
+    <Fragment>
+      <SecondaryNavigation.Separator />
+      <SecondaryNavigation.Section id="issues-starred-views" title={t('Starred Views')}>
+        <SecondaryNavigation.ReorderableList
+          items={views}
+          onDragEnd={newViews => {
+            setViews(newViews);
+            updateStarredViewsOrder({
+              orgSlug: organization.slug,
+              viewIds: newViews.map(view => parseInt(view.id, 10)),
+            });
+            trackAnalytics('issue_views.reordered_views', {
+              leftNav: true,
+              organization: organization.slug,
+            });
+          }}
+        >
+          {view => (
+            <IssueViewItem key={view.id} view={view} isActive={view.id === viewId} />
+          )}
+        </SecondaryNavigation.ReorderableList>
+      </SecondaryNavigation.Section>
+    </Fragment>
   );
 }
 

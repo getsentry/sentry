@@ -27,7 +27,7 @@ interface SectionConfig {
   type: DiffStatus;
 }
 
-const SECTION_ORDER: SectionConfig[] = [
+export const SECTION_ORDER: SectionConfig[] = [
   {
     type: DiffStatus.CHANGED,
     label: t('Modified'),
@@ -61,10 +61,10 @@ const SECTION_ORDER: SectionConfig[] = [
 ];
 
 interface SnapshotSidebarContentProps {
-  currentItemName: string | null;
+  currentItemKey: string | null;
   items: SidebarItem[];
   onSearchChange: (query: string) => void;
-  onSelectItem: (name: string) => void;
+  onSelectItem: (key: string) => void;
   searchQuery: string;
   totalItemCount: number;
 }
@@ -72,7 +72,7 @@ interface SnapshotSidebarContentProps {
 export function SnapshotSidebarContent({
   items,
   totalItemCount,
-  currentItemName,
+  currentItemKey,
   searchQuery,
   onSearchChange,
   onSelectItem,
@@ -95,6 +95,7 @@ export function SnapshotSidebarContent({
   );
 
   const sectionRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (sectionParam) {
@@ -104,7 +105,10 @@ export function SnapshotSidebarContent({
 
   useEffect(() => {
     if (sectionParam && sectionRef.current) {
-      sectionRef.current.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+      sectionRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+      });
       setSectionParam(null);
     }
   }, [sectionParam, setSectionParam]);
@@ -125,6 +129,30 @@ export function SnapshotSidebarContent({
     return groups;
   }, [items, isDiffMode]);
 
+  useEffect(() => {
+    if (!currentItemKey || !groupedItems) {
+      return;
+    }
+    for (const [sectionType, sectionItems] of groupedItems.entries()) {
+      if (sectionItems.some(item => item.key === currentItemKey)) {
+        setExpandedSections(prev =>
+          prev[sectionType] ? prev : {...prev, [sectionType]: true}
+        );
+        break;
+      }
+    }
+  }, [currentItemKey, groupedItems]);
+
+  useEffect(() => {
+    if (!listRef.current || !currentItemKey) {
+      return;
+    }
+    const el = listRef.current.querySelector(
+      `[data-item-name="${CSS.escape(currentItemKey)}"]`
+    );
+    el?.scrollIntoView({block: 'nearest'});
+  }, [currentItemKey]);
+
   const isSearching = searchQuery.length > 0;
 
   const handleExpandedChange = (type: string, expanded: boolean) => {
@@ -133,6 +161,34 @@ export function SnapshotSidebarContent({
   };
 
   const isGroupedDiff = isDiffMode && groupedItems !== null;
+
+  const renderItem = (item: SidebarItem) => {
+    const isSelected = item.key === currentItemKey;
+    return (
+      <SidebarItemRow
+        key={item.key}
+        data-item-name={item.key}
+        isSelected={isSelected}
+        onClick={() => onSelectItem(item.key)}
+      >
+        <Flex align="center" gap="sm" flex="1" minWidth="0">
+          <Text
+            size="md"
+            variant={isSelected ? 'accent' : 'muted'}
+            bold={isSelected}
+            ellipsis
+          >
+            {item.name}
+          </Text>
+        </Flex>
+        {item.badge && (
+          <Text variant="muted" size="xs">
+            {item.badge}
+          </Text>
+        )}
+      </SidebarItemRow>
+    );
+  };
 
   return (
     <Stack height="100%" width="100%">
@@ -149,7 +205,7 @@ export function SnapshotSidebarContent({
           />
         </InputGroup>
       </Stack>
-      <Stack overflow="auto" flex="1" paddingRight="0">
+      <Stack ref={listRef} overflow="auto" flex="1" paddingRight="0">
         {isGroupedDiff &&
           SECTION_ORDER.map(section => {
             const sectionItems = groupedItems.get(section.type);
@@ -177,69 +233,30 @@ export function SnapshotSidebarContent({
                       </Text>
                     </Flex>
                     <Flex align="center" gap="xs">
-                      <Text size="sm">{sectionItems.length}</Text>
+                      <Text size="sm">
+                        {/* changed/renamed store images as pairs; added/removed/unchanged use images */}
+                        {sectionItems.reduce(
+                          (sum, item) =>
+                            sum +
+                            (item.type === 'changed' || item.type === 'renamed'
+                              ? item.pairs.length
+                              : item.images.length),
+                          0
+                        )}
+                      </Text>
                       {section.icon}
                     </Flex>
                   </Flex>
                 </SidebarSectionTitle>
                 {isExpanded && (
                   <SidebarSectionContent>
-                    {sectionItems.map(item => (
-                      <SidebarItemRow
-                        key={item.name}
-                        isSelected={item.name === currentItemName}
-                        onClick={() => onSelectItem(item.name)}
-                      >
-                        <Flex align="center" gap="sm" flex="1" minWidth="0">
-                          <Text
-                            size="md"
-                            variant={item.name === currentItemName ? 'accent' : 'muted'}
-                            bold={item.name === currentItemName}
-                            ellipsis
-                          >
-                            {item.name}
-                          </Text>
-                        </Flex>
-                        {item.type === 'changed' && item.pair.diff !== null && (
-                          <Text variant="muted" size="xs">
-                            {`${(item.pair.diff * 100).toFixed(1)}%`}
-                          </Text>
-                        )}
-                      </SidebarItemRow>
-                    ))}
+                    {sectionItems.map(renderItem)}
                   </SidebarSectionContent>
                 )}
               </Disclosure>
             );
           })}
-        {!isGroupedDiff &&
-          items.map(item => {
-            const isSelected = item.name === currentItemName;
-
-            return (
-              <SidebarItemRow
-                key={item.name}
-                isSelected={isSelected}
-                onClick={() => onSelectItem(item.name)}
-              >
-                <Flex align="center" gap="sm" flex="1" minWidth="0">
-                  <Text
-                    size="md"
-                    variant={isSelected ? 'accent' : 'muted'}
-                    bold={isSelected}
-                    ellipsis
-                  >
-                    {item.name}
-                  </Text>
-                </Flex>
-                {item.type === 'solo' && item.images.length > 1 && (
-                  <Text variant="muted" size="xs">
-                    {item.images.length}
-                  </Text>
-                )}
-              </SidebarItemRow>
-            );
-          })}
+        {!isGroupedDiff && items.map(renderItem)}
         {items.length === 0 && (
           <Flex align="center" justify="center" padding="lg">
             <Text variant="muted" size="sm">

@@ -1,5 +1,4 @@
 import {useCallback, useMemo} from 'react';
-import {useNavigate} from 'react-router-dom';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {LineSeriesOption} from 'echarts';
@@ -12,14 +11,14 @@ import {Flex} from '@sentry/scraps/layout';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import SessionsRequest from 'sentry/components/charts/sessionsRequest';
+import {SessionsRequest} from 'sentry/components/charts/sessionsRequest';
 import {
   HeaderTitleLegend,
   InlineContainer,
   SectionHeading,
   SectionValue,
 } from 'sentry/components/charts/styles';
-import TransitionChart from 'sentry/components/charts/transitionChart';
+import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {
   getDiffInMinutes,
@@ -35,17 +34,18 @@ import {
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelFooter} from 'sentry/components/panels/panelFooter';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct, tn} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {EChartClickHandler} from 'sentry/types/echarts';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getAdoptionSeries, getCount} from 'sentry/utils/sessions';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {sessionDisplayToField} from 'sentry/views/releases/list/releasesRequest';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
 
@@ -130,14 +130,13 @@ export function ReleasesAdoptionChart({
         return;
       }
 
-      navigate(
-        normalizeUrl({
-          pathname: `/organizations/${organization?.slug}/releases/${encodeURIComponent(
-            params.seriesId
-          )}/`,
-          query: {project, environment: location.query.environment},
-        })
-      );
+      navigate({
+        pathname: makeReleasesPathname({
+          organization,
+          path: `/${encodeURIComponent(params.seriesId)}/`,
+        }),
+        query: {project, environment: location.query.environment},
+      });
     },
     [organization, selection, location, navigate]
   );

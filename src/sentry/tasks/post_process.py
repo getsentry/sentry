@@ -22,6 +22,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import initialize_replays_publisher
+from sentry.seer.autofix.constants import AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD
 from sentry.signals import event_processed, issue_unignored
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -132,7 +133,6 @@ def _capture_event_stats(event: Event) -> None:
     platform = format_event_platform(event)
     tags = {"platform": platform}
     metrics.incr("events.processed", tags={"platform": platform}, skip_internal=False)
-    metrics.incr(f"events.processed.{platform}", skip_internal=False)
     metrics.distribution("events.size.data", event.size, tags=tags, unit="byte")
 
 
@@ -1277,10 +1277,10 @@ def process_processing_errors_eap(job: PostProcessJob):
     produce_processing_errors_to_eap(event.project, event.data, processing_errors)
 
 
-def process_sourcemap_issue_detection(job: PostProcessJob):
-    from sentry.processing_errors.detection import detect_sourcemap_issues
+def process_processing_issue_detection(job: PostProcessJob):
+    from sentry.processing_errors.detection import detect_processing_issues
 
-    detect_sourcemap_issues(job)
+    detect_processing_issues(job)
 
 
 def sdk_crash_monitoring(job: PostProcessJob):
@@ -1529,7 +1529,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         is_seer_scanner_rate_limited,
         is_seer_seat_based_tier_enabled,
     )
-    from sentry.tasks.autofix import (
+    from sentry.tasks.seer.autofix import (
         generate_issue_summary_only,
         generate_summary_and_run_automation,
         run_automation_only_task,
@@ -1557,7 +1557,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             )
             return
 
-        if group.times_seen_with_pending < 10:
+        if group.times_seen_with_pending < AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD:
             generate_issue_summary_only.delay(group.id)
         else:
             # Check if summary exists in cache
@@ -1604,7 +1604,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         detect_base_urls_for_uptime,
         check_if_flags_sent,
         process_processing_errors_eap,
-        process_sourcemap_issue_detection,
+        process_processing_issue_detection,
     ],
     GroupCategory.FEEDBACK: [
         feedback_filter_decorator(process_snoozes),

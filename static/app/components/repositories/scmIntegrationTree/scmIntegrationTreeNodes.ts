@@ -5,20 +5,24 @@ import type {
   TreeNode,
 } from 'sentry/components/repositories/scmIntegrationTree/types';
 import type {
-  Integration,
   IntegrationProvider,
   IntegrationRepository,
+  OrganizationIntegration,
+  Repository,
 } from 'sentry/types/integrations';
+
+export const DISCONNECTED_SECTION_KEY = '__disconnected__';
 
 type Props = {
   connectedIdentifiers: Set<string>;
+  connectedRepos: Repository[];
   expandedIntegrations: Set<string>;
   expandedProviders: Set<string>;
   providerFilter: ProviderFilter;
   repoFilter: RepoFilter;
   reposByIntegrationId: Record<string, IntegrationRepository[]>;
   reposPendingByIntegrationId: Record<string, boolean>;
-  scmIntegrations: Integration[];
+  scmIntegrations: OrganizationIntegration[];
   scmProviders: IntegrationProvider[];
   search: string;
   togglingRepos: Set<string>;
@@ -27,6 +31,7 @@ type Props = {
 export function buildIntegrationTreeNodes({
   scmProviders,
   scmIntegrations,
+  connectedRepos,
   reposByIntegrationId,
   reposPendingByIntegrationId,
   connectedIdentifiers,
@@ -106,8 +111,37 @@ export function buildIntegrationTreeNodes({
           }
         }
       }
+    }
+  }
 
-      // nodes.push({type: 'add-config', provider});
+  // Disconnected repos: connected to the org but no matching SCM integration
+  const scmIntegrationIds = new Set(scmIntegrations.map(i => i.id));
+  const disconnectedRepos =
+    providerFilter === 'seer-supported' || repoFilter === 'not-connected'
+      ? []
+      : connectedRepos.filter(
+          r =>
+            r.url &&
+            (!r.integrationId || !scmIntegrationIds.has(r.integrationId)) &&
+            (!query || r.name.toLowerCase().includes(query))
+        );
+
+  if (disconnectedRepos.length > 0) {
+    const isExpanded = expandedProviders.has(DISCONNECTED_SECTION_KEY);
+    nodes.push({
+      type: 'disconnected-section',
+      isExpanded,
+      repoCount: disconnectedRepos.length,
+    });
+
+    if (isExpanded) {
+      for (const repo of disconnectedRepos) {
+        nodes.push({
+          type: 'disconnected-repo',
+          repo,
+          isToggling: togglingRepos.has(repo.id),
+        });
+      }
     }
   }
 

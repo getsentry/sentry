@@ -3,7 +3,7 @@ import {useState} from 'react';
 import {Alert} from '@sentry/scraps/alert';
 
 import Feature from 'sentry/components/acl/feature';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -11,7 +11,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
 import {EMPTY_DASHBOARD, getDashboardTemplates} from './data';
-import DashboardDetail from './detail';
+import {DashboardDetailWithInjectedProps as DashboardDetail} from './detail';
 import type {DashboardDetails, Widget} from './types';
 import {DashboardState} from './types';
 import {cloneDashboard} from './utils';

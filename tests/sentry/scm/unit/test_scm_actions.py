@@ -4,13 +4,63 @@ from typing import Any
 
 import pytest
 
-from sentry.scm.actions import SourceCodeManager
+from sentry.scm.actions import (
+    SourceCodeManager,
+    compare_commits,
+    create_branch,
+    create_check_run,
+    create_git_blob,
+    create_git_commit,
+    create_git_tree,
+    create_issue_comment,
+    create_issue_comment_reaction,
+    create_issue_reaction,
+    create_pull_request,
+    create_pull_request_comment,
+    create_pull_request_comment_reaction,
+    create_pull_request_draft,
+    create_pull_request_reaction,
+    create_review,
+    create_review_comment_file,
+    create_review_comment_reply,
+    delete_issue_comment,
+    delete_issue_comment_reaction,
+    delete_issue_reaction,
+    delete_pull_request_comment,
+    delete_pull_request_comment_reaction,
+    delete_pull_request_reaction,
+    get_branch,
+    get_capabilities,
+    get_check_run,
+    get_commit,
+    get_commits,
+    get_commits_by_path,
+    get_file_content,
+    get_git_commit,
+    get_issue_comment_reactions,
+    get_issue_comments,
+    get_issue_reactions,
+    get_pull_request,
+    get_pull_request_comment_reactions,
+    get_pull_request_comments,
+    get_pull_request_commits,
+    get_pull_request_diff,
+    get_pull_request_files,
+    get_pull_request_reactions,
+    get_pull_requests,
+    get_tree,
+    minimize_comment,
+    request_review,
+    update_branch,
+    update_check_run,
+    update_pull_request,
+)
 from sentry.scm.errors import (
     SCMCodedError,
     SCMProviderException,
-    SCMProviderNotSupported,
     SCMUnhandledException,
 )
+from sentry.scm.private.provider import GetBranchProtocol, GetIssueReactionsProtocol
 from sentry.scm.types import PaginatedActionResult, ReactionResult, Referrer, Repository
 from tests.sentry.scm.test_fixtures import BaseTestProvider
 
@@ -28,70 +78,73 @@ def fetch_repository(oid, rid) -> Repository:
         "name": "test",
         "organization_id": 1,
         "is_active": True,
+        "external_id": None,
     }
 
 
-ALL_ACTIONS: tuple[tuple[str, dict[str, Any]], ...] = (
+ALL_ACTIONS: tuple[tuple[Callable[..., Any], dict[str, Any]], ...] = (
     # Issue comments
-    ("get_issue_comments", {"issue_id": "1"}),
-    ("create_issue_comment", {"issue_id": "1", "body": "test"}),
-    ("delete_issue_comment", {"issue_id": "1", "comment_id": "1"}),
+    (get_issue_comments, {"issue_id": "1"}),
+    (create_issue_comment, {"issue_id": "1", "body": "test"}),
+    (delete_issue_comment, {"issue_id": "1", "comment_id": "1"}),
     # Pull request
-    ("get_pull_request", {"pull_request_id": "1"}),
+    (get_pull_request, {"pull_request_id": "1"}),
     # Pull request comments
-    ("get_pull_request_comments", {"pull_request_id": "1"}),
-    ("create_pull_request_comment", {"pull_request_id": "1", "body": "test"}),
-    ("delete_pull_request_comment", {"pull_request_id": "1", "comment_id": "1"}),
+    (get_pull_request_comments, {"pull_request_id": "1"}),
+    (create_pull_request_comment, {"pull_request_id": "1", "body": "test"}),
+    (delete_pull_request_comment, {"pull_request_id": "1", "comment_id": "1"}),
     # Issue comment reactions
-    ("get_issue_comment_reactions", {"issue_id": "1", "comment_id": "1"}),
-    ("create_issue_comment_reaction", {"issue_id": "1", "comment_id": "1", "reaction": "eyes"}),
-    ("delete_issue_comment_reaction", {"issue_id": "1", "comment_id": "1", "reaction_id": "123"}),
+    (get_issue_comment_reactions, {"issue_id": "1", "comment_id": "1"}),
+    (create_issue_comment_reaction, {"issue_id": "1", "comment_id": "1", "reaction": "eyes"}),
+    (delete_issue_comment_reaction, {"issue_id": "1", "comment_id": "1", "reaction_id": "123"}),
     # Pull request comment reactions
-    ("get_pull_request_comment_reactions", {"pull_request_id": "1", "comment_id": "1"}),
+    (get_pull_request_comment_reactions, {"pull_request_id": "1", "comment_id": "1"}),
     (
-        "create_pull_request_comment_reaction",
+        create_pull_request_comment_reaction,
         {"pull_request_id": "1", "comment_id": "1", "reaction": "eyes"},
     ),
     (
-        "delete_pull_request_comment_reaction",
+        delete_pull_request_comment_reaction,
         {"pull_request_id": "1", "comment_id": "1", "reaction_id": "123"},
     ),
     # Issue reactions
-    ("get_issue_reactions", {"issue_id": "1"}),
-    ("create_issue_reaction", {"issue_id": "1", "reaction": "eyes"}),
-    ("delete_issue_reaction", {"issue_id": "1", "reaction_id": "456"}),
+    (get_issue_reactions, {"issue_id": "1"}),
+    (create_issue_reaction, {"issue_id": "1", "reaction": "eyes"}),
+    (delete_issue_reaction, {"issue_id": "1", "reaction_id": "456"}),
     # Pull request reactions
-    ("get_pull_request_reactions", {"pull_request_id": "1"}),
-    ("create_pull_request_reaction", {"pull_request_id": "1", "reaction": "eyes"}),
-    ("delete_pull_request_reaction", {"pull_request_id": "1", "reaction_id": "456"}),
+    (get_pull_request_reactions, {"pull_request_id": "1"}),
+    (create_pull_request_reaction, {"pull_request_id": "1", "reaction": "eyes"}),
+    (delete_pull_request_reaction, {"pull_request_id": "1", "reaction_id": "456"}),
     # Branch operations
-    ("get_branch", {"branch": "main"}),
-    ("create_branch", {"branch": "feature", "sha": "abc123"}),
-    ("update_branch", {"branch": "feature", "sha": "def456"}),
+    (get_branch, {"branch": "main"}),
+    (create_branch, {"branch": "feature", "sha": "abc123"}),
+    (update_branch, {"branch": "feature", "sha": "def456"}),
     # Git blob operations
-    ("create_git_blob", {"content": "hello", "encoding": "utf-8"}),
+    (create_git_blob, {"content": "hello", "encoding": "utf-8"}),
     # File content operations
-    ("get_file_content", {"path": "README.md"}),
+    (get_file_content, {"path": "README.md"}),
     # Commit operations
-    ("get_commit", {"sha": "abc123"}),
-    ("get_commits", {}),
-    ("compare_commits", {"start_sha": "aaa", "end_sha": "bbb"}),
+    (get_commit, {"sha": "abc123"}),
+    (get_commits, {}),
+    (get_commits_by_path, {"path": "src/main.py"}),
+    (compare_commits, {"start_sha": "aaa", "end_sha": "bbb"}),
     # Git data operations
-    ("get_tree", {"tree_sha": "tree123"}),
-    ("get_git_commit", {"sha": "abc123"}),
-    ("create_git_tree", {"tree": [{"path": "f.py", "mode": "100644", "type": "blob", "sha": "x"}]}),
-    ("create_git_commit", {"message": "msg", "tree_sha": "t", "parent_shas": ["p"]}),
+    (get_tree, {"tree_sha": "tree123"}),
+    (get_git_commit, {"sha": "abc123"}),
+    (create_git_tree, {"tree": [{"path": "f.py", "mode": "100644", "type": "blob", "sha": "x"}]}),
+    (create_git_commit, {"message": "msg", "tree_sha": "t", "parent_shas": ["p"]}),
     # Expanded pull request operations
-    ("get_pull_request_files", {"pull_request_id": "1"}),
-    ("get_pull_request_commits", {"pull_request_id": "1"}),
-    ("get_pull_request_diff", {"pull_request_id": "1"}),
-    ("get_pull_requests", {}),
-    ("create_pull_request", {"title": "T", "body": "B", "head": "h", "base": "b"}),
-    ("update_pull_request", {"pull_request_id": "1"}),
-    ("request_review", {"pull_request_id": "1", "reviewers": ["user1"]}),
+    (get_pull_request_files, {"pull_request_id": "1"}),
+    (get_pull_request_commits, {"pull_request_id": "1"}),
+    (get_pull_request_diff, {"pull_request_id": "1"}),
+    (get_pull_requests, {}),
+    (create_pull_request, {"title": "T", "body": "B", "head": "h", "base": "b"}),
+    (create_pull_request_draft, {"title": "T", "body": "B", "head": "h", "base": "b"}),
+    (update_pull_request, {"pull_request_id": "1"}),
+    (request_review, {"pull_request_id": "1", "reviewers": ["user1"]}),
     # Review operations
     (
-        "create_review_comment_file",
+        create_review_comment_file,
         {
             "pull_request_id": "1",
             "commit_id": "abc",
@@ -101,7 +154,7 @@ ALL_ACTIONS: tuple[tuple[str, dict[str, Any]], ...] = (
         },
     ),
     (
-        "create_review_comment_reply",
+        create_review_comment_reply,
         {
             "pull_request_id": "1",
             "body": "comment",
@@ -109,7 +162,7 @@ ALL_ACTIONS: tuple[tuple[str, dict[str, Any]], ...] = (
         },
     ),
     (
-        "create_review",
+        create_review,
         {
             "pull_request_id": "1",
             "commit_sha": "abc",
@@ -118,16 +171,16 @@ ALL_ACTIONS: tuple[tuple[str, dict[str, Any]], ...] = (
         },
     ),
     # Check run operations
-    ("create_check_run", {"name": "check", "head_sha": "abc"}),
-    ("get_check_run", {"check_run_id": "300"}),
-    ("update_check_run", {"check_run_id": "300"}),
+    (create_check_run, {"name": "check", "head_sha": "abc"}),
+    (get_check_run, {"check_run_id": "300"}),
+    (update_check_run, {"check_run_id": "300"}),
     # GraphQL mutation operations
-    ("minimize_comment", {"comment_node_id": "IC_abc", "reason": "OUTDATED"}),
+    (minimize_comment, {"comment_node_id": "IC_abc", "reason": "OUTDATED"}),
 )
 
 
-@pytest.mark.parametrize(("method", "kwargs"), ALL_ACTIONS)
-def test_rate_limited_action(method: str, kwargs: dict[str, Any]):
+@pytest.mark.parametrize(("action", "kwargs"), ALL_ACTIONS)
+def test_rate_limited_action(action: Callable[..., Any], kwargs: dict[str, Any]):
     class RateLimitedProvider(BaseTestProvider):
         def is_rate_limited(self, referrer):
             return True
@@ -135,7 +188,16 @@ def test_rate_limited_action(method: str, kwargs: dict[str, Any]):
     scm = SourceCodeManager(RateLimitedProvider())
 
     with raises_with_code(SCMCodedError, "rate_limit_exceeded"):
-        getattr(scm, method)(**kwargs)
+        action(scm, **kwargs)
+
+
+def test_scm_is_instance_of_scm():
+    # This weird test is justified by the creation of the dynamic Facade subclass in SourceCodeManager.__new__.
+    # In a previous version, it was returning a subclass of Facade, but not of SourceCodeManager.
+    provider = BaseTestProvider()
+    scm = SourceCodeManager(provider)
+    assert isinstance(scm, SourceCodeManager)
+    assert scm.provider is provider
 
 
 def test_repository_not_found():
@@ -157,6 +219,7 @@ def test_repository_inactive():
                 "name": "test",
                 "organization_id": 1,
                 "is_active": False,
+                "external_id": None,
             },
         )
 
@@ -415,126 +478,132 @@ def _check_update_check_run(result: Any) -> None:
 
 
 ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]], ...] = (
-    (SourceCodeManager.get_issue_comments, {"issue_id": "1"}, _check_issue_comments),
+    (get_issue_comments, {"issue_id": "1"}, _check_issue_comments),
     (
-        SourceCodeManager.create_issue_comment,
+        create_issue_comment,
         {"issue_id": "1", "body": "test"},
         _check_created_comment,
     ),
-    (SourceCodeManager.delete_issue_comment, {"issue_id": "1", "comment_id": "1"}, _check_none),
-    (SourceCodeManager.get_pull_request, {"pull_request_id": "1"}, _check_pull_request),
+    (delete_issue_comment, {"issue_id": "1", "comment_id": "1"}, _check_none),
+    (get_pull_request, {"pull_request_id": "1"}, _check_pull_request),
     (
-        SourceCodeManager.get_pull_request_comments,
+        get_pull_request_comments,
         {"pull_request_id": "1"},
         _check_pull_request_comments,
     ),
     (
-        SourceCodeManager.create_pull_request_comment,
+        create_pull_request_comment,
         {"pull_request_id": "1", "body": "test"},
         _check_created_pr_comment,
     ),
     (
-        SourceCodeManager.delete_pull_request_comment,
+        delete_pull_request_comment,
         {"pull_request_id": "1", "comment_id": "1"},
         _check_none,
     ),
     (
-        SourceCodeManager.get_issue_comment_reactions,
+        get_issue_comment_reactions,
         {"issue_id": "1", "comment_id": "1"},
         _check_comment_reactions,
     ),
     (
-        SourceCodeManager.create_issue_comment_reaction,
+        create_issue_comment_reaction,
         {"issue_id": "1", "comment_id": "1", "reaction": "eyes"},
         _check_created_reaction,
     ),
     (
-        SourceCodeManager.delete_issue_comment_reaction,
+        delete_issue_comment_reaction,
         {"issue_id": "1", "comment_id": "1", "reaction_id": "123"},
         _check_none,
     ),
     (
-        SourceCodeManager.get_pull_request_comment_reactions,
+        get_pull_request_comment_reactions,
         {"pull_request_id": "1", "comment_id": "1"},
         _check_pr_comment_reactions,
     ),
     (
-        SourceCodeManager.create_pull_request_comment_reaction,
+        create_pull_request_comment_reaction,
         {"pull_request_id": "1", "comment_id": "1", "reaction": "eyes"},
         _check_created_reaction,
     ),
     (
-        SourceCodeManager.delete_pull_request_comment_reaction,
+        delete_pull_request_comment_reaction,
         {"pull_request_id": "1", "comment_id": "1", "reaction_id": "123"},
         _check_none,
     ),
-    (SourceCodeManager.get_issue_reactions, {"issue_id": "1"}, _check_issue_reactions),
+    (get_issue_reactions, {"issue_id": "1"}, _check_issue_reactions),
     (
-        SourceCodeManager.create_issue_reaction,
+        create_issue_reaction,
         {"issue_id": "1", "reaction": "eyes"},
         _check_created_reaction,
     ),
-    (SourceCodeManager.delete_issue_reaction, {"issue_id": "1", "reaction_id": "456"}, _check_none),
+    (delete_issue_reaction, {"issue_id": "1", "reaction_id": "456"}, _check_none),
     (
-        SourceCodeManager.get_pull_request_reactions,
+        get_pull_request_reactions,
         {"pull_request_id": "1"},
         _check_pr_reactions,
     ),
     (
-        SourceCodeManager.create_pull_request_reaction,
+        create_pull_request_reaction,
         {"pull_request_id": "1", "reaction": "eyes"},
         _check_created_reaction,
     ),
     (
-        SourceCodeManager.delete_pull_request_reaction,
+        delete_pull_request_reaction,
         {"pull_request_id": "1", "reaction_id": "456"},
         _check_none,
     ),
-    (SourceCodeManager.get_branch, {"branch": "main"}, _check_get_branch),
-    (SourceCodeManager.create_branch, {"branch": "feature", "sha": "abc123"}, _check_create_branch),
-    (SourceCodeManager.update_branch, {"branch": "feature", "sha": "def456"}, _check_update_branch),
+    (get_branch, {"branch": "main"}, _check_get_branch),
+    (create_branch, {"branch": "feature", "sha": "abc123"}, _check_create_branch),
+    (update_branch, {"branch": "feature", "sha": "def456"}, _check_update_branch),
     (
-        SourceCodeManager.create_git_blob,
+        create_git_blob,
         {"content": "hello", "encoding": "utf-8"},
         _check_create_git_blob,
     ),
-    (SourceCodeManager.get_file_content, {"path": "README.md"}, _check_file_content),
-    (SourceCodeManager.get_commit, {"sha": "abc123"}, _check_get_commit),
-    (SourceCodeManager.get_commits, {}, _check_get_commits),
+    (get_file_content, {"path": "README.md"}, _check_file_content),
+    (get_commit, {"sha": "abc123"}, _check_get_commit),
+    (get_commits, {}, _check_get_commits),
+    (get_commits_by_path, {"path": "src/main.py"}, _check_get_commits),
     (
-        SourceCodeManager.compare_commits,
+        compare_commits,
         {"start_sha": "aaa", "end_sha": "bbb"},
         _check_compare_commits,
     ),
-    (SourceCodeManager.get_tree, {"tree_sha": "tree123"}, _check_get_tree),
-    (SourceCodeManager.get_git_commit, {"sha": "abc123"}, _check_get_git_commit),
+    (get_tree, {"tree_sha": "tree123"}, _check_get_tree),
+    (get_git_commit, {"sha": "abc123"}, _check_get_git_commit),
     (
-        SourceCodeManager.create_git_tree,
+        create_git_tree,
         {"tree": [{"path": "f.py", "mode": "100644", "type": "blob", "sha": "x"}]},
         _check_create_git_tree,
     ),
     (
-        SourceCodeManager.create_git_commit,
+        create_git_commit,
         {"message": "msg", "tree_sha": "t", "parent_shas": ["p"]},
         _check_create_git_commit,
     ),
-    (SourceCodeManager.get_pull_request_files, {"pull_request_id": "1"}, _check_pr_files),
-    (SourceCodeManager.get_pull_request_commits, {"pull_request_id": "1"}, _check_pr_commits),
-    (SourceCodeManager.get_pull_request_diff, {"pull_request_id": "1"}, _check_pr_diff),
-    (SourceCodeManager.get_pull_requests, {}, _check_list_pull_requests),
+    (get_pull_request_files, {"pull_request_id": "1"}, _check_pr_files),
+    (get_pull_request_commits, {"pull_request_id": "1"}, _check_pr_commits),
+    (get_pull_request_diff, {"pull_request_id": "1"}, _check_pr_diff),
+    (get_pull_requests, {}, _check_list_pull_requests),
     (
-        SourceCodeManager.create_pull_request,
+        create_pull_request,
         {"title": "T", "body": "B", "head": "h", "base": "b"},
         _check_create_pull_request,
     ),
-    (SourceCodeManager.update_pull_request, {"pull_request_id": "1"}, _check_update_pull_request),
     (
-        SourceCodeManager.request_review,
+        create_pull_request_draft,
+        {"title": "T", "body": "B", "head": "h", "base": "b"},
+        _check_create_pull_request,
+    ),
+    (update_pull_request, {"pull_request_id": "1"}, _check_update_pull_request),
+    (
+        request_review,
         {"pull_request_id": "1", "reviewers": ["user1"]},
         _check_none,
     ),
     (
-        SourceCodeManager.create_review_comment_file,
+        create_review_comment_file,
         {
             "pull_request_id": "1",
             "commit_id": "abc",
@@ -545,7 +614,7 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
         _check_review_comment,
     ),
     (
-        SourceCodeManager.create_review_comment_reply,
+        create_review_comment_reply,
         {
             "pull_request_id": "1",
             "body": "comment",
@@ -554,7 +623,7 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
         _check_review_comment,
     ),
     (
-        SourceCodeManager.create_review,
+        create_review,
         {
             "pull_request_id": "1",
             "commit_sha": "abc",
@@ -564,22 +633,22 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
         _check_review,
     ),
     (
-        SourceCodeManager.create_check_run,
+        create_check_run,
         {"name": "check", "head_sha": "abc"},
         _check_create_check_run,
     ),
     (
-        SourceCodeManager.get_check_run,
+        get_check_run,
         {"check_run_id": "300"},
         _check_get_check_run,
     ),
     (
-        SourceCodeManager.update_check_run,
+        update_check_run,
         {"check_run_id": "300"},
         _check_update_check_run,
     ),
     (
-        SourceCodeManager.minimize_comment,
+        minimize_comment,
         {"comment_node_id": "IC_abc", "reason": "OUTDATED"},
         _check_none,
     ),
@@ -614,6 +683,7 @@ def test_provider_exception_is_not_wrapped():
     scm = SourceCodeManager(FailingProvider())
 
     with pytest.raises(SCMProviderException):
+        assert isinstance(scm, GetIssueReactionsProtocol)
         scm.get_issue_reactions(issue_id="1")
 
 
@@ -626,19 +696,23 @@ class MinimalProvider:
         "name": "test",
         "organization_id": 1,
         "is_active": True,
+        "external_id": None,
     }
 
     def is_rate_limited(self, referrer: Referrer) -> bool:
         return False
 
 
-@pytest.mark.parametrize(("method", "kwargs"), ALL_ACTIONS)
-def test_exec_raises_provider_not_supported_for_all_actions(method: str, kwargs: dict[str, Any]):
+@pytest.mark.parametrize(("action", "kwargs"), ALL_ACTIONS)
+def test_exec_raises_provider_not_supported_for_all_actions(
+    action: Callable[..., Any],
+    kwargs: dict[str, Any],
+):
     """Every SCM action raises SCMProviderNotSupported when the provider lacks the protocol."""
     scm = SourceCodeManager(MinimalProvider())
 
-    with pytest.raises(SCMProviderNotSupported):
-        getattr(scm, method)(**kwargs)
+    with pytest.raises(AttributeError):
+        action(scm, **kwargs)
 
 
 def test_exec_wraps_unhandled_exception():
@@ -651,6 +725,7 @@ def test_exec_wraps_unhandled_exception():
     scm = SourceCodeManager(ExplodingProvider())
 
     with pytest.raises(SCMUnhandledException):
+        assert isinstance(scm, GetBranchProtocol)
         scm.get_branch(branch="main")
 
 
@@ -667,6 +742,7 @@ def test_exec_records_failure_metric_on_unhandled_exception():
     )
 
     with pytest.raises(SCMUnhandledException):
+        assert isinstance(scm, GetBranchProtocol)
         scm.get_branch(branch="main")
 
     assert metrics == [("sentry.scm.actions.failed", 1, {})]
@@ -681,76 +757,13 @@ def test_exec_passes_custom_referrer():
         referrer="autofix",
         record_count=lambda k, a, t: metrics.append((k, a, t)),
     )
+    assert isinstance(scm, GetBranchProtocol)
     scm.get_branch(branch="main")
 
     referrer_metrics = [(k, a, t) for k, a, t in metrics if "referrer" in t]
     assert referrer_metrics == [
         ("sentry.scm.actions.success_by_referrer", 1, {"referrer": "autofix"}),
     ]
-
-
-class TestCan:
-    """Tests for SourceCodeManager.can()."""
-
-    def test_can_returns_true_for_all_known_actions_with_full_provider(self):
-        """A provider implementing every protocol satisfies every action."""
-        scm = SourceCodeManager(BaseTestProvider())
-        actions = [name for name, _kwargs in ALL_ACTIONS]
-        result = scm.can(actions)
-        assert all(result.values())
-        assert set(result.keys()) == set(actions)
-
-    def test_can_returns_false_when_provider_lacks_protocol(self):
-        """A minimal provider that implements no action protocols fails every action."""
-        scm = SourceCodeManager(MinimalProvider())
-        for action_name, _ in ALL_ACTIONS:
-            result = scm.can([action_name])
-            assert result[action_name] is False, f"Expected {action_name!r} to be False"
-
-    def test_can_returns_false_for_unknown_action(self):
-        """An action name not in ActionMap causes can() to return False."""
-        scm = SourceCodeManager(BaseTestProvider())
-        result = scm.can(["nonexistent_action"])
-        assert result == {"nonexistent_action": False}
-
-    def test_can_returns_empty_dict_for_empty_list(self):
-        """An empty action list returns an empty dict."""
-        scm = SourceCodeManager(MinimalProvider())
-        assert scm.can([]) == {}
-
-    def test_can_mixed_supported_and_unsupported(self):
-        """Returns a mix of True and False for supported and unsupported actions."""
-        scm = SourceCodeManager(BaseTestProvider())
-        result = scm.can(["get_branch", "nonexistent_action"])
-        assert result == {"get_branch": True, "nonexistent_action": False}
-
-    def test_can_with_partial_provider(self):
-        """A provider implementing only branch protocols passes branch checks but not others."""
-
-        class BranchOnlyProvider:
-            organization_id: int = 1
-            repository: Repository = {
-                "integration_id": 1,
-                "name": "test",
-                "organization_id": 1,
-                "is_active": True,
-            }
-
-            def is_rate_limited(self, referrer: Referrer) -> bool:
-                return False
-
-            def get_branch(self, branch, request_options=None):
-                pass
-
-            def create_branch(self, branch, sha):
-                pass
-
-        scm = SourceCodeManager(BranchOnlyProvider())
-        result = scm.can(["get_branch", "create_branch"])
-        assert result == {"get_branch": True, "create_branch": True}
-
-        result = scm.can(["get_branch", "get_commit"])
-        assert result == {"get_branch": True, "get_commit": False}
 
 
 def test_exec_passes_custom_record_count():
@@ -761,6 +774,7 @@ def test_exec_passes_custom_record_count():
         calls.append((key, amount, tags))
 
     scm = SourceCodeManager(BaseTestProvider(), record_count=custom_record)
+    assert isinstance(scm, GetBranchProtocol)
     scm.get_branch(branch="main")
 
     assert len(calls) == 2
@@ -770,3 +784,64 @@ def test_exec_passes_custom_record_count():
         {"provider": "BaseTestProvider"},
     )
     assert calls[1] == ("sentry.scm.actions.success_by_referrer", 1, {"referrer": "shared"})
+
+
+def test_get_capabilities():
+    assert list(get_capabilities(SourceCodeManager(BaseTestProvider()))) == [
+        "CompareCommitsProtocol",
+        "CreateBranchProtocol",
+        "CreateCheckRunProtocol",
+        "CreateGitBlobProtocol",
+        "CreateGitCommitProtocol",
+        "CreateGitTreeProtocol",
+        "CreateIssueCommentProtocol",
+        "CreateIssueCommentReactionProtocol",
+        "CreateIssueReactionProtocol",
+        "CreatePullRequestCommentProtocol",
+        "CreatePullRequestCommentReactionProtocol",
+        "CreatePullRequestDraftProtocol",
+        "CreatePullRequestProtocol",
+        "CreatePullRequestReactionProtocol",
+        "CreateReviewCommentFileProtocol",
+        "CreateReviewCommentReplyProtocol",
+        "CreateReviewProtocol",
+        "DeleteIssueCommentProtocol",
+        "DeleteIssueCommentReactionProtocol",
+        "DeleteIssueReactionProtocol",
+        "DeletePullRequestCommentProtocol",
+        "DeletePullRequestCommentReactionProtocol",
+        "DeletePullRequestReactionProtocol",
+        "GetBranchProtocol",
+        "GetCheckRunProtocol",
+        "GetCommitProtocol",
+        "GetCommitsByPathProtocol",
+        "GetCommitsProtocol",
+        "GetFileContentProtocol",
+        "GetGitCommitProtocol",
+        "GetIssueCommentReactionsProtocol",
+        "GetIssueCommentsProtocol",
+        "GetIssueReactionsProtocol",
+        "GetPullRequestCommentReactionsProtocol",
+        "GetPullRequestCommentsProtocol",
+        "GetPullRequestCommitsProtocol",
+        "GetPullRequestDiffProtocol",
+        "GetPullRequestFilesProtocol",
+        "GetPullRequestProtocol",
+        "GetPullRequestReactionsProtocol",
+        "GetPullRequestsProtocol",
+        "GetTreeProtocol",
+        "MinimizeCommentProtocol",
+        "RequestReviewProtocol",
+        "UpdateBranchProtocol",
+        "UpdateCheckRunProtocol",
+        "UpdatePullRequestProtocol",
+    ]
+
+    class IncapableProvider:
+        organization_id: int
+        repository: Repository
+
+        def is_rate_limited(self, referrer: Referrer) -> bool:
+            return False
+
+    assert list(get_capabilities(SourceCodeManager(IncapableProvider()))) == []

@@ -16,14 +16,14 @@ from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.repository import RepositorySerializer as RepositoryApiSerializer
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.services.integration import integration_service
 from sentry.models.commit import Commit
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.tasks.repository import repository_cascade_delete_on_hide
-from sentry.tasks.seer import cleanup_seer_repository_preferences
+from sentry.tasks.seer.cleanup import cleanup_seer_repository_preferences
 
 
 class RepositorySerializer(serializers.Serializer):
@@ -144,8 +144,8 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
                 repo.rename_on_pending_deletion()
 
                 if has_commits:
-                    RegionScheduledDeletion.schedule(repo, days=0, hours=1, actor=request.user)
+                    CellScheduledDeletion.schedule(repo, days=0, hours=1, actor=request.user)
                 else:
-                    RegionScheduledDeletion.schedule(repo, days=0, actor=request.user)
+                    CellScheduledDeletion.schedule(repo, days=0, actor=request.user)
 
         return Response(serialize(repo, request.user), status=202)

@@ -1,9 +1,9 @@
 import {useState} from 'react';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -20,7 +20,7 @@ import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
-import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 
 interface WidgetPreviewProps {
@@ -44,6 +44,7 @@ export function WidgetPreview({
   const location = useLocation();
   const navigate = useNavigate();
   const pageFilters = usePageFilters();
+  const [chartInterval] = useChartInterval();
 
   const {state, dispatch} = useWidgetBuilderContext();
   const [tableWidths, setTableWidths] = useState<number[]>();
@@ -111,10 +112,10 @@ export function WidgetPreview({
       isEditingDashboard={false}
       widgetLimitReached={false}
       showContextMenu={false}
-      renderErrorMessage={errorMessage =>
-        typeof errorMessage === 'string' && (
-          <PanelAlert variant="danger">{errorMessage}</PanelAlert>
-        )
+      widgetInterval={
+        organization.features.includes('dashboards-interval-selection')
+          ? chartInterval
+          : undefined
       }
       onLegendSelectChanged={() => {}}
       legendOptions={

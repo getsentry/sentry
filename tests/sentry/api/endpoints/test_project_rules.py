@@ -45,6 +45,7 @@ from sentry.rules.filters.tagged_event import TaggedEventFilter
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack, with_feature
+from sentry.testutils.helpers.serializer_parity import assert_serializer_parity
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.user import User
 from sentry.workflow_engine.models import (
@@ -57,6 +58,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+from tests.sentry.api.endpoints.test_project_rule_details import assert_serializer_results_match
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -168,6 +170,21 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
             assert workflow_resp_2["id"] == str(get_fake_id_from_object_id(self.workflow.id))
             assert workflow_resp_1["id"] == str(self.rule.id)
 
+    @with_feature("organizations:workflow-engine-projectrulesendpoint-get")
+    def test_workflow_engine_granular_flag(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
+        )
+        assert (
+            len(response.data)
+            == Workflow.objects.filter(organization=self.project.organization).count()
+        )
+        returned_ids = {item["id"] for item in response.data}
+        assert str(self.rule.id) in returned_ids
+        assert str(get_fake_id_from_object_id(self.workflow.id)) in returned_ids
+
     @with_feature("organizations:workflow-engine-rule-serializers")
     def test_unsupported_condition(self) -> None:
         """Test with an unsupported condition e.g. IssueResolvedTriggerCondition
@@ -193,17 +210,13 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
             comparison=True,
             condition_result=True,
         )
-        workflow_filters = self.create_data_condition_group()
-        self.create_workflow_data_condition_group(
-            workflow=workflow, condition_group=workflow_filters
-        )
+        action_group, _ = self.create_workflow_action(workflow)
         self.create_data_condition(  # filter condition
-            condition_group=workflow_filters,
+            condition_group=action_group,
             type=Condition.EVENT_ATTRIBUTE,
             comparison={"attribute": "platform", "match": "eq", "value": "python"},
             condition_result=True,
         )
-        self.create_workflow_action(workflow)
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
@@ -230,6 +243,89 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
         assert (
             issue_resolved_trigger_resp["errors"][0]["detail"]
             == f"Condition not supported: {Condition.ISSUE_RESOLVED_TRIGGER}"
+        )
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    def test_multiple_action_filters(self) -> None:
+        """
+        Test that if a workflow has multiple action filters (uses an if/then block) we only render 1 in the old UI and add to the error response
+        """
+
+        detector = self.create_detector(project=self.project)
+        workflow_triggers = self.create_data_condition_group()
+        workflow = self.create_workflow(
+            when_condition_group=workflow_triggers,
+            organization=detector.project.organization,
+            name="Issue resolved trigger workflow",
+        )
+        self.create_detector_workflow(detector=detector, workflow=workflow)
+        self.create_data_condition(  # trigger condition
+            condition_group=workflow_triggers,
+            type=Condition.ISSUE_RESOLVED_TRIGGER,
+            comparison=True,
+            condition_result=True,
+        )
+        self.create_data_condition(  # trigger condition
+            condition_group=workflow_triggers,
+            type=Condition.EXISTING_HIGH_PRIORITY_ISSUE,
+            comparison=True,
+            condition_result=True,
+        )
+        # First if/then block: action DCG with filter condition + action
+        action_group1, _ = self.create_workflow_action(workflow)
+        self.create_data_condition(
+            condition_group=action_group1,
+            type=Condition.EVENT_ATTRIBUTE,
+            comparison={"attribute": "platform", "match": "eq", "value": "python"},
+            condition_result=True,
+        )
+        # Second if/then block: action DCG with filter condition + action
+        action_group2, _ = self.create_workflow_action(workflow)
+        dc2 = self.create_data_condition(
+            condition_group=action_group2,
+            type=Condition.EVENT_ATTRIBUTE,
+            comparison={"attribute": "platform", "match": "eq", "value": "java"},
+            condition_result=True,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
+        )
+
+        multiple_action_filter_resp = None
+        for resp in response.data:
+            if resp["name"] == workflow.name:
+                multiple_action_filter_resp = resp
+
+        assert multiple_action_filter_resp
+        # only the first if/then block's filter is rendered
+        assert len(multiple_action_filter_resp["filters"]) == 1
+        assert (
+            multiple_action_filter_resp["errors"][0]["detail"]
+            == "Multiple if/then blocks are not supported in this view. Only the first if/then block is displayed."
+        )
+
+        # remove the 2nd data condition so the if/then is just an action - this should still show the error
+        dc2.delete()
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
+        )
+
+        multiple_action_filter_resp = None
+        for resp in response.data:
+            if resp["name"] == workflow.name:
+                multiple_action_filter_resp = resp
+
+        assert multiple_action_filter_resp
+        # only the first if/then block's filter is rendered
+        assert len(multiple_action_filter_resp["filters"]) == 1
+        assert (
+            multiple_action_filter_resp["errors"][0]["detail"]
+            == "Multiple if/then blocks are not supported in this view. Only the first if/then block is displayed."
         )
 
     @with_feature("organizations:workflow-engine-rule-serializers")
@@ -397,6 +493,21 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
                 )
 
         assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.CREATED.value).exists()
+
+        # Verify that the workflow engine serializer returns the same response shape.
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            workflow_response = self.get_success_response(
+                self.project.organization.slug,
+                self.project.slug,
+                name=name,
+                owner=owner,
+                actionMatch=action_match,
+                frequency=frequency,
+                status_code=status.HTTP_201_CREATED,
+                **query_args,
+            )
+        assert_serializer_results_match(response.data, workflow_response.data)
+
         return response
 
     def test_simple(self) -> None:
@@ -1428,7 +1539,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             ],
             "actionMatch": "any",
             "filterMatch": "all",
-            "owner": "team:74234",
+            "owner": f"team:{self.team.id}",
             "projects": [self.project.slug],
         }
         responses.add(
@@ -1502,3 +1613,63 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             "target_display": "team-team-team",
             "target_identifier": "CSVK0921",
         }
+
+
+class GetProjectRulesDeltaTest(APITestCase):
+    """Verify legacy and workflow engine serializers produce identical output for dual-written rules."""
+
+    endpoint = "sentry-api-0-project-rules"
+
+    def test_dual_written_rule_parity(self) -> None:
+        self.login_as(user=self.user)
+        env = self.create_environment(project=self.project, name="production")
+        rule = self.create_project_rule(
+            project=self.project,
+            name="Production alert",
+            action_match="any",
+            frequency=60,
+            environment_id=env.id,
+            condition_data=[
+                {
+                    "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                    "name": "A new issue is created",
+                },
+                {
+                    "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                    "interval": "1h",
+                    "value": 50,
+                    "comparisonType": "count",
+                    "name": "The issue is seen more than 50 times in 1h",
+                },
+            ],
+            action_data=[
+                {
+                    "targetType": "IssueOwners",
+                    "fallthroughType": "ActiveMembers",
+                    "id": "sentry.mail.actions.NotifyEmailAction",
+                    "targetIdentifier": "",
+                    "name": "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers",
+                }
+            ],
+        )
+
+        legacy_response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
+        )
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            we_response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                status_code=status.HTTP_200_OK,
+            )
+
+        assert len(legacy_response.data) == 1
+        assert len(we_response.data) == 1
+        legacy_rule = legacy_response.data[0]
+        we_rule = we_response.data[0]
+        assert legacy_rule["id"] == str(rule.id)
+
+        assert_serializer_parity(old=legacy_rule, new=we_rule)

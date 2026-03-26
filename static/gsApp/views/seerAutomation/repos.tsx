@@ -1,6 +1,6 @@
 import {ExternalLink} from '@sentry/scraps/link';
 
-import AnalyticsArea from 'sentry/components/analyticsArea';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -17,11 +17,11 @@ export default function SeerAutomationRepos() {
         <SettingsPageHeader
           title={t('Code Review')}
           subtitle={tct(
-            `Enable [code_review:Code-Review] on your repositories to automatically catch bugs before they're merged into production. Reviews can be triggered when a PR is ready for review, after each update to a PR, and always manually by tagging [code:@sentry review] in the comments. [docs:Read the docs] to learn what Seer can do.`,
+            `Enable [code_review:Code Review] on your repositories to automatically catch bugs before they're merged into production. Reviews can be triggered when a PR is ready for review, after each update to a PR, and always manually by tagging [code:@sentry review] in the comments. [docs:Read the docs] to learn what Seer can do.`,
             {
               code: <code />,
               code_review: (
-                <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/ai-code-review/" />
+                <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/code-review/" />
               ),
               docs: (
                 <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities" />

@@ -13,6 +13,10 @@ import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItem
 import {convertDuration} from 'sentry/utils/unitConversion/convertDuration';
 import {convertSize} from 'sentry/utils/unitConversion/convertSize';
 import {
+  NUMBER_MAX_FRACTION_DIGITS,
+  NUMBER_MIN_VALUE,
+} from 'sentry/views/dashboards/widgets/common/settings';
+import {
   isADurationUnit,
   isASizeUnit,
 } from 'sentry/views/dashboards/widgets/common/typePredicates';
@@ -20,16 +24,9 @@ import {
 /**
  * Format a value for the tooltip on an ECharts graph.
  *
- * The value might be a user submitted metric, or an aggregate. For user metric
- * values, it's wise to render the value at full precision, since the user might
- * be interested in the exact value, and tooltips should generally show the full
- * value. For aggregates, the precision is contrived, and the significant digits
- * might not match the original data. In this case, it would be wise to truncate
- * the value for display purposes, but we opt to do the safer thing and show the
- * value at full precision.
- *
- * This concept mostly applies to "number" values, since integers, durations,
- * and sizes naturally require less precision.
+ * For "number" values, we cap fractional digits at 4 to keep tooltips readable,
+ * especially for percentage-like charts in prebuilt dashboards. Integers,
+ * durations, and sizes naturally require less precision.
  */
 export function formatTooltipValue(
   value: number | typeof ECHARTS_MISSING_DATA_VALUE,
@@ -42,9 +39,17 @@ export function formatTooltipValue(
 
   switch (type) {
     case 'integer':
-    case 'number':
       return value.toLocaleString(undefined, {
-        maximumFractionDigits: 20,
+        maximumFractionDigits: NUMBER_MAX_FRACTION_DIGITS,
+      });
+    case 'number':
+      if (value > 0 && value < NUMBER_MIN_VALUE) {
+        return value.toLocaleString(undefined, {
+          maximumSignificantDigits: NUMBER_MAX_FRACTION_DIGITS,
+        });
+      }
+      return value.toLocaleString(undefined, {
+        maximumFractionDigits: NUMBER_MAX_FRACTION_DIGITS,
       });
     case 'percentage':
       return formatPercentage(value, 2);

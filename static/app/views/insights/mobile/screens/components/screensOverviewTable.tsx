@@ -4,8 +4,7 @@ import * as qs from 'query-string';
 import {Link} from '@sentry/scraps/link';
 
 import {t} from 'sentry/locale';
-import type EventView from 'sentry/utils/discover/eventView';
-import type {MetaType} from 'sentry/utils/discover/eventView';
+import type {EventView, MetaType} from 'sentry/utils/discover/eventView';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -42,7 +41,7 @@ type Props = {
   pageLinks: string | undefined;
 };
 
-function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Props) {
+export function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Props) {
   const moduleURL = useModuleURL(ModuleName.MOBILE_VITALS);
 
   const location = useLocation();
@@ -153,5 +152,3 @@ function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Props) {
     />
   );
 }
-
-export default ScreensOverviewTable;

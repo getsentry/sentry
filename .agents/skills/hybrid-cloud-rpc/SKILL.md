@@ -1,11 +1,11 @@
 ---
 name: hybrid-cloud-rpc
-description: Guide for creating, updating, and deprecating hybrid cloud RPC services in Sentry. Use when asked to "add RPC method", "create RPC service", "hybrid cloud service", "new RPC model", "deprecate RPC method", "remove RPC endpoint", "cross-silo service", "regional RPC", or "control silo service". Covers service scaffolding, method signatures, RPC models, region resolvers, testing, and safe deprecation workflows.
+description: Guide for creating, updating, and deprecating hybrid cloud RPC services in Sentry. Use when asked to "add RPC method", "create RPC service", "hybrid cloud service", "new RPC model", "deprecate RPC method", "remove RPC endpoint", "cross-silo service", "cell RPC", or "control silo service". Covers service scaffolding, method signatures, RPC models, cell resolvers, testing, and safe deprecation workflows.
 ---
 
 # Hybrid Cloud RPC Services
 
-This skill guides you through creating, modifying, and deprecating RPC services in Sentry's hybrid cloud architecture. RPC services enable cross-silo communication between the Control silo (user auth, billing, org management) and Region silos (project data, events, issues).
+This skill guides you through creating, modifying, and deprecating RPC services in Sentry's hybrid cloud architecture. RPC services enable cross-silo communication between the Control silo (user auth, billing, org management) and Cell silos (project data, events, issues).
 
 ## Critical Constraints
 
@@ -39,14 +39,14 @@ Classify what the developer needs:
 
 The service's `local_mode` determines where the database-backed implementation runs:
 
-| Data lives in...                                  | `local_mode`       | Decorator on methods                | Example                            |
-| ------------------------------------------------- | ------------------ | ----------------------------------- | ---------------------------------- |
-| Region silo (projects, events, issues, org data)  | `SiloMode.CELL`    | `@regional_rpc_method(resolve=...)` | `OrganizationService`              |
-| Control silo (users, auth, billing, org mappings) | `SiloMode.CONTROL` | `@rpc_method`                       | `OrganizationMemberMappingService` |
+| Data lives in...                                  | `local_mode`       | Decorator on methods            | Example                            |
+| ------------------------------------------------- | ------------------ | ------------------------------- | ---------------------------------- |
+| Region silo (projects, events, issues, org data)  | `SiloMode.CELL`    | `@cell_rpc_method(resolve=...)` | `OrganizationService`              |
+| Control silo (users, auth, billing, org mappings) | `SiloMode.CONTROL` | `@rpc_method`                   | `OrganizationMemberMappingService` |
 
-**Decision rule**: If the Django models you need to query live in the region database, use `SiloMode.CELL`. If they live in the control database, use `SiloMode.CONTROL`.
+**Decision rule**: If the Django models you need to query live in the cell database, use `SiloMode.CELL`. If they live in the control database, use `SiloMode.CONTROL`.
 
-Region-silo services require a `RegionResolutionStrategy` on every RPC method so the framework knows which region to route remote calls to. Load `references/resolvers.md` for the full resolver table.
+Cell-silo services require a `CellResolutionStrategy` on every RPC method so the framework knows which cell to route remote calls to. Load `references/resolvers.md` for the full resolver table.
 
 ## Step 3: Create a New Service
 
@@ -100,7 +100,7 @@ If your service doesn't fit any of these, add a new entry to the `service_packag
 Load `references/resolvers.md` for resolver details.
 
 ```python
-@regional_rpc_method(resolve=ByOrganizationId())
+@cell_rpc_method(resolve=ByOrganizationId())
 @abstractmethod
 def my_method(
     self,
@@ -114,7 +114,7 @@ def my_method(
 
 Key rules:
 
-- `@regional_rpc_method` MUST come before `@abstractmethod`
+- `@cell_rpc_method` MUST come before `@abstractmethod`
 - The resolver parameter (e.g., `organization_id`) MUST be in the method signature
 - Use `return_none_if_mapping_not_found=True` when the return type is `Optional` and a missing org mapping means "not found" rather than an error
 
@@ -231,7 +231,7 @@ class MyServiceTest(TestCase):
         assert result is not None
 ```
 
-For tests that need named regions (e.g., testing region resolution):
+For tests that need named cells (e.g., testing cell resolution):
 
 ```python
 @all_silo_test(regions=create_test_regions("us", "eu"))
@@ -400,7 +400,7 @@ from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.silo import (
     all_silo_test,
     control_silo_test,
-    region_silo_test,
+    cell_silo_test,
     assume_test_silo_mode,
     assume_test_silo_mode_of,
     create_test_regions,
@@ -423,9 +423,9 @@ Before submitting your PR, verify:
 - [ ] All RPC method parameters are keyword-only (`*` separator)
 - [ ] All parameters have explicit type annotations
 - [ ] All types are serializable (primitives, RpcModel, list, Optional, dict, Enum, datetime)
-- [ ] Region service methods have `@regional_rpc_method` with appropriate resolver
+- [ ] Region service methods have `@cell_rpc_method` with appropriate resolver
 - [ ] Control service methods have `@rpc_method`
-- [ ] `@regional_rpc_method` / `@rpc_method` comes BEFORE `@abstractmethod`
+- [ ] `@cell_rpc_method` / `@rpc_method` comes BEFORE `@abstractmethod`
 - [ ] `create_delegation()` is called at module level at the bottom of service.py
 - [ ] Service package is under one of the 12 registered discovery packages
 - [ ] `impl.py` implements every abstract method with matching parameter names

@@ -1,4 +1,3 @@
-import {compile} from '@mdx-js/mdx';
 import type {KnipConfig} from 'knip';
 
 const isProductionMode = process.argv.includes('--production');
@@ -16,15 +15,12 @@ const productionEntryPoints = [
   // --- we should be able to get rid of those: ---
   // Only used in stories (so far)
   'static/app/components/core/quote/*.tsx',
-  // Prevent exception until we build out coverage
-  'static/app/components/prevent/virtualRenderers/**/*.{js,ts,tsx}',
-  // Temporary Prevent TA exceptions until the code is removed
-  'static/app/views/navigation/secondary/sections/prevent/**/*.{js,ts,tsx}',
-  'static/app/views/prevent/**/*.{js,ts,tsx}',
   // todo we currently keep all icons
   'static/app/icons/**/*.{js,ts,tsx}',
   // todo find out how chartcuterie works
   'static/app/chartcuterie/**/*.{js,ts,tsx}',
+  // TODO: Remove when used
+  'static/app/components/pipeline/**/*.{js,ts,tsx}',
 ];
 
 const testingEntryPoints = [
@@ -41,6 +37,7 @@ const storyBookEntryPoints = [
   'static/app/stories/playground/*.tsx',
   'static/**/*.stories.{js,ts,tsx}',
   'static/**/*.mdx',
+  'build-utils/mdx-plugins.ts',
 ];
 
 const config: KnipConfig = {
@@ -66,9 +63,6 @@ const config: KnipConfig = {
     // ignore eslint plugins in production
     '!static/eslint/**/*.ts!',
   ],
-  compilers: {
-    mdx: async text => String(await compile(text)),
-  },
   ignoreExportsUsedInFile: isProductionMode,
   ignoreDependencies: [
     'core-js',
@@ -91,6 +85,9 @@ const config: KnipConfig = {
     unlisted: 'off',
   },
   include: ['nsExports', 'nsTypes'],
+  mdx: {
+    config: 'tsconfig.mdx.json',
+  },
 };
 
 export default config;

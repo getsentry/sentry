@@ -8,12 +8,12 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import TextWidgetViewerModal from 'sentry/components/modals/textWidgetViewerModal';
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import type {DashboardPermissions, Widget} from 'sentry/views/dashboards/types';
-import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 
 jest.mock('sentry/utils/analytics');
 

@@ -1,4 +1,4 @@
-import InputField from 'sentry/components/deprecatedforms/inputField';
+import {InputField} from 'sentry/components/deprecatedforms/inputField';
 
 /**
  * @deprecated Do not use this

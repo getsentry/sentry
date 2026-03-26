@@ -4,7 +4,10 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/settings';
-import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {
+  WIDGET_COLUMN_LABELS,
+  TABLE_MIN_HEIGHT,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
@@ -41,11 +44,11 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          fields: [`avg(${SpanFields.SPAN_SELF_TIME})`],
-          aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
+          fields: [`avg(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
           columns: [],
           conditions: FILTER_QUERY.formatString(),
-          orderby: `avg(${SpanFields.SPAN_SELF_TIME})`,
+          orderby: `avg(${SpanFields.SPAN_DURATION})`,
         },
       ],
     },
@@ -66,26 +69,26 @@ const ASSETS_TABLE: Widget = {
       conditions: FILTER_QUERY.formatString(),
       aggregates: [
         'epm()',
-        `avg(${SpanFields.SPAN_SELF_TIME})`,
-        `sum(${SpanFields.SPAN_SELF_TIME})`,
+        `avg(${SpanFields.SPAN_DURATION})`,
+        `sum(${SpanFields.SPAN_DURATION})`,
         `avg(${SpanFields.HTTP_RESPONSE_CONTENT_LENGTH})`,
       ],
       columns: [SpanFields.NORMALIZED_DESCRIPTION],
       fields: [
         SpanFields.NORMALIZED_DESCRIPTION,
         'epm()',
-        `avg(${SpanFields.SPAN_SELF_TIME})`,
-        `sum(${SpanFields.SPAN_SELF_TIME})`,
+        `avg(${SpanFields.SPAN_DURATION})`,
+        `sum(${SpanFields.SPAN_DURATION})`,
         `avg(${SpanFields.HTTP_RESPONSE_CONTENT_LENGTH})`,
       ],
       fieldAliases: [
         t('Asset description'),
         t('Requests per Minute'),
-        t('Avg Duration'),
-        t('Time Spent'),
+        WIDGET_COLUMN_LABELS.avg,
+        WIDGET_COLUMN_LABELS.timeSpent,
         t('Avg Encoded Size'),
       ],
-      orderby: `-sum(${SpanFields.SPAN_SELF_TIME})`,
+      orderby: `-sum(${SpanFields.SPAN_DURATION})`,
       linkedDashboards: [
         {
           dashboardId: '-1',

@@ -1,10 +1,10 @@
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
-import type BaseChart from 'sentry/components/charts/baseChart';
+import type {BaseChart} from 'sentry/components/charts/baseChart';
 import type {DateString} from 'sentry/types/core';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 
 import type {PerformanceWidgetContainerTypes} from './components/performanceWidgetContainer';
 import type {ChartDefinition, PerformanceWidgetSetting} from './widgetDefinitions';
@@ -30,7 +30,6 @@ export enum GenericPerformanceWidgetDataType {
 }
 
 export type PerformanceWidgetProps = {
-  ContainerActions: React.ComponentType<{isLoading: boolean}> | null;
   chartDefinition: ChartDefinition;
   chartHeight: number;
 
@@ -40,7 +39,6 @@ export type PerformanceWidgetProps = {
 
   organization: Organization;
   title: string;
-  titleTooltip: string;
   InteractiveTitle?: React.ComponentType<{isLoading: boolean}> | null;
 
   chartColor?: string;
@@ -138,7 +136,6 @@ export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
 
   // Header;
   title: string;
-  titleTooltip: string;
   EmptyComponent?: React.ComponentType<{height?: number}>;
   HeaderActions?: HeaderActions<T>;
 

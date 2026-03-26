@@ -3,8 +3,8 @@ import {Fragment, useState} from 'react';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import Pagination from 'sentry/components/pagination';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {Pagination} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SimilarSpectrum} from 'sentry/components/similarSpectrum';
@@ -14,7 +14,7 @@ import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {SimilarStackTraceItem} from './item';
-import Toolbar from './toolbar';
+import {SimilarToolbar} from './toolbar';
 
 type DefaultProps = {
   filteredItems: SimilarItem[];
@@ -84,7 +84,7 @@ export function List({
         )}
       </Flex>
       <Panel>
-        <Toolbar
+        <SimilarToolbar
           onMerge={onMerge}
           groupId={groupId}
           project={project}

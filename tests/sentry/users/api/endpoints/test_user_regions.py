@@ -1,17 +1,24 @@
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.region import override_regions
+from sentry.testutils.cell import override_cells
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Cell, Locality, RegionCategory
+from sentry.types.cell import Cell, Locality, RegionCategory
 
 us = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
 de = Cell("de", 2, "https://de.testserver", RegionCategory.MULTI_TENANT)
 st = Cell("acme", 3, "https://acme.testserver", RegionCategory.SINGLE_TENANT)
 region_config = (us, de, st)
 
-us_locality = Locality(name="us", cells=frozenset(["us"]), category=RegionCategory.MULTI_TENANT)
-de_locality = Locality(name="de", cells=frozenset(["de"]), category=RegionCategory.MULTI_TENANT)
+us_locality = Locality(
+    name="us", cells=frozenset(["us"]), category=RegionCategory.MULTI_TENANT, new_org_cell="us"
+)
+de_locality = Locality(
+    name="de", cells=frozenset(["de"]), category=RegionCategory.MULTI_TENANT, new_org_cell="de"
+)
 st_locality = Locality(
-    name="acme", cells=frozenset(["acme"]), category=RegionCategory.SINGLE_TENANT
+    name="acme",
+    cells=frozenset(["acme"]),
+    category=RegionCategory.SINGLE_TENANT,
+    new_org_cell="acme",
 )
 
 
@@ -23,7 +30,7 @@ class UserUserRolesTest(APITestCase):
         super().setUp()
         self.user = self.create_user()
 
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_get(self) -> None:
         self.login_as(user=self.user)
         self.create_organization(region="us", owner=self.user)
@@ -39,7 +46,7 @@ class UserUserRolesTest(APITestCase):
             us_locality.api_serialize(),
         ]
 
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_get_only_memberships(self) -> None:
         self.login_as(user=self.user)
         other = self.create_user()
@@ -51,7 +58,7 @@ class UserUserRolesTest(APITestCase):
         assert "regions" in response.data
         assert response.data["regions"] == [de_locality.api_serialize()]
 
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_get_other_user_error(self) -> None:
         self.login_as(user=self.user)
         other = self.create_user()
@@ -60,7 +67,7 @@ class UserUserRolesTest(APITestCase):
         response = self.get_response(other.id)
         assert response.status_code == 403
 
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_allow_superuser_to_query_all(self) -> None:
         superuser = self.create_user(is_superuser=True)
         self.login_as(user=superuser, superuser=True)
@@ -85,7 +92,7 @@ class UserUserRolesTest(APITestCase):
         assert "regions" in response.data
         assert response.data["regions"] == []
 
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_get_for_user_with_auth_token(self) -> None:
         self.create_organization(region="us", owner=self.user)
         self.create_organization(region="de", owner=self.user)
@@ -99,7 +106,7 @@ class UserUserRolesTest(APITestCase):
             us_locality.api_serialize(),
         ]
 
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_get_other_user_with_auth_token_error(self) -> None:
         other_user = self.create_user()
         self.create_organization(region="us", owner=other_user)
@@ -112,7 +119,7 @@ class UserUserRolesTest(APITestCase):
             status_code=403,
         )
 
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_get_for_user_with_wrong_scopes_error(self) -> None:
         self.create_organization(region="us", owner=self.user)
         self.create_organization(region="de", owner=self.user)
@@ -124,7 +131,7 @@ class UserUserRolesTest(APITestCase):
             status_code=403,
         )
 
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_get_for_user_with_no_auth(self) -> None:
         self.create_organization(region="us", owner=self.user)
         self.create_organization(region="de", owner=self.user)

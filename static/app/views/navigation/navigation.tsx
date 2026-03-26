@@ -1,43 +1,72 @@
-import {Fragment, useMemo} from 'react';
-import {useTheme} from '@emotion/react';
+import {Fragment, type RefObject, useMemo, useRef} from 'react';
+import {mergeProps} from '@react-aria/utils';
 import {motion, type MotionProps} from 'framer-motion';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
+import {SizeProvider} from '@sentry/scraps/sizeContext';
 
+import {toggleCommandPalette} from 'sentry/actionCreators/modal';
+import {openHelpSearchModal} from 'sentry/actionCreators/modal';
+import Feature from 'sentry/components/acl/feature';
+import {
+  useCommandPaletteState,
+  useCommandPaletteDispatch,
+} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import Hook from 'sentry/components/hook';
-import {ConfigStore} from 'sentry/stores/configStore';
-import {HookStore} from 'sentry/stores/hookStore';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {IconSearch} from 'sentry/icons';
+import {
+  IconCompass,
+  IconDashboard,
+  IconGraph,
+  IconIssues,
+  IconSettings,
+  IconSiren,
+} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {
   NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
   PRIMARY_SIDEBAR_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
 } from 'sentry/views/navigation/constants';
 import {
+  NavigationTour,
+  NavigationTourElement,
+} from 'sentry/views/navigation/navigationTour';
+import {
   useNavigationTour,
   useNavigationTourModal,
 } from 'sentry/views/navigation/navigationTour';
-import {PrimaryNavigationItems} from 'sentry/views/navigation/primary/index';
+import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
+import {PrimaryNavigationHelpMenu} from 'sentry/views/navigation/primary/helpMenu';
+import {PrimaryNavigationOnboarding} from 'sentry/views/navigation/primary/onboarding';
 import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
-import {SecondarySidebar} from 'sentry/views/navigation/secondary/secondarySidebar';
+import {PrimaryNavigationServiceIncidents} from 'sentry/views/navigation/primary/serviceIncidents';
+import {useActivateNavigationGroupOnHover} from 'sentry/views/navigation/primary/useActivateNavigationGroupOnHover';
+import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
+import {PrimaryNavigationWhatsNew} from 'sentry/views/navigation/primary/whatsNew';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
+import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/content';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export function Navigation() {
-  const theme = useTheme();
-  const organization = useOrganization();
-
   const collapsedNavigation = useCollapsedNavigation();
+  const hasPageFrame = useHasPageFrameFeature();
   const {view} = useSecondaryNavigation();
 
-  useNavigationTourModal();
+  const ref = useRef<HTMLUListElement | null>(null);
 
-  const showSuperuserWarning =
-    isActiveSuperuser() &&
-    !ConfigStore.get('isSelfHosted') &&
-    !HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
+  const {layout} = usePrimaryNavigation();
+  const isMobilePageFrame = hasPageFrame && layout === 'mobile';
+
+  useNavigationTourModal();
 
   const {currentStepId} = useNavigationTour();
   const isCollapsed = currentStepId === null ? view !== 'expanded' : false;
@@ -58,41 +87,32 @@ export function Navigation() {
 
   return (
     <Fragment>
-      <Flex
-        as="nav"
-        aria-label="Primary Navigation"
-        width={`${PRIMARY_SIDEBAR_WIDTH}px`}
-        padding="lg 0 md 0"
-        borderRight="primary"
-        background="primary"
-        direction="column"
-        style={{zIndex: currentStepId === null ? theme.zIndex.sidebar : undefined}}
-      >
-        <Flex
-          as="header"
-          direction="column"
-          align="center"
-          justify="center"
-          position="relative"
-        >
+      <PrimaryNavigation.Sidebar>
+        <PrimaryNavigation.SidebarHeader>
           <OrganizationDropdown />
-          {showSuperuserWarning && (
-            <Container
-              position="absolute"
-              top={`-${theme.space.lg}`}
-              left={0}
-              width={`${PRIMARY_SIDEBAR_WIDTH}px`}
-              style={{
-                zIndex: theme.zIndex.initial,
-                background: theme.tokens.background.danger.vibrant,
-              }}
+        </PrimaryNavigation.SidebarHeader>
+        <PrimaryNavigation.List ref={ref}>
+          <PrimaryNavigationItems listRef={ref} />
+        </PrimaryNavigation.List>
+
+        {!isMobilePageFrame && layout === 'mobile' ? null : (
+          <SizeProvider size={hasPageFrame ? 'sm' : 'md'}>
+            <Stack
+              gap={layout === 'mobile' ? undefined : 'md'}
+              marginTop="auto"
+              paddingBottom="md"
             >
-              <Hook name="component:superuser-warning" organization={organization} />
-            </Container>
-          )}
-        </Flex>
-        <PrimaryNavigationItems />
-      </Flex>
+              <PrimaryNavigation.FooterItems>
+                <PrimaryNavigationFooterItems />
+              </PrimaryNavigation.FooterItems>
+              <PrimaryNavigation.FooterItems>
+                <PrimaryNavigationFooterItemsUserDropdown />
+              </PrimaryNavigation.FooterItems>
+            </Stack>
+          </SizeProvider>
+        )}
+      </PrimaryNavigation.Sidebar>
+
       {isCollapsed ? (
         <CollapsedSecondaryWrapper
           data-visible={collapsedNavigation.view === 'peek'}
@@ -104,13 +124,237 @@ export function Navigation() {
           background="primary"
           {...sidebarAnimationProps}
         >
-          <SecondarySidebar />
+          <SecondaryNavigation.Sidebar>
+            <SecondaryNavigationContent />
+          </SecondaryNavigation.Sidebar>
         </CollapsedSecondaryWrapper>
       ) : (
-        <SecondarySidebar />
+        <SecondaryNavigation.Sidebar>
+          <SecondaryNavigationContent />
+        </SecondaryNavigation.Sidebar>
       )}
     </Fragment>
   );
+}
+
+interface PrimaryNavigationItemsProps {
+  listRef?: RefObject<HTMLUListElement | null>;
+}
+
+export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
+  const organization = useOrganization();
+  const prefix = `organizations/${organization.slug}`;
+
+  const fallbackRef = useRef<HTMLUListElement>(null);
+  const hasPageFrame = useHasPageFrameFeature();
+
+  const makeNavigationItemProps = useActivateNavigationGroupOnHover({
+    ref: listRef ?? fallbackRef,
+  });
+
+  return (
+    <Fragment>
+      <NavigationTourElement id={NavigationTour.ISSUES} title={null} description={null}>
+        {tourProps => (
+          <PrimaryNavigation.ListItem>
+            <PrimaryNavigation.Link
+              to={`/${prefix}/issues/`}
+              analyticsKey="issues"
+              label={t('Issues')}
+              {...mergeProps(
+                makeNavigationItemProps('issues', `/${prefix}/issues/`),
+                tourProps
+              )}
+            >
+              <IconIssues />
+            </PrimaryNavigation.Link>
+          </PrimaryNavigation.ListItem>
+        )}
+      </NavigationTourElement>
+
+      <NavigationTourElement id={NavigationTour.EXPLORE} title={null} description={null}>
+        {tourProps => (
+          <PrimaryNavigation.ListItem>
+            <PrimaryNavigation.Link
+              to={`/${prefix}/explore/${getDefaultExploreRoute(organization)}/`}
+              analyticsKey="explore"
+              label={t('Explore')}
+              {...mergeProps(
+                makeNavigationItemProps(
+                  'explore',
+                  `/${prefix}/explore/${getDefaultExploreRoute(organization)}/`,
+                  `/${prefix}/explore`
+                ),
+                tourProps
+              )}
+            >
+              <IconCompass />
+            </PrimaryNavigation.Link>
+          </PrimaryNavigation.ListItem>
+        )}
+      </NavigationTourElement>
+
+      <Feature
+        features={['discover', 'discover-query', 'dashboards-basic', 'dashboards-edit']}
+        hookName="feature-disabled:dashboards-sidebar-item"
+        requireAll={false}
+      >
+        <NavigationTourElement
+          id={NavigationTour.DASHBOARDS}
+          title={null}
+          description={null}
+        >
+          {tourProps => (
+            <PrimaryNavigation.ListItem>
+              <PrimaryNavigation.Link
+                to={`/${prefix}/dashboards/`}
+                analyticsKey="dashboards"
+                label={t('Dashboards')}
+                {...mergeProps(
+                  makeNavigationItemProps(
+                    'dashboards',
+                    `/${prefix}/dashboards/`,
+                    `/${prefix}/dashboard`
+                  ),
+                  tourProps
+                )}
+              >
+                <IconDashboard />
+              </PrimaryNavigation.Link>
+            </PrimaryNavigation.ListItem>
+          )}
+        </NavigationTourElement>
+      </Feature>
+
+      <Feature features={['performance-view']}>
+        <NavigationTourElement
+          id={NavigationTour.INSIGHTS}
+          title={null}
+          description={null}
+        >
+          {tourProps => (
+            <PrimaryNavigation.ListItem>
+              <PrimaryNavigation.Link
+                to={`/${prefix}/insights/`}
+                analyticsKey="insights"
+                label={t('Insights')}
+                {...mergeProps(
+                  makeNavigationItemProps(
+                    'insights',
+                    `/${prefix}/insights/`,
+                    `/${prefix}/insights`
+                  ),
+                  tourProps
+                )}
+              >
+                <IconGraph type="area" />
+              </PrimaryNavigation.Link>
+            </PrimaryNavigation.ListItem>
+          )}
+        </NavigationTourElement>
+      </Feature>
+
+      {hasPageFrame ? null : (
+        <PrimaryNavigation.ListItem padding="0 md">
+          <PrimaryNavigation.Separator />
+        </PrimaryNavigation.ListItem>
+      )}
+
+      <Feature features={['workflow-engine-ui']}>
+        <PrimaryNavigation.ListItem>
+          <PrimaryNavigation.Link
+            to={`/${prefix}/monitors/`}
+            analyticsKey="monitors"
+            label={t('Monitors')}
+            {...makeNavigationItemProps('monitors', `/${prefix}/monitors/`)}
+          >
+            <IconSiren />
+            <PrimaryNavigation.ButtonFeatureBadge type="alpha" />
+          </PrimaryNavigation.Link>
+        </PrimaryNavigation.ListItem>
+      </Feature>
+
+      <NavigationTourElement id={NavigationTour.SETTINGS} title={null} description={null}>
+        {tourProps => (
+          <PrimaryNavigation.ListItem>
+            <PrimaryNavigation.Link
+              to={`/settings/${organization.slug}/`}
+              analyticsKey="settings"
+              label={t('Settings')}
+              {...mergeProps(
+                makeNavigationItemProps(
+                  'settings',
+                  `/settings/${organization.slug}/`,
+                  '/settings/'
+                ),
+                tourProps
+              )}
+            >
+              <IconSettings />
+            </PrimaryNavigation.Link>
+          </PrimaryNavigation.ListItem>
+        )}
+      </NavigationTourElement>
+    </Fragment>
+  );
+}
+
+/**
+ * Returns the list of items from the footer of the primary navigation
+ */
+export function PrimaryNavigationFooterItems() {
+  const organization = useOrganization();
+  const hasPageFrame = useHasPageFrameFeature();
+
+  const state = useCommandPaletteState();
+  const dispatch = useCommandPaletteDispatch();
+
+  return (
+    <Fragment>
+      {hasPageFrame ? (
+        <PrimaryNavigation.Button
+          label={t('Search support, docs and more')}
+          analyticsKey="search"
+          buttonProps={{
+            icon: <IconSearch />,
+            onClick: () => {
+              if (organization.features.includes('cmd-k-supercharged')) {
+                toggleCommandPalette({}, organization, state, dispatch, 'button');
+              } else {
+                openHelpSearchModal({organization});
+              }
+            },
+          }}
+        />
+      ) : null}
+      <ErrorBoundary customComponent={null}>
+        <PrimaryNavigationOnboarding />
+      </ErrorBoundary>
+      <ErrorBoundary customComponent={null}>
+        <Hook name="sidebar:try-business" organization={organization} />
+      </ErrorBoundary>
+      <ErrorBoundary customComponent={null}>
+        <Hook name="sidebar:seer-config-reminder" organization={organization} />
+      </ErrorBoundary>
+      <ErrorBoundary customComponent={null}>
+        <Hook name="sidebar:billing-status" organization={organization} />
+      </ErrorBoundary>
+      <ErrorBoundary customComponent={null}>
+        <PrimaryNavigationServiceIncidents />
+      </ErrorBoundary>
+      <ErrorBoundary customComponent={null}>
+        <PrimaryNavigationWhatsNew />
+      </ErrorBoundary>
+      <PrimaryNavigationHelpMenu />
+    </Fragment>
+  );
+}
+
+/**
+ * Returns the user dropdown from the footer of the primary navigation
+ */
+export function PrimaryNavigationFooterItemsUserDropdown() {
+  return <UserDropdown />;
 }
 
 const CollapsedSecondaryWrapper = motion.create(Flex);

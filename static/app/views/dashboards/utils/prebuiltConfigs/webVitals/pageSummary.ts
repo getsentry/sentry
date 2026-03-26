@@ -210,7 +210,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
     },
     {
       id: 'ttfb-p75-meter',
-      title: t('P75 Time To First Byte'),
+      title: t('P75 Time to First Byte'),
       description: t(
         'Time until first byte is delivered to the client. Bad TTFB makes the server feel unresponsive.'
       ),
@@ -274,12 +274,13 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
       displayType: DisplayType.TABLE,
       widgetType: WidgetType.SPANS,
       interval: '5m',
-      tableWidths: [-1, 200, -1, -1, -1, -1, -1],
+      tableWidths: [-1, -1, 200, -1, -1, -1, -1, -1],
       queries: [
         {
           name: '',
           conditions: `has:measurements.lcp`,
           fields: [
+            'project',
             'trace',
             'lcp.element',
             'measurements.lcp',
@@ -290,6 +291,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           ],
           aggregates: [],
           columns: [
+            'project',
             'trace',
             'lcp.element',
             'measurements.lcp',
@@ -320,6 +322,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           name: '',
           conditions: `has:measurements.inp`,
           fields: [
+            'project',
             'trace',
             'measurements.inp',
             'profile.id',
@@ -329,6 +332,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           ],
           aggregates: [],
           columns: [
+            'project',
             'trace',
             'measurements.inp',
             'profile.id',
@@ -358,6 +362,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           name: '',
           conditions: `has:measurements.cls`,
           fields: [
+            'project',
             'trace',
             'measurements.cls',
             'profile.id',
@@ -367,6 +372,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           ],
           aggregates: [],
           columns: [
+            'project',
             'trace',
             'measurements.cls',
             'profile.id',

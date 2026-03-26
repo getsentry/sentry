@@ -4,7 +4,7 @@ import {Alert} from '@sentry/scraps/alert';
 
 import {updateDashboardVisit} from 'sentry/actionCreators/dashboards';
 import Feature from 'sentry/components/acl/feature';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {NotFound} from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -16,7 +16,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {DashboardState, type DashboardDetails} from 'sentry/views/dashboards/types';
 
-import DashboardDetail from './detail';
+import {DashboardDetailWithInjectedProps as DashboardDetail} from './detail';
 import {OrgDashboards} from './orgDashboards';
 
 export default function ViewEditDashboard() {

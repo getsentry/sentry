@@ -5,8 +5,10 @@ from typing import NamedTuple
 
 import orjson
 from django.db import IntegrityError
+from django.utils import timezone
 from objectstore_client.client import RequestError
 from pydantic import ValidationError
+from taskbroker_client.retry import Retry
 
 from sentry.objectstore import get_preprod_session
 from sentry.preprod.models import PreprodArtifact
@@ -24,7 +26,7 @@ from sentry.preprod.vcs.status_checks.snapshots.tasks import (
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
-from sentry.taskworker.retry import Retry
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -51,8 +53,9 @@ class _ImageDiffResult(NamedTuple):
 def categorize_image_diff(
     head_manifest: SnapshotManifest, base_manifest: SnapshotManifest
 ) -> _ImageDiffResult:
-    head_by_name = {meta.image_file_name: h for h, meta in head_manifest.images.items()}
-    base_by_name = {meta.image_file_name: h for h, meta in base_manifest.images.items()}
+    # TODO(EME-977): Remove backwards fallback for hash-keyed manifests once near EA/GA
+    head_by_name = {key: (meta.content_hash or key) for key, meta in head_manifest.images.items()}
+    base_by_name = {key: (meta.content_hash or key) for key, meta in base_manifest.images.items()}
 
     matched = head_by_name.keys() & base_by_name.keys()
     added = head_by_name.keys() - base_by_name.keys()
@@ -121,6 +124,7 @@ def compare_snapshots(
     head_artifact_id: int,
     base_artifact_id: int,
 ) -> None:
+    task_start_time = timezone.now()
     logger.info(
         "Snapshot comparison kicked off for artifacts",
         extra={
@@ -254,6 +258,10 @@ def compare_snapshots(
         head_images = head_manifest.images
         base_images = base_manifest.images
 
+        # TODO(EME-977): Remove backwards fallback for hash-keyed manifests once near EA/GA
+        head_meta_by_hash = {(m.content_hash or k): m for k, m in head_images.items()}
+        base_meta_by_hash = {(m.content_hash or k): m for k, m in base_images.items()}
+
         categories = categorize_image_diff(head_manifest, base_manifest)
         renamed_pairs = categories.renamed_pairs
         added = categories.added
@@ -284,8 +292,8 @@ def compare_snapshots(
                 }
                 continue
 
-            head_meta = head_images[head_hash]
-            base_meta = base_images[base_hash]
+            head_meta = head_meta_by_hash[head_hash]
+            base_meta = base_meta_by_hash[base_hash]
             head_pixels = head_meta.width * head_meta.height
             base_pixels = base_meta.width * base_meta.height
             pixel_count = max(head_pixels, base_pixels)
@@ -324,6 +332,9 @@ def compare_snapshots(
                 "error_count": error_count,
             },
         )
+
+        total_fetched_bytes = 0
+        total_fetched_count = 0
 
         batches = _create_pixel_batches(eligible, MAX_PIXELS_PER_BATCH)
 
@@ -368,6 +379,8 @@ def compare_snapshots(
                             "reason": "image_fetch_failed",
                         }
                         continue
+                    total_fetched_bytes += len(head_data) + len(base_data)
+                    total_fetched_count += 2
                     diff_pairs.append((base_data, head_data))
                     batch_names.append(candidate.name)
                     batch_hashes.append((candidate.head_hash, candidate.base_hash))
@@ -442,7 +455,7 @@ def compare_snapshots(
 
         for name in sorted(removed):
             base_hash = base_by_name[name]
-            base_meta = base_images[base_hash]
+            base_meta = base_meta_by_hash[base_hash]
             image_results[name] = {
                 "status": "removed",
                 "base_hash": base_hash,
@@ -506,6 +519,47 @@ def compare_snapshots(
                 "date_updated",
             ]
         )
+
+        time_now = timezone.now()
+
+        metric_tags = {
+            "org_id_temp": str(org_id),
+            "project_id_temp": str(project_id),
+            "app_id_temp": head_artifact.app_id or "",
+        }
+
+        diff_duration_s = (time_now - task_start_time).total_seconds()
+        metrics.distribution(
+            "preprod.snapshots.diff.duration_s",
+            diff_duration_s,
+            sample_rate=1.0,
+            tags=metric_tags,
+        )
+
+        e2e_duration_s = (time_now - head_artifact.date_added).total_seconds()
+        metrics.distribution(
+            "preprod.snapshots.e2e_duration_s",
+            e2e_duration_s,
+            sample_rate=1.0,
+            tags=metric_tags,
+        )
+
+        if total_fetched_count > 0:
+            metrics.distribution(
+                "preprod.snapshots.image.avg_size_bytes",
+                total_fetched_bytes / total_fetched_count,
+                sample_rate=1.0,
+                tags=metric_tags,
+            )
+
+        if (
+            changed_count == 0
+            and not added
+            and not removed
+            and not renamed_pairs
+            and not error_count
+        ):
+            metrics.incr("preprod.snapshots.diff.zero_changes", sample_rate=1.0, tags=metric_tags)
 
         create_preprod_snapshot_status_check_task.apply_async(
             kwargs={

@@ -10,9 +10,9 @@ import type {Client} from 'sentry/api';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import Placeholder from 'sentry/components/placeholder';
-import TimeSince from 'sentry/components/timeSince';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {Placeholder} from 'sentry/components/placeholder';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -90,19 +90,13 @@ function DashboardGrid({
   }
 
   function renderDropdownMenu(dashboard: DashboardListItem, dashboardLimitData: any) {
-    const shouldDisablePrebuiltControls =
-      defined(dashboard.prebuiltId) &&
-      !organization.features.includes('dashboards-prebuilt-controls');
     const {
       hasReachedDashboardLimit,
       isLoading: isLoadingDashboardsLimit,
       limitMessage,
     } = dashboardLimitData;
 
-    const disableDuplicate =
-      hasReachedDashboardLimit ||
-      isLoadingDashboardsLimit ||
-      shouldDisablePrebuiltControls;
+    const disableDuplicate = hasReachedDashboardLimit || isLoadingDashboardsLimit;
 
     const disableDelete = defined(dashboard.prebuiltId);
 
@@ -118,9 +112,7 @@ function DashboardGrid({
           });
         },
         disabled: disableDuplicate,
-        tooltip: shouldDisablePrebuiltControls
-          ? t('Prebuilt dashboards cannot be duplicated')
-          : limitMessage,
+        tooltip: limitMessage,
         tooltipOptions: {
           isHoverable: true,
         },
@@ -137,9 +129,6 @@ function DashboardGrid({
           });
         },
         disabled: disableDelete,
-        tooltip: shouldDisablePrebuiltControls
-          ? t('Prebuilt dashboards cannot be deleted')
-          : undefined,
       },
     ];
 

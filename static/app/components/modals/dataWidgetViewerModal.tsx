@@ -19,7 +19,7 @@ import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
-import Pagination from 'sentry/components/pagination';
+import {Pagination} from 'sentry/components/pagination';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {t, tct} from 'sentry/locale';
@@ -28,11 +28,10 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
-import {trackAnalytics} from 'sentry/utils/analytics';
+import {CAN_MARK, trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type EventView from 'sentry/utils/discover/eventView';
-import type {MetaType} from 'sentry/utils/discover/eventView';
+import type {EventView, MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
@@ -47,7 +46,7 @@ import {
   createOnDemandFilterWarning,
   shouldDisplayOnDemandWidgetWarning,
 } from 'sentry/utils/onDemandMetrics';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
@@ -90,6 +89,7 @@ import {
   getWidgetTableRowExploreUrlFunction,
 } from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
+import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
 import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
@@ -100,10 +100,11 @@ import {
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {IssueWidgetQueries} from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
-import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
+import {ReleaseWidgetQueries} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
+import {VisualizationWidget} from 'sentry/views/dashboards/widgetCard/visualizationWidget';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import {WidgetQueries} from 'sentry/views/dashboards/widgetCard/widgetQueries';
-import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {AgentsTracesTableWidgetVisualization} from 'sentry/views/dashboards/widgets/agentsTracesTableWidget/agentsTracesTableWidgetVisualization';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/dashboards/widgets/common/settings';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
@@ -202,6 +203,29 @@ function DataWidgetViewerModal(props: Props) {
   const location = useLocation();
   const {projects} = useProjects();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!CAN_MARK) {
+      return;
+    }
+    try {
+      const measure = performance.measure(
+        'dashboard.widget.onFullScreenView',
+        'dashboard.widget.fullScreenViewClick'
+      );
+      Sentry.metrics.distribution(
+        'dashboards.widget.onFullScreenView',
+        measure.duration,
+        {
+          unit: 'millisecond',
+        }
+      );
+      performance.clearMarks('dashboard.widget.fullScreenViewClick');
+      performance.clearMeasures('dashboard.widget.onFullScreenView');
+    } catch {
+      // performance.measure throws if the start mark doesn't exist (e.g. direct URL navigation)
+    }
+  }, []);
   // Get widget zoom from location
   // We use the start and end query params for just the initial state
   const start = decodeScalar(location.query[WidgetViewerQueryField.START]);
@@ -622,27 +646,44 @@ function DataWidgetViewerModal(props: Props) {
                 : HALF_CONTAINER_HEIGHT
             }
           >
-            <MemoizedWidgetCardChartContainer
-              api={api}
-              selection={modalSelection}
-              dashboardFilters={dashboardFilters}
-              // Top N charts rely on the orderby of the table
-              widget={primaryWidget}
-              tableItemLimit={widget.limit}
-              onZoom={onZoom}
-              onLegendSelectChanged={onLegendSelectChanged}
-              legendOptions={{
-                selected: widgetLegendState.getWidgetSelectionState(widget),
-              }}
-              noPadding
-              widgetLegendState={widgetLegendState}
-              showConfidenceWarning={
-                widget.widgetType === WidgetType.SPANS ||
-                widget.widgetType === WidgetType.TRACEMETRICS ||
-                widget.widgetType === WidgetType.LOGS
-              }
-              widgetInterval={widgetInterval}
-            />
+            {widgetCanUseTimeSeriesVisualization(primaryWidget) ? (
+              <VisualizationWidget
+                selection={modalSelection}
+                dashboardFilters={dashboardFilters}
+                widget={primaryWidget}
+                tableItemLimit={widget.limit}
+                onZoom={onZoom}
+                isFullScreen
+                showConfidenceWarning={
+                  widget.widgetType === WidgetType.SPANS ||
+                  widget.widgetType === WidgetType.TRACEMETRICS ||
+                  widget.widgetType === WidgetType.LOGS
+                }
+                widgetInterval={widgetInterval}
+              />
+            ) : (
+              <MemoizedWidgetCardChartContainer
+                api={api}
+                selection={modalSelection}
+                dashboardFilters={dashboardFilters}
+                // Top N charts rely on the orderby of the table
+                widget={primaryWidget}
+                tableItemLimit={widget.limit}
+                onZoom={onZoom}
+                onLegendSelectChanged={onLegendSelectChanged}
+                legendOptions={{
+                  selected: widgetLegendState.getWidgetSelectionState(widget),
+                }}
+                noPadding
+                widgetLegendState={widgetLegendState}
+                showConfidenceWarning={
+                  widget.widgetType === WidgetType.SPANS ||
+                  widget.widgetType === WidgetType.TRACEMETRICS ||
+                  widget.widgetType === WidgetType.LOGS
+                }
+                widgetInterval={widgetInterval}
+              />
+            )}
           </Container>
         )}
         {widget.queries.length > 1 && (

@@ -12,7 +12,7 @@ const FIRST_ROW_WIDGTS = spaceWidgetsEquallyOnRow(
   [
     {
       id: 'avg-time-in-queue-widget',
-      title: t('Avg Time in Queue'),
+      title: t('Average Time in Queue'),
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.SPANS,
       interval: '5m',
@@ -29,7 +29,7 @@ const FIRST_ROW_WIDGTS = spaceWidgetsEquallyOnRow(
     },
     {
       id: 'avg-processing-time-widget',
-      title: t('Avg Processing Time'),
+      title: t('Average Processing Time'),
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.SPANS,
       interval: '5m',
@@ -65,7 +65,6 @@ const FIRST_ROW_WIDGTS = spaceWidgetsEquallyOnRow(
           ],
           columns: [],
           conditions: SPAN_OP_FILTER,
-          fieldMeta: [{valueType: 'percentage', valueUnit: null}],
           orderby: `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
         },
       ],
@@ -150,7 +149,6 @@ const PRODUCER_TABLE: Widget = {
       ],
       columns: [SpanFields.TRANSACTION],
       fieldAliases: [t('Transaction'), t('Error rate'), t('Published'), t('Time spent')],
-      fieldMeta: [null, {valueType: 'percentage', valueUnit: null}, null, null],
       conditions: `${SpanFields.SPAN_OP}:queue.publish`,
       orderby: `-sum(${SpanFields.SPAN_DURATION})`,
     },
@@ -196,14 +194,6 @@ const CONSUMER_TABLE: Widget = {
         t('Error rate'),
         t('Processed'),
         t('Time spent'),
-      ],
-      fieldMeta: [
-        null,
-        null,
-        null,
-        {valueType: 'percentage', valueUnit: null},
-        null,
-        null,
       ],
       conditions: `${SpanFields.SPAN_OP}:queue.process`,
       orderby: `-sum(${SpanFields.SPAN_DURATION})`,

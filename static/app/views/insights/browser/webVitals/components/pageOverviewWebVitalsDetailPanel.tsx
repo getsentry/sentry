@@ -10,7 +10,7 @@ import type {
   GridColumnOrder,
   GridColumnSortBy,
 } from 'sentry/components/tables/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
@@ -37,7 +37,7 @@ import type {
   TransactionSampleRowWithScore,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
-import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {decode as decodeBrowserTypes} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useProfileExists} from 'sentry/views/insights/browser/webVitals/utils/useProfileExists';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
@@ -92,10 +92,6 @@ export function PageOverviewWebVitalsDetailPanel({
   const browserTypes = decodeBrowserTypes(location.query[SpanFields.BROWSER_NAME]);
   const subregions = location.query[SpanFields.USER_GEO_SUBREGION] as SubregionCode[];
   const isSpansWebVital = defined(webVital) && ['inp', 'cls', 'lcp'].includes(webVital);
-  const isInp = webVital === 'inp';
-  const useSpansWebVitals = organization.features.includes(
-    'performance-vitals-standalone-cls-lcp'
-  );
 
   const replayLinkGenerator = generateReplayLink(routes);
 
@@ -346,33 +342,18 @@ export function PageOverviewWebVitalsDetailPanel({
           )}
         </ChartContainer>
         <TableContainer>
-          {isInp ? (
-            <GridEditable
-              data={spansTableData}
-              isLoading={isSpansLoading}
-              columnOrder={SPANS_SAMPLES_COLUMN_ORDER}
-              columnSortBy={[sort]}
-              grid={{
-                renderHeadCell,
-                renderBodyCell: renderSpansBodyCell,
-              }}
-            />
-          ) : (
-            <GridEditable
-              data={spansTableData}
-              isLoading={isSpansLoading}
-              columnOrder={
-                isSpansWebVital && useSpansWebVitals
-                  ? SPANS_SAMPLES_COLUMN_ORDER
-                  : PAGELOADS_COLUMN_ORDER
-              }
-              columnSortBy={[sort]}
-              grid={{
-                renderHeadCell,
-                renderBodyCell: renderSpansBodyCell,
-              }}
-            />
-          )}
+          <GridEditable
+            data={spansTableData}
+            isLoading={isSpansLoading}
+            columnOrder={
+              isSpansWebVital ? SPANS_SAMPLES_COLUMN_ORDER : PAGELOADS_COLUMN_ORDER
+            }
+            columnSortBy={[sort]}
+            grid={{
+              renderHeadCell,
+              renderBodyCell: renderSpansBodyCell,
+            }}
+          />
         </TableContainer>
         <PageAlert />
       </SampleDrawerBody>

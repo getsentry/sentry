@@ -6,6 +6,7 @@ import type {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import type {
   Artifact,
+  ExplorerCodingAgentState,
   ExplorerFilePatch,
   RepoPRState,
 } from 'sentry/views/seerExplorer/types';
@@ -66,7 +67,10 @@ function makeSolutionArtifact(
     data: {
       one_line_summary: 'Add null check before accessing property',
       steps: [
-        {title: 'Add guard clause', description: 'Check for null before accessing .name'},
+        {
+          title: 'Add guard clause',
+          description: 'Check for null before accessing .name',
+        },
         {title: 'Add test', description: 'Cover the null input case'},
       ],
     },
@@ -143,7 +147,7 @@ describe('artifactToMarkdown', () => {
     it('renders full solution with steps', () => {
       expect(artifactToMarkdown(makeSolutionArtifact())).toBe(
         [
-          '# Implementation Plan',
+          '# Plan',
           '',
           'Add null check before accessing property',
           '',
@@ -168,9 +172,7 @@ describe('artifactToMarkdown', () => {
           steps: [],
         },
       });
-      expect(artifactToMarkdown(artifact)).toBe(
-        ['# Implementation Plan', '', 'Quick fix'].join('\n')
-      );
+      expect(artifactToMarkdown(artifact)).toBe(['# Plan', '', 'Quick fix'].join('\n'));
     });
   });
 
@@ -238,6 +240,93 @@ describe('artifactToMarkdown', () => {
     it('returns null for empty array', () => {
       const prs: RepoPRState[] = [];
       expect(artifactToMarkdown(prs)).toBeNull();
+    });
+  });
+
+  describe('ExplorerCodingAgentState[]', () => {
+    function makeCodingAgent(
+      overrides?: Partial<ExplorerCodingAgentState>
+    ): ExplorerCodingAgentState {
+      return {
+        id: 'agent-1',
+        name: 'Fix null pointer',
+        provider: 'cursor_background_agent',
+        started_at: '2026-01-01T00:00:00Z',
+        status: 'running',
+        agent_url: 'https://cursor.com/agent/1',
+        ...overrides,
+      };
+    }
+
+    it('renders coding agents with name and link', () => {
+      const agents = [makeCodingAgent()];
+      expect(artifactToMarkdown(agents)).toBe(
+        [
+          '# Coding Agents',
+          '',
+          '## Cursor Cloud Agent',
+          '',
+          '[Fix null pointer](https://cursor.com/agent/1)',
+        ].join('\n')
+      );
+    });
+
+    it('renders multiple agents', () => {
+      const agents = [
+        makeCodingAgent(),
+        makeCodingAgent({
+          id: 'agent-2',
+          name: 'Implement feature',
+          provider: 'claude_code_agent',
+          agent_url: 'https://claude.ai/agent/2',
+        }),
+      ];
+      expect(artifactToMarkdown(agents)).toBe(
+        [
+          '# Coding Agents',
+          '',
+          '## Cursor Cloud Agent',
+          '',
+          '[Fix null pointer](https://cursor.com/agent/1)',
+          '## Claude Agent',
+          '',
+          '[Implement feature](https://claude.ai/agent/2)',
+        ].join('\n')
+      );
+    });
+
+    it('filters out agents missing agent_url', () => {
+      const agents = [
+        makeCodingAgent({agent_url: undefined}),
+        makeCodingAgent({id: 'agent-2', name: 'Valid agent'}),
+      ];
+      expect(artifactToMarkdown(agents)).toBe(
+        [
+          '# Coding Agents',
+          '',
+          '## Cursor Cloud Agent',
+          '',
+          '[Valid agent](https://cursor.com/agent/1)',
+        ].join('\n')
+      );
+    });
+
+    it('returns null for empty array', () => {
+      const agents: ExplorerCodingAgentState[] = [];
+      expect(artifactToMarkdown(agents)).toBeNull();
+    });
+
+    it('uses fallback name for unknown provider', () => {
+      const agents = [makeCodingAgent({provider: 'unknown_provider'})];
+      expect(artifactToMarkdown(agents)).toBe(
+        [
+          '# Coding Agents',
+          '',
+          '## Coding Agent',
+          '',
+          '[Fix null pointer](https://cursor.com/agent/1)',
+        ].join('\n')
+      );
     });
   });
 

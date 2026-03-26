@@ -8,6 +8,7 @@ from sentry.incidents.endpoints.serializers.workflow_engine_incident import (
 )
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod, IncidentType
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
+from sentry.snuba.models import SnubaQueryEventType
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import (
     ActionAlertRuleTriggerAction,
@@ -25,6 +26,11 @@ class TestIncidentSerializer(TestWorkflowEngineSerializer):
         self.add_warning_trigger()
         self.add_incident_data()
         self.incident_identifier = str(self.incident_group_open_period.incident_identifier)
+        self.expected["eventTypes"] = sorted(
+            SnubaQueryEventType.EventType(et.type).name.lower()
+            for et in SnubaQueryEventType.objects.filter(snuba_query=self.alert_rule.snuba_query)
+        )
+        self.expected["snooze"] = False
         self.incident_expected = {
             "id": str(self.incident_group_open_period.incident_id),
             "identifier": self.incident_identifier,

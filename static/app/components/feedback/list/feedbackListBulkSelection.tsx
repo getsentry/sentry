@@ -2,7 +2,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {useBulkEditFeedbacks} from 'sentry/components/feedback/list/useBulkEditFeedbacks';
 import type {Mailbox} from 'sentry/components/feedback/useMailbox';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';

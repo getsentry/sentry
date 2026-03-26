@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import EventView from 'sentry/utils/discover/eventView';
-import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
+import {EventView} from 'sentry/utils/discover/eventView';
+import {HistogramQuery} from 'sentry/utils/performance/histogram/histogramQuery';
 
 function renderHistogram({isLoading, error, histograms}: any) {
   if (isLoading) {

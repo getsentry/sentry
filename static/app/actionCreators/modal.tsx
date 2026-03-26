@@ -1,15 +1,17 @@
+import type {
+  CommandPaletteState,
+  CommandPaletteDispatch,
+} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import type {ModalTypes} from 'sentry/components/globalModal';
 import type {CreateReleaseIntegrationModalOptions} from 'sentry/components/modals/createReleaseIntegrationModal';
 import type {DashboardWidgetQuerySelectorModalOptions} from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
 import type {DataWidgetViewerModalOptions} from 'sentry/components/modals/dataWidgetViewerModal';
 import type {SaveQueryModalProps} from 'sentry/components/modals/explore/saveQueryModal';
-import type {GenerateDashboardFromSeerModalProps} from 'sentry/components/modals/generateDashboardFromSeerModal';
 import type {ImportDashboardFromFileModalProps} from 'sentry/components/modals/importDashboardFromFileModal';
 import type {InsightChartModalOptions} from 'sentry/components/modals/insightChartModal';
 import type {InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
 import type {PrivateGamingSdkAccessModalProps} from 'sentry/components/modals/privateGamingSdkAccessModal';
 import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
-import type {TokenRegenerationConfirmationModalProps} from 'sentry/components/modals/tokenRegenerationConfirmationModal';
 import type {AddToDashboardModalProps} from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
 import type {LinkToDashboardModalProps} from 'sentry/components/modals/widgetBuilder/linkToDashboardModal';
 import type {ConsoleModalProps} from 'sentry/components/onboarding/consoleModal';
@@ -20,6 +22,7 @@ import type {Event} from 'sentry/types/event';
 import type {IssueOwnership} from 'sentry/types/group';
 import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Theme} from 'sentry/utils/theme';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import type {AttributeBreakdownViewerModalOptions} from 'sentry/views/explore/components/attributeBreakdowns/attributeBreakdownViewerModal';
@@ -150,13 +153,32 @@ export async function openCommandPaletteDeprecated(options: ModalOptions = {}) {
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
-export async function openCommandPalette(options: ModalOptions = {}) {
+export async function toggleCommandPalette(
+  options: ModalOptions = {},
+  organization: Organization,
+  state: CommandPaletteState,
+  dispatch: CommandPaletteDispatch,
+  source: 'button' | 'keyboard'
+) {
   const {default: Modal, modalCss} =
     await import('sentry/components/commandPalette/ui/modal');
 
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
-}
+  function closeCommandPaletteModal() {
+    dispatch({type: 'toggle modal'});
+  }
 
+  if (state.open) {
+    closeCommandPaletteModal();
+    closeModal();
+  } else {
+    trackAnalytics('command_palette.opened', {organization, source});
+    dispatch({type: 'toggle modal'});
+    openModal(deps => <Modal {...deps} {...options} />, {
+      modalCss,
+      onClose: closeCommandPaletteModal,
+    });
+  }
+}
 type RecoveryModalOptions = {
   authenticatorName: string;
 };
@@ -272,17 +294,6 @@ export async function openImportDashboardFromFileModal(
   openModal(deps => <Modal {...deps} {...options} />, {
     closeEvents: 'escape-key',
     modalCss,
-  });
-}
-
-export async function openGenerateDashboardFromSeerModal(
-  options: GenerateDashboardFromSeerModalProps
-) {
-  const {default: Modal} =
-    await import('sentry/components/modals/generateDashboardFromSeerModal');
-
-  openModal(deps => <Modal {...deps} {...options} />, {
-    closeEvents: 'escape-key',
   });
 }
 
@@ -441,15 +452,6 @@ export async function openAddTempestCredentialsModal(options: {
 export async function openSaveQueryModal(options: SaveQueryModalProps) {
   const {default: Modal} =
     await import('sentry/components/modals/explore/saveQueryModal');
-
-  openModal(deps => <Modal {...deps} {...options} />);
-}
-
-export async function openTokenRegenerationConfirmationModal(
-  options: TokenRegenerationConfirmationModalProps
-) {
-  const {default: Modal} =
-    await import('sentry/components/modals/tokenRegenerationConfirmationModal');
 
   openModal(deps => <Modal {...deps} {...options} />);
 }

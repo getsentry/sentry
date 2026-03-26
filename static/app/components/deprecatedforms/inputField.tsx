@@ -1,6 +1,7 @@
 import {Input} from '@sentry/scraps/input';
 
-import FormField, {
+import {
+  FormField,
   type FormFieldProps,
 } from 'sentry/components/deprecatedforms/formField';
 
@@ -21,7 +22,7 @@ type InputFieldProps = FormFieldProps & {
 /**
  * @deprecated Do not use this
  */
-abstract class InputField<
+export abstract class InputField<
   Props extends InputFieldProps = InputFieldProps,
   State extends FormField['state'] = FormField['state'],
 > extends FormField<Props, State> {
@@ -55,5 +56,3 @@ abstract class InputField<
 
   abstract getType(): string;
 }
-
-export default InputField;

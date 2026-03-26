@@ -265,7 +265,13 @@ class Parameterizer:
         # pattern will fall back to the standard pattern.)
         use_experimental_regexes: bool = False,
     ):
-        self._experimental = use_experimental_regexes
+        self._experimental = (
+            use_experimental_regexes
+            # Only mark the parameterizer as experimental if there are actually any experiments
+            # running. If there aren't, then both parameterizers use the default regex patterns, so
+            # the "experimental" parameterizer isn't actually experimental.
+            and EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP != DEFAULT_PARAMETERIZATION_REGEXES_MAP
+        )
         self._parameterization_regex = self._make_regex_from_patterns(
             regex_pattern_keys or DEFAULT_PARAMETERIZATION_REGEXES_MAP.keys()
         )
@@ -310,7 +316,11 @@ class Parameterizer:
                     return f"<{key}>"
             return ""
 
-        parameterized = self._parameterization_regex.sub(_handle_regex_match, input_str)
+        with metrics.timer(
+            "grouping.parameterize", tags={"experimental": self._experimental}
+        ) as metric_tags:
+            parameterized = self._parameterization_regex.sub(_handle_regex_match, input_str)
+            metric_tags["changed"] = parameterized != input_str
 
         for key, value in matches_counter.items():
             # Track the kinds of replacements being made

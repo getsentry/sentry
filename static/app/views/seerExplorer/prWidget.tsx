@@ -296,7 +296,13 @@ export function usePRWidgetData({
   };
 }
 
-function PRWidget({blocks, repoPRStates, onCreatePR, onToggleMenu, ref}: PRWidgetProps) {
+export function PRWidget({
+  blocks,
+  repoPRStates,
+  onCreatePR,
+  onToggleMenu,
+  ref,
+}: PRWidgetProps) {
   const {hasCodeChanges, totalAdded, totalRemoved, allInSync, anyCreating, hasPRs} =
     usePRWidgetData({
       blocks,
@@ -333,8 +339,6 @@ function PRWidget({blocks, repoPRStates, onCreatePR, onToggleMenu, ref}: PRWidge
     </Button>
   );
 }
-
-export default PRWidget;
 
 const PRLink = styled('a')`
   display: flex;

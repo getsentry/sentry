@@ -25,7 +25,7 @@ The goal is to stay out of your way when you need flexibility while giving you c
 The form system provides two modes:
 
 - **Submit-based forms** — Use `useScrapsForm` for traditional forms with a submit button. Best for creation flows, dialogs, and multi-field submissions.
-- **Auto-save fields** — Use `AutoSaveField` for settings pages where each field saves independently on blur or change. See [AutoSaveField](./autoSaveField.mdx).
+- **Auto-save forms** — Use `AutoSaveForm` for settings pages where each field saves independently on blur or change. See [AutoSaveForm](./autoSaveForm.mdx).
 
 For a reference of all available field components, see [Fields](./fields.mdx).
 
@@ -190,7 +190,7 @@ Label on the left (~50%), field on the right. Compact layout for settings pages.
 
 Both layouts support `variant="compact"`, which moves hint text into a tooltip on the label instead of displaying it inline. This saves vertical space.
 
-<Storybook.Demo>
+<Storybook.Demo maxHeight={undefined}>
   <CompactDemo />
 </Storybook.Demo>
 
@@ -355,6 +355,23 @@ function MyForm() {
 
 `SubmitButton` automatically disables while submission is pending and triggers form validation before submitting.
 
+## Resetting After Save
+
+When a form stays on the page after submission (e.g., settings pages), call `form.reset()` after a successful mutation. This is necessary because `defaultValues` are reactive — when the mutation updates the cache or store, `defaultValues` update too. But if the form is dirty, the updated defaults won't be reflected in the UI until you reset.
+
+```jsx
+onSubmit: ({value}) =>
+  mutation
+    .mutateAsync(value)
+    .then(() => form.reset())
+    .catch(() => {}),
+```
+
+After `form.reset()`, the form re-syncs with the (now-updated) `defaultValues`, becoming pristine again. This means any UI that depends on the form being dirty (like conditionally shown Save/Cancel buttons or unsaved-changes warnings) will update correctly.
+
+> [!NOTE]
+> `AutoSaveForm` handles this automatically — it calls `form.reset()` after every successful save. You only need to add this manually when using `useScrapsForm`.
+
 ## Nullable Default Values
 
 When a required field has no meaningful initial value (e.g., a select that starts empty), use `.nullable().refine()` in the schema. This creates a difference between the schema's input type (accepts `null`) and output type (does not). Type `defaultValues` with `z.input<typeof schema>` and call `schema.parse(value)` in `onSubmit` to narrow the type.
@@ -430,4 +447,4 @@ function MyForm() {
 ## See Also
 
 - [Fields Reference](./fields.mdx) — All available field components
-- [AutoSaveField](./autoSaveField.mdx) — Auto-save fields for settings pages
+- [AutoSaveForm](./autoSaveForm.mdx) — Auto-save form fields for settings pages

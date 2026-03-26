@@ -1,6 +1,6 @@
 import datetime
 import logging
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 
 import orjson
 import requests
@@ -29,12 +29,13 @@ from sentry.shared_integrations.exceptions import (
     ApiTimeoutError,
 )
 from sentry.silo.base import SiloMode
-from sentry.silo.client import RegionSiloClient, SiloClientError
+from sentry.silo.client import CellSiloClient, SiloClientError
 from sentry.silo.util import clean_proxy_headers
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import hybridcloud_control_tasks
-from sentry.types.region import Cell, get_cell_by_name
+from sentry.types.cell import Cell, get_cell_by_name
 from sentry.utils import metrics
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -434,12 +435,12 @@ def _get_github_delivery_time_tags(payload: WebhookPayload) -> dict[str, str]:
 def _record_delivery_time_metrics(payload: WebhookPayload) -> None:
     """Record delivery time metrics for a successfully delivered webhook payload."""
     duration = timezone.now() - payload.date_added
-    region_sent_to = (
+    cell_sent_to = (
         payload.cell_name
         if payload.destination_type == DestinationType.SENTRY_REGION
         else "codecov"
     )
-    tags = {"region_sent_to": region_sent_to} | _get_github_delivery_time_tags(payload)
+    tags = {"region_sent_to": cell_sent_to} | _get_github_delivery_time_tags(payload)
     metrics.distribution(
         "hybridcloud.deliver_webhooks.delivery_time_ms",
         # e.g. 0.123 seconds → 123 milliseconds
@@ -494,7 +495,7 @@ def _run_parallel_delivery_batch(
         id__gte=payload.id, mailbox_name=payload.mailbox_name
     ).order_by("id")
 
-    with ThreadPoolExecutor(max_workers=worker_threads) as threadpool:
+    with ContextPropagatingThreadPoolExecutor(max_workers=worker_threads) as threadpool:
         futures = {
             threadpool.submit(deliver_message_parallel, record) for record in query[:worker_threads]
         }
@@ -623,20 +624,20 @@ def perform_request(payload: WebhookPayload) -> None:
     match destination_type:
         case DestinationType.SENTRY_REGION:
             assert payload.cell_name is not None
-            region = get_cell_by_name(name=payload.cell_name)
-            perform_region_request(region, payload)
+            cell = get_cell_by_name(name=payload.cell_name)
+            perform_cell_request(cell, payload)
         case DestinationType.CODECOV:
             if options.get("codecov.forward-webhooks.disabled"):
                 return
             perform_codecov_request(payload)
 
 
-def perform_region_request(region: Cell, payload: WebhookPayload) -> None:
+def perform_cell_request(cell: Cell, payload: WebhookPayload) -> None:
     try:
-        client = RegionSiloClient(region=region)
+        client = CellSiloClient(cell=cell)
         with metrics.timer(
             "hybridcloud.deliver_webhooks.send_request",
-            tags={"destination_region": region.name},
+            tags={"destination_region": cell.name},
         ):
             headers = orjson.loads(payload.request_headers)
             response = client.request(
@@ -659,20 +660,20 @@ def perform_region_request(region: Cell, payload: WebhookPayload) -> None:
     except ApiHostError as err:
         metrics.incr(
             "hybridcloud.deliver_webhooks.failure",
-            tags={"reason": "host_error", "destination_region": region.name},
+            tags={"reason": "host_error", "destination_region": cell.name},
         )
         with sentry_sdk.isolation_scope() as scope:
             scope.set_context(
                 "region",
                 {
-                    "name": region.name,
-                    "address": region.address,
+                    "name": cell.name,
+                    "address": cell.address,
                 },
             )
             err_cause = err.__cause__
             if err_cause is not None and isinstance(err_cause, RestrictedIPAddress):
-                # Region silos that are IP address restricted are actionable.
-                silo_client_err = SiloClientError("Region silo is IP address restricted")
+                # Cell silos that are IP address restricted are actionable.
+                silo_client_err = SiloClientError("Cell silo is IP address restricted")
                 silo_client_err.__cause__ = err
                 sentry_sdk.capture_exception(silo_client_err)
                 raise DeliveryFailed()
@@ -685,7 +686,7 @@ def perform_region_request(region: Cell, payload: WebhookPayload) -> None:
     except ApiConflictError as err:
         metrics.incr(
             "hybridcloud.deliver_webhooks.failure",
-            tags={"reason": "conflict", "destination_region": region.name},
+            tags={"reason": "conflict", "destination_region": cell.name},
         )
         logger.warning(
             "deliver_webhooks.conflict_occurred",
@@ -695,7 +696,7 @@ def perform_region_request(region: Cell, payload: WebhookPayload) -> None:
     except (ApiTimeoutError, ApiConnectionResetError) as err:
         metrics.incr(
             "hybridcloud.deliver_webhooks.failure",
-            tags={"reason": "timeout_reset", "destination_region": region.name},
+            tags={"reason": "timeout_reset", "destination_region": cell.name},
         )
         logger.warning("deliver_webhooks.timeout_error", extra=payload.as_dict())
         raise DeliveryFailed() from err
@@ -707,7 +708,7 @@ def perform_region_request(region: Cell, payload: WebhookPayload) -> None:
             if orig_response is not None:
                 response_code = orig_response.status_code
 
-            # We need to retry on region 500s
+            # We need to retry on cell 500s
             if status.HTTP_500_INTERNAL_SERVER_ERROR <= response_code < 600:
                 raise DeliveryFailed() from err
 
@@ -722,7 +723,7 @@ def perform_region_request(region: Cell, payload: WebhookPayload) -> None:
                     reason = "forbidden"
                 metrics.incr(
                     "hybridcloud.deliver_webhooks.failure",
-                    tags={"reason": reason, "destination_region": region.name},
+                    tags={"reason": reason, "destination_region": cell.name},
                 )
                 logger.info(
                     "deliver_webhooks.40x_error",
@@ -733,7 +734,7 @@ def perform_region_request(region: Cell, payload: WebhookPayload) -> None:
         # Other ApiErrors should be retried
         metrics.incr(
             "hybridcloud.deliver_webhooks.failure",
-            tags={"reason": "api_error", "destination_region": region.name},
+            tags={"reason": "api_error", "destination_region": cell.name},
         )
         logger.warning(
             "deliver_webhooks.api_error",

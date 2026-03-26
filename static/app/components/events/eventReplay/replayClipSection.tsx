@@ -1,11 +1,10 @@
 import {Fragment, lazy} from 'react';
-import ReactLazyLoad from 'react-lazyload';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import {LazyLoad} from 'sentry/components/lazyLoad';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -21,7 +20,6 @@ import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface Props {
   event: Event;
@@ -38,7 +36,6 @@ const ReplayClipPreview = lazy(() => import('./replayClipPreview'));
 
 export function ReplayClipSection({event, group, replayId}: Props) {
   const organization = useOrganization();
-  const hasStreamlinedUI = useHasStreamlinedUI();
   const {getReplayCountForIssue} = useReplayCountForIssues();
   const {baseUrl} = useGroupDetailsRoute();
 
@@ -113,13 +110,7 @@ export function ReplayClipSection({event, group, replayId}: Props) {
       >
         <ErrorBoundary mini>
           <ReplayGroupContextProvider groupId={group?.id} eventId={event.id}>
-            {hasStreamlinedUI ? (
-              lazyReplay
-            ) : (
-              <ReactLazyLoad debounce={50} height={448} offset={0} once>
-                {lazyReplay}
-              </ReactLazyLoad>
-            )}
+            {lazyReplay}
           </ReplayGroupContextProvider>
         </ErrorBoundary>
       </ReplaySectionMinHeight>

@@ -3,6 +3,7 @@ import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {SUMMARY_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/settings';
+import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
@@ -128,11 +129,11 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          fields: [`avg(${SpanFields.SPAN_SELF_TIME})`],
-          aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
+          fields: [`avg(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
           columns: [],
           conditions: '',
-          orderby: `avg(${SpanFields.SPAN_SELF_TIME})`,
+          orderby: `avg(${SpanFields.SPAN_DURATION})`,
         },
       ],
     },
@@ -145,11 +146,11 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          fields: [`sum(${SpanFields.SPAN_SELF_TIME})`],
-          aggregates: [`sum(${SpanFields.SPAN_SELF_TIME})`],
+          fields: [`sum(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`sum(${SpanFields.SPAN_DURATION})`],
           columns: [],
           conditions: '',
-          orderby: `sum(${SpanFields.SPAN_SELF_TIME})`,
+          orderby: `sum(${SpanFields.SPAN_DURATION})`,
         },
       ],
     },
@@ -186,11 +187,11 @@ const THIRD_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          fields: [`avg(${SpanFields.SPAN_SELF_TIME})`],
-          aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
+          fields: [`avg(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
           columns: [],
           conditions: '',
-          orderby: `avg(${SpanFields.SPAN_SELF_TIME})`,
+          orderby: `avg(${SpanFields.SPAN_DURATION})`,
         },
       ],
     },
@@ -230,7 +231,7 @@ const THIRD_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
 
 const ASSETS_TABLE_WIDGET: Widget = {
   id: 'assets-table-widget',
-  title: t('Pages containing this asset'),
+  title: t('Pages Containing This Asset'),
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
   interval: '5m',
@@ -240,20 +241,20 @@ const ASSETS_TABLE_WIDGET: Widget = {
       fields: [
         SpanFields.TRANSACTION,
         'epm()',
-        `avg(${SpanFields.SPAN_SELF_TIME})`,
+        `avg(${SpanFields.SPAN_DURATION})`,
         `avg(${SpanFields.HTTP_RESPONSE_CONTENT_LENGTH})`,
         SpanFields.RESOURCE_RENDER_BLOCKING_STATUS,
       ],
       aggregates: [
         'epm()',
-        `avg(${SpanFields.SPAN_SELF_TIME})`,
+        `avg(${SpanFields.SPAN_DURATION})`,
         `avg(${SpanFields.HTTP_RESPONSE_CONTENT_LENGTH})`,
       ],
       columns: [SpanFields.TRANSACTION, SpanFields.RESOURCE_RENDER_BLOCKING_STATUS],
       fieldAliases: [
         t('Transaction'),
-        t('Requests per Minutes'),
-        t('Avg Duration'),
+        t('Requests per Minute'),
+        WIDGET_COLUMN_LABELS.avg,
         t('Avg Encoded Size'),
         t('Render Blocking'),
       ],

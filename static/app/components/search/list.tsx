@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import type AutoComplete from 'sentry/components/autoComplete';
+import type {AutoComplete} from 'sentry/components/autoComplete';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 

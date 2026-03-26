@@ -7,7 +7,10 @@ import {
   BACKEND_OVERVIEW_SECOND_ROW_WIDGETS,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/backendOverview';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/laravelOverview/settings';
-import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {
+  WIDGET_COLUMN_LABELS,
+  TABLE_MIN_HEIGHT,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {SpanFields} from 'sentry/views/insights/types';
 
 const PATHS_TABLE: Widget = {
@@ -44,9 +47,9 @@ const PATHS_TABLE: Widget = {
         t('Path'),
         t('Requests'),
         t('Error Rate'),
-        t('Avg'),
-        t('P95'),
-        t('Time Spent'),
+        WIDGET_COLUMN_LABELS.avg,
+        WIDGET_COLUMN_LABELS.p95,
+        WIDGET_COLUMN_LABELS.timeSpent,
         t('Users'),
       ],
       orderby: '-count()',
@@ -91,9 +94,9 @@ const COMMANDS_TABLE: Widget = {
         t('Command'),
         t('Invocations'),
         t('Error Rate'),
-        t('Avg'),
-        t('P95'),
-        t('Time Spent'),
+        WIDGET_COLUMN_LABELS.avg,
+        WIDGET_COLUMN_LABELS.p95,
+        WIDGET_COLUMN_LABELS.timeSpent,
       ],
       orderby: '-count()',
     },
@@ -141,7 +144,7 @@ const JOBS_TABLE: Widget = {
         t('Error Rate'),
         t('Avg Time in Queue'),
         t('Avg Processing Time'),
-        t('Time Spent'),
+        WIDGET_COLUMN_LABELS.timeSpent,
       ],
       orderby: '-count()',
     },
@@ -181,7 +184,7 @@ export const LARAVEL_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   ],
   onboarding: {
     type: 'overview',
-    requiredProjectFlags: ['hasInsightsDb', 'hasInsightsHttp'],
+    requiredProjectFlags: ['firstTransactionEvent'],
     description: 'Get started with Laravel tracing',
   },
 };

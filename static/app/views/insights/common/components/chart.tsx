@@ -17,7 +17,7 @@ import min from 'lodash/min';
 import type {AreaChartProps} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
-import BaseChart from 'sentry/components/charts/baseChart';
+import {BaseChart} from 'sentry/components/charts/baseChart';
 import ChartZoom, {type ZoomRenderProps} from 'sentry/components/charts/chartZoom';
 import type {FormatterOptions} from 'sentry/components/charts/components/tooltip';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
@@ -25,7 +25,7 @@ import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import {LineSeries} from 'sentry/components/charts/series/lineSeries';
 import {ScatterSeries} from 'sentry/components/charts/series/scatterSeries';
-import TransitionChart from 'sentry/components/charts/transitionChart';
+import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {isChartHovered} from 'sentry/components/charts/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -114,7 +114,7 @@ type Props = {
   tooltipFormatterOptions?: FormatterOptions;
 };
 
-function Chart({
+export function Chart({
   data,
   dataMax,
   previousData,
@@ -578,8 +578,6 @@ function Chart({
     </TransitionChart>
   );
 }
-
-export default Chart;
 
 function computeMax(data: Series[]) {
   const valuesDict = data.map(value => value.data.map(point => point.value));

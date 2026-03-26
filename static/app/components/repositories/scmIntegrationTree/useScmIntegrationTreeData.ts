@@ -1,10 +1,12 @@
 import {useEffect, useMemo} from 'react';
 
 import {organizationRepositoriesInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
+import {organizationConfigIntegrationsQueryOptions} from 'sentry/endpoints/organizations/organizationsConfigIntegrationsQueryOptions';
+import {organizationIntegrationsQueryOptions} from 'sentry/endpoints/organizations/organizationsIntegrationsQueryOptions';
 import type {
-  Integration,
   IntegrationProvider,
   IntegrationRepository,
+  OrganizationIntegration,
   Repository,
 } from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -19,8 +21,8 @@ type ScmIntegrationTreeData = {
   refetchIntegrations: () => void;
   reposByIntegrationId: Record<string, IntegrationRepository[]>;
   reposPendingByIntegrationId: Record<string, boolean>;
-  reposQueryKey: unknown;
-  scmIntegrations: Integration[];
+  reposQueryOptions: ReturnType<typeof organizationRepositoriesInfiniteOptions>;
+  scmIntegrations: OrganizationIntegration[];
   scmProviders: IntegrationProvider[];
 };
 
@@ -29,13 +31,7 @@ export function useScmIntegrationTreeData(): ScmIntegrationTreeData {
 
   // 1. Fetch all integration providers and filter to SCM
   const providersQuery = useQuery(
-    apiOptions.as<{providers: IntegrationProvider[]}>()(
-      '/organizations/$organizationIdOrSlug/config/integrations/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        staleTime: 0,
-      }
-    )
+    organizationConfigIntegrationsQueryOptions({organization})
   );
 
   const scmProviders = useMemo(
@@ -53,25 +49,32 @@ export function useScmIntegrationTreeData(): ScmIntegrationTreeData {
 
   // 2. Fetch installed integrations and filter to SCM providers
   const integrationsQuery = useQuery(
-    apiOptions.as<Integration[]>()('/organizations/$organizationIdOrSlug/integrations/', {
-      path: {organizationIdOrSlug: organization.slug},
-      staleTime: 0,
+    organizationIntegrationsQueryOptions({
+      organization,
+      features: ['commits'],
     })
   );
 
   const scmIntegrations = useMemo(
-    () => (integrationsQuery.data ?? []).filter(i => scmProviderKeys.has(i.provider.key)),
+    () =>
+      (integrationsQuery.data ?? []).filter(
+        i => i !== null && scmProviderKeys.has(i.provider.key)
+      ),
     [integrationsQuery.data, scmProviderKeys]
   );
 
   // 3. Fetch already-connected repos, auto-paginate to get all
-  const reposQueryOptions = organizationRepositoriesInfiniteOptions({organization});
+  const reposQueryOptions = organizationRepositoriesInfiniteOptions({
+    organization,
+    staleTime: 0,
+  });
   const {
     data: reposPages,
     hasNextPage: reposHasNextPage,
     isFetchingNextPage: reposIsFetchingNextPage,
     fetchNextPage: reposFetchNextPage,
     isError: reposIsError,
+    refetch: reposRefetch,
   } = useInfiniteQuery(reposQueryOptions);
 
   useEffect(() => {
@@ -137,10 +140,14 @@ export function useScmIntegrationTreeData(): ScmIntegrationTreeData {
     scmIntegrations,
     connectedRepos,
     connectedIdentifiers,
-    refetchIntegrations: integrationsQuery.refetch,
+    refetchIntegrations: () => {
+      providersQuery.refetch();
+      integrationsQuery.refetch();
+      reposRefetch();
+    },
     reposByIntegrationId,
     reposPendingByIntegrationId,
-    reposQueryKey: reposQueryOptions.queryKey,
+    reposQueryOptions,
     isPending,
     isError,
   };

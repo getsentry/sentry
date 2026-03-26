@@ -5,15 +5,16 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {t, tct} from 'sentry/locale';
-import OnboardingDrawerStore, {
+import {
   OnboardingDrawerKey,
+  OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import type {MetricDataSwitcherOutcome} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useRouter} from 'sentry/utils/useRouter';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import type {DiscoverQueryPageSource} from 'sentry/views/performance/utils';
 import {
   createUnnamedTransactionsDiscoverTarget,
@@ -56,7 +57,7 @@ export function MetricsDataSwitcherAlert(
   props: MetricEnhancedDataAlertProps
 ): React.ReactElement | null {
   const location = useLocation();
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const isOnFallbackThresolds = props.organization.features.includes(
     'performance-mep-bannerless-ui'
@@ -89,8 +90,8 @@ export function MetricsDataSwitcherAlert(
   }, [location, props.projects]);
 
   const handleSwitchToCompatibleProjects = useCallback(() => {
-    updateProjects(props.compatibleProjects || [], router);
-  }, [props.compatibleProjects, router]);
+    updateProjects(props.compatibleProjects || [], location, navigate);
+  }, [props.compatibleProjects, location, navigate]);
 
   if (!props.shouldNotifyUnnamedTransactions && !props.shouldWarnIncompatibleSDK) {
     // Control showing generic sdk-alert here since stacking alerts is noisy.

@@ -1,8 +1,8 @@
-import type BasePlugin from 'sentry/plugins/basePlugin';
+import type {BasePlugin} from 'sentry/plugins/basePlugin';
 import {DefaultIssuePlugin} from 'sentry/plugins/defaultIssuePlugin';
 
-import IssueActions from './components/issueActions';
-import Settings from './components/settings';
+import {IssueActions} from './components/issueActions';
+import {Settings} from './components/settings';
 
 export class Jira extends DefaultIssuePlugin {
   displayName = 'Jira';

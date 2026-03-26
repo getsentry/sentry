@@ -51,13 +51,13 @@ class GithubCopilotAgentClientTest(TestCase):
         mock_response = Mock()
         mock_response.json = {
             "id": "task-123",
-            "status": "completed",
+            "state": "completed",
             "created_at": "2024-01-01T00:00:00Z",
-            "last_updated_at": "2024-01-01T01:00:00Z",
+            "updated_at": "2024-01-01T01:00:00Z",
             "artifacts": [
                 {
                     "provider": "github",
-                    "type": "pull_request",
+                    "type": "github_resource",
                     "data": {"id": 456, "type": "pull", "global_id": "PR_abc123"},
                 }
             ],
@@ -71,7 +71,7 @@ class GithubCopilotAgentClientTest(TestCase):
 
         assert isinstance(result, GithubCopilotTask)
         assert result.id == "task-123"
-        assert result.status == "completed"
+        assert result.state == "completed"
         assert result.artifacts is not None
         assert len(result.artifacts) == 1
         assert result.artifacts[0].data is not None
@@ -90,7 +90,7 @@ class GithubCopilotAgentClientTest(TestCase):
         mock_response = Mock()
         mock_response.json = {
             "id": "task-123",
-            "status": "running",
+            "state": "in_progress",
         }
         mock_response.status_code = 200
         mock_get.return_value = mock_response
@@ -100,7 +100,7 @@ class GithubCopilotAgentClientTest(TestCase):
         )
 
         assert result.id == "task-123"
-        assert result.status == "running"
+        assert result.state == "in_progress"
         assert result.artifacts is None
 
     def _make_launch_request(self, prompt: str = "Fix the bug") -> CodingAgentLaunchRequest:
@@ -117,14 +117,12 @@ class GithubCopilotAgentClientTest(TestCase):
 
     @patch.object(GithubCopilotAgentClient, "post")
     def test_launch_with_created_at(self, mock_post: Mock) -> None:
-        """Test launch correctly parses created_at from the response"""
+        """Test launch correctly parses created_at from a direct task response"""
         mock_response = Mock()
         mock_response.json = {
-            "task": {
-                "id": "task-123",
-                "status": "in_progress",
-                "created_at": "2024-06-01T12:00:00Z",
-            }
+            "id": "task-123",
+            "status": "in_progress",
+            "created_at": "2024-06-01T12:00:00Z",
         }
         mock_response.status_code = 200
         mock_post.return_value = mock_response
@@ -144,10 +142,8 @@ class GithubCopilotAgentClientTest(TestCase):
         """Test launch falls back to now() when created_at is missing"""
         mock_response = Mock()
         mock_response.json = {
-            "task": {
-                "id": "task-456",
-                "status": "in_progress",
-            }
+            "id": "task-456",
+            "status": "in_progress",
         }
         mock_response.status_code = 200
         mock_post.return_value = mock_response
@@ -162,6 +158,28 @@ class GithubCopilotAgentClientTest(TestCase):
         assert result.id == "getsentry:sentry:task-456"
         assert result.status == CodingAgentStatus.RUNNING
         assert before <= result.started_at <= after
+
+    @patch.object(GithubCopilotAgentClient, "post")
+    def test_launch_with_legacy_task_envelope(self, mock_post: Mock) -> None:
+        """Test launch handles the legacy {"task": {...}} response envelope"""
+        mock_response = Mock()
+        mock_response.json = {
+            "task": {
+                "id": "task-789",
+                "status": "in_progress",
+                "created_at": "2024-06-01T12:00:00Z",
+            }
+        }
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        result = self.copilot_client.launch(
+            webhook_url="https://example.com/webhook",
+            request=self._make_launch_request(),
+        )
+
+        assert result.id == "getsentry:sentry:task-789"
+        assert result.status == CodingAgentStatus.RUNNING
 
     @patch.object(GithubCopilotAgentClient, "post")
     def test_get_pr_from_graphql_success(self, mock_post: Mock) -> None:
@@ -221,7 +239,7 @@ class GithubCopilotAgentClientTest(TestCase):
         request = self._make_launch_request(prompt)
 
         mock_response = Mock()
-        mock_response.json = {"task": {"id": "t-1", "created_at": "2026-01-01T00:00:00Z"}}
+        mock_response.json = {"id": "t-1", "created_at": "2024-01-01T00:00:00Z"}
         mock_response.status_code = 200
         mock_post.return_value = mock_response
 
@@ -238,7 +256,7 @@ class GithubCopilotAgentClientTest(TestCase):
         request = self._make_launch_request(prompt)
 
         mock_response = Mock()
-        mock_response.json = {"task": {"id": "t-1", "created_at": "2026-01-01T00:00:00Z"}}
+        mock_response.json = {"id": "t-1", "created_at": "2024-01-01T00:00:00Z"}
         mock_response.status_code = 200
         mock_post.return_value = mock_response
 

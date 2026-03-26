@@ -13,6 +13,7 @@ export type SegmentSpansRow = Pick<
   | 'user.email'
   | 'user.username'
   | 'user.ip'
+  | 'user.display'
   | 'span.duration'
   | 'trace'
   | 'timestamp'
@@ -25,7 +26,13 @@ export type SegmentSpansRow = Pick<
 >;
 
 export type SegmentSpansColumn = GridColumnHeader<
-  'span_id' | 'span.duration' | 'trace' | 'timestamp' | 'replayId' | 'profile.id'
+  | 'span_id'
+  | 'user.display'
+  | 'span.duration'
+  | 'trace'
+  | 'timestamp'
+  | 'replayId'
+  | 'profile.id'
 >;
 
 export const SEGMENT_SPANS_COLUMN_ORDER: SegmentSpansColumn[] = [
@@ -37,6 +44,11 @@ export const SEGMENT_SPANS_COLUMN_ORDER: SegmentSpansColumn[] = [
   {
     key: 'span_id',
     name: t('Span ID'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'user.display',
+    name: t('User'),
     width: COL_WIDTH_UNDEFINED,
   },
   {

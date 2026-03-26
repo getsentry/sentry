@@ -5,7 +5,10 @@ from typing import TYPE_CHECKING, Literal
 
 from django.utils import timezone
 
-from sentry.seer.autofix.constants import FixabilityScoreThresholds
+from sentry.seer.autofix.constants import (
+    AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD,
+    FixabilityScoreThresholds,
+)
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
@@ -69,7 +72,7 @@ def get_seat_based_seer_automation_skip_reason(
     )
 
     # If event count < 10, only generate summary (no automation)
-    if group.times_seen_with_pending < 10:
+    if group.times_seen_with_pending < AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD:
         # Check if summary exists in cache
         cache_key = get_issue_summary_cache_key(group.id)
         if cache.get(cache_key) is not None:

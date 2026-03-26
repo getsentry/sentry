@@ -1,5 +1,5 @@
 import type {Group} from 'sentry/types/group';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,
   type ApiQueryKey,
@@ -22,7 +22,7 @@ export function makeFetchGroupQueryKey({
   const query: Record<string, string | string[]> = {
     ...(environments.length > 0 ? {environment: environments} : {}),
     expand: ['inbox', 'owners'],
-    collapse: ['release', 'tags'],
+    collapse: ['release', 'tags', 'stats'],
   };
 
   return [

@@ -7,9 +7,9 @@ import {Tag} from '@sentry/scraps/badge';
 import {Link} from '@sentry/scraps/link';
 
 import {Duration} from 'sentry/components/duration';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {IdBadge} from 'sentry/components/idBadge';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Actor} from 'sentry/types/core';

@@ -12,7 +12,7 @@ import {MenuItem} from 'sentry/components/menuItem';
 import {t} from 'sentry/locale';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 
 export type TitleProps = Partial<ReturnType<GetActorPropsFn>>;
 
@@ -23,7 +23,7 @@ type Props = {
   title: React.ComponentType<TitleProps>;
 };
 
-function OperationSort({eventView, location, tableMeta, title: Title}: Props) {
+export function OperationSort({eventView, location, tableMeta, title: Title}: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const menuEl = useRef<Element | null>(null);
 
@@ -246,5 +246,3 @@ const DropdownContent = styled('div')`
 const TitleWrapper = styled('div')`
   cursor: pointer;
 `;
-
-export default OperationSort;

@@ -6,19 +6,19 @@ import {Text} from '@sentry/scraps/text';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import ErrorBoundary from 'sentry/components/errorBoundary';
-import {EventOrGroupHeader} from 'sentry/components/eventOrGroupHeader';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
   AssigneeSelector,
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
 import {GroupStatusTag} from 'sentry/components/group/inboxBadges/groupStatusTag';
+import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
@@ -198,7 +198,7 @@ function LatestGroupWithOpenPeriods({
 
       <SimpleTable.Row>
         <EventOrGroupCell>
-          <EventOrGroupHeader data={group} />
+          <GroupHeaderRow data={group} />
         </EventOrGroupCell>
         <SimpleTable.RowCell>
           <GroupStatusTag fontSize="md">{group.substatus ?? group.status}</GroupStatusTag>

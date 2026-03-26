@@ -9,7 +9,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {ResourceSummaryCharts} from 'sentry/views/insights/browser/resources/components/charts/resourceSummaryCharts';
 import {RenderBlockingSelector} from 'sentry/views/insights/browser/resources/components/renderBlockingSelector';
 import {ResourceInfo} from 'sentry/views/insights/browser/resources/components/resourceInfo';
-import SampleImages from 'sentry/views/insights/browser/resources/components/sampleImages';
+import {SampleImages} from 'sentry/views/insights/browser/resources/components/sampleImages';
 import {ResourceSummaryTable} from 'sentry/views/insights/browser/resources/components/tables/resourceSummaryTable';
 import {IMAGE_FILE_EXTENSIONS} from 'sentry/views/insights/browser/resources/constants';
 import {Referrer} from 'sentry/views/insights/browser/resources/referrer';
