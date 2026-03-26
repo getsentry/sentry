@@ -21,6 +21,7 @@ from sentry.seer.endpoints.seer_rpc import (
     get_attributes_for_span,
     get_github_enterprise_integration_config,
     has_repo_code_mappings,
+    trigger_coding_agent_launch,
     validate_repo,
 )
 from sentry.seer.explorer.tools import get_trace_item_attributes
@@ -1317,3 +1318,19 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         assert result == {"valid": True, "integration_id": integration.id}
+
+
+class TestTriggerCodingAgentLaunch:
+    @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
+    def test_not_found_returns_integration_not_found_error_code(self, mock_launch):
+        from rest_framework.exceptions import NotFound
+
+        mock_launch.side_effect = NotFound("Integration not found")
+
+        result = trigger_coding_agent_launch(
+            organization_id=1,
+            integration_id=2,
+            run_id=3,
+        )
+
+        assert result == {"success": False, "error_code": "integration_not_found"}
