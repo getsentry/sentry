@@ -964,7 +964,7 @@ class TestWritePreferencesToSentryDb(TestCase):
 
         write_preference_to_sentry_db(self.project, preference)
 
-        assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "code_changes"
+        assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "root_cause"
         assert self.project.get_option("sentry:seer_automation_handoff_point") is None
         assert self.project.get_option("sentry:seer_automation_handoff_target") is None
         assert self.project.get_option("sentry:seer_automation_handoff_integration_id") is None
