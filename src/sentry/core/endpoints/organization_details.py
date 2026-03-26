@@ -46,6 +46,7 @@ from sentry.constants import (
     AUTO_ENABLE_CODE_REVIEW,
     AUTO_OPEN_PRS_DEFAULT,
     CONSOLE_SDK_INVITE_QUOTA_DEFAULT,
+    DASHBOARDS_ASYNC_QUEUE_PARALLEL_LIMIT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_CODE_REVIEW_TRIGGERS,
@@ -289,6 +290,12 @@ ORG_OPTIONS = (
         int,
         CONSOLE_SDK_INVITE_QUOTA_DEFAULT,
     ),
+    (
+        "dashboardsAsyncQueueParallelLimit",
+        "sentry:dashboards-async-queue-parallel-limit",
+        int,
+        DASHBOARDS_ASYNC_QUEUE_PARALLEL_LIMIT_DEFAULT,
+    ),
 )
 
 DELETION_STATUSES = frozenset(
@@ -361,6 +368,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         allow_empty=True,
     )
     consoleSdkInviteQuota = serializers.IntegerField(required=False, min_value=0)
+    dashboardsAsyncQueueParallelLimit = serializers.IntegerField(required=False, min_value=1)
     enableSeerEnhancedAlerts = serializers.BooleanField(required=False)
     enableSeerCoding = serializers.BooleanField(required=False)
     defaultCodingAgent = serializers.CharField(required=False, allow_null=True)

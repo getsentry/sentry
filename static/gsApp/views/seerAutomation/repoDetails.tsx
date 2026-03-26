@@ -5,7 +5,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {NotFound} from 'sentry/components/errors/notFound';
-import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
+import {useIsSeerSupportedProvider} from 'sentry/components/events/autofix/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
@@ -22,6 +22,7 @@ import {SeerSettingsPageWrapper} from 'getsentry/views/seerAutomation/components
 export default function SeerRepoDetails() {
   const {repoId} = useParams<{repoId: string}>();
   const organization = useOrganization();
+  const isSupportedProvider = useIsSeerSupportedProvider();
 
   const hasSeer =
     organization.features.includes('seat-based-seer-enabled') ||
@@ -95,7 +96,7 @@ export default function SeerRepoDetails() {
             }
           )}
         />
-        {isSupportedAutofixProvider(repoWithSettings?.provider) ? (
+        {isSupportedProvider(repoWithSettings?.provider) ? (
           <RepoDetailsForm
             organization={organization}
             repoWithSettings={repoWithSettings}

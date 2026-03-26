@@ -196,7 +196,9 @@ export function GlobalModal({onClose}: Props) {
   // XXX: We're using useEffectAfterFirstRender primarily to support tests
   // which render the GlobalModal after a modal has already been registered in
   // the modal store, meaning it would be closed immediately.
-  useEffectAfterFirstRender(() => ModalStore.closeModal(), [location.pathname]);
+  useEffectAfterFirstRender(() => {
+    ModalStore.closeModal();
+  }, [location.pathname]);
 
   // Default to enabled backdrop
   const backdrop = options.backdrop ?? true;
@@ -307,6 +309,7 @@ const Backdrop = styled('div')`
 
 const Container = styled('div')`
   ${fullPageCss};
+  right: var(--scrollbar-size, 0);
   z-index: ${p => p.theme.zIndex.modal};
   display: flex;
   justify-content: center;

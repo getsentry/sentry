@@ -1,3 +1,7 @@
+import type {
+  CommandPaletteState,
+  CommandPaletteDispatch,
+} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import type {ModalTypes} from 'sentry/components/globalModal';
 import type {CreateReleaseIntegrationModalOptions} from 'sentry/components/modals/createReleaseIntegrationModal';
 import type {DashboardWidgetQuerySelectorModalOptions} from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
@@ -18,6 +22,7 @@ import type {Event} from 'sentry/types/event';
 import type {IssueOwnership} from 'sentry/types/group';
 import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Theme} from 'sentry/utils/theme';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import type {AttributeBreakdownViewerModalOptions} from 'sentry/views/explore/components/attributeBreakdowns/attributeBreakdownViewerModal';
@@ -148,13 +153,32 @@ export async function openCommandPaletteDeprecated(options: ModalOptions = {}) {
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
-export async function openCommandPalette(options: ModalOptions = {}) {
+export async function toggleCommandPalette(
+  options: ModalOptions = {},
+  organization: Organization,
+  state: CommandPaletteState,
+  dispatch: CommandPaletteDispatch,
+  source: 'button' | 'keyboard'
+) {
   const {default: Modal, modalCss} =
     await import('sentry/components/commandPalette/ui/modal');
 
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
-}
+  function closeCommandPaletteModal() {
+    dispatch({type: 'toggle modal'});
+  }
 
+  if (state.open) {
+    closeCommandPaletteModal();
+    closeModal();
+  } else {
+    trackAnalytics('command_palette.opened', {organization, source});
+    dispatch({type: 'toggle modal'});
+    openModal(deps => <Modal {...deps} {...options} />, {
+      modalCss,
+      onClose: closeCommandPaletteModal,
+    });
+  }
+}
 type RecoveryModalOptions = {
   authenticatorName: string;
 };
