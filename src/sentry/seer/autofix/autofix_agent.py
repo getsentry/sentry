@@ -494,10 +494,15 @@ def trigger_coding_agent_handoff(
     )
 
 
-def trigger_push_changes(group: Group, run_id: int):
+def trigger_push_changes(group: Group, run_id: int, state: SeerRunState | None = None):
     client = get_autofix_explorer_client(group)
 
-    state = client.get_run(run_id)
+    if state is None:
+        try:
+            state = client.get_run(run_id)
+        except ValueError:
+            raise SeerPermissionError("Unknown run id for group")
+
     group_id = state.metadata.get("group_id") if state.metadata else None
     if group_id != group.id:
         raise SeerPermissionError("Unknown run id for group")

@@ -416,7 +416,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         )
 
         try:
-            trigger_push_changes(group, run_id)
+            trigger_push_changes(group, run_id, state=state)
         except Exception:
             logger.exception(
                 "autofix.on_completion_hook.push_changes_failed",
