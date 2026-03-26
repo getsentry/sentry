@@ -173,7 +173,7 @@ interface PrimaryNavigationLinkProps
 
 function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
   const organization = useOrganization({allowNull: true});
-  const {layout} = usePrimaryNavigation();
+  const {layout, features} = usePrimaryNavigation();
   const hasPageFrame = useHasPageFrameFeature();
   const isMobilePageFrame = hasPageFrame && layout === 'mobile';
   // Reload the page when the frontend is stale to ensure users get the latest version
@@ -189,6 +189,10 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
     onMouseEnter: props.onMouseEnter,
     onMouseLeave: props.onMouseLeave,
     onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
+      // On touch devices with page frame, prevent navigation and let setActiveGroup handle the active state
+      if (isMobilePageFrame && !features.hover) {
+        e.preventDefault();
+      }
       trackAnalytics('navigation.primary_item_clicked', {
         item: props.analyticsKey,
         organization,

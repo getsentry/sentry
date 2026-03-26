@@ -56,19 +56,17 @@ type SliderProps = {
    */
   min?: number;
 
+  onChange?: (
+    value: SliderProps['value'],
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => void;
+
   /**
    * This is called when *any* MouseUp or KeyUp event happens.
    * Used for "smart" Fields to trigger a "blur" event. `onChange` can
    * be triggered quite frequently
    */
-  onBlur?: (
-    event: React.MouseEvent<HTMLInputElement> | React.KeyboardEvent<HTMLInputElement>
-  ) => void;
-
-  onChange?: (
-    value: SliderProps['value'],
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => void;
+  onChangeEnd?: (value: number) => void;
   /**
    * Placeholder for custom input
    */
@@ -95,8 +93,8 @@ export function RangeSlider({
   placeholder,
   formatLabel,
   className,
-  onBlur,
   onChange,
+  onChangeEnd,
   ref,
   disabledReason,
   showLabel = true,
@@ -142,18 +140,17 @@ export function RangeSlider({
     onChange?.(getActualValue(newSliderValue), e);
   }
 
-  function handleCustomInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setSliderValue(parseFloat(e.target.value) || 0);
+  function handleSliderChange(newSliderValue: number) {
+    setSliderValue(newSliderValue);
+    // Legacy onChange takes (value, event) but the new Slider no longer provides an event.
+    // Pass a synthetic-like object for backward compat with callers that destructure the event.
+    onChange?.(getActualValue(newSliderValue), {
+      currentTarget: {valueAsNumber: newSliderValue},
+    } as React.ChangeEvent<HTMLInputElement>);
   }
 
-  function handleBlur(
-    e: React.MouseEvent<HTMLInputElement> | React.KeyboardEvent<HTMLInputElement>
-  ) {
-    if (typeof onBlur !== 'function') {
-      return;
-    }
-
-    onBlur(e);
+  function handleCustomInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setSliderValue(parseFloat(e.target.value) || 0);
   }
 
   function getSliderData() {
@@ -195,9 +192,8 @@ export function RangeSlider({
             max={max}
             step={step}
             disabled={disabled}
-            onChange={(_, e) => handleInput(e)}
-            onMouseUp={handleBlur}
-            onKeyUp={handleBlur}
+            onChange={handleSliderChange}
+            onChangeEnd={onChangeEnd}
             value={sliderValue}
             aria-valuetext={labelText}
             aria-label={props['aria-label']}

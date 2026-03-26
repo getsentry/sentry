@@ -236,8 +236,9 @@ interface SecondaryNavigationListProps {
 }
 
 function SecondaryNavigationList(props: SecondaryNavigationListProps) {
+  const hasPageFrame = useHasPageFrameFeature();
   return (
-    <Stack as="ul" margin="0" padding="0" width="100%">
+    <Stack as="ul" margin="0" padding="0" width="100%" gap={hasPageFrame ? '2xs' : '0'}>
       {props.children}
     </Stack>
   );
@@ -461,9 +462,11 @@ function SecondaryNavigationLink({
   const isActive =
     incomingIsActive ?? isPrimaryNavigationLinkActive(activeTo, location.pathname, {end});
 
-  const {layout} = usePrimaryNavigation();
+  const {layout, features} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
   const hasPageFrame = useHasPageFrameFeature();
+  const {setView} = useSecondaryNavigation();
+  const isMobilePageFrame = hasPageFrame && layout === 'mobile';
 
   const sharedLinkProps = {
     ...linkProps,
@@ -481,6 +484,13 @@ function SecondaryNavigationLink({
       // When this is rendered inside a hovercard (when the nav is collapsed)
       // this will dismiss it when clicking on a link.
       closeCollapsedNavigationHovercard();
+
+      // On touch devices with page frame, close the nav panel when navigating to a secondary item.
+      // MobilePageFrameNavigation watches for view === 'collapsed' and calls setIsOpen(false).
+      if (isMobilePageFrame && !features.hover) {
+        setView('collapsed');
+      }
+
       onClick?.(e);
     },
   };
@@ -876,13 +886,13 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
       onDragCancel={() => scrollLock.release()}
     >
       <SortableContext items={items} strategy={verticalListSortingStrategy}>
-        <Stack direction="column" as="ul" padding="0" width="100%" margin="0">
+        <SecondaryNavigation.List>
           {items.map(item => (
             <ReorderableListItem key={item.id} item={item}>
               {props.children(item)}
             </ReorderableListItem>
           ))}
-        </Stack>
+        </SecondaryNavigation.List>
       </SortableContext>
     </DndContext>
   );
@@ -912,10 +922,12 @@ function SecondaryNavigationReorderableLink({
   const navigate = useNavigate();
   const isActive =
     incomingIsActive ?? isPrimaryNavigationLinkActive(activeTo, location.pathname, {end});
-  const {layout} = usePrimaryNavigation();
+  const {layout, features} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
   const {isDragging} = useReorderableItemContext();
   const hasPageFrame = useHasPageFrameFeature();
+  const {setView} = useSecondaryNavigation();
+  const isMobilePageFrame = hasPageFrame && layout === 'mobile';
 
   function handleNavigate() {
     if (isDragging) {
@@ -928,6 +940,13 @@ function SecondaryNavigationReorderableLink({
       });
     }
     closeCollapsedNavigationHovercard();
+
+    // On touch devices with page frame, close the nav panel when navigating to a secondary item.
+    // MobilePageFrameNavigation watches for view === 'collapsed' and calls setIsOpen(false).
+    if (isMobilePageFrame && !features.hover) {
+      setView('collapsed');
+    }
+
     onNavigate?.();
     navigate(to, {state: {source: SIDEBAR_NAVIGATION_SOURCE}});
   }

@@ -2,11 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {useLocation} from 'sentry/utils/useLocation';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {TransactionsTable} from 'sentry/views/insights/queues/components/tables/transactionsTable';
-
-jest.mock('sentry/utils/useLocation');
 
 describe('transactionsTable', () => {
   const organization = OrganizationFixture();
@@ -17,17 +14,15 @@ describe('transactionsTable', () => {
     '<https://sentry.io/fake/previous>; rel="previous"; results="false"; cursor="0:0:1", ' +
     '<https://sentry.io/fake/next>; rel="next"; results="true"; cursor="0:20:0"';
 
-  beforeEach(() => {
-    jest.mocked(useLocation).mockReturnValue({
-      pathname: '',
-      search: '',
+  const baseRouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/insights/queues/`,
       query: {statsPeriod: '10d', project: '1'},
-      hash: '',
-      state: undefined,
-      action: 'PUSH',
-      key: '',
-    });
+    },
+    route: `/organizations/:orgId/insights/queues/`,
+  };
 
+  beforeEach(() => {
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       headers: {Link: pageLinks},
@@ -65,7 +60,7 @@ describe('transactionsTable', () => {
     });
   });
   it('renders', async () => {
-    render(<TransactionsTable />, {organization});
+    render(<TransactionsTable />, {organization, initialRouterConfig: baseRouterConfig});
     expect(screen.getByRole('table', {name: 'Transactions'})).toBeInTheDocument();
 
     expect(screen.getByRole('columnheader', {name: 'Transactions'})).toBeInTheDocument();
@@ -112,22 +107,21 @@ describe('transactionsTable', () => {
   });
 
   it('sorts by processing time', async () => {
-    jest.mocked(useLocation).mockReturnValue({
-      pathname: '',
-      search: '',
-      query: {
-        statsPeriod: '10d',
-        project: '1',
-        [QueryParameterNames.DESTINATIONS_SORT]:
-          '-avg_if(span.duration,span.op,equals,queue.process)',
+    render(<TransactionsTable />, {
+      organization,
+      initialRouterConfig: {
+        ...baseRouterConfig,
+        location: {
+          ...baseRouterConfig.location,
+          query: {
+            statsPeriod: '10d',
+            project: '1',
+            [QueryParameterNames.DESTINATIONS_SORT]:
+              '-avg_if(span.duration,span.op,equals,queue.process)',
+          },
+        },
       },
-      hash: '',
-      state: undefined,
-      action: 'PUSH',
-      key: '',
     });
-
-    render(<TransactionsTable />, {organization});
 
     expect(eventsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
