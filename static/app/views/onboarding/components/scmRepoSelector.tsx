@@ -80,6 +80,7 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
     clearDerivedState();
 
     if (option === null) {
+      setSearch('');
       handleRemove();
     } else {
       const repo = reposByIdentifier.get(option.value);
