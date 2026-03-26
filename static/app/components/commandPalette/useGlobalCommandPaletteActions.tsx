@@ -42,6 +42,7 @@ import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organizat
 // This hook generates actions for all pages in the primary and secondary navigation.
 // TODO: Consider refactoring the navigation so that this can read from the same source
 // of truth and avoid divergence.
+
 function useNavigationActions(): CommandPaletteAction[] {
   const organization = useOrganization();
   const slug = organization.slug;
@@ -148,7 +149,7 @@ function useNavigationActions(): CommandPaletteAction[] {
           label: dashboard.title,
           icon: <IconStar />,
         },
-        to: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
+        to: `${prefix}/dashboard/${dashboard.id}/`,
       })
     ),
   ];
@@ -285,8 +286,8 @@ function useNavigationToggleCollapsed(): CommandPaletteAction {
  */
 export function useGlobalCommandPaletteActions() {
   const organization = useOrganization();
-  const {mutateAsync: mutateUserOptions} = useMutateUserOptions();
   const navigateActions = useNavigationActions();
+  const {mutateAsync: mutateUserOptions} = useMutateUserOptions();
   const navigationToggleAction = useNavigationToggleCollapsed();
 
   const navPrefix = `/organizations/${organization.slug}`;

@@ -6,9 +6,13 @@ import {Stack} from '@sentry/scraps/layout';
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 
-import {openCommandPalette} from 'sentry/actionCreators/modal';
+import {toggleCommandPalette} from 'sentry/actionCreators/modal';
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
+import {
+  useCommandPaletteState,
+  useCommandPaletteDispatch,
+} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import Hook from 'sentry/components/hook';
 import {IconSearch} from 'sentry/icons';
@@ -302,6 +306,9 @@ export function PrimaryNavigationFooterItems() {
   const organization = useOrganization();
   const hasPageFrame = useHasPageFrameFeature();
 
+  const state = useCommandPaletteState();
+  const dispatch = useCommandPaletteDispatch();
+
   return (
     <Fragment>
       {hasPageFrame ? (
@@ -312,7 +319,7 @@ export function PrimaryNavigationFooterItems() {
             icon: <IconSearch />,
             onClick: () => {
               if (organization.features.includes('cmd-k-supercharged')) {
-                openCommandPalette(organization, 'button');
+                toggleCommandPalette({}, organization, state, dispatch, 'button');
               } else {
                 openHelpSearchModal({organization});
               }
