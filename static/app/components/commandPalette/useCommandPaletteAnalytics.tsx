@@ -27,9 +27,8 @@ function getLinkedListDepth(node: LinkedList | null): number {
  * Call once in the CommandPalette component. Reads state from context,
  * generates its own session ID, and tracks all events internally.
  *
- * Returns a single `recordAction` callback for final action selections
- * (navigate/callback) which can't be observed from state because the
- * `trigger action` dispatch resets it before the hook can see it.
+ * Returns `recordAction` and `recordGroupAction` callbacks for action
+ * selections which can't be observed from state alone.
  */
 export function useCommandPaletteAnalytics(filteredActionCount: number): {
   recordAction: (
@@ -42,42 +41,45 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
   const organization = useOrganization();
   const state = useCommandPaletteState();
 
-  const sessionIdRef = useRef(uniqueId('cmd-palette-'));
-
-  const stateRef = useRef(state);
-  useEffect(() => {
-    stateRef.current = state;
+  const analyticsState = useRef({
+    sessionId: uniqueId('cmd-palette-'),
+    openedAt: Date.now(),
+    actionsSelected: 0,
+    queriesTyped: 0,
+    completed: false,
+    maxDrillDepth: 0,
+    hadInteraction: false,
+    lastTrackedQuery: '',
+    prevFilteredCount: filteredActionCount,
+    state,
   });
 
-  const openedAtRef = useRef(Date.now());
-  const actionsSelectedRef = useRef(0);
-  const queriesTypedRef = useRef(0);
-  const completedRef = useRef(false);
-  const maxDrillDepthRef = useRef(0);
-  const hadInteractionRef = useRef(false);
+  useEffect(() => {
+    analyticsState.current.state = state;
+  });
 
   // Track any query input as interaction immediately (not debounced)
   useEffect(() => {
     if (state.query.length > 0) {
-      hadInteractionRef.current = true;
+      analyticsState.current.hadInteraction = true;
     }
   }, [state.query]);
 
   // Debounced query tracking (500ms)
-  const lastTrackedQueryRef = useRef('');
   useEffect(() => {
-    if (state.query.length === 0 || state.query === lastTrackedQueryRef.current) {
+    const s = analyticsState.current;
+    if (state.query.length === 0 || state.query === s.lastTrackedQuery) {
       return undefined;
     }
 
     const timer = setTimeout(() => {
-      lastTrackedQueryRef.current = state.query;
-      queriesTypedRef.current++;
+      s.lastTrackedQuery = state.query;
+      s.queriesTyped++;
       trackAnalytics('command_palette.searched', {
         organization,
         query: state.query,
         result_count: filteredActionCount,
-        session_id: sessionIdRef.current,
+        session_id: s.sessionId,
       });
     }, 500);
 
@@ -85,10 +87,10 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
   }, [state.query, filteredActionCount, organization]);
 
   // Track no results
-  const prevFilteredCountRef = useRef(filteredActionCount);
   useEffect(() => {
-    const wasNonZero = prevFilteredCountRef.current > 0;
-    prevFilteredCountRef.current = filteredActionCount;
+    const s = analyticsState.current;
+    const wasNonZero = s.prevFilteredCount > 0;
+    s.prevFilteredCount = filteredActionCount;
 
     if (filteredActionCount === 0 && wasNonZero && state.query.length > 0) {
       const actionLabel =
@@ -99,7 +101,7 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
         organization,
         query: state.query,
         action: actionLabel,
-        session_id: sessionIdRef.current,
+        session_id: s.sessionId,
       });
       Sentry.logger.info('Command palette returned no results', {
         query: state.query,
@@ -110,32 +112,26 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
 
   // Fire closed + session events on unmount
   useEffect(() => {
-    const openedAt = openedAtRef.current;
-    const sessionId = sessionIdRef.current;
-    const actions = actionsSelectedRef;
-    const queries = queriesTypedRef;
-    const done = completedRef;
-    const depth = maxDrillDepthRef;
-    const hadInteraction = hadInteractionRef;
+    const s = analyticsState.current;
 
     return () => {
-      const s = stateRef.current;
+      const paletteState = s.state;
 
       trackAnalytics('command_palette.closed', {
         organization,
-        query: s.query,
-        had_interaction: hadInteraction.current,
-        session_id: sessionId,
+        query: paletteState.query,
+        had_interaction: s.hadInteraction,
+        session_id: s.sessionId,
       });
 
       trackAnalytics('command_palette.session', {
         organization,
-        session_id: sessionId,
-        duration_ms: Date.now() - openedAt,
-        actions_selected: actions.current,
-        queries_typed: queries.current,
-        completed: done.current,
-        max_drill_depth: depth.current,
+        session_id: s.sessionId,
+        duration_ms: Date.now() - s.openedAt,
+        actions_selected: s.actionsSelected,
+        queries_typed: s.queriesTyped,
+        completed: s.completed,
+        max_drill_depth: s.maxDrillDepth,
       });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -148,41 +144,44 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
         resultIndex: number,
         group: string
       ) {
-        const path = getActionPath(stateRef.current);
+        const s = analyticsState.current;
+        const path = getActionPath(s.state);
         const label =
           path.length > 0 ? `${path} → ${action.display.label}` : action.display.label;
 
         trackAnalytics('command_palette.action_selected', {
           organization,
           action: label,
-          query: stateRef.current.query,
+          query: s.state.query,
           action_type: action.type,
           group,
           result_index: resultIndex,
-          session_id: sessionIdRef.current,
+          session_id: s.sessionId,
         });
 
-        hadInteractionRef.current = true;
-        actionsSelectedRef.current++;
-        completedRef.current = true;
+        s.hadInteraction = true;
+        s.actionsSelected++;
+        s.completed = true;
       },
       recordGroupAction(action: CommandPaletteActionWithKey, resultIndex: number) {
+        const s = analyticsState.current;
+
         trackAnalytics('command_palette.action_selected', {
           organization,
           action: action.display.label,
-          query: stateRef.current.query,
+          query: s.state.query,
           action_type: 'group',
           group: action.groupingKey ?? '',
           result_index: resultIndex,
-          session_id: sessionIdRef.current,
+          session_id: s.sessionId,
         });
 
-        hadInteractionRef.current = true;
-        actionsSelectedRef.current++;
+        s.hadInteraction = true;
+        s.actionsSelected++;
 
-        const depth = getLinkedListDepth(stateRef.current.action) + 1;
-        if (depth > maxDrillDepthRef.current) {
-          maxDrillDepthRef.current = depth;
+        const depth = getLinkedListDepth(s.state.action) + 1;
+        if (depth > s.maxDrillDepth) {
+          s.maxDrillDepth = depth;
         }
       },
     }),
