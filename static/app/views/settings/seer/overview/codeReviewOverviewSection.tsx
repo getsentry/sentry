@@ -11,7 +11,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import {hasEveryAccess} from 'sentry/components/acl/access';
 import {organizationRepositoriesInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
 import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
@@ -59,14 +58,13 @@ type Props = ReturnType<typeof useCodeReviewOverviewSection> & {
 };
 
 export function CodeReviewOverviewSection({
+  canWrite,
   isPending,
   organization,
   data,
   refetch,
 }: Props) {
   const queryClient = useQueryClient();
-
-  const canWrite = hasEveryAccess(['org:write'], {organization});
 
   const {queryKey, seerRepos = [], reposWithCodeReview = []} = data ?? {};
 
