@@ -1,11 +1,13 @@
 import {Fragment, useLayoutEffect, useMemo, useEffect, useCallback} from 'react';
 import {preload} from 'react-dom';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selection';
 import {mergeProps} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import {useTreeState} from '@react-stately/tree';
 import * as Sentry from '@sentry/react';
+import {AnimatePresence, motion} from 'framer-motion';
 
 import errorIllustration from 'sentry-images/spot/computer-missing.svg';
 
@@ -33,7 +35,24 @@ import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {fzf} from 'sentry/utils/search/fzf';
+import type {Theme} from 'sentry/utils/theme';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+const MotionButton = motion.create(Button);
+const MotionIconSearch = motion.create(IconSearch);
+
+function makeLeadingItemAnimation(theme: Theme) {
+  return {
+    initial: {scale: 0.95, opacity: 0},
+    animate: {scale: 1, opacity: 1},
+    exit: {scale: 0.95, opacity: 0, transition: theme.motion.framer.exit.fast},
+    enter: {
+      scale: 1,
+      opacity: 1,
+      transition: theme.motion.framer.enter.slow,
+    },
+  };
+}
 
 type CommandPaletteActionMenuItem = MenuListItemProps & {
   children: CommandPaletteActionMenuItem[];
@@ -50,6 +69,8 @@ interface CommandPaletteProps {
 }
 
 export function CommandPalette(props: CommandPaletteProps) {
+  const theme = useTheme();
+
   const actions = useCommandPaletteActions();
   const organization = useOrganization();
   const state = useCommandPaletteState();
@@ -158,25 +179,32 @@ export function CommandPalette(props: CommandPaletteProps) {
             return (
               <InputGroup {...p}>
                 <StyledInputLeadingItems>
-                  {state.action ? (
-                    <Container position="absolute" left="-8px">
-                      {containerProps => (
-                        <Button
-                          size="xs"
-                          priority="transparent"
-                          icon={<IconArrow direction="left" aria-hidden />}
-                          onClick={() => {
-                            dispatch({type: 'pop action'});
-                            state.input.current?.focus();
-                          }}
-                          aria-label={t('Return to previous action')}
-                          {...containerProps}
-                        />
-                      )}
-                    </Container>
-                  ) : (
-                    <IconSearch size="sm" />
-                  )}
+                  <AnimatePresence mode="popLayout">
+                    {state.action ? (
+                      <Container position="absolute" left="-8px">
+                        {containerProps => (
+                          <MotionButton
+                            size="xs"
+                            priority="transparent"
+                            icon={<IconArrow direction="left" aria-hidden />}
+                            onClick={() => {
+                              dispatch({type: 'pop action'});
+                              state.input.current?.focus();
+                            }}
+                            aria-label={t('Return to previous action')}
+                            {...makeLeadingItemAnimation(theme)}
+                            {...containerProps}
+                          />
+                        )}
+                      </Container>
+                    ) : (
+                      <MotionIconSearch
+                        size="sm"
+                        aria-hidden
+                        {...makeLeadingItemAnimation(theme)}
+                      />
+                    )}
+                  </AnimatePresence>
                 </StyledInputLeadingItems>
                 <StyledInputGroupInput
                   autoFocus
@@ -221,18 +249,23 @@ export function CommandPalette(props: CommandPaletteProps) {
                   })}
                 />
                 <InputGroup.TrailingItems>
-                  {state.query.length > 0 || state.action ? (
-                    <Button
-                      size="xs"
-                      priority="transparent"
-                      icon={<IconClose size="xs" aria-hidden />}
-                      onClick={() => {
-                        dispatch({type: 'reset'});
-                        state.input.current?.focus();
-                      }}
-                      aria-label={t('Reset')}
-                    />
-                  ) : null}
+                  <AnimatePresence mode="popLayout">
+                    {state.query.length > 0 || state.action ? (
+                      <Container position="absolute" right="-8px">
+                        <MotionButton
+                          size="xs"
+                          priority="transparent"
+                          aria-label={t('Reset')}
+                          icon={<IconClose size="xs" aria-hidden />}
+                          onClick={() => {
+                            dispatch({type: 'reset'});
+                            state.input.current?.focus();
+                          }}
+                          {...makeLeadingItemAnimation(theme)}
+                        />
+                      </Container>
+                    ) : null}
+                  </AnimatePresence>
                 </InputGroup.TrailingItems>
               </InputGroup>
             );
@@ -451,7 +484,7 @@ const StyledInputLeadingItems = styled(InputGroup.LeadingItems)`
 
 const StyledInputGroupInput = styled(InputGroup.Input)`
   padding-left: calc(${p => p.theme.space['2xl']} + ${p => p.theme.space.md});
-  padding-right: 48px;
+  padding-right: 38px;
 `;
 
 const ResultsList = styled(Flex)`
