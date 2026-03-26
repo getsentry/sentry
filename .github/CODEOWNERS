@@ -571,7 +571,9 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/dynamic_sampling/                                                    @getsentry/telemetry-experience
 /tests/sentry/dynamic_sampling/                                                  @getsentry/telemetry-experience
 /src/sentry/release_health/metrics_sessions_v2.py                                @getsentry/telemetry-experience
+/src/sentry/release_health/eap_sessions_rollout.py                               @getsentry/telemetry-experience
 /tests/sentry/release_health/test_metrics_sessions_v2.py                         @getsentry/telemetry-experience
+/tests/sentry/release_health/test_eap_sessions_rollout.py                        @getsentry/telemetry-experience
 /src/sentry/utils/platform_categories.py                                         @getsentry/telemetry-experience
 /src/sentry/sentry_metrics/querying/                                             @getsentry/telemetry-experience
 /tests/sentry/sentry_metrics/querying/                                           @getsentry/telemetry-experience
