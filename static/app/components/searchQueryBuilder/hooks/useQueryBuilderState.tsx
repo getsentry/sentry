@@ -281,6 +281,32 @@ function deleteQueryTokens(
   };
 }
 
+function termOperatorToInternal(op: TermOperator): {
+  internalOp: TermOperator;
+  negated: boolean;
+} {
+  const negated =
+    op === TermOperator.NOT_EQUAL ||
+    op === TermOperator.DOES_NOT_CONTAIN ||
+    op === TermOperator.DOES_NOT_START_WITH ||
+    op === TermOperator.DOES_NOT_END_WITH;
+
+  let internalOp: TermOperator;
+  if (op === TermOperator.DOES_NOT_CONTAIN) {
+    internalOp = TermOperator.CONTAINS;
+  } else if (op === TermOperator.DOES_NOT_START_WITH) {
+    internalOp = TermOperator.STARTS_WITH;
+  } else if (op === TermOperator.DOES_NOT_END_WITH) {
+    internalOp = TermOperator.ENDS_WITH;
+  } else if (op === TermOperator.NOT_EQUAL) {
+    internalOp = TermOperator.DEFAULT;
+  } else {
+    internalOp = op;
+  }
+
+  return {negated, internalOp};
+}
+
 export function modifyFilterOperatorQuery(
   query: string,
   token: TokenResult<Token.FILTER>,
@@ -290,23 +316,10 @@ export function modifyFilterOperatorQuery(
     return modifyFilterOperatorDate(query, token, newOperator);
   }
 
+  const {negated, internalOp} = termOperatorToInternal(newOperator);
   const newToken: TokenResult<Token.FILTER> = {...token};
-  newToken.negated =
-    newOperator === TermOperator.NOT_EQUAL ||
-    newOperator === TermOperator.DOES_NOT_CONTAIN ||
-    newOperator === TermOperator.DOES_NOT_START_WITH ||
-    newOperator === TermOperator.DOES_NOT_END_WITH;
-
-  if (newOperator === TermOperator.DOES_NOT_CONTAIN) {
-    newToken.operator = TermOperator.CONTAINS;
-  } else if (newOperator === TermOperator.DOES_NOT_START_WITH) {
-    newToken.operator = TermOperator.STARTS_WITH;
-  } else if (newOperator === TermOperator.DOES_NOT_END_WITH) {
-    newToken.operator = TermOperator.ENDS_WITH;
-  } else {
-    newToken.operator =
-      newOperator === TermOperator.NOT_EQUAL ? TermOperator.DEFAULT : newOperator;
-  }
+  newToken.negated = negated;
+  newToken.operator = internalOp;
 
   return replaceQueryToken(query, token, stringifyToken(newToken));
 }
@@ -622,24 +635,7 @@ export function modifyFilterValue(
   }
 
   // Operator change — replace the entire filter token atomically
-  const negated =
-    newOp === TermOperator.NOT_EQUAL ||
-    newOp === TermOperator.DOES_NOT_CONTAIN ||
-    newOp === TermOperator.DOES_NOT_START_WITH ||
-    newOp === TermOperator.DOES_NOT_END_WITH;
-
-  let internalOp: TermOperator;
-  if (newOp === TermOperator.DOES_NOT_CONTAIN) {
-    internalOp = TermOperator.CONTAINS;
-  } else if (newOp === TermOperator.DOES_NOT_START_WITH) {
-    internalOp = TermOperator.STARTS_WITH;
-  } else if (newOp === TermOperator.DOES_NOT_END_WITH) {
-    internalOp = TermOperator.ENDS_WITH;
-  } else if (newOp === TermOperator.NOT_EQUAL) {
-    internalOp = TermOperator.DEFAULT;
-  } else {
-    internalOp = newOp;
-  }
+  const {negated, internalOp} = termOperatorToInternal(newOp);
 
   const prefix = negated ? '!' : '';
   const keyStr = stringifyToken(token.key);
