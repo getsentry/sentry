@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useEffect, useMemo, useRef} from 'react';
 import * as Sentry from '@sentry/react';
 import uniqueId from 'lodash/uniqueId';
 
@@ -51,6 +51,7 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
   const queriesTypedRef = useRef(0);
   const completedRef = useRef(false);
   const maxDrillDepthRef = useRef(0);
+  const hadInteractionRef = useRef(false);
 
   // Track group drill-downs by watching state.action changes
   const prevActionRef = useRef(state.action);
@@ -63,6 +64,7 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
     if (curr !== null && curr !== prev && curr.previous === prev) {
       const groupAction = curr.value.action;
       actionsSelectedRef.current++;
+      hadInteractionRef.current = true;
 
       const depth = getLinkedListDepth(curr);
       if (depth > maxDrillDepthRef.current) {
@@ -80,6 +82,13 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
       });
     }
   }, [state.action, organization]);
+
+  // Track any query input as interaction immediately (not debounced)
+  useEffect(() => {
+    if (state.query.length > 0) {
+      hadInteractionRef.current = true;
+    }
+  }, [state.query]);
 
   // Debounced query tracking (500ms)
   const lastTrackedQueryRef = useRef('');
@@ -134,6 +143,7 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
     const queries = queriesTypedRef;
     const done = completedRef;
     const depth = maxDrillDepthRef;
+    const hadInteraction = hadInteractionRef;
 
     return () => {
       const s = stateRef.current;
@@ -141,7 +151,7 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
       trackAnalytics('command_palette.closed', {
         organization,
         query: s.query,
-        had_interaction: s.query.length > 0 || s.action !== null || actions.current > 0,
+        had_interaction: hadInteraction.current,
         session_id: sessionId,
       });
 
@@ -158,28 +168,32 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return {
-    recordAction(
-      action: Exclude<CommandPaletteActionWithKey, {type: 'group'}>,
-      resultIndex: number,
-      group: string
-    ) {
-      const path = getActionPath(stateRef.current);
-      const label =
-        path.length > 0 ? `${path} → ${action.display.label}` : action.display.label;
+  return useMemo(
+    () => ({
+      recordAction(
+        action: Exclude<CommandPaletteActionWithKey, {type: 'group'}>,
+        resultIndex: number,
+        group: string
+      ) {
+        const path = getActionPath(stateRef.current);
+        const label =
+          path.length > 0 ? `${path} → ${action.display.label}` : action.display.label;
 
-      trackAnalytics('command_palette.action_selected', {
-        organization,
-        action: label,
-        query: stateRef.current.query,
-        action_type: action.type,
-        group,
-        result_index: resultIndex,
-        session_id: sessionIdRef.current,
-      });
+        trackAnalytics('command_palette.action_selected', {
+          organization,
+          action: label,
+          query: stateRef.current.query,
+          action_type: action.type,
+          group,
+          result_index: resultIndex,
+          session_id: sessionIdRef.current,
+        });
 
-      actionsSelectedRef.current++;
-      completedRef.current = true;
-    },
-  };
+        hadInteractionRef.current = true;
+        actionsSelectedRef.current++;
+        completedRef.current = true;
+      },
+    }),
+    [organization]
+  );
 }
