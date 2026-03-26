@@ -126,12 +126,11 @@ export function ProjectSampling() {
       <form.Subscribe
         selector={s => ({
           isDirty: s.isDirty,
-          canSubmit: s.canSubmit,
           currentProjectRates: s.values.projectRates,
           fieldMeta: s.fieldMeta,
         })}
       >
-        {({isDirty, canSubmit, currentProjectRates, fieldMeta}) => {
+        {({isDirty, currentProjectRates, fieldMeta}) => {
           const projectErrors: Record<string, string | undefined> = {};
           for (const id of Object.keys(currentProjectRates)) {
             const error = fieldMeta[`projectRates.${id}`]?.errors?.[0]?.message;
@@ -177,10 +176,7 @@ export function ProjectSampling() {
                       >
                         {t('Reset')}
                       </Button>
-                      <form.SubmitButton
-                        disabled={!hasAccess || !canSubmit}
-                        formNoValidate
-                      >
+                      <form.SubmitButton disabled={!hasAccess} formNoValidate>
                         {t('Apply Changes')}
                       </form.SubmitButton>
                     </Fragment>

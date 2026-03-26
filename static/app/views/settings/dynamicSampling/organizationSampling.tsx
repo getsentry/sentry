@@ -82,8 +82,8 @@ export function OrganizationSampling() {
 
   return (
     <form.AppForm form={form}>
-      <form.Subscribe selector={s => ({isDirty: s.isDirty, canSubmit: s.canSubmit})}>
-        {({isDirty, canSubmit}) => (
+      <form.Subscribe selector={s => ({isDirty: s.isDirty})}>
+        {({isDirty}) => (
           <Fragment>
             <OnRouteLeave
               message={UNSAVED_CHANGES_MESSAGE}
@@ -123,10 +123,7 @@ export function OrganizationSampling() {
                             'You do not have permission to update these settings.'
                           )}
                         >
-                          <form.SubmitButton
-                            disabled={!hasAccess || !canSubmit}
-                            formNoValidate
-                          >
+                          <form.SubmitButton disabled={!hasAccess} formNoValidate>
                             {t('Apply Changes')}
                           </form.SubmitButton>
                         </Tooltip>
