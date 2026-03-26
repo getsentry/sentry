@@ -1089,17 +1089,17 @@ describe('SearchQueryBuilder', () => {
 
       await userEvent.click(await screen.findByRole('option', {name: 'Firefox'}));
 
-      // New token should have a value
+      // New token should have a value, and selecting from dropdown switches operator to "is"
       expect(
         screen.getByRole('row', {
-          name: `browser.name:${WildcardOperators.CONTAINS}Firefox`,
+          name: 'browser.name:Firefox',
         })
       ).toBeInTheDocument();
 
       // Now we call onChange
       expect(mockOnChange).toHaveBeenCalledTimes(1);
       expect(mockOnChange).toHaveBeenCalledWith(
-        `browser.name:${WildcardOperators.CONTAINS}Firefox`,
+        'browser.name:Firefox',
         expect.anything()
       );
     });
@@ -1266,9 +1266,10 @@ describe('SearchQueryBuilder', () => {
       await userEvent.keyboard('{enter}');
       await userEvent.click(screen.getByRole('option', {name: '[Filtered]'}));
 
+      // Selecting from dropdown switches operator from contains to "is"
       expect(
         await screen.findByRole('row', {
-          name: `message:${WildcardOperators.CONTAINS}"[Filtered]"`,
+          name: 'message:"[Filtered]"',
         })
       ).toBeInTheDocument();
     });
