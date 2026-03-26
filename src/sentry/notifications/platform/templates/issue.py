@@ -61,7 +61,7 @@ class IssueNotificationData(NotificationData):
 
     group_id: int
     event_id: str | None = None
-    rule: SerializableRuleProxy | None = None
+    rule: SerializableRuleProxy
     notification_uuid: str = ""
 
 
