@@ -1,5 +1,4 @@
 import {useCallback, useMemo} from 'react';
-import styled from '@emotion/styled';
 import {mutationOptions} from '@tanstack/react-query';
 import {PlatformIcon} from 'platformicons';
 import {z} from 'zod';
@@ -157,8 +156,8 @@ const RESOLVE_AGE_OPTIONS = RESOLVE_AGE_ALLOWED_VALUES.map(val => ({
 const PLATFORM_OPTIONS = platforms.map(({id, name}) => ({
   value: id,
   label: (
-    <Flex key={id} align="center">
-      <StyledPlatformIcon platform={id} />
+    <Flex key={id} align="center" gap="md">
+      <PlatformIcon platform={id} />
       {name}
     </Flex>
   ),
@@ -991,12 +990,6 @@ function TransferEmailField({
     </form.AppForm>
   );
 }
-
-// --- Styled Components ---
-
-const StyledPlatformIcon = styled(PlatformIcon)`
-  margin-right: ${p => p.theme.space.md};
-`;
 
 // --- Container Component ---
 
