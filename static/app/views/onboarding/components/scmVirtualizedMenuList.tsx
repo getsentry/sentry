@@ -38,6 +38,12 @@ export function ScmVirtualizedMenuList({
 
   const virtualItems = virtualizer.getVirtualItems();
 
+  // When no options match, react-select passes a single NoOptionsMessage
+  // element (not an array). Render it directly without virtualization.
+  if (!Array.isArray(children)) {
+    return <div style={{maxHeight, overflowY: 'auto'}}>{children}</div>;
+  }
+
   return (
     <div ref={scrollRef} style={{maxHeight, overflowY: 'auto'}}>
       <div style={{height: virtualizer.getTotalSize(), position: 'relative'}}>
