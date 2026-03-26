@@ -60,7 +60,11 @@ logger = logging.getLogger(__name__)
 
 # Typed RPC stub — the body is never called. The decorator registers the task signature
 # with the external namespace; dispatch happens via process_artifact.apply_async().
-@launchpad_tasks.register(name="process_artifact")
+@launchpad_tasks.register(
+    name="process_artifact",
+    retry=Retry(times=3),
+    processing_deadline_duration=60 * 12,
+)
 def process_artifact(artifact_id: str, project_id: str, organization_id: str) -> None:
     pass
 
