@@ -5,6 +5,7 @@ import {toArray} from 'sentry/utils/array/toArray';
 import {getKeyCode} from './keyMappings';
 
 const isKeyPressed = (key: string, evt: KeyboardEvent): boolean => {
+  // TODO(design-eng): we should just use `key`, `keyCode` is deprecated
   const keyCode = getKeyCode(key);
   switch (keyCode) {
     case getKeyCode('command'):
