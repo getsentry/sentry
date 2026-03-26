@@ -137,7 +137,7 @@ def provision_middleware():
 @override_settings(ROOT_URLCONF=__name__)
 class ApiGatewayTestCase(APITestCase):
     # Subclasses will generally need to be decorated with
-    #     @*_silo_test(regions=[ApiGatewayTestCase.CELL])
+    #     @*_silo_test(cells=[ApiGatewayTestCase.CELL])
 
     CELL = Cell(
         name="us",
