@@ -691,7 +691,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         mock_request.assert_not_called()
 
 
-class ProjectSeerPreferencesSentryDbTest(APITestCase):
+class ProjectSeerPreferencesSentryDbEndpointTest(APITestCase):
     """Tests for Sentry DB read/write behavior behind feature flags."""
 
     endpoint = "sentry-api-0-project-seer-preferences"

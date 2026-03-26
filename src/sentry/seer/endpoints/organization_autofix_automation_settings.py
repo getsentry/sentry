@@ -25,6 +25,7 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     SeerAutofixSettingsSerializer,
     bulk_get_project_preferences,
+    bulk_read_preferences_from_sentry_db,
     bulk_set_project_preferences,
     bulk_write_preferences_to_sentry_db,
     deduplicate_repositories,
@@ -183,7 +184,15 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
         autofix_automation_tuning_map = ProjectOption.objects.get_value_bulk(
             projects, "sentry:autofix_automation_tuning"
         )
-        seer_preferences_map = bulk_get_project_preferences(organization.id, project_ids_list) or {}
+        if features.has("organizations:seer-project-settings-read-from-sentry", organization):
+            raw_preferences = bulk_read_preferences_from_sentry_db(
+                organization.id, project_ids_list
+            )
+            seer_preferences_map = {str(pid): pref.dict() for pid, pref in raw_preferences.items()}
+        else:
+            seer_preferences_map = (
+                bulk_get_project_preferences(organization.id, project_ids_list) or {}
+            )
         results = []
         for project in projects:
             autofix_automation_tuning = (
@@ -292,9 +301,17 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
         preferences_to_set: list[dict[str, Any]] = []
 
         if automated_run_stopping_point or filtered_repo_mappings:
-            existing_preferences = bulk_get_project_preferences(
-                organization.id, list(projects_by_id.keys())
-            )
+            if features.has("organizations:seer-project-settings-read-from-sentry", organization):
+                raw_existing_preferences = bulk_read_preferences_from_sentry_db(
+                    organization.id, list(projects_by_id.keys())
+                )
+                existing_preferences = {
+                    str(pid): pref.dict() for pid, pref in raw_existing_preferences.items()
+                }
+            else:
+                existing_preferences = bulk_get_project_preferences(
+                    organization.id, list(projects_by_id.keys())
+                )
 
             for proj_id, project in projects_by_id.items():
                 has_stopping_point_update = automated_run_stopping_point is not None

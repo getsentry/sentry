@@ -172,7 +172,7 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
                 raise SeerApiError("Seer request failed", response.status)
 
             result = response.json()
-            preference = result.get("preference")
+            preference = SeerProjectPreference.validate(result.get("preference"))
 
         code_mapping_repos = get_autofix_repos_from_project_code_mappings(project)
 
