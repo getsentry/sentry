@@ -1,4 +1,5 @@
-import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {Text} from '@sentry/scraps/text';
+
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -12,11 +13,11 @@ import {
 } from 'sentry/utils/preprod/useSizeAnalysisComparison';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {TreemapDiffSection} from 'sentry/views/preprod/buildComparison/main/treemapDiffSection';
+import {InsightComparisonSection} from 'sentry/views/preprod/buildComparison/main/insightComparisonSection';
 
 type SectionProps = MetricIds & {project: Project};
 
-function EventXrayDiffContent({baseMetricId, headMetricId, project}: SectionProps) {
+function EventInsightDiffContent({baseMetricId, headMetricId, project}: SectionProps) {
   const query = useSizeAnalysisComparison({baseMetricId, headMetricId, project});
 
   if (query.isLoading) {
@@ -26,26 +27,32 @@ function EventXrayDiffContent({baseMetricId, headMetricId, project}: SectionProp
   if (query.isError) {
     return (
       <LoadingError
-        message={t('Failed to load X-Ray diff data.')}
+        message={t('Failed to load insight diff data.')}
         onRetry={query.refetch}
       />
     );
   }
 
-  const diffItems = query.data?.diff_items;
+  const insightDiffItems = query.data?.insight_diff_items;
+  const totalInstallSizeBytes = query.data?.size_metric_diff_item.head_install_size ?? 0;
 
-  if (!diffItems || diffItems.length === 0) {
-    return <EmptyStateWarning small>{t('No diff found.')}</EmptyStateWarning>;
+  if (!insightDiffItems || insightDiffItems.length === 0) {
+    return <Text>{t('No insight diff for comparison')}</Text>;
   }
 
-  return <TreemapDiffSection diffItems={diffItems} />;
+  return (
+    <InsightComparisonSection
+      insightDiffItems={insightDiffItems}
+      totalInstallSizeBytes={totalInstallSizeBytes}
+    />
+  );
 }
 
-function EventXrayDiffSection({baseMetricId, headMetricId, project}: SectionProps) {
+function EventInsightDiffSection({baseMetricId, headMetricId, project}: SectionProps) {
   return (
-    <InterimSection title={t('X-Ray diff')} type={SectionKey.XRAY_DIFF}>
+    <InterimSection title={t('Insight Diff')} type={SectionKey.INSIGHT_DIFF}>
       <ErrorBoundary mini>
-        <EventXrayDiffContent
+        <EventInsightDiffContent
           project={project}
           headMetricId={headMetricId}
           baseMetricId={baseMetricId}
@@ -60,12 +67,12 @@ type Props = {
   project: Project;
 };
 
-function EventXrayDiff(props: Props) {
+function EventInsightDiff(props: Props) {
   const ids = getMetricIds(props.event);
   if (ids) {
-    return <EventXrayDiffSection {...props} {...ids} />;
+    return <EventInsightDiffSection {...props} {...ids} />;
   }
   return null;
 }
 
-export {EventXrayDiff};
+export {EventInsightDiff};

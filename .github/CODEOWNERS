@@ -796,6 +796,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/preprod/                                   @getsentry/emerge-tools
 /static/app/views/preprod/                             @getsentry/emerge-tools
 /tests/sentry/preprod/                                 @getsentry/emerge-tools
+/static/app/components/events/eventInsightDiff.tsx     @getsentry/emerge-tools
 /bin/preprod/                                          @getsentry/emerge-tools
 # End of preprod
 
