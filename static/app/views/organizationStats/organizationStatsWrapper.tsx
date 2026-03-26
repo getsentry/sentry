@@ -1,5 +1,6 @@
 import {Outlet} from 'react-router-dom';
 
+import * as Layout from 'sentry/components/layouts/thirds';
 import {Redirect} from 'sentry/components/redirect';
 import {useRedirectNavigationV2Routes} from 'sentry/views/navigation/useRedirectNavigationV2Routes';
 
@@ -15,5 +16,9 @@ export function OrganizationStatsWrapper() {
     return <Redirect to={redirectPath} />;
   }
 
-  return <Outlet />;
+  return (
+    <Layout.Page>
+      <Outlet />
+    </Layout.Page>
+  );
 }
