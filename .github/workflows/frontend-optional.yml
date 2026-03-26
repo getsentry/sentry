@@ -25,8 +25,11 @@ jobs:
       testable_rules_changed: ${{ steps.changes.outputs.testable_rules_changed }}
       typecheckable_rules_changed: ${{ steps.changes.outputs.typecheckable_rules_changed }}
       frontend_all: ${{ steps.changes.outputs.frontend_all }}
+      merge_base: ${{ steps.merge_base.outputs.merge_base }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          fetch-depth: 100
 
       - name: Check for frontend file changes
         uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
@@ -36,8 +39,33 @@ jobs:
           filters: .github/file-filters.yml
           list-files: shell
 
+      # On PRs, HEAD is the merge commit; its parents (HEAD^1, HEAD^2) are base and head.
+      # Merge base of those two is what Jest --changedSince needs.
+      # If merge base can't be computed or non-frontend files changed, output is empty
+      # and the optional Jest job will be skipped entirely.
+      - name: Get merge base for changedSince
+        id: merge_base
+        run: |
+          MERGE_BASE=$(git merge-base HEAD^1 HEAD^2 2>/dev/null) || true
+          if [ -n "$MERGE_BASE" ]; then
+            CHANGED=$(git diff --name-only "$MERGE_BASE" HEAD^2)
+            if echo "$CHANGED" | grep -qvE '^static/'; then
+              echo "Non-frontend file changed — skipping optional Jest"
+              MERGE_BASE=""
+            else
+              echo "Merge base: $MERGE_BASE (Jest will use --changedSince)"
+            fi
+          else
+            echo "Could not compute merge base — skipping optional Jest"
+          fi
+          echo "merge_base=${MERGE_BASE:-}" >> "$GITHUB_OUTPUT"
+
+  # This job intentionally mirrors `frontend-jest-tests` in frontend.yml.
+  # Our intent is to try it out for a few weeks and see if it's stable.
   frontend-jest-tests-changed-only:
-    if: needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
+    if: >-
+      needs.files-changed.outputs.merge_base != '' &&
+      (needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true')
     needs: [files-changed]
     name: Jest
     # If you change the runs-on image, you must also change the runner in jest-balance.yml
@@ -50,7 +78,6 @@ jobs:
       fail-fast: false
       matrix:
         # XXX: When updating this, make sure you also update CI_NODE_TOTAL.
-
         instance: [0, 1, 2, 3]
 
     steps:
@@ -76,26 +103,6 @@ jobs:
           search_artifacts: true # Search for the last workflow run whose stored the artifact we're looking for
           if_no_artifact_found: warn # Can be one of: "fail", "warn", "ignore"
 
-      # On PRs, HEAD is the merge commit; its parents (HEAD^1, HEAD^2) are base and head.
-      # Merge base of those two is what Jest --changedSince needs. Checkout uses fetch-depth: 100 for PRs.
-      - name: Get merge base for changedSince (PRs only)
-        id: merge_base
-        if: github.event_name == 'pull_request'
-        run: |
-          MERGE_BASE=$(git merge-base HEAD^1 HEAD^2 2>/dev/null) || true
-          if [ -n "$MERGE_BASE" ]; then
-            CHANGED=$(git diff --name-only "$MERGE_BASE" HEAD^2)
-            if echo "$CHANGED" | grep -qvE '^static/'; then
-              echo "Non-frontend file changed — running full test suite"
-              MERGE_BASE=""
-            else
-              echo "Merge base: $MERGE_BASE (Jest will use --changedSince)"
-            fi
-          else
-            echo "Merge base: could not compute, will run full test suite"
-          fi
-          echo "merge_base=${MERGE_BASE:-}" >> "$GITHUB_OUTPUT"
-
       - name: jest
         env:
           GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -111,7 +118,7 @@ jobs:
           #
           # This quiets up the logs quite a bit.
           DEBUG_PRINT_LIMIT: 0
-          MERGE_BASE: ${{ steps.merge_base.outputs.merge_base }}
+          MERGE_BASE: ${{ needs.files-changed.outputs.merge_base }}
         run: pnpm run test-ci --forceExit
 
   typescript-native:
