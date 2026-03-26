@@ -39,9 +39,9 @@ function addKeysToChildActions(
   actions: Array<CommandPaletteActionLink | CommandPaletteActionCallback>
 ): Array<CommandPaletteActionLinkWithKey | CommandPaletteActionCallbackWithKey> {
   return actions.map(action => {
-    const actionKey = `${id}:${action.type}:${action.display.label
-      .toLowerCase()
-      .replace(/ /g, '-')}`;
+    const label = action.display.label.toLowerCase().replace(/ /g, '-');
+    const disambiguator = action.type === 'navigate' ? `:${action.to}` : '';
+    const actionKey = `${id}:${action.type}:${label}${disambiguator}`;
     return {
       ...action,
       key: actionKey,
