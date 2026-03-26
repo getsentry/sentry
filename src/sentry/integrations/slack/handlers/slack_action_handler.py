@@ -43,3 +43,8 @@ class SlackActionHandler(IntegrationActionHandler):
         from sentry.notifications.notification_action.utils import execute_via_group_type_registry
 
         execute_via_group_type_registry(invocation)
+
+
+@action_handler_registry.register(Action.Type.SLACK_STAGING)
+class SlackStagingActionHandler(SlackActionHandler):
+    provider_slug = IntegrationProviderSlug.SLACK_STAGING
