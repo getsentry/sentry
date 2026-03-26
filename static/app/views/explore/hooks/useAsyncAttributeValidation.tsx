@@ -47,13 +47,16 @@ export function useAsyncAttributeValidation(
     mutationFn: (parsedQuery: ParseResult | null) => {
       const keySet = new Set<string>();
       if (parsedQuery) {
+        if (parsedQuery.length === 0) {
+          return Promise.resolve({attributes: {}} as ValidateAttributesResponse);
+        }
+
         for (const token of parsedQuery) {
           if (token.type === Token.FILTER) {
             keySet.add(getKeyName(token.key));
           }
         }
       }
-      const keys = [...keySet];
 
       const queryParams = {
         ...Object.fromEntries(
@@ -69,7 +72,7 @@ export function useAsyncAttributeValidation(
           '/organizations/$organizationIdOrSlug/trace-items/attributes/validate/',
           {path: {organizationIdOrSlug: organization.slug}}
         ),
-        data: {itemType, attributes: keys},
+        data: {itemType, attributes: [...keySet]},
         method: 'POST',
         options: {query: queryParams},
       });
