@@ -65,7 +65,6 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
       {
         value: selectedSlug,
         label: selectedRepository.name,
-        textValue: selectedRepository.name,
         disabled: true,
       },
       ...dropdownItems,

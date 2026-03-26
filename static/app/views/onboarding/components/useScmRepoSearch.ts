@@ -45,7 +45,6 @@ export function useScmRepoSearch(integrationId: string, selectedRepo?: Repositor
         dropdownItems: Array<{
           disabled: boolean;
           label: string;
-          textValue: string;
           value: string;
         }>;
         reposByIdentifier: Map<string, IntegrationRepository>;
@@ -55,7 +54,6 @@ export function useScmRepoSearch(integrationId: string, selectedRepo?: Repositor
           acc.dropdownItems.push({
             value: repo.identifier,
             label: repo.name,
-            textValue: repo.name,
             disabled: repo.identifier === selectedRepoSlug,
           });
           return acc;
