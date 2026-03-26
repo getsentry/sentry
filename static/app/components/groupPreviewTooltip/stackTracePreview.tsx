@@ -12,11 +12,7 @@ import {
   usePreviewEvent,
 } from 'sentry/components/groupPreviewTooltip/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
-import {IssueFrameActions} from 'sentry/components/stackTrace/issueStackTrace/issueFrameActions';
-import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTraceContext';
-import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
-import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
+import {IssueStackTracePreview} from 'sentry/components/stackTrace/issueStackTrace/issueStackTracePreview';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -54,26 +50,6 @@ export function getStacktrace(event: Event): StacktraceType | null {
   }
 
   return null;
-}
-
-function IssueStackTracePreviewContent({
-  event,
-  stacktrace,
-}: {
-  event: Event;
-  stacktrace: StacktraceType;
-}) {
-  return (
-    <StackTraceViewStateProvider platform={event.platform}>
-      <StackTraceProvider event={event} stacktrace={stacktrace}>
-        <StackTraceFrames
-          borderless
-          frameActionsComponent={IssueFrameActions}
-          frameContextComponent={FrameContent}
-        />
-      </StackTraceProvider>
-    </StackTraceViewStateProvider>
-  );
 }
 
 export function StackTracePreviewContent({
@@ -117,7 +93,7 @@ export function StackTracePreviewContent({
   }
 
   if (organization.features.includes('issue-details-new-stack-trace')) {
-    return <IssueStackTracePreviewContent event={event} stacktrace={stacktrace} />;
+    return <IssueStackTracePreview event={event} stacktrace={stacktrace} />;
   }
 
   return <StackTraceContent {...commonProps} expandFirstFrame={false} hideIcon />;

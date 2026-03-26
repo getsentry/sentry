@@ -1241,11 +1241,12 @@ export default Storybook.story('StackTrace', story => {
         <WideHovercard
           body={
             <StoryStackTraceProvider event={event} stacktrace={stacktrace} maxDepth={5}>
-              <StackTraceFrames
-                borderless
-                frameContextComponent={FrameContent}
-                frameActionsComponent={StoryFrameActions}
-              />
+              <BorderlessFrames>
+                <StackTraceFrames
+                  frameContextComponent={FrameContent}
+                  frameActionsComponent={StoryFrameActions}
+                />
+              </BorderlessFrames>
             </StoryStackTraceProvider>
           }
         >
@@ -1314,4 +1315,11 @@ const HoverActionsSlot = styled(Flex)<{visible: boolean}>`
   gap: ${p => p.theme.space.sm};
   opacity: ${p => (p.visible ? 1 : 0)};
   pointer-events: ${p => (p.visible ? 'auto' : 'none')};
+`;
+
+const BorderlessFrames = styled('div')`
+  > * {
+    border: 0;
+    border-radius: 0;
+  }
 `;

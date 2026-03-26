@@ -1,5 +1,4 @@
 import {Activity, useMemo, useRef, type ComponentType} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
@@ -26,12 +25,10 @@ function OmittedFramesBanner({omittedFrames}: {omittedFrames: [number, number]})
 
 interface StackTraceFramesProps {
   frameContextComponent: ComponentType;
-  borderless?: boolean;
   frameActionsComponent?: ComponentType<{isHovering: boolean}>;
 }
 
 export function StackTraceFrames({
-  borderless = false,
   frameContextComponent: FrameContextComponent,
   frameActionsComponent: FrameActionsComponent = StackTraceFrameRow.Actions.Default,
 }: StackTraceFramesProps) {
@@ -77,7 +74,7 @@ export function StackTraceFrames({
   }
 
   return (
-    <FramesPanel borderless={borderless}>
+    <FramesPanel>
       {allRows.map(row => {
         if (row.kind === 'omitted') {
           return (
@@ -109,15 +106,9 @@ export function StackTraceFrames({
   );
 }
 
-const FramesPanel = styled(Panel)<{borderless: boolean}>`
+const FramesPanel = styled(Panel)`
   overflow: hidden;
   margin-bottom: 0;
-  ${p =>
-    p.borderless &&
-    css`
-      border: 0;
-      border-radius: 0;
-    `}
 
   > * + * {
     border-top: 1px solid ${p => p.theme.tokens.border.primary};
