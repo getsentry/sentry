@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
 import {IssueFrameActions} from 'sentry/components/stackTrace/issueStackTrace/issueFrameActions';
 import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTraceContext';
@@ -18,20 +16,12 @@ export function IssueStackTracePreview({
   return (
     <StackTraceViewStateProvider platform={event.platform}>
       <StackTraceProvider event={event} stacktrace={stacktrace}>
-        <BorderlessFrames>
-          <StackTraceFrames
-            frameActionsComponent={IssueFrameActions}
-            frameContextComponent={FrameContent}
-          />
-        </BorderlessFrames>
+        <StackTraceFrames
+          borderless
+          frameActionsComponent={IssueFrameActions}
+          frameContextComponent={FrameContent}
+        />
       </StackTraceProvider>
     </StackTraceViewStateProvider>
   );
 }
-
-const BorderlessFrames = styled('div')`
-  > * {
-    border: 0;
-    border-radius: 0;
-  }
-`;

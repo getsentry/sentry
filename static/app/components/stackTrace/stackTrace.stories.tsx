@@ -14,6 +14,7 @@ import {HiddenFramesToggleAction} from 'sentry/components/stackTrace/frame/actio
 import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
 import {StackTraceFrameRow} from 'sentry/components/stackTrace/frame/frameRow';
 import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
+import {IssueStackTracePreview} from 'sentry/components/stackTrace/issueStackTrace/issueStackTracePreview';
 import {
   StackTraceViewStateProvider,
   useStackTraceContext,
@@ -1239,16 +1240,7 @@ export default Storybook.story('StackTrace', story => {
     return (
       <Flex align="center" justify="center">
         <WideHovercard
-          body={
-            <StoryStackTraceProvider event={event} stacktrace={stacktrace} maxDepth={5}>
-              <BorderlessFrames>
-                <StackTraceFrames
-                  frameContextComponent={FrameContent}
-                  frameActionsComponent={StoryFrameActions}
-                />
-              </BorderlessFrames>
-            </StoryStackTraceProvider>
-          }
+          body={<IssueStackTracePreview event={event} stacktrace={stacktrace} />}
         >
           Hovercard Trigger
         </WideHovercard>
@@ -1315,11 +1307,4 @@ const HoverActionsSlot = styled(Flex)<{visible: boolean}>`
   gap: ${p => p.theme.space.sm};
   opacity: ${p => (p.visible ? 1 : 0)};
   pointer-events: ${p => (p.visible ? 'auto' : 'none')};
-`;
-
-const BorderlessFrames = styled('div')`
-  > * {
-    border: 0;
-    border-radius: 0;
-  }
 `;
