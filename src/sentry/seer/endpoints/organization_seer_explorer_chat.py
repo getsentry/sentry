@@ -83,7 +83,12 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         Get the current state of a Seer Explorer session.
         """
         has_access, error = has_seer_explorer_access_with_detail(organization, request.user)
-        if not has_access:
+
+        has_dashboards_ai_generate_access = features.has(
+            "organizations:dashboards-ai-generate", organization, actor=request.user
+        )
+
+        if not has_access and not has_dashboards_ai_generate_access:
             raise PermissionDenied(error)
 
         if not run_id:
@@ -115,7 +120,16 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         - run_id: The run ID.
         """
         has_access, error = has_seer_explorer_access_with_detail(organization, request.user)
-        if not has_access:
+
+        has_dashboards_ai_generate_access = features.has(
+            "organizations:dashboards-ai-generate", organization, actor=request.user
+        )
+        # Orgs with dashboards AI generate access can continue existing dashboard generate runs, but cannot start new runs from this endpoint.
+        can_continue_dashboards_generate_run = (
+            has_dashboards_ai_generate_access and run_id is not None
+        )
+
+        if not has_access and not can_continue_dashboards_generate_run:
             raise PermissionDenied(error)
 
         serializer = SeerExplorerChatSerializer(data=request.data)
