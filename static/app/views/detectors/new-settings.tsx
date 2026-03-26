@@ -28,13 +28,11 @@ export default function DetectorNewSettings() {
 
   if (isFetchingProjects) {
     return (
-      <Layout.Page>
-        <Layout.Body>
-          <Layout.Main width="full">
-            <LoadingIndicator />
-          </Layout.Main>
-        </Layout.Body>
-      </Layout.Page>
+      <Layout.Body>
+        <Layout.Main width="full">
+          <LoadingIndicator />
+        </Layout.Main>
+      </Layout.Body>
     );
   }
 

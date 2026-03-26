@@ -193,43 +193,41 @@ export default function AutomationNewSettings() {
     >
       <AutomationFormProvider>
         <AutomationDocumentTitle />
-        <Layout.Page>
-          <StyledLayoutHeader>
-            <HeaderInner maxWidth={maxWidth}>
-              <Layout.HeaderContent>
-                <AutomationBreadcrumbs />
-                <Layout.Title>
-                  <EditableAutomationName />
-                </Layout.Title>
-              </Layout.HeaderContent>
-              <div>
-                <AutomationFeedbackButton />
-              </div>
-            </HeaderInner>
-          </StyledLayoutHeader>
-          <StyledBody maxWidth={maxWidth}>
-            <Layout.Main width="full">
-              <AutomationBuilderErrorContext.Provider
+        <StyledLayoutHeader>
+          <HeaderInner maxWidth={maxWidth}>
+            <Layout.HeaderContent>
+              <AutomationBreadcrumbs />
+              <Layout.Title>
+                <EditableAutomationName />
+              </Layout.Title>
+            </Layout.HeaderContent>
+            <div>
+              <AutomationFeedbackButton />
+            </div>
+          </HeaderInner>
+        </StyledLayoutHeader>
+        <StyledBody maxWidth={maxWidth}>
+          <Layout.Main width="full">
+            <AutomationBuilderErrorContext.Provider
+              value={{
+                errors: automationBuilderErrors,
+                setErrors: setAutomationBuilderErrors,
+                removeError,
+                mutationErrors: error?.responseJSON,
+              }}
+            >
+              <AutomationBuilderContext.Provider
                 value={{
-                  errors: automationBuilderErrors,
-                  setErrors: setAutomationBuilderErrors,
-                  removeError,
-                  mutationErrors: error?.responseJSON,
+                  state,
+                  actions,
+                  showTriggerLogicTypeSelector: false,
                 }}
               >
-                <AutomationBuilderContext.Provider
-                  value={{
-                    state,
-                    actions,
-                    showTriggerLogicTypeSelector: false,
-                  }}
-                >
-                  <AutomationForm model={model} />
-                </AutomationBuilderContext.Provider>
-              </AutomationBuilderErrorContext.Provider>
-            </Layout.Main>
-          </StyledBody>
-        </Layout.Page>
+                <AutomationForm model={model} />
+              </AutomationBuilderContext.Provider>
+            </AutomationBuilderErrorContext.Provider>
+          </Layout.Main>
+        </StyledBody>
         <StickyFooter>
           <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
             <Observer>
