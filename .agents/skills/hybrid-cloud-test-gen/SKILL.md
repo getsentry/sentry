@@ -65,11 +65,11 @@ RPC service tests must cover:
 
 ### Quick Reference — Decorator & Base Class
 
-| Scenario                           | Decorator                                           | Base Class                       |
-| ---------------------------------- | --------------------------------------------------- | -------------------------------- |
-| Standard RPC service               | `@all_silo_test`                                    | `TestCase`                       |
-| RPC with named cells             | `@all_silo_test(cells=create_test_cells("us"))` | `TestCase`                       |
-| RPC with member mapping assertions | `@all_silo_test`                                    | `TestCase, HybridCloudTestMixin` |
+| Scenario                           | Decorator                                       | Base Class                       |
+| ---------------------------------- | ----------------------------------------------- | -------------------------------- |
+| Standard RPC service               | `@all_silo_test`                                | `TestCase`                       |
+| RPC with named cells               | `@all_silo_test(cells=create_test_cells("us"))` | `TestCase`                       |
+| RPC with member mapping assertions | `@all_silo_test`                                | `TestCase, HybridCloudTestMixin` |
 
 ## Step 4: Generate API Gateway Tests
 
@@ -84,8 +84,8 @@ API gateway tests verify that requests to control-silo endpoints are correctly p
 
 ### Quick Reference — Decorator & Base Class
 
-| Scenario              | Decorator                                                                            | Base Class           |
-| --------------------- | ------------------------------------------------------------------------------------ | -------------------- |
+| Scenario              | Decorator                                                                        | Base Class           |
+| --------------------- | -------------------------------------------------------------------------------- | -------------------- |
 | Standard gateway test | `@control_silo_test(cells=[ApiGatewayTestCase.CELL], include_monolith_run=True)` | `ApiGatewayTestCase` |
 
 ## Step 5: Generate Outbox Pattern Tests
@@ -120,12 +120,12 @@ Endpoint silo tests verify that API endpoints work correctly under their declare
 
 ### Quick Reference — Decorator Mapping
 
-| Endpoint Decorator                    | Test Decorator                                          |
-| ------------------------------------- | ------------------------------------------------------- |
-| `@cell_silo_endpoint  `               | `@cell_silo_test`                                       |
-| `@control_silo_endpoint`              | `@control_silo_test`                                    |
+| Endpoint Decorator                    | Test Decorator                                      |
+| ------------------------------------- | --------------------------------------------------- |
+| `@cell_silo_endpoint  `               | `@cell_silo_test`                                   |
+| `@control_silo_endpoint`              | `@control_silo_test`                                |
 | `@control_silo_endpoint` (with proxy) | `@control_silo_test(cells=create_test_cells("us"))` |
-| No decorator (monolith-only)          | `@no_silo_test`                                         |
+| No decorator (monolith-only)          | `@no_silo_test`                                     |
 
 ## Step 7: Validate
 
