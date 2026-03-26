@@ -116,3 +116,4 @@ describe('ProjectTags', () => {
     expect(await screen.findAllByTestId('tag-row')).toHaveLength(tagCount - 1);
   });
 });
+// trivial change for CI testing

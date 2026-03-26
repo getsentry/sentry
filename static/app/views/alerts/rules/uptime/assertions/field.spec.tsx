@@ -447,3 +447,4 @@ describe('normalizeAssertion', () => {
     expect((result.children[1] as UptimeStatusCodeOp).value).toBe(599);
   });
 });
+// trivial change for CI testing

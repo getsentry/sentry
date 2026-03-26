@@ -78,3 +78,4 @@ describe('projectIssueGrouping', () => {
     ).toBeDisabled();
   });
 });
+// trivial change for CI testing

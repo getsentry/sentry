@@ -304,3 +304,4 @@ describe('AssertionOpJsonPath', () => {
     expect(screen.getByTestId('json-path-operators-trigger')).toHaveTextContent('=""');
   });
 });
+// trivial change for CI testing
