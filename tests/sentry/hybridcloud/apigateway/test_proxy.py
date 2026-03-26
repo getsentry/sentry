@@ -7,7 +7,7 @@ import responses
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.http import HttpResponse
 from django.test.client import RequestFactory
-from requests.exceptions import Timeout
+from requests.exceptions import ConnectionError, Timeout
 
 from sentry.api.exceptions import RequestTimeout
 from sentry.hybridcloud.apigateway.proxy import proxy_request
@@ -349,6 +349,39 @@ class ProxyCircuitBreakerTestCase(ApiGatewayTestCase):
             with pytest.raises(RequestTimeout):
                 proxy_request(request, self.organization.slug, url_name)
         mock_breaker.record_error.assert_called_once()
+
+    @responses.activate
+    @override_options(CB_ENABLED)
+    def test_connection_error_records_error(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{self.REGION.address}/connect-error",
+            body=ConnectionError(),
+        )
+        with patch("sentry.hybridcloud.apigateway.proxy.CircuitBreaker") as mock_breaker_class:
+            mock_breaker = self._make_breaker_mock(allow_request=True)
+            mock_breaker_class.return_value = mock_breaker
+            request = RequestFactory().get("http://sentry.io/connect-error")
+            with pytest.raises(ConnectionError):
+                proxy_request(request, self.organization.slug, url_name)
+        mock_breaker.record_error.assert_called_once()
+
+    @responses.activate
+    @override_options(CB_ENABLED)
+    def test_connection_error_records_metric(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{self.REGION.address}/connect-error",
+            body=ConnectionError(),
+        )
+        with patch("sentry.hybridcloud.apigateway.proxy.metrics") as mock_metrics:
+            request = RequestFactory().get("http://sentry.io/connect-error")
+            with pytest.raises(ConnectionError):
+                proxy_request(request, self.organization.slug, url_name)
+        mock_metrics.incr.assert_any_call(
+            "apigateway.proxy.connection_error",
+            tags={"region": self.REGION.name, "url_name": url_name},
+        )
 
     @responses.activate
     @override_options(CB_ENABLED)
