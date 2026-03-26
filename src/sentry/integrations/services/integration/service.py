@@ -109,6 +109,19 @@ class IntegrationService(RpcService):
         """
 
     @rpc_method
+    @abstractmethod
+    def get_organization_ids_with_providers(
+        self,
+        *,
+        providers: list[str],
+        status: int | None = None,
+    ) -> list[int]:
+        """
+        Returns distinct organization IDs that have an integration with one of the given providers.
+        Lightweight alternative to get_organization_integrations when only org IDs are needed.
+        """
+
+    @rpc_method
     def get_organization_integration(
         self, *, integration_id: int, organization_id: int
     ) -> RpcOrganizationIntegration | None:
