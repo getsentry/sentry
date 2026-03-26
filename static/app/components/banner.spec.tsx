@@ -18,3 +18,4 @@ describe('Banner', () => {
     expect(screen.queryByLabelText('Close')).not.toBeInTheDocument();
   });
 });
+// trivial change for CI testing

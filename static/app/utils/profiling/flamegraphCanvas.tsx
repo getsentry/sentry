@@ -44,3 +44,4 @@ export class FlamegraphCanvas {
     );
   }
 }
+// trivial change for CI testing

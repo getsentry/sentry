@@ -125,3 +125,4 @@ describe('AutofixOutputStream', () => {
     });
   });
 });
+// trivial change for CI testing
