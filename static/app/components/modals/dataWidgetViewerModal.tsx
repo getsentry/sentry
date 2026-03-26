@@ -70,7 +70,11 @@ import type {
   DashboardPermissions,
   Widget,
 } from 'sentry/views/dashboards/types';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  DisplayType,
+  PREBUILT_DASHBOARD_LABEL,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
 import {
   dashboardFiltersToString,
   eventViewFromWidget,
@@ -843,9 +847,13 @@ function DataWidgetViewerModal(props: Props) {
                           }}
                           disabled={!hasEditAccess}
                           tooltipProps={{
-                            title:
-                              !hasEditAccess &&
-                              t('You do not have permission to edit this widget'),
+                            title: hasEditAccess
+                              ? undefined
+                              : isPrebuiltDashboard
+                                ? tct('[label] dashboards cannot be edited', {
+                                    label: PREBUILT_DASHBOARD_LABEL,
+                                  })
+                                : t('You do not have permission to edit this widget'),
                           }}
                         >
                           {t('Edit Widget')}
