@@ -1007,7 +1007,7 @@ def _make_api_client() -> GitHubProviderApiClient:
 class TestGitHubProviderApiClientGraphql:
     def test_returns_data_on_success(self):
         api_client = _make_api_client()
-        api_client.post = MagicMock(  # type: ignore[assignment]
+        api_client.post = MagicMock(  # type: ignore[method-assign]
             return_value=FakeResponse({"data": {"viewer": {"login": "octocat"}}})
         )
 
@@ -1020,7 +1020,7 @@ class TestGitHubProviderApiClientGraphql:
 
     def test_includes_variables_when_provided(self):
         api_client = _make_api_client()
-        api_client.post = MagicMock(  # type: ignore[assignment]
+        api_client.post = MagicMock(  # type: ignore[method-assign]
             return_value=FakeResponse({"data": {"node": {"id": "123"}}})
         )
 
@@ -1035,7 +1035,7 @@ class TestGitHubProviderApiClientGraphql:
 
     def test_excludes_variables_when_empty(self):
         api_client = _make_api_client()
-        api_client.post = MagicMock(  # type: ignore[assignment]
+        api_client.post = MagicMock(  # type: ignore[method-assign]
             return_value=FakeResponse({"data": {}})
         )
 
@@ -1050,7 +1050,7 @@ class TestGitHubProviderApiClientGraphql:
 
     def test_raises_on_non_dict_response(self):
         api_client = _make_api_client()
-        api_client.post = MagicMock(  # type: ignore[assignment]
+        api_client.post = MagicMock(  # type: ignore[method-assign]
             return_value=FakeResponse([{"unexpected": "list"}])
         )
 
@@ -1059,7 +1059,7 @@ class TestGitHubProviderApiClientGraphql:
 
     def test_raises_on_response_missing_data_and_errors(self):
         api_client = _make_api_client()
-        api_client.post = MagicMock(  # type: ignore[assignment]
+        api_client.post = MagicMock(  # type: ignore[method-assign]
             return_value=FakeResponse({"something": "else"})
         )
 
@@ -1068,7 +1068,7 @@ class TestGitHubProviderApiClientGraphql:
 
     def test_raises_on_errors_without_data(self):
         api_client = _make_api_client()
-        api_client.post = MagicMock(  # type: ignore[assignment]
+        api_client.post = MagicMock(  # type: ignore[method-assign]
             return_value=FakeResponse(
                 {"errors": [{"message": "Field not found"}, {"message": "Unauthorized"}]}
             )
@@ -1079,7 +1079,7 @@ class TestGitHubProviderApiClientGraphql:
 
     def test_returns_data_on_partial_success_with_errors(self):
         api_client = _make_api_client()
-        api_client.post = MagicMock(  # type: ignore[assignment]
+        api_client.post = MagicMock(  # type: ignore[method-assign]
             return_value=FakeResponse(
                 {
                     "data": {"viewer": {"login": "octocat"}},
@@ -1094,7 +1094,7 @@ class TestGitHubProviderApiClientGraphql:
 
     def test_returns_empty_dict_when_data_key_missing_but_errors_empty(self):
         api_client = _make_api_client()
-        api_client.post = MagicMock(  # type: ignore[assignment]
+        api_client.post = MagicMock(  # type: ignore[method-assign]
             return_value=FakeResponse({"errors": []})
         )
 
