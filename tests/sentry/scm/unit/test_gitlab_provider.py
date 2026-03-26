@@ -6,6 +6,7 @@ from typing import Any, NamedTuple
 import pytest
 
 from sentry.integrations.gitlab.client import GitLabApiClient
+from sentry.scm.errors import SCMProviderException
 from sentry.scm.private.providers.gitlab import GitLabProvider
 from sentry.scm.types import Repository
 
@@ -13049,6 +13050,281 @@ class ForwardToClientTest(NamedTuple):
                 "meta": {"next_cursor": None},
             },
         ),
+        # --- create_review: approve-only (no comments, no body) ---
+        ForwardToClientTest(
+            provider_method=GitLabProvider.create_review,
+            provider_args={
+                "pull_request_id": "1",
+                "commit_sha": "7497e018d01503b6abc3053b7896266115e631f6",
+                "event": "approve",
+                "comments": [],
+                "body": None,
+            },
+            client_calls=[
+                ClientForwardedCall(
+                    client_method="approve_merge_request",
+                    client_args=("79787061", "1"),
+                    client_kwds={},
+                    client_return_value={"id": 100},
+                ),
+            ],
+            provider_return_value={
+                "data": {"id": "100", "html_url": ""},
+                "type": "gitlab",
+                "raw": {"id": 100},
+                "meta": {},
+            },
+        ),
+        # --- create_review: body-only comment (no inline comments, no approval) ---
+        ForwardToClientTest(
+            provider_method=GitLabProvider.create_review,
+            provider_args={
+                "pull_request_id": "1",
+                "commit_sha": "7497e018d01503b6abc3053b7896266115e631f6",
+                "event": "comment",
+                "comments": [],
+                "body": "LGTM",
+            },
+            client_calls=[
+                ClientForwardedCall(
+                    client_method="create_merge_request_note",
+                    client_args=("79787061", "1", {"body": "LGTM"}),
+                    client_kwds={},
+                    client_return_value={"id": 99},
+                ),
+            ],
+            provider_return_value={
+                "data": {"id": "99", "html_url": ""},
+                "type": "gitlab",
+                "raw": {"id": 99},
+                "meta": {},
+            },
+        ),
+        # --- create_review: single inline comment on RIGHT side ---
+        ForwardToClientTest(
+            provider_method=GitLabProvider.create_review,
+            provider_args={
+                "pull_request_id": "1",
+                "commit_sha": "7497e018d01503b6abc3053b7896266115e631f6",
+                "event": "comment",
+                "comments": [
+                    {"path": "BLAH.md", "body": "fix this", "line": 10, "side": "RIGHT"},
+                ],
+                "body": None,
+            },
+            client_calls=[
+                ClientForwardedCall(
+                    client_method="get_merge_request_versions",
+                    client_args=("79787061", "1"),
+                    client_kwds={},
+                    client_return_value=[
+                        {
+                            "id": 1692137080,
+                            "head_commit_sha": "7497e018d01503b6abc3053b7896266115e631f6",
+                            "base_commit_sha": "0941ee0a9eac9914cfddf5adec7a9558a2f1c447",
+                            "start_commit_sha": "0941ee0a9eac9914cfddf5adec7a9558a2f1c447",
+                            "created_at": "2026-03-05T11:16:06.468Z",
+                            "merge_request_id": 459277081,
+                            "state": "collected",
+                            "real_size": "1",
+                            "patch_id_sha": "7e2de654ed21ae09a78ad51592379d8a582e90ff",
+                        },
+                        {
+                            "id": 1682341969,
+                            "head_commit_sha": "6d8ca33dae268d3c5835e721e5702ef9dcb43c8c",
+                            "base_commit_sha": "0941ee0a9eac9914cfddf5adec7a9558a2f1c447",
+                            "start_commit_sha": "0941ee0a9eac9914cfddf5adec7a9558a2f1c447",
+                            "created_at": "2026-02-26T08:48:23.979Z",
+                            "merge_request_id": 459277081,
+                            "state": "collected",
+                            "real_size": "1",
+                            "patch_id_sha": "f86adf0229d6ac6d77ac8d2087cd5fae3cc052d8",
+                        },
+                    ],
+                ),
+                ClientForwardedCall(
+                    client_method="create_merge_request_discussion",
+                    client_args=(
+                        "79787061",
+                        "1",
+                        {
+                            "body": "fix this",
+                            "position": {
+                                "base_sha": "0941ee0a9eac9914cfddf5adec7a9558a2f1c447",
+                                "head_sha": "7497e018d01503b6abc3053b7896266115e631f6",
+                                "start_sha": "0941ee0a9eac9914cfddf5adec7a9558a2f1c447",
+                                "new_path": "BLAH.md",
+                                "old_path": "BLAH.md",
+                                "position_type": "text",
+                                "new_line": "10",
+                            },
+                        },
+                    ),
+                    client_kwds={},
+                    client_return_value={},
+                ),
+            ],
+            provider_return_value={
+                "data": {"id": "", "html_url": ""},
+                "type": "gitlab",
+                "raw": {},
+                "meta": {},
+            },
+        ),
+        # --- create_review: single inline comment on LEFT side ---
+        ForwardToClientTest(
+            provider_method=GitLabProvider.create_review,
+            provider_args={
+                "pull_request_id": "1",
+                "commit_sha": "7497e018d01503b6abc3053b7896266115e631f6",
+                "event": "comment",
+                "comments": [
+                    {"path": "BLAH.md", "body": "old code note", "line": 5, "side": "LEFT"},
+                ],
+                "body": None,
+            },
+            client_calls=[
+                ClientForwardedCall(
+                    client_method="get_merge_request_versions",
+                    client_args=("79787061", "1"),
+                    client_kwds={},
+                    client_return_value=[
+                        {
+                            "id": 1692137080,
+                            "head_commit_sha": "7497e018d01503b6abc3053b7896266115e631f6",
+                            "base_commit_sha": "0941ee0a9eac9914cfddf5adec7a9558a2f1c447",
+                            "start_commit_sha": "0941ee0a9eac9914cfddf5adec7a9558a2f1c447",
+                            "created_at": "2026-03-05T11:16:06.468Z",
+                            "merge_request_id": 459277081,
+                            "state": "collected",
+                            "real_size": "1",
+                            "patch_id_sha": "7e2de654ed21ae09a78ad51592379d8a582e90ff",
+                        },
+                        {
+                            "id": 1682341969,
+                            "head_commit_sha": "6d8ca33dae268d3c5835e721e5702ef9dcb43c8c",
+                            "base_commit_sha": "0941ee0a9eac9914cfddf5adec7a9558a2f1c447",
+                            "start_commit_sha": "0941ee0a9eac9914cfddf5adec7a9558a2f1c447",
+                            "created_at": "2026-02-26T08:48:23.979Z",
+                            "merge_request_id": 459277081,
+                            "state": "collected",
+                            "real_size": "1",
+                            "patch_id_sha": "f86adf0229d6ac6d77ac8d2087cd5fae3cc052d8",
+                        },
+                    ],
+                ),
+                ClientForwardedCall(
+                    client_method="create_merge_request_discussion",
+                    client_args=(
+                        "79787061",
+                        "1",
+                        {
+                            "body": "old code note",
+                            "position": {
+                                "base_sha": "0941ee0a9eac9914cfddf5adec7a9558a2f1c447",
+                                "head_sha": "7497e018d01503b6abc3053b7896266115e631f6",
+                                "start_sha": "0941ee0a9eac9914cfddf5adec7a9558a2f1c447",
+                                "new_path": "BLAH.md",
+                                "old_path": "BLAH.md",
+                                "position_type": "text",
+                                "old_line": "5",
+                            },
+                        },
+                    ),
+                    client_kwds={},
+                    client_return_value={},
+                ),
+            ],
+            provider_return_value={
+                "data": {"id": "", "html_url": ""},
+                "type": "gitlab",
+                "raw": {},
+                "meta": {},
+            },
+        ),
+        # --- create_review: full review (inline comment + body + approval) ---
+        ForwardToClientTest(
+            provider_method=GitLabProvider.create_review,
+            provider_args={
+                "pull_request_id": "1",
+                "commit_sha": "7497e018d01503b6abc3053b7896266115e631f6",
+                "event": "approve",
+                "comments": [
+                    {"path": "BLAH.md", "body": "nice", "line": 3},
+                ],
+                "body": "Approving",
+            },
+            client_calls=[
+                ClientForwardedCall(
+                    client_method="get_merge_request_versions",
+                    client_args=("79787061", "1"),
+                    client_kwds={},
+                    client_return_value=[
+                        {
+                            "id": 1692137080,
+                            "head_commit_sha": "7497e018d01503b6abc3053b7896266115e631f6",
+                            "base_commit_sha": "0941ee0a9eac9914cfddf5adec7a9558a2f1c447",
+                            "start_commit_sha": "0941ee0a9eac9914cfddf5adec7a9558a2f1c447",
+                            "created_at": "2026-03-05T11:16:06.468Z",
+                            "merge_request_id": 459277081,
+                            "state": "collected",
+                            "real_size": "1",
+                            "patch_id_sha": "7e2de654ed21ae09a78ad51592379d8a582e90ff",
+                        },
+                        {
+                            "id": 1682341969,
+                            "head_commit_sha": "6d8ca33dae268d3c5835e721e5702ef9dcb43c8c",
+                            "base_commit_sha": "0941ee0a9eac9914cfddf5adec7a9558a2f1c447",
+                            "start_commit_sha": "0941ee0a9eac9914cfddf5adec7a9558a2f1c447",
+                            "created_at": "2026-02-26T08:48:23.979Z",
+                            "merge_request_id": 459277081,
+                            "state": "collected",
+                            "real_size": "1",
+                            "patch_id_sha": "f86adf0229d6ac6d77ac8d2087cd5fae3cc052d8",
+                        },
+                    ],
+                ),
+                ClientForwardedCall(
+                    client_method="create_merge_request_discussion",
+                    client_args=(
+                        "79787061",
+                        "1",
+                        {
+                            "body": "nice",
+                            "position": {
+                                "base_sha": "0941ee0a9eac9914cfddf5adec7a9558a2f1c447",
+                                "head_sha": "7497e018d01503b6abc3053b7896266115e631f6",
+                                "start_sha": "0941ee0a9eac9914cfddf5adec7a9558a2f1c447",
+                                "new_path": "BLAH.md",
+                                "old_path": "BLAH.md",
+                                "position_type": "text",
+                                "new_line": "3",
+                            },
+                        },
+                    ),
+                    client_kwds={},
+                    client_return_value={},
+                ),
+                ClientForwardedCall(
+                    client_method="create_merge_request_note",
+                    client_args=("79787061", "1", {"body": "Approving"}),
+                    client_kwds={},
+                    client_return_value={"id": 99},
+                ),
+                ClientForwardedCall(
+                    client_method="approve_merge_request",
+                    client_args=("79787061", "1"),
+                    client_kwds={},
+                    client_return_value={"id": 100},
+                ),
+            ],
+            provider_return_value={
+                "data": {"id": "100", "html_url": ""},
+                "type": "gitlab",
+                "raw": {"id": 100},
+                "meta": {},
+            },
+        ),
     ],
     ids=lambda param: param.provider_method.__name__,
 )
@@ -13111,3 +13387,16 @@ class TestGetArchiveLink:
         result = provider.get_archive_link("")
 
         assert "?sha=" not in result["data"]["url"]
+
+
+class TestCreateReview:
+    def test_change_request_raises(self, provider: GitLabProvider, client: unittest.mock.MagicMock):
+        with pytest.raises(SCMProviderException, match="REQUEST_CHANGES"):
+            provider.create_review(
+                pull_request_id="1",
+                commit_sha="abc",
+                event="change_request",
+                comments=[],
+                body=None,
+            )
+        assert client.mock_calls == []

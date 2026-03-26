@@ -347,6 +347,15 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             GitLabApiClientPath.merge_request_notes.format(project_id=project_id, pr_key=pr_key)
         )
 
+    def approve_merge_request(self, project_id: str, pr_key: str) -> Any:
+        """Approve a merge request.
+
+        See https://docs.gitlab.com/ee/api/merge_request_approvals.html#approve-merge-request
+        """
+        return self.post(
+            GitLabApiClientPath.merge_request_approve.format(project_id=project_id, pr_key=pr_key),
+        )
+
     def get_merge_request_versions(self, project_id: str, pr_key: str) -> Any:
         return self.get(
             GitLabApiClientPath.merge_request_versions.format(project_id=project_id, pr_key=pr_key)

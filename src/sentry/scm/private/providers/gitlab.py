@@ -8,7 +8,6 @@ Unsupported actions:
     * create_git_commit
     * create_git_tree
     * create_pull_request_draft
-    * create_review
     * get_check_run
     * get_git_commit
     * get_pull_request_diff
@@ -22,9 +21,12 @@ Unsupported actions:
 
 import datetime
 import functools
+import logging
 from collections.abc import Callable
 from typing import Any, Iterable
 from urllib.parse import urlencode
+
+logger = logging.getLogger(__name__)
 
 from sentry.integrations.gitlab.client import GitLabApiClient
 from sentry.integrations.gitlab.utils import GitLabApiClientPath
@@ -54,7 +56,10 @@ from sentry.scm.types import (
     Referrer,
     Repository,
     RequestOptions,
+    Review,
     ReviewComment,
+    ReviewCommentInput,
+    ReviewEvent,
     ReviewSide,
 )
 from sentry.shared_integrations.exceptions import ApiError
@@ -539,6 +544,84 @@ class GitLabProvider:
         return make_result(
             map_review_comment(discussion_id),
             raw,
+        )
+
+    @catch_provider_exception
+    def create_review(
+        self,
+        pull_request_id: str,
+        commit_sha: SHA,
+        event: ReviewEvent,
+        comments: list[ReviewCommentInput],
+        body: str | None = None,
+    ) -> ActionResult[Review]:
+        """Submit a review with optional inline comments and an approval.
+
+        GitLab does not support this as a single atomic operation.  Each inline
+        comment is posted as a separate merge-request discussion, followed by
+        the body (as a note) and the approval.  If any individual request
+        fails the exception propagates immediately.
+        """
+        if event == "change_request":
+            raise SCMProviderException("GitLab does not support REQUEST_CHANGES reviews")
+
+        if len(comments) > 10:
+            logger.warning(
+                "gitlab.create_review: %d inline comments in a single review",
+                len(comments),
+            )
+
+        # Fetch MR version info once for positioning all inline comments.
+        versions = None
+        if comments:
+            versions = self.client.get_merge_request_versions(self._repo_id, pull_request_id)
+
+        for comment in comments:
+            assert versions is not None
+            position: dict[str, Any] = {
+                "base_sha": versions[0]["base_commit_sha"],
+                "head_sha": versions[0]["head_commit_sha"],
+                "start_sha": versions[0]["start_commit_sha"],
+                "new_path": comment["path"],
+                "old_path": comment["path"],
+            }
+
+            if "line" in comment:
+                position["position_type"] = "text"
+                side = comment.get("side", "RIGHT")
+                if side == "LEFT":
+                    position["old_line"] = str(comment["line"])
+                else:
+                    position["new_line"] = str(comment["line"])
+            else:
+                position["position_type"] = "file"
+
+            self.client.create_merge_request_discussion(
+                self._repo_id,
+                pull_request_id,
+                {"body": comment["body"], "position": position},
+            )
+
+        # Post the review body as a general MR note.
+        note_raw = None
+        if body:
+            note_raw = self.client.create_merge_request_note(
+                self._repo_id, pull_request_id, {"body": body}
+            )
+
+        # Approve the MR when requested.
+        approval_raw = None
+        if event == "approve":
+            approval_raw = self.client.approve_merge_request(self._repo_id, pull_request_id)
+
+        raw = approval_raw or note_raw or {}
+        review_id = str(raw.get("id", "")) if isinstance(raw, dict) else ""
+
+        return ActionResult(
+            data=Review(id=review_id, html_url=""),
+            type="gitlab",
+            raw=raw,
+            meta={},
         )
 
 
