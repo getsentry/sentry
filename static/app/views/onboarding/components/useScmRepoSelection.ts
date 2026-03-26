@@ -1,6 +1,5 @@
 import {useRef, useState} from 'react';
 
-import {Client} from 'sentry/api';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import type {
   Integration,
@@ -79,20 +78,18 @@ export function useScmRepoSelection({
     // query filtered by name to avoid pagination issues with the full list.
     setBusy(true);
     try {
-      const api = new Client();
-      const matches = await api.requestPromise(
-        `/organizations/${organization.slug}/repos/`,
-        {
+      const matches = await fetchMutation<Repository[]>({
+        url: `/organizations/${organization.slug}/repos/`,
+        method: 'GET',
+        options: {
           query: {
             status: 'active',
             integration_id: integration.id,
             query: repo.identifier,
           },
-        }
-      );
-      const existing = (matches as Repository[])?.find(
-        r => r.externalSlug === repo.identifier
-      );
+        },
+      });
+      const existing = matches?.find(r => r.externalSlug === repo.identifier);
 
       if (existing) {
         onSelect({...optimistic, ...existing});
