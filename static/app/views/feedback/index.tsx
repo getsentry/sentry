@@ -1,6 +1,7 @@
 import {Outlet} from 'react-router-dom';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {Redirect} from 'sentry/components/redirect';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -20,9 +21,11 @@ export default function FeedbackContainer() {
 
   return (
     <AnalyticsArea name="feedback">
-      <NoProjectMessage organization={organization}>
-        <Outlet />
-      </NoProjectMessage>
+      <Layout.Page>
+        <NoProjectMessage organization={organization}>
+          <Outlet />
+        </NoProjectMessage>
+      </Layout.Page>
     </AnalyticsArea>
   );
 }

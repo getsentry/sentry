@@ -489,6 +489,8 @@ class SeerExplorerOperator[CachePayloadT]:
                     category_key=category_key,
                     category_value=category_value,
                     on_completion_hook=SeerOperatorCompletionHook,
+                    is_interactive=True,
+                    enable_coding=False,
                 )
             except SeerPermissionError as e:
                 with SeerOperatorEventLifecycleMetric(
@@ -504,6 +506,7 @@ class SeerExplorerOperator[CachePayloadT]:
                     category_key=category_key,
                     category_value=category_value,
                     limit=1,
+                    only_current_user=False,
                 )
 
                 if existing_runs:
@@ -787,7 +790,8 @@ class SeerOperatorCompletionHook(ExplorerOnCompletionHook):
                         summary = block.message.content
                         break
             except Exception as e:
-                lifecycle.add_extra("fetch_run_status_error", str(e))
+                lifecycle.record_failure(failure_reason=e)
+                return
 
             for (
                 entrypoint_key,
@@ -806,8 +810,8 @@ class SeerOperatorCompletionHook(ExplorerOnCompletionHook):
                     continue
 
                 if cache_payload.get("organization_id") != organization.id:
-                    lifecycle.add_extra("org_mismatch", str(entrypoint_key))
-                    continue
+                    lifecycle.record_failure(failure_reason="org_mismatch")
+                    return
 
                 with SeerOperatorEventLifecycleMetric(
                     interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_EXPLORER_UPDATE,

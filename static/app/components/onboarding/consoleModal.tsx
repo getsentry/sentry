@@ -8,7 +8,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/links/externalLink';
 import {ConsolePlatform} from 'sentry/constants/consolePlatforms';
 import {t, tct} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';

@@ -6,7 +6,6 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEventPermission
@@ -34,7 +33,6 @@ class ReplayViewedByResponse(TypedDict):
 @cell_silo_endpoint
 @extend_schema(tags=["Replays"])
 class ProjectReplayViewedByEndpoint(ProjectReplayEndpoint):
-    owner = ApiOwner.REPLAY
     publish_status = {"GET": ApiPublishStatus.PUBLIC, "POST": ApiPublishStatus.PRIVATE}
     permission_classes = (ProjectEventPermission,)
 

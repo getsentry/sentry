@@ -55,7 +55,7 @@ function wrapErrorHandling<T extends any[], U>(
  *
  * [1]: https://develop.sentry.dev/frontend/network-requests/
  */
-class DeprecatedAsyncComponent<
+export class DeprecatedAsyncComponent<
   P extends AsyncComponentProps = AsyncComponentProps,
   S extends AsyncComponentState = AsyncComponentState,
 > extends Component<P, S> {
@@ -389,5 +389,3 @@ class DeprecatedAsyncComponent<
     return this.renderComponent();
   }
 }
-
-export default DeprecatedAsyncComponent;

@@ -36,6 +36,9 @@ class Locality:
 
     category: RegionCategory
 
+    new_org_cell: str
+    """The cell within this locality where new organizations are provisioned."""
+
     visible: bool = True
     """Whether the locality is visible in API responses."""
 
@@ -209,6 +212,13 @@ class CellDirectory:
                 f"cell-only={defined_cells - assigned_cells!r}"
             )
 
+        for loc in self.localities:
+            if loc.new_org_cell not in loc.cells:
+                raise CellConfigurationError(
+                    f"Locality {loc.name!r} has new_org_cell={loc.new_org_cell!r} "
+                    f"which is not in its cells={set(loc.cells)!r}"
+                )
+
 
 def _parse_raw_config(cell_config: list[CellConfig]) -> Iterable[Cell]:
     for config_value in cell_config:
@@ -253,6 +263,7 @@ def _parse_locality_config(
             name=config_value["name"],
             category=RegionCategory(config_value["category"]),
             cells=frozenset(config_value["cells"]),
+            new_org_cell=config_value["new_org_cell"],
             visible=bool(config_value.get("visible", True)),
         )
 
@@ -276,6 +287,7 @@ def load_from_config(
                         name=cell.name,
                         category=cell.category,
                         cells=frozenset([cell.name]),
+                        new_org_cell=cell.name,
                         visible=cell.visible,
                     )
                 )

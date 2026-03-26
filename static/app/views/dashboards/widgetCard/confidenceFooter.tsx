@@ -45,7 +45,7 @@ export function WidgetCardConfidenceFooter({
   const selection = selectionProp ?? pageFilterSelection;
   const rawCounts = useWidgetRawCounts({selection, widget});
   const hasOtherSeries = timeseriesResults?.some(({seriesName}) =>
-    seriesName?.match(/(?:.* : Other)$|^Other$/)
+    seriesName?.match(/.* : Other$|^Other$/)
   );
 
   const topEventsCountExcludingOther =

@@ -17,7 +17,7 @@ from sentry.seer.entrypoints.metrics import (
 from sentry.seer.entrypoints.operator import SeerExplorerOperator
 from sentry.seer.entrypoints.slack.entrypoint import EntrypointSetupError, SlackExplorerEntrypoint
 from sentry.seer.entrypoints.slack.mention import build_thread_context, extract_prompt
-from sentry.seer.entrypoints.slack.metrics import ProcessMentionHaltReason
+from sentry.seer.entrypoints.slack.metrics import ProcessMentionFailureReason
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.users.services.user import RpcUser
@@ -70,11 +70,11 @@ def process_mention_for_slack(
         try:
             organization = Organization.objects.get_from_cache(id=organization_id)
         except Organization.DoesNotExist:
-            lifecycle.record_halt(halt_reason=ProcessMentionHaltReason.ORG_NOT_FOUND)
+            lifecycle.record_failure(failure_reason=ProcessMentionFailureReason.ORG_NOT_FOUND)
             return
 
         if not SlackExplorerEntrypoint.has_access(organization):
-            lifecycle.record_halt(halt_reason=ProcessMentionHaltReason.NO_EXPLORER_ACCESS)
+            lifecycle.record_failure(failure_reason=ProcessMentionFailureReason.NO_EXPLORER_ACCESS)
             return
 
         try:
@@ -86,7 +86,7 @@ def process_mention_for_slack(
                 slack_user_id=slack_user_id,
             )
         except (ValueError, EntrypointSetupError) as e:
-            lifecycle.record_halt(halt_reason=e)
+            lifecycle.record_failure(failure_reason=e)
             return
 
         user = _resolve_user(
@@ -94,8 +94,8 @@ def process_mention_for_slack(
             slack_user_id=slack_user_id,
         )
         if not user:
+            lifecycle.record_failure(failure_reason=ProcessMentionFailureReason.IDENTITY_NOT_LINKED)
             _send_link_identity_prompt(entrypoint=entrypoint)
-            lifecycle.record_halt(halt_reason=ProcessMentionHaltReason.IDENTITY_NOT_LINKED)
             return
 
         prompt = extract_prompt(text, bot_user_id)

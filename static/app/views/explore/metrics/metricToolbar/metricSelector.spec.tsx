@@ -323,6 +323,18 @@ describe('MetricSelector', () => {
   });
 
   describe('metric-specific behavior', () => {
+    it('places the selected metric first in the list', async () => {
+      // 'foo' is not first alphabetically, but it should appear first when selected
+      const traceMetric = {name: 'foo', type: 'distribution'};
+      render(<MetricSelector traceMetric={traceMetric} onChange={jest.fn()} />, {
+        organization,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'foo'}));
+      const options = await screen.findAllByRole('option');
+      expect(options[0]).toHaveTextContent('foo');
+    });
+
     it('renders list of metrics from API', async () => {
       render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
         organization,

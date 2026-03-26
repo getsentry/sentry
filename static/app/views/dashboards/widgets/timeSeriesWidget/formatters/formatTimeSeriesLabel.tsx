@@ -19,7 +19,7 @@ export function formatTimeSeriesLabel(timeSeries: TimeSeries): string {
           return JSON.stringify(groupBy.value);
         }
 
-        if (groupBy.key === 'release' && groupBy.value) {
+        if (groupBy.key === 'release' && typeof groupBy.value === 'string') {
           return formatVersion(groupBy.value);
         }
 
@@ -27,7 +27,7 @@ export function formatTimeSeriesLabel(timeSeries: TimeSeries): string {
           return t('(no value)');
         }
 
-        return groupBy.value;
+        return String(groupBy.value);
       })
       .join(',');
   }

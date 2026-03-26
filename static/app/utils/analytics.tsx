@@ -295,7 +295,7 @@ export const metric: RecordMetric = (name, value, tags) =>
   HookStore.get('metrics:event').forEach(cb => cb(name, value, tags));
 
 // JSDOM implements window.performance but not window.performance.mark
-const CAN_MARK =
+export const CAN_MARK =
   window.performance &&
   typeof window.performance.mark === 'function' &&
   typeof window.performance.measure === 'function' &&
