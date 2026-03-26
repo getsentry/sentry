@@ -53,7 +53,7 @@ export function useAsyncAttributeValidation(
           }
         }
       }
-      const keys = [...keySet].sort();
+      const keys = [...keySet];
 
       const queryParams = {
         ...Object.fromEntries(
