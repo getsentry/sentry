@@ -1,4 +1,5 @@
-import {Fragment, useEffect, useLayoutEffect, useMemo, useRef} from 'react';
+import {Fragment, useLayoutEffect, useMemo, useRef, useEffect} from 'react';
+import {preload} from 'react-dom';
 import styled from '@emotion/styled';
 import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selection';
 import {mergeProps} from '@react-aria/utils';
@@ -6,12 +7,13 @@ import {Item, Section} from '@react-stately/collections';
 import {useTreeState} from '@react-stately/tree';
 import * as Sentry from '@sentry/react';
 
-import error from 'sentry-images/spot/computer-missing.svg';
+import errorIllustration from 'sentry-images/spot/computer-missing.svg';
 
 import {Button} from '@sentry/scraps/button';
 import {ListBox} from '@sentry/scraps/compactSelect';
 import {Image} from '@sentry/scraps/image';
 import {InputGroup} from '@sentry/scraps/input';
+import {Container} from '@sentry/scraps/layout';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {InnerWrap} from '@sentry/scraps/menuListItem';
 import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
@@ -24,6 +26,7 @@ import {
   useCommandPaletteState,
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {COMMAND_PALETTE_GROUP_KEY_CONFIG} from 'sentry/components/commandPalette/ui/constants';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IconArrow, IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
@@ -50,6 +53,12 @@ export function CommandPaletteList({onAction}: CommandPaletteListProps) {
   const dispatch = useCommandPaletteDispatch();
   const actions = useCommandPaletteActions();
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Preload the empty state image so it's ready if/when there are no results
+  // Guard against non-string imports (e.g. SVG objects in test environments)
+  if (typeof errorIllustration === 'string') {
+    preload(errorIllustration, {as: 'image'});
+  }
 
   const displayedActions = useMemo<CommandPaletteActionWithPriority[]>(() => {
     if (selectedAction?.type === 'group' && selectedAction.actions.length > 0) {
@@ -340,17 +349,31 @@ function CommandPaletteNoResults() {
       align="center"
       justify="center"
       gap="lg"
-      padding="xl lg"
+      padding="2xl lg"
       height="400px"
     >
-      <Image src={error} alt="No results" width="400px" />
+      <Image src={errorIllustration} alt="No results" width="400px" />
       <Stack align="center" gap="md">
-        <Text size="md" align="center">
-          {t("Whoops… we couldn't find any results matching your search.")}
-        </Text>
-        <Text size="md" align="center">
-          {t('Try rephrasing your query maybe?')}
-        </Text>
+        <Container padding="0 2xl">
+          <Stack gap="sm">
+            <Text size="md" align="center">
+              {t("Whoops… we couldn't find any results matching your search.")}
+            </Text>
+            <Text size="md" align="center">
+              {t('May we suggest rephrasing your query?')}
+            </Text>
+          </Stack>
+        </Container>
+        <Container paddingTop="xl">
+          <FeedbackButton
+            priority="primary"
+            feedbackOptions={{
+              tags: {
+                ['feedback.source']: 'command_palette',
+              },
+            }}
+          />
+        </Container>
       </Stack>
     </Flex>
   );
