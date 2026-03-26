@@ -242,3 +242,4 @@ describe('AssertionFormError', () => {
     expect(await screen.findByText('Invalid JSON Path: bad path')).toBeInTheDocument();
   });
 });
+// trivial change for CI testing
