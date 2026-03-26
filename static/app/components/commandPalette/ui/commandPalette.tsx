@@ -247,9 +247,9 @@ export function CommandPalette(props: CommandPaletteProps) {
                         <MotionButton
                           size="xs"
                           priority="transparent"
+                          aria-label={t('Reset')}
                           icon={<IconClose size="xs" aria-hidden />}
                           onClick={() => dispatch({type: 'reset'})}
-                          aria-label={t('Reset')}
                           {...makeLeadingItemAnimation(theme)}
                         />
                       </Container>
