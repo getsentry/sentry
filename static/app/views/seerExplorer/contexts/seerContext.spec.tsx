@@ -44,7 +44,7 @@ function DummyChart({label}: {label?: string}) {
 }
 
 function DummyWidget({title, children}: {children?: ReactNode; title?: string}) {
-  useSeerContext({title: title ?? 'widget'});
+  useSeerContext({title: title ?? 'widget', type: 'timeseries', unit: 'ms'});
   return (
     <div>
       {title ?? 'widget'}
@@ -109,18 +109,19 @@ describe('registerSeerContext — nesting', () => {
       expect(snapshot.nodes).toHaveLength(1);
 
       const [dashboard] = snapshot.nodes;
-      expect(dashboard.nodeType).toBe('dashboard');
-      expect(dashboard.data).toEqual({name: 'Backend Health'});
-      expect(dashboard.children).toHaveLength(1);
+      expect(dashboard?.nodeType).toBe('dashboard');
+      expect(dashboard?.data).toEqual({name: 'Backend Health'});
+      expect(dashboard?.children).toHaveLength(1);
 
-      const [widget] = dashboard.children;
-      expect(widget.nodeType).toBe('widget');
-      expect(widget.data).toEqual({title: 'Error Rate'});
-      expect(widget.children).toHaveLength(1);
+      const [widget] = dashboard?.children ?? [];
+      expect(widget?.nodeType).toBe('widget');
+      // Widgets carry multiple fields to verify non-trivial payloads
+      expect(widget?.data).toEqual({title: 'Error Rate', type: 'timeseries', unit: 'ms'});
+      expect(widget?.children).toHaveLength(1);
 
-      const [chart] = widget.children;
-      expect(chart.nodeType).toBe('chart');
-      expect(chart.data).toEqual({label: 'p99'});
+      const [chart] = widget?.children ?? [];
+      expect(chart?.nodeType).toBe('chart');
+      expect(chart?.data).toEqual({label: 'p99'});
     });
   });
 });
@@ -265,9 +266,9 @@ describe('getSeerContext — full tree vs componentOnly', () => {
       if (!innerRef.current) throw new Error('not mounted');
       const snapshot = innerRef.current(true); // componentOnly
       expect(snapshot.nodes).toHaveLength(1);
-      expect(snapshot.nodes[0].nodeType).toBe('dashboard');
-      expect(snapshot.nodes[0].children).toHaveLength(1);
-      expect(snapshot.nodes[0].children[0].nodeType).toBe('widget');
+      expect(snapshot.nodes[0]?.nodeType).toBe('dashboard');
+      expect(snapshot.nodes[0]?.children).toHaveLength(1);
+      expect(snapshot.nodes[0]?.children[0]?.nodeType).toBe('widget');
     });
   });
 });
