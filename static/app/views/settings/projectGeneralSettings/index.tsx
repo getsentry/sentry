@@ -433,3 +433,4 @@ export default function ProjectGeneralSettingsContainer() {
 
   return <ProjectGeneralSettings project={project} onChangeSlug={handleChangeSlug} />;
 }
+// trivial change for CI testing

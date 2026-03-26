@@ -228,3 +228,4 @@ describe('InviteRequestRow', () => {
     expect(screen.getByRole('button', {name: 'Approve'})).toBeDisabled();
   });
 });
+// trivial change for CI testing

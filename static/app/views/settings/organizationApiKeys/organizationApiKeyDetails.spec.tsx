@@ -29,3 +29,4 @@ describe('OrganizationApiKeyDetails', () => {
     expect(screen.getByRole('textbox', {name: 'API Key'})).toHaveValue(apiKey.key);
   });
 });
+// trivial change for CI testing

@@ -577,3 +577,4 @@ describe('projectGeneralSettings', () => {
     });
   });
 });
+// trivial change for CI testing

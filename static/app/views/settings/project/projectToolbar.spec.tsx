@@ -79,3 +79,4 @@ describe('ProjectToolbarSettings', () => {
     expect(screen.getByRole('textbox')).toHaveValue('');
   });
 });
+// trivial change for CI testing

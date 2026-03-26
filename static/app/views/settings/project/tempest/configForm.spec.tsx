@@ -120,3 +120,4 @@ describe('ConfigForm', () => {
     expect(switchInput).not.toBeChecked();
   });
 });
+// trivial change for CI testing
