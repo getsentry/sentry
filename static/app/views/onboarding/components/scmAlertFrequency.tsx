@@ -10,10 +10,6 @@ import {IconClock, IconFix, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {testableTransition} from 'sentry/utils/testableTransition';
 import {
-  type IssueAlertNotificationProps,
-  IssueAlertNotificationOptions,
-} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
-import {
   type AlertRuleOptions,
   INTERVAL_CHOICES,
   METRIC_CHOICES,
@@ -27,7 +23,6 @@ interface ScmAlertFrequencyProps extends Partial<AlertRuleOptions> {
     key: K,
     value: AlertRuleOptions[K]
   ) => void;
-  notificationProps?: IssueAlertNotificationProps;
 }
 
 interface AlertOptionCardProps {
@@ -82,7 +77,6 @@ export function ScmAlertFrequency({
   interval = '1m',
   metric = 0,
   threshold = '10',
-  notificationProps,
   onFieldChange,
 }: ScmAlertFrequencyProps) {
   const isDefaultSelected = alertSetting === RuleAction.DEFAULT_ALERT;
@@ -184,10 +178,6 @@ export function ScmAlertFrequency({
           onSelect={() => onFieldChange('alertSetting', RuleAction.CREATE_ALERT_LATER)}
         />
       </Stack>
-
-      {notificationProps && alertSetting !== RuleAction.CREATE_ALERT_LATER && (
-        <IssueAlertNotificationOptions {...notificationProps} />
-      )}
     </Stack>
   );
 }
