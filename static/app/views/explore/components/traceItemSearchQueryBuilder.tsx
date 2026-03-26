@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 
 import type {SpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {
@@ -7,6 +7,7 @@ import {
 } from 'sentry/components/searchQueryBuilder';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/types';
+import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
@@ -112,6 +113,14 @@ export function useTraceItemSearchQueryBuilderProps({
     itemType,
     projects
   );
+
+  const initialValidationDone = useRef(false);
+  useEffect(() => {
+    if (initialValidationDone.current || !initialQuery) return;
+    initialValidationDone.current = true;
+
+    validateKeys(parseSearch(initialQuery));
+  }, [initialQuery, validateKeys]);
 
   const wrappedOnChange = useCallback(
     (query: string, state: CallbackSearchState) => {
