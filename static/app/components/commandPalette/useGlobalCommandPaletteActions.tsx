@@ -222,15 +222,18 @@ function useNavigationActions(): CommandPaletteAction[] {
       )
     );
 
-  const projectSettingsChildren: CommandPaletteActionChild[] = projects.map(project =>
-    makeCommandPaletteLink({
-      display: {
-        label: project.name,
-        icon: <ProjectAvatar project={project} size={16} />,
-      },
-      to: `/settings/${slug}/projects/${project.slug}/`,
-    })
-  );
+  const projectSettingsChildren: CommandPaletteActionChild[] =
+    organization.features.includes('cmd-k-supercharged')
+      ? projects.map(project =>
+          makeCommandPaletteLink({
+            display: {
+              label: project.name,
+              icon: <ProjectAvatar project={project} size={16} />,
+            },
+            to: `/settings/${slug}/projects/${project.slug}/`,
+          })
+        )
+      : [];
 
   return [
     makeCommandPaletteGroup({
