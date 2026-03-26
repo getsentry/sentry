@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {z} from 'zod';
 
@@ -88,6 +88,13 @@ export function ProjectSampling() {
     },
   });
 
+  const handleProjectRateChange = useCallback(
+    (projectId: string, rate: string) => {
+      form.setFieldValue(`projectRates.${projectId}`, rate);
+    },
+    [form]
+  );
+
   // Mirror enableReInitialize: reset the form whenever the server data changes
   useEffect(() => {
     form.reset({projectRates});
@@ -116,52 +123,74 @@ export function ProjectSampling() {
 
   return (
     <form.AppForm form={form}>
-      <form.Subscribe selector={s => ({isDirty: s.isDirty, canSubmit: s.canSubmit})}>
-        {({isDirty, canSubmit}) => (
-          <Fragment>
-            <OnRouteLeave
-              message={UNSAVED_CHANGES_MESSAGE}
-              when={locationChange =>
-                locationChange.currentLocation.pathname !==
-                  locationChange.nextLocation.pathname && isDirty
-              }
-            />
-            <Flex justify="between" marginBottom="lg">
-              <ProjectionPeriodControl period={period} onChange={setPeriod} />
-              <SamplingModeSwitch initialTargetRate={initialTargetRate} />
-            </Flex>
-            {sampleCountsQuery.isError ? (
-              <LoadingError onRetry={sampleCountsQuery.refetch} />
-            ) : (
-              <ProjectsEditTable
-                form={form}
-                period={period}
-                editMode={editMode}
-                onEditModeChange={setEditMode}
-                isLoading={sampleRatesQuery.isPending || sampleCountsQuery.isPending}
-                sampleCounts={sampleCountsQuery.data}
-                savedProjectRates={savedProjectRates}
-                actions={
-                  <Fragment>
-                    <Button
-                      disabled={!isDirty || updateSamplingProjectRates.isPending}
-                      onClick={() => {
-                        form.reset();
-                        setEditMode('single');
-                      }}
-                    >
-                      {t('Reset')}
-                    </Button>
-                    <form.SubmitButton disabled={!hasAccess || !canSubmit} formNoValidate>
-                      {t('Apply Changes')}
-                    </form.SubmitButton>
-                  </Fragment>
+      <form.Subscribe
+        selector={s => ({
+          isDirty: s.isDirty,
+          canSubmit: s.canSubmit,
+          currentProjectRates: s.values.projectRates,
+          fieldMeta: s.fieldMeta,
+        })}
+      >
+        {({isDirty, canSubmit, currentProjectRates, fieldMeta}) => {
+          const projectErrors: Record<string, string | undefined> = {};
+          for (const id of Object.keys(currentProjectRates)) {
+            const error = fieldMeta[`projectRates.${id}`]?.errors?.[0]?.message;
+            if (error) {
+              projectErrors[id] = error;
+            }
+          }
+
+          return (
+            <Fragment>
+              <OnRouteLeave
+                message={UNSAVED_CHANGES_MESSAGE}
+                when={locationChange =>
+                  locationChange.currentLocation.pathname !==
+                    locationChange.nextLocation.pathname && isDirty
                 }
               />
-            )}
-            <FormActions />
-          </Fragment>
-        )}
+              <Flex justify="between" marginBottom="lg">
+                <ProjectionPeriodControl period={period} onChange={setPeriod} />
+                <SamplingModeSwitch initialTargetRate={initialTargetRate} />
+              </Flex>
+              {sampleCountsQuery.isError ? (
+                <LoadingError onRetry={sampleCountsQuery.refetch} />
+              ) : (
+                <ProjectsEditTable
+                  period={period}
+                  editMode={editMode}
+                  onEditModeChange={setEditMode}
+                  onProjectRateChange={handleProjectRateChange}
+                  projectRates={currentProjectRates}
+                  projectErrors={projectErrors}
+                  isLoading={sampleRatesQuery.isPending || sampleCountsQuery.isPending}
+                  sampleCounts={sampleCountsQuery.data}
+                  savedProjectRates={savedProjectRates}
+                  actions={
+                    <Fragment>
+                      <Button
+                        disabled={!isDirty || updateSamplingProjectRates.isPending}
+                        onClick={() => {
+                          form.reset();
+                          setEditMode('single');
+                        }}
+                      >
+                        {t('Reset')}
+                      </Button>
+                      <form.SubmitButton
+                        disabled={!hasAccess || !canSubmit}
+                        formNoValidate
+                      >
+                        {t('Apply Changes')}
+                      </form.SubmitButton>
+                    </Fragment>
+                  }
+                />
+              )}
+              <FormActions />
+            </Fragment>
+          );
+        }}
       </form.Subscribe>
     </form.AppForm>
   );

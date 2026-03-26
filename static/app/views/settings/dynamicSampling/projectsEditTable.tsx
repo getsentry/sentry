@@ -19,26 +19,20 @@ import type {
   ProjectSampleCount,
 } from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
-interface ProjectSamplingForm {
-  setFieldValue: (name: `projectRates.${string}`, value: string) => void;
-  state: {
-    fieldMeta: Partial<Record<string, {errors?: Array<{message?: string}> | undefined}>>;
-    values: {projectRates: Record<string, string>};
-  };
-}
-
 interface Props {
   actions: React.ReactNode;
   editMode: 'single' | 'bulk';
-  form: ProjectSamplingForm;
   isLoading: boolean;
   onEditModeChange: (mode: 'single' | 'bulk') => void;
+  onProjectRateChange: (projectId: string, rate: string) => void;
   period: ProjectionSamplePeriod;
+  projectErrors: Record<string, string | undefined>;
+  projectRates: Record<string, string>;
   sampleCounts: ProjectSampleCount[];
   savedProjectRates: Record<string, string>;
 }
 
-const EMPTY_ARRAY: any = [];
+const EMPTY_ARRAY: never[] = [];
 
 export function ProjectsEditTable({
   actions,
@@ -47,7 +41,9 @@ export function ProjectsEditTable({
   editMode,
   period,
   onEditModeChange,
-  form,
+  onProjectRateChange,
+  projectRates,
+  projectErrors,
   savedProjectRates,
 }: Props) {
   const {projects, fetching} = useProjects();
@@ -55,9 +51,6 @@ export function ProjectsEditTable({
   const [orgRate, setOrgRate] = useState<string>('');
 
   const projectRateSnapshotRef = useRef<Record<string, string>>({});
-
-  const {projectRates} = form.state.values;
-  const {fieldMeta} = form.state;
 
   const dataByProjectId = useMemo(
     () =>
@@ -71,10 +64,10 @@ export function ProjectsEditTable({
 
   const handleProjectChange = useCallback(
     (projectId: string, newRate: string) => {
-      form.setFieldValue(`projectRates.${projectId}`, newRate);
+      onProjectRateChange(projectId, newRate);
       onEditModeChange('single');
     },
-    [form, onEditModeChange]
+    [onProjectRateChange, onEditModeChange]
   );
 
   const handleOrgChange = useCallback(
@@ -108,12 +101,12 @@ export function ProjectsEditTable({
       });
 
       for (const [projectId, rate] of Object.entries(newProjectValues)) {
-        form.setFieldValue(`projectRates.${projectId}`, rate);
+        onProjectRateChange(projectId, rate);
       }
       setOrgRate(newRate);
       onEditModeChange('bulk');
     },
-    [dataByProjectId, editMode, form, onEditModeChange, projectRates]
+    [dataByProjectId, editMode, onProjectRateChange, onEditModeChange, projectRates]
   );
 
   const handleBulkEditChange = useCallback((newIsActive: boolean) => {
@@ -138,10 +131,10 @@ export function ProjectsEditTable({
           project,
           initialSampleRate: savedProjectRates[project.id]!,
           sampleRate: projectRates[project.id]!,
-          error: fieldMeta[`projectRates.${project.id}`]?.errors?.[0]?.message,
+          error: projectErrors[project.id],
         };
       }),
-    [dataByProjectId, fieldMeta, savedProjectRates, projects, projectRates]
+    [dataByProjectId, projectErrors, savedProjectRates, projects, projectRates]
   );
 
   const totalSpanCount = useMemo(
