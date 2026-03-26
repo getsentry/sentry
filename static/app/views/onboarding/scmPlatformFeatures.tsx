@@ -381,7 +381,6 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
         {showDetectedPlatforms ? (
           <MotionStack
             key="detected"
-            exit={{opacity: 0}}
             initial={{opacity: 0}}
             animate={{opacity: 1}}
             gap="md"
@@ -427,7 +426,6 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
             align="center"
             width="100%"
             maxWidth={PLATFORM_CONTENT_WIDTH}
-            exit={{opacity: 0}}
             initial={{opacity: 0}}
             animate={{opacity: 1}}
           >
