@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import type {SpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {
@@ -6,6 +6,7 @@ import {
   type SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
+import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
@@ -106,7 +107,19 @@ export function useTraceItemSearchQueryBuilderProps({
   disableRecentSearches,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
-  const validateFilterKeys = useAsyncAttributeValidation(itemType, projects);
+
+  const [invalidFilterKeys, validateKeys] = useAsyncAttributeValidation(
+    itemType,
+    projects
+  );
+
+  const wrappedOnChange = useCallback(
+    (query: string, state: CallbackSearchState) => {
+      validateKeys(state.parsedQuery);
+      onChange?.(query, state);
+    },
+    [onChange, validateKeys]
+  );
   const functionTags = useFunctionTags(itemType, supportedAggregates);
   const filterKeySections = useFilterKeySections(itemType, stringAttributes);
   const filterTags = useFilterTags({
@@ -142,7 +155,7 @@ export function useTraceItemSearchQueryBuilderProps({
       initialQuery,
       fieldDefinitionGetter: getTraceItemFieldDefinitionFunction(itemType, filterTags),
       onSearch,
-      onChange,
+      onChange: wrappedOnChange,
       onBlur,
       getFilterTokenWarning,
       searchSource,
@@ -168,7 +181,7 @@ export function useTraceItemSearchQueryBuilderProps({
       },
       caseInsensitive,
       onCaseInsensitiveClick,
-      validateFilterKeys,
+      invalidFilterKeys,
     }),
     [
       booleanSecondaryAliases,
@@ -183,20 +196,20 @@ export function useTraceItemSearchQueryBuilderProps({
       getTagKeys,
       getTraceItemAttributeValues,
       initialQuery,
+      invalidFilterKeys,
       itemType,
       matchKeySuggestions,
       namespace,
       numberSecondaryAliases,
       onBlur,
       onCaseInsensitiveClick,
-      onChange,
+      wrappedOnChange,
       onSearch,
       placeholderText,
       portalTarget,
       replaceRawSearchKeys,
       searchSource,
       stringSecondaryAliases,
-      validateFilterKeys,
     ]
   );
 }
