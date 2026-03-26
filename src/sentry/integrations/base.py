@@ -240,11 +240,15 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
     the installer's identity to the organization integration
     """
 
-    is_cell_restricted: bool = False
-    """
-    Returns True if each integration installation can only be connected on one cell of Sentry at a
-    time. It will raise an error if any organization from another cell attempts to install it.
-    """
+    # TODO(cells): Remove once jira integration is updated and works for multi-cell.
+    # No integrations should be cell restricted.
+    @property
+    def is_cell_restricted(self) -> bool:
+        """
+        Returns True if each integration installation can only be connected on one cell of Sentry at a
+        time. It will raise an error if any organization from another cell attempts to install it.
+        """
+        return False
 
     features: frozenset[IntegrationFeatures] = frozenset()
     """can be any number of IntegrationFeatures"""
