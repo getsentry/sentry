@@ -47,7 +47,7 @@ export function ScmBenefitsCard({showTitle, ref, ...props}: ScmBenefitsCardProps
         )}
         {BENEFITS.map(({icon: Icon, title, description}) => (
           <Flex key={title} gap="lg" align="start">
-            <Icon legacySize="20px" variant="muted" />
+            <Icon size="lg" variant="muted" />
             <Stack gap="2xs">
               <Text bold size="md" density="comfortable">
                 {title}
