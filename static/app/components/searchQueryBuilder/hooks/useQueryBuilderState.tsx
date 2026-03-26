@@ -631,6 +631,10 @@ export function modifyFilterValue(
   let internalOp: TermOperator;
   if (newOp === TermOperator.DOES_NOT_CONTAIN) {
     internalOp = TermOperator.CONTAINS;
+  } else if (newOp === TermOperator.DOES_NOT_START_WITH) {
+    internalOp = TermOperator.STARTS_WITH;
+  } else if (newOp === TermOperator.DOES_NOT_END_WITH) {
+    internalOp = TermOperator.ENDS_WITH;
   } else if (newOp === TermOperator.NOT_EQUAL) {
     internalOp = TermOperator.DEFAULT;
   } else {
