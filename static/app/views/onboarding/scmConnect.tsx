@@ -60,23 +60,6 @@ export function ScmConnect({onComplete}: StepProps) {
     [setSelectedIntegration, setSelectedRepository, refetchIntegrations]
   );
 
-  if (isPending) {
-    return (
-      <Flex justify="center" align="center" flexGrow={1}>
-        <LoadingIndicator />
-      </Flex>
-    );
-  }
-
-  if (isError) {
-    return (
-      <Flex direction="column" align="center" gap="lg" flexGrow={1}>
-        <Text variant="muted">{t('Failed to load integrations.')}</Text>
-        <Button onClick={() => refetch()}>{t('Retry')}</Button>
-      </Flex>
-    );
-  }
-
   return (
     <Flex direction="column" align="center" gap="2xl" flexGrow={1}>
       <ScmStepHeader
@@ -87,7 +70,16 @@ export function ScmConnect({onComplete}: StepProps) {
       />
 
       <LayoutGroup>
-        {effectiveIntegration ? (
+        {isPending ? (
+          <Flex justify="center" align="center">
+            <LoadingIndicator size={24} />
+          </Flex>
+        ) : isError ? (
+          <Stack gap="lg" align="center">
+            <Text variant="muted">{t('Failed to load integrations.')}</Text>
+            <Button onClick={() => refetch()}>{t('Retry')}</Button>
+          </Stack>
+        ) : effectiveIntegration ? (
           <MotionStack
             key="with-integration"
             gap="xl"
