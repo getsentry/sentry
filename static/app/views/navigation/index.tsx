@@ -4,7 +4,10 @@ import styled from '@emotion/styled';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {toggleCommandPalette} from 'sentry/actionCreators/modal';
+import {
+  openCommandPaletteDeprecated,
+  toggleCommandPalette,
+} from 'sentry/actionCreators/modal';
 import {useGlobalCommandPaletteActions} from 'sentry/components/commandPalette/useGlobalCommandPaletteActions';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {t} from 'sentry/locale';
@@ -56,6 +59,8 @@ function UserAndOrganizationNavigation() {
       callback: () => {
         if (organization.features.includes('cmd-k-supercharged')) {
           toggleCommandPalette({}, organization, visible, 'keyboard');
+        } else {
+          openCommandPaletteDeprecated();
         }
       },
     },

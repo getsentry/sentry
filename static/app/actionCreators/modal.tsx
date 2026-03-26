@@ -142,6 +142,13 @@ export async function openEditOwnershipRules(options: EditOwnershipRulesModalOpt
   });
 }
 
+export async function openCommandPaletteDeprecated(options: ModalOptions = {}) {
+  const {default: Modal, modalCss} =
+    await import('sentry/components/modals/deprecatedCommandPalette');
+
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+}
+
 export async function toggleCommandPalette(
   options: ModalOptions = {},
   organization: Organization,
