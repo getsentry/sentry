@@ -32,7 +32,7 @@ from sentry.types.cell import (
     get_cell_for_organization,
 )
 from sentry.utils import metrics
-from sentry.utils.circuit_breaker2 import CircuitBreaker
+from sentry.utils.circuit_breaker2 import CircuitBreaker, CountBasedTripStrategy
 from sentry.utils.http import BodyWithLength
 
 logger = logging.getLogger(__name__)
@@ -129,8 +129,11 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
     if options.get("apigateway.proxy.circuit-breaker.enabled"):
         try:
             circuit_breaker = CircuitBreaker(
-                f"apigateway.proxy.{cell.name}",
-                options.get("apigateway.proxy.circuit-breaker.config"),
+                key=f"apigateway.proxy.{cell.name}",
+                config=options.get("apigateway.proxy.circuit-breaker.config"),
+                trip_strategy=CountBasedTripStrategy.from_config(
+                    options.get("apigateway.proxy.circuit-breaker.config")
+                ),
             )
         except Exception as e:
             logger.warning("apigateway.invalid-breaker-config", extra={"message": str(e)})
