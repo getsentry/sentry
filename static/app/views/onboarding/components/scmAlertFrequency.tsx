@@ -61,7 +61,7 @@ function AlertOptionCard({
           }
         }}
       >
-        <Flex gap="md" align="start" style={{cursor: 'pointer'}}>
+        <Flex gap="md" align="center">
           <Container padding="xs 0 0 0">
             <Radio size="sm" readOnly checked={isSelected} tabIndex={-1} />
           </Container>
@@ -91,21 +91,25 @@ export function ScmAlertFrequency({
   notificationProps,
   onFieldChange,
 }: ScmAlertFrequencyProps) {
+  const isDefaultSelected = alertSetting === RuleAction.DEFAULT_ALERT;
   const isCustomSelected = alertSetting === RuleAction.CUSTOMIZED_ALERTS;
+  const isLaterSelected = alertSetting === RuleAction.CREATE_ALERT_LATER;
 
   return (
     <Stack gap="xl" role="radiogroup" aria-label={t('Alert frequency')}>
       <Stack gap="lg">
         <AlertOptionCard
           label={t('High priority issues')}
-          icon={<IconWarning legacySize="16px" />}
-          isSelected={alertSetting === RuleAction.DEFAULT_ALERT}
+          icon={
+            <IconWarning size="md" variant={isDefaultSelected ? 'accent' : 'secondary'} />
+          }
+          isSelected={isDefaultSelected}
           onSelect={() => onFieldChange('alertSetting', RuleAction.DEFAULT_ALERT)}
         />
 
         <AlertOptionCard
           label={t('Custom')}
-          icon={<IconFix legacySize="16px" />}
+          icon={<IconFix size="md" variant={isCustomSelected ? 'accent' : 'secondary'} />}
           isSelected={isCustomSelected}
           onSelect={() => onFieldChange('alertSetting', RuleAction.CUSTOMIZED_ALERTS)}
         >
@@ -179,8 +183,10 @@ export function ScmAlertFrequency({
 
         <AlertOptionCard
           label={t("I'll create my own alerts later")}
-          icon={<IconClock legacySize="16px" />}
-          isSelected={alertSetting === RuleAction.CREATE_ALERT_LATER}
+          icon={
+            <IconClock size="md" variant={isLaterSelected ? 'accent' : 'secondary'} />
+          }
+          isSelected={isLaterSelected}
           onSelect={() => onFieldChange('alertSetting', RuleAction.CREATE_ALERT_LATER)}
         />
       </Stack>

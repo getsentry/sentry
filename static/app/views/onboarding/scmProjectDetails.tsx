@@ -148,8 +148,8 @@ export function ScmProjectDetails({onComplete}: StepProps) {
           layout="position"
         >
           <Stack gap="sm">
-            <Flex gap="md" align="center">
-              <IconProject legacySize="16px" />
+            <Flex gap="md" align="center" justify="center">
+              <IconProject size="md" variant="secondary" />
               <Text bold size="lg" density="comfortable">
                 {t('Give your project a name')}
               </Text>
@@ -171,8 +171,8 @@ export function ScmProjectDetails({onComplete}: StepProps) {
           </Stack>
 
           <Stack gap="sm">
-            <Flex gap="md" align="center">
-              <IconGroup legacySize="16px" />
+            <Flex gap="md" align="center" justify="center">
+              <IconGroup size="md" />
               <Text bold size="lg" density="comfortable">
                 {t('Assign a team')}
               </Text>
@@ -196,13 +196,13 @@ export function ScmProjectDetails({onComplete}: StepProps) {
           </Stack>
 
           <Stack gap="sm">
-            <Flex gap="md" align="center">
-              <IconSiren legacySize="16px" />
+            <Flex gap="md" align="center" justify="center">
+              <IconSiren size="md" />
               <Text bold size="lg" density="comfortable">
                 {t('Alert frequency')}
               </Text>
             </Flex>
-            <Text variant="muted" size="lg" density="comfortable">
+            <Text variant="muted" size="lg" density="comfortable" align="center">
               {t('Get notified when things go wrong')}
             </Text>
             <ScmAlertFrequency
