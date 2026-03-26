@@ -20,6 +20,8 @@ import {
   RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
 
+import {ScmCardButton} from './scmCardButton';
+
 interface ScmAlertFrequencyProps extends Partial<AlertRuleOptions> {
   onFieldChange: <K extends keyof AlertRuleOptions>(
     key: K,
@@ -45,39 +47,31 @@ function AlertOptionCard({
 }: AlertOptionCardProps) {
   return (
     <Stack gap="md">
-      <Container
-        border={isSelected ? 'accent' : 'secondary'}
-        padding="lg"
-        radius="md"
-        style={isSelected ? {marginBottom: 1} : {borderBottomWidth: 2}}
-        role="radio"
-        aria-checked={isSelected}
-        onClick={onSelect}
-        tabIndex={0}
-        onKeyDown={(e: React.KeyboardEvent) => {
-          if (e.key === ' ' || e.key === 'Enter') {
-            e.preventDefault();
-            onSelect();
-          }
-        }}
-      >
-        <Flex gap="md" align="center">
-          <Container padding="xs 0 0 0">
-            <Radio size="sm" readOnly checked={isSelected} tabIndex={-1} />
-          </Container>
-          <Text
-            bold={isSelected}
-            style={{flex: 1, lineHeight: '22px'}}
-            size="md"
-            density="comfortable"
-          >
-            {label}
-          </Text>
-          <Flex align="center" style={{paddingTop: 2}}>
-            {icon}
+      <ScmCardButton role="radio" aria-checked={isSelected} onClick={onSelect}>
+        <Container
+          border={isSelected ? 'accent' : 'secondary'}
+          padding="lg"
+          radius="md"
+          style={isSelected ? {marginBottom: 1} : {borderBottomWidth: 2}}
+        >
+          <Flex gap="md" align="center">
+            <Container padding="xs 0 0 0">
+              <Radio size="sm" readOnly checked={isSelected} tabIndex={-1} />
+            </Container>
+            <Text
+              bold={isSelected}
+              style={{flex: 1, lineHeight: '22px'}}
+              size="md"
+              density="comfortable"
+            >
+              {label}
+            </Text>
+            <Flex align="center" style={{paddingTop: 2}}>
+              {icon}
+            </Flex>
           </Flex>
-        </Flex>
-      </Container>
+        </Container>
+      </ScmCardButton>
       {children}
     </Stack>
   );
