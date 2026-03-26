@@ -76,20 +76,6 @@ export function IssuesSecondaryNavigation() {
             )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
-        <SecondaryNavigation.Separator />
-        <SecondaryNavigation.Section id="issues-views-all">
-          <SecondaryNavigation.List>
-            <SecondaryNavigation.ListItem>
-              <SecondaryNavigation.Link
-                to={`${baseUrl}/views/`}
-                analyticsItemName="issues_all_views"
-                end
-              >
-                {t('All Views')}
-              </SecondaryNavigation.Link>
-            </SecondaryNavigation.ListItem>
-          </SecondaryNavigation.List>
-        </SecondaryNavigation.Section>
         {organization.features.includes('seer-issue-view') && (
           <Fragment>
             <SecondaryNavigation.Separator />
@@ -108,6 +94,20 @@ export function IssuesSecondaryNavigation() {
             </SecondaryNavigation.Section>
           </Fragment>
         )}
+        <SecondaryNavigation.Separator />
+        <SecondaryNavigation.Section id="issues-views-all">
+          <SecondaryNavigation.List>
+            <SecondaryNavigation.ListItem>
+              <SecondaryNavigation.Link
+                to={`${baseUrl}/views/`}
+                analyticsItemName="issues_all_views"
+                end
+              >
+                {t('All Views')}
+              </SecondaryNavigation.Link>
+            </SecondaryNavigation.ListItem>
+          </SecondaryNavigation.List>
+        </SecondaryNavigation.Section>
         <IssueViews />
         <ConfigureSection baseUrl={baseUrl} />
       </SecondaryNavigation.Body>
