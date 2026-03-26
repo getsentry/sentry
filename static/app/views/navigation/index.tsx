@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {CommandPaletteHotkeys} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
+import {toggleCommandPalette} from 'sentry/actionCreators/modal';
 import {useGlobalCommandPaletteActions} from 'sentry/components/commandPalette/useGlobalCommandPaletteActions';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {t} from 'sentry/locale';
@@ -30,6 +30,7 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
 import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
 
 function UserAndOrganizationNavigation() {
+  const organization = useOrganization();
   const {layout} = usePrimaryNavigation();
   const {visible} = useGlobalModal();
   const {view, setView} = useSecondaryNavigation();
@@ -48,9 +49,20 @@ function UserAndOrganizationNavigation() {
         ]
   );
 
+  useHotkeys([
+    {
+      match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
+      includeInputs: true,
+      callback: () => {
+        if (organization.features.includes('cmd-k-supercharged')) {
+          toggleCommandPalette({}, organization, visible, 'keyboard');
+        }
+      },
+    },
+  ]);
+
   return (
     <NavigationLayout>
-      <CommandPaletteHotkeys />
       {layout === 'mobile' ? (
         <MobileSecondaryNavigationContextProvider>
           {hasPageFrame ? <MobilePageFrameNavigation /> : <MobileNavigation />}

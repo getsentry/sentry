@@ -6,14 +6,10 @@ import {Stack} from '@sentry/scraps/layout';
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 
-import {toggleCommandPalette} from 'sentry/actionCreators/modal';
-import {openHelpSearchModal} from 'sentry/actionCreators/modal';
+import {openHelpSearchModal, toggleCommandPalette} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import {
-  useCommandPaletteState,
-  useCommandPaletteDispatch,
-} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import Hook from 'sentry/components/hook';
 import {IconSearch} from 'sentry/icons';
 import {
@@ -306,8 +302,7 @@ export function PrimaryNavigationFooterItems() {
   const organization = useOrganization();
   const hasPageFrame = useHasPageFrameFeature();
 
-  const state = useCommandPaletteState();
-  const dispatch = useCommandPaletteDispatch();
+  const {visible} = useGlobalModal();
 
   return (
     <Fragment>
@@ -319,7 +314,7 @@ export function PrimaryNavigationFooterItems() {
             icon: <IconSearch />,
             onClick: () => {
               if (organization.features.includes('cmd-k-supercharged')) {
-                toggleCommandPalette({}, organization, state, dispatch, 'button');
+                toggleCommandPalette({}, organization, visible, 'button');
               } else {
                 openHelpSearchModal({organization});
               }

@@ -77,7 +77,7 @@ const globalActions: CommandPaletteAction[] = [
   },
 ];
 
-describe('CommandPaletteContent', () => {
+describe('CommandPalette', () => {
   beforeEach(() => {
     jest.resetAllMocks();
   });
@@ -122,8 +122,8 @@ describe('CommandPaletteContent', () => {
     expect(screen.queryByRole('option', {name: 'Parent action'})).not.toBeInTheDocument();
     expect(screen.queryByRole('option', {name: 'Go to route'})).not.toBeInTheDocument();
 
-    // Hit Escape on the input to go back
-    await userEvent.keyboard('{Escape}');
+    // Hit Backspace on the input to go back
+    await userEvent.keyboard('{Backspace}');
 
     // Back to main actions
     expect(
@@ -322,7 +322,7 @@ describe('CommandPaletteContent', () => {
       await waitFor(() => expect(input).toHaveValue(''));
     });
 
-    it('Escape from a drilled group restores the query that was active before drilling in', async () => {
+    it('Backspace from a drilled group restores the query that was active before drilling in', async () => {
       render(<GlobalActionsComponent actions={globalActions} />);
       const input = await screen.findByRole('textbox', {name: 'Search commands'});
 
@@ -331,8 +331,8 @@ describe('CommandPaletteContent', () => {
       await userEvent.click(await screen.findByRole('option', {name: 'Parent action'}));
       await screen.findByRole('option', {name: 'Child action'});
 
-      // Go back with Escape — the pre-drill query should be restored
-      await userEvent.keyboard('{Escape}');
+      // Go back with Backspace — the pre-drill query should be restored
+      await userEvent.keyboard('{Backspace}');
 
       await waitFor(() => expect(input).toHaveValue('parent'));
     });

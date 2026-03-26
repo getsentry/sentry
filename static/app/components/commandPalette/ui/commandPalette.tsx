@@ -178,15 +178,15 @@ export function CommandPalette(props: CommandPaletteProps) {
                       treeState.selectionManager.setFocusedKey(null);
                     },
                     onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
-                      if (e.key === 'Escape') {
-                        // If we have an action, then pop it and return to where the
-                        // user was previously before they navigated into the current action.
+                      if (e.key === 'Backspace' && state.query.length === 0) {
                         if (state.action) {
                           dispatch({type: 'pop action'});
                           e.preventDefault();
                           return;
                         }
+                      }
 
+                      if (e.key === 'Escape') {
                         // If the user has typed something into the input and pressed escape,
                         // then clear the input. This falls back nicely through actions and allows
                         // users clear, walk back and eventually close the input.

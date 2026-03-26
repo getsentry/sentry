@@ -1,5 +1,5 @@
 import {useEffect} from 'react';
-import {ClassNames, css, useTheme} from '@emotion/react';
+import {ClassNames, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {InputGroup} from '@sentry/scraps/input';
@@ -67,11 +67,5 @@ const InputWithoutFocusStyles = styled(InputGroup.Input)`
     outline: none;
     box-shadow: none;
     border: none;
-  }
-`;
-
-export const modalCss = css`
-  [role='document'] {
-    padding: 0;
   }
 `;
