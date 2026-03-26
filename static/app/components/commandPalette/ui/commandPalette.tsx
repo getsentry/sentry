@@ -84,21 +84,20 @@ export function CommandPalette(props: CommandPaletteProps) {
         ? state.action.value.action.actions
         : actions;
 
-    return search(state.query, flattenActions(scopedActions));
+    if (!state.query.length) {
+      return scopedActions;
+    }
+
+    const items = search(state.query, scopedActions);
   }, [state.query, actions, state.action]);
 
-  const sections = useMemo(
-    () => groupActionsBySection(filteredActions),
-    [filteredActions]
-  );
-
-  const sectionHeaderKeys = useMemo(
-    () => new Set(sections.map(({key}) => `section-${key}`)),
-    [sections]
-  );
+  const [keys, keyList] = useMemo(() => {
+    const sectionKeys = new Set(sections.map(({key}) => `section-${key}`));
+    return [sectionKeys, Array.from(sectionKeys)];
+  }, [sections]);
 
   const treeState = useTreeState({
-    disabledKeys: [...sectionHeaderKeys],
+    disabledKeys: keyList,
     children: sections.flatMap(({key: sectionKey, label, children}) => [
       <Item<CommandPaletteActionMenuItem & {hideCheck: boolean; label: string}>
         key={`section-${sectionKey}`}
@@ -123,12 +122,12 @@ export function CommandPalette(props: CommandPaletteProps) {
 
   const firstFocusableKey = useMemo(() => {
     for (const item of treeState.collection) {
-      if (!sectionHeaderKeys.has(String(item.key))) {
+      if (!keys.has(String(item.key))) {
         return item;
       }
     }
     return undefined;
-  }, [treeState.collection, sectionHeaderKeys]);
+  }, [treeState.collection, keys]);
 
   useLayoutEffect(() => {
     if (treeState.selectionManager.focusedKey !== null) {
@@ -222,7 +221,7 @@ export function CommandPalette(props: CommandPaletteProps) {
                   aria-label={t('Search commands')}
                   placeholder={
                     state.action?.value.action.display.label
-                      ? t('Search inside %s...', state.action.value.action.display.label)
+                      ? t('Search %s...', state.action.value.action.display.label)
                       : t('Search for commands...')
                   }
                   {...mergeProps(collectionProps, {
@@ -314,62 +313,82 @@ const COMMAND_PALETTE_GROUP_KEY_CONFIG: Record<CommandPaletteGroupKey, string> =
   help: t('Help'),
 };
 
-function groupActionsBySection(
-  actions: CommandPaletteActionWithKey[]
-): CommandPaletteActionMenuItem[] {
-  const itemsBySection = new Map<string, CommandPaletteActionMenuItem[]>();
-  for (const action of actions) {
-    const sectionLabel = action.groupingKey
-      ? (COMMAND_PALETTE_GROUP_KEY_CONFIG[action.groupingKey] ?? '')
-      : '';
-    const list = itemsBySection.get(sectionLabel) ?? [];
-    list.push(makeMenuItemFromAction(action));
-    itemsBySection.set(sectionLabel, list);
+function dfs(
+  action: CommandPaletteActionWithKey,
+  parent: CommandPaletteActionWithKey | null,
+  fn: (
+    action: CommandPaletteActionWithKey,
+    parent: CommandPaletteActionWithKey | null
+  ) => void
+) {
+  if ('actions' in action) {
+    for (const child of action.actions) {
+      dfs(child, action, fn);
+    }
   }
-  return Array.from(itemsBySection.keys())
-    .map(sectionKey => ({
-      key: sectionKey,
-      label: sectionKey,
-      children: itemsBySection.get(sectionKey) ?? [],
-    }))
-    .filter(section => section.children.length > 0);
+
+  fn(action, parent);
 }
 
 function search(
   query: string,
   actions: CommandPaletteActionWithKey[]
-): CommandPaletteActionWithKey[] {
-  if (query.length === 0) {
-    return actions;
+): CommandPaletteActionMenuItem[] {
+  const scores = new Map<
+    CommandPaletteActionWithKey,
+    {parent: CommandPaletteActionWithKey | null; score: number}
+  >();
+
+  const leafs = new Map<
+    CommandPaletteActionWithKey,
+    {parent: CommandPaletteActionWithKey | null; score: number}
+  >();
+  for (const action of actions) {
+    dfs(action, null, (a, s) => {
+      const {matched, score} = fzfScoreAction(query, a);
+      if (matched) scores.set(a, {score, parent: s});
+
+      if (!('actions' in a)) {
+        leafs.set(a, {score, parent: s});
+      }
+    });
   }
 
-  const normalizedQuery = query.toLowerCase();
+  // @TODO:
+  // assemble groups of sections by walking the list of leafs
+  // sort the sections by max(action) score
+  // reassemble the tree
 
-  const scored = actions.map((action, index) => {
-    const label = typeof action.display.label === 'string' ? action.display.label : '';
-    const details =
-      typeof action.display.details === 'string' ? action.display.details : '';
-    const keywords = action.keywords?.join(' ') ?? '';
-    const searchText = [label, details, keywords].filter(Boolean).join(' ');
-    const result = fzf(searchText, normalizedQuery, false);
-    return {action, score: result.score, matched: result.end !== -1, index};
-  });
+  return [];
+}
 
-  const matched = scored.filter(r => r.matched);
-  const unmatchedSearchResults = scored.filter(
-    r => !r.matched && r.action.groupingKey === 'search-result'
-  );
+function sort(
+  a: CommandPaletteActionWithKey,
+  b: CommandPaletteActionWithKey,
+  index: Map<CommandPaletteActionWithKey, number>
+): number {
+  const scoreA = index.get(a);
+  if (!scoreA) {
+    return -1;
+  }
+  const scoreB = index.get(b);
+  if (!scoreB) {
+    return 1;
+  }
+  return scoreB - scoreA;
+}
 
-  const sortedMatches = matched.toSorted((a, b) => {
-    const scoreDiff = b.score - a.score;
-    if (scoreDiff !== 0) return scoreDiff;
-    return a.index - b.index;
-  });
-
-  return [
-    ...sortedMatches.map(r => r.action),
-    ...unmatchedSearchResults.map(r => r.action),
-  ];
+function fzfScoreAction(
+  query: string,
+  action: CommandPaletteActionWithKey
+): {matched: boolean; score: number} {
+  const label = typeof action.display.label === 'string' ? action.display.label : '';
+  const details =
+    typeof action.display.details === 'string' ? action.display.details : '';
+  const keywords = action.keywords?.join(' ') ?? '';
+  const searchText = [label, details, keywords].filter(Boolean).join(' ');
+  const result = fzf(searchText, query, false);
+  return {score: result.score, matched: result.end !== -1};
 }
 
 function makeMenuItemFromAction(
