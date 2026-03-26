@@ -149,6 +149,7 @@ export const useSeerExplorer = () => {
     assistantBlockId: string;
     assistantContent: string;
     baselineSignature: string;
+    createdAt: number;
     insertIndex: number;
     userBlockId: string;
     userQuery: string;
@@ -236,6 +237,7 @@ export const useSeerExplorer = () => {
         insertIndex: calculatedInsertIndex,
         userQuery: query,
         baselineSignature,
+        createdAt: Date.now(),
         userBlockId: generateBlockId('user', query, calculatedInsertIndex),
         assistantBlockId: generateBlockId(
           'loading',
@@ -455,23 +457,51 @@ export const useSeerExplorer = () => {
     return sessionData;
   }, [sessionData, deletedFromIndex, optimistic, runId]);
 
-  // Clear optimistic blocks once the real blocks change in poll results
+  // Clear optimistic blocks once the server has a real assistant response.
+  // The server acknowledges the user message before the Celery worker produces
+  // an assistant block, so we keep the optimistic "Thinking" block visible
+  // until a real assistant block appears after the insert point (or a 30s timeout).
   useEffect(() => {
-    if (optimistic) {
-      const currentSignature = JSON.stringify(
-        (apiData?.session?.blocks || []).map(b => [
-          b.id,
-          b.message.role,
-          b.message.content,
-          !!b.loading,
-        ])
-      );
-      if (currentSignature !== optimistic.baselineSignature) {
-        setOptimistic(null);
-        // Reveal all real blocks immediately after the server responds
-        setDeletedFromIndex(null);
-      }
+    if (!optimistic) {
+      return undefined;
     }
+
+    const currentSignature = JSON.stringify(
+      (apiData?.session?.blocks || []).map(b => [
+        b.id,
+        b.message.role,
+        b.message.content,
+        !!b.loading,
+      ])
+    );
+
+    if (currentSignature === optimistic.baselineSignature) {
+      return undefined;
+    }
+
+    const serverBlocks = apiData?.session?.blocks || [];
+    const hasAssistantResponse = serverBlocks.some(
+      (b, i) => i >= optimistic.insertIndex && b.message.role === 'assistant'
+    );
+    const isTimedOut = Date.now() - optimistic.createdAt > 30_000;
+
+    if (hasAssistantResponse || isTimedOut) {
+      setOptimistic(null);
+      setDeletedFromIndex(null);
+      return undefined;
+    }
+
+    // Schedule a forced clear at the 30s mark in case no new poll data arrives
+    const remaining = 30_000 - (Date.now() - optimistic.createdAt);
+    if (remaining > 0) {
+      const timer = setTimeout(() => {
+        setOptimistic(null);
+        setDeletedFromIndex(null);
+      }, remaining);
+      return () => clearTimeout(timer);
+    }
+
+    return undefined;
   }, [apiData?.session?.blocks, optimistic]);
 
   // Detect PR creation errors and show error messages
