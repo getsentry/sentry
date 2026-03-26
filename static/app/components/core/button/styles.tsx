@@ -135,7 +135,7 @@ export function DO_NOT_USE_getButtonStyles(
       },
     },
 
-    '&[aria-busy] > span:last-child': {
+    '&[aria-busy="true"] > span:last-child': {
       overflow: 'visible',
     },
 
