@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import copy
 import logging
 import sys
@@ -268,6 +269,15 @@ def before_send_log(log: Log, _: Hint) -> Log | None:
         if attributes.get("sentry.message.template") == "New partitions assigned: %r":
             return None
 
+    try:
+        # FIXME: when in ASGI, the call to `options.store` from `in_random_rollout`
+        #        would fail, because of SyncOnlyOperation.
+        #        While we should ideally figure out how to actually fix this,
+        #        for the moment let's just simplify and skip this entirely.
+        asyncio.get_running_loop()
+        return None
+    except Exception:
+        pass
     if in_random_rollout("ourlogs.sentry-emit-rollout"):
         return log
     return None
