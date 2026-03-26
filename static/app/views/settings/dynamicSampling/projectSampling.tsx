@@ -144,7 +144,7 @@ export function ProjectSampling() {
                     projectRates={field.state.value}
                     savedProjectRates={savedProjectRates}
                     onProjectRatesChange={field.handleChange}
-                    fieldError={field.state.meta.errors[0]?.message}
+                    showErrors={!field.state.meta.isValid}
                     actions={
                       <Fragment>
                         <Button

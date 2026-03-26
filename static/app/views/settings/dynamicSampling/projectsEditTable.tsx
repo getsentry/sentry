@@ -3,8 +3,6 @@ import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Text} from '@sentry/scraps/text';
-
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
@@ -35,10 +33,23 @@ interface Props {
   projectRates: Record<string, string>;
   sampleCounts: ProjectSampleCount[];
   savedProjectRates: Record<string, string>;
-  fieldError?: string;
+  showErrors?: boolean;
 }
 
 const EMPTY_ARRAY: any = [];
+
+function getProjectRateError(rate: string): string | undefined {
+  if (rate === '') {
+    return t('This field is required');
+  }
+  if (isNaN(Number(rate))) {
+    return t('Please enter a valid number');
+  }
+  if (Number(rate) < 0 || Number(rate) > 100) {
+    return t('Must be between 0% and 100%');
+  }
+  return undefined;
+}
 
 export function ProjectsEditTable({
   actions,
@@ -50,7 +61,7 @@ export function ProjectsEditTable({
   projectRates,
   savedProjectRates,
   onProjectRatesChange,
-  fieldError,
+  showErrors,
 }: Props) {
   const {projects, fetching} = useProjects();
   const [isBulkEditEnabled, setIsBulkEditEnabled] = useState(false);
@@ -138,9 +149,12 @@ export function ProjectsEditTable({
           project,
           initialSampleRate: savedProjectRates[project.id]!,
           sampleRate: projectRates[project.id]!,
+          error: showErrors
+            ? getProjectRateError(projectRates[project.id] ?? '')
+            : undefined,
         };
       }),
-    [dataByProjectId, savedProjectRates, projects, projectRates]
+    [dataByProjectId, showErrors, savedProjectRates, projects, projectRates]
   );
 
   const totalSpanCount = useMemo(
@@ -218,14 +232,7 @@ export function ProjectsEditTable({
               isLoading={isLoading}
               items={items}
             />
-            <Footer>
-              {fieldError ? (
-                <Text size="xs" variant="danger">
-                  {fieldError}
-                </Text>
-              ) : null}
-              {actions}
-            </Footer>
+            <Footer>{actions}</Footer>
           </Fragment>
         )}
       </Panel>
