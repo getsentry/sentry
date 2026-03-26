@@ -19,6 +19,7 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
+import type {ProjectSamplingForm} from 'sentry/views/settings/dynamicSampling/projectSampling';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import type {
@@ -49,6 +50,7 @@ interface Props {
   period: ProjectionSamplePeriod;
   rateHeader: React.ReactNode;
   canEdit?: boolean;
+  form?: ProjectSamplingForm;
   inputTooltip?: string;
   onChange?: (projectId: string, value: string) => void;
 }
@@ -65,6 +67,7 @@ export function ProjectsTable({
   period,
   isLoading,
   emptyMessage,
+  form,
 }: Props) {
   const hasAccess = useHasDynamicSamplingWriteAccess();
   const [tableSort, setTableSort] = useState<'asc' | 'desc'>('desc');
@@ -167,14 +170,31 @@ export function ProjectsTable({
                     transform: `translateY(${virtualRow.start}px)`,
                   }}
                 >
-                  <TableRow
-                    canEdit={canEdit}
-                    onChange={onChange}
-                    inputTooltip={inputTooltip}
-                    toggleExpanded={handleToggleItemExpanded}
-                    hasAccess={hasAccess}
-                    {...item}
-                  />
+                  {form ? (
+                    <form.AppField name={`projectRates.${item.project.id}`}>
+                      {field => (
+                        <TableRow
+                          canEdit={canEdit}
+                          onChange={onChange}
+                          inputTooltip={inputTooltip}
+                          toggleExpanded={handleToggleItemExpanded}
+                          hasAccess={hasAccess}
+                          {...item}
+                          sampleRate={field.state.value}
+                          error={field.state.meta.errors[0]?.message}
+                        />
+                      )}
+                    </form.AppField>
+                  ) : (
+                    <TableRow
+                      canEdit={canEdit}
+                      onChange={onChange}
+                      inputTooltip={inputTooltip}
+                      toggleExpanded={handleToggleItemExpanded}
+                      hasAccess={hasAccess}
+                      {...item}
+                    />
+                  )}
                 </div>
               );
             })}

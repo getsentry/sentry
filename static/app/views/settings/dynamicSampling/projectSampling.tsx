@@ -38,6 +38,19 @@ const projectSamplingSchema = z.object({
   projectRates: z.record(z.string(), sampleRateField),
 });
 
+// Helper to extract the form type from the component — avoids deeply generic TanStack types.
+// Consumers should not construct this type directly; it's inferred from useScrapsForm.
+function _formTypeHelper() {
+  // This function is never called — it exists only for type inference.
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  return useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {projectRates: {} as Record<string, string>},
+    validators: {onDynamic: projectSamplingSchema},
+  });
+}
+export type ProjectSamplingForm = ReturnType<typeof _formTypeHelper>;
+
 export function ProjectSampling() {
   const hasAccess = useHasDynamicSamplingWriteAccess();
   const [period, setPeriod] = useState<ProjectionSamplePeriod>('24h');
@@ -133,40 +146,31 @@ export function ProjectSampling() {
             {sampleCountsQuery.isError ? (
               <LoadingError onRetry={sampleCountsQuery.refetch} />
             ) : (
-              <form.AppField name="projectRates">
-                {field => (
-                  <ProjectsEditTable
-                    period={period}
-                    editMode={editMode}
-                    onEditModeChange={setEditMode}
-                    isLoading={sampleRatesQuery.isPending || sampleCountsQuery.isPending}
-                    sampleCounts={sampleCountsQuery.data}
-                    projectRates={field.state.value}
-                    savedProjectRates={savedProjectRates}
-                    onProjectRatesChange={field.handleChange}
-                    showErrors={!field.state.meta.isValid}
-                    actions={
-                      <Fragment>
-                        <Button
-                          disabled={!isDirty || updateSamplingProjectRates.isPending}
-                          onClick={() => {
-                            form.reset();
-                            setEditMode('single');
-                          }}
-                        >
-                          {t('Reset')}
-                        </Button>
-                        <form.SubmitButton
-                          disabled={!hasAccess || !canSubmit}
-                          formNoValidate
-                        >
-                          {t('Apply Changes')}
-                        </form.SubmitButton>
-                      </Fragment>
-                    }
-                  />
-                )}
-              </form.AppField>
+              <ProjectsEditTable
+                form={form}
+                period={period}
+                editMode={editMode}
+                onEditModeChange={setEditMode}
+                isLoading={sampleRatesQuery.isPending || sampleCountsQuery.isPending}
+                sampleCounts={sampleCountsQuery.data}
+                savedProjectRates={savedProjectRates}
+                actions={
+                  <Fragment>
+                    <Button
+                      disabled={!isDirty || updateSamplingProjectRates.isPending}
+                      onClick={() => {
+                        form.reset();
+                        setEditMode('single');
+                      }}
+                    >
+                      {t('Reset')}
+                    </Button>
+                    <form.SubmitButton disabled={!hasAccess || !canSubmit} formNoValidate>
+                      {t('Apply Changes')}
+                    </form.SubmitButton>
+                  </Fragment>
+                }
+              />
             )}
             <FormActions />
           </Fragment>

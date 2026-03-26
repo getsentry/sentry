@@ -3,12 +3,14 @@ import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {useStore} from '@sentry/scraps/form';
+
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {useProjects} from 'sentry/utils/useProjects';
 import {OrganizationSampleRateInput} from 'sentry/views/settings/dynamicSampling/organizationSampleRateInput';
-import {sampleRateField} from 'sentry/views/settings/dynamicSampling/organizationSampling';
+import type {ProjectSamplingForm} from 'sentry/views/settings/dynamicSampling/projectSampling';
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
 import {SamplingBreakdown} from 'sentry/views/settings/dynamicSampling/samplingBreakdown';
 import {mapArrayToObject} from 'sentry/views/settings/dynamicSampling/utils';
@@ -23,29 +25,15 @@ import type {
 interface Props {
   actions: React.ReactNode;
   editMode: 'single' | 'bulk';
+  form: ProjectSamplingForm;
   isLoading: boolean;
   onEditModeChange: (mode: 'single' | 'bulk') => void;
-  onProjectRatesChange: (
-    updater:
-      | Record<string, string>
-      | ((prev: Record<string, string>) => Record<string, string>)
-  ) => void;
   period: ProjectionSamplePeriod;
-  projectRates: Record<string, string>;
   sampleCounts: ProjectSampleCount[];
   savedProjectRates: Record<string, string>;
-  showErrors?: boolean;
 }
 
 const EMPTY_ARRAY: any = [];
-
-function getProjectRateError(rate: string): string | undefined {
-  const result = sampleRateField.safeParse(rate);
-  if (result.success) {
-    return undefined;
-  }
-  return result.error.issues[0]?.message;
-}
 
 export function ProjectsEditTable({
   actions,
@@ -54,16 +42,16 @@ export function ProjectsEditTable({
   editMode,
   period,
   onEditModeChange,
-  projectRates,
+  form,
   savedProjectRates,
-  onProjectRatesChange,
-  showErrors,
 }: Props) {
   const {projects, fetching} = useProjects();
   const [isBulkEditEnabled, setIsBulkEditEnabled] = useState(false);
   const [orgRate, setOrgRate] = useState<string>('');
 
   const projectRateSnapshotRef = useRef<Record<string, string>>({});
+
+  const projectRates = useStore(form.baseStore, s => s.values.projectRates);
 
   const dataByProjectId = useMemo(
     () =>
@@ -77,13 +65,10 @@ export function ProjectsEditTable({
 
   const handleProjectChange = useCallback(
     (projectId: string, newRate: string) => {
-      onProjectRatesChange(prev => ({
-        ...prev,
-        [projectId]: newRate,
-      }));
+      form.setFieldValue(`projectRates.${projectId}`, newRate);
       onEditModeChange('single');
     },
-    [onProjectRatesChange, onEditModeChange]
+    [form, onEditModeChange]
   );
 
   const handleOrgChange = useCallback(
@@ -116,11 +101,13 @@ export function ProjectsEditTable({
         valueSelector: item => formatPercent(item.sampleRate),
       });
 
-      onProjectRatesChange(prev => ({...prev, ...newProjectValues}));
+      for (const [projectId, rate] of Object.entries(newProjectValues)) {
+        form.setFieldValue(`projectRates.${projectId}`, rate);
+      }
       setOrgRate(newRate);
       onEditModeChange('bulk');
     },
-    [dataByProjectId, editMode, onProjectRatesChange, onEditModeChange, projectRates]
+    [dataByProjectId, editMode, form, onEditModeChange, projectRates]
   );
 
   const handleBulkEditChange = useCallback((newIsActive: boolean) => {
@@ -145,12 +132,9 @@ export function ProjectsEditTable({
           project,
           initialSampleRate: savedProjectRates[project.id]!,
           sampleRate: projectRates[project.id]!,
-          error: showErrors
-            ? getProjectRateError(projectRates[project.id] ?? '')
-            : undefined,
         };
       }),
-    [dataByProjectId, showErrors, savedProjectRates, projects, projectRates]
+    [dataByProjectId, savedProjectRates, projects, projectRates]
   );
 
   const totalSpanCount = useMemo(
@@ -227,6 +211,7 @@ export function ProjectsEditTable({
               period={period}
               isLoading={isLoading}
               items={items}
+              form={form}
             />
             <Footer>{actions}</Footer>
           </Fragment>
