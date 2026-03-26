@@ -126,7 +126,7 @@ class GeneratedWidget(BaseModel):
     limit: int = Field(
         default=5,
         ge=1,
-        le=10,
+        le=25,
         description="For charts with group by columns, the maximum number series that can be displayed. For table widgets, the maximum number of rows that can be displayed. Categorical bar charts have a maximum limit of 25. For any other chart type, the maximum limit is 10. Default value is 5.",
     )
     interval: Intervals = Field(default="1h")
