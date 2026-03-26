@@ -65,11 +65,11 @@ type OverviewSpansColumn = GridColumnHeader<
 >;
 
 const BASE_COLUMN_ORDER: OverviewSpansColumn[] = [
-  {key: 'trace', name: t('Trace ID'), width: COL_WIDTH_UNDEFINED},
   {key: 'span_id', name: t('Span ID'), width: COL_WIDTH_UNDEFINED},
   {key: 'user.display', name: t('User'), width: COL_WIDTH_UNDEFINED},
   {key: 'request.method', name: t('HTTP Method'), width: COL_WIDTH_UNDEFINED},
   {key: 'span.duration', name: t('Total Duration'), width: COL_WIDTH_UNDEFINED},
+  {key: 'trace', name: t('Trace ID'), width: COL_WIDTH_UNDEFINED},
   {key: 'timestamp', name: t('Timestamp'), width: COL_WIDTH_UNDEFINED},
 ];
 
