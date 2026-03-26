@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-import pytest
 import responses
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
@@ -204,8 +203,8 @@ class JiraRequestParserTest(TestCase):
 
         with patch.object(parser, "get_integration_from_request") as method:
             method.return_value = integration
-            # assert ValueError is raised if the integration is not valid
-            with pytest.raises(ValueError):
-                parser.get_response()
+            # Multi-cell installs fall back to control silo rather than raising
+            response = parser.get_response()
+            assert response.status_code == 200
 
         assert_no_webhook_payloads()
