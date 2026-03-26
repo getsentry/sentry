@@ -124,3 +124,4 @@ export function useDuplicatePrebuiltDashboard({onSuccess}: UseDuplicateDashboard
 function toPrebuiltDashboardDetails(prebuiltId: PrebuiltDashboardId): DashboardDetails {
   return {id: '-1', ...PREBUILT_DASHBOARDS[prebuiltId]};
 }
+// trivial change for CI testing
