@@ -75,7 +75,7 @@ export function DO_NOT_USE_getButtonStyles(
 
     fontWeight: p.theme.font.weight.sans.medium,
 
-    opacity: p.busy || p.disabled ? 0.6 : undefined,
+    opacity: p.disabled ? 0.6 : undefined,
 
     cursor: 'pointer',
     '&[disabled]': {
@@ -184,13 +184,17 @@ export function DO_NOT_USE_getButtonStyles(
       },
     },
 
-    '&:disabled, &[aria-disabled="true"]': {
+    '&:disabled, &[aria-disabled="true"], &[aria-busy="true"]': {
       '&::after': {
         transform: 'translateY(0px)',
       },
       '> span:last-child': {
         transform: 'translateY(0px)',
       },
+    },
+
+    '&[aria-busy="true"]': {
+      cursor: 'progress',
     },
 
     ...(p.priority === 'link' && {
