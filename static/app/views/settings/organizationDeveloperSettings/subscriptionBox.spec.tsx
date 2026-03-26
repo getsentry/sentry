@@ -84,8 +84,15 @@ describe('SubscriptionBox', () => {
   });
 
   describe('preprod_artifact resource subscription', () => {
-    it('renders preprod_artifact checkbox enabled', () => {
+    it('hidden without preprod-artifact-webhooks flag', () => {
       renderComponent({resource: 'preprod_artifact'});
+
+      expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    });
+
+    it('renders preprod_artifact checkbox enabled with preprod-artifact-webhooks flag', () => {
+      const orgWithFlag = OrganizationFixture({features: ['preprod-artifact-webhooks']});
+      renderComponent({resource: 'preprod_artifact', organization: orgWithFlag});
 
       expect(screen.getByRole('checkbox')).toBeEnabled();
     });
