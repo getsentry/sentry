@@ -95,12 +95,12 @@ def process_mention_for_slack(
         )
         if not user:
             lifecycle.record_failure(failure_reason=ProcessMentionFailureReason.IDENTITY_NOT_LINKED)
+            _send_link_identity_prompt(entrypoint=entrypoint)
             entrypoint.install.set_thread_status(
                 channel_id=channel_id,
                 thread_ts=thread_ts,
                 status="",
             )
-            _send_link_identity_prompt(entrypoint=entrypoint, thread_ts=thread_ts)
             return
 
         prompt = extract_prompt(text, bot_user_id)
@@ -151,7 +151,6 @@ def _resolve_user(
 def _send_link_identity_prompt(
     *,
     entrypoint: SlackExplorerEntrypoint,
-    thread_ts: str,
 ) -> None:
     """Send an ephemeral message prompting the user to link their Slack identity to Sentry."""
     associate_url = build_linking_url(
@@ -165,7 +164,7 @@ def _send_link_identity_prompt(
         slack_user_id=entrypoint.slack_user_id,
         channel_id=entrypoint.channel_id,
         renderable=renderable,
-        thread_ts=thread_ts,
+        thread_ts="",
     )
 
 
