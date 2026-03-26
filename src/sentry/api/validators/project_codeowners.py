@@ -43,19 +43,19 @@ def build_codeowners_associations(
     # Deduplicate and lowercase names, then use a single IN query to filter.
     unique_lower_names = {name.lower() for name in usernames + team_names}
     if unique_lower_names:
-        external_actors = ExternalActor.objects.annotate(
-            external_name_lower=Lower("external_name")
-        ).filter(
-            external_name_lower__in=unique_lower_names,
-            organization_id=project.organization_id,
-            provider__in=[
-                ExternalProviders.GITHUB.value,
-                ExternalProviders.GITHUB_ENTERPRISE.value,
-                ExternalProviders.GITLAB.value,
-            ],
+        external_actors = list(
+            ExternalActor.objects.annotate(external_name_lower=Lower("external_name")).filter(
+                external_name_lower__in=unique_lower_names,
+                organization_id=project.organization_id,
+                provider__in=[
+                    ExternalProviders.GITHUB.value,
+                    ExternalProviders.GITHUB_ENTERPRISE.value,
+                    ExternalProviders.GITLAB.value,
+                ],
+            )
         )
     else:
-        external_actors = ExternalActor.objects.none()
+        external_actors = []
 
     # Convert CODEOWNERS into IssueOwner syntax
     users_dict = {}
@@ -94,7 +94,7 @@ def build_codeowners_associations(
                 organization_id=project.organization_id,
             ).values_list("id", "user_id")
         )
-        om_id_to_user_id = {om_id: uid for om_id, uid in om_rows}
+        om_id_to_user_id: dict[int, int] = {om_id: uid for om_id, uid in om_rows if uid is not None}
 
         omt_rows = OrganizationMemberTeam.objects.filter(
             organizationmember_id__in=list(om_id_to_user_id.keys())
