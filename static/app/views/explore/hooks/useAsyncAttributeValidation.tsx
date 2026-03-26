@@ -45,7 +45,7 @@ export function useAsyncAttributeValidation(
     ParseResult | null
   >({
     mutationFn: (parsedQuery: ParseResult | null) => {
-      if (!parsedQuery || parsedQuery?.length === 0) {
+      if (!parsedQuery) {
         return Promise.resolve({attributes: {}} as ValidateAttributesResponse);
       }
 
@@ -56,6 +56,10 @@ export function useAsyncAttributeValidation(
             keySet.add(getKeyName(token.key));
           }
         }
+      }
+
+      if (keySet.size === 0) {
+        return Promise.resolve({attributes: {}} as ValidateAttributesResponse);
       }
 
       const queryParams = {
