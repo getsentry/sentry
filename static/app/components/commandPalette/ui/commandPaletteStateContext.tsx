@@ -5,7 +5,6 @@ import {
   toggleCommandPalette,
 } from 'sentry/actionCreators/modal';
 import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
-import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -18,12 +17,14 @@ export type LinkedList = {
 export type CommandPaletteState = {
   action: LinkedList | null;
   input: React.RefObject<HTMLInputElement | null>;
+  open: boolean;
   query: string;
 };
 
 export type CommandPaletteDispatch = React.Dispatch<CommandPaletteAction>;
 
 export type CommandPaletteAction =
+  | {type: 'toggle modal'}
   | {type: 'reset'}
   | {query: string; type: 'set query'}
   | {action: CommandPaletteActionWithKey; type: 'push action'}
@@ -40,6 +41,11 @@ function commandPaletteReducer(
 ): CommandPaletteState {
   const type = action.type;
   switch (type) {
+    case 'toggle modal':
+      return {
+        ...state,
+        open: !state.open,
+      };
     case 'reset':
       return {
         ...state,
@@ -101,6 +107,7 @@ export function CommandPaletteStateProvider({
     input: inputRef,
     query: '',
     action: null,
+    open: false,
   });
 
   return (
@@ -118,7 +125,8 @@ export function CommandPaletteStateProvider({
  */
 export function CommandPaletteHotkeys() {
   const organization = useOrganization();
-  const {visible} = useGlobalModal();
+  const state = useCommandPaletteState();
+  const dispatch = useCommandPaletteDispatch();
 
   useHotkeys([
     {
@@ -126,7 +134,7 @@ export function CommandPaletteHotkeys() {
       includeInputs: true,
       callback: () => {
         if (organization.features.includes('cmd-k-supercharged')) {
-          toggleCommandPalette({}, organization, visible, 'keyboard');
+          toggleCommandPalette({}, organization, state, dispatch, 'keyboard');
         } else {
           openCommandPaletteDeprecated();
         }
