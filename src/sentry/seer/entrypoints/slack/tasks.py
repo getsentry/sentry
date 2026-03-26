@@ -6,7 +6,6 @@ from taskbroker_client.retry import Retry
 
 from sentry.identity.services.identity import identity_service
 from sentry.integrations.slack.message_builder.prompt import SlackPromptLinkMessageBuilder
-from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
@@ -159,10 +158,9 @@ def _send_link_identity_prompt(
         channel_id=entrypoint.channel_id,
         response_url=None,
     )
-    client = SlackSdkClient(integration_id=entrypoint.integration.id)
     message = "Link your Slack identity to Sentry to use this feature."
     builder = SlackPromptLinkMessageBuilder(associate_url, message=message)
-    client.chat_postEphemeral(
+    entrypoint.install.chat_postEphemeral(
         channel=entrypoint.channel_id,
         user=entrypoint.slack_user_id,
         text=message,
