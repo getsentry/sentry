@@ -92,7 +92,7 @@ class Test{ServiceName}Service(TestCase):
 Prefer `assume_test_silo_mode_of(Model)` over `assume_test_silo_mode(SiloMode.X)` when checking a single model:
 
 ```python
-@all_silo_test(regions=create_test_regions("us"))
+@all_silo_test(cells=create_test_regions("us"))
 class Test{ServiceName}CrossSilo(TestCase, HybridCloudTestMixin):
     def test_{method_name}_creates_mapping(self):
         with outbox_runner():

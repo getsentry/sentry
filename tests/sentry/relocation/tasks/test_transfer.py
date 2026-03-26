@@ -181,7 +181,7 @@ class ProcessRelocationTransferControlTest(TestCase):
             assert RelocationFile.objects.filter(relocation=relocation).exists()
 
 
-@cell_silo_test(regions=TEST_REGIONS)
+@cell_silo_test(cells=TEST_REGIONS)
 class ProcessRelocationTransferRegionTest(TestCase):
     def test_missing_transfer(self) -> None:
         res = process_relocation_transfer_region(transfer_id=999)

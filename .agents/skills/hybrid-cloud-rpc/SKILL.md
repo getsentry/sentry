@@ -234,7 +234,7 @@ class MyServiceTest(TestCase):
 For tests that need named cells (e.g., testing cell resolution):
 
 ```python
-@all_silo_test(regions=create_test_regions("us", "eu"))
+@all_silo_test(cells=create_test_regions("us", "eu"))
 class MyServiceRegionTest(TransactionTestCase):
     ...
 ```
