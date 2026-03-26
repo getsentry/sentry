@@ -2,12 +2,10 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from datetime import datetime, timezone
 from typing import Any
 
 import sentry_sdk
 from taskbroker_client.retry import Retry
-from taskbroker_client.state import current_task
 from urllib3.exceptions import HTTPError
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
@@ -38,7 +36,6 @@ PREFIX = "seer.code_review.task"
 MAX_RETRIES = 5
 DELAY_BETWEEN_RETRIES = 60  # 1 minute
 RETRYABLE_ERRORS = (HTTPError,)
-METRICS_PREFIX = "seer.code_review.task"
 
 
 def schedule_task(
@@ -95,7 +92,6 @@ def schedule_task(
     process_github_webhook_event.delay(
         seer_path=get_seer_path_for_request(github_event.value, github_event_action),
         event_payload=payload,
-        enqueued_at_str=datetime.now(timezone.utc).isoformat(),
         tags=tags,
     )
     record_webhook_enqueued(github_event, github_event_action)
@@ -109,7 +105,6 @@ def schedule_task(
 )
 def process_github_webhook_event(
     *,
-    enqueued_at_str: str,
     seer_path: str,
     event_payload: Mapping[str, Any],
     tags: Mapping[str, Any] | None = None,
@@ -119,14 +114,13 @@ def process_github_webhook_event(
     Forward a validated code-review payload to Seer.
 
     Args:
-        enqueued_at_str: The timestamp when the task was enqueued
         seer_path: The path to the Seer API endpoint to call
         event_payload: The payload (already validated before scheduling)
         tags: Sentry SDK tags to set on this task's scope for error correlation
         **kwargs: Absorbs legacy serialized task arguments from in-flight work
+            (e.g. removed ``enqueued_at_str``).
     """
     status = "success"
-    should_record_latency = True
     try:
         if tags:
             sentry_sdk.set_tags(tags)
@@ -137,36 +131,7 @@ def process_github_webhook_event(
         make_seer_request(path=seer_path, payload=event_payload, viewer_context=viewer_context)
     except Exception as e:
         status = e.__class__.__name__
-        # Retryable errors are automatically retried by taskworker.
-        if isinstance(e, RETRYABLE_ERRORS):
-            task = current_task()
-            if task and task.retries_remaining:
-                should_record_latency = False
         raise
     finally:
         if status != "success":
             metrics.incr(f"{PREFIX}.error", tags={"error_status": status}, sample_rate=1.0)
-        if should_record_latency:
-            record_latency(status, enqueued_at_str)
-
-
-def record_latency(status: str, enqueued_at_str: str) -> None:
-    latency_ms = calculate_latency_ms(enqueued_at_str)
-    if latency_ms > 0:
-        metrics.timing(f"{PREFIX}.e2e_latency", latency_ms, tags={"status": status})
-
-
-def calculate_latency_ms(timestamp_str: str) -> int:
-    """Calculate the latency in milliseconds between the given timestamp and now."""
-    try:
-        timestamp = datetime.fromisoformat(timestamp_str)
-        now = datetime.now(timezone.utc)
-        return int((now - timestamp).total_seconds() * 1000)
-    except (ValueError, TypeError) as e:
-        # Don't fail the task if timestamp parsing fails
-        logger.warning(
-            "%s.invalid_timestamp",
-            PREFIX,
-            extra={"timestamp": timestamp_str, "error": str(e)},
-        )
-        return 0
