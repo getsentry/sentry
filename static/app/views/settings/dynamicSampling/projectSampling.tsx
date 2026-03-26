@@ -38,19 +38,6 @@ const projectSamplingSchema = z.object({
   projectRates: z.record(z.string(), sampleRateField),
 });
 
-// Helper to extract the form type from the component — avoids deeply generic TanStack types.
-// Consumers should not construct this type directly; it's inferred from useScrapsForm.
-function _formTypeHelper() {
-  // This function is never called — it exists only for type inference.
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  return useScrapsForm({
-    ...defaultFormOptions,
-    defaultValues: {projectRates: {} as Record<string, string>},
-    validators: {onDynamic: projectSamplingSchema},
-  });
-}
-export type ProjectSamplingForm = ReturnType<typeof _formTypeHelper>;
-
 export function ProjectSampling() {
   const hasAccess = useHasDynamicSamplingWriteAccess();
   const [period, setPeriod] = useState<ProjectionSamplePeriod>('24h');

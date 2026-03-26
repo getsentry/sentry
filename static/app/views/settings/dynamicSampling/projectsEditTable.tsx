@@ -3,14 +3,11 @@ import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {useStore} from '@sentry/scraps/form';
-
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {useProjects} from 'sentry/utils/useProjects';
 import {OrganizationSampleRateInput} from 'sentry/views/settings/dynamicSampling/organizationSampleRateInput';
-import type {ProjectSamplingForm} from 'sentry/views/settings/dynamicSampling/projectSampling';
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
 import {SamplingBreakdown} from 'sentry/views/settings/dynamicSampling/samplingBreakdown';
 import {mapArrayToObject} from 'sentry/views/settings/dynamicSampling/utils';
@@ -21,6 +18,14 @@ import type {
   ProjectionSamplePeriod,
   ProjectSampleCount,
 } from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
+
+interface ProjectSamplingForm {
+  setFieldValue: (name: `projectRates.${string}`, value: string) => void;
+  state: {
+    fieldMeta: Partial<Record<string, {errors?: Array<{message?: string}> | undefined}>>;
+    values: {projectRates: Record<string, string>};
+  };
+}
 
 interface Props {
   actions: React.ReactNode;
@@ -51,8 +56,8 @@ export function ProjectsEditTable({
 
   const projectRateSnapshotRef = useRef<Record<string, string>>({});
 
-  const projectRates = useStore(form.baseStore, s => s.values.projectRates);
-  const fieldMeta = form.state.fieldMeta;
+  const {projectRates} = form.state.values;
+  const {fieldMeta} = form.state;
 
   const dataByProjectId = useMemo(
     () =>
