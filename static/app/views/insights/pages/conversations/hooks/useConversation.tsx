@@ -1,9 +1,9 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getGenAiOperationTypeFromSpanOp} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
@@ -57,16 +57,7 @@ function isGenAiSpan(span: ConversationApiSpan): boolean {
   if (span['gen_ai.operation.type']) {
     return true;
   }
-  if (span['span.op']?.startsWith('gen_ai.')) {
-    return true;
-  }
-  // Include spans that have I/O messages even without a gen_ai operation type
-  return !!(
-    span['gen_ai.input.messages'] ||
-    span['gen_ai.output.messages'] ||
-    span['gen_ai.request.messages'] ||
-    span['gen_ai.response.text']
-  );
+  return span['span.op']?.startsWith('gen_ai.') ?? false;
 }
 
 interface UseConversationResult {
@@ -179,6 +170,8 @@ function createNodeFromApiSpan(
   return node as unknown as AITraceSpanNode;
 }
 
+const MAX_PAGES = 10;
+
 export function useConversation(
   conversation: UseConversationsOptions
 ): UseConversationResult {
@@ -215,22 +208,36 @@ export function useConversation(
         per_page: 1000,
       };
 
-  const conversationQuery = useApiQuery<ConversationApiSpan[]>(
-    [queryUrl, {query: queryParams}],
-    {
-      staleTime: Infinity,
-      retry: false,
-      enabled: !!conversation.conversationId,
+  const conversationQuery = useInfiniteApiQuery<ConversationApiSpan[]>({
+    queryKey: [{infinite: true, version: 'v1'}, queryUrl, {query: queryParams}],
+    staleTime: Infinity,
+    enabled: !!conversation.conversationId,
+  });
+
+  const currentNumberPages = conversationQuery.data?.pages.length ?? 0;
+
+  useEffect(() => {
+    if (
+      !conversationQuery.isFetching &&
+      conversationQuery.hasNextPage &&
+      currentNumberPages + 1 < MAX_PAGES
+    ) {
+      conversationQuery.fetchNextPage();
     }
+  }, [conversationQuery, currentNumberPages]);
+
+  const allSpans = useMemo(
+    () => conversationQuery.data?.pages.flatMap(([pageData]) => pageData) ?? [],
+    [conversationQuery.data]
   );
 
   const {nodes, nodeTraceMap} = useMemo(() => {
-    if (!conversationQuery.data) {
+    if (allSpans.length === 0) {
       return {nodes: [], nodeTraceMap: new Map<string, string>()};
     }
 
     const traceMap = new Map<string, string>();
-    const genAiSpans = conversationQuery.data.filter(isGenAiSpan);
+    const genAiSpans = allSpans.filter(isGenAiSpan);
     const nodeMap = new Map<string, AITraceSpanNode>();
 
     const transformedNodes = genAiSpans.map(apiSpan => {
@@ -243,7 +250,7 @@ export function useConversation(
     transformedNodes.sort((a, b) => (a.startTimestamp ?? 0) - (b.startTimestamp ?? 0));
 
     return {nodes: transformedNodes, nodeTraceMap: traceMap};
-  }, [conversationQuery.data]);
+  }, [allSpans]);
 
   if (!conversation.conversationId) {
     return {nodes: [], nodeTraceMap: new Map(), isLoading: false, error: false};
@@ -252,7 +259,7 @@ export function useConversation(
   return {
     nodes,
     nodeTraceMap,
-    isLoading: conversationQuery.isLoading,
+    isLoading: conversationQuery.isLoading || conversationQuery.isFetchingNextPage,
     error: conversationQuery.isError,
   };
 }

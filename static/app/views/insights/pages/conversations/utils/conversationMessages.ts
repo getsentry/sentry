@@ -70,8 +70,6 @@ export function partitionSpansByType(nodes: AITraceSpanNode[]): {
       generationSpans.push(node);
     } else if (getIsExecuteToolSpan(opType)) {
       toolSpans.push(node);
-    } else if (hasInputOrOutput(node)) {
-      generationSpans.push(node);
     }
   }
 
@@ -285,15 +283,6 @@ function getNodeEndTimestamp(node: AITraceSpanNode): number {
 
 function getGenAiOpType(node: AITraceSpanNode): string | undefined {
   return getStringAttr(node, SpanFields.GEN_AI_OPERATION_TYPE);
-}
-
-function hasInputOrOutput(node: AITraceSpanNode): boolean {
-  return !!(
-    getStringAttr(node, SpanFields.GEN_AI_INPUT_MESSAGES) ||
-    getStringAttr(node, SpanFields.GEN_AI_OUTPUT_MESSAGES) ||
-    getStringAttr(node, SpanFields.GEN_AI_REQUEST_MESSAGES) ||
-    getStringAttr(node, SpanFields.GEN_AI_RESPONSE_TEXT)
-  );
 }
 
 export function extractTextFromMessage(msg: RequestMessage): string | null {
