@@ -38,7 +38,8 @@ interface ScmRepoSelectorProps {
 
 export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
   const organization = useOrganization();
-  const {selectedRepository, setSelectedRepository} = useOnboardingContext();
+  const {selectedRepository, setSelectedRepository, clearDerivedState} =
+    useOnboardingContext();
   const {
     reposByIdentifier,
     dropdownItems,
@@ -72,7 +73,12 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
   }, [dropdownItems, selectedRepository]);
 
   function handleChange(option: {value: string} | null) {
+    // Changing or clearing the repo invalidates downstream state (platform,
+    // features, created project) which are all derived from the selected repo.
+    clearDerivedState();
+
     if (option === null) {
+      setSearch('');
       handleRemove();
     } else {
       const repo = reposByIdentifier.get(option.value);

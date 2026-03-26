@@ -6,6 +6,7 @@ import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
 type OnboardingContextProps = {
+  clearDerivedState: () => void;
   setCreatedProjectSlug: (slug?: string) => void;
   setSelectedFeatures: (features?: ProductSolution[]) => void;
   setSelectedIntegration: (integration?: Integration) => void;
@@ -40,6 +41,7 @@ const OnboardingContext = createContext<OnboardingContextProps>({
   setSelectedFeatures: () => {},
   createdProjectSlug: undefined,
   setCreatedProjectSlug: () => {},
+  clearDerivedState: () => {},
 });
 
 type ProviderProps = {
@@ -81,6 +83,17 @@ export function OnboardingContextProvider({children, initialValue}: ProviderProp
       createdProjectSlug: onboarding?.createdProjectSlug,
       setCreatedProjectSlug: (createdProjectSlug?: string) => {
         setOnboarding(prev => ({...prev, createdProjectSlug}));
+      },
+      // Clear state derived from the selected repository (platform, features,
+      // created project) without wiping the entire session. Use this when the
+      // repo changes so downstream steps start fresh.
+      clearDerivedState: () => {
+        setOnboarding(prev => ({
+          ...prev,
+          selectedPlatform: undefined,
+          selectedFeatures: undefined,
+          createdProjectSlug: undefined,
+        }));
       },
     }),
     [onboarding, setOnboarding, removeOnboarding]
