@@ -1525,7 +1525,10 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         get_default_seer_automation_skip_reason,
         get_seat_based_seer_automation_skip_reason,
     )
-    from sentry.seer.autofix.utils import is_seer_seat_based_tier_enabled
+    from sentry.seer.autofix.utils import (
+        is_seer_scanner_rate_limited,
+        is_seer_seat_based_tier_enabled,
+    )
     from sentry.tasks.autofix import (
         generate_issue_summary_only,
         generate_summary_and_run_automation,
@@ -1563,6 +1566,14 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
                 # Summary exists, run automation directly
                 run_automation_only_task.delay(group.id)
             else:
+                # Rate limit check before generating summary
+                if is_seer_scanner_rate_limited(group.project, group.organization):
+                    metrics.incr(
+                        "seer.automation.filtered",
+                        tags={"reason": "rate_limited", "tier": "seat_based"},
+                    )
+                    return
+
                 # No summary yet, generate summary + run automation in one go
                 generate_summary_and_run_automation.delay(
                     group.id, trigger_path="seat_based_seer_automation"

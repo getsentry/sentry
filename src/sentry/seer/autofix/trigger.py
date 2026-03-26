@@ -6,15 +6,6 @@ from typing import TYPE_CHECKING, Literal
 from django.utils import timezone
 
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
-from sentry.seer.autofix.issue_summary import (
-    get_issue_summary_cache_key,
-    get_issue_summary_lock_key,
-)
-from sentry.seer.autofix.utils import (
-    has_project_connected_repos,
-    is_issue_eligible_for_seer_automation,
-    is_seer_scanner_rate_limited,
-)
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
@@ -41,6 +32,12 @@ def get_default_seer_automation_skip_reason(
     locks: LockManager,
 ) -> SeerAutomationSkipReason | None:
     """Return skip reason for the default (non-seat-based) automation path, or None if eligible."""
+    from sentry.seer.autofix.issue_summary import get_issue_summary_lock_key
+    from sentry.seer.autofix.utils import (
+        is_issue_eligible_for_seer_automation,
+        is_seer_scanner_rate_limited,
+    )
+
     # Only run on issues with no existing scan
     if group.seer_fixability_score is not None:
         return "already_has_fixability_score"
@@ -64,6 +61,13 @@ def get_seat_based_seer_automation_skip_reason(
     group: Group,
 ) -> SeerAutomationSkipReason | None:
     """Return skip reason for the seat-based automation path, or None if eligible."""
+    from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
+    from sentry.seer.autofix.utils import (
+        has_project_connected_repos,
+        is_issue_eligible_for_seer_automation,
+        is_seer_scanner_rate_limited,
+    )
+
     # If event count < 10, only generate summary (no automation)
     if group.times_seen_with_pending < 10:
         # Check if summary exists in cache
@@ -115,11 +119,5 @@ def get_seat_based_seer_automation_skip_reason(
     # Check if project has connected repositories - requirement for new pricing
     if not has_project_connected_repos(group.organization.id, group.project.id):
         return "no_connected_repos"
-
-    # Check if we need a summary first and are rate limited
-    cache_key = get_issue_summary_cache_key(group.id)
-    if cache.get(cache_key) is None:
-        if is_seer_scanner_rate_limited(group.project, group.organization):
-            return "rate_limited"
 
     return None
