@@ -61,12 +61,6 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
     analyticsState.current.state = state;
   }, [state]);
 
-  // Sync filtered count to ref so the debounce timer reads the latest value
-  // without restarting on async result changes (e.g. DSN lookup)
-  useEffect(() => {
-    analyticsState.current.prevFilteredCount = filteredActionCount;
-  }, [filteredActionCount]);
-
   // Debounced query tracking
   useEffect(() => {
     const s = analyticsState.current;
