@@ -8,6 +8,7 @@ from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.vcs.status_checks.snapshots.templates import (
     format_first_snapshot_status_check_messages,
+    format_generated_snapshot_status_check_messages,
     format_missing_base_snapshot_status_check_messages,
     format_snapshot_status_check_messages,
 )
@@ -748,6 +749,82 @@ class SnapshotFirstUploadFormattingTest(SnapshotStatusCheckTestBase):
             "| :--- | :---: | :---: |\n"
             f"| [My App]({artifact_url})<br>`com.example.app` | 15 | ✅ Uploaded |"
             "\n\nThis looks like your first snapshot upload. Snapshot diffs will appear when we have a base upload to compare against. Make sure to upload snapshots from your main branch."
+        )
+        assert summary == expected
+
+
+@cell_silo_test
+class SnapshotGeneratedFormattingTest(SnapshotStatusCheckTestBase):
+    def test_generated_single_artifact(self):
+        artifact, metrics = self._create_artifact_with_metrics(
+            app_id="com.example.app", app_name="My App", image_count=24
+        )
+        snapshot_metrics_map = {artifact.id: metrics}
+
+        title, subtitle, summary = format_generated_snapshot_status_check_messages(
+            [artifact], snapshot_metrics_map
+        )
+
+        assert title == "Snapshot Testing"
+        assert subtitle == "Generated 24 snapshots"
+        assert "My App" in summary
+        assert "24" in summary
+        assert "✅ Uploaded" in summary
+
+    def test_generated_multiple_artifacts(self):
+        artifacts = []
+        snapshot_metrics_map: dict[int, PreprodSnapshotMetrics] = {}
+
+        for i in range(3):
+            artifact, metrics = self._create_artifact_with_metrics(
+                app_id=f"com.example.app{i}",
+                build_number=i + 1,
+                image_count=10,
+            )
+            artifacts.append(artifact)
+            snapshot_metrics_map[artifact.id] = metrics
+
+        title, subtitle, summary = format_generated_snapshot_status_check_messages(
+            artifacts, snapshot_metrics_map
+        )
+
+        assert title == "Snapshot Testing"
+        assert subtitle == "Generated 30 snapshots"
+        for i in range(3):
+            assert f"com.example.app{i}" in summary
+
+    def test_generated_single_snapshot_singular(self):
+        artifact, metrics = self._create_artifact_with_metrics(
+            app_id="com.example.app", image_count=1
+        )
+        snapshot_metrics_map = {artifact.id: metrics}
+
+        _, subtitle, _ = format_generated_snapshot_status_check_messages(
+            [artifact], snapshot_metrics_map
+        )
+
+        assert subtitle == "Generated 1 snapshot"
+
+    def test_generated_empty_artifacts_raises(self):
+        with pytest.raises(ValueError, match="Cannot format messages for empty artifact list"):
+            format_generated_snapshot_status_check_messages([], {})
+
+    def test_generated_summary_table_format(self):
+        artifact, metrics = self._create_artifact_with_metrics(
+            app_id="com.example.app", app_name="My App", image_count=15
+        )
+        snapshot_metrics_map = {artifact.id: metrics}
+
+        _, _, summary = format_generated_snapshot_status_check_messages(
+            [artifact], snapshot_metrics_map
+        )
+
+        artifact_url = f"http://testserver/organizations/{self.organization.slug}/preprod/snapshots/{artifact.id}"
+
+        expected = (
+            "| Name | Snapshots | Status |\n"
+            "| :--- | :---: | :---: |\n"
+            f"| [My App]({artifact_url})<br>`com.example.app` | 15 | ✅ Uploaded |"
         )
         assert summary == expected
 
