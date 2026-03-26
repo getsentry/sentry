@@ -292,7 +292,7 @@ export function GlobalModal({onClose}: Props) {
 const fullPageCss = css`
   position: fixed;
   top: 0;
-  right: var(--scrollbar-size, 0);
+  right: 0;
   bottom: 0;
   left: 0;
 `;
@@ -309,6 +309,7 @@ const Backdrop = styled('div')`
 
 const Container = styled('div')`
   ${fullPageCss};
+  right: var(--scrollbar-size, 0);
   z-index: ${p => p.theme.zIndex.modal};
   display: flex;
   justify-content: center;
