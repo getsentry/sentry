@@ -20,13 +20,12 @@ export type CommandPaletteState = {
   input: React.RefObject<HTMLInputElement | null>;
   open: boolean;
   query: string;
-  session_id: string;
 };
 
 export type CommandPaletteDispatch = React.Dispatch<CommandPaletteAction>;
 
 export type CommandPaletteAction =
-  | {type: 'toggle modal'; session_id?: string}
+  | {type: 'toggle modal'}
   | {type: 'reset'}
   | {query: string; type: 'set query'}
   | {action: CommandPaletteActionWithKey; type: 'push action'}
@@ -47,7 +46,6 @@ function commandPaletteReducer(
       return {
         ...state,
         open: !state.open,
-        session_id: action.session_id ?? state.session_id,
       };
     case 'reset':
       return {
@@ -111,7 +109,6 @@ export function CommandPaletteStateProvider({
     query: '',
     action: null,
     open: false,
-    session_id: '',
   });
 
   return (

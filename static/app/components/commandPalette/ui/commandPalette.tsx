@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useLayoutEffect, useMemo} from 'react';
 import {preload} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -6,7 +6,6 @@ import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selecti
 import {mergeProps} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useTreeState} from '@react-stately/tree';
-import * as Sentry from '@sentry/react';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import errorIllustration from 'sentry-images/spot/computer-missing.svg';
@@ -29,14 +28,13 @@ import {
   useCommandPaletteDispatch,
   useCommandPaletteState,
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
+import {useCommandPaletteAnalytics} from 'sentry/components/commandPalette/useCommandPaletteAnalytics';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IconArrow, IconClose, IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {fzf} from 'sentry/utils/search/fzf';
 import type {Theme} from 'sentry/utils/theme';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
 const MotionButton = motion.create(Button);
 const MotionIconSearch = motion.create(IconSearch);
@@ -65,26 +63,15 @@ type CommandPaletteActionWithPriority = CommandPaletteActionWithKey & {
 };
 
 interface CommandPaletteProps {
-  onAction: (
-    action: Exclude<CommandPaletteActionWithKey, {type: 'group'}>,
-    resultIndex: number,
-    group: string
-  ) => void;
-  onQueryTracked?: () => void;
-  sessionId?: string;
+  onAction: (action: Exclude<CommandPaletteActionWithKey, {type: 'group'}>) => void;
 }
 
 export function CommandPalette(props: CommandPaletteProps) {
   const theme = useTheme();
 
   const actions = useCommandPaletteActions();
-  const organization = useOrganization();
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
-
-  // Debounced query tracking (500ms)
-  const queryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastTrackedQueryRef = useRef('');
 
   // Preload the empty state image so it's ready if/when there are no results
   // Guard against non-string imports (e.g. SVG objects in test environments)
@@ -107,30 +94,7 @@ export function CommandPalette(props: CommandPaletteProps) {
     [state.query, displayedActions]
   );
 
-  // Debounced query analytics
-  useEffect(() => {
-    if (queryTimerRef.current) {
-      clearTimeout(queryTimerRef.current);
-    }
-    if (state.query.length > 0 && state.query !== lastTrackedQueryRef.current) {
-      queryTimerRef.current = setTimeout(() => {
-        lastTrackedQueryRef.current = state.query;
-        trackAnalytics('command_palette.searched', {
-          organization,
-          query: state.query,
-          result_count: filteredActions.length,
-          session_id: props.sessionId ?? '',
-        });
-        props.onQueryTracked?.();
-      }, 500);
-    }
-    return () => {
-      if (queryTimerRef.current) {
-        clearTimeout(queryTimerRef.current);
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.query, filteredActions.length]);
+  const analytics = useCommandPaletteAnalytics(filteredActions.length);
 
   const sections = useMemo(
     () => groupActionsBySection(filteredActions),
@@ -210,26 +174,16 @@ export function CommandPalette(props: CommandPaletteProps) {
         return;
       }
 
-      const group = action.groupingKey ?? '';
-
       if (action.type === 'group') {
-        trackAnalytics('command_palette.action_selected', {
-          organization,
-          action: action.display.label,
-          query: state.query,
-          action_type: 'group',
-          group,
-          result_index: resultIndex,
-          session_id: props.sessionId ?? '',
-        });
         dispatch({type: 'push action', action});
         return;
       }
 
+      analytics.recordAction(action, resultIndex, action.groupingKey ?? '');
       dispatch({type: 'trigger action'});
-      props.onAction(action, resultIndex, group);
+      props.onAction(action);
     },
-    [filteredActions, dispatch, props, treeState, organization, state.query]
+    [filteredActions, dispatch, props, analytics, treeState]
   );
 
   return (
@@ -486,26 +440,6 @@ function flattenActions(
 }
 
 function CommandPaletteNoResults() {
-  const organization = useOrganization();
-  const {query, action, session_id} = useCommandPaletteState();
-
-  useEffect(() => {
-    const actionLabel =
-      typeof action?.value.action.display.label === 'string'
-        ? action.value.action.display.label
-        : undefined;
-    trackAnalytics('command_palette.no_results', {
-      organization,
-      query,
-      action: actionLabel,
-      session_id,
-    });
-    Sentry.logger.info('Command palette returned no results', {
-      query,
-      action: actionLabel,
-    });
-  }, [organization, query, action, session_id]);
-
   return (
     <Flex
       direction="column"

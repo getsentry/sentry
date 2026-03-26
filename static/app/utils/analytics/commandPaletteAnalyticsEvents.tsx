@@ -1,6 +1,4 @@
 type CommandPaletteOpenedEvent = {
-  /** Session ID to correlate with other events in the same session */
-  session_id: string;
   /** How the command palette was opened */
   source: 'button' | 'keyboard';
 };
@@ -8,16 +6,9 @@ type CommandPaletteOpenedEvent = {
 type CommandPaletteClosedEvent = {
   /** Whether the user interacted (typed a query or selected an action) before closing */
   had_interaction: boolean;
-  /** How the palette was closed */
-  method:
-    | 'escape'
-    | 'backdrop_click'
-    | 'keyboard_toggle'
-    | 'action_selected'
-    | 'route_change';
   /** The search query at time of close */
   query: string;
-  /** Session ID */
+  /** Session ID to correlate events within a single palette session */
   session_id: string;
 };
 

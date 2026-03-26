@@ -1,5 +1,3 @@
-import uniqueId from 'lodash/uniqueId';
-
 import type {
   CommandPaletteState,
   CommandPaletteDispatch,
@@ -162,33 +160,22 @@ export async function toggleCommandPalette(
   dispatch: CommandPaletteDispatch,
   source: 'button' | 'keyboard'
 ) {
-  const modalModule = await import('sentry/components/commandPalette/ui/modal');
-  const {default: Modal, modalCss} = modalModule;
+  const {default: Modal, modalCss} =
+    await import('sentry/components/commandPalette/ui/modal');
 
   function closeCommandPaletteModal() {
     dispatch({type: 'toggle modal'});
   }
 
   if (state.open) {
-    modalModule._closeMethod = 'keyboard_toggle';
     closeCommandPaletteModal();
     closeModal();
   } else {
-    const sessionId = uniqueId('cmd-palette-');
-    trackAnalytics('command_palette.opened', {
-      organization,
-      source,
-      session_id: sessionId,
-    });
-    dispatch({type: 'toggle modal', session_id: sessionId});
+    trackAnalytics('command_palette.opened', {organization, source});
+    dispatch({type: 'toggle modal'});
     openModal(deps => <Modal {...deps} {...options} />, {
       modalCss,
-      onClose: reason => {
-        if (reason === 'backdrop-click') {
-          modalModule._closeMethod = 'backdrop_click';
-        }
-        closeCommandPaletteModal();
-      },
+      onClose: closeCommandPaletteModal,
     });
   }
 }
