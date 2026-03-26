@@ -1,7 +1,7 @@
 import type {ComponentType, ReactNode} from 'react';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -49,25 +49,39 @@ export function ScmFeatureCard({
           height="100%"
           style={isSelected ? {marginBottom: 2} : {borderBottomWidth: 3}} // this prevents el height from changing when switching border variant
         >
-          <Flex gap="lg" align="start">
-            <Container padding="xs 0 0 0">
-              {containerProps => <Icon size="sm" {...containerProps} />}
-            </Container>
-            <Flex direction="column" gap="xs" flex="1">
-              <Flex justify="between" align="center">
+          <Flex>
+            <Grid
+              columns="min-content 1fr"
+              rows="min-content min-content"
+              gap="xs lg"
+              align="center"
+              areas={`
+                    "cell1 cell2"
+                    ". cell4"
+                  `}
+            >
+              <Flex area="cell1">
+                <Icon size="md" variant={isSelected ? 'accent' : undefined} />
+              </Flex>
+
+              <Flex area="cell2">
                 <Text bold size="lg">
                   {label}
                 </Text>
-                <Checkbox
-                  readOnly
-                  size="sm"
-                  tabIndex={-1}
-                  role="presentation"
-                  checked={isSelected}
-                  disabled={disabled}
-                />
               </Flex>
-              <Text variant="muted">{description}</Text>
+              <Flex area="cell4">
+                <Text variant="muted">{description}</Text>
+              </Flex>
+            </Grid>
+            <Flex align="start">
+              <Checkbox
+                readOnly
+                size="sm"
+                tabIndex={-1}
+                role="presentation"
+                checked={isSelected}
+                disabled={disabled}
+              />
             </Flex>
           </Flex>
         </Container>
