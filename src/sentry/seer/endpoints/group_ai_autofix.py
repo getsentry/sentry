@@ -261,7 +261,10 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         if step == "open_pr":
             if not run_id:
                 return Response({"detail": "run_id is required for open_pr"}, status=400)
-            trigger_push_changes(group, run_id)
+            try:
+                trigger_push_changes(group, run_id)
+            except SeerPermissionError as e:
+                raise PermissionDenied(str(e))
             return Response({"run_id": run_id}, status=202)
 
         # Handle all built-in Seer steps
