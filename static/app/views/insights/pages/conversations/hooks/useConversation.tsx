@@ -220,7 +220,7 @@ export function useConversation(
     if (
       !conversationQuery.isFetching &&
       conversationQuery.hasNextPage &&
-      currentNumberPages + 1 < MAX_PAGES
+      currentNumberPages < MAX_PAGES
     ) {
       conversationQuery.fetchNextPage();
     }
