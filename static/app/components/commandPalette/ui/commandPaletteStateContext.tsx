@@ -124,7 +124,7 @@ export function CommandPaletteStateProvider({
  * all actions in the stack, suitable for building breadcrumb strings.
  */
 export function CommandPaletteHotkeys() {
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
 
@@ -133,7 +133,7 @@ export function CommandPaletteHotkeys() {
       match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
       includeInputs: true,
       callback: () => {
-        if (organization.features.includes('cmd-k-supercharged')) {
+        if (organization?.features.includes('cmd-k-supercharged')) {
           toggleCommandPalette({}, organization, state, dispatch, 'keyboard');
         } else {
           openCommandPaletteDeprecated();
