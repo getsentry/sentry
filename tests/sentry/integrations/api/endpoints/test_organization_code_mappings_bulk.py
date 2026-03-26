@@ -302,8 +302,6 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
             )
         assert response.status_code == 200, response.content
         assert mock_prc.call_count == 1
-        instance = mock_prc.call_args[0][0]
-        assert instance._skip_post_save is False
 
     def test_provider_disambiguates_duplicate_repos(self) -> None:
         # Give repo1 a provider so we can filter on it
@@ -359,16 +357,6 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         repo = Repository.objects.get(name=new_repo_name, organization_id=self.organization.id)
         assert repo.provider == "integrations:github"
         assert repo.integration_id == self.integration.id
-
-    def test_skip_post_save_does_not_leak_to_fetched_instances(self) -> None:
-        """The endpoint sets _skip_post_save on in-memory instances to batch
-        side-effects. Verify that freshly fetched instances from the DB don't
-        carry the suppressed flag, so normal post_save signals fire for them."""
-        self.make_post()
-        config = RepositoryProjectPathConfig.objects.get(
-            project=self.project1, stack_root="com/example/maps"
-        )
-        assert config._skip_post_save is False
 
     def test_org_ci_scope_allows_post(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -456,8 +444,9 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
             }
         )
         assert response.status_code == 200, response.content
+        # Deduplication keeps only the last occurrence per stack_root.
         assert response.data["created"] == 1
-        assert response.data["updated"] == 1
+        assert response.data["updated"] == 0
 
         config = RepositoryProjectPathConfig.objects.get(
             project=self.project1, stack_root="com/example/maps"
@@ -476,21 +465,12 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         assert response.status_code == 409
         assert "Multiple repositories" in response.data["detail"]
 
-    def test_partial_failure_returns_207(self) -> None:
-        original_save = RepositoryProjectPathConfig.save
-        call_count = 0
-
-        def failing_save(self_inner, *args, **kwargs):
-            nonlocal call_count
-            call_count += 1
-            if call_count == 2:
-                raise IntegrityError("Simulated DB error")
-            return original_save(self_inner, *args, **kwargs)
-
+    def test_bulk_create_failure_returns_207(self) -> None:
+        """When bulk_create fails, all new mappings are marked as errors."""
         with mock.patch.object(
-            RepositoryProjectPathConfig,
-            "save",
-            failing_save,
+            RepositoryProjectPathConfig.objects,
+            "bulk_create",
+            side_effect=IntegrityError("Simulated DB error"),
         ):
             response = self.make_post(
                 {
@@ -503,17 +483,39 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
                             "stackRoot": "com/example/auth",
                             "sourceRoot": "modules/auth/src",
                         },
+                    ],
+                }
+            )
+
+        assert response.status_code == 207
+        assert response.data["created"] == 0
+        assert response.data["errors"] == 2
+        for m in response.data["mappings"]:
+            assert m["status"] == "error"
+            assert "Failed to save mapping" in m["detail"]
+
+    def test_bulk_update_failure_returns_207(self) -> None:
+        """When bulk_update fails, existing mappings are marked as errors."""
+        # First create a mapping.
+        self.make_post()
+
+        with mock.patch.object(
+            RepositoryProjectPathConfig.objects,
+            "bulk_update",
+            side_effect=IntegrityError("Simulated DB error"),
+        ):
+            response = self.make_post(
+                {
+                    "mappings": [
                         {
-                            "stackRoot": "com/example/core",
-                            "sourceRoot": "modules/core/src",
+                            "stackRoot": "com/example/maps",
+                            "sourceRoot": "updated/source/root",
                         },
                     ],
                 }
             )
 
         assert response.status_code == 207
-        assert response.data["created"] == 2
+        assert response.data["updated"] == 0
         assert response.data["errors"] == 1
-        error_mapping = next(m for m in response.data["mappings"] if m["status"] == "error")
-        assert error_mapping["stackRoot"] == "com/example/auth"
-        assert "Failed to save mapping" in error_mapping["detail"]
+        assert response.data["mappings"][0]["status"] == "error"
