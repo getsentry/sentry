@@ -26,6 +26,7 @@ from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
 from sentry.integrations.services.github_copilot_identity import github_copilot_identity_service
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.seer.autofix.utils import (
     AutofixState,
     AutofixTriggerSource,
@@ -38,6 +39,7 @@ from sentry.seer.autofix.utils import (
     get_coding_agent_prompt,
     get_project_seer_preferences,
     make_store_coding_agent_states_request,
+    read_preference_from_sentry_db,
     update_coding_agent_state,
 )
 from sentry.seer.models import SeerApiError, SeerApiResponseValidationError
@@ -213,11 +215,21 @@ def _launch_agents_for_repos(
     # Fetch project preferences to get auto_create_pr setting from automation_handoff
     auto_create_pr = False
     try:
-        preference_response = get_project_seer_preferences(autofix_state.request.project_id)
-        if preference_response and preference_response.preference:
-            if preference_response.preference.automation_handoff:
-                auto_create_pr = preference_response.preference.automation_handoff.auto_create_pr
-    except (SeerApiError, SeerApiResponseValidationError):
+        project = Project.objects.get(id=autofix_state.request.project_id)
+        if features.has(
+            "organizations:seer-project-settings-read-from-sentry", project.organization
+        ):
+            preference = read_preference_from_sentry_db(project)
+            if preference and preference.automation_handoff:
+                auto_create_pr = preference.automation_handoff.auto_create_pr
+        else:
+            preference_response = get_project_seer_preferences(autofix_state.request.project_id)
+            if preference_response and preference_response.preference:
+                if preference_response.preference.automation_handoff:
+                    auto_create_pr = (
+                        preference_response.preference.automation_handoff.auto_create_pr
+                    )
+    except (SeerApiError, SeerApiResponseValidationError, Project.DoesNotExist):
         logger.exception(
             "coding_agent.get_project_seer_preferences_error",
             extra={
