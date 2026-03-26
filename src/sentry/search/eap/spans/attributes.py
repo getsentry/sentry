@@ -10,12 +10,10 @@ from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     ResolvedAttribute,
     VirtualColumnDefinition,
-    project_context_constructor,
-    project_term_resolver,
     simple_measurements_field,
     simple_sentry_field,
 )
-from sentry.search.eap.common_columns import COMMON_COLUMNS
+from sentry.search.eap.common_columns import COMMON_COLUMNS, project_virtual_contexts
 from sentry.search.eap.spans.sentry_conventions import SENTRY_CONVENTIONS_DIRECTORY
 from sentry.search.events.constants import (
     PRECISE_FINISH_TS,
@@ -553,7 +551,7 @@ except Exception as e:
     logger.exception("Failed to update attribute definitions: %s", e)
 
 
-def device_class_context_constructor(params: SnubaParams) -> VirtualColumnContext:
+def device_class_context_constructor(params: SnubaParams, _resolver: Any) -> VirtualColumnContext:
     # EAP defaults to lower case `unknown`, but in querybuilder we used `Unknown`
     value_map = {"": "Unknown"}
     for device_class, values in DEVICE_CLASS.items():
@@ -567,7 +565,7 @@ def device_class_context_constructor(params: SnubaParams) -> VirtualColumnContex
     )
 
 
-def module_context_constructor(params: SnubaParams) -> VirtualColumnContext:
+def module_context_constructor(params: SnubaParams, _resolver: Any) -> VirtualColumnContext:
     value_map = {key: key for key in SPAN_MODULE_CATEGORY_VALUES}
     return VirtualColumnContext(
         from_column_name="sentry.category",
@@ -576,7 +574,9 @@ def module_context_constructor(params: SnubaParams) -> VirtualColumnContext:
     )
 
 
-def is_starred_segment_context_constructor(params: SnubaParams) -> VirtualColumnContext:
+def is_starred_segment_context_constructor(
+    params: SnubaParams, _resolver: Any
+) -> VirtualColumnContext:
     if params.user is None or params.organization_id is None:
         raise ValueError("User and organization is required for is_starred_transaction")
 
@@ -691,14 +691,8 @@ SPAN_VIRTUAL_CONTEXTS = {
         default_value="false",
         processor=lambda x: True if x == "true" else False,
     ),
+    **project_virtual_contexts(),
 }
-
-for key in constants.PROJECT_FIELDS:
-    SPAN_VIRTUAL_CONTEXTS[key] = VirtualColumnDefinition(
-        constructor=project_context_constructor(key),
-        term_resolver=project_term_resolver,
-        filter_column="project.id",
-    )
 
 SPAN_INTERNAL_TO_SECONDARY_ALIASES_MAPPING: dict[str, set[str]] = {}
 
