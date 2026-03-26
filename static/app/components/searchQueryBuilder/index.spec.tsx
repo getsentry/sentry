@@ -1104,6 +1104,28 @@ describe('SearchQueryBuilder', () => {
       );
     });
 
+    it('does not switch operator to "is" when filter already has a value', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery={`browser.name:${WildcardOperators.CONTAINS}firefox`}
+        />,
+        {organization: {features: ['search-query-builder-input-flow-changes']}}
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+      await userEvent.click(await screen.findByRole('option', {name: 'Chrome'}));
+
+      // Operator should remain "contains" since there was already a value
+      expect(
+        await screen.findByRole('row', {
+          name: `browser.name:${WildcardOperators.CONTAINS}[firefox,Chrome]`,
+        })
+      ).toBeInTheDocument();
+    });
+
     it('can add free text by typing', async () => {
       const mockOnSearch = jest.fn();
       render(<SearchQueryBuilder {...defaultProps} onSearch={mockOnSearch} />);

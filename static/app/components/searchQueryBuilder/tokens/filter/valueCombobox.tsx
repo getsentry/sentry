@@ -863,9 +863,9 @@ export function SearchQueryBuilderValueCombobox({
         return;
       }
 
-      // When selecting from dropdown, switch from "contains" to "is"
+      // When selecting from dropdown with no existing value, switch from "contains" to "is"
       let newOp: TermOperator | undefined;
-      if (token.operator === TermOperator.CONTAINS) {
+      if (token.operator === TermOperator.CONTAINS && !token.value.value) {
         newOp = token.negated ? TermOperator.NOT_EQUAL : TermOperator.DEFAULT;
       }
 
