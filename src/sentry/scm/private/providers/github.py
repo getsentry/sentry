@@ -927,6 +927,9 @@ class GitHubProvider:
             request_options=request_options,
             allow_redirects=False,
         )
+        if response.status_code != 302 or "Location" not in response.headers:
+            raise ApiError.from_response(response)
+
         return {
             "data": ArchiveLink(url=response.headers["Location"], headers={}),
             "type": "github",
