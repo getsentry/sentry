@@ -553,6 +553,75 @@ describe('Onboarding', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('clears all context when going back from setup-docs in legacy flow', async () => {
+    const organization = OrganizationFixture();
+    const reactProject = ProjectFixture({
+      platform: 'javascript-react',
+      id: '2',
+      slug: 'javascript-react',
+    });
+
+    jest
+      .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
+      .mockImplementation(() => ({
+        project: reactProject,
+        isProjectActive: false,
+      }));
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sdks/`,
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${reactProject.slug}/keys/`,
+      body: [ProjectKeysFixture()[0]],
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${reactProject.slug}/issues/`,
+      body: [],
+    });
+
+    const deleteProjectMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${reactProject.slug}/`,
+      method: 'DELETE',
+    });
+
+    const initialContext = {
+      selectedPlatform: {
+        key: reactProject.slug as PlatformKey,
+        type: 'framework',
+        language: 'javascript',
+        category: 'browser',
+        name: 'React',
+        link: 'https://docs.sentry.io/platforms/javascript/guides/react/',
+      },
+    };
+
+    sessionStorage.setItem('onboarding', JSON.stringify(initialContext));
+
+    render(
+      <OnboardingContextProvider initialValue={initialContext}>
+        <OnboardingWithoutContext />
+      </OnboardingContextProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: `/onboarding/${organization.slug}/setup-docs/`,
+          },
+          route: '/onboarding/:orgId/:step/',
+        },
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Back'}));
+
+    expect(deleteProjectMock).toHaveBeenCalled();
+
+    // Legacy flow should clear all context
+    const stored = sessionStorage.getItem('onboarding');
+    expect(stored).toBeNull();
+  });
+
   describe('SCM onboarding flow', () => {
     const scmOrganization = OrganizationFixture({
       features: ['onboarding-scm'],
@@ -690,39 +759,12 @@ describe('Onboarding', () => {
       });
     });
 
-    it('renders scm-project-details step and advances to setup-docs when platform is set', async () => {
-      const nextJsProject = ProjectFixture({
-        platform: 'javascript-nextjs',
-        id: '2',
-        slug: 'javascript-nextjs',
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${scmOrganization.slug}/sdks/`,
-        body: {},
-      });
-      MockApiClient.addMockResponse({
-        url: `/projects/${scmOrganization.slug}/${nextJsProject.slug}/keys/`,
-        method: 'GET',
-        body: [ProjectKeysFixture()[0]],
-      });
-      MockApiClient.addMockResponse({
-        url: `/projects/${scmOrganization.slug}/${nextJsProject.slug}/issues/`,
-        body: [],
-      });
-
-      jest
-        .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
-        .mockImplementation(() => ({
-          project: nextJsProject,
-          isProjectActive: false,
-        }));
-
-      const {router} = render(
+    it('renders scm-project-details step with project details form', () => {
+      render(
         <OnboardingContextProvider
           initialValue={{
             selectedPlatform: {
-              key: nextJsProject.slug as PlatformKey,
+              key: 'javascript-nextjs' as PlatformKey,
               type: 'framework',
               language: 'javascript',
               category: 'browser',
@@ -745,25 +787,89 @@ describe('Onboarding', () => {
       );
 
       expect(screen.getByText('Project details')).toBeInTheDocument();
-
-      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
-
-      await waitFor(() => {
-        expect(router.location.pathname).toBe(
-          `/onboarding/${scmOrganization.slug}/setup-docs/`
-        );
-      });
+      expect(screen.getByRole('button', {name: 'Create project'})).toBeInTheDocument();
     });
 
-    it('does not advance to setup-docs without a platform selected', async () => {
-      const {router} = renderOnboarding('scm-project-details');
+    it('create project button is disabled without a platform selected', () => {
+      renderOnboarding('scm-project-details');
 
-      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+      expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
+    });
 
-      // Should stay on the same step
-      expect(router.location.pathname).toBe(
-        `/onboarding/${scmOrganization.slug}/scm-project-details/`
+    it('preserves SCM context when going back from setup-docs', async () => {
+      const nextJsProject = ProjectFixture({
+        platform: 'javascript-nextjs',
+        id: '2',
+        slug: 'javascript-nextjs',
+      });
+
+      jest
+        .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
+        .mockImplementation(() => ({
+          project: nextJsProject,
+          isProjectActive: false,
+        }));
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${scmOrganization.slug}/sdks/`,
+        body: {},
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${scmOrganization.slug}/${nextJsProject.slug}/keys/`,
+        body: [ProjectKeysFixture()[0]],
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${scmOrganization.slug}/${nextJsProject.slug}/issues/`,
+        body: [],
+      });
+
+      const deleteProjectMock = MockApiClient.addMockResponse({
+        url: `/projects/${scmOrganization.slug}/${nextJsProject.slug}/`,
+        method: 'DELETE',
+      });
+
+      const initialContext = {
+        selectedPlatform: {
+          key: nextJsProject.slug as PlatformKey,
+          type: 'framework',
+          language: 'javascript',
+          category: 'browser',
+          name: 'Next.js',
+          link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/',
+        },
+        selectedFeatures: [ProductSolution.ERROR_MONITORING],
+      };
+
+      // Seed sessionStorage directly so we can verify it's preserved after back
+      sessionStorage.setItem('onboarding', JSON.stringify(initialContext));
+
+      render(
+        <OnboardingContextProvider initialValue={initialContext}>
+          <OnboardingWithoutContext />
+        </OnboardingContextProvider>,
+        {
+          organization: scmOrganization,
+          initialRouterConfig: {
+            location: {
+              pathname: `/onboarding/${scmOrganization.slug}/setup-docs/`,
+            },
+            route: '/onboarding/:orgId/:step/',
+          },
+        }
       );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Back'}));
+
+      await waitFor(() => {
+        expect(deleteProjectMock).toHaveBeenCalled();
+      });
+
+      // Context should be preserved — selectedPlatform should not be cleared
+      const stored = JSON.parse(sessionStorage.getItem('onboarding') ?? '{}');
+      expect(stored.selectedPlatform).toBeDefined();
+      expect(stored.selectedFeatures).toBeDefined();
+      // createdProjectSlug should be cleared so the user can re-create
+      expect(stored.createdProjectSlug).toBeUndefined();
     });
 
     it('navigates back from scm-connect to welcome', async () => {
