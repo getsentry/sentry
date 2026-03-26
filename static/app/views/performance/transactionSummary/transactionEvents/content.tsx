@@ -13,6 +13,7 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {t} from 'sentry/locale';
@@ -20,17 +21,22 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import type {WebVital} from 'sentry/utils/fields';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {getExploreUrl} from 'sentry/views/explore/utils';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {OverviewSpansTable} from 'sentry/views/performance/eap/overviewSpansTable';
 import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
@@ -329,8 +335,42 @@ function Search(props: Props) {
           {t('Open in Discover')}
         </LinkButton>
       )}
+      {shouldUseEAP && <OpenInExploreButton {...props} />}
     </FilterActions>
   );
+}
+
+function OpenInExploreButton({
+  location,
+  organization,
+  transactionName,
+}: Pick<Props, 'location' | 'organization' | 'transactionName'>) {
+  const {selection} = usePageFilters();
+
+  if (!organization.features.includes('visibility-explore-view')) {
+    return null;
+  }
+
+  const searchQuery = decodeScalar(location.query.query, '');
+  const sort = decodeSorts(location.query?.[QueryParameterNames.SPANS_SORT])[0] ?? {
+    field: 'timestamp',
+    kind: 'desc' as const,
+  };
+
+  const query = new MutableSearch(searchQuery);
+  query.setFilterValues('is_transaction', ['true']);
+  query.setFilterValues('transaction', [transactionName]);
+
+  const exploreUrl = getExploreUrl({
+    organization,
+    selection,
+    mode: Mode.SAMPLES,
+    query: query.formatString(),
+    field: ['span_id', 'request.method', 'span.duration', 'trace', 'timestamp'],
+    sort: encodeSort(sort),
+  });
+
+  return <LinkButton to={exploreUrl}>{t('Open in Explore')}</LinkButton>;
 }
 
 const FilterActions = styled('div')<{eap: boolean}>`
@@ -339,11 +379,11 @@ const FilterActions = styled('div')<{eap: boolean}>`
   margin-bottom: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: ${p => (p.eap ? 'auto 1fr' : 'repeat(4, min-content)')};
+    grid-template-columns: ${p => (p.eap ? 'auto 1fr auto' : 'repeat(4, min-content)')};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    grid-template-columns: ${p => (p.eap ? 'auto 1fr' : 'auto auto 1fr auto auto')};
+    grid-template-columns: ${p => (p.eap ? 'auto 1fr auto' : 'auto auto 1fr auto auto')};
   }
 `;
 
