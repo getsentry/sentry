@@ -17,6 +17,7 @@ DisplayType = Literal[
     "table",
     "big_number",
     "top_n",
+    "categorical_bar",
 ]
 
 # Hardcode maintained lists for now, not all widget types are well suited for dashboard generation.
@@ -54,7 +55,7 @@ class GeneratedWidgetQuery(BaseModel):
     )
     orderby: str = Field(
         default="",
-        description="Sort expression. Optional leading '-' for descending; absent means ascending. An aggregate expression, column name, or 'equation|<expr>'. Empty string means no explicit sort.",
+        description="Sort expression. Optional leading '-' for descending; absent means ascending. An aggregate expression, column name, or 'equation|<expr>'. Empty string means no explicit sort. For the issue widget type, only 'date', 'new', 'trends', 'freq', and 'user' are allowed values, with no option for descending.",
         example="duration",
     )
 
@@ -130,7 +131,12 @@ class GeneratedWidget(BaseModel):
     )
     queries: list[GeneratedWidgetQuery]
     layout: GeneratedWidgetLayout
-    limit: int | None = Field(default=None, le=10, ge=1)
+    limit: int = Field(
+        default=5,
+        ge=1,
+        le=25,
+        description="For charts with group by columns, the maximum number series that can be displayed. For table widgets, the maximum number of rows that can be displayed. Categorical bar charts have a maximum limit of 25. For any other chart type, the maximum limit is 10. Default value is 5.",
+    )
     interval: Intervals = Field(default="1h")
 
 
