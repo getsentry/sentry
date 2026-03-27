@@ -9,7 +9,8 @@ import {Container, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import {IconAdd, IconDelete, IconGrabbable} from 'sentry/icons';
+import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
+import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {uniqueId} from 'sentry/utils/guid';
 import {
@@ -231,10 +232,7 @@ export function AssertionOpGroup({
             options={[{value: 'negated', label: t('Negate result')}]}
           />
         </CompositeSelect>
-        <Button
-          size="zero"
-          priority="transparent"
-          icon={<IconGrabbable size="xs" />}
+        <DragReorderButton
           aria-label={t('Reorder assertion group')}
           ref={setActivatorNodeRef}
           {...listeners}
