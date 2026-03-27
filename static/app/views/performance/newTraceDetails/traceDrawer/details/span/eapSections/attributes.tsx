@@ -35,7 +35,7 @@ import {
   findSpanAttributeValue,
   getTraceAttributesTreeActions,
   sortAttributes,
-  tryParseJson,
+  tryParseJsonRecursive,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import type {UptimeCheckNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/uptimeCheckNode';
@@ -49,7 +49,7 @@ const HIDDEN_ATTRIBUTES = ['is_segment', 'project_id', 'received'];
 const TRUNCATED_TEXT_ATTRIBUTES = ['gen_ai.response.text', 'gen_ai.embeddings.input'];
 
 const jsonRenderer = (props: CustomRenderersProps) => {
-  const value = tryParseJson(props.item.value);
+  const value = tryParseJsonRecursive(props.item.value);
   return <StructuredData value={value} withAnnotatedText maxDefaultDepth={0} />;
 };
 
