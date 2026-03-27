@@ -127,8 +127,8 @@ function FrameLocation({
           {': '}
         </LeadHint>
       ) : null}
-      <FrameLocationTooltip frame={frame} frameDisplayPath={frameDisplayPath}>
-        <Path data-test-id="core-stacktrace-frame-location">
+      <FrameLocationTooltip frame={frame}>
+        <Path>
           <span>
             <span>{frameDisplayPath}</span>
             {frameLocationSuffix ? <span>{frameLocationSuffix}</span> : null}
@@ -173,32 +173,25 @@ function FrameContext({frame, platform}: {frame: Frame; platform: PlatformKey}) 
 
 function FrameLocationTooltip({
   frame,
-  frameDisplayPath,
   children,
 }: {
   children: React.ReactNode;
   frame: Frame;
-  frameDisplayPath: string;
 }) {
-  const absPath =
-    frame.absPath && frame.absPath !== frameDisplayPath
-      ? formatFrameLocation(frame.absPath, frame.lineNo, frame.colNo)
-      : undefined;
-
   const sourceMapInfoText = frame.mapUrl ?? frame.map;
   const showSourceMap = !!frame.origAbsPath && !!sourceMapInfoText;
   const externalUrl = frame.absPath && isUrl(frame.absPath) ? frame.absPath : undefined;
 
-  const hasContent = !!absPath || showSourceMap || !!externalUrl;
+  const hasContent = !!frame.absPath || showSourceMap || !!externalUrl;
 
   return (
     <Tooltip
       title={
         <TooltipContent>
-          {absPath ? (
+          {frame.absPath ? (
             <Fragment>
               <strong>{t('File')}</strong>
-              <span>{absPath}</span>
+              <span>{frame.absPath}</span>
             </Fragment>
           ) : null}
           {showSourceMap ? (
