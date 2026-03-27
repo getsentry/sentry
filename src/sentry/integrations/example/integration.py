@@ -220,11 +220,6 @@ class ExampleIntegrationProvider(IntegrationProvider):
             IntegrationFeatures.STACKTRACE_LINK,
         ]
     )
-    cell_restricted = False
-
-    @property
-    def is_cell_restricted(self) -> bool:
-        return self.cell_restricted
 
     def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
         return [ExampleSetupView()]

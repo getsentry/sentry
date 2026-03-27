@@ -75,7 +75,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             yield
 
     def _setup_cell_restriction(self):
-        self.provider.cell_restricted = True
+        setattr(self.provider, "is_cell_restricted", True)
         na_orgs = [
             self.create_organization(name="na_org"),
             self.create_organization(name="na_org_2"),
@@ -177,11 +177,9 @@ class FinishPipelineTestCase(IntegrationTestCase):
             response = self.pipeline.finish_pipeline()
             assert isinstance(response, HttpResponse)
             error_message = "This integration has already been installed on another Sentry organization which resides in a different cell. Installation could not be completed."
-            assert error_message in response.content.decode()
-
             if SiloMode.get_current_mode() == SiloMode.MONOLITH:
                 assert error_message not in response.content.decode()
-            if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            else:
                 assert error_message in response.content.decode()
 
     def test_aliased_integration_key(self, *args) -> None:
@@ -706,7 +704,7 @@ class ApiFinishPipelineTestCase(IntegrationTestCase):
             yield
 
     def _setup_cell_restriction(self):
-        self.provider.cell_restricted = True
+        setattr(self.provider, "is_cell_restricted", True)
         na_orgs = [
             self.create_organization(name="na_org"),
             self.create_organization(name="na_org_2"),
