@@ -241,7 +241,7 @@ ORG_OPTIONS = (
         bool,
         ENABLE_SEER_CODING_DEFAULT,
     ),
-    ("defaultCodingAgent", "sentry:seer_default_coding_agent", str | None, None),
+    ("defaultCodingAgent", "sentry:seer_default_coding_agent", str, None),
     (
         "defaultCodingAgentIntegrationId",
         "sentry:seer_default_coding_agent_integration_id",
