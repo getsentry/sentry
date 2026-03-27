@@ -1,12 +1,10 @@
 import {Activity, useMemo, useRef, type ComponentType} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {displayRawContent as rawStacktraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
-import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 
 import {StackTraceFrameRow} from './frame/frameRow';
@@ -26,6 +24,7 @@ function OmittedFramesBanner({omittedFrames}: {omittedFrames: [number, number]})
 
 interface StackTraceFramesProps {
   frameContextComponent: ComponentType;
+  /** Removes the outer border and border-radius, useful for embedding in hovercards. */
   borderless?: boolean;
   frameActionsComponent?: ComponentType<{isHovering: boolean}>;
 }
@@ -60,11 +59,11 @@ export function StackTraceFrames({
 
   if (view === 'raw') {
     return (
-      <Panel>
+      <Container border="primary" radius="md">
         <RawStackTraceText>
           {rawStacktraceContent({data: stacktrace, platform: event.platform})}
         </RawStackTraceText>
-      </Panel>
+      </Container>
     );
   }
 
@@ -109,22 +108,17 @@ export function StackTraceFrames({
   );
 }
 
-const FramesPanel = styled(Panel)<{borderless: boolean}>`
+const FramesPanel = styled('div')<{borderless: boolean}>`
   overflow: hidden;
-  margin-bottom: 0;
-  ${p =>
-    p.borderless &&
-    css`
-      border: 0;
-      border-radius: 0;
-    `}
+  border: ${p => (p.borderless ? 'none' : `1px solid ${p.theme.tokens.border.primary}`)};
+  border-radius: ${p => (p.borderless ? '0' : p.theme.radius.md)};
 
   > * + * {
     border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
-const OmittedRow = styled(Container)`
+const OmittedRow = styled('div')`
   border-left: 2px solid ${p => p.theme.colors.red400};
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   background: ${p => p.theme.colors.red100};

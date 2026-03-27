@@ -14,6 +14,7 @@ import {HiddenFramesToggleAction} from 'sentry/components/stackTrace/frame/actio
 import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
 import {StackTraceFrameRow} from 'sentry/components/stackTrace/frame/frameRow';
 import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
+import {IssueStackTracePreview} from 'sentry/components/stackTrace/issueStackTrace/issueStackTracePreview';
 import {
   StackTraceViewStateProvider,
   useStackTraceContext,
@@ -1239,14 +1240,7 @@ export default Storybook.story('StackTrace', story => {
     return (
       <Flex align="center" justify="center">
         <WideHovercard
-          body={
-            <StoryStackTraceProvider event={event} stacktrace={stacktrace} maxDepth={5}>
-              <StackTraceFrames
-                frameContextComponent={FrameContent}
-                frameActionsComponent={StoryFrameActions}
-              />
-            </StoryStackTraceProvider>
-          }
+          body={<IssueStackTracePreview event={event} stacktrace={stacktrace} />}
         >
           Hovercard Trigger
         </WideHovercard>
