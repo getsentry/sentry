@@ -135,12 +135,12 @@ export function ScmProjectDetails({onComplete}: StepProps) {
         stepNumber={3}
         heading={t('Project details')}
         subtitle={t(
-          'Set the project name, assign a team, and configure how you want to receive issue alerts'
+          'Set the project name, assign a team, and configure\nhow you want to receive issue alerts'
         )}
       />
 
-      <Stack gap="2xl" width="100%" maxWidth={PROJECT_DETAILS_WIDTH}>
-        <Stack gap="sm">
+      <Stack gap="3xl" width="100%" maxWidth={PROJECT_DETAILS_WIDTH}>
+        <Stack gap="md">
           <Flex gap="md" align="center" justify="center">
             <IconProject size="md" variant="secondary" />
             <Container>
@@ -158,7 +158,7 @@ export function ScmProjectDetails({onComplete}: StepProps) {
           />
         </Stack>
 
-        <Stack gap="sm">
+        <Stack gap="md">
           <Flex gap="md" align="center" justify="center">
             <IconGroup size="md" />
             <Container>
@@ -179,7 +179,7 @@ export function ScmProjectDetails({onComplete}: StepProps) {
           />
         </Stack>
 
-        <Stack gap="sm">
+        <Stack gap="md">
           <Flex gap="md" align="center" justify="center">
             <IconSiren size="md" />
             <Container>
