@@ -36,7 +36,7 @@ export function AutomationListRow({
 
   const actions = getAutomationActions(automation);
   const {enabled, lastTriggered, detectorIds = []} = automation;
-  const projectIds = useAutomationProjectIds(automation);
+  const {projectIds, isLoading: isProjectsLoading} = useAutomationProjectIds(automation);
   const projectSlugs = projectIds.map(
     projectId => ProjectsStore.getById(projectId)?.slug
   ) as string[];
@@ -67,7 +67,9 @@ export function AutomationListRow({
         <ActionCell actions={actions} disabled={!enabled} />
       </SimpleTable.RowCell>
       <SimpleTable.RowCell data-column-name="projects">
-        {projectSlugs.length > 0 ? (
+        {isProjectsLoading ? (
+          <Placeholder height="20px" />
+        ) : projectSlugs.length > 0 ? (
           <ProjectList projectSlugs={projectSlugs} />
         ) : (
           <EmptyCell />

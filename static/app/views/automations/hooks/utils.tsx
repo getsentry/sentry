@@ -52,14 +52,18 @@ export function getAutomationActionsWarning(
   return null;
 }
 
-export function useAutomationProjectIds(automation: Automation): string[] {
-  const {data: detectors} = useDetectorsQuery(
+export function useAutomationProjectIds(automation: Automation): {
+  isLoading: boolean;
+  projectIds: string[];
+} {
+  const {data: detectors, isLoading} = useDetectorsQuery(
     {ids: automation.detectorIds},
     {enabled: automation.detectorIds.length > 0}
   );
-  return [
+  const projectIds = [
     ...new Set(detectors?.map(detector => detector.projectId).filter(x => x) ?? []),
   ] as string[];
+  return {projectIds, isLoading};
 }
 
 export function findConflictingConditions(
