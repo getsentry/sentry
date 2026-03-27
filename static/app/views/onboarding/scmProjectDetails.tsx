@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -143,9 +143,11 @@ export function ScmProjectDetails({onComplete}: StepProps) {
         <Stack gap="sm">
           <Flex gap="md" align="center" justify="center">
             <IconProject size="md" variant="secondary" />
-            <Text bold size="lg" density="comfortable">
-              {t('Give your project a name')}
-            </Text>
+            <Container>
+              <Text bold size="lg" density="comfortable">
+                {t('Give your project a name')}
+              </Text>
+            </Container>
           </Flex>
           <Input
             type="text"
@@ -159,9 +161,11 @@ export function ScmProjectDetails({onComplete}: StepProps) {
         <Stack gap="sm">
           <Flex gap="md" align="center" justify="center">
             <IconGroup size="md" />
-            <Text bold size="lg" density="comfortable">
-              {t('Assign a team')}
-            </Text>
+            <Container>
+              <Text bold size="lg" density="comfortable">
+                {t('Assign a team')}
+              </Text>
+            </Container>
           </Flex>
           <TeamSelector
             allowCreate
@@ -178,13 +182,17 @@ export function ScmProjectDetails({onComplete}: StepProps) {
         <Stack gap="sm">
           <Flex gap="md" align="center" justify="center">
             <IconSiren size="md" />
-            <Text bold size="lg" density="comfortable">
-              {t('Alert frequency')}
-            </Text>
+            <Container>
+              <Text bold size="lg" density="comfortable">
+                {t('Alert frequency')}
+              </Text>
+            </Container>
           </Flex>
-          <Text variant="muted" size="lg" density="comfortable" align="center">
-            {t('Get notified when things go wrong')}
-          </Text>
+          <Container>
+            <Text variant="muted" size="lg" density="comfortable" align="center">
+              {t('Get notified when things go wrong')}
+            </Text>
+          </Container>
           <ScmAlertFrequency {...alertRuleConfig} onFieldChange={handleAlertChange} />
         </Stack>
       </Stack>
