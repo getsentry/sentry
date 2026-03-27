@@ -174,7 +174,7 @@ def get_raw_body_async(
         return ChunkedEncodingAsyncDecoder(wsgi_input._read)  # type: ignore[union-attr]
 
     # wsgiref and the request has been already proxied through control silo
-    return BodyWithLength(request).__aiter__()
+    return BodyWithLength(request)
 
 
 def get_target_url(path: str) -> str:

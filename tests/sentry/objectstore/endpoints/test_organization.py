@@ -200,7 +200,7 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                 self.inner = httpx.AsyncClient()
                 return self.inner.build_request(*args, **kwargs)
 
-        from sentry.hybridcloud.apigateway.middleware import ApiGatewayMiddleware
+        from sentry.hybridcloud.apigateway_async.middleware import ApiGatewayMiddleware
 
         _original_middleware = ApiGatewayMiddleware._process_view_inner
 

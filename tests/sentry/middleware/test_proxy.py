@@ -54,7 +54,7 @@ class FakedAPIProxyTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
 
-        from sentry.hybridcloud.apigateway.middleware import ApiGatewayMiddleware
+        from sentry.hybridcloud.apigateway_async.middleware import ApiGatewayMiddleware
 
         _original_middleware = ApiGatewayMiddleware._process_view_inner
 

@@ -159,7 +159,7 @@ class HttpxMockRouter:
 def mock_proxy_client(router: HttpxMockRouter):
     """Patch the proxy_client with a mock httpx.AsyncClient using the given router."""
     mock_client = httpx.AsyncClient(transport=httpx.MockTransport(router.handler))
-    with patch("sentry.hybridcloud.apigateway.proxy.proxy_client", mock_client):
+    with patch("sentry.hybridcloud.apigateway_async.proxy.proxy_client", mock_client):
         yield mock_client
 
 
@@ -217,8 +217,10 @@ def verify_file_body(file_body, headers):
 
 def provision_middleware():
     middleware = list(settings.MIDDLEWARE)
-    if "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware" not in middleware:
-        middleware = ["sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware"] + middleware
+    if "sentry.hybridcloud.apigateway_async.middleware.ApiGatewayMiddleware" not in middleware:
+        middleware = [
+            "sentry.hybridcloud.apigateway_async.middleware.ApiGatewayMiddleware"
+        ] + middleware
     return middleware
 
 

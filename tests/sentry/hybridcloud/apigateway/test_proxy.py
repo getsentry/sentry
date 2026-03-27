@@ -5,7 +5,7 @@ from asgiref.sync import async_to_sync
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test.client import RequestFactory
 
-from sentry.hybridcloud.apigateway.proxy import proxy_request as _proxy_request
+from sentry.hybridcloud.apigateway_async.proxy import proxy_request as _proxy_request
 from sentry.silo.util import (
     INVALID_OUTBOUND_HEADERS,
     PROXY_APIGATEWAY_HEADER,
