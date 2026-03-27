@@ -78,10 +78,11 @@ export function useScmRepoSelection({
         queryFn: fetchDataQuery<Repository[]>,
         staleTime: 0,
       });
-      // Match on name rather than externalSlug because externalSlug varies
-      // by provider (e.g. GitLab uses a numeric project ID) while name is
-      // consistently the full repo path (e.g. "getsentry/sentry") across
-      // all providers — matching repo.identifier from the search results.
+      // Match on Repository.name === IntegrationRepository.identifier.
+      // This is the same comparison the backend uses in the search endpoint
+      // (organization_integration_repos.py) to determine isInstalled.
+      // Can't use externalSlug because it varies by provider (e.g. GitLab
+      // returns a numeric project ID).
       const existing = matches?.find(r => r.name === repo.identifier);
 
       if (existing) {
