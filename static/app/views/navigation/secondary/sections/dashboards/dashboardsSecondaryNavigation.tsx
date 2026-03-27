@@ -10,18 +10,20 @@ import {
 } from 'react';
 import * as Sentry from '@sentry/react';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
+import {Flex} from '@sentry/scraps/layout';
 import {Grid} from '@sentry/scraps/layout';
 
 import {openConfirmModal} from 'sentry/components/confirm';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {IconCheckmark} from 'sentry/icons';
+import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {unreachable} from 'sentry/utils/unreachable';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -210,27 +212,41 @@ function StarredDashboardSectionOverflowMenu() {
 function DashboardReorderableSection({children}: {children: ReactNode}) {
   const id = useId();
   const [{state, title}, dispatch] = useDashboardContext();
+  const [isCollapsed, setIsCollapsed] = useLocalStorageState(
+    `dashboard-section-${id}-collapsed`,
+    false
+  );
 
   return (
     <SecondaryNavigation.ReorderableSection
       id={id}
       collapsible={state !== 'renaming'}
+      collapsed={isCollapsed}
+      onCollapsedChange={setIsCollapsed}
       trailingItems={
         state === 'renaming' ? null : <StarredDashboardSectionOverflowMenu />
       }
       title={
         state === 'renaming' ? (
-          <Grid columns="1fr auto" align="center" width="100%" height="100%" gap="sm">
+          <Grid
+            columns="1fr auto"
+            align="center"
+            width="100%"
+            height="100%"
+            gap="sm"
+            padding="2xs"
+          >
             {p => (
               <form
                 {...p}
+                noValidate
                 onSubmit={e => {
                   e.preventDefault();
                   const form = e.target as HTMLFormElement;
                   const formData = new FormData(form);
                   const newTitle = formData.get('title');
 
-                  if (typeof newTitle !== 'string') {
+                  if (typeof newTitle !== 'string' || newTitle.trim() === '') {
                     return;
                   }
 
@@ -240,12 +256,24 @@ function DashboardReorderableSection({children}: {children: ReactNode}) {
                   });
                 }}
               >
-                <Input size="xs" required autoFocus name="title" defaultValue={title} />
+                <Input
+                  size="xs"
+                  required
+                  autoFocus
+                  name="title"
+                  defaultValue=""
+                  placeholder={title}
+                  onKeyDown={e => {
+                    if (e.key === 'Escape') {
+                      dispatch({type: 'set state', state: 'initial'});
+                    }
+                  }}
+                />
                 <Button
                   size="xs"
                   type="submit"
                   aria-label={t('Save')}
-                  icon={<IconCheckmark aria-hidden="true" />}
+                  icon={<IconCheckmark aria-hidden />}
                 />
               </form>
             )}

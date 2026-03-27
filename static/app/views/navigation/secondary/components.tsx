@@ -373,7 +373,7 @@ interface SectionTitleProps {
 function SectionTitle(props: SectionTitleProps) {
   if (props.trailingItems && props.canCollapse) {
     return (
-      <Grid columns="1fr auto" align="center" width="100%">
+      <Grid columns="1fr auto" align="center" width="100%" marginBottom="2xs">
         <Grid columns="1fr auto" align="center" width="100%" padding="sm lg">
           {p => (
             <Fragment>
@@ -403,7 +403,13 @@ function SectionTitle(props: SectionTitleProps) {
 
   if (props.canCollapse) {
     return (
-      <Grid columns="1fr auto" align="center" width="100%" padding="sm lg">
+      <Grid
+        columns="1fr auto"
+        align="center"
+        width="100%"
+        padding="sm lg"
+        marginBottom="2xs"
+      >
         {p => (
           <Button
             size="sm"
@@ -424,7 +430,7 @@ function SectionTitle(props: SectionTitleProps) {
   }
 
   return (
-    <Grid columns="1fr auto" align="center" width="100%">
+    <Grid columns="1fr auto" align="center" width="100%" marginBottom="2xs">
       {props.children}
       {props.trailingItems}
     </Grid>
@@ -454,7 +460,9 @@ function ChevronButton(
 interface SecondaryNavigationSectionProps {
   children: ReactNode;
   id: string;
+  collapsed?: boolean;
   collapsible?: boolean;
+  onCollapsedChange?: (collapsed: boolean) => void;
   title?: ReactNode;
   trailingItems?: ReactNode;
 }
@@ -467,7 +475,15 @@ function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
     false
   );
   const canCollapse = collapsible && layout === 'sidebar';
-  const collapsed = canCollapse ? collapsedState : false;
+  const isControlled = props.collapsed !== undefined;
+  const collapsed = isControlled
+    ? props.collapsed!
+    : canCollapse
+      ? collapsedState
+      : false;
+  const onCollapsedChange = isControlled
+    ? (props.onCollapsedChange ?? (() => {}))
+    : onCollapsedChangeState;
 
   return (
     <Container padding="md sm" data-nav-section>
@@ -476,12 +492,12 @@ function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
           trailingItems={props.trailingItems}
           canCollapse={canCollapse}
           collapsed={collapsed}
-          onCollapsedChange={onCollapsedChangeState}
+          onCollapsedChange={onCollapsedChange}
         >
           {props.title}
         </SectionTitle>
       ) : null}
-      <Collapsible collapsed={collapsed} disabled={!canCollapse}>
+      <Collapsible collapsed={collapsed} disabled={isControlled ? false : !canCollapse}>
         {props.children}
       </Collapsible>
     </Container>
