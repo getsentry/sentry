@@ -636,8 +636,11 @@ def ensure_association_with_detector(group: Group, detector_id: int | None = Non
         return False
 
     # Common case: it exists, we verify and move on.
-    if DetectorGroup.objects.filter(group_id=group.id).exists():
+    try:
+        DetectorGroup.objects.get_from_cache(group_id=group.id)
         return True
+    except DetectorGroup.DoesNotExist:
+        pass
 
     # Association is missing, determine the detector_id if not provided
     if detector_id is None:
