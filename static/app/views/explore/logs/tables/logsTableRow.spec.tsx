@@ -489,6 +489,55 @@ describe('logsTableRow', () => {
     expect(parsedData).not.toHaveProperty('sentry.item_id');
   });
 
+  it('does not toggle row when clicking cell action menu items', async () => {
+    const mockWriteText = jest.fn().mockResolvedValue(undefined);
+    Object.defineProperty(window.navigator, 'clipboard', {
+      value: {
+        writeText: mockWriteText,
+      },
+      writable: true,
+    });
+
+    render(
+      <ProviderWrapper>
+        <LogRowContent
+          dataRow={rowData}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowData)}
+          sharedHoverTimeoutRef={
+            {
+              current: null,
+            } as React.MutableRefObject<NodeJS.Timeout | null>
+          }
+        />
+      </ProviderWrapper>,
+      {organization, initialRouterConfig}
+    );
+
+    const logTableRow = await screen.findByTestId('log-table-row');
+    await userEvent.click(logTableRow);
+
+    await waitFor(() => {
+      expect(rowDetailsMock).toHaveBeenCalledTimes(1);
+    });
+
+    // Row is expanded - verify details are visible
+    expect(await screen.findByRole('button', {name: 'Copy as JSON'})).toBeInTheDocument();
+
+    // Open the ellipsis context menu on a cell
+    const actionsButton = screen.getAllByRole('button', {name: 'Actions'})[0]!;
+    await userEvent.click(actionsButton);
+
+    // Click "Copy to clipboard" in the dropdown menu
+    const copyItem = await screen.findByRole('menuitemradio', {
+      name: 'Copy to clipboard',
+    });
+    await userEvent.click(copyItem);
+
+    // Row should still be expanded - the cell action should not toggle visibility
+    expect(screen.getByRole('button', {name: 'Copy as JSON'})).toBeInTheDocument();
+  });
+
   it('renders fields with data scrubbing meta information', async () => {
     const traceItemMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/trace-items/${rowDataWithScrubbedFields[OurLogKnownFieldKey.ID]}/`,
