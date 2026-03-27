@@ -5,7 +5,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-interface SourceMapDebugBlueThunderResponseFrame {
+export interface SourceMapDebugBlueThunderResponseFrame {
   debug_id_process: {
     debug_id: string | null;
     uploaded_source_file_with_correct_debug_id: boolean;
@@ -33,7 +33,7 @@ interface SourceMapDebugBlueThunderResponseFrame {
   };
 }
 
-interface SourceMapDebugBlueThunderResponse {
+export interface SourceMapDebugBlueThunderResponse {
   dist: string | null;
   exceptions: Array<{
     frames: SourceMapDebugBlueThunderResponseFrame[];

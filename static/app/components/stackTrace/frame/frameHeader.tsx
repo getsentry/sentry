@@ -9,19 +9,27 @@ import {
   getLeadHint,
   getPlatform,
   isDotnet,
+  isPotentiallyThirdPartyFrame,
 } from 'sentry/components/events/interfaces/frame/utils';
 import {useStackTraceFrameContext} from 'sentry/components/stackTrace/stackTraceContext';
 import {t} from 'sentry/locale';
-import type {Frame} from 'sentry/types/event';
+import type {Event, Frame} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {isUrl} from 'sentry/utils/string/isUrl';
 
-function getFrameDisplayPath(frame: Frame, platform: PlatformKey) {
+function getFrameDisplayPath(frame: Frame, platform: PlatformKey, event: Event) {
   const framePlatform = getPlatform(frame.platform, platform);
 
+  // Prioritize module name for Java as filename is often only basename
   if (framePlatform === 'java') {
     return frame.module ?? frame.filename ?? '';
+  }
+
+  // For third-party JS frames, show the full absPath URL so the
+  // user can see which external domain the code came from.
+  if (isPotentiallyThirdPartyFrame(frame, event) && frame.absPath) {
+    return frame.absPath;
   }
 
   return frame.filename ?? frame.module ?? '';
@@ -32,11 +40,11 @@ function formatFrameLocation(
   lineNo: number | null | undefined,
   colNo: number | null | undefined
 ): string {
-  if (!defined(lineNo) || lineNo < 0) {
+  if (!defined(lineNo) || lineNo <= 0) {
     return path;
   }
 
-  if (!defined(colNo) || colNo < 0) {
+  if (!defined(colNo) || colNo <= 0) {
     return `${path}:${lineNo}`;
   }
 
@@ -117,7 +125,7 @@ function FrameLocation({
   platform: PlatformKey;
 }) {
   const {event} = useStackTraceFrameContext();
-  const frameDisplayPath = getFrameDisplayPath(frame, platform);
+  const frameDisplayPath = getFrameDisplayPath(frame, platform, event);
   const frameLocationSuffix = formatFrameLocation('', frame.lineNo, frame.colNo);
 
   return (
@@ -128,7 +136,7 @@ function FrameLocation({
           {': '}
         </LeadHint>
       ) : null}
-      <FrameLocationTooltip frame={frame}>
+      <FrameLocationTooltip frame={frame} frameDisplayPath={frameDisplayPath}>
         <Path>
           <span>
             <span>{frameDisplayPath}</span>
@@ -174,25 +182,29 @@ function FrameContext({frame, platform}: {frame: Frame; platform: PlatformKey}) 
 
 function FrameLocationTooltip({
   frame,
+  frameDisplayPath,
   children,
 }: {
   children: React.ReactNode;
   frame: Frame;
+  frameDisplayPath: string;
 }) {
+  const absPath =
+    frame.absPath && frame.absPath !== frameDisplayPath ? frame.absPath : undefined;
   const sourceMap = frame.mapUrl ?? frame.map;
   const showSourceMap = !!frame.origAbsPath && !!sourceMap;
   const externalUrl = frame.absPath && isUrl(frame.absPath) ? frame.absPath : undefined;
 
-  const hasContent = !!frame.absPath || showSourceMap || !!externalUrl;
+  const hasContent = !!absPath || showSourceMap || !!externalUrl;
 
   return (
     <Tooltip
       title={
         <TooltipContent>
-          {frame.absPath ? (
+          {absPath ? (
             <Fragment>
               <strong>{t('Absolute Path')}</strong>
-              <span>{frame.absPath}</span>
+              <span>{absPath}</span>
             </Fragment>
           ) : null}
           {showSourceMap ? (

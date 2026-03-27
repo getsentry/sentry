@@ -9,6 +9,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import type {SourceMapDebugBlueThunderResponse} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 import {DisplayOptions} from 'sentry/components/stackTrace/displayOptions';
 import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
 import {IssueFrameActions} from 'sentry/components/stackTrace/issueStackTrace/issueFrameActions';
@@ -494,9 +495,9 @@ describe('Core StackTrace', () => {
         project_has_some_artifact_bundle: false,
         release: null,
         release_has_some_artifact: false,
-        sdk_debug_id_support: 'not-supported' as const,
+        sdk_debug_id_support: 'not-supported',
         sdk_version: '10.0.0',
-      },
+      } satisfies SourceMapDebugBlueThunderResponse,
     });
 
     render(
@@ -655,12 +656,8 @@ describe('Core StackTrace', () => {
 
   it('renders a repeat tag with tooltip in frame actions', async () => {
     const {event, stacktrace} = makeStackTraceData();
-    const recursiveFrame = {
+    const recursiveFrame: StacktraceWithFrames['frames'][number] = {
       ...stacktrace.frames[stacktrace.frames.length - 1]!,
-      filename: 'raven/scripts/runner.py',
-      module: 'raven.scripts.runner',
-      function: 'main',
-      lineNo: 112,
       inApp: true,
       package: 'raven',
       instructionAddr: '0x00000001',
@@ -671,7 +668,7 @@ describe('Core StackTrace', () => {
         event={event}
         stacktrace={{
           ...stacktrace,
-          frames: [{...recursiveFrame}, {...recursiveFrame}, {...recursiveFrame}],
+          frames: [recursiveFrame, recursiveFrame, recursiveFrame],
         }}
       >
         <DisplayOptions />
@@ -680,11 +677,68 @@ describe('Core StackTrace', () => {
     );
 
     expect(await screen.findAllByTestId('core-stacktrace-frame-row')).toHaveLength(1);
-    const repeatsTag = screen.getByTestId('core-stacktrace-repeats-tag');
-    expect(repeatsTag).toHaveTextContent('2');
+    expect(screen.getByLabelText('Frame repeated 2 times')).toBeInTheDocument();
+  });
 
-    await userEvent.hover(repeatsTag);
-    expect(await screen.findByText('Frame repeated 2 times')).toBeInTheDocument();
+  it('displays module name instead of filename for Java frames', async () => {
+    const {stacktrace} = makeStackTraceData();
+    const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
+    const event = EventFixture({
+      platform: 'java',
+      projectID: '1',
+    });
+
+    render(
+      <TestStackTraceProvider
+        event={event}
+        stacktrace={{
+          ...stacktrace,
+          frames: [
+            {
+              ...frame,
+              platform: 'java',
+              module: 'com.example.app.MainActivity',
+              filename: 'MainActivity.java',
+              inApp: true,
+            },
+          ],
+        }}
+      >
+        <StackTraceFrames frameContextComponent={FrameContent} />
+      </TestStackTraceProvider>
+    );
+
+    expect(await screen.findByText('com.example.app.MainActivity')).toBeInTheDocument();
+    expect(screen.queryByText('MainActivity.java')).not.toBeInTheDocument();
+  });
+
+  it('does not render line number when lineNo is zero', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+    const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
+
+    render(
+      <TestStackTraceProvider
+        event={event}
+        stacktrace={{
+          ...stacktrace,
+          frames: [
+            {
+              ...frame,
+              filename: 'native_module.c',
+              lineNo: 0,
+              colNo: 0,
+              inApp: true,
+            },
+          ],
+        }}
+      >
+        <StackTraceFrames frameContextComponent={FrameContent} />
+      </TestStackTraceProvider>
+    );
+
+    expect(await screen.findByText('native_module.c')).toBeInTheDocument();
+    expect(screen.queryByText(':0')).not.toBeInTheDocument();
+    expect(screen.queryByText(':0:0')).not.toBeInTheDocument();
   });
 
   it('falls back to raw function and renders trimmed package in title metadata', async () => {
@@ -726,7 +780,7 @@ describe('Core StackTrace', () => {
         event={{
           ...event,
           platform: 'csharp',
-          contexts: {device: {type: 'device' as const, name: '', arch: 'x86_64'}},
+          contexts: {device: {type: 'device', name: '', arch: 'x86_64'}},
         }}
         stacktrace={{
           ...stacktrace,
@@ -786,6 +840,41 @@ describe('Core StackTrace', () => {
 
     expect(
       await screen.findByText('No additional details are available for this frame.')
+    ).toBeInTheDocument();
+  });
+
+  it('displays full absPath URL for third-party JS frames from a different domain', async () => {
+    const {stacktrace} = makeStackTraceData();
+    const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
+    const event = EventFixture({
+      platform: 'javascript',
+      projectID: '1',
+      tags: [{key: 'url', value: 'https://myapp.example.com/issues/123/'}],
+    });
+
+    render(
+      <TestStackTraceProvider
+        event={event}
+        stacktrace={{
+          ...stacktrace,
+          frames: [
+            {
+              ...frame,
+              absPath: 'https://cdn.thirdparty.net/js/tracker.js',
+              filename: '/js/tracker.js',
+              lineNo: 1,
+              colNo: 1114,
+              inApp: true,
+            },
+          ],
+        }}
+      >
+        <StackTraceFrames frameContextComponent={FrameContent} />
+      </TestStackTraceProvider>
+    );
+
+    expect(
+      await screen.findByText('https://cdn.thirdparty.net/js/tracker.js')
     ).toBeInTheDocument();
   });
 

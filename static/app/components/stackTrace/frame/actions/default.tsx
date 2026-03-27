@@ -32,7 +32,11 @@ export function DefaultFrameActions() {
           <Tag
             icon={<IconRefresh size="xs" />}
             variant="muted"
-            data-test-id="core-stacktrace-repeats-tag"
+            aria-label={tn(
+              'Frame repeated %s time',
+              'Frame repeated %s times',
+              timesRepeated
+            )}
           >
             {timesRepeated}
           </Tag>
