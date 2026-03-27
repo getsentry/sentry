@@ -16,11 +16,13 @@
  * A single node in the flat registry.
  *
  * - `nodeType` — what kind of thing this is ("dashboard", "widget", etc.)
- * - `data` — arbitrary key-value pairs describing its state
  * - `parentId` — ID of the parent node, or undefined for root-level nodes
+ *
+ * Note: node data is stored separately in the provider's imperative
+ * `nodeDataRef` rather than on this struct, so that writes from
+ * `useSeerContext(data)` don't require a reducer dispatch.
  */
 export interface SeerContextNode {
-  data: Record<string, unknown>;
   nodeType: string;
   parentId?: string;
 }

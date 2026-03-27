@@ -54,7 +54,6 @@ export function seerContextReducer(
       const newNodes = new Map(state.nodes);
       newNodes.set(action.nodeId, {
         nodeType: action.nodeType,
-        data: {},
         parentId: action.parentId,
       });
       return {nodes: newNodes, version: state.version + 1};
