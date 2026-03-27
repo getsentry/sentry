@@ -14,7 +14,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {NewDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {NewDetectorFooter} from 'sentry/views/detectors/components/forms/common/footer';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
-import {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
+import {DetectorNameField} from 'sentry/views/detectors/components/forms/detectorBaseFields';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useCreateDetectorFormSubmit} from 'sentry/views/detectors/hooks/useCreateDetectorFormSubmit';
 
@@ -24,7 +24,6 @@ type NewDetectorLayoutProps<TFormData, TUpdatePayload> = {
   formDataToEndpointPayload: (formData: TFormData) => TUpdatePayload;
   initialFormData: Partial<TFormData>;
   disabledCreate?: string;
-  environment?: React.ComponentProps<typeof DetectorBaseFields>['environment'];
   extraFooterButton?: React.ReactNode;
   mapFormErrors?: (error: any) => any;
   previewChart?: React.ReactNode;
@@ -39,7 +38,6 @@ export function NewDetectorLayout<
   initialFormData,
   disabledCreate,
   mapFormErrors,
-  environment,
   extraFooterButton,
   previewChart,
   detectorType,
@@ -87,16 +85,16 @@ export function NewDetectorLayout<
       <EditLayout.Header maxWidth={maxWidth}>
         <EditLayout.HeaderContent>
           <NewDetectorBreadcrumbs detectorType={detectorType} />
+          <DetectorNameField />
         </EditLayout.HeaderContent>
 
         <div>
           <MonitorFeedbackButton />
         </div>
 
-        <EditLayout.HeaderFields>
-          <DetectorBaseFields environment={environment} />
-          {previewChart ?? <div />}
-        </EditLayout.HeaderFields>
+        {previewChart && (
+          <EditLayout.HeaderFields>{previewChart}</EditLayout.HeaderFields>
+        )}
       </EditLayout.Header>
 
       <EditLayout.Body maxWidth={maxWidth}>{children}</EditLayout.Body>

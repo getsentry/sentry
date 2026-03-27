@@ -20,7 +20,7 @@ import {
 } from 'sentry/views/detectors/components/details/common/actions';
 import {EditDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {getSubmitButtonTitle} from 'sentry/views/detectors/components/forms/common/getSubmitButtonTitle';
-import {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
+import {DetectorNameField} from 'sentry/views/detectors/components/forms/detectorBaseFields';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useEditDetectorFormSubmit} from 'sentry/views/detectors/hooks/useEditDetectorFormSubmit';
 
@@ -29,7 +29,6 @@ type EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload> = {
   detector: TDetector;
   formDataToEndpointPayload: (formData: TFormData) => TUpdatePayload;
   savedDetectorToFormData: (detector: TDetector) => TFormData;
-  environment?: React.ComponentProps<typeof DetectorBaseFields>['environment'];
   extraFooterButton?: React.ReactNode;
   mapFormErrors?: (error: any) => any;
   previewChart?: React.ReactNode;
@@ -46,7 +45,6 @@ export function EditDetectorLayout<
   formDataToEndpointPayload,
   savedDetectorToFormData,
   mapFormErrors,
-  environment,
   extraFooterButton,
 }: EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload>) {
   const theme = useTheme();
@@ -76,6 +74,7 @@ export function EditDetectorLayout<
       <EditLayout.Header maxWidth={maxWidth}>
         <EditLayout.HeaderContent>
           <EditDetectorBreadcrumbs detector={detector} />
+          <DetectorNameField />
         </EditLayout.HeaderContent>
 
         <div>
@@ -84,10 +83,9 @@ export function EditDetectorLayout<
           </EditLayout.Actions>
         </div>
 
-        <EditLayout.HeaderFields>
-          <DetectorBaseFields environment={environment} />
-          {previewChart ?? <div />}
-        </EditLayout.HeaderFields>
+        {previewChart && (
+          <EditLayout.HeaderFields>{previewChart}</EditLayout.HeaderFields>
+        )}
       </EditLayout.Header>
 
       <EditLayout.Body maxWidth={maxWidth}>{children}</EditLayout.Body>

@@ -1,150 +1,32 @@
-import styled from '@emotion/styled';
-
-import {Flex} from '@sentry/scraps/layout';
-
 import {EditableText} from 'sentry/components/editableText';
-import {SelectField} from 'sentry/components/forms/fields/selectField';
-import {SentryProjectSelectorField} from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import {FormField} from 'sentry/components/forms/formField';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
-import {useProjects} from 'sentry/utils/useProjects';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
-import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
 
-interface EnvironmentConfig {
-  fieldProps?: Partial<React.ComponentProps<typeof SelectField>>;
-  includeAllEnvironments?: boolean;
-}
-
-interface DetectorBaseFieldsProps {
-  environment?: EnvironmentConfig | false;
-}
-
-export function DetectorBaseFields({environment}: DetectorBaseFieldsProps) {
+export function DetectorNameField() {
   const {setHasSetDetectorName} = useDetectorFormContext();
-  const environmentConfig =
-    environment === false
-      ? false
-      : {
-          includeAllEnvironments: true,
-          ...environment,
-        };
 
   return (
-    <Flex gap="md" direction="column">
-      <Layout.Title>
-        <FormField name="name" inline={false} flexibleControlStateSize stacked>
-          {({onChange, value}) => (
-            <EditableText
-              allowEmpty
-              value={value || ''}
-              onChange={newValue => {
-                onChange(newValue, {
-                  target: {
-                    value: newValue,
-                  },
-                });
-                setHasSetDetectorName(true);
-              }}
-              placeholder={t('New Monitor')}
-              aria-label={t('Monitor Name')}
-            />
-          )}
-        </FormField>
-      </Layout.Title>
-      <Flex gap="md">
-        <ProjectField />
-        {environmentConfig && (
-          <EnvironmentField
-            includeAllEnvironments={environmentConfig.includeAllEnvironments}
-            {...(environmentConfig.fieldProps ?? {})}
+    <Layout.Title>
+      <FormField name="name" inline={false} flexibleControlStateSize stacked>
+        {({onChange, value}) => (
+          <EditableText
+            allowEmpty
+            value={value || ''}
+            onChange={newValue => {
+              onChange(newValue, {
+                target: {
+                  value: newValue,
+                },
+              });
+              setHasSetDetectorName(true);
+            }}
+            placeholder={t('New Monitor')}
+            aria-label={t('Monitor Name')}
           />
         )}
-      </Flex>
-    </Flex>
+      </FormField>
+    </Layout.Title>
   );
 }
-
-function ProjectField() {
-  const {projects, fetching} = useProjects();
-  const {project, detectorType} = useDetectorFormContext();
-  const canEditDetector = useCanEditDetector({projectId: project.id, detectorType});
-
-  return (
-    <StyledProjectField
-      inline={false}
-      flexibleControlStateSize
-      stacked
-      projects={projects}
-      groupProjects={p => (p.isMember ? 'member' : 'all')}
-      groups={[
-        {key: 'member', label: t('My Projects')},
-        {key: 'all', label: t('All Projects')},
-      ]}
-      name="projectId"
-      label={t('Project')}
-      placeholder={t('Project')}
-      aria-label={t('Select Project')}
-      disabled={fetching}
-      size="sm"
-      required
-      validate={() => {
-        if (!canEditDetector) {
-          return [
-            [
-              'projectId',
-              t('You do not have permission to create or edit monitors in this project'),
-            ],
-          ];
-        }
-        return [];
-      }}
-    />
-  );
-}
-
-type EnvironmentFieldProps = Partial<React.ComponentProps<typeof SelectField>> & {
-  includeAllEnvironments?: boolean;
-};
-
-function EnvironmentField({
-  includeAllEnvironments = true,
-  ...props
-}: EnvironmentFieldProps) {
-  const {projects} = useProjects();
-  const projectId = useFormField<string>('projectId')!;
-
-  const environments = projects.find(p => p.id === projectId)?.environments ?? [];
-
-  return (
-    <StyledEnvironmentField
-      choices={[
-        ...(includeAllEnvironments ? [['', t('All Environments')] as const] : []),
-        ...(environments?.map(environment => [environment, environment] as const) ?? []),
-      ]}
-      inline={false}
-      flexibleControlStateSize
-      stacked
-      name="environment"
-      label={t('Environment')}
-      placeholder={t('Environment')}
-      aria-label={t('Select Environment')}
-      size="sm"
-      {...props}
-    />
-  );
-}
-
-const StyledProjectField = styled(SentryProjectSelectorField)`
-  flex-grow: 1;
-  max-width: 260px;
-  padding: 0;
-`;
-
-const StyledEnvironmentField = styled(SelectField)`
-  flex-grow: 1;
-  max-width: 260px;
-  padding: 0;
-`;
