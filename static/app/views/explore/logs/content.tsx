@@ -19,6 +19,7 @@ import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {ExploreBreadcrumb} from 'sentry/views/explore/components/breadcrumb';
+import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
@@ -61,7 +62,7 @@ export default function LogsContent() {
           analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
           source="location"
         >
-          <Layout.Page>
+          <ViewportConstrainedPage>
             <LogsHeader />
             <LogsPageDataProvider allowHighFidelity>
               {defined(onboardingProject) ? (
@@ -74,7 +75,7 @@ export default function LogsContent() {
                 <LogsTabContent datePageFilterProps={datePageFilterProps} />
               )}
             </LogsPageDataProvider>
-          </Layout.Page>
+          </ViewportConstrainedPage>
         </LogsQueryParamsProvider>
       </PageFiltersContainer>
     </SentryDocumentTitle>

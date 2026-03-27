@@ -1,9 +1,18 @@
-import type {CSSProperties, RefObject} from 'react';
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type RefObject,
+} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Virtualizer} from '@tanstack/react-virtual';
-import {useVirtualizer, useWindowVirtualizer} from '@tanstack/react-virtual';
+import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -22,7 +31,6 @@ import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {
-  Table,
   TableBodyCell,
   TableHead,
   TableHeadCell,
@@ -44,6 +52,7 @@ import {
   FloatingBottomContainer,
   HoveringRowLoadingRendererContainer,
   LOGS_GRID_BODY_ROW_HEIGHT,
+  LogTable,
   LogTableBody,
   LogTableRow,
 } from 'sentry/views/explore/logs/styles';
@@ -89,28 +98,27 @@ type LogsTableProps = {
     showVerticalScrollbar?: boolean;
   };
   emptyRenderer?: () => React.ReactNode;
+  expanded?: boolean;
   localOnlyItemFilters?: {
     filterText: string;
     filteredItems: OurLogsResponseItem[];
   };
   numberAttributes?: TagCollection;
-  scrollContainer?: React.RefObject<HTMLElement | null>;
   stringAttributes?: TagCollection;
 };
 
 const {info, fmt} = Sentry.logger;
 
 const LOGS_GRID_SCROLL_PIXEL_REVERSE_THRESHOLD = LOGS_GRID_BODY_ROW_HEIGHT * 2; // If you are less than this number of pixels from the top of the table while scrolling backward, fetch the previous page.
-const LOGS_OVERSCAN_AMOUNT = 50; // How many items to render beyond the visible area.
 
 export function LogsInfiniteTable({
   embedded = false,
+  expanded,
   localOnlyItemFilters,
   emptyRenderer,
   numberAttributes,
   stringAttributes,
   booleanAttributes,
-  scrollContainer,
   embeddedStyling,
   embeddedOptions,
   additionalData,
@@ -255,23 +263,18 @@ export function LogsInfiniteTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchString, localOnlyItemFilters?.filterText]);
 
-  const windowVirtualizer = useWindowVirtualizer({
+  const virtualizer = useVirtualizer<HTMLElement, Element>({
     count: data?.length ?? 0,
     estimateSize,
-    overscan: LOGS_OVERSCAN_AMOUNT,
-    getItemKey: (index: number) => data?.[index]?.[OurLogKnownFieldKey.ID] ?? index,
-    scrollMargin: tableBodyRef.current?.offsetTop ?? 0,
-  });
-
-  const containerVirtualizer = useVirtualizer({
-    count: data?.length ?? 0,
-    estimateSize,
-    overscan: LOGS_OVERSCAN_AMOUNT,
-    getScrollElement: () => scrollContainer?.current ?? null,
+    overscan: expanded ? 25 : 10,
+    getScrollElement: () => tableBodyRef?.current,
     getItemKey: (index: number) => data?.[index]?.[OurLogKnownFieldKey.ID] ?? index,
   });
 
-  const virtualizer = scrollContainer?.current ? containerVirtualizer : windowVirtualizer;
+  useLayoutEffect(() => {
+    virtualizer.measure();
+  }, [expanded, virtualizer]);
+
   const virtualItems = virtualizer.getVirtualItems();
 
   const firstItem = virtualItems[0]?.start;
@@ -292,13 +295,13 @@ export function LogsInfiniteTable({
   useEffect(() => {
     if (
       pseudoRowIndex !== -1 &&
-      scrollContainer?.current &&
+      tableBodyRef?.current &&
       !additionalData?.scrollToDisabled
     ) {
       setTimeout(() => {
         const scrollToIndex =
           pseudoRowIndex === -2 ? baseDataLength.current : pseudoRowIndex;
-        containerVirtualizer.scrollToIndex(scrollToIndex, {
+        virtualizer.scrollToIndex(scrollToIndex, {
           behavior: 'smooth',
           align: 'center',
         });
@@ -306,8 +309,8 @@ export function LogsInfiniteTable({
     }
   }, [
     pseudoRowIndex,
-    containerVirtualizer,
-    scrollContainer,
+    virtualizer,
+    tableBodyRef,
     baseDataLength,
     additionalData?.scrollToDisabled,
   ]);
@@ -336,9 +339,7 @@ export function LogsInfiniteTable({
         ]
       : [0, 0];
 
-  const {scrollDirection, scrollOffset, isScrolling} = scrollContainer
-    ? containerVirtualizer
-    : virtualizer;
+  const {scrollDirection, scrollOffset, isScrolling} = virtualizer;
 
   useEffect(() => {
     if (isFunctionScrolling && !isScrolling && scrollOffset === 0) {
@@ -451,10 +452,11 @@ export function LogsInfiniteTable({
 
   return (
     <Fragment>
-      <Table
+      <LogTable
         ref={tableRef}
         style={initialTableStyles}
         css={tableStaticCSS}
+        height="100%"
         hideBorder={embedded}
         data-test-id="logs-table"
         showVerticalScrollbar={embeddedStyling?.showVerticalScrollbar}
@@ -472,6 +474,7 @@ export function LogsInfiniteTable({
           showHeader={!embedded}
           ref={tableBodyRef}
           disableBodyPadding={embeddedStyling?.disableBodyPadding}
+          expanded={expanded}
         >
           {paddingTop > 0 && (
             <TableRow>
@@ -537,25 +540,26 @@ export function LogsInfiniteTable({
             <HoveringRowLoadingRenderer position="bottom" isEmbedded={embedded} />
           )}
         </LogTableBody>
-      </Table>
-      <FloatingBackToTopContainer
-        inReplay={!!embeddedOptions?.replay}
-        tableLeft={tableRef.current?.getBoundingClientRect().left ?? 0}
-        tableWidth={tableRef.current?.getBoundingClientRect().width ?? 0}
-      >
-        {!embeddedOptions?.replay && (
-          <BackToTopButton
-            virtualizer={virtualizer}
-            hidden={
-              isPending || ((firstItemIndex ?? 0) === 0 && (scrollOffset ?? 0) < 550)
-            }
-            setIsFunctionScrolling={setIsFunctionScrolling}
-          />
-        )}
-        {embeddedOptions?.replay && showJumpUpButton ? (
-          <JumpButtons jump="up" onClick={onClickToJump} tableHeaderHeight={0} />
-        ) : null}
-      </FloatingBackToTopContainer>
+      </LogTable>
+      {expanded && (
+        <FloatingBackToTopContainer
+          inReplay={!!embeddedOptions?.replay}
+          tableWidth={tableRef.current?.getBoundingClientRect().width ?? 0}
+        >
+          {!embeddedOptions?.replay && (
+            <BackToTopButton
+              virtualizer={virtualizer}
+              hidden={
+                isPending || ((firstItemIndex ?? 0) === 0 && (scrollOffset ?? 0) < 550)
+              }
+              setIsFunctionScrolling={setIsFunctionScrolling}
+            />
+          )}
+          {embeddedOptions?.replay && showJumpUpButton ? (
+            <JumpButtons jump="up" onClick={onClickToJump} tableHeaderHeight={0} />
+          ) : null}
+        </FloatingBackToTopContainer>
+      )}
       <FloatingBottomContainer
         tableWidth={tableRef.current?.getBoundingClientRect().width ?? 0}
       >
