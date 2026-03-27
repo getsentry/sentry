@@ -3183,6 +3183,9 @@ REGION_PINNED_URL_NAMES = {
 }
 # Used in tests to skip forwarding relay paths to a region silo that does not exist.
 APIGATEWAY_PROXY_SKIP_RELAY = False
+APIGATEWAY_PROXY_MAX_CONCURRENCY = 100
+APIGATEWAY_PROXY_MAX_FAILURES = 100
+APIGATEWAY_PROXY_FAILURE_WINDOW = 60
 
 # Shared resource ids for accounting
 EVENT_PROCESSING_STORE = "rc_processing_redis"
