@@ -673,8 +673,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/components/events/highlights/                   @getsentry/issue-workflow
 /static/app/components/issues/                              @getsentry/issue-workflow
 /static/app/components/stackTrace/                          @getsentry/issue-workflow
-/static/app/components/stream/stackIndicatorBar.tsx          @getsentry/issue-detection-frontend
-/static/app/components/stream/supergroupRow.tsx              @getsentry/issue-detection-frontend
+/static/app/components/stream/supergroupRow.tsx             @getsentry/issue-detection-frontend
 /static/app/views/issueList/                                @getsentry/issue-workflow
 /static/app/views/issueList/issueListSeerComboBox.tsx       @getsentry/issue-workflow @getsentry/machine-learning-ai
 /static/app/views/issueList/pages/supergroups.tsx           @getsentry/issue-detection-frontend
