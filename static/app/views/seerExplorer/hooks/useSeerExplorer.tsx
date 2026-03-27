@@ -148,6 +148,7 @@ export const useSeerExplorer = () => {
   const [optimistic, setOptimistic] = useState<{
     assistantBlockId: string;
     assistantContent: string;
+    baselineUpdatedAt: string | undefined;
     insertIndex: number;
     userBlockId: string;
     userQuery: string;
@@ -231,6 +232,7 @@ export const useSeerExplorer = () => {
           calculatedInsertIndex + 1
         ),
         assistantContent: assistantContent || 'Thinking...',
+        baselineUpdatedAt: apiData?.session?.updated_at,
       });
 
       try {
@@ -450,6 +452,10 @@ export const useSeerExplorer = () => {
       return undefined;
     }
 
+    if (apiData?.session?.updated_at === optimistic.baselineUpdatedAt) {
+      return undefined;
+    }
+
     const serverBlocks = apiData?.session?.blocks || [];
     const blockAtInsert = serverBlocks[optimistic.insertIndex];
 
@@ -471,7 +477,7 @@ export const useSeerExplorer = () => {
     }
 
     return undefined;
-  }, [apiData?.session?.blocks, optimistic]);
+  }, [apiData?.session?.blocks, apiData?.session?.updated_at, optimistic]);
 
   // Detect PR creation errors and show error messages
   useEffect(() => {
