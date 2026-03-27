@@ -19,7 +19,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEventPermission
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.event_search import SearchFilter
+from sentry.api.event_search import AggregateFilter, SearchFilter
 from sentry.api.helpers.group_index import (
     build_query_params_from_request,
     calculate_stats_period,
@@ -28,6 +28,7 @@ from sentry.api.helpers.group_index import (
     track_slo_response,
     update_groups_with_search_fn,
 )
+from sentry.api.helpers.group_index.index import parse_and_convert_issue_search_query
 from sentry.api.helpers.group_index.types import MutateIssueResponse
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.helpers.group_index.validators.group import GroupValidator
@@ -62,6 +63,7 @@ from sentry.models.groupinbox import GroupInbox
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.events.constants import EQUALITY_OPERATORS
+from sentry.search.events.filter import to_list
 from sentry.search.snuba.backend import assigned_or_suggested_filter
 from sentry.search.snuba.executors import get_search_filter
 from sentry.utils.cursors import Cursor, CursorResult
@@ -162,6 +164,24 @@ def inbox_search(
     groups: Mapping[int, Group] = {g.id: g for g in group_qs}
     results.results = [groups[r.group_id] for r in results.results if r.group_id in groups]
     return results
+
+
+def _get_issue_id_shortcut_ids(
+    search_filters: Sequence[SearchFilter | AggregateFilter],
+) -> list[int] | None:
+    """If the search is exclusively an issue.id lookup with no other filters,
+    return the group IDs to short-circuit Snuba. Returns None otherwise."""
+    if len(search_filters) != 1:
+        return None
+    sf = search_filters[0]
+    if isinstance(sf, AggregateFilter):
+        return None
+    if sf.key.name != "issue.id" or sf.operator not in EQUALITY_OPERATORS:
+        return None
+    try:
+        return [int(v) for v in to_list(sf.value.raw_value)]
+    except (ValueError, TypeError):
+        return None
 
 
 @extend_schema(tags=["Events"])
@@ -342,6 +362,21 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             group_ids = set(map(int, request.GET.getlist("group")))
         except ValueError:
             return Response({"detail": "Group ids must be integers"}, status=400)
+
+        # Also extract group IDs from issue.id search filters when the query
+        # has no Snuba-dependent filters, so we can skip Snuba entirely.
+        if not group_ids and query and "issue.id:" in query:
+            try:
+                parsed_filters = parse_and_convert_issue_search_query(
+                    query, organization, projects, environments, request.user
+                )
+            except ValidationError:
+                parsed_filters = None
+
+            if parsed_filters is not None:
+                shortcut_ids = _get_issue_id_shortcut_ids(parsed_filters)
+                if shortcut_ids:
+                    group_ids = set(shortcut_ids)
 
         if group_ids:
             groups = list(Group.objects.filter(id__in=group_ids, project_id__in=project_ids))

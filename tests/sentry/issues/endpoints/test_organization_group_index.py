@@ -749,6 +749,86 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_response(group=[group.id])
         assert response.status_code == 403
 
+    def test_issue_id_shortcut_single(self) -> None:
+        event = self.store_event(
+            data={"timestamp": before_now(seconds=1).isoformat()},
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+
+        with mock.patch(
+            "sentry.search.snuba.executors.PostgresSnubaQueryExecutor.query"
+        ) as mock_query:
+            response = self.get_success_response(query=f"issue.id:{event.group.id}")
+
+        mock_query.assert_not_called()
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group.id)
+
+    def test_issue_id_shortcut_multiple(self) -> None:
+        event1 = self.store_event(
+            data={
+                "timestamp": before_now(seconds=2).isoformat(),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+        event2 = self.store_event(
+            data={
+                "timestamp": before_now(seconds=1).isoformat(),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+
+        with mock.patch(
+            "sentry.search.snuba.executors.PostgresSnubaQueryExecutor.query"
+        ) as mock_query:
+            response = self.get_success_response(
+                query=f"issue.id:[{event1.group.id},{event2.group.id}]"
+            )
+
+        mock_query.assert_not_called()
+        assert len(response.data) == 2
+        returned_ids = {r["id"] for r in response.data}
+        assert returned_ids == {str(event1.group.id), str(event2.group.id)}
+
+    def test_issue_id_shortcut_with_snuba_filter_falls_through(self) -> None:
+        """When issue.id is combined with a Snuba-dependent filter like message,
+        the shortcut should NOT be used and the normal search path runs."""
+        event = self.store_event(
+            data={
+                "timestamp": before_now(seconds=1).isoformat(),
+                "message": "test message",
+            },
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+
+        with mock.patch(
+            "sentry.search.snuba.executors.PostgresSnubaQueryExecutor.query",
+            wraps=PostgresSnubaQueryExecutor().query,
+        ) as mock_query:
+            self.get_success_response(query=f"issue.id:{event.group.id} message:test")
+
+        mock_query.assert_called()
+
+    def test_issue_id_shortcut_respects_project_scope(self) -> None:
+        """issue.id shortcut should only return groups within the requested projects."""
+        other_project = self.create_project(organization=self.organization)
+        event = self.store_event(
+            data={"timestamp": before_now(seconds=1).isoformat()},
+            project_id=other_project.id,
+        )
+        self.login_as(user=self.user)
+
+        # Request scoped to self.project — should not return the other project's group
+        response = self.get_success_response(
+            query=f"issue.id:{event.group.id}", project=[self.project.id]
+        )
+        assert len(response.data) == 0
+
     def test_lookup_by_first_release(self) -> None:
         self.login_as(self.user)
         project = self.project
