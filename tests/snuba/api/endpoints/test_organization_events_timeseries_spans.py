@@ -1096,7 +1096,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         )
         assert timeseries["groupBy"] == [
             {"key": "project", "value": projects[0].slug},
-            {"key": "project.id", "value": str(projects[0].id)},
+            {"key": "project.id", "value": projects[0].id},
         ]
         assert timeseries["meta"] == {
             "dataScanned": "full",
@@ -1115,7 +1115,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         )
         assert timeseries["groupBy"] == [
             {"key": "project", "value": projects[1].slug},
-            {"key": "project.id", "value": str(projects[1].id)},
+            {"key": "project.id", "value": projects[1].id},
         ]
         assert timeseries["meta"] == {
             "dataScanned": "full",
@@ -2635,8 +2635,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             for ts in response.data["timeSeries"]
             if ts["groupBy"] is not None
         }
-        assert time_series_by_project_id[str(self.project.id)]["groupBy"] == [
-            {"key": "project.id", "value": str(self.project.id)},
+        assert time_series_by_project_id[self.project.id]["groupBy"] == [
+            {"key": "project.id", "value": self.project.id},
             {"key": "project.name", "value": self.project.slug},
         ]
 
@@ -2683,9 +2683,9 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             for ts in response.data["timeSeries"]
             if ts["groupBy"] is not None
         }
-        assert time_series_by_status["200"]["groupBy"] == [
-            {"key": "http.response_status_code", "value": "200"}
+        assert time_series_by_status[200]["groupBy"] == [
+            {"key": "http.response_status_code", "value": 200}
         ]
-        assert time_series_by_status["404"]["groupBy"] == [
-            {"key": "http.response_status_code", "value": "404"}
+        assert time_series_by_status[404]["groupBy"] == [
+            {"key": "http.response_status_code", "value": 404}
         ]

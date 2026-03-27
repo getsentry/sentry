@@ -439,9 +439,9 @@ def create_groupby_dict(
                 else:
                     value = ""
             if stringify_none:
-                values.append(GroupBy(key=field, value=str(value)))
+                values.append(GroupBy(key=field, value=value if values is not None else "None"))
             else:
-                values.append(GroupBy(key=field, value=str(value) if value is not None else None))
+                values.append(GroupBy(key=field, value=value if value is not None else None))
     return values
 
 
