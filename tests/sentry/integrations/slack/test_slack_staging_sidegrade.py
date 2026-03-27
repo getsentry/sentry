@@ -5,6 +5,7 @@ to a staging app and vice versa, by swapping credentials in-place on the existin
 Integration row.
 """
 
+from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlencode, urlparse
@@ -203,7 +204,9 @@ class SlackStagingSidegradeFlowTest(IntegrationTestCase):
     """Tests for the end-to-end sidegrade: production -> staging -> production."""
 
     provider = SlackIntegrationProvider
-    assert_setup_flow = SlackIntegrationTest.assert_setup_flow
+
+    def assert_setup_flow(self, **kwargs: Any) -> None:
+        SlackIntegrationTest.assert_setup_flow(self, **kwargs)
 
     @responses.activate
     @with_feature({"organizations:slack-staging-app": True})
