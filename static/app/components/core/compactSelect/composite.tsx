@@ -4,6 +4,8 @@ import {FocusScope} from '@react-aria/focus';
 import {Item} from '@react-stately/collections';
 import type {DistributedOmit} from 'type-fest';
 
+import {Button, type ButtonProps} from '@sentry/scraps/button';
+
 import {t} from 'sentry/locale';
 
 import type {ControlProps} from './control';
@@ -118,6 +120,16 @@ CompositeSelect.Region = function <Value extends SelectKey>(
   return null;
 };
 
+CompositeSelect.ClearButton = function CompositeSelectClearButton(
+  props: DistributedOmit<ButtonProps, 'priority' | 'size' | 'children'>
+) {
+  return (
+    <StyledClearButton size="zero" priority="transparent" {...props}>
+      {t('Clear')}
+    </StyledClearButton>
+  );
+};
+
 export {CompositeSelect};
 
 type RegionProps<Value extends SelectKey> = CompositeSelectRegion<Value> & {
@@ -151,6 +163,14 @@ function Region<Value extends SelectKey>({
     </List>
   );
 }
+
+const StyledClearButton = styled(Button)`
+  font-size: inherit; /* Inherit font size from MenuHeader */
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  color: ${p => p.theme.tokens.content.secondary};
+  padding: 0 ${p => p.theme.space.xs};
+  margin: -${p => p.theme.space.sm} -${p => p.theme.space.xs};
+`;
 
 const RegionsWrap = styled('div')`
   min-height: 0;
