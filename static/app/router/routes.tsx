@@ -812,22 +812,34 @@ function buildRoutes(): RouteObject[] {
     children: [
       {
         path: '/stats/',
-        withOrgPath: true,
+        customerDomainOnlyRoute: true,
         redirectTo: '/settings/stats/',
       },
       {
+        path: '/organizations/:orgId/stats/',
+        redirectTo: '/settings/:orgId/stats/',
+      },
+      {
         path: '/stats/issues/',
-        withOrgPath: true,
+        customerDomainOnlyRoute: true,
         redirectTo: '/settings/stats/issues/',
       },
       {
+        path: '/organizations/:orgId/stats/issues/',
+        redirectTo: '/settings/:orgId/stats/issues/',
+      },
+      {
         path: '/stats/health/',
-        withOrgPath: true,
+        customerDomainOnlyRoute: true,
         redirectTo: '/settings/stats/health/',
       },
       {
+        path: '/organizations/:orgId/stats/health/',
+        redirectTo: '/settings/:orgId/stats/health/',
+      },
+      {
         path: '/organizations/:orgId/stats/team/',
-        redirectTo: '/organizations/:orgId/settings/stats/issues/',
+        redirectTo: '/settings/:orgId/stats/issues/',
       },
     ],
   };
