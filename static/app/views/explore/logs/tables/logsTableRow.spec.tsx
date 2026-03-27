@@ -522,9 +522,9 @@ describe('logsTableRow', () => {
     const actionsButton = screen.getAllByRole('button', {name: 'Actions'})[0]!;
     await userEvent.click(actionsButton);
 
-    // Click "Copy to clipboard" in the dropdown menu
+    // Click "Copy message" in the dropdown menu
     const copyItem = await screen.findByRole('menuitemradio', {
-      name: 'Copy to clipboard',
+      name: 'Copy message',
     });
     await userEvent.click(copyItem);
 
