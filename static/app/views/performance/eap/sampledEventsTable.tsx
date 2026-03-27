@@ -71,7 +71,7 @@ const BASE_FIELDS: SpanProperty[] = [
   'spans.ui',
 ];
 
-type OverviewSpansColumn = GridColumnHeader<
+type SampledEventsColumn = GridColumnHeader<
   | 'span_id'
   | 'user.display'
   | 'request.method'
@@ -83,7 +83,7 @@ type OverviewSpansColumn = GridColumnHeader<
   | typeof SPAN_OPS_BREAKDOWN_COLUMN_KEY
 >;
 
-const BASE_COLUMN_ORDER: OverviewSpansColumn[] = [
+const BASE_COLUMN_ORDER: SampledEventsColumn[] = [
   {key: 'span_id', name: t('Span ID'), width: COL_WIDTH_UNDEFINED},
   {key: 'user.display', name: t('User'), width: COL_WIDTH_UNDEFINED},
   {key: 'request.method', name: t('HTTP Method'), width: COL_WIDTH_UNDEFINED},
@@ -97,13 +97,13 @@ const BASE_COLUMN_ORDER: OverviewSpansColumn[] = [
   {key: 'timestamp', name: t('Timestamp'), width: COL_WIDTH_UNDEFINED},
 ];
 
-const REPLAY_COLUMN: OverviewSpansColumn = {
+const REPLAY_COLUMN: SampledEventsColumn = {
   key: 'replayId',
   name: t('Replay'),
   width: COL_WIDTH_UNDEFINED,
 };
 
-const PROFILE_COLUMN: OverviewSpansColumn = {
+const PROFILE_COLUMN: SampledEventsColumn = {
   key: 'profile.id',
   name: t('Profile'),
   width: COL_WIDTH_UNDEFINED,
@@ -115,7 +115,7 @@ type Props = {
   maxDuration?: number;
 };
 
-export function OverviewSpansTable({eventView, transactionName, maxDuration}: Props) {
+export function SampledEventsTable({eventView, transactionName, maxDuration}: Props) {
   const {selection} = usePageFilters();
   const location = useLocation();
   const {projects} = useProjects();
@@ -133,7 +133,7 @@ export function OverviewSpansTable({eventView, transactionName, maxDuration}: Pr
 
   const fields = showReplayColumn ? BASE_FIELDS.concat('replayId') : BASE_FIELDS;
 
-  const columnOrder: OverviewSpansColumn[] = [
+  const columnOrder: SampledEventsColumn[] = [
     ...BASE_COLUMN_ORDER,
     ...(showReplayColumn ? [REPLAY_COLUMN] : []),
     PROFILE_COLUMN,
@@ -259,7 +259,7 @@ export function OverviewSpansTable({eventView, transactionName, maxDuration}: Pr
 }
 
 function renderBodyCell(
-  column: OverviewSpansColumn,
+  column: SampledEventsColumn,
   row: Record<string, any>,
   meta: EventsMetaType | undefined,
   projectSlug: string | undefined,
