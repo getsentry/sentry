@@ -1,28 +1,17 @@
-import {
-  createContext,
-  Fragment,
-  useContext,
-  useReducer,
-  useState,
-  useId,
-  type ReactNode,
-  useRef,
-} from 'react';
+import {createContext, Fragment, useContext, useReducer, type ReactNode} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Flex} from '@sentry/scraps/layout';
 import {Grid} from '@sentry/scraps/layout';
 
 import {openConfirmModal} from 'sentry/components/confirm';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {IconCheckmark, IconClose} from 'sentry/icons';
+import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {unreachable} from 'sentry/utils/unreachable';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -36,6 +25,16 @@ import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/com
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {DashboardsNavigationItems} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsNavigationItems';
 
+interface DashboardSectionConfig {
+  id: string;
+  title: string;
+}
+
+const DEFAULT_SECTIONS: DashboardSectionConfig[] = [
+  {id: 'starred-dashboards', title: 'Starred Dashboards'},
+  {id: 'custom-dashboard-sections', title: 'Custom Dashboard Sections'},
+];
+
 export function DashboardsSecondaryNavigation() {
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/dashboards`;
@@ -47,6 +46,9 @@ export function DashboardsSecondaryNavigation() {
   const hasPrebuiltDashboards = organization.features.includes(
     'dashboards-prebuilt-insights-dashboards'
   );
+  const hasStarredReordering =
+    true || organization.features.includes('dashboards-starred-reordering');
+
   const urlFilter = decodeScalar(location.query.filter) as DashboardFilter | undefined;
   const isOnlyPrebuilt = urlFilter === DashboardFilter.ONLY_PREBUILT;
   const isOnDashboardsList = isPrimaryNavigationLinkActive(
@@ -57,8 +59,9 @@ export function DashboardsSecondaryNavigation() {
     }
   );
 
-  const [dynamicTitle, setDynamicTitle] = useState<string>(
-    'Custom Dashboard Section Title'
+  const [sections, setSections] = useLocalStorageState<DashboardSectionConfig[]>(
+    `dashboard-nav-sections-${organization.slug}`,
+    DEFAULT_SECTIONS
   );
 
   return (
@@ -95,28 +98,41 @@ export function DashboardsSecondaryNavigation() {
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         {starredDashboards.length > 0 ? (
-          <Fragment>
-            <SecondaryNavigation.Separator />
-            <DashboardSectionProvider dashboard={{title: dynamicTitle}}>
-              <DashboardReorderableSection>
-                <DashboardsNavigationItems initialDashboards={starredDashboards} />
-              </DashboardReorderableSection>
-            </DashboardSectionProvider>
-            <SecondaryNavigation.Section
-              id="dashboards-starred"
-              title={t('Starred Dashboards')}
-            >
-              <ErrorBoundary mini>
-                <StarredDashboardItems
-                  dashboards={starredDashboards}
-                  projects={projects}
-                  organizationSlug={organization.slug}
-                  organizationId={organization.id}
-                  userId={user.id}
-                />
-              </ErrorBoundary>
-            </SecondaryNavigation.Section>
-          </Fragment>
+          hasStarredReordering ? (
+            <Fragment>
+              <SecondaryNavigation.Separator />
+              <SecondaryNavigation.ReorderableSections
+                items={sections}
+                onDragEnd={setSections}
+              >
+                {section => (
+                  <DashboardSectionProvider dashboard={section}>
+                    <DashboardReorderableSection id={section.id}>
+                      <DashboardsNavigationItems initialDashboards={starredDashboards} />
+                    </DashboardReorderableSection>
+                  </DashboardSectionProvider>
+                )}
+              </SecondaryNavigation.ReorderableSections>
+            </Fragment>
+          ) : (
+            <Fragment>
+              <SecondaryNavigation.Separator />
+              <SecondaryNavigation.Section
+                id="dashboards-starred"
+                title={t('Starred Dashboards')}
+              >
+                <ErrorBoundary mini>
+                  <StarredDashboardItems
+                    dashboards={starredDashboards}
+                    projects={projects}
+                    organizationSlug={organization.slug}
+                    organizationId={organization.id}
+                    userId={user.id}
+                  />
+                </ErrorBoundary>
+              </SecondaryNavigation.Section>
+            </Fragment>
+          )
         ) : null}
       </SecondaryNavigation.Body>
     </Fragment>
@@ -209,8 +225,7 @@ function StarredDashboardSectionOverflowMenu() {
   );
 }
 
-function DashboardReorderableSection({children}: {children: ReactNode}) {
-  const id = useId();
+function DashboardReorderableSection({children, id}: {children: ReactNode; id: string}) {
   const [{state, title}, dispatch] = useDashboardContext();
   const [isCollapsed, setIsCollapsed] = useLocalStorageState(
     `dashboard-section-${id}-collapsed`,

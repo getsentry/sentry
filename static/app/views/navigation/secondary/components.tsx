@@ -33,7 +33,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 import PlatformIcon from 'platformicons/build/platformIcon';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
-import {Container, Flex, Grid, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
@@ -462,6 +462,7 @@ interface SecondaryNavigationSectionProps {
   id: string;
   collapsed?: boolean;
   collapsible?: boolean;
+  leadingItems?: ReactNode;
   onCollapsedChange?: (collapsed: boolean) => void;
   title?: ReactNode;
   trailingItems?: ReactNode;
@@ -488,14 +489,19 @@ function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
   return (
     <Container padding="md sm" data-nav-section>
       {props.title ? (
-        <SectionTitle
-          trailingItems={props.trailingItems}
-          canCollapse={canCollapse}
-          collapsed={collapsed}
-          onCollapsedChange={onCollapsedChange}
-        >
-          {props.title}
-        </SectionTitle>
+        <Flex align="center">
+          {props.leadingItems}
+          <Container flex="1" minWidth="0">
+            <SectionTitle
+              trailingItems={props.trailingItems}
+              canCollapse={canCollapse}
+              collapsed={collapsed}
+              onCollapsedChange={onCollapsedChange}
+            >
+              {props.title}
+            </SectionTitle>
+          </Container>
+        </Flex>
       ) : null}
       <Collapsible collapsed={collapsed} disabled={isControlled ? false : !canCollapse}>
         {props.children}
@@ -833,21 +839,15 @@ class NavigationPointerSensor extends PointerSensor {
   ];
 }
 
-const ReorderableItemContext = createContext<{
+const ReorderableContext = createContext<{
   attributes: ReturnType<typeof useSortable>['attributes'];
   isDragging: boolean;
   listeners: ReturnType<typeof useSortable>['listeners'];
   setActivatorNodeRef: ReturnType<typeof useSortable>['setActivatorNodeRef'];
 } | null>(null);
 
-function useReorderableItemContext() {
-  const ctx = useContext(ReorderableItemContext);
-  if (!ctx) {
-    throw new Error(
-      'SecondaryNavigation.ReorderableLink must be used within SecondaryNavigation.ReorderableList'
-    );
-  }
-  return ctx;
+function useReorderableContext() {
+  return useContext(ReorderableContext);
 }
 
 interface ReorderableListItemProps<T extends {id: string | number}> {
@@ -869,7 +869,7 @@ function ReorderableListItem<T extends {id: string | number}>(
   } = useSortable({id: props.item.id});
 
   return (
-    <ReorderableItemContext.Provider
+    <ReorderableContext.Provider
       value={{attributes, isDragging, listeners, setActivatorNodeRef}}
     >
       <Container
@@ -888,21 +888,38 @@ function ReorderableListItem<T extends {id: string | number}>(
       >
         {props.children}
       </Container>
-    </ReorderableItemContext.Provider>
+    </ReorderableContext.Provider>
   );
 }
 
-interface SecondaryNavigationReorderableSectionProps extends SecondaryNavigationSectionProps {
-  children: ReactNode;
-}
+type SecondaryNavigationReorderableSectionProps = Omit<
+  SecondaryNavigationSectionProps,
+  'leadingItems'
+>;
 
 function SecondaryNavigationReorderableSection(
   props: SecondaryNavigationReorderableSectionProps
 ) {
+  const ctx = useReorderableContext();
   return (
-    <SecondaryNavigationSection {...props}>{props.children}</SecondaryNavigationSection>
+    <ReorderableSectionContainer>
+      <SecondaryNavigationSection
+        {...props}
+        leadingItems={ctx ? <GrabHandle variant="inline" /> : undefined}
+      >
+        {props.children}
+      </SecondaryNavigationSection>
+    </ReorderableSectionContainer>
   );
 }
+
+const ReorderableSectionContainer = styled('div')`
+  :hover [data-drag-icon],
+  :has(:focus-visible) [data-drag-icon] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+`;
 
 interface SecondaryNavigationReorderableListProps<T extends {id: string | number}> {
   children: (item: T) => ReactNode;
@@ -962,6 +979,113 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
             <ReorderableListItem key={item.id} item={item}>
               {props.children(item)}
             </ReorderableListItem>
+          ))}
+        </SecondaryNavigation.List>
+      </SortableContext>
+    </DndContext>
+  );
+}
+
+interface ReorderableSectionItemProps<T extends {id: string | number}> {
+  children: ReactNode;
+  item: T;
+}
+
+function ReorderableSectionItem<T extends {id: string | number}>(
+  props: ReorderableSectionItemProps<T>
+) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({id: props.item.id});
+
+  return (
+    <ReorderableContext.Provider
+      value={{attributes, isDragging, listeners, setActivatorNodeRef}}
+    >
+      <Container
+        as="li"
+        radius="md"
+        position="relative"
+        background={isDragging ? 'secondary' : undefined}
+        ref={setNodeRef}
+        data-is-dragging={isDragging ? true : undefined}
+        style={{
+          listStyleType: 'none',
+          transform: CSS.Transform.toString(transform),
+          transition: transition ?? undefined,
+          zIndex: isDragging ? 1 : undefined,
+        }}
+      >
+        {props.children}
+      </Container>
+    </ReorderableContext.Provider>
+  );
+}
+
+interface SecondaryNavigationReorderableSectionsProps<T extends {id: string | number}> {
+  children: (item: T) => ReactNode;
+  items: T[];
+  onDragEnd: (items: T[]) => void;
+}
+
+function SecondaryNavigationReorderableSections<T extends {id: string | number}>(
+  props: SecondaryNavigationReorderableSectionsProps<T>
+) {
+  const sensors = useSensors(
+    useSensor(NavigationPointerSensor, {
+      activationConstraint: {distance: 5},
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // We need to hold a copy of the local state because dnd-kit does not play well
+  // with the optimistic updates and async state.
+  // See: https://github.com/clauderic/dnd-kit/issues/921
+  const [items, setItems] = useState<T[]>(props.items);
+  useEffect(() => {
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+    setItems(props.items);
+  }, [props.items]);
+
+  // During a keyboard-driven drag, lock page scroll so ArrowUp/Down don't
+  // scroll the sidebar behind the dragged item.
+  const scrollLock = useScrollLock(document.body);
+
+  function handleDragEnd(event: DragEndEvent) {
+    scrollLock.release();
+    const {active, over} = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = items.findIndex(item => item.id === active.id);
+      const newIndex = items.findIndex(item => item.id === over.id);
+      const newItems = arrayMove(items, oldIndex, newIndex);
+      props.onDragEnd(newItems);
+      setItems(newItems);
+    }
+  }
+
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+      onDragStart={() => scrollLock.acquire()}
+      onDragEnd={handleDragEnd}
+      onDragCancel={() => scrollLock.release()}
+    >
+      <SortableContext items={items} strategy={verticalListSortingStrategy}>
+        <SecondaryNavigation.List>
+          {items.map(item => (
+            <ReorderableSectionItem key={item.id} item={item}>
+              {props.children(item)}
+            </ReorderableSectionItem>
           ))}
         </SecondaryNavigation.List>
       </SortableContext>
@@ -1038,7 +1162,7 @@ function SecondaryNavigationReorderableLink({
     incomingIsActive ?? isPrimaryNavigationLinkActive(activeTo, location.pathname, {end});
   const {layout, features} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
-  const {isDragging} = useReorderableItemContext();
+  const isDragging = useReorderableContext()?.isDragging ?? false;
   const hasPageFrame = useHasPageFrameFeature();
   const {setView} = useSecondaryNavigation();
   const isMobilePageFrame = hasPageFrame && layout === 'mobile';
@@ -1118,9 +1242,20 @@ function SecondaryNavigationReorderableLink({
   );
 }
 
-function GrabHandle(props: FlexProps<'div'>) {
-  const {attributes, isDragging, listeners, setActivatorNodeRef} =
-    useReorderableItemContext();
+interface GrabHandleProps {
+  /**
+   * 'overlay' (default): absolutely positioned over an icon slot — used inside item rows.
+   * 'inline': participates in normal flow — used inside section title rows.
+   */
+  variant?: 'overlay' | 'inline';
+}
+
+function GrabHandle({variant = 'overlay'}: GrabHandleProps) {
+  const ctx = useReorderableContext();
+  if (!ctx) return null;
+  const {attributes, isDragging, listeners, setActivatorNodeRef} = ctx;
+
+  const isOverlay = variant === 'overlay';
 
   return (
     <Flex
@@ -1129,16 +1264,17 @@ function GrabHandle(props: FlexProps<'div'>) {
       height="24px"
       justify="center"
       align="center"
-      position="absolute"
-      top="50%"
-      left="50%"
+      flexShrink={isOverlay ? undefined : 0}
+      position={isOverlay ? 'absolute' : undefined}
+      top={isOverlay ? '50%' : undefined}
+      left={isOverlay ? '50%' : undefined}
     >
       {p => (
         <GrabHandleAnimation
-          {...props}
           {...p}
           {...listeners}
           {...attributes}
+          $overlay={isOverlay}
           aria-label={t('Drag to reorder')}
           data-drag-icon
           ref={setActivatorNodeRef}
@@ -1152,14 +1288,14 @@ function GrabHandle(props: FlexProps<'div'>) {
   );
 }
 
-const GrabHandleAnimation = styled('div')`
+const GrabHandleAnimation = styled('div')<{$overlay?: boolean}>`
   pointer-events: none;
   opacity: 0;
   z-index: 1;
   transition:
     opacity ${p => p.theme.motion.smooth.moderate},
     transform ${p => p.theme.motion.smooth.moderate};
-  transform: translate(-50%, -50%);
+  ${p => p.$overlay && 'transform: translate(-50%, -50%);'}
 
   &:active {
     cursor: grabbing;
@@ -1428,6 +1564,7 @@ export const SecondaryNavigation = {
   ProjectIcon: SecondaryNavigationProjectIcon,
   Sidebar: SecondarySidebar,
   ReorderableSection: SecondaryNavigationReorderableSection,
+  ReorderableSections: SecondaryNavigationReorderableSections,
   ReorderableList: SecondaryNavigationReorderableList,
   ReorderableLink: SecondaryNavigationReorderableLink,
   Indicator: SecondaryNavigationIndicator,
