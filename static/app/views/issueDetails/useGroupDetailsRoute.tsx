@@ -1,10 +1,10 @@
-import type { PlainRoute } from "sentry/types/legacyReactRouter";
-import type { Organization } from "sentry/types/organization";
-import { normalizeUrl } from "sentry/utils/url/normalizeUrl";
-import { useOrganization } from "sentry/utils/useOrganization";
-import { useParams } from "sentry/utils/useParams";
-import { useRoutes } from "sentry/utils/useRoutes";
-import { Tab, TabPaths } from "sentry/views/issueDetails/types";
+import type {PlainRoute} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {useRoutes} from 'sentry/utils/useRoutes';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
 function getCurrentTab({
   routes,
@@ -20,8 +20,7 @@ function getCurrentTab({
     return Tab.DISTRIBUTIONS;
   }
   return (
-    Object.values(Tab).find((tab) => currentRoute?.path === TabPaths[tab]) ??
-    Tab.DETAILS
+    Object.values(Tab).find(tab => currentRoute?.path === TabPaths[tab]) ?? Tab.DETAILS
   );
 }
 
@@ -41,15 +40,15 @@ function getCurrentRouteInfo({
   baseUrl: string;
   currentTab: Tab;
 } {
-  const currentTab = getCurrentTab({ routes, params });
+  const currentTab = getCurrentTab({routes, params});
 
   const baseUrl = normalizeUrl(
     `/organizations/${organization.slug}/issues/${groupId}/${
-      params.eventId && eventId ? `events/${eventId}/` : ""
+      params.eventId && eventId ? `events/${eventId}/` : ''
     }`
   );
 
-  return { baseUrl, currentTab };
+  return {baseUrl, currentTab};
 }
 
 export function useGroupDetailsRoute(): {
