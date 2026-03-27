@@ -148,7 +148,6 @@ export const useSeerExplorer = () => {
   const [optimistic, setOptimistic] = useState<{
     assistantBlockId: string;
     assistantContent: string;
-    baselineSignature: string;
     insertIndex: number;
     userBlockId: string;
     userQuery: string;
@@ -209,16 +208,6 @@ export const useSeerExplorer = () => {
         deletedFromIndex ?? (apiData?.session?.blocks.length || 0);
       const calculatedInsertIndex = insertIndex ?? effectiveMessageLength;
 
-      // Record current real blocks signature to know when to clear optimistic UI
-      const baselineSignature = JSON.stringify(
-        (apiData?.session?.blocks || []).map(b => [
-          b.id,
-          b.message.role,
-          b.message.content,
-          !!b.loading,
-        ])
-      );
-
       // Generate deterministic block IDs matching backend logic
       // Backend generates: `{prefix}-{index}-{content[:16].replace(' ', '-')}`
       const generateBlockId = (prefix: string, content: string, index: number) => {
@@ -235,7 +224,6 @@ export const useSeerExplorer = () => {
       setOptimistic({
         insertIndex: calculatedInsertIndex,
         userQuery: query,
-        baselineSignature,
         userBlockId: generateBlockId('user', query, calculatedInsertIndex),
         assistantBlockId: generateBlockId(
           'loading',
@@ -455,23 +443,34 @@ export const useSeerExplorer = () => {
     return sessionData;
   }, [sessionData, deletedFromIndex, optimistic, runId]);
 
-  // Clear optimistic blocks once the real blocks change in poll results
+  // Clear optimistic blocks once the server has persisted the user message
+  // and produced a real assistant response after the insert point.
   useEffect(() => {
-    if (optimistic) {
-      const currentSignature = JSON.stringify(
-        (apiData?.session?.blocks || []).map(b => [
-          b.id,
-          b.message.role,
-          b.message.content,
-          !!b.loading,
-        ])
-      );
-      if (currentSignature !== optimistic.baselineSignature) {
-        setOptimistic(null);
-        // Reveal all real blocks immediately after the server responds
-        setDeletedFromIndex(null);
-      }
+    if (!optimistic) {
+      return undefined;
     }
+
+    const serverBlocks = apiData?.session?.blocks || [];
+    const blockAtInsert = serverBlocks[optimistic.insertIndex];
+
+    const serverHasUserBlock =
+      blockAtInsert?.message.role === 'user' &&
+      blockAtInsert?.message.content === optimistic.userQuery;
+
+    if (!serverHasUserBlock) {
+      return undefined;
+    }
+
+    const hasAssistantResponse = serverBlocks
+      .slice(optimistic.insertIndex + 1)
+      .some(b => b.message.role === 'assistant');
+
+    if (hasAssistantResponse) {
+      setOptimistic(null);
+      setDeletedFromIndex(null);
+    }
+
+    return undefined;
   }, [apiData?.session?.blocks, optimistic]);
 
   // Detect PR creation errors and show error messages

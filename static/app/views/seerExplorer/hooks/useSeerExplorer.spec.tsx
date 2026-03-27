@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useSeerExplorer} from './useSeerExplorer';
 
@@ -182,6 +182,45 @@ describe('useSeerExplorer', () => {
       });
 
       expect(result.current.isPolling).toBe(false);
+    });
+  });
+
+  describe('Optimistic Thinking Block', () => {
+    it('persists thinking block when server has no assistant response yet', async () => {
+      const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
+
+      MockApiClient.addMockResponse({url: chatUrl, method: 'GET', body: {session: null}});
+      MockApiClient.addMockResponse({url: chatUrl, method: 'POST', body: {run_id: 456}});
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}456/`,
+        method: 'GET',
+        body: {
+          session: {
+            blocks: [
+              {
+                id: 'user-1',
+                message: {role: 'user', content: 'Test'},
+                timestamp: '2024-01-01T00:00:00Z',
+                loading: false,
+              },
+            ],
+            run_id: 456,
+            status: 'processing',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        },
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {organization});
+
+      await act(async () => {
+        await result.current.sendMessage('Test');
+      });
+
+      await waitFor(() => (result.current.sessionData?.blocks ?? []).length > 0);
+
+      const blocks = result.current.sessionData?.blocks ?? [];
+      expect(blocks.some(b => b.message.role === 'assistant' && b.loading)).toBe(true);
     });
   });
 });

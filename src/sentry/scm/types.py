@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Literal, Protocol, Required, TypedDict, runtime_checkable
+from typing import Any, Literal, MutableMapping, Protocol, Required, TypedDict, runtime_checkable
 
 type Action = Literal["check_run", "comment", "pull_request"]
 type EventType = "CheckRunEvent" | "CommentEvent" | "PullRequestEvent"
@@ -217,6 +217,11 @@ class PullRequest(TypedDict):
     base: PullRequestBranch
 
 
+class RawResult(TypedDict):
+    headers: MutableMapping[str, str] | None
+    data: Any
+
+
 class ActionResult[T](TypedDict):
     """Wraps a provider response with metadata and the original API payload.
 
@@ -230,7 +235,7 @@ class ActionResult[T](TypedDict):
 
     data: T
     type: ProviderName
-    raw: Any
+    raw: RawResult
     meta: ResponseMeta
 
 
@@ -244,7 +249,7 @@ class PaginatedActionResult[T](TypedDict):
 
     data: list[T]
     type: ProviderName
-    raw: Any
+    raw: RawResult
     meta: PaginatedResponseMeta
 
 

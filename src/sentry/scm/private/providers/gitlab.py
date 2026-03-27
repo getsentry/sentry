@@ -354,7 +354,7 @@ class GitLabProvider:
                 truncated=False,
             ),
             type="gitlab",
-            raw=raw,
+            raw={"data": raw, "headers": None},
             meta={},
         )
 
@@ -390,7 +390,7 @@ class GitLabProvider:
         return ActionResult(
             data=data,
             type="gitlab",
-            raw=url,
+            raw={"data": url, "headers": None},
             meta={},
         )
 
@@ -597,7 +597,7 @@ def make_paginated_result[T](
     return PaginatedActionResult(
         data=[map_item(item) for item in raw_items],
         type="gitlab",
-        raw=raw,
+        raw={"data": raw, "headers": None},
         # No actual pagination for now
         meta=PaginatedResponseMeta(next_cursor=None),
     )
@@ -615,7 +615,7 @@ def make_result[T](
     return ActionResult(
         data=map_item(raw_item),
         type="gitlab",
-        raw=raw,
+        raw={"data": raw, "headers": None},
         meta={},
     )
 
