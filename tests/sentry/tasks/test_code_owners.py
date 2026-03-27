@@ -4,6 +4,7 @@ import pytest
 from rest_framework.exceptions import NotFound
 from taskbroker_client.retry import RetryTaskError
 
+from sentry.api.validators.project_codeowners import build_codeowners_associations
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
@@ -355,3 +356,27 @@ class CodeOwnersTest(TestCase):
         assert code_owners.raw == original_raw
         # Notification should have been sent
         mock_send_email.assert_called_once_with()
+
+    def test_build_associations_case_insensitive_matching(self) -> None:
+        self.create_external_user(
+            user=self.user,
+            external_name="@ShashankJarmale",
+            integration=self.integration,
+        )
+        # CODEOWNERS uses lowercase, ExternalActor stored with mixed case
+        raw = "docs/* @shashankjarmale\n"
+        associations, _ = build_codeowners_associations(raw, self.project)
+        assert "@shashankjarmale" in associations
+        assert associations["@shashankjarmale"] == self.user.email
+
+    def test_build_associations_duplicate_names(self) -> None:
+        self.create_external_user(
+            user=self.user,
+            external_name="@ShashankJarmale",
+            integration=self.integration,
+        )
+        self.create_external_team(integration=self.integration)
+        raw = "docs/* @ShashankJarmale @getsentry/ecosystem\napi/* @ShashankJarmale\nsrc/* @ShashankJarmale\n"
+        associations, _ = build_codeowners_associations(raw, self.project)
+        assert associations["@ShashankJarmale"] == self.user.email
+        assert associations["@getsentry/ecosystem"] == f"#{self.team.slug}"
