@@ -348,12 +348,12 @@ def create_code_mapping(
     new_code_mapping, _ = RepositoryProjectPathConfig.objects.update_or_create(
         project=project,
         stack_root=code_mapping.stacktrace_root,
+        source_root=code_mapping.source_path,
         defaults={
             "repository": repository,
             "organization_id": organization.id,
             "integration_id": installation.model.id,
             "organization_integration_id": installation.org_integration.id,
-            "source_root": code_mapping.source_path,
             "default_branch": code_mapping.repo.branch,
             # This function is called from the UI, thus, we know that the code mapping is user generated
             "automatically_generated": False,
