@@ -568,13 +568,8 @@ def _calculate_size_change(head_size: int | None, base_size: int | None) -> str:
 
 def _format_file_size(size_bytes: int | None) -> str:
     """Format file size with null handling for display in templates."""
-    if size_bytes is None:
-        return "Unknown"
-    return _format_bytes_base10(size_bytes)
-
-
-def _format_bytes_base10(size_bytes: int) -> str:
-    """Format file size using decimal (base-10) units. Matches the frontend implementation of formatBytesBase10."""
     from sentry.preprod.utils import format_bytes_base10
 
+    if size_bytes is None:
+        return "Unknown"
     return format_bytes_base10(size_bytes)
