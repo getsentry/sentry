@@ -416,13 +416,13 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         organization = self.context["organization"]
         return validate_pii_config_update(organization, value)
 
-    def validate_defaultCodingAgent(self, value: str | None) -> str:
+    def validate_defaultCodingAgent(self, value: str | None) -> str | None:
+        if value is None:
+            return None
         coding_agent_aliases: dict[str, str] = {
             "cursor": "cursor_background_agent",
             "claude_code": "claude_code_agent",
         }
-        if value is None:
-            return SEER_DEFAULT_CODING_AGENT_DEFAULT
         return coding_agent_aliases.get(value, value)
 
     def validate_defaultCodingAgentIntegrationId(self, value: int | None) -> int | None:

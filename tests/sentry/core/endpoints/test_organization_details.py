@@ -21,6 +21,7 @@ from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import (
     RESERVED_ORGANIZATION_SLUGS,
+    SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     SEER_DEFAULT_CODING_AGENT_DEFAULT,
     ObjectStatus,
 )
@@ -1587,6 +1588,55 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         response = self.get_success_response(self.organization.slug, **data)
         assert self.organization.get_option("sentry:seer_default_coding_agent") is None
         assert response.data["defaultCodingAgent"] is None
+
+    def test_default_coding_agent_cursor_values(self) -> None:
+        for value in ("cursor", "cursor_background_agent"):
+            data = {"defaultCodingAgent": value}
+            response = self.get_success_response(self.organization.slug, **data)
+            assert (
+                self.organization.get_option("sentry:seer_default_coding_agent")
+                == "cursor_background_agent"
+            )
+            assert response.data["defaultCodingAgent"] == "cursor_background_agent"
+
+    def test_default_coding_agent_claude_values(self) -> None:
+        for value in ("claude_code", "claude_code_agent"):
+            data = {"defaultCodingAgent": value}
+            response = self.get_success_response(self.organization.slug, **data)
+            assert (
+                self.organization.get_option("sentry:seer_default_coding_agent")
+                == "claude_code_agent"
+            )
+            assert response.data["defaultCodingAgent"] == "claude_code_agent"
+
+    def test_default_coding_agent_rejects_invalid_choice(self) -> None:
+        data = {"defaultCodingAgent": "invalid_agent"}
+        self.get_error_response(self.organization.slug, status_code=400, **data)
+
+    def test_default_automated_run_stopping_point_default(self) -> None:
+        response = self.get_success_response(self.organization.slug)
+        assert (
+            response.data["defaultAutomatedRunStoppingPoint"]
+            == SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+        )
+
+    def test_default_automated_run_stopping_point_can_be_set(self) -> None:
+        data = {"defaultAutomatedRunStoppingPoint": "open_pr"}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert (
+            self.organization.get_option("sentry:default_automated_run_stopping_point") == "open_pr"
+        )
+        assert response.data["defaultAutomatedRunStoppingPoint"] == "open_pr"
+
+    def test_default_automated_run_stopping_point_all_choices(self) -> None:
+        for choice in ("root_cause", "solution", "code_changes", "open_pr"):
+            data = {"defaultAutomatedRunStoppingPoint": choice}
+            response = self.get_success_response(self.organization.slug, **data)
+            assert response.data["defaultAutomatedRunStoppingPoint"] == choice
+
+    def test_default_automated_run_stopping_point_rejects_invalid(self) -> None:
+        data = {"defaultAutomatedRunStoppingPoint": "invalid_point"}
+        self.get_error_response(self.organization.slug, status_code=400, **data)
 
     def test_default_coding_agent_integration_id_can_be_cleared(self) -> None:
         self.organization.update_option("sentry:seer_default_coding_agent_integration_id", 123)

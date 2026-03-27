@@ -588,27 +588,25 @@ def set_default_project_auto_open_prs(organization: Organization, project: Proje
     coding_agent_integration_id = organization.get_option(
         "sentry:seer_default_coding_agent_integration_id", None
     )
-
-    auto_open_prs = bool(organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT))
-    stopping_point = organization.get_option(
-        "sentry:default_automated_run_stopping_point",
-        SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
-    )
-
     automation_handoff: SeerAutomationHandoffConfiguration | None = None
-    if coding_agent and coding_agent != "seer" and coding_agent_integration_id is not None:
+    if coding_agent and coding_agent_integration_id is not None:
         automation_handoff = SeerAutomationHandoffConfiguration(
             handoff_point=AutofixHandoffPoint.ROOT_CAUSE,
             target=coding_agent,
             integration_id=coding_agent_integration_id,
-            auto_create_pr=auto_open_prs,
+            auto_create_pr=bool(
+                organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT)
+            ),
         )
 
     preference = SeerProjectPreference(
         organization_id=organization.id,
         project_id=project.id,
         repositories=[],
-        automated_run_stopping_point=stopping_point,
+        automated_run_stopping_point=organization.get_option(
+            "sentry:default_automated_run_stopping_point",
+            SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+        ),
         automation_handoff=automation_handoff,
     )
 

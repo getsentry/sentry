@@ -244,26 +244,21 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
                 "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
             )
 
-    auto_open_prs = bool(organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT))
-    default_stopping_point = organization.get_option(
-        "sentry:default_automated_run_stopping_point",
-        SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
-    )
-
     coding_agent = organization.get_option(
         "sentry:seer_default_coding_agent", SEER_DEFAULT_CODING_AGENT_DEFAULT
     )
     coding_agent_integration_id = organization.get_option(
         "sentry:seer_default_coding_agent_integration_id", None
     )
-
     default_handoff: dict[str, Any] | None = None
-    if coding_agent and coding_agent != "seer" and coding_agent_integration_id is not None:
+    if coding_agent and coding_agent_integration_id is not None:
         default_handoff = {
             "handoff_point": "root_cause",
             "target": coding_agent,
             "integration_id": coding_agent_integration_id,
-            "auto_create_pr": auto_open_prs,
+            "auto_create_pr": bool(
+                organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT)
+            ),
         }
 
     preferences_by_id = bulk_get_project_preferences(organization_id, project_ids)
@@ -290,7 +285,10 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
                 "organization_id": organization_id,
                 "project_id": project_id,
                 "repositories": repositories or [],
-                "automated_run_stopping_point": default_stopping_point,
+                "automated_run_stopping_point": organization.get_option(
+                    "sentry:default_automated_run_stopping_point",
+                    SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+                ),
                 "automation_handoff": (
                     existing_pref.get("automation_handoff")
                     if existing_pref and existing_pref.get("automation_handoff")
