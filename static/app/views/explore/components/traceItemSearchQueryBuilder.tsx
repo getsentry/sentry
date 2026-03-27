@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 
 import type {SpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {
@@ -110,11 +110,9 @@ export function useTraceItemSearchQueryBuilderProps({
 
   const {invalidFilterKeys, validateQuery} = useAttributeValidation(itemType, projects);
 
-  const initialQueryValidatedRef = useRef(false);
   useEffect(() => {
-    if (initialQuery && !initialQueryValidatedRef.current) {
+    if (initialQuery) {
       validateQuery(initialQuery);
-      initialQueryValidatedRef.current = true;
     }
   }, [initialQuery, validateQuery]);
 
