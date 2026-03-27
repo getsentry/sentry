@@ -1,6 +1,7 @@
 import logging
 
-from django.db import IntegrityError, router, transaction
+from django.db import IntegrityError
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -236,9 +237,6 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
                     )
 
         mappings = data["mappings"]
-        results = []
-        has_errors = False
-        last_saved_config = None
 
         defaults = {
             "repository": repo,
@@ -249,61 +247,124 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
             "automatically_generated": False,
         }
 
+        # Deduplicate by stack_root, keeping the last occurrence.
+        mappings = list({m["stack_root"]: m for m in mappings}.values())
+
+        # Fetch all existing mappings for this project in one query.
+        input_stack_roots = [m["stack_root"] for m in mappings]
+        existing_by_root = {
+            config.stack_root: config
+            for config in RepositoryProjectPathConfig.objects.filter(
+                project=project,
+                stack_root__in=input_stack_roots,
+            )
+        }
+
+        # Split into creates and updates.
+        to_create = []
+        to_update = []
+        results = []
+        now = timezone.now()
+
         for mapping in mappings:
-            try:
-                with transaction.atomic(using=router.db_for_write(RepositoryProjectPathConfig)):
-                    try:
-                        config = RepositoryProjectPathConfig.objects.select_for_update().get(
-                            project=project,
-                            stack_root=mapping["stack_root"],
-                        )
-                        for key, value in {
-                            **defaults,
-                            "source_root": mapping["source_root"],
-                        }.items():
-                            setattr(config, key, value)
-                        created = False
-                    except RepositoryProjectPathConfig.DoesNotExist:
-                        config = RepositoryProjectPathConfig(
-                            project=project,
-                            stack_root=mapping["stack_root"],
-                            source_root=mapping["source_root"],
-                            **defaults,
-                        )
-                        created = True
-                    config._skip_post_save = True
-                    config.save()
-                last_saved_config = config
+            stack_root = mapping["stack_root"]
+            source_root = mapping["source_root"]
+            existing = existing_by_root.get(stack_root)
+
+            if existing is not None:
+                existing.source_root = source_root
+                existing.repository = repo
+                existing.organization_integration_id = org_integration.id
+                existing.organization_id = organization.id
+                existing.integration_id = repo.integration_id
+                existing.default_branch = default_branch
+                existing.automatically_generated = False
+                existing.date_updated = now
+                to_update.append(existing)
                 results.append(
                     {
-                        "stackRoot": mapping["stack_root"],
-                        "sourceRoot": mapping["source_root"],
-                        "status": "created" if created else "updated",
+                        "stackRoot": stack_root,
+                        "sourceRoot": source_root,
+                        "status": "updated",
                     }
                 )
-            except IntegrityError:
-                logger.exception(
-                    "bulk_code_mappings.mapping_error",
-                    extra={
-                        "organization_id": organization.id,
-                        "project_id": project.id,
-                        "stack_root": mapping["stack_root"],
-                    },
+            else:
+                to_create.append(
+                    RepositoryProjectPathConfig(
+                        project=project,
+                        stack_root=stack_root,
+                        source_root=source_root,
+                        date_added=now,
+                        date_updated=now,
+                        **defaults,
+                    )
                 )
-                has_errors = True
                 results.append(
                     {
-                        "stackRoot": mapping["stack_root"],
-                        "sourceRoot": mapping["source_root"],
-                        "status": "error",
-                        "detail": "Failed to save mapping.",
+                        "stackRoot": stack_root,
+                        "sourceRoot": source_root,
+                        "status": "created",
                     }
                 )
 
+        has_errors = False
+
+        if to_create:
+            try:
+                RepositoryProjectPathConfig.objects.bulk_create(to_create)
+            except IntegrityError:
+                logger.exception(
+                    "bulk_code_mappings.bulk_create_error",
+                    extra={
+                        "organization_id": organization.id,
+                        "project_id": project.id,
+                        "count": len(to_create),
+                    },
+                )
+                has_errors = True
+                for r in results:
+                    if r["status"] == "created":
+                        r["status"] = "error"
+                        r["detail"] = "Failed to save mapping."
+
+        if to_update:
+            try:
+                RepositoryProjectPathConfig.objects.bulk_update(
+                    to_update,
+                    fields=[
+                        "source_root",
+                        "repository",
+                        "organization_integration_id",
+                        "organization_id",
+                        "integration_id",
+                        "default_branch",
+                        "automatically_generated",
+                        "date_updated",
+                    ],
+                )
+            except IntegrityError:
+                logger.exception(
+                    "bulk_code_mappings.bulk_update_error",
+                    extra={
+                        "organization_id": organization.id,
+                        "project_id": project.id,
+                        "count": len(to_update),
+                    },
+                )
+                has_errors = True
+                for r in results:
+                    if r["status"] == "updated":
+                        r["status"] = "error"
+                        r["detail"] = "Failed to update mapping."
+
         # Fire side effects once for the entire batch.
-        if last_saved_config is not None:
-            last_saved_config._skip_post_save = False
-            process_resource_change(last_saved_config)
+        # bulk_create/bulk_update don't trigger post_save signals,
+        # so we call process_resource_change manually with any saved config.
+        any_config = existing_by_root.get(input_stack_roots[0]) or (
+            to_create[0] if to_create else None
+        )
+        if any_config is not None:
+            process_resource_change(any_config)
 
         created_count = sum(1 for r in results if r["status"] == "created")
         updated_count = sum(1 for r in results if r["status"] == "updated")
