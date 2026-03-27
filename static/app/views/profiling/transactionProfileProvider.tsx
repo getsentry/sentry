@@ -1,8 +1,6 @@
 import {useState} from 'react';
 import {Outlet} from 'react-router-dom';
-import styled from '@emotion/styled';
 
-import * as Layout from 'sentry/components/layouts/thirds';
 import {ProfileHeader} from 'sentry/components/profiling/profileHeader';
 import type {RequestState} from 'sentry/types/core';
 import type {EventTransaction} from 'sentry/types/event';
@@ -10,6 +8,7 @@ import {isSchema, isSentrySampledProfile} from 'sentry/utils/profiling/guards/pr
 import {useSentryEvent} from 'sentry/utils/profiling/hooks/useSentryEvent';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {LayoutPageWithHiddenFooter} from 'sentry/views/profiling/utils';
 
 import {ProfileTransactionContext, TransactionProfileProvider} from './profilesProvider';
 
@@ -62,9 +61,3 @@ export default function ProfileAndTransactionProvider(): React.ReactElement {
     </TransactionProfileProvider>
   );
 }
-
-const LayoutPageWithHiddenFooter = styled(Layout.Page)`
-  ~ footer {
-    display: none;
-  }
-`;

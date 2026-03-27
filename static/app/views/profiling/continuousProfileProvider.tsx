@@ -1,8 +1,6 @@
 import {useMemo, useState} from 'react';
 import {Outlet} from 'react-router-dom';
-import styled from '@emotion/styled';
 
-import * as Layout from 'sentry/components/layouts/thirds';
 import {ContinuousProfileHeader} from 'sentry/components/profiling/continuousProfileHeader';
 import type {RequestState} from 'sentry/types/core';
 import type {EventTransaction} from 'sentry/types/event';
@@ -11,6 +9,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {LayoutPageWithHiddenFooter} from 'sentry/views/profiling/utils';
 
 import {ContinuousProfileProvider, ProfileTransactionContext} from './profilesProvider';
 
@@ -79,9 +78,3 @@ export default function ProfileAndTransactionProvider(): React.ReactElement {
     </ContinuousProfileProvider>
   );
 }
-
-const LayoutPageWithHiddenFooter = styled(Layout.Page)`
-  ~ footer {
-    display: none;
-  }
-`;

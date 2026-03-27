@@ -6,7 +6,6 @@ import {vec2} from 'gl-matrix';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DifferentialFlamegraphLayout} from 'sentry/components/profiling/flamegraph/differentialFlamegraphLayout';
 import {FlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
@@ -42,6 +41,7 @@ import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegra
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useLocation} from 'sentry/utils/useLocation';
 import {LOADING_PROFILE_GROUP} from 'sentry/views/profiling/profileGroupProvider';
+import {LayoutPageWithHiddenFooter} from 'sentry/views/profiling/utils';
 
 const PROFILE_TYPE = 'differential aggregate flamegraph' as const;
 
@@ -349,12 +349,6 @@ const DifferentialFlamegraphContainer = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1;
-`;
-
-const LayoutPageWithHiddenFooter = styled(Layout.Page)`
-  ~ footer {
-    display: none;
-  }
 `;
 
 function DifferentialFlamegraphWithProviders() {

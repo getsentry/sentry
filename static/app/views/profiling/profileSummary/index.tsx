@@ -69,6 +69,7 @@ import {
 import {ProfilesSummaryChart} from 'sentry/views/profiling/landing/profilesSummaryChart';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfilesTable} from 'sentry/views/profiling/profileSummary/profilesTable';
+import {LayoutPageWithHiddenFooter} from 'sentry/views/profiling/utils';
 
 import {MostRegressedProfileFunctions} from './regressedProfileFunctions';
 import {SlowestProfileFunctions} from './slowestProfileFunctions';
@@ -630,12 +631,6 @@ const ProfileVisualizationContainer = styled('div')<{hideRegressions}>`
     p.hideRegressions ? "'visualization'" : "'visualization digest'"};
   grid-template-columns: ${p => (p.hideRegressions ? `100%` : `60% 40%`)};
   flex: 1 1 100%;
-`;
-
-const LayoutPageWithHiddenFooter = styled(Layout.Page)`
-  ~ footer {
-    display: none;
-  }
 `;
 
 const ProfileSummaryContainer = styled('div')`
