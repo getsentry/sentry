@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useLayoutEffect, useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import {preload} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -28,13 +28,13 @@ import {
   useCommandPaletteDispatch,
   useCommandPaletteState,
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
-import {useCommandPaletteAnalytics} from 'sentry/components/commandPalette/useCommandPaletteAnalytics';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IconArrow, IconClose, IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import {fzf} from 'sentry/utils/search/fzf';
 import type {Theme} from 'sentry/utils/theme';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const MotionButton = motion.create(Button);
 const MotionIconSearch = motion.create(IconSearch);
@@ -55,6 +55,7 @@ function makeLeadingItemAnimation(theme: Theme) {
 type CommandPaletteActionMenuItem = MenuListItemProps & {
   children: CommandPaletteActionMenuItem[];
   key: string;
+  type: 'action' | 'section';
   hideCheck?: boolean;
 };
 
@@ -66,6 +67,7 @@ export function CommandPalette(props: CommandPaletteProps) {
   const theme = useTheme();
 
   const actions = useCommandPaletteActions();
+  const organization = useOrganization();
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
 
@@ -81,65 +83,32 @@ export function CommandPalette(props: CommandPaletteProps) {
         ? state.action.value.action.actions
         : actions;
 
-    if (!state.query.length) {
-      return scopedActions;
-    }
-
-    const items = search(state.query, scopedActions);
+    return search(state.query, scopedActions);
   }, [state.query, actions, state.action]);
 
-  const [keys, keyList] = useMemo(() => {
-    const sectionKeys = new Set(sections.map(({key}) => `section-${key}`));
-    return [sectionKeys, Array.from(sectionKeys)];
-  }, [sections]);
-
-  const sectionHeaderKeys = useMemo(
-    () => new Set(sections.map(({key}) => `section-${key}`)),
-    [sections]
-  );
-
   const treeState = useTreeState({
-    disabledKeys: keyList,
-    children: sections.flatMap(({key: sectionKey, label, children}) => [
-      <Item<CommandPaletteActionMenuItem & {hideCheck: boolean; label: string}>
-        key={`section-${sectionKey}`}
-        textValue={label as string}
-        {...{
-          label: (
-            <Text size="sm" bold variant="primary">
-              {label}
-            </Text>
-          ),
-          hideCheck: true,
-          children: [],
-        }}
-      />,
-      ...children.map(({key: actionKey, ...action}) => (
-        <Item<CommandPaletteActionMenuItem> key={actionKey} {...action}>
-          {action.label}
-        </Item>
-      )),
-    ]),
-  });
-
-  const firstFocusableKey = useMemo(() => {
-    for (const item of treeState.collection) {
-      if (!keys.has(String(item.key))) {
-        return item;
+    disabledKeys: [],
+    children: filteredActions.flatMap(action => {
+      if (action.type === 'section') {
+        return (
+          <Item<CommandPaletteActionMenuItem & {hideCheck: boolean; label: string}>
+            textValue={action.label as string}
+            {...{
+              label: (
+                <Text size="sm" bold variant="primary">
+                  {action.label}
+                </Text>
+              ),
+              leadingItems: action.leadingItems,
+              hideCheck: true,
+              children: [],
+            }}
+          />
+        );
       }
-    }
-    return undefined;
-  }, [treeState.collection, keys]);
-
-  useLayoutEffect(() => {
-    if (treeState.selectionManager.focusedKey !== null) {
-      return;
-    }
-
-    if (firstFocusableKey) {
-      treeState.selectionManager.setFocusedKey(firstFocusableKey.key);
-    }
-  }, [treeState.collection, treeState.selectionManager, firstFocusableKey]);
+      return <Item<CommandPaletteActionMenuItem> {...action}>{action.label}</Item>;
+    }),
+  });
 
   const delegate = useMemo(
     () =>
@@ -157,27 +126,6 @@ export function CommandPalette(props: CommandPaletteProps) {
     shouldFocusWrap: true,
     ref: state.input,
   });
-
-  const onActionSelection = useCallback(
-    (key: ReturnType<typeof treeState.collection.getFirstKey> | null) => {
-      const resultIndex = filteredActions.findIndex(a => a.key === key);
-      const action = resultIndex >= 0 ? filteredActions[resultIndex] : undefined;
-      if (!action) {
-        return;
-      }
-
-      if (action.type === 'group') {
-        analytics.recordGroupAction(action, resultIndex);
-        dispatch({type: 'push action', action});
-        return;
-      }
-
-      analytics.recordAction(action, resultIndex, action.groupingKey ?? '');
-      dispatch({type: 'trigger action'});
-      props.onAction(action);
-    },
-    [filteredActions, dispatch, props, analytics, treeState]
-  );
 
   return (
     <Fragment>
@@ -250,7 +198,7 @@ export function CommandPalette(props: CommandPaletteProps) {
                       }
 
                       if (e.key === 'Enter' || e.key === 'Tab') {
-                        onActionSelection(treeState.selectionManager.focusedKey);
+                        // onActionSelection(treeState.selectionManager.focusedKey);
                         return;
                       }
                     },
@@ -298,7 +246,7 @@ export function CommandPalette(props: CommandPaletteProps) {
             aria-label={t('Search results')}
             selectionMode="none"
             shouldUseVirtualFocus
-            onAction={onActionSelection}
+            // onAction={onActionSelection}
           />
         </ResultsList>
       )}
@@ -307,59 +255,148 @@ export function CommandPalette(props: CommandPaletteProps) {
 }
 
 const COMMAND_PALETTE_GROUP_KEY_CONFIG: Record<CommandPaletteGroupKey, string> = {
-  'search-result': t('Search Results'),
   navigate: t('Go to…'),
   add: t('Add'),
   help: t('Help'),
 };
 
-function dfs(
-  action: CommandPaletteActionWithKey,
-  parent: CommandPaletteActionWithKey | null,
-  fn: (
-    action: CommandPaletteActionWithKey,
-    parent: CommandPaletteActionWithKey | null
-  ) => void
-) {
-  if ('actions' in action) {
-    for (const child of action.actions) {
-      dfs(child, action, fn);
-    }
-  }
-
-  fn(action, parent);
-}
-
 function search(
   query: string,
   actions: CommandPaletteActionWithKey[]
 ): CommandPaletteActionMenuItem[] {
-  const scores = new Map<
-    CommandPaletteActionWithKey,
-    {parent: CommandPaletteActionWithKey | null; score: number}
-  >();
+  // Score every action in the list compared to the query
+  const scores = new Map<CommandPaletteActionWithKey, number>();
+  const normalizedQuery = query.toLowerCase();
 
-  const leafs = new Map<
-    CommandPaletteActionWithKey,
-    {parent: CommandPaletteActionWithKey | null; score: number}
-  >();
-  for (const action of actions) {
-    dfs(action, null, (a, s) => {
-      const {matched, score} = fzfScoreAction(query, a);
-      if (matched) scores.set(a, {score, parent: s});
+  function score(action: CommandPaletteActionWithKey) {
+    const {matched, score: s} = fzfScoreAction(normalizedQuery, action);
+    if (matched) scores.set(action, s);
 
-      if (!('actions' in a)) {
-        leafs.set(a, {score, parent: s});
+    if ('actions' in action) {
+      for (const child of action.actions) {
+        score(child);
       }
-    });
+    }
   }
+  for (const action of actions) {
+    score(action);
+  }
+
+  // Filter the action tree to only include actions that have a score
+  const copy = query.length
+    ? [...actions.filter(a => scores.get(a) !== undefined)]
+    : [...actions];
+
+  const results: CommandPaletteActionMenuItem[] = [];
+  const sections = new Map<string, CommandPaletteActionMenuItem>();
+
+  for (const [key, label] of Object.entries(COMMAND_PALETTE_GROUP_KEY_CONFIG)) {
+    const section = makeMenuItemFromAction('section', {
+      key: label,
+      type: 'group',
+      display: {
+        label,
+      },
+      actions: [],
+    });
+    sections.set(key, section);
+    results.push(section);
+  }
+
+  function group(
+    action: CommandPaletteActionWithKey,
+    parent: CommandPaletteActionMenuItem
+  ) {
+    let section: CommandPaletteActionMenuItem | null = null;
+
+    if (action.groupingKey) {
+      section = sections.get(action.groupingKey) ?? null;
+
+      if (!section && action.groupingKey) {
+        section = makeMenuItemFromAction('section', action);
+        parent.children.push(section);
+        sections.set(action.groupingKey, section);
+      }
+    } else {
+      section = parent;
+    }
+
+    if ('actions' in action) {
+      for (const child of action.actions) {
+        group(child, section!);
+      }
+    } else {
+      if (section) {
+        section.children.push(makeMenuItemFromAction('action', action));
+      } else {
+        parent.children.push(makeMenuItemFromAction('action', action));
+      }
+    }
+  }
+
+  // function filter(action: CommandPaletteActionWithKey) {
+  //   if ('actions' in action) {
+  //     // action.actions = [...action.actions].filter(a => scores.get(a) !== undefined);
+  //     action.actions = [...action.actions];
+
+  //     for (const child of action.actions) {
+  //       filter(child);
+  //     }
+  //   }
+  // }
+
+  // for (const action of copy) {
+  //   filter(action);
+  // }
+
+  const root = makeMenuItemFromAction('section', {
+    key: 'virtual-root',
+    type: 'group',
+    display: {
+      label: '',
+    },
+    actions: [],
+  });
+
+  for (const action of copy) {
+    group(action, root);
+  }
+
+  return root.children.flatMap(item => {
+    if (item.type === 'section') {
+      return [item, ...item.children];
+    }
+    return [item];
+  });
+
+  // const results = copy.flatMap(a => makeMenuItemFromAction(a));
+  // return results;
 
   // @TODO:
   // assemble groups of sections by walking the list of leafs
   // sort the sections by max(action) score
   // reassemble the tree
 
-  return [];
+  // sections.flatMap(({key: sectionKey, label, children}) => [
+  //   <Item<CommandPaletteActionMenuItem & {hideCheck: boolean; label: string}>
+  //     key={`section-${sectionKey}`}
+  //     textValue={label as string}
+  //     {...{
+  //       label: (
+  //         <Text size="sm" bold variant="primary">
+  //           {label}
+  //         </Text>
+  //       ),
+  //       hideCheck: true,
+  //       children: [],
+  //     }}
+  //   />,
+  //   ...children.map(({key: actionKey, ...action}) => (
+  //     <Item<CommandPaletteActionMenuItem> key={actionKey} {...action}>
+  //       {action.label}
+  //     </Item>
+  //   )),
+  // ]),
 }
 
 function sort(
@@ -392,10 +429,12 @@ function fzfScoreAction(
 }
 
 function makeMenuItemFromAction(
+  type: 'action' | 'section',
   action: CommandPaletteActionWithKey
 ): CommandPaletteActionMenuItem {
   return {
     key: action.key,
+    type,
     label: action.display.label,
     details: action.display.details,
     leadingItems: (
@@ -411,34 +450,9 @@ function makeMenuItemFromAction(
         <IconDefaultsProvider size="sm">{action.display.icon}</IconDefaultsProvider>
       </Flex>
     ),
-    children: action.type === 'group' ? action.actions.map(makeMenuItemFromAction) : [],
+    children: [],
     hideCheck: true,
   };
-}
-
-function flattenActions(
-  actions: CommandPaletteActionWithKey[]
-): CommandPaletteActionWithKey[] {
-  const flattened: CommandPaletteActionWithKey[] = [];
-
-  for (const action of actions) {
-    if (action.hidden) {
-      continue;
-    }
-
-    flattened.push(action);
-
-    if (action.type === 'group') {
-      if (!action.actions.length) {
-        Sentry.logger.warn('Command palette group has no children', {
-          group: action.display.label,
-        });
-      }
-      flattened.push(...flattenActions(action.actions));
-    }
-  }
-
-  return flattened;
 }
 
 function CommandPaletteNoResults() {
