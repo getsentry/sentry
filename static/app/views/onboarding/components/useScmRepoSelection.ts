@@ -7,7 +7,7 @@ import type {
   Repository,
 } from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
-import {fetchMutation, QUERY_API_CLIENT} from 'sentry/utils/queryClient';
+import {fetchDataQuery, fetchMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface UseScmRepoSelectionOptions {
@@ -42,6 +42,7 @@ export function useScmRepoSelection({
   reposByIdentifier,
 }: UseScmRepoSelectionOptions) {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const {selectedRepository} = useOnboardingContext();
   const [busy, setBusy] = useState(false);
 
@@ -78,16 +79,20 @@ export function useScmRepoSelection({
     // query filtered by name to avoid pagination issues with the full list.
     setBusy(true);
     try {
-      const matches: Repository[] = await QUERY_API_CLIENT.requestPromise(
-        `/organizations/${organization.slug}/repos/`,
-        {
-          query: {
-            status: 'active',
-            integration_id: integration.id,
-            query: repo.identifier,
+      const [matches] = await queryClient.fetchQuery({
+        queryKey: [
+          `/organizations/${organization.slug}/repos/`,
+          {
+            query: {
+              status: 'active',
+              integration_id: integration.id,
+              query: repo.identifier,
+            },
           },
-        }
-      );
+        ],
+        queryFn: fetchDataQuery<Repository[]>,
+        staleTime: 0,
+      });
       const existing = matches?.find(r => r.externalSlug === repo.identifier);
 
       if (existing) {
