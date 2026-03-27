@@ -148,8 +148,6 @@ export const useSeerExplorer = () => {
   const [optimistic, setOptimistic] = useState<{
     assistantBlockId: string;
     assistantContent: string;
-    baselineSignature: string;
-    createdAt: number;
     insertIndex: number;
     userBlockId: string;
     userQuery: string;
@@ -210,16 +208,6 @@ export const useSeerExplorer = () => {
         deletedFromIndex ?? (apiData?.session?.blocks.length || 0);
       const calculatedInsertIndex = insertIndex ?? effectiveMessageLength;
 
-      // Record current real blocks signature to know when to clear optimistic UI
-      const baselineSignature = JSON.stringify(
-        (apiData?.session?.blocks || []).map(b => [
-          b.id,
-          b.message.role,
-          b.message.content,
-          !!b.loading,
-        ])
-      );
-
       // Generate deterministic block IDs matching backend logic
       // Backend generates: `{prefix}-{index}-{content[:16].replace(' ', '-')}`
       const generateBlockId = (prefix: string, content: string, index: number) => {
@@ -236,8 +224,6 @@ export const useSeerExplorer = () => {
       setOptimistic({
         insertIndex: calculatedInsertIndex,
         userQuery: query,
-        baselineSignature,
-        createdAt: Date.now(),
         userBlockId: generateBlockId('user', query, calculatedInsertIndex),
         assistantBlockId: generateBlockId(
           'loading',
@@ -457,53 +443,34 @@ export const useSeerExplorer = () => {
     return sessionData;
   }, [sessionData, deletedFromIndex, optimistic, runId]);
 
-  // Clear optimistic blocks once the server has a real assistant response.
-  // The server acknowledges the user message before the Celery worker produces
-  // an assistant block, so we keep the optimistic "Thinking" block visible
-  // until a real assistant block appears after the insert point (or a 30s timeout).
+  // Clear optimistic blocks once the server has persisted the user message
+  // and produced a real assistant response after the insert point.
   useEffect(() => {
     if (!optimistic) {
       return undefined;
     }
 
-    const isTimedOut = Date.now() - optimistic.createdAt > 30_000;
+    const serverBlocks = apiData?.session?.blocks || [];
+    const blockAtInsert = serverBlocks[optimistic.insertIndex];
 
-    if (isTimedOut) {
-      setOptimistic(null);
-      setDeletedFromIndex(null);
+    const serverHasUserBlock =
+      blockAtInsert?.message.role === 'user' &&
+      blockAtInsert?.message.content === optimistic.userQuery;
+
+    if (!serverHasUserBlock) {
       return undefined;
     }
 
-    const currentSignature = JSON.stringify(
-      (apiData?.session?.blocks || []).map(b => [
-        b.id,
-        b.message.role,
-        b.message.content,
-        !!b.loading,
-      ])
+    const hasAssistantResponse = serverBlocks.some(
+      (b, i) => i > optimistic.insertIndex && b.message.role === 'assistant'
     );
 
-    if (currentSignature !== optimistic.baselineSignature) {
-      const serverBlocks = apiData?.session?.blocks || [];
-      const hasAssistantResponse = serverBlocks.some(
-        (b, i) => i >= optimistic.insertIndex && b.message.role === 'assistant'
-      );
-
-      if (hasAssistantResponse) {
-        setOptimistic(null);
-        setDeletedFromIndex(null);
-        return undefined;
-      }
-    }
-
-    // Always schedule the safety timeout so the optimistic UI cannot persist
-    // indefinitely when the server data signature never diverges from baseline.
-    const remaining = 30_000 - (Date.now() - optimistic.createdAt);
-    const timer = setTimeout(() => {
+    if (hasAssistantResponse) {
       setOptimistic(null);
       setDeletedFromIndex(null);
-    }, remaining);
-    return () => clearTimeout(timer);
+    }
+
+    return undefined;
   }, [apiData?.session?.blocks, optimistic]);
 
   // Detect PR creation errors and show error messages
