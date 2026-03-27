@@ -48,10 +48,18 @@ export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
   }
 
   const selectedList = [...selectedNames].filter(Boolean);
+  const defaultValue = DEFAULT_YAXIS_BY_TYPE[traceMetric.type];
+  const isDefaultSelection =
+    selectedList.length === 1 && selectedList[0] === defaultValue;
 
   return (
     <CompositeSelect
       disabled={groups.length === 0}
+      menuHeaderTrailingItems={
+        isDefaultSelection
+          ? undefined
+          : () => <CompositeSelect.ClearButton onClick={() => handleChange([])} />
+      }
       style={{width: '100%'}}
       trigger={triggerProps => (
         <OverlayTrigger.Button
