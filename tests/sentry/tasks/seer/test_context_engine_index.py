@@ -166,7 +166,7 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
             with self.feature(
                 {
                     "organizations:seer-explorer": [org_with_flag.slug],
-                    "organizations:seer-explorer-context-engine": [org_with_flag.slug],
+                    "organizations:seer-explorer-index": [org_with_flag.slug],
                 }
             ):
                 eligible = get_allowed_org_ids_context_engine_indexing()
@@ -177,7 +177,7 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
         with self.feature(
             {
                 "organizations:seer-explorer": False,
-                "organizations:seer-explorer-context-engine": False,
+                "organizations:seer-explorer-index": False,
             }
         ):
             eligible = get_allowed_org_ids_context_engine_indexing()

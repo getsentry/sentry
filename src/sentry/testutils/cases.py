@@ -3557,6 +3557,7 @@ class OccurrenceTestCase(BaseTestCase, TraceItemTestCase):
         tags: dict[str, str] | None = None,
         attributes: dict[str, Any] | None = None,
         retention_days: int = 90,
+        client_sample_rate: float = 1.0,
     ) -> TraceItem:
         if organization is None:
             organization = self.organization
@@ -3603,6 +3604,7 @@ class OccurrenceTestCase(BaseTestCase, TraceItemTestCase):
             received=timestamp_proto,
             retention_days=retention_days,
             attributes=attributes_proto,
+            client_sample_rate=client_sample_rate,
         )
 
 

@@ -47,7 +47,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useRouter} from 'sentry/utils/useRouter';
 import type {DataState} from 'sentry/views/profiling/useLandingAnalytics';
 import {getProfileTargetId} from 'sentry/views/profiling/utils';
 
@@ -88,7 +87,6 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
   onDataState,
 }: SlowestFunctionsWidgetProps<F>) {
   const navigate = useNavigate();
-  const router = useRouter();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -219,11 +217,14 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
                   onChange={option => {
                     setSortFunction(option.value as SortOption);
                     setExpandedIndex(0);
-                    const newQuery = omit(router.location.query, [cursorName]);
-                    router.replace({
-                      pathname: router.location.pathname,
-                      query: newQuery,
-                    });
+                    const newQuery = omit(location.query, [cursorName]);
+                    navigate(
+                      {
+                        pathname: location.pathname,
+                        query: newQuery,
+                      },
+                      {replace: true}
+                    );
                   }}
                   trigger={triggerProps => (
                     <OverlayTrigger.Button

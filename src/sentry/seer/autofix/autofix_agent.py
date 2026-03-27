@@ -30,6 +30,7 @@ from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofi
 from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.client_models import SeerRunState
 from sentry.seer.models import SeerRepoDefinition
+from sentry.seer.models.seer_api_models import SeerPermissionError
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
@@ -448,12 +449,7 @@ def trigger_coding_agent_handoff(
             "failures": [{"error_message": "No repositories configured in project preferences"}],
         }
 
-    client = SeerExplorerClient(
-        organization=group.organization,
-        user=None,
-        category_key="autofix",
-        category_value=str(group.id),
-    )
+    client = get_autofix_explorer_client(group)
     state = client.get_run(run_id)
 
     repo = _get_relevant_repo(state, repo_definitions, run_id, group)
@@ -493,3 +489,19 @@ def trigger_coding_agent_handoff(
         branch_name_base=group.title or "seer",
         auto_create_pr=auto_create_pr,
     )
+
+
+def trigger_push_changes(group: Group, run_id: int, state: SeerRunState | None = None):
+    client = get_autofix_explorer_client(group)
+
+    if state is None:
+        try:
+            state = client.get_run(run_id)
+        except ValueError:
+            raise SeerPermissionError("Unknown run id for group")
+
+    group_id = state.metadata.get("group_id") if state.metadata else None
+    if group_id != group.id:
+        raise SeerPermissionError("Unknown run id for group")
+
+    client.push_changes(run_id, blocking=False)

@@ -243,12 +243,9 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
         assert call_kwargs["step"] == AutofixStep.SOLUTION
         assert call_kwargs["run_id"] == 123
 
-    @patch("sentry.seer.autofix.on_completion_hook.SeerExplorerClient")
-    def test_maybe_continue_pipeline_pushes_changes_for_open_pr(self, mock_client_class):
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_push_changes")
+    def test_maybe_continue_pipeline_pushes_changes_for_open_pr(self, mock_push_changes):
         """Pushes changes when stopping_point is open_pr and code_changes completed."""
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-
         state = run_state(
             blocks=[
                 root_cause_memory_block(),
@@ -261,7 +258,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
             },
         )
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
-        mock_client.push_changes.assert_called_once_with(123, blocking=False)
+        mock_push_changes.assert_called_once_with(self.group, 123, state=state)
 
 
 class TestPipelineConstants(TestCase):
@@ -501,7 +498,7 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         result = AutofixOnCompletionHook._get_handoff_config_if_applicable(
             stopping_point=AutofixStoppingPoint.CODE_CHANGES,
             current_step=AutofixStep.SOLUTION,  # Not ROOT_CAUSE
-            group_id=self.group.id,
+            group=self.group,
         )
 
         assert result is None
@@ -513,7 +510,7 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         result = AutofixOnCompletionHook._get_handoff_config_if_applicable(
             stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
             current_step=AutofixStep.ROOT_CAUSE,
-            group_id=self.group.id,
+            group=self.group,
         )
 
         assert result is None
@@ -527,7 +524,7 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         result = AutofixOnCompletionHook._get_handoff_config_if_applicable(
             stopping_point=AutofixStoppingPoint.CODE_CHANGES,
             current_step=AutofixStep.ROOT_CAUSE,
-            group_id=self.group.id,
+            group=self.group,
         )
 
         assert result is None
@@ -541,7 +538,7 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         result = AutofixOnCompletionHook._get_handoff_config_if_applicable(
             stopping_point=AutofixStoppingPoint.CODE_CHANGES,
             current_step=AutofixStep.ROOT_CAUSE,
-            group_id=self.group.id,
+            group=self.group,
         )
 
         assert result == handoff_config
@@ -580,7 +577,7 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         AutofixOnCompletionHook._trigger_coding_agent_handoff(
             organization=self.organization,
             run_id=123,
-            group_id=self.group.id,
+            group=self.group,
             handoff_config=handoff_config,
         )
 

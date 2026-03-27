@@ -8,6 +8,7 @@ import {isSchema, isSentrySampledProfile} from 'sentry/utils/profiling/guards/pr
 import {useSentryEvent} from 'sentry/utils/profiling/hooks/useSentryEvent';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {LayoutPageWithHiddenFooter} from 'sentry/views/profiling/layoutPageWithHiddenFooter';
 
 import {ProfileTransactionContext, TransactionProfileProvider} from './profilesProvider';
 
@@ -46,14 +47,16 @@ export default function ProfileAndTransactionProvider(): React.ReactElement {
       setProfile={setProfile}
     >
       <ProfileTransactionContext value={profileTransaction}>
-        <ProfileHeader
-          eventId={params.eventId!}
-          projectId={projectSlug}
-          transaction={
-            profileTransaction.type === 'resolved' ? profileTransaction.data : null
-          }
-        />
-        <Outlet />
+        <LayoutPageWithHiddenFooter>
+          <ProfileHeader
+            eventId={params.eventId!}
+            projectId={projectSlug}
+            transaction={
+              profileTransaction.type === 'resolved' ? profileTransaction.data : null
+            }
+          />
+          <Outlet />
+        </LayoutPageWithHiddenFooter>
       </ProfileTransactionContext>
     </TransactionProfileProvider>
   );

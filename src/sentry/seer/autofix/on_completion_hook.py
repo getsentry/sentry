@@ -12,11 +12,11 @@ from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     trigger_autofix_explorer,
     trigger_coding_agent_handoff,
+    trigger_push_changes,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.utils import AutofixStoppingPoint, get_project_seer_preferences
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
-from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.client_models import Artifact
 from sentry.seer.explorer.client_utils import fetch_run_status
 from sentry.seer.explorer.on_completion_hook import ExplorerOnCompletionHook
@@ -353,11 +353,9 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             return
 
         # Check if we should trigger coding agent handoff instead of continuing
-        handoff_config = cls._get_handoff_config_if_applicable(
-            stopping_point, current_step, group.id
-        )
+        handoff_config = cls._get_handoff_config_if_applicable(stopping_point, current_step, group)
         if handoff_config:
-            cls._trigger_coding_agent_handoff(organization, run_id, group.id, handoff_config)
+            cls._trigger_coding_agent_handoff(organization, run_id, group, handoff_config)
             return
 
         # Special case: if stopping_point is open_pr and we just finished code_changes, push changes
@@ -365,7 +363,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             stopping_point == AutofixStoppingPoint.OPEN_PR
             and current_step == AutofixStep.CODE_CHANGES
         ):
-            cls._push_changes(organization, run_id, state)
+            cls._push_changes(group, run_id, state)
             return
 
         # Get the next step
@@ -405,7 +403,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         )
 
     @classmethod
-    def _push_changes(cls, organization: Organization, run_id: int, state: SeerRunState) -> None:
+    def _push_changes(cls, group: Group, run_id: int, state: SeerRunState) -> None:
         """Push code changes to create PRs."""
         # Check if there are code changes to push
         has_changes, is_synced = state.has_code_changes()
@@ -414,7 +412,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                 "autofix.on_completion_hook.no_changes_to_push",
                 extra={
                     "run_id": run_id,
-                    "organization_id": organization.id,
+                    "organization_id": group.organization.id,
                     "has_changes": has_changes,
                     "is_synced": is_synced,
                 },
@@ -423,16 +421,15 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
 
         logger.info(
             "autofix.on_completion_hook.pushing_changes",
-            extra={"run_id": run_id, "organization_id": organization.id},
+            extra={"run_id": run_id, "organization_id": group.organization.id},
         )
 
         try:
-            client = SeerExplorerClient(organization=organization, user=None)
-            client.push_changes(run_id, blocking=False)
+            trigger_push_changes(group, run_id, state=state)
         except Exception:
             logger.exception(
                 "autofix.on_completion_hook.push_changes_failed",
-                extra={"run_id": run_id, "organization_id": organization.id},
+                extra={"run_id": run_id, "organization_id": group.organization.id},
             )
 
     @classmethod
@@ -440,7 +437,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         cls,
         stopping_point: AutofixStoppingPoint,
         current_step: AutofixStep | None,
-        group_id: int,
+        group: Group,
     ) -> SeerAutomationHandoffConfiguration | None:
         """
         Read project preferences and return handoff config if applicable.
@@ -463,13 +460,12 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             return None
 
         # Check project preferences
-        group = Group.objects.get(id=group_id)
         try:
             preference_response = get_project_seer_preferences(group.project_id)
         except (SeerApiError, SeerApiResponseValidationError):
             logger.exception(
                 "autofix.on_completion_hook.get_preferences_failed",
-                extra={"group_id": group_id, "project_id": group.project_id},
+                extra={"group_id": group.id, "project_id": group.project_id},
             )
             return None
         if not preference_response or not preference_response.preference:
@@ -485,7 +481,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         cls,
         organization: Organization,
         run_id: int,
-        group_id: int,
+        group: Group,
         handoff_config: SeerAutomationHandoffConfiguration,
     ) -> None:
         """Trigger coding agent handoff using the configured integration."""
@@ -494,14 +490,13 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             extra={
                 "run_id": run_id,
                 "organization_id": organization.id,
-                "group_id": group_id,
+                "group_id": group.id,
                 "integration_id": handoff_config.integration_id,
                 "target": handoff_config.target,
             },
         )
 
         try:
-            group = Group.objects.get(id=group_id)
             result = trigger_coding_agent_handoff(
                 group=group,
                 run_id=run_id,
@@ -514,15 +509,6 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                     "organization_id": organization.id,
                     "successes": len(result.get("successes", [])),
                     "failures": len(result.get("failures", [])),
-                },
-            )
-        except Group.DoesNotExist:
-            logger.exception(
-                "autofix.on_completion_hook.coding_agent_handoff_group_not_found",
-                extra={
-                    "run_id": run_id,
-                    "organization_id": organization.id,
-                    "group_id": group_id,
                 },
             )
         except Exception:

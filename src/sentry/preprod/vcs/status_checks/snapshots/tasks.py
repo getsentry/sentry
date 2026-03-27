@@ -21,6 +21,7 @@ from sentry.preprod.vcs.status_checks.size.tasks import (
 )
 from sentry.preprod.vcs.status_checks.snapshots.templates import (
     format_first_snapshot_status_check_messages,
+    format_generated_snapshot_status_check_messages,
     format_missing_base_snapshot_status_check_messages,
     format_snapshot_status_check_messages,
 )
@@ -168,10 +169,15 @@ def create_preprod_snapshot_status_check_task(
                 all_artifacts,
                 snapshot_metrics_map,
             )
-        else:
-            # TODO(EME-921) Add logic to fail if there's any base_sha set but no base artifact
-            status = StatusCheckStatus.SUCCESS
+        elif commit_comparison.base_sha:
+            status = StatusCheckStatus.FAILURE
             title, subtitle, summary = format_missing_base_snapshot_status_check_messages(
+                all_artifacts,
+                snapshot_metrics_map,
+            )
+        else:
+            status = StatusCheckStatus.SUCCESS
+            title, subtitle, summary = format_generated_snapshot_status_check_messages(
                 all_artifacts,
                 snapshot_metrics_map,
             )

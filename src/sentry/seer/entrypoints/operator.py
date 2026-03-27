@@ -165,9 +165,9 @@ class SeerAutofixOperator[CachePayloadT]:
     ) -> None:
         from sentry.seer.autofix.autofix_agent import (
             AutofixStep,
-            get_autofix_explorer_client,
             get_autofix_explorer_state,
             trigger_autofix_explorer,
+            trigger_push_changes,
         )
 
         event_lifecyle = SeerOperatorEventLifecycleMetric(
@@ -227,14 +227,13 @@ class SeerAutofixOperator[CachePayloadT]:
                         run_id=None,
                     )
                 elif stopping_point == AutofixStoppingPoint.OPEN_PR:
-                    client = get_autofix_explorer_client(group)
-                    client.push_changes(run_id, blocking=False)
+                    trigger_push_changes(group, run_id)
                 else:
                     # NOTE: Stopping point here is really just what
                     # step to run next. Not the same as the stopping_point
                     # argument supported by `trigger_autofix_explorer` which allows one
                     # to run multiple steps at once
-                    run_id = trigger_autofix_explorer(
+                    trigger_autofix_explorer(
                         group=group,
                         step=AutofixStep.from_autofix_stopping_point(stopping_point),
                         referrer=AutofixReferrer.SLACK,

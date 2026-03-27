@@ -818,7 +818,7 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
 
         values: Sequence[str] = rpc_response.values
         if self.context_definition:
-            context = self.context_definition.constructor(self.snuba_params)
+            context = self.context_definition.constructor(self.snuba_params, self.resolver)
             values = [context.value_map.get(value, value) for value in values]
 
         return [
