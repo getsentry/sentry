@@ -94,15 +94,15 @@ export function useAttributeValidation(
         return;
       }
       try {
-        const [data] = await queryClient.fetchQuery(
-          validateAttributesQueryOptions({
-            itemType,
-            filterKeys: keys,
-            organizationSlug: organization.slug,
-            datetime: selection.datetime,
-            projects: effectiveProjects,
-          })
-        );
+        const options = validateAttributesQueryOptions({
+          itemType,
+          filterKeys: keys,
+          organizationSlug: organization.slug,
+          datetime: selection.datetime,
+          projects: effectiveProjects,
+        });
+        await queryClient.cancelQueries({queryKey: [options.queryKey[0]]});
+        const [data] = await queryClient.fetchQuery(options);
         setInvalidFilterKeys(
           Object.entries(data.attributes)
             .filter(([, result]) => !result.valid)
