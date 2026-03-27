@@ -323,7 +323,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
             }
         )
 
-    def test_put_does_not_change_provider(self) -> None:
+    def test_put_rejects_integration_id(self) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
@@ -341,7 +341,8 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, repo.id])
         response = self.client.put(url, data={"status": "visible", "integrationId": integration.id})
 
-        assert response.status_code == 200
+        assert response.status_code == 400
+        assert response.data["detail"] == "Changing the repository provider is not allowed"
 
         repo = Repository.objects.get(id=repo.id)
         assert repo.provider == "integrations:github"

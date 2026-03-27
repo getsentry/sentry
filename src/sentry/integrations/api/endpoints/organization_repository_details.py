@@ -12,6 +12,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.repository import RepositorySerializer as RepositoryApiSerializer
 from sentry.constants import ObjectStatus
@@ -34,6 +35,7 @@ class RepositorySerializer(serializers.Serializer):
     )
     name = serializers.CharField(required=False)
     url = serializers.URLField(required=False, allow_blank=True)
+    integrationId = EmptyIntegerField(read_only=True)
 
 
 @cell_silo_endpoint
@@ -66,6 +68,11 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
 
         if repo.status == ObjectStatus.DELETION_IN_PROGRESS:
             return Response(status=400)
+
+        if "integrationId" in request.data:
+            return Response(
+                {"detail": "Changing the repository provider is not allowed"}, status=400
+            )
 
         serializer = RepositorySerializer(data=request.data, partial=True)
 
