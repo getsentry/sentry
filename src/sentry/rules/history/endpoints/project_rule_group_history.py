@@ -57,6 +57,9 @@ class RuleGroupHistorySerializer(Serializer):
 @extend_schema(tags=["issue_alerts"])
 @cell_silo_endpoint
 class ProjectRuleGroupHistoryIndexEndpoint(WorkflowEngineRuleEndpoint):
+    workflow_engine_method_flags = {
+        "GET": "organizations:workflow-engine-projectrulegroupstats-get",
+    }
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }

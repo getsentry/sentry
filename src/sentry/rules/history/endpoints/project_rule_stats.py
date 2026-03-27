@@ -40,6 +40,9 @@ class TimeSeriesValueSerializer(Serializer):
 @extend_schema(tags=["issue_alerts"])
 @cell_silo_endpoint
 class ProjectRuleStatsIndexEndpoint(WorkflowEngineRuleEndpoint):
+    workflow_engine_method_flags = {
+        "GET": "organizations:workflow-engine-projectrulegroupstats-get",
+    }
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
