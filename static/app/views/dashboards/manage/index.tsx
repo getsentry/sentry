@@ -20,6 +20,7 @@ import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
@@ -169,6 +170,8 @@ function ManageDashboards() {
   const urlFilter = decodeScalar(location.query.filter) as DashboardFilter | undefined;
   const isOnlyPrebuilt =
     hasPrebuiltDashboards && urlFilter === DashboardFilter.ONLY_PREBUILT;
+
+  const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
 
   const [showTemplates, setShowTemplatesLocal] = useLocalStorageState(
     SHOW_TEMPLATES_KEY,
@@ -655,9 +658,9 @@ function ManageDashboards() {
                       )}
 
                       <FeedbackButton />
-                      <Feature features="dashboards-ai-generate">
+                      <Feature features={['dashboards-ai-generate']}>
                         {({hasFeature: hasAiGenerate}) =>
-                          hasAiGenerate ? (
+                          hasAiGenerate && areAiFeaturesAllowed ? (
                             <DashboardCreateLimitWrapper>
                               {({
                                 hasReachedDashboardLimit,
@@ -680,7 +683,7 @@ function ManageDashboards() {
                                       label: (
                                         <Flex gap="sm" align="center" as="span">
                                           {t('Generate dashboard')}
-                                          <FeatureBadge type="experimental" />
+                                          <FeatureBadge type="beta" />
                                         </Flex>
                                       ),
                                       onAction: () => onGenerateDashboard(),
