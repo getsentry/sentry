@@ -104,7 +104,9 @@ export function useAttributeValidation(itemType: TraceItemDataset): {
           organizationSlug: organization.slug,
           ...selection,
         });
-        await queryClient.cancelQueries({queryKey: [options.queryKey[0]]});
+        await queryClient.cancelQueries({
+          queryKey: [options.queryKey[0], {method: 'POST', data: {itemType}}],
+        });
         const [data] = await queryClient.fetchQuery(options);
         setInvalidFilterKeys(
           Object.entries(data.attributes)
