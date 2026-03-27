@@ -4,23 +4,32 @@ import styled from '@emotion/styled';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {
   getLeadHint,
   getPlatform,
   isDotnet,
+  isPotentiallyThirdPartyFrame,
 } from 'sentry/components/events/interfaces/frame/utils';
 import {useStackTraceFrameContext} from 'sentry/components/stackTrace/stackTraceContext';
 import {t} from 'sentry/locale';
-import type {Frame} from 'sentry/types/event';
+import type {Event, Frame} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {isUrl} from 'sentry/utils/string/isUrl';
 
-function getFrameDisplayPath(frame: Frame, platform: PlatformKey) {
+function getFrameDisplayPath(frame: Frame, platform: PlatformKey, event: Event) {
   const framePlatform = getPlatform(frame.platform, platform);
 
+  // Prioritize module name for Java as filename is often only basename
   if (framePlatform === 'java') {
     return frame.module ?? frame.filename ?? '';
+  }
+
+  // For third-party JS frames, show the full absPath URL so the
+  // user can see which external domain the code came from.
+  if (isPotentiallyThirdPartyFrame(frame, event) && frame.absPath) {
+    return frame.absPath;
   }
 
   return frame.filename ?? frame.module ?? '';
@@ -31,11 +40,11 @@ function formatFrameLocation(
   lineNo: number | null | undefined,
   colNo: number | null | undefined
 ): string {
-  if (!defined(lineNo) || lineNo < 0) {
+  if (!defined(lineNo) || lineNo <= 0) {
     return path;
   }
 
-  if (!defined(colNo) || colNo < 0) {
+  if (!defined(colNo) || colNo <= 0) {
     return `${path}:${lineNo}`;
   }
 
@@ -116,7 +125,7 @@ function FrameLocation({
   platform: PlatformKey;
 }) {
   const {event} = useStackTraceFrameContext();
-  const frameDisplayPath = getFrameDisplayPath(frame, platform);
+  const frameDisplayPath = getFrameDisplayPath(frame, platform, event);
   const frameLocationSuffix = formatFrameLocation('', frame.lineNo, frame.colNo);
 
   return (
@@ -128,7 +137,7 @@ function FrameLocation({
         </LeadHint>
       ) : null}
       <FrameLocationTooltip frame={frame} frameDisplayPath={frameDisplayPath}>
-        <Path data-test-id="core-stacktrace-frame-location">
+        <Path>
           <span>
             <span>{frameDisplayPath}</span>
             {frameLocationSuffix ? <span>{frameLocationSuffix}</span> : null}
@@ -180,14 +189,13 @@ function FrameLocationTooltip({
   frame: Frame;
   frameDisplayPath: string;
 }) {
-  const absPath =
-    frame.absPath && frame.absPath !== frameDisplayPath
-      ? formatFrameLocation(frame.absPath, frame.lineNo, frame.colNo)
-      : undefined;
-
-  const sourceMapInfoText = frame.mapUrl ?? frame.map;
-  const showSourceMap = !!frame.origAbsPath && !!sourceMapInfoText;
   const externalUrl = frame.absPath && isUrl(frame.absPath) ? frame.absPath : undefined;
+  const absPath =
+    frame.absPath && frame.absPath !== frameDisplayPath && !externalUrl
+      ? frame.absPath
+      : undefined;
+  const sourceMap = frame.mapUrl ?? frame.map;
+  const showSourceMap = !!frame.origAbsPath && !!sourceMap;
 
   const hasContent = !!absPath || showSourceMap || !!externalUrl;
 
@@ -197,14 +205,14 @@ function FrameLocationTooltip({
         <TooltipContent>
           {absPath ? (
             <Fragment>
-              <strong>{t('File')}</strong>
+              <strong>{t('Absolute Path')}</strong>
               <span>{absPath}</span>
             </Fragment>
           ) : null}
           {showSourceMap ? (
             <Fragment>
               <strong>{t('Source Map')}</strong>
-              <span>{sourceMapInfoText}</span>
+              <span>{sourceMap}</span>
             </Fragment>
           ) : null}
           {externalUrl ? (
@@ -212,9 +220,11 @@ function FrameLocationTooltip({
               <strong>{t('URL')}</strong>
               <a
                 href={externalUrl}
-                target="_blank"
-                rel="noreferrer"
-                onClick={e => e.stopPropagation()}
+                onClick={e => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  openNavigateToExternalLinkModal({linkText: externalUrl});
+                }}
               >
                 {externalUrl}
               </a>
@@ -223,7 +233,7 @@ function FrameLocationTooltip({
         </TooltipContent>
       }
       disabled={!hasContent}
-      maxWidth={450}
+      maxWidth={475}
       skipWrapper
       delay={1000}
       isHoverable
