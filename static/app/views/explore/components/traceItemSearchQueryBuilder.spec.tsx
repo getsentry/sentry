@@ -1,9 +1,8 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import {FieldKind} from 'sentry/utils/fields';
 import {
   useTraceItemSearchQueryBuilderProps,
@@ -256,16 +255,12 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
       body: {attributes: {'span.op': {valid: true}}},
     });
 
-    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
-      initialProps: defaultInitialProps,
+    renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {
+        ...defaultInitialProps,
+        initialQuery: 'span.op:db',
+      },
       organization,
-    });
-
-    act(() => {
-      result.current.onChange?.('span.op:db', {
-        parsedQuery: parseSearch('span.op:db'),
-        queryIsValid: true,
-      });
     });
 
     await waitFor(() => {
@@ -280,30 +275,24 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
       body: {attributes: {'span.op': {valid: true}}},
     });
 
-    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
-      initialProps: defaultInitialProps,
+    const {rerender} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {
+        ...defaultInitialProps,
+        initialQuery: 'span.op:db',
+      },
       organization,
-    });
-
-    act(() => {
-      result.current.onChange?.('span.op:db', {
-        parsedQuery: parseSearch('span.op:db'),
-        queryIsValid: true,
-      });
     });
 
     await waitFor(() => {
       expect(validateMock).toHaveBeenCalledTimes(1);
     });
 
-    act(() => {
-      result.current.onChange?.('span.op:web', {
-        parsedQuery: parseSearch('span.op:web'),
-        queryIsValid: true,
-      });
+    rerender({
+      ...defaultInitialProps,
+      initialQuery: 'span.op:web',
     });
 
-    // Still only 1 call — value changed but keys didn't
+    // Still only 1 call — value changed but keys didn't (React Query deduplicates)
     await waitFor(() => {
       expect(validateMock).toHaveBeenCalledTimes(1);
     });
@@ -321,27 +310,21 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
       },
     });
 
-    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
-      initialProps: defaultInitialProps,
+    const {rerender} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {
+        ...defaultInitialProps,
+        initialQuery: 'span.op:db',
+      },
       organization,
-    });
-
-    act(() => {
-      result.current.onChange?.('span.op:db', {
-        parsedQuery: parseSearch('span.op:db'),
-        queryIsValid: true,
-      });
     });
 
     await waitFor(() => {
       expect(validateMock).toHaveBeenCalledTimes(1);
     });
 
-    act(() => {
-      result.current.onChange?.('span.op:db other.key:val', {
-        parsedQuery: parseSearch('span.op:db other.key:val'),
-        queryIsValid: true,
-      });
+    rerender({
+      ...defaultInitialProps,
+      initialQuery: 'span.op:db other.key:val',
     });
 
     await waitFor(() => {
