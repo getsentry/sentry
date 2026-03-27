@@ -431,7 +431,13 @@ class DetectorParams:
         location="query",
         required=False,
         type=str,
-        description="An optional search query for filtering monitors.",
+        description="""An optional search query for filtering monitors.
+
+Available fields are:
+- `name`
+- `type`: e.g. `error`, `metric_issue`, `issue_stream`
+- `assignee`: email, username, #team, me, none
+        """,
     )
 
     SORT = OpenApiParameter(
