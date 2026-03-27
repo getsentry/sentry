@@ -1,8 +1,9 @@
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
 
 import {ScmCardButton} from 'sentry/views/onboarding/components/scmCardButton';
+import {ScmSelectableContainer} from 'sentry/views/onboarding/components/scmSelectableContainer';
 
 interface ScmAlertOptionCardProps {
   icon: React.ReactNode;
@@ -22,12 +23,7 @@ export function ScmAlertOptionCard({
   return (
     <ScmCardButton aria-checked={isSelected} onClick={onSelect}>
       <Stack gap="lg">
-        <Container
-          border={isSelected ? 'accent' : 'secondary'}
-          padding="lg"
-          radius="md"
-          style={isSelected ? {marginBottom: 1} : {borderBottomWidth: 2}}
-        >
+        <ScmSelectableContainer isSelected={isSelected} padding="lg">
           <Grid gap="md" align="center" columns="min-content 1fr min-content">
             <Radio size="sm" readOnly checked={isSelected} tabIndex={-1} />
             <Text bold={isSelected} size="md" density="comfortable">
@@ -35,7 +31,7 @@ export function ScmAlertOptionCard({
             </Text>
             <Flex align="center">{icon}</Flex>
           </Grid>
-        </Container>
+        </ScmSelectableContainer>
         {children}
       </Stack>
     </ScmCardButton>
