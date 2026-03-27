@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {
   getLeadHint,
   getPlatform,
@@ -178,8 +179,8 @@ function FrameLocationTooltip({
   children: React.ReactNode;
   frame: Frame;
 }) {
-  const sourceMapInfoText = frame.mapUrl ?? frame.map;
-  const showSourceMap = !!frame.origAbsPath && !!sourceMapInfoText;
+  const sourceMap = frame.mapUrl ?? frame.map;
+  const showSourceMap = !!frame.origAbsPath && !!sourceMap;
   const externalUrl = frame.absPath && isUrl(frame.absPath) ? frame.absPath : undefined;
 
   const hasContent = !!frame.absPath || showSourceMap || !!externalUrl;
@@ -190,24 +191,25 @@ function FrameLocationTooltip({
         <TooltipContent>
           {frame.absPath ? (
             <Fragment>
-              <strong>{t('File')}</strong>
+              <strong>{t('Absolute Path')}</strong>
               <span>{frame.absPath}</span>
             </Fragment>
           ) : null}
           {showSourceMap ? (
             <Fragment>
               <strong>{t('Source Map')}</strong>
-              <span>{sourceMapInfoText}</span>
+              <span>{sourceMap}</span>
             </Fragment>
           ) : null}
           {externalUrl ? (
             <Fragment>
               <strong>{t('URL')}</strong>
               <a
-                href={externalUrl}
-                target="_blank"
-                rel="noreferrer"
-                onClick={e => e.stopPropagation()}
+                role="link"
+                onClick={e => {
+                  e.stopPropagation();
+                  openNavigateToExternalLinkModal({linkText: externalUrl});
+                }}
               >
                 {externalUrl}
               </a>
@@ -216,7 +218,7 @@ function FrameLocationTooltip({
         </TooltipContent>
       }
       disabled={!hasContent}
-      maxWidth={450}
+      maxWidth={475}
       skipWrapper
       delay={1000}
       isHoverable

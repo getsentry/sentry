@@ -818,7 +818,7 @@ describe('Core StackTrace', () => {
 
     expect(
       await screen.findByRole('link', {name: 'https://example.com/static/app.js'})
-    ).toHaveAttribute('href', 'https://example.com/static/app.js');
+    ).toBeInTheDocument();
     jest.useRealTimers();
   });
 });
