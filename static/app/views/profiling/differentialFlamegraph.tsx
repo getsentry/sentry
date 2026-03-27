@@ -349,7 +349,9 @@ const DifferentialFlamegraphContainer = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1;
+`;
 
+const LayoutPageWithHiddenFooter = styled(Layout.Page)`
   ~ footer {
     display: none;
   }
@@ -357,7 +359,7 @@ const DifferentialFlamegraphContainer = styled('div')`
 
 function DifferentialFlamegraphWithProviders() {
   return (
-    <Layout.Page>
+    <LayoutPageWithHiddenFooter>
       <FlamegraphThemeProvider>
         <FlamegraphStateProvider
           initialState={{
@@ -370,7 +372,7 @@ function DifferentialFlamegraphWithProviders() {
           <DifferentialFlamegraphView />
         </FlamegraphStateProvider>
       </FlamegraphThemeProvider>
-    </Layout.Page>
+    </LayoutPageWithHiddenFooter>
   );
 }
 
