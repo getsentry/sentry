@@ -40,7 +40,9 @@ function ProfilingContainer() {
       )}
     >
       <NoProjectMessage organization={organization}>
-        <Outlet />
+        <Layout.Page>
+          <Outlet />
+        </Layout.Page>
       </NoProjectMessage>
     </Feature>
   );

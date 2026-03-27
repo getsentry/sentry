@@ -6,7 +6,6 @@ import {vec2} from 'gl-matrix';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DifferentialFlamegraphLayout} from 'sentry/components/profiling/flamegraph/differentialFlamegraphLayout';
 import {FlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
@@ -357,20 +356,18 @@ const DifferentialFlamegraphContainer = styled('div')`
 
 function DifferentialFlamegraphWithProviders() {
   return (
-    <Layout.Page>
-      <FlamegraphThemeProvider>
-        <FlamegraphStateProvider
-          initialState={{
-            preferences: {
-              sorting: 'alphabetical',
-              view: 'top down',
-            },
-          }}
-        >
-          <DifferentialFlamegraphView />
-        </FlamegraphStateProvider>
-      </FlamegraphThemeProvider>
-    </Layout.Page>
+    <FlamegraphThemeProvider>
+      <FlamegraphStateProvider
+        initialState={{
+          preferences: {
+            sorting: 'alphabetical',
+            view: 'top down',
+          },
+        }}
+      >
+        <DifferentialFlamegraphView />
+      </FlamegraphStateProvider>
+    </FlamegraphThemeProvider>
   );
 }
 
