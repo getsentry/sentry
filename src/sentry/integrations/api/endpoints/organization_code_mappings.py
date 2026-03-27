@@ -70,13 +70,15 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
 
     def validate(self, attrs):
         query = RepositoryProjectPathConfig.objects.filter(
-            project_id=attrs.get("project_id"), stack_root=attrs.get("stack_root")
+            project_id=attrs.get("project_id"),
+            stack_root=attrs.get("stack_root"),
+            source_root=attrs.get("source_root"),
         )
         if self.instance:
             query = query.exclude(id=self.instance.id)
         if query.exists():
             raise serializers.ValidationError(
-                "Code path config already exists with this project and stack trace root"
+                "Code path config already exists with this project, stack trace root, and source root"
             )
         return attrs
 

@@ -96,7 +96,8 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
             project=self.project1,
             repo=self.repo1,
             stack_root="com/example/maps",
-            source_root="old/source/root",
+            source_root="modules/maps/src/main/java/com/example/maps",
+            default_branch="old-branch",
         )
 
         response = self.make_post(
@@ -114,16 +115,18 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         assert response.data["updated"] == 1
 
         config = RepositoryProjectPathConfig.objects.get(
-            project=self.project1, stack_root="com/example/maps"
+            project=self.project1,
+            stack_root="com/example/maps",
+            source_root="modules/maps/src/main/java/com/example/maps",
         )
-        assert config.source_root == "modules/maps/src/main/java/com/example/maps"
+        assert config.default_branch == "main"
 
     def test_mixed_create_and_update(self) -> None:
         self.create_code_mapping(
             project=self.project1,
             repo=self.repo1,
             stack_root="com/example/existing",
-            source_root="old/path",
+            source_root="existing/path",
         )
 
         response = self.make_post(
@@ -131,7 +134,7 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
                 "mappings": [
                     {
                         "stackRoot": "com/example/existing",
-                        "sourceRoot": "new/path",
+                        "sourceRoot": "existing/path",
                     },
                     {
                         "stackRoot": "com/example/new",
@@ -440,7 +443,7 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         response = self.make_post({"repository": "other-org/other-repo"})
         assert response.status_code == 404
 
-    def test_duplicate_stack_roots_in_request_last_wins(self) -> None:
+    def test_same_stack_root_different_source_roots_creates_both(self) -> None:
         response = self.make_post(
             {
                 "mappings": [
@@ -456,13 +459,17 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
             }
         )
         assert response.status_code == 200, response.content
-        assert response.data["created"] == 1
-        assert response.data["updated"] == 1
+        assert response.data["created"] == 2
+        assert response.data["updated"] == 0
 
-        config = RepositoryProjectPathConfig.objects.get(
+        configs = RepositoryProjectPathConfig.objects.filter(
             project=self.project1, stack_root="com/example/maps"
         )
-        assert config.source_root == "second/source/root"
+        assert configs.count() == 2
+        assert set(configs.values_list("source_root", flat=True)) == {
+            "first/source/root",
+            "second/source/root",
+        }
 
     def test_multiple_repos_same_name_returns_409(self) -> None:
         # Intentionally use Repository.objects.create since create_repo uses

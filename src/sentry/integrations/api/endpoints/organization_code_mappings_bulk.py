@@ -256,11 +256,9 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
                         config = RepositoryProjectPathConfig.objects.select_for_update().get(
                             project=project,
                             stack_root=mapping["stack_root"],
+                            source_root=mapping["source_root"],
                         )
-                        for key, value in {
-                            **defaults,
-                            "source_root": mapping["source_root"],
-                        }.items():
+                        for key, value in defaults.items():
                             setattr(config, key, value)
                         created = False
                     except RepositoryProjectPathConfig.DoesNotExist:
