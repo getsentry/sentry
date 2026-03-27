@@ -115,6 +115,42 @@ describe('useAttributeValidation', () => {
     expect(mockValidate).toHaveBeenCalledTimes(1);
   });
 
+  it('extracts filter keys inside logical groups', async () => {
+    const mockValidate = MockApiClient.addMockResponse({
+      url: `/organizations/${ORG_SLUG}/trace-items/attributes/validate/`,
+      method: 'POST',
+      body: {
+        attributes: {
+          'span.op': {valid: true},
+          'span.module': {valid: false, error: 'Unknown attribute'},
+        },
+      },
+    });
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useAttributeValidation(
+          TraceItemDataset.SPANS,
+          '(span.op:db OR span.module:http)',
+          DEFAULT_SELECTION
+        ),
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(result.current.invalidFilterKeys).toEqual(['span.module']);
+    });
+
+    expect(mockValidate).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          attributes: expect.arrayContaining(['span.module', 'span.op']),
+        }),
+      })
+    );
+  });
+
   it('re-validates when selection changes', async () => {
     const mockValidate = MockApiClient.addMockResponse({
       url: `/organizations/${ORG_SLUG}/trace-items/attributes/validate/`,
