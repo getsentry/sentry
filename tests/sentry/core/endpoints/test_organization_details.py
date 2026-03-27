@@ -1500,10 +1500,38 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert response.data["defaultCodingAgent"] is None
 
     def test_default_coding_agent_can_be_set(self) -> None:
+        data = {"defaultCodingAgent": "claude_code_agent"}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert (
+            self.organization.get_option("sentry:seer_default_coding_agent") == "claude_code_agent"
+        )
+        assert response.data["defaultCodingAgent"] == "claude_code_agent"
+
+    def test_default_coding_agent_seer(self) -> None:
         data = {"defaultCodingAgent": "seer"}
         response = self.get_success_response(self.organization.slug, **data)
-        assert self.organization.get_option("sentry:seer_default_coding_agent") == "seer"
-        assert response.data["defaultCodingAgent"] == "seer"
+        assert self.organization.get_option("sentry:seer_default_coding_agent") is None
+        assert response.data["defaultCodingAgent"] is None
+
+    def test_default_coding_agent_cursor(self) -> None:
+        for value in ("cursor", "cursor_background_agent"):
+            data = {"defaultCodingAgent": value}
+            response = self.get_success_response(self.organization.slug, **data)
+            assert (
+                self.organization.get_option("sentry:seer_default_coding_agent")
+                == "cursor_background_agent"
+            )
+            assert response.data["defaultCodingAgent"] == "cursor_background_agent"
+
+    def test_default_coding_agent_claude(self) -> None:
+        for value in ("claude_code", "claude_code_agent"):
+            data = {"defaultCodingAgent": value}
+            response = self.get_success_response(self.organization.slug, **data)
+            assert (
+                self.organization.get_option("sentry:seer_default_coding_agent")
+                == "claude_code_agent"
+            )
+            assert response.data["defaultCodingAgent"] == "claude_code_agent"
 
     def test_default_coding_agent_null_on_first_write_create_path(self) -> None:
         # Tests the create path (no OrganizationOption row exists yet): sending null
@@ -1584,26 +1612,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         response = self.get_success_response(self.organization.slug, **data)
         assert self.organization.get_option("sentry:seer_default_coding_agent") is None
         assert response.data["defaultCodingAgent"] is None
-
-    def test_default_coding_agent_cursor_values(self) -> None:
-        for value in ("cursor", "cursor_background_agent"):
-            data = {"defaultCodingAgent": value}
-            response = self.get_success_response(self.organization.slug, **data)
-            assert (
-                self.organization.get_option("sentry:seer_default_coding_agent")
-                == "cursor_background_agent"
-            )
-            assert response.data["defaultCodingAgent"] == "cursor_background_agent"
-
-    def test_default_coding_agent_claude_values(self) -> None:
-        for value in ("claude_code", "claude_code_agent"):
-            data = {"defaultCodingAgent": value}
-            response = self.get_success_response(self.organization.slug, **data)
-            assert (
-                self.organization.get_option("sentry:seer_default_coding_agent")
-                == "claude_code_agent"
-            )
-            assert response.data["defaultCodingAgent"] == "claude_code_agent"
 
     def test_default_coding_agent_rejects_invalid_choice(self) -> None:
         data = {"defaultCodingAgent": "invalid_agent"}

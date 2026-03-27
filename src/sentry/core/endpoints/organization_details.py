@@ -411,7 +411,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return validate_pii_config_update(organization, value)
 
     def validate_defaultCodingAgent(self, value: str | None) -> str | None:
-        if value is None:
+        if value == "seer" or value is None:
             return None
         coding_agent_aliases: dict[str, str] = {
             "cursor": "cursor_background_agent",
