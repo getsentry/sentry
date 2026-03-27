@@ -72,32 +72,35 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         trace_id = uuid4().hex
         conversation_id = uuid4().hex
 
-        # Store multiple spans in the same conversation and trace
-        self.store_ai_span(
-            conversation_id=conversation_id,
-            timestamp=now - timedelta(seconds=3),
-            op="gen_ai.invoke_agent",
-            operation_type="invoke_agent",
-            agent_name="Test Agent",
-            trace_id=trace_id,
-        )
-
-        self.store_ai_span(
-            conversation_id=conversation_id,
-            timestamp=now - timedelta(seconds=2),
-            op="gen_ai.chat",
-            operation_type="ai_client",
-            tokens=100,
-            trace_id=trace_id,
-        )
-
-        self.store_ai_span(
-            conversation_id=conversation_id,
-            timestamp=now - timedelta(seconds=1),
-            op="gen_ai.execute_tool",
-            operation_type="tool",
-            trace_id=trace_id,
-        )
+        spans = [
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now - timedelta(seconds=3),
+                op="gen_ai.invoke_agent",
+                operation_type="invoke_agent",
+                agent_name="Test Agent",
+                trace_id=trace_id,
+                store=False,
+            ),
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now - timedelta(seconds=2),
+                op="gen_ai.chat",
+                operation_type="ai_client",
+                tokens=100,
+                trace_id=trace_id,
+                store=False,
+            ),
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now - timedelta(seconds=1),
+                op="gen_ai.execute_tool",
+                operation_type="tool",
+                trace_id=trace_id,
+                store=False,
+            ),
+        ]
+        self.store_spans(spans)
 
         query = {
             "project": [self.project.id],
@@ -125,39 +128,41 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         trace_id_1 = uuid4().hex
         trace_id_2 = uuid4().hex
 
-        # Spans in first trace
-        self.store_ai_span(
-            conversation_id=conversation_id,
-            timestamp=now - timedelta(seconds=4),
-            op="gen_ai.chat",
-            operation_type="ai_client",
-            trace_id=trace_id_1,
-        )
-
-        self.store_ai_span(
-            conversation_id=conversation_id,
-            timestamp=now - timedelta(seconds=3),
-            op="gen_ai.execute_tool",
-            operation_type="tool",
-            trace_id=trace_id_1,
-        )
-
-        # Spans in second trace
-        self.store_ai_span(
-            conversation_id=conversation_id,
-            timestamp=now - timedelta(seconds=2),
-            op="gen_ai.chat",
-            operation_type="ai_client",
-            trace_id=trace_id_2,
-        )
-
-        self.store_ai_span(
-            conversation_id=conversation_id,
-            timestamp=now - timedelta(seconds=1),
-            op="gen_ai.execute_tool",
-            operation_type="tool",
-            trace_id=trace_id_2,
-        )
+        spans = [
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now - timedelta(seconds=4),
+                op="gen_ai.chat",
+                operation_type="ai_client",
+                trace_id=trace_id_1,
+                store=False,
+            ),
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now - timedelta(seconds=3),
+                op="gen_ai.execute_tool",
+                operation_type="tool",
+                trace_id=trace_id_1,
+                store=False,
+            ),
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now - timedelta(seconds=2),
+                op="gen_ai.chat",
+                operation_type="ai_client",
+                trace_id=trace_id_2,
+                store=False,
+            ),
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now - timedelta(seconds=1),
+                op="gen_ai.execute_tool",
+                operation_type="tool",
+                trace_id=trace_id_2,
+                store=False,
+            ),
+        ]
+        self.store_spans(spans)
 
         query = {
             "project": [self.project.id],
@@ -234,14 +239,18 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
-        # Create 5 spans
+        spans = []
         for i in range(5):
-            self.store_ai_span(
-                conversation_id=conversation_id,
-                timestamp=now - timedelta(seconds=i),
-                op="gen_ai.chat",
-                trace_id=trace_id,
+            spans.append(
+                self.store_ai_span(
+                    conversation_id=conversation_id,
+                    timestamp=now - timedelta(seconds=i),
+                    op="gen_ai.chat",
+                    trace_id=trace_id,
+                    store=False,
+                )
             )
+        self.store_spans(spans)
 
         query: dict[str, Any] = {
             "project": [self.project.id],
@@ -280,20 +289,24 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
-        # Store spans in reverse chronological order
         timestamps = [
-            now - timedelta(seconds=1),  # newest
-            now - timedelta(seconds=3),  # middle
-            now - timedelta(seconds=5),  # oldest
+            now - timedelta(seconds=1),
+            now - timedelta(seconds=3),
+            now - timedelta(seconds=5),
         ]
 
+        spans = []
         for ts in timestamps:
-            self.store_ai_span(
-                conversation_id=conversation_id,
-                timestamp=ts,
-                op="gen_ai.chat",
-                trace_id=trace_id,
+            spans.append(
+                self.store_ai_span(
+                    conversation_id=conversation_id,
+                    timestamp=ts,
+                    op="gen_ai.chat",
+                    trace_id=trace_id,
+                    store=False,
+                )
             )
+        self.store_spans(spans)
 
         query = {
             "project": [self.project.id],
@@ -316,28 +329,30 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         conversation_id_2 = uuid4().hex
         trace_id = uuid4().hex
 
-        # Spans in conversation 1
-        self.store_ai_span(
-            conversation_id=conversation_id_1,
-            timestamp=now - timedelta(seconds=2),
-            op="gen_ai.chat",
-            trace_id=trace_id,
-        )
-
-        self.store_ai_span(
-            conversation_id=conversation_id_1,
-            timestamp=now - timedelta(seconds=1),
-            op="gen_ai.chat",
-            trace_id=trace_id,
-        )
-
-        # Spans in conversation 2
-        self.store_ai_span(
-            conversation_id=conversation_id_2,
-            timestamp=now,
-            op="gen_ai.chat",
-            trace_id=trace_id,
-        )
+        spans = [
+            self.store_ai_span(
+                conversation_id=conversation_id_1,
+                timestamp=now - timedelta(seconds=2),
+                op="gen_ai.chat",
+                trace_id=trace_id,
+                store=False,
+            ),
+            self.store_ai_span(
+                conversation_id=conversation_id_1,
+                timestamp=now - timedelta(seconds=1),
+                op="gen_ai.chat",
+                trace_id=trace_id,
+                store=False,
+            ),
+            self.store_ai_span(
+                conversation_id=conversation_id_2,
+                timestamp=now,
+                op="gen_ai.chat",
+                trace_id=trace_id,
+                store=False,
+            ),
+        ]
+        self.store_spans(spans)
 
         query = {
             "project": [self.project.id],
@@ -425,29 +440,31 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         trace_id = uuid4().hex
         conversation_id = uuid4().hex
 
-        # Agent span with tokens/cost
-        self.store_ai_span(
-            conversation_id=conversation_id,
-            timestamp=now - timedelta(seconds=2),
-            op="gen_ai.invoke_agent",
-            operation_type="invoke_agent",
-            description="Test Agent",
-            agent_name="Test Agent",
-            trace_id=trace_id,
-            tokens=500,
-            cost=0.05,
-        )
-
-        # ai_client span with tokens/cost
-        self.store_ai_span(
-            conversation_id=conversation_id,
-            timestamp=now - timedelta(seconds=1),
-            op="gen_ai.chat",
-            operation_type="ai_client",
-            trace_id=trace_id,
-            tokens=100,
-            cost=0.01,
-        )
+        spans = [
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now - timedelta(seconds=2),
+                op="gen_ai.invoke_agent",
+                operation_type="invoke_agent",
+                description="Test Agent",
+                agent_name="Test Agent",
+                trace_id=trace_id,
+                tokens=500,
+                cost=0.05,
+                store=False,
+            ),
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now - timedelta(seconds=1),
+                op="gen_ai.chat",
+                operation_type="ai_client",
+                trace_id=trace_id,
+                tokens=100,
+                cost=0.01,
+                store=False,
+            ),
+        ]
+        self.store_spans(spans)
 
         query = {
             "project": [self.project.id],
