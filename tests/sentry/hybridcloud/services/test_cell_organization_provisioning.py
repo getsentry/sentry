@@ -254,7 +254,7 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
             slug=slug,
             organization_id=self.provisioned_org.id,
             user_id=self.provisioning_user.id,
-            region_name="us",
+            cell_name="us",
             reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value,
         )
 
