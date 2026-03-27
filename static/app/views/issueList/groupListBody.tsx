@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
@@ -135,11 +136,6 @@ export function GroupListBody({
   );
 }
 
-/**
- * Build a render plan that groups issues by supergroup.
- * Issues sharing a supergroup are collected into a single entry
- * positioned where the first member appears.
- */
 function buildRenderItems(
   groupIds: string[],
   getSuperGroupForIssue: (id: string) => SupergroupDetail | null | undefined,
@@ -149,35 +145,19 @@ function buildRenderItems(
     return groupIds.map(id => ({type: 'issue' as const, id}));
   }
 
-  const sgForId = new Map<string, SupergroupDetail | null>();
-  const sgMembers = new Map<number, string[]>();
+  const seen = new Map<number, string[]>();
+  const items: RenderItem[] = [];
 
   for (const id of groupIds) {
     const sg = getSuperGroupForIssue(id);
     if (sg && sg.group_ids.length > 1) {
-      sgForId.set(id, sg);
-      if (!sgMembers.has(sg.id)) {
-        sgMembers.set(sg.id, []);
-      }
-      sgMembers.get(sg.id)!.push(id);
-    } else {
-      sgForId.set(id, null);
-    }
-  }
-
-  const seen = new Set<number>();
-  const items: RenderItem[] = [];
-
-  for (const id of groupIds) {
-    const sg = sgForId.get(id);
-    if (sg) {
-      if (!seen.has(sg.id)) {
-        seen.add(sg.id);
-        items.push({
-          type: 'supergroup',
-          supergroup: sg,
-          matchingIds: sgMembers.get(sg.id)!,
-        });
+      const existing = seen.get(sg.id);
+      if (existing) {
+        existing.push(id);
+      } else {
+        const matchingIds = [id];
+        seen.set(sg.id, matchingIds);
+        items.push({type: 'supergroup', supergroup: sg, matchingIds});
       }
     } else {
       items.push({type: 'issue', id});
@@ -208,8 +188,15 @@ function GroupList({
   );
 
   const hasTopIssuesUI = organization.features.includes('top-issues-ui');
-  const getSuperGroupForIssue = (id: string) => supergroupLookup?.[id] ?? null;
-  const renderItems = buildRenderItems(groupIds, getSuperGroupForIssue, hasTopIssuesUI);
+  const renderItems = useMemo(
+    () =>
+      buildRenderItems(
+        groupIds,
+        (id: string) => supergroupLookup?.[id] ?? null,
+        hasTopIssuesUI
+      ),
+    [groupIds, supergroupLookup, hasTopIssuesUI]
+  );
 
   const renderStreamGroup = (id: string, columns: GroupListColumn[]) => {
     const group = GroupStore.get(id) as Group | undefined;

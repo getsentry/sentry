@@ -30,8 +30,6 @@ export function SupergroupRow({
 }: SupergroupRowProps) {
   const {openDrawer, isDrawerOpen} = useDrawer();
   const [isActive, setIsActive] = useState(false);
-  const issueCount = supergroup.group_ids.length;
-
   const handleClick = () => {
     setIsActive(true);
     openDrawer(() => <SupergroupDetailDrawer supergroup={supergroup} />, {
@@ -67,7 +65,7 @@ export function SupergroupRow({
           {supergroup.code_area && matchedCount > 0 ? <Dot /> : null}
           {matchedCount > 0 ? (
             <Text size="sm" variant="muted">
-              {matchedCount} / {issueCount} {t('issues matched')}
+              {matchedCount} / {supergroup.group_ids.length} {t('issues matched')}
             </Text>
           ) : null}
         </MetaRow>
@@ -216,7 +214,7 @@ const ChartColumn = styled('div')`
   }
 `;
 
-const EventsColumn = styled('div')`
+const DataColumn = styled('div')`
   display: flex;
   justify-content: flex-end;
   text-align: right;
@@ -225,22 +223,15 @@ const EventsColumn = styled('div')`
   padding-right: ${p => p.theme.space.xl};
   margin-right: ${p => p.theme.space.xl};
   width: 60px;
+`;
 
+const EventsColumn = styled(DataColumn)`
   @container (width < ${COLUMN_BREAKPOINTS.EVENTS}) {
     display: none;
   }
 `;
 
-const UsersColumn = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  text-align: right;
-  align-items: center;
-  align-self: center;
-  padding-right: ${p => p.theme.space.xl};
-  margin-right: ${p => p.theme.space.xl};
-  width: 60px;
-
+const UsersColumn = styled(DataColumn)`
   @container (width < ${COLUMN_BREAKPOINTS.USERS}) {
     display: none;
   }
@@ -270,7 +261,7 @@ const AssigneeSpacer = styled('div')`
   padding-right: ${p => p.theme.space.xl};
   margin-right: ${p => p.theme.space.xl};
 
-  @media (max-width: ${COLUMN_BREAKPOINTS.ASSIGNEE}) {
+  @container (width < ${COLUMN_BREAKPOINTS.ASSIGNEE}) {
     display: none;
   }
 `;

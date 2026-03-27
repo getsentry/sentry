@@ -1,4 +1,5 @@
-import type {Group, TimeseriesValue} from 'sentry/types/group';
+import type {TimeseriesValue} from 'sentry/types/core';
+import type {Group} from 'sentry/types/group';
 
 export interface AggregatedSupergroupStats {
   eventCount: number;
@@ -47,7 +48,7 @@ export function aggregateSupergroupStats(
         mergedStats = stats.map(([ts, val]) => [ts, val] as TimeseriesValue);
       } else {
         for (let i = 0; i < Math.min(mergedStats.length, stats.length); i++) {
-          mergedStats[i] = [mergedStats[i][0], mergedStats[i][1] + stats[i][1]];
+          mergedStats[i] = [mergedStats[i]![0], mergedStats[i]![1] + stats[i]![1]];
         }
       }
     }
