@@ -15,6 +15,8 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_metric_data_conditions,
     migrate_resolve_threshold_data_condition,
 )
+from sentry.workflow_engine.models import DataCondition, WorkflowDataConditionGroup
+from sentry.workflow_engine.models.data_condition import Condition
 from tests.sentry.incidents.serializers.test_workflow_engine_base import (
     TestWorkflowEngineSerializer,
 )
@@ -152,6 +154,36 @@ class TestDataConditionSerializer(TestWorkflowEngineSerializer):
         )
         assert serialized_data_condition["alertThreshold"] == 0
         assert serialized_data_condition["resolveThreshold"] is None
+
+    def test_anomaly_detection_with_workflow_actions(self) -> None:
+        dynamic_rule = self.create_dynamic_alert()
+        critical_trigger = self.create_alert_rule_trigger(
+            alert_rule=dynamic_rule, label="critical", alert_threshold=0
+        )
+        trigger_action = self.create_alert_rule_trigger_action(alert_rule_trigger=critical_trigger)
+        _, _, _, detector, _, _, _, _ = migrate_alert_rule(dynamic_rule)
+        detector_trigger, _, _ = migrate_metric_data_conditions(critical_trigger)
+        migrate_metric_action(trigger_action)
+
+        workflow_dcg = WorkflowDataConditionGroup.objects.filter(
+            workflow__detectorworkflow__detector=detector,
+        ).first()
+        assert workflow_dcg is not None
+        DataCondition.objects.create(
+            type=Condition.ANOMALY_DETECTION,
+            comparison={"sensitivity": "high", "seasonality": "auto", "threshold_type": 2},
+            condition_result=True,
+            condition_group=workflow_dcg.condition_group,
+        )
+
+        serialized = serialize(
+            detector_trigger,
+            self.user,
+            WorkflowEngineDataConditionSerializer(),
+        )
+        assert serialized["thresholdType"] == AlertRuleThresholdType.ABOVE_AND_BELOW.value
+        assert serialized["alertThreshold"] == 0
+        assert serialized["resolveThreshold"] is None
 
     def test_multiple_rules(self) -> None:
         # create another comprehensive alert rule in the DB

@@ -80,10 +80,12 @@ class WorkflowEngineDataConditionSerializer(Serializer):
         # Map (condition_group_id, comparison) → action-filter DC exists in that DCG
         # We need: for a given detector's DCGs + priority level → matching DCG IDs
         # NOTE: Assumes DataConditions are limited to what would be dual written.
-        dcg_comparison_pairs: dict[int, set[int]] = defaultdict(set)
+        dcg_comparison_pairs: dict[int, set[int | float]] = defaultdict(set)
         for dc in DataCondition.objects.filter(condition_group__in=all_dcg_ids):
-            # Map comparison value → set of DCG IDs that have an action filter at that level
-            dcg_comparison_pairs[dc.condition_group_id].add(dc.comparison)
+            # Only collect numeric comparison values; non-numeric values (e.g. dicts
+            # from anomaly detection conditions) don't match condition_result levels.
+            if isinstance(dc.comparison, (int, float)):
+                dcg_comparison_pairs[dc.condition_group_id].add(dc.comparison)
 
         # Bulk-fetch all DCG → action mappings
         dcg_to_action_ids: dict[int, list[int]] = defaultdict(list)
