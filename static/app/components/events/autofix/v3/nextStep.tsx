@@ -1,11 +1,13 @@
 import {useCallback, useMemo, useState, type ReactNode} from 'react';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
+import {MenuComponents} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {
   organizationIntegrationsCodingAgents,
   type CodingAgentIntegration,
@@ -18,6 +20,7 @@ import {
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
@@ -275,6 +278,8 @@ function NextStepTemplate({
   codingAgentIntegrations,
   onCodingAgentHandoff,
 }: NextStepTemplateProps) {
+  const organization = useOrganization();
+
   const codingAgentOptions = useMemo(() => {
     return (codingAgentIntegrations ?? []).map(integration => {
       const actionLabel =
@@ -349,6 +354,16 @@ function NextStepTemplate({
                 />
               )}
               position="bottom-end"
+              menuFooter={
+                <DropdownMenuFooter>
+                  <MenuComponents.CTALinkButton
+                    icon={<IconAdd />}
+                    to={`/settings/${organization.slug}/integrations/?category=coding%20agent`}
+                  >
+                    {t('Add Integration')}
+                  </MenuComponents.CTALinkButton>
+                </DropdownMenuFooter>
+              }
             />
           ) : null}
         </ButtonBar>
