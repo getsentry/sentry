@@ -263,28 +263,30 @@ class IncidentsList extends DeprecatedAsyncComponent<
 
     return (
       <SentryDocumentTitle title={t('Alerts')} orgSlug={organization.slug}>
-        <PageFiltersContainer>
-          <AlertHeader activeTab="stream" />
-          <Layout.Body>
-            <Layout.Main width="full">
-              {!this.tryRenderOnboarding() && (
-                <Fragment>
-                  <StyledAlert variant="info">
-                    {t('This page only shows metric alerts.')}
-                  </StyledAlert>
-                  <FilterBar
-                    location={location}
-                    onChangeFilter={this.handleChangeFilter}
-                    onChangeSearch={this.handleChangeSearch}
-                    onChangeStatus={this.handleChangeStatus}
-                    hasStatusFilters
-                  />
-                </Fragment>
-              )}
-              {this.renderList()}
-            </Layout.Main>
-          </Layout.Body>
-        </PageFiltersContainer>
+        <Layout.Page>
+          <PageFiltersContainer>
+            <AlertHeader activeTab="stream" />
+            <Layout.Body>
+              <Layout.Main width="full">
+                {!this.tryRenderOnboarding() && (
+                  <Fragment>
+                    <StyledAlert variant="info">
+                      {t('This page only shows metric alerts.')}
+                    </StyledAlert>
+                    <FilterBar
+                      location={location}
+                      onChangeFilter={this.handleChangeFilter}
+                      onChangeSearch={this.handleChangeSearch}
+                      onChangeStatus={this.handleChangeStatus}
+                      hasStatusFilters
+                    />
+                  </Fragment>
+                )}
+                {this.renderList()}
+              </Layout.Main>
+            </Layout.Body>
+          </PageFiltersContainer>
+        </Layout.Page>
       </SentryDocumentTitle>
     );
   }
@@ -303,15 +305,17 @@ export default function IncidentsListContainer() {
   }, []);
 
   const renderDisabled = () => (
-    <Layout.Body>
-      <Layout.Main width="full">
-        <Alert.Container>
-          <Alert variant="warning" showIcon={false}>
-            {t("You don't have access to this feature")}
-          </Alert>
-        </Alert.Container>
-      </Layout.Main>
-    </Layout.Body>
+    <Layout.Page>
+      <Layout.Body>
+        <Layout.Main width="full">
+          <Alert.Container>
+            <Alert variant="warning" showIcon={false}>
+              {t("You don't have access to this feature")}
+            </Alert>
+          </Alert.Container>
+        </Layout.Main>
+      </Layout.Body>
+    </Layout.Page>
   );
 
   return (
