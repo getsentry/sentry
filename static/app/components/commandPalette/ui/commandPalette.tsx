@@ -88,19 +88,10 @@ export function CommandPalette(props: CommandPaletteProps) {
     const items = search(state.query, scopedActions);
   }, [state.query, actions, state.action]);
 
-<<<<<<< HEAD
   const [keys, keyList] = useMemo(() => {
     const sectionKeys = new Set(sections.map(({key}) => `section-${key}`));
     return [sectionKeys, Array.from(sectionKeys)];
   }, [sections]);
-=======
-  const analytics = useCommandPaletteAnalytics(filteredActions.length);
-
-  const sections = useMemo(
-    () => groupActionsBySection(filteredActions),
-    [filteredActions]
-  );
->>>>>>> master
 
   const sectionHeaderKeys = useMemo(
     () => new Set(sections.map(({key}) => `section-${key}`)),
@@ -108,11 +99,7 @@ export function CommandPalette(props: CommandPaletteProps) {
   );
 
   const treeState = useTreeState({
-<<<<<<< HEAD
     disabledKeys: keyList,
-=======
-    disabledKeys: [...sectionHeaderKeys],
->>>>>>> master
     children: sections.flatMap(({key: sectionKey, label, children}) => [
       <Item<CommandPaletteActionMenuItem & {hideCheck: boolean; label: string}>
         key={`section-${sectionKey}`}
@@ -137,20 +124,12 @@ export function CommandPalette(props: CommandPaletteProps) {
 
   const firstFocusableKey = useMemo(() => {
     for (const item of treeState.collection) {
-<<<<<<< HEAD
       if (!keys.has(String(item.key))) {
-=======
-      if (!sectionHeaderKeys.has(String(item.key))) {
->>>>>>> master
         return item;
       }
     }
     return undefined;
-<<<<<<< HEAD
   }, [treeState.collection, keys]);
-=======
-  }, [treeState.collection, sectionHeaderKeys]);
->>>>>>> master
 
   useLayoutEffect(() => {
     if (treeState.selectionManager.focusedKey !== null) {
@@ -449,7 +428,6 @@ function flattenActions(
 
     flattened.push(action);
 
-<<<<<<< HEAD
     if (action.type === 'group') {
       if (!action.actions.length) {
         Sentry.logger.warn('Command palette group has no children', {
@@ -457,14 +435,6 @@ function flattenActions(
         });
       }
       flattened.push(...flattenActions(action.actions));
-=======
-    if (action.type === 'group' && action.actions.length > 0) {
-      const childParentLabel = parentLabel
-        ? `${parentLabel} → ${action.display.label}`
-        : action.display.label;
-
-      flattened.push(...flattenActions(action.actions, childParentLabel));
->>>>>>> master
     }
   }
 

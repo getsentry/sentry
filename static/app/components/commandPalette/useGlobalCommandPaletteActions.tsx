@@ -222,18 +222,18 @@ function useNavigationActions(): CommandPaletteAction[] {
       )
     );
 
-  const projectSettingsChildren: CommandPaletteActionChild[] =
-    organization.features.includes('cmd-k-supercharged')
-      ? projects.map(project =>
-          makeCommandPaletteLink({
-            display: {
-              label: project.name,
-              icon: <ProjectAvatar project={project} size={16} />,
-            },
-            to: `/settings/${slug}/projects/${project.slug}/`,
-          })
-        )
-      : [];
+  // const projectSettingsChildren: CommandPaletteActionChild[] =
+  //   organization.features.includes('cmd-k-supercharged')
+  //     ? projects.map(project =>
+  //         makeCommandPaletteLink({
+  //           display: {
+  //             label: project.name,
+  //             icon: <ProjectAvatar project={project} size={16} />,
+  //           },
+  //           to: `/settings/${slug}/projects/${project.slug}/`,
+  //         })
+  //       )
+  //     : [];
 
   return [
     makeCommandPaletteGroup({
@@ -277,16 +277,16 @@ function useNavigationActions(): CommandPaletteAction[] {
       },
       actions: settingsChildren,
     }),
-    organization.features.includes('cmd-k-supercharged')
-      ? makeCommandPaletteGroup({
-          groupingKey: 'navigate',
-          display: {
-            label: t('Project Settings'),
-            icon: <IconSettings />,
-          },
-          actions: projectSettingsChildren,
-        })
-      : null,
+    // organization.features.includes('cmd-k-supercharged')
+    //   ? makeCommandPaletteGroup({
+    //       groupingKey: 'navigate',
+    //       display: {
+    //         label: t('Project Settings'),
+    //         icon: <IconSettings />,
+    //       },
+    //       actions: projectSettingsChildren,
+    //     })
+    //   : null,
   ].filter(x => x !== null);
 }
 
@@ -322,19 +322,19 @@ export function useGlobalCommandPaletteActions() {
   useCommandPaletteActions([
     ...navigateActions,
     makeCommandPaletteLink({
+      groupingKey: 'add',
       display: {
         label: t('Create Dashboard'),
         icon: <IconAdd />,
       },
-      groupingKey: 'add',
       to: `${navPrefix}/dashboards/new/`,
     }),
     makeCommandPaletteLink({
+      groupingKey: 'add',
       display: {
         label: t('Create Alert'),
         icon: <IconAdd />,
       },
-      groupingKey: 'add',
       to: `${navPrefix}/issues/alerts/wizard/`,
     }),
     makeCommandPaletteLink({
@@ -346,44 +346,44 @@ export function useGlobalCommandPaletteActions() {
       to: `${navPrefix}/projects/new/`,
     }),
     makeCommandPaletteCallback({
+      groupingKey: 'add',
       display: {
         label: t('Invite Members'),
         icon: <IconUser />,
       },
-      groupingKey: 'add',
       onAction: () => openInviteMembersModal(),
     }),
     makeCommandPaletteCallback({
+      groupingKey: 'help',
       display: {
         label: t('Open Documentation'),
         icon: <IconDocs />,
       },
-      groupingKey: 'help',
       onAction: () => window.open('https://docs.sentry.io', '_blank', 'noreferrer'),
     }),
     makeCommandPaletteCallback({
+      groupingKey: 'help',
       display: {
         label: t('Join Discord'),
         icon: <IconDiscord />,
       },
-      groupingKey: 'help',
       onAction: () => window.open('https://discord.gg/sentry', '_blank', 'noreferrer'),
     }),
     makeCommandPaletteCallback({
+      groupingKey: 'help',
       display: {
         label: t('Open GitHub Repository'),
         icon: <IconGithub />,
       },
-      groupingKey: 'help',
       onAction: () =>
         window.open('https://github.com/getsentry/sentry', '_blank', 'noreferrer'),
     }),
     makeCommandPaletteCallback({
+      groupingKey: 'help',
       display: {
         label: t('View Changelog'),
         icon: <IconOpen />,
       },
-      groupingKey: 'help',
       onAction: () => window.open('https://sentry.io/changelog/', '_blank', 'noreferrer'),
     }),
     navigationToggleAction,
