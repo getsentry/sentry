@@ -23,7 +23,7 @@ import {SeerNodeContext, useSeerContextRegistry} from './seerContext';
  *   // Widget rendered inside Dashboard will nest correctly:
  *   // { nodeType: 'dashboard', children: [{ nodeType: 'widget', ... }] }
  */
-export function registerSeerContext<P extends Record<PropertyKey, unknown>>(
+export function registerSeerContext<P extends Record<string, unknown>>(
   nodeType: string,
   WrappedComponent: ComponentType<P>
 ): ComponentType<P> {
@@ -56,7 +56,8 @@ export function registerSeerContext<P extends Record<PropertyKey, unknown>>(
       // Provide ownNodeId downward so child registerSeerContext wrappers
       // and useSeerContext(data) calls read this as their context anchor.
       <SeerNodeContext.Provider value={ownNodeId}>
-        <WrappedComponent {...props} />
+        {/* TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261 */}
+        <WrappedComponent {...(props as P as any)} />
       </SeerNodeContext.Provider>
     );
   }
