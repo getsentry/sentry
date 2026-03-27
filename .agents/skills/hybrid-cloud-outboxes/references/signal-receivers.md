@@ -79,13 +79,13 @@ def process_my_category(object_identifier: int, payload: Any, **kwds: Any) -> No
 
 ## Control Outbox Receivers
 
-Control outbox signals include an additional `region_name` argument:
+Control outbox signals include an additional `cell_name` argument:
 
 - `sender`: `OutboxCategory` enum value
 - `payload`: `dict | None`
 - `object_identifier`: `int`
 - `shard_identifier`: `int`
-- `region_name`: `str` — the target region
+- `cell_name`: `str` — the target cell
 - `shard_scope`: `int`
 - `date_added`: `datetime`
 - `scheduled_for`: `datetime`
@@ -118,7 +118,7 @@ For categories where the receiver makes an RPC call without looking up a model:
 def process_my_category(
     payload: Mapping[str, Any], shard_identifier: int, **kwds: Any
 ) -> None:
-    my_region_service.do_something(
+    my_cell_service.do_something(
         organization_id=shard_identifier,
         data=payload["data"],
     )
@@ -144,4 +144,4 @@ The tombstone system drives `HybridCloudForeignKey` cascade deletes across silos
 
 **When to use**: Any receiver that needs to distinguish between "object was created/updated" and "object was deleted". Not needed for payload-only categories (audit logs, IP events) where the payload carries all necessary data.
 
-**`region_name` parameter**: Pass `region_name` for control outbox receivers (tombstone goes to the cell). Omit for cell outbox receivers (tombstone goes to control).
+**`cell_name` parameter**: Pass `cell_name` for control outbox receivers (tombstone goes to the cell). Omit for cell outbox receivers (tombstone goes to control).
