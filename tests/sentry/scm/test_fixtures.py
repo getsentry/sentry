@@ -4,7 +4,6 @@ from unittest.mock import MagicMock
 
 from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
 from sentry.integrations.models import Integration
-from sentry.scm.private.provider import Provider
 from sentry.scm.types import (
     ActionResult,
     BuildConclusion,
@@ -25,6 +24,7 @@ from sentry.scm.types import (
     PaginatedActionResult,
     PaginatedResponseMeta,
     PaginationParams,
+    Provider,
     PullRequest,
     PullRequestBranch,
     PullRequestCommit,
