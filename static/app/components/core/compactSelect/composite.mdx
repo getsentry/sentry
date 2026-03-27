@@ -53,6 +53,7 @@ Use `<CompositeSelect>` when you need a dropdown with multiple independent selec
 
 - **`<CompositeSelect>`**: The wrapper component that manages the dropdown
 - **`<CompositeSelect.Region>`**: Individual selection sections within the dropdown
+- **`<CompositeSelect.ClearButton>`**: A "Clear" button for use in `menuHeaderTrailingItems` that calls your `onClick` to reset all regions
 
 Each region acts like an independent `<CompactSelect>`, requiring its own `value`, `onChange`, and `options`.
 
@@ -120,6 +121,102 @@ const [day, setDay] = useState('1');
     value={day}
     onChange={selection => setDay(selection.value)}
     options={dayOptions}
+  />
+</CompositeSelect>;
+```
+
+## Clear Button
+
+Use `<CompositeSelect.ClearButton>` in `menuHeaderTrailingItems` to add a "Clear" button to the menu header. When clicked, it calls your `onClick` handler where you reset each region's value. The menu stays open, matching the behavior of the built-in clear button in `<CompactSelect>`.
+
+Only render the button when there is an active selection to clear.
+
+export function ClearButtonDemo() {
+  const [month, setMonth] = useState(null);
+  const [tags, setTags] = useState([]);
+  const monthOptions = [
+    {value: 'jan', label: 'January'},
+    {value: 'feb', label: 'February'},
+    {value: 'mar', label: 'March'},
+  ];
+  const tagOptions = [
+    {value: 'cool', label: 'cool'},
+    {value: 'funny', label: 'funny'},
+    {value: 'awesome', label: 'awesome'},
+  ];
+  const hasSelection = month !== null || tags.length > 0;
+  return (
+    <CompositeSelect
+      size="sm"
+      menuTitle="Filters"
+      menuHeaderTrailingItems={
+        hasSelection ? (
+          <CompositeSelect.ClearButton
+            onClick={() => {
+              setMonth(null);
+              setTags([]);
+            }}
+          />
+        ) : null
+      }
+      trigger={props => (
+        <OverlayTrigger.Button icon={<IconSentry />} {...props}>
+          Filters
+        </OverlayTrigger.Button>
+      )}
+    >
+      <CompositeSelect.Region
+        label="Month"
+        value={month}
+        onChange={selection => setMonth(selection.value)}
+        options={monthOptions}
+      />
+      <CompositeSelect.Region
+        label="Tags"
+        multiple
+        value={tags}
+        onChange={selection => setTags(selection.map(s => s.value))}
+        options={tagOptions}
+      />
+    </CompositeSelect>
+  );
+}
+
+<Storybook.Demo minHeight="400px" align="start">
+  <ClearButtonDemo />
+</Storybook.Demo>
+
+```jsx
+const [month, setMonth] = useState(null);
+const [tags, setTags] = useState([]);
+const hasSelection = month !== null || tags.length > 0;
+
+<CompositeSelect
+  menuTitle="Filters"
+  menuHeaderTrailingItems={
+    hasSelection ? (
+      <CompositeSelect.ClearButton
+        onClick={() => {
+          setMonth(null);
+          setTags([]);
+        }}
+      />
+    ) : null
+  }
+  trigger={props => <OverlayTrigger.Button {...props}>Filters</OverlayTrigger.Button>}
+>
+  <CompositeSelect.Region
+    label="Month"
+    value={month}
+    onChange={selection => setMonth(selection.value)}
+    options={monthOptions}
+  />
+  <CompositeSelect.Region
+    label="Tags"
+    multiple
+    value={tags}
+    onChange={selection => setTags(selection.map(s => s.value))}
+    options={tagOptions}
   />
 </CompositeSelect>;
 ```
