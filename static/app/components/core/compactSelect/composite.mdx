@@ -53,7 +53,7 @@ Use `<CompositeSelect>` when you need a dropdown with multiple independent selec
 
 - **`<CompositeSelect>`**: The wrapper component that manages the dropdown
 - **`<CompositeSelect.Region>`**: Individual selection sections within the dropdown
-- **`<CompositeSelect.ClearButton>`**: A "Clear" button for use in `menuHeaderTrailingItems` that calls your `onClick` to reset all regions
+- **`<CompositeSelect.ClearButton>`**: A "Clear" button for use in `menuHeaderTrailingItems` that calls your `onClick` to reset all regions. Re-exported from `<CompactSelect>`'s internal clear button for visual consistency
 
 Each region acts like an independent `<CompactSelect>`, requiring its own `value`, `onChange`, and `options`.
 
@@ -127,7 +127,7 @@ const [day, setDay] = useState('1');
 
 ## Clear Button
 
-Use `<CompositeSelect.ClearButton>` in `menuHeaderTrailingItems` to add a "Clear" button to the menu header. When clicked, it calls your `onClick` handler where you reset each region's value. The menu stays open, matching the behavior of the built-in clear button in `<CompactSelect>`.
+Use `<CompositeSelect.ClearButton>` in `menuHeaderTrailingItems` to add a "Clear" button to the menu header. When clicked, it calls your `onClick` handler where you reset each region's value. The menu stays open, matching the behavior of the built-in clear button in `<CompactSelect>`. The component is the same styled button used internally by `<CompactSelect>`, ensuring visual consistency.
 
 Only render the button when there is an active selection to clear.
 
