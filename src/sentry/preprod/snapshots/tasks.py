@@ -375,7 +375,7 @@ def compare_snapshots(
 
                 # Fetch unique hashes in parallel; session.get() is thread-safe
                 with ContextPropagatingThreadPoolExecutor(max_workers=8) as executor:
-                    executor.map(_fetch_hash, unique_hashes)
+                    list(executor.map(_fetch_hash, unique_hashes))
 
                 for candidate in batch:
                     if candidate.head_hash in failed_hashes or candidate.base_hash in failed_hashes:
