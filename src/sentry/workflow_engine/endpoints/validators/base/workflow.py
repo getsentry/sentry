@@ -388,14 +388,13 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
             # connect detectors
             detector_ids = validated_value.get("detector_ids")
             if detector_ids:
-                detector_ids = set(detector_ids)
                 validate_detectors_exist_and_have_permissions(detector_ids, organization, request)
 
                 detector_workflows_to_add: list[
                     dict[Literal["detector_id", "workflow_id"], int]
                 ] = [
                     {"detector_id": detector_id, "workflow_id": workflow.id}
-                    for detector_id in detector_ids
+                    for detector_id in set(detector_ids)
                 ]
                 perform_bulk_detector_workflow_operations(
                     detector_workflows_to_add=detector_workflows_to_add,
