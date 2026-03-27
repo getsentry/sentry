@@ -57,7 +57,7 @@ export function registerSeerContext<P extends Record<string, unknown>>(
       // and useSeerContext(data) calls read this as their context anchor.
       <SeerNodeContext.Provider value={ownNodeId}>
         {/* TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261 */}
-        <WrappedComponent {...(props as P as any)} />
+        <WrappedComponent {...(props as any)} />
       </SeerNodeContext.Provider>
     );
   }
