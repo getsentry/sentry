@@ -85,16 +85,16 @@ export function NewDetectorLayout<
       <EditLayout.Header maxWidth={maxWidth}>
         <EditLayout.HeaderContent>
           <NewDetectorBreadcrumbs detectorType={detectorType} />
-          <DetectorNameField />
         </EditLayout.HeaderContent>
 
         <div>
           <MonitorFeedbackButton />
         </div>
 
-        {previewChart && (
-          <EditLayout.HeaderFields>{previewChart}</EditLayout.HeaderFields>
-        )}
+        <EditLayout.HeaderFields>
+          <DetectorNameField />
+          {previewChart ?? <div />}
+        </EditLayout.HeaderFields>
       </EditLayout.Header>
 
       <EditLayout.Body maxWidth={maxWidth}>{children}</EditLayout.Body>

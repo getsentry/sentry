@@ -106,7 +106,7 @@ function Actions({children}: RequiredChildren) {
 
 function HeaderFields({children}: RequiredChildren) {
   return (
-    <Stack gap="xl" column="1 / -1">
+    <Stack gap="md" column="1 / -1">
       {children}
     </Stack>
   );

@@ -74,7 +74,6 @@ export function EditDetectorLayout<
       <EditLayout.Header maxWidth={maxWidth}>
         <EditLayout.HeaderContent>
           <EditDetectorBreadcrumbs detector={detector} />
-          <DetectorNameField />
         </EditLayout.HeaderContent>
 
         <div>
@@ -83,9 +82,10 @@ export function EditDetectorLayout<
           </EditLayout.Actions>
         </div>
 
-        {previewChart && (
-          <EditLayout.HeaderFields>{previewChart}</EditLayout.HeaderFields>
-        )}
+        <EditLayout.HeaderFields>
+          <DetectorNameField />
+          {previewChart ?? <div />}
+        </EditLayout.HeaderFields>
       </EditLayout.Header>
 
       <EditLayout.Body maxWidth={maxWidth}>{children}</EditLayout.Body>
