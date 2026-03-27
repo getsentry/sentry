@@ -61,7 +61,7 @@ export function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>
     }
   }
   const parsedJson = tryParseJson(content.value);
-  if (typeof parsedJson === 'object') {
+  if (typeof parsedJson === 'object' && parsedJson !== null) {
     return (
       <AttributeStructuredData
         data={parsedJson}
