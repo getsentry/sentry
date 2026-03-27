@@ -22,6 +22,7 @@ import {Text} from '@sentry/scraps/text';
 import {useCommandPaletteActions} from 'sentry/components/commandPalette/context';
 import type {
   CommandPaletteActionWithKey,
+  CommandPaletteGroupActionWithKey,
   CommandPaletteGroupKey,
 } from 'sentry/components/commandPalette/types';
 import {
@@ -53,14 +54,14 @@ function makeLeadingItemAnimation(theme: Theme) {
 }
 
 type CommandPaletteActionMenuItem = MenuListItemProps & {
-  children: CommandPaletteActionMenuItem[];
+  children: CommandPaletteActionWithKey[];
   key: string;
   type: 'action' | 'section';
   hideCheck?: boolean;
 };
 
 interface CommandPaletteProps {
-  onAction: (action: Exclude<CommandPaletteActionWithKey, {type: 'group'}>) => void;
+  onAction: (action: CommandPaletteActionWithKey) => void;
 }
 
 export function CommandPalette(props: CommandPaletteProps) {
@@ -79,7 +80,7 @@ export function CommandPalette(props: CommandPaletteProps) {
 
   const filteredActions = useMemo(() => {
     const scopedActions =
-      state.action?.value.action.type === 'group'
+      'actions' in state.action?.value.action
         ? state.action.value.action.actions
         : actions;
 
@@ -260,11 +261,17 @@ const COMMAND_PALETTE_GROUP_KEY_CONFIG: Record<CommandPaletteGroupKey, string> =
   help: t('Help'),
 };
 
+function isActionGroup(
+  action: CommandPaletteActionWithKey
+): action is CommandPaletteGroupActionWithKey {
+  return 'actions' in action;
+}
+
 function traverse(
   action: CommandPaletteActionWithKey,
   fn: (action: CommandPaletteActionWithKey) => void
 ) {
-  if ('actions' in action) {
+  if (isActionGroup(action)) {
     for (const child of action.actions) {
       traverse(child, fn);
     }
@@ -283,7 +290,6 @@ function edges(action: CommandPaletteActionWithKey): Set<CommandPaletteActionWit
       if (!sections.has(a)) {
         sections.add({
           key: a.groupingKey,
-          type: 'group',
           display: {
             label: COMMAND_PALETTE_GROUP_KEY_CONFIG[a.groupingKey],
           },
@@ -311,32 +317,30 @@ function edges(action: CommandPaletteActionWithKey): Set<CommandPaletteActionWit
 
 function group(
   action: CommandPaletteActionWithKey,
-  parent: CommandPaletteActionMenuItem,
-  sections: Set<CommandPaletteActionMenuItem>
+  parent: CommandPaletteActionWithKey,
+  sections: Set<CommandPaletteActionWithKey>
 ) {
-  traverse(action, () => {});
+  // traverse(action, () => {});
 }
 
 export function commandPaletteSearch(
   query: string,
   actions: CommandPaletteActionWithKey[]
-): CommandPaletteActionMenuItem[] {
+) {
   // @TODO: early return if no query
-  const copy = [...actions];
-  const virtualRoot = makeMenuItemFromAction('section', {
+  // const copy = [...actions];
+  const virtualRoot: CommandPaletteActionWithKey = {
     key: 'virtual-root',
-    type: 'group',
     display: {
       label: '',
     },
-    actions: [],
-  });
+    actions: [...actions],
+  };
 
   const sections = edges(virtualRoot);
 
-  // run the grouping and return
-  for (const action of copy) {
-    group(action, virtualRoot);
+  for (const child of virtualRoot.actions) {
+    group(child, virtualRoot, sections);
   }
 
   // Score every action in the list compared to the query
@@ -359,21 +363,7 @@ export function commandPaletteSearch(
 
   // Filter the action tree to only include actions that have a score
 
-  const results: CommandPaletteActionMenuItem[] = [];
-  const sections = new Map<string, CommandPaletteActionMenuItem>();
-
-  for (const [key, label] of Object.entries(COMMAND_PALETTE_GROUP_KEY_CONFIG)) {
-    const section = makeMenuItemFromAction('section', {
-      key: label,
-      type: 'group',
-      display: {
-        label,
-      },
-      actions: [],
-    });
-    sections.set(key, section);
-    results.push(section);
-  }
+  // const results: CommandPaletteActionMenuItem[] = [];
 
   // function filter(action: CommandPaletteActionWithKey) {
   //   if ('actions' in action) {
@@ -390,16 +380,16 @@ export function commandPaletteSearch(
   //   filter(action);
   // }
 
-  for (const action of copy) {
-    group(action, virtualRoot);
-  }
+  // for (const action of copy) {
+  //   group(action, virtualRoot);
+  // }
 
-  return virtualRoot.children.flatMap(item => {
-    if (item.type === 'section') {
-      return [item, ...item.children];
-    }
-    return [item];
-  });
+  // return virtualRoot.children.flatMap(item => {
+  //   if (item.type === 'section') {
+  //     return [item, ...item.children];
+  //   }
+  //   return [item];
+  // });
 
   // const results = copy.flatMap(a => makeMenuItemFromAction(a));
   // return results;

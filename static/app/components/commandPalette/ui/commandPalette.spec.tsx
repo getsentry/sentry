@@ -380,18 +380,14 @@ import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette
 //   });
 // });
 
-function traverse(
-  action: ReturnType<typeof commandPaletteSearch>[0],
-  results: string[],
-  depth: number
-) {
+function traverse(action: CommandPaletteActionWithKey, results: string[], depth: number) {
   for (const child of action.children) {
     traverse(child, results, depth + 1);
   }
   results.push(' '.repeat(depth) + serializeAction(action));
 }
 
-function serializeAction(action: ReturnType<typeof commandPaletteSearch>[0]) {
+function serializeAction(action: CommandPaletteActionWithKey) {
   if (action.type === 'section') {
     return `section:${action.label as string}`;
   }

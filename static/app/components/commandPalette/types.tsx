@@ -16,6 +16,7 @@ interface CommonCommandPaletteAction {
   groupingKey?: CommandPaletteGroupKey;
   /** Whether this action should be hidden from the palette */
   hidden?: boolean;
+
   /** Optional keywords to improve searchability */
   keywords?: string[];
 }
@@ -26,40 +27,34 @@ export interface CommandPaletteActionLink extends CommonCommandPaletteAction {
 }
 
 export interface CommandPaletteActionCallback extends CommonCommandPaletteAction {
-  /**
-   * Execute a callback when the action is selected.
-   * Use the `to` prop if you want to navigate to a route.
-   */
+  /** Callback to be executed when the action is selected. */
   onAction: () => void;
 }
 
-export type CommandPaletteActionChild =
-  | CommandPaletteActionCallback
-  | CommandPaletteActionLink;
-
-export interface CommandPaletteActionGroup<
-  T = CommandPaletteActionChild,
-> extends CommonCommandPaletteAction {
-  /** Nested actions to show when this action is selected */
-  actions: T[];
+interface CommandPaletteGroupAction extends CommonCommandPaletteAction {
+  /** Actions to show when this action is selected */
+  actions: CommandPaletteAction[];
 }
 
 export type CommandPaletteAction =
   | CommandPaletteActionLink
   | CommandPaletteActionCallback
-  | CommandPaletteActionGroup;
+  | CommandPaletteGroupAction;
 
 // Internally, a key is added to the actions in order to track them for registration and selection.
-export type CommandPaletteActionLinkWithKey = CommandPaletteActionLink & {key: string};
-export type CommandPaletteActionCallbackWithKey = CommandPaletteActionCallback & {
+// This type should only be used inside the command palette component and should not be exposed to the callers
+export type CommandPaletteGroupActionWithKey = Omit<
+  CommandPaletteGroupAction,
+  'actions'
+> & {
+  actions: CommandPaletteActionWithKey[];
   key: string;
 };
-type CommandPaletteActionGroupWithKey<T> = CommandPaletteActionGroup<T> & {
-  key: string;
-};
+
+type CommandPaletteActionLinkWithKey = CommandPaletteActionLink & {key: string};
+type CommandPaletteActionCallbackWithKey = CommandPaletteActionCallback & {key: string};
+
 export type CommandPaletteActionWithKey =
   | CommandPaletteActionLinkWithKey
   | CommandPaletteActionCallbackWithKey
-  | CommandPaletteActionGroupWithKey<
-      CommandPaletteActionLinkWithKey | CommandPaletteActionCallbackWithKey
-    >;
+  | CommandPaletteGroupActionWithKey;
