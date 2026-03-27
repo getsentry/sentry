@@ -23,6 +23,7 @@ interface Props {
   actions: React.ReactNode;
   editMode: 'single' | 'bulk';
   isLoading: boolean;
+  onBulkProjectRateChange: (updates: Record<string, string>) => void;
   onEditModeChange: (mode: 'single' | 'bulk') => void;
   onProjectRateChange: (projectId: string, rate: string) => void;
   period: ProjectionSamplePeriod;
@@ -41,6 +42,7 @@ export function ProjectsEditTable({
   editMode,
   period,
   onEditModeChange,
+  onBulkProjectRateChange,
   onProjectRateChange,
   projectRates,
   projectErrors,
@@ -100,13 +102,11 @@ export function ProjectsEditTable({
         valueSelector: item => formatPercent(item.sampleRate),
       });
 
-      for (const [projectId, rate] of Object.entries(newProjectValues)) {
-        onProjectRateChange(projectId, rate);
-      }
+      onBulkProjectRateChange(newProjectValues);
       setOrgRate(newRate);
       onEditModeChange('bulk');
     },
-    [dataByProjectId, editMode, onProjectRateChange, onEditModeChange, projectRates]
+    [dataByProjectId, editMode, onBulkProjectRateChange, onEditModeChange, projectRates]
   );
 
   const handleBulkEditChange = useCallback((newIsActive: boolean) => {

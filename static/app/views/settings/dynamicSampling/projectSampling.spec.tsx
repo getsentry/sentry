@@ -170,6 +170,44 @@ describe('ProjectSampling', () => {
     );
   });
 
+  it('updates project rates atomically via bulk org rate edit', async () => {
+    const putMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sampling/project-rates/',
+      method: 'PUT',
+      body: [{id: 1, sampleRate: 0.8}],
+    });
+
+    render(<ProjectSampling />, {organization});
+
+    await waitForProjectRateInput();
+
+    // Activate bulk edit mode
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Proportionally scale project rates'})
+    );
+
+    // Type a new org rate — this should update all project rates in one atomic call
+    const orgRateInput = screen.getAllByRole('spinbutton')[0]!;
+    await userEvent.clear(orgRateInput);
+    await userEvent.type(orgRateInput, '80');
+
+    // The project rate should have been scaled
+    const projectInput = screen.getByRole('spinbutton', {
+      name: 'Sample rate for project-slug',
+    });
+    expect(projectInput).toHaveValue(80);
+
+    // Submit and verify the API call
+    await userEvent.click(screen.getByRole('button', {name: 'Apply Changes'}));
+
+    await waitFor(() => {
+      expect(putMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/sampling/project-rates/',
+        expect.objectContaining({data: [{id: 1, sampleRate: 0.8}]})
+      );
+    });
+  });
+
   it('disables Apply Changes for users without org:write access', async () => {
     const orgWithoutAccess = OrganizationFixture({
       access: [],

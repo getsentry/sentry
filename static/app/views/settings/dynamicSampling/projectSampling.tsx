@@ -95,6 +95,13 @@ export function ProjectSampling() {
     [form]
   );
 
+  const handleBulkProjectRateChange = useCallback(
+    (updates: Record<string, string>) => {
+      form.setFieldValue('projectRates', prev => ({...prev, ...updates}));
+    },
+    [form]
+  );
+
   // Mirror enableReInitialize: reset the form whenever the server data changes
   useEffect(() => {
     form.reset({projectRates});
@@ -160,6 +167,7 @@ export function ProjectSampling() {
                   editMode={editMode}
                   onEditModeChange={setEditMode}
                   onProjectRateChange={handleProjectRateChange}
+                  onBulkProjectRateChange={handleBulkProjectRateChange}
                   projectRates={currentProjectRates}
                   projectErrors={projectErrors}
                   isLoading={sampleRatesQuery.isPending || sampleCountsQuery.isPending}
