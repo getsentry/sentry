@@ -1,45 +1,45 @@
-import {useCallback, useState} from 'react';
+import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Flex, Stack} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
 import {TeamSelector} from 'sentry/components/teamSelector';
-import {IconProject} from 'sentry/icons';
+import {IconGroup, IconProject, IconSiren} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {slugify} from 'sentry/utils/slugify';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
-import type {useCreateNotificationAction} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {
   DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
   getRequestDataFragment,
-  IssueAlertOptions,
   type AlertRuleOptions,
+  RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
 
+import {ScmAlertFrequency} from './components/scmAlertFrequency';
+import {ScmStepFooter} from './components/scmStepFooter';
+import {ScmStepHeader} from './components/scmStepHeader';
 import type {StepProps} from './types';
 
+const PROJECT_DETAILS_WIDTH = '285px';
+
 export function ScmProjectDetails({onComplete}: StepProps) {
+  const organization = useOrganization();
   const {selectedPlatform, selectedFeatures, setCreatedProjectSlug} =
     useOnboardingContext();
   const {teams} = useTeams();
   const createProjectAndRules = useCreateProjectAndRules();
-
-  // Notification actions (Connect to messaging) deferred to VDY-28 UI polish pass.
-  // No-op avoids the API call that useCreateNotificationAction makes on mount.
-  const createNotificationAction = useCallback(
-    () =>
-      undefined as ReturnType<
-        ReturnType<typeof useCreateNotificationAction>['createNotificationAction']
-      >,
-    []
-  );
+  useEffect(() => {
+    trackAnalytics('onboarding.scm_project_details_step_viewed', {organization});
+  }, [organization]);
 
   const firstAdminTeam = teams.find((team: Team) => team.access.includes('team:admin'));
   const defaultName = slugify(selectedPlatform?.key ?? '');
@@ -55,12 +55,40 @@ export function ScmProjectDetails({onComplete}: StepProps) {
     DEFAULT_ISSUE_ALERT_OPTIONS_VALUES
   );
 
-  const handleAlertChange = useCallback(
-    <K extends keyof AlertRuleOptions>(key: K, value: AlertRuleOptions[K]) => {
-      setAlertRuleConfig(prev => ({...prev, [key]: value}));
-    },
-    []
-  );
+  function handleAlertChange<K extends keyof AlertRuleOptions>(
+    key: K,
+    value: AlertRuleOptions[K]
+  ) {
+    setAlertRuleConfig(prev => ({...prev, [key]: value}));
+    if (key === 'alertSetting') {
+      const optionMap: Record<number, string> = {
+        [RuleAction.DEFAULT_ALERT]: 'high_priority',
+        [RuleAction.CUSTOMIZED_ALERTS]: 'custom',
+        [RuleAction.CREATE_ALERT_LATER]: 'create_later',
+      };
+      trackAnalytics('onboarding.scm_project_details_alert_selected', {
+        organization,
+        option: optionMap[value as number] ?? String(value),
+      });
+    }
+  }
+
+  function handleProjectNameBlur() {
+    if (projectName !== null) {
+      trackAnalytics('onboarding.scm_project_details_name_edited', {
+        organization,
+        custom: projectName !== defaultName,
+      });
+    }
+  }
+
+  function handleTeamChange({value}: {value: string}) {
+    setTeamSlug(value);
+    trackAnalytics('onboarding.scm_project_details_team_selected', {
+      organization,
+      team: value,
+    });
+  }
 
   const canSubmit =
     projectNameResolved.length > 0 &&
@@ -68,10 +96,12 @@ export function ScmProjectDetails({onComplete}: StepProps) {
     !!selectedPlatform &&
     !createProjectAndRules.isPending;
 
-  const handleCreateProject = useCallback(async () => {
+  async function handleCreateProject() {
     if (!selectedPlatform || !canSubmit) {
       return;
     }
+
+    trackAnalytics('onboarding.scm_project_details_create_clicked', {organization});
 
     try {
       const {project} = await createProjectAndRules.mutateAsync({
@@ -79,7 +109,7 @@ export function ScmProjectDetails({onComplete}: StepProps) {
         platform: selectedPlatform,
         team: teamSlugResolved,
         alertRuleConfig: getRequestDataFragment(alertRuleConfig),
-        createNotificationAction,
+        createNotificationAction: () => undefined,
       });
 
       // Store the project slug separately so onboarding.tsx can find
@@ -87,52 +117,56 @@ export function ScmProjectDetails({onComplete}: StepProps) {
       // selectedPlatform.key (which the platform features step needs).
       setCreatedProjectSlug(project.slug);
 
+      trackAnalytics('onboarding.scm_project_details_create_succeeded', {
+        organization,
+        project_slug: project.slug,
+      });
+
       onComplete(undefined, selectedFeatures ? {product: selectedFeatures} : undefined);
     } catch (error) {
+      trackAnalytics('onboarding.scm_project_details_create_failed', {organization});
       addErrorMessage(t('Failed to create project'));
       Sentry.captureException(error);
     }
-  }, [
-    selectedPlatform,
-    canSubmit,
-    createProjectAndRules,
-    projectNameResolved,
-    teamSlugResolved,
-    alertRuleConfig,
-    createNotificationAction,
-    selectedFeatures,
-    setCreatedProjectSlug,
-    onComplete,
-  ]);
+  }
 
   return (
-    <Flex direction="column" align="center" gap="xl" flexGrow={1}>
-      <Stack align="center" gap="md">
-        <Heading as="h2">{t('Project details')}</Heading>
-        <Text variant="muted">
-          {t(
-            'Set the project name, assign a team, and configure how you want to receive issue alerts'
-          )}
-        </Text>
-      </Stack>
+    <Flex direction="column" align="center" gap="2xl" flexGrow={1}>
+      <ScmStepHeader
+        stepNumber={3}
+        heading={t('Project details')}
+        subtitle={t(
+          'Set the project name, assign a team, and configure\nhow you want to receive issue alerts'
+        )}
+      />
 
-      <Stack gap="lg" width="100%" maxWidth="600px">
-        <Stack gap="sm">
-          <Flex gap="xs" align="center">
-            <IconProject size="sm" />
-            <Text bold>{t('Give your project a name')}</Text>
+      <Stack gap="3xl" width="100%" maxWidth={PROJECT_DETAILS_WIDTH}>
+        <Stack gap="md">
+          <Flex gap="md" align="center" justify="center">
+            <IconProject size="md" variant="secondary" />
+            <Container>
+              <Text bold size="lg" density="comfortable">
+                {t('Give your project a name')}
+              </Text>
+            </Container>
           </Flex>
           <Input
             type="text"
             placeholder={t('project-name')}
             value={projectNameResolved}
             onChange={e => setProjectName(slugify(e.target.value))}
+            onBlur={handleProjectNameBlur}
           />
         </Stack>
 
-        <Stack gap="sm">
-          <Flex gap="xs" align="center">
-            <Text bold>{t('Assign a team')}</Text>
+        <Stack gap="md">
+          <Flex gap="md" align="center" justify="center">
+            <IconGroup size="md" />
+            <Container>
+              <Text bold size="lg" density="comfortable">
+                {t('Assign a team')}
+              </Text>
+            </Container>
           </Flex>
           <TeamSelector
             allowCreate
@@ -142,31 +176,39 @@ export function ScmProjectDetails({onComplete}: StepProps) {
             placeholder={t('Select a Team')}
             teamFilter={(tm: Team) => tm.access.includes('team:admin')}
             value={teamSlugResolved}
-            onChange={({value}: {value: string}) => setTeamSlug(value)}
+            onChange={handleTeamChange}
           />
         </Stack>
 
-        <Stack gap="sm">
-          <Flex gap="xs" align="center">
-            <Text bold>{t('Alert frequency')}</Text>
+        <Stack gap="md">
+          <Flex gap="md" align="center" justify="center">
+            <IconSiren size="md" />
+            <Container>
+              <Text bold size="lg" density="comfortable">
+                {t('Alert frequency')}
+              </Text>
+            </Container>
           </Flex>
-          <Text variant="muted" size="sm">
-            {t('Get notified when things go wrong')}
-          </Text>
-          <IssueAlertOptions {...alertRuleConfig} onFieldChange={handleAlertChange} />
+          <Container>
+            <Text variant="muted" size="lg" density="comfortable" align="center">
+              {t('Get notified when things go wrong')}
+            </Text>
+          </Container>
+          <ScmAlertFrequency {...alertRuleConfig} onFieldChange={handleAlertChange} />
         </Stack>
       </Stack>
 
-      <Flex gap="md" align="center">
+      <ScmStepFooter>
         <Button
           priority="primary"
           onClick={handleCreateProject}
           disabled={!canSubmit}
+          busy={createProjectAndRules.isPending}
           icon={<IconProject />}
         >
           {t('Create project')}
         </Button>
-      </Flex>
+      </ScmStepFooter>
     </Flex>
   );
 }
