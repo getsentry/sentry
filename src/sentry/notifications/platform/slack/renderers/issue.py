@@ -29,10 +29,11 @@ class IssueSlackRenderer(NotificationRenderer[SlackRenderable]):
         if data.event_id:
             event = eventstore.backend.get_event_by_id(group.project.id, data.event_id)
 
+        tags = data.rule.data.get("tags", None) or None
         blocks_dict = SlackIssuesMessageBuilder(
             group=group,
             event=event,
-            tags=data.rule.data.get("tags", None) or None,
+            tags=set(tags.split(",")) if tags else None,
             rules=[data.rule.to_rule()] if data.rule else None,
             notes=data.rule.data.get("notes", None) or None,
             link_to_event=True,
