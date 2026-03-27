@@ -5,7 +5,6 @@ to a staging app and vice versa, by swapping credentials in-place on the existin
 Integration row.
 """
 
-from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlencode, urlparse
@@ -23,7 +22,7 @@ from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test
-from tests.sentry.integrations.slack.test_integration import SlackIntegrationTest
+from tests.sentry.integrations.slack.test_helpers import assert_slack_setup_flow
 
 STAGING_CLIENT_ID = "staging-client-id"
 STAGING_CLIENT_SECRET = "staging-client-secret"
@@ -205,8 +204,8 @@ class SlackStagingSidegradeFlowTest(IntegrationTestCase):
 
     provider = SlackIntegrationProvider
 
-    def assert_setup_flow(self, **kwargs: Any) -> None:
-        SlackIntegrationTest.assert_setup_flow(self, **kwargs)
+    def assert_setup_flow(self, **kwargs):
+        assert_slack_setup_flow(self, **kwargs)
 
     @responses.activate
     @with_feature({"organizations:slack-staging-app": True})

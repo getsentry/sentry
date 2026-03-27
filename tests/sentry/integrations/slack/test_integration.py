@@ -1,12 +1,10 @@
 from unittest.mock import MagicMock, patch
-from urllib.parse import parse_qs, urlencode, urlparse
 
 import orjson
 import pytest
 import responses
 from responses.matchers import query_string_matcher
 from slack_sdk.errors import SlackApiError
-from slack_sdk.web import SlackResponse
 
 from sentry import audit_log
 from sentry.integrations.models.integration import Integration
@@ -27,6 +25,7 @@ from sentry.testutils.cases import APITestCase, IntegrationTestCase, TestCase
 from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
+from tests.sentry.integrations.slack.test_helpers import assert_slack_setup_flow
 
 
 @control_silo_test
@@ -52,104 +51,8 @@ class SlackIntegrationTest(IntegrationTestCase):
     def setUp(self) -> None:
         super().setUp()
 
-    def assert_setup_flow(
-        self,
-        team_id="TXXXXXXX1",
-        authorizing_user_id="UXXXXXXX1",
-        expected_client_id="slack-client-id",
-        expected_client_secret="slack-client-secret",
-        customer_domain=None,
-        init_params=None,
-    ):
-        responses.reset()
-
-        kwargs = {}
-        if customer_domain:
-            kwargs["HTTP_HOST"] = customer_domain
-
-        init_path = self.init_path
-        if init_params:
-            init_path = f"{init_path}?{urlencode(init_params)}"
-
-        resp = self.client.get(init_path, **kwargs)
-        assert resp.status_code == 302
-        redirect = urlparse(resp["Location"])
-        assert redirect.scheme == "https"
-        assert redirect.netloc == "slack.com"
-        assert redirect.path == "/oauth/v2/authorize"
-        params = parse_qs(redirect.query)
-        scopes = self.provider.identity_oauth_scopes
-        assert params["scope"] == [" ".join(scopes)]
-        assert params["state"]
-        assert params["redirect_uri"] == ["http://testserver/extensions/slack/setup/"]
-        assert params["response_type"] == ["code"]
-        assert params["client_id"] == [expected_client_id]
-
-        assert params.get("user_scope") == [" ".join(self.provider.user_scopes)]
-        # once we've asserted on it, switch to a singular values to make life
-        # easier
-        authorize_params = {k: v[0] for k, v in params.items()}
-
-        access_json = {
-            "ok": True,
-            "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-            "scope": ",".join(sorted(self.provider.identity_oauth_scopes)),
-            "team": {"id": team_id, "name": "Example"},
-            "authed_user": {"id": authorizing_user_id},
-        }
-        responses.add(responses.POST, "https://slack.com/api/oauth.v2.access", json=access_json)
-
-        response_json = {
-            "ok": True,
-            "members": [
-                {
-                    "id": authorizing_user_id,
-                    "team_id": team_id,
-                    "deleted": False,
-                    "profile": {
-                        "email": self.user.email,
-                        "team": team_id,
-                    },
-                },
-            ],
-            "response_metadata": {"next_cursor": ""},
-        }
-        with patch(
-            "slack_sdk.web.client.WebClient.users_list",
-            return_value=SlackResponse(
-                client=None,
-                http_verb="GET",
-                api_url="https://slack.com/api/users.list",
-                req_args={},
-                data=response_json,
-                headers={},
-                status_code=200,
-            ),
-        ) as self.mock_post:
-            resp = self.client.get(
-                "{}?{}".format(
-                    self.setup_path,
-                    urlencode({"code": "oauth-code", "state": authorize_params["state"]}),
-                )
-            )
-
-            if customer_domain:
-                assert resp.status_code == 302
-                assert resp["Location"].startswith(
-                    f"http://{customer_domain}/extensions/slack/setup/"
-                )
-                resp = self.client.get(resp["Location"], **kwargs)
-
-        mock_request = responses.calls[0].request
-        req_params = parse_qs(mock_request.body)
-        assert req_params["grant_type"] == ["authorization_code"]
-        assert req_params["code"] == ["oauth-code"]
-        assert req_params["redirect_uri"] == ["http://testserver/extensions/slack/setup/"]
-        assert req_params["client_id"] == [expected_client_id]
-        assert req_params["client_secret"] == [expected_client_secret]
-
-        assert resp.status_code == 200
-        self.assertDialogSuccess(resp)
+    def assert_setup_flow(self, **kwargs):
+        assert_slack_setup_flow(self, **kwargs)
 
     @responses.activate
     def test_bot_flow(self, mock_api_call: MagicMock) -> None:
