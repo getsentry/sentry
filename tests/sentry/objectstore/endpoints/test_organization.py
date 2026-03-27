@@ -12,7 +12,7 @@ from django.urls import reverse
 from objectstore_client import Client, RequestError, Session, Usecase
 from pytest_django.live_server_helper import LiveServer
 
-from sentry.hybridcloud.apigateway import proxy as proxy_mod
+from sentry.hybridcloud.apigateway_async import proxy as proxy_mod
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.testutils.asserts import assert_status_code
 from sentry.testutils.cases import TransactionTestCase
