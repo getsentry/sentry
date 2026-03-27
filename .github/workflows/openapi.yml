@@ -20,8 +20,8 @@ jobs:
           app-id: ${{ vars.SENTRY_API_SCHEMA_UPDATER_APP_CLIENT_ID }}
           private-key: ${{ secrets.SENTRY_API_SCHEMA_UPDATER_PRIVATE_KEY }}
           repositories: |
-            getsentry/sentry
-            getsentry/sentry-api-schema
+            sentry
+            sentry-api-schema
 
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
