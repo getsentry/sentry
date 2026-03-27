@@ -274,7 +274,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
     def test_autofix_automation_tuning_non_seat_based(self) -> None:
         self.login_as(user=self.user)
 
-        for setting in [None] + list(AutofixAutomationTuningSettings):
+        for setting in [None, *list(AutofixAutomationTuningSettings)]:
             self.project.update_option("sentry:autofix_automation_tuning", setting)
             group = self.create_group()
             url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/"
