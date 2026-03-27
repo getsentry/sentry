@@ -36,21 +36,21 @@ export function useDsnLookupActions(query: string): void {
     }
   );
 
-  const actions: CommandPaletteAction[] = useMemo(() => {
+  const actions = useMemo(() => {
     if (!isDsn || !data) {
       return [];
     }
 
-    return getDsnNavTargets(data).map((target, i) => ({
-      type: 'navigate' as const,
-      to: target.to,
-      display: {
-        label: target.label,
-        details: target.description,
-        icon: ICONS[i],
-      },
-      groupingKey: 'search-result' as const,
-    }));
+    return getDsnNavTargets(data).map(
+      (target, i): CommandPaletteAction => ({
+        to: target.to,
+        display: {
+          label: target.label,
+          details: target.description,
+          icon: ICONS[i],
+        },
+      })
+    );
   }, [isDsn, data]);
 
   useCommandPaletteActions(actions);

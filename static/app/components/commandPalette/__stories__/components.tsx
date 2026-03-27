@@ -2,11 +2,6 @@ import {useCallback} from 'react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
-import {
-  makeCommandPaletteCallback,
-  makeCommandPaletteGroup,
-  makeCommandPaletteLink,
-} from 'sentry/components/commandPalette/makeCommandPaletteAction';
 import type {
   CommandPaletteAction,
   CommandPaletteActionWithKey,
@@ -26,40 +21,40 @@ export function CommandPaletteDemo() {
 
   const handleAction = useCallback(
     (action: Exclude<CommandPaletteActionWithKey, {type: 'group'}>) => {
-      if (action.type === 'navigate') {
+      if ('to' in action) {
         navigate(normalizeUrl(action.to));
-      } else {
-        action.onAction();
+      } else if ('onAction' in action) {
+        action.onAction?.();
       }
     },
     [navigate]
   );
 
   const demoActions = [
-    makeCommandPaletteLink({
+    {
       display: {label: 'Go to Flex story'},
       to: '/stories/layout/flex/',
-      groupingKey: 'navigate',
-    }),
-    makeCommandPaletteCallback({
+      groupingKey: 'navigate' as const,
+    },
+    {
       display: {label: 'Execute an action'},
-      groupingKey: 'help',
+      groupingKey: 'help' as const,
       onAction: () => {
         addSuccessMessage('Action executed');
       },
-    }),
-    makeCommandPaletteGroup({
-      groupingKey: 'add',
+    },
+    {
+      groupingKey: 'add' as const,
       display: {label: 'Parent action'},
       actions: [
-        makeCommandPaletteCallback({
+        {
           display: {label: 'Child action'},
           onAction: () => {
             addSuccessMessage('Child action executed');
           },
-        }),
+        },
       ],
-    }),
+    },
   ];
 
   return (

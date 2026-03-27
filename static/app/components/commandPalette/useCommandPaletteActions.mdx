@@ -13,11 +13,6 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {toggleCommandPalette} from 'sentry/actionCreators/modal';
 
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
-import {
-  makeCommandPaletteCallback,
-  makeCommandPaletteGroup,
-  makeCommandPaletteLink,
-} from 'sentry/components/commandPalette/makeCommandPaletteAction';
 import {useCommandPaletteActions} from 'sentry/components/commandPalette/useCommandPaletteActions';
 
 import * as Storybook from 'sentry/stories';
@@ -45,31 +40,31 @@ import {useCommandPaletteActions} from 'sentry/components/commandPalette/useComm
 
 function YourComponent() {
   useCommandPaletteActions([
-    makeCommandPaletteLink({
+    {
       display: {label: 'Go to Input story'},
       to: '/stories/core/input/',
       groupingKey: 'navigate',
-    }),
-    makeCommandPaletteCallback({
+    },
+    {
       display: {label: 'Execute an action'},
       groupingKey: 'help',
       onAction: () => {
         addSuccessMessage('Action executed');
       },
-    }),
-    makeCommandPaletteGroup({
+    },
+    {
       groupingKey: 'add',
       display: {label: 'Parent action'},
       actions: [
-        makeCommandPaletteCallback({
+        {
           key: 'child-action',
           display: {label: 'Child action'},
           onAction: () => {
             addSuccessMessage('Child action executed');
           },
-        }),
+        },
       ],
-    }),
+    },
   ]);
 }
 ```

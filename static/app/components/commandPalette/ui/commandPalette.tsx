@@ -83,7 +83,7 @@ export function CommandPalette(props: CommandPaletteProps) {
         ? state.action.value.action.actions
         : actions;
 
-    return search(state.query, scopedActions);
+    return commandPaletteSearch(state.query, scopedActions);
   }, [state.query, actions, state.action]);
 
   const treeState = useTreeState({
@@ -260,10 +260,85 @@ const COMMAND_PALETTE_GROUP_KEY_CONFIG: Record<CommandPaletteGroupKey, string> =
   help: t('Help'),
 };
 
-function search(
+function traverse(
+  action: CommandPaletteActionWithKey,
+  fn: (action: CommandPaletteActionWithKey) => void
+) {
+  if ('actions' in action) {
+    for (const child of action.actions) {
+      traverse(child, fn);
+    }
+  }
+  fn(action);
+}
+
+function edges(action: CommandPaletteActionWithKey): Set<CommandPaletteActionWithKey> {
+  const sections = new Set<CommandPaletteActionWithKey>();
+
+  function collect(a: CommandPaletteActionWithKey): void {
+    // Any action can have a grouping key, which will have the runtime effect
+    // of grouping the action under a top level section. Currently, all grouping
+    // keys are top level groups.
+    if (a.groupingKey) {
+      if (!sections.has(a)) {
+        sections.add({
+          key: a.groupingKey,
+          type: 'group',
+          display: {
+            label: COMMAND_PALETTE_GROUP_KEY_CONFIG[a.groupingKey],
+          },
+          actions: [],
+        });
+      }
+    }
+
+    if ('actions' in a) {
+      // If we have child actions, then this is a section too
+      if (!sections.has(a)) {
+        sections.add(a);
+      }
+      for (const child of a.actions) {
+        collect(child);
+      }
+    }
+  }
+
+  traverse(action, collect);
+  collect(action);
+
+  return sections;
+}
+
+function group(
+  action: CommandPaletteActionWithKey,
+  parent: CommandPaletteActionMenuItem,
+  sections: Set<CommandPaletteActionMenuItem>
+) {
+  traverse(action, () => {});
+}
+
+export function commandPaletteSearch(
   query: string,
   actions: CommandPaletteActionWithKey[]
 ): CommandPaletteActionMenuItem[] {
+  // @TODO: early return if no query
+  const copy = [...actions];
+  const virtualRoot = makeMenuItemFromAction('section', {
+    key: 'virtual-root',
+    type: 'group',
+    display: {
+      label: '',
+    },
+    actions: [],
+  });
+
+  const sections = edges(virtualRoot);
+
+  // run the grouping and return
+  for (const action of copy) {
+    group(action, virtualRoot);
+  }
+
   // Score every action in the list compared to the query
   const scores = new Map<CommandPaletteActionWithKey, number>();
   const normalizedQuery = query.toLowerCase();
@@ -283,9 +358,6 @@ function search(
   }
 
   // Filter the action tree to only include actions that have a score
-  const copy = query.length
-    ? [...actions.filter(a => scores.get(a) !== undefined)]
-    : [...actions];
 
   const results: CommandPaletteActionMenuItem[] = [];
   const sections = new Map<string, CommandPaletteActionMenuItem>();
@@ -303,37 +375,6 @@ function search(
     results.push(section);
   }
 
-  function group(
-    action: CommandPaletteActionWithKey,
-    parent: CommandPaletteActionMenuItem
-  ) {
-    let section: CommandPaletteActionMenuItem | null = null;
-
-    if (action.groupingKey) {
-      section = sections.get(action.groupingKey) ?? null;
-
-      if (!section && action.groupingKey) {
-        section = makeMenuItemFromAction('section', action);
-        parent.children.push(section);
-        sections.set(action.groupingKey, section);
-      }
-    } else {
-      section = parent;
-    }
-
-    if ('actions' in action) {
-      for (const child of action.actions) {
-        group(child, section!);
-      }
-    } else {
-      if (section) {
-        section.children.push(makeMenuItemFromAction('action', action));
-      } else {
-        parent.children.push(makeMenuItemFromAction('action', action));
-      }
-    }
-  }
-
   // function filter(action: CommandPaletteActionWithKey) {
   //   if ('actions' in action) {
   //     // action.actions = [...action.actions].filter(a => scores.get(a) !== undefined);
@@ -349,20 +390,11 @@ function search(
   //   filter(action);
   // }
 
-  const root = makeMenuItemFromAction('section', {
-    key: 'virtual-root',
-    type: 'group',
-    display: {
-      label: '',
-    },
-    actions: [],
-  });
-
   for (const action of copy) {
-    group(action, root);
+    group(action, virtualRoot);
   }
 
-  return root.children.flatMap(item => {
+  return virtualRoot.children.flatMap(item => {
     if (item.type === 'section') {
       return [item, ...item.children];
     }
