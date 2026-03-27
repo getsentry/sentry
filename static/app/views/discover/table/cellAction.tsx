@@ -327,7 +327,7 @@ function getInternalLinkActionLabel(field: string): string {
  * Potentially temporary as design and product need more time to determine how logs table should trigger the dropdown.
  * Currently, the agreed default for every table should be bold hover. Logs is the only table to use the ellipsis trigger.
  */
-export enum ActionTriggerType {
+enum ActionTriggerType {
   ELLIPSIS = 'ellipsis',
   BOLD_HOVER = 'bold_hover',
 }
@@ -357,7 +357,7 @@ export function CellAction({
 
   if (triggerType === ActionTriggerType.BOLD_HOVER) {
     return (
-      <Container
+      <CellActionContainer
         data-test-id={cellActions === null ? undefined : 'cell-action-container'}
       >
         {cellActions?.length ? (
@@ -413,45 +413,45 @@ export function CellAction({
         ) : (
           children
         )}
-      </Container>
+      </CellActionContainer>
     );
   }
 
   return (
-    <Container data-test-id={cellActions === null ? undefined : 'cell-action-container'}>
+    <CellActionContainer
+      data-test-id={cellActions === null ? undefined : 'cell-action-container'}
+    >
       {children}
-      {cellActions?.length && (
-        <DropdownMenu
-          items={cellActions}
-          usePortal
-          size="sm"
-          offset={4}
-          position="bottom"
-          preventOverflowOptions={{padding: 4}}
-          flipOptions={{
-            fallbackPlacements: [
-              'top',
-              'right-start',
-              'right-end',
-              'left-start',
-              'left-end',
-            ],
-          }}
-          trigger={triggerProps => (
-            <ActionMenuTrigger
-              {...triggerProps}
-              aria-label={t('Actions')}
-              icon={<IconEllipsis size="xs" />}
-              size="zero"
-            />
-          )}
-        />
-      )}
-    </Container>
+      {cellActions?.length && <EllipsisActionMenu items={cellActions} />}
+    </CellActionContainer>
   );
 }
 
-const Container = styled('div')`
+export function EllipsisActionMenu({items}: {items: MenuItemProps[]}) {
+  return (
+    <DropdownMenu
+      items={items}
+      usePortal
+      size="sm"
+      offset={4}
+      position="bottom"
+      preventOverflowOptions={{padding: 4}}
+      flipOptions={{
+        fallbackPlacements: ['top', 'right-start', 'right-end', 'left-start', 'left-end'],
+      }}
+      trigger={triggerProps => (
+        <CellActionMenuTrigger
+          {...triggerProps}
+          aria-label={t('Actions')}
+          icon={<IconEllipsis size="xs" />}
+          size="zero"
+        />
+      )}
+    />
+  );
+}
+
+export const CellActionContainer = styled('div')`
   position: relative;
   width: 100%;
   height: 100%;
@@ -460,7 +460,7 @@ const Container = styled('div')`
   justify-content: center;
 `;
 
-const ActionMenuTrigger = styled(Button)`
+const CellActionMenuTrigger = styled(Button)`
   position: absolute;
   top: 50%;
   right: -1px;
@@ -474,7 +474,7 @@ const ActionMenuTrigger = styled(Button)`
   transition: opacity 0.1s;
   &:focus-visible,
   &[aria-expanded='true'],
-  ${Container}:hover & {
+  ${CellActionContainer}:hover & {
     opacity: 1;
   }
 `;

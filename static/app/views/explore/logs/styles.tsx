@@ -160,14 +160,6 @@ export const LogDetailTableActionsCell = styled(TableBodyCell)`
     padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
   }
 `;
-export const LogDetailTableActionsButtonBar = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.md};
-  & button {
-    font-weight: ${p => p.theme.font.weight.sans.regular};
-  }
-`;
-
 export const DetailsWrapper = styled('tr')`
   align-items: center;
   background-color: ${p => p.theme.colors.gray100};

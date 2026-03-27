@@ -3,6 +3,7 @@ import React, {
   Fragment,
   memo,
   useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -18,28 +19,26 @@ import {Flex} from '@sentry/scraps/layout';
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconAdd, IconJson, IconSubtract, IconWarning} from 'sentry/icons';
+import {IconAdd, IconCopy, IconJson, IconSubtract, IconWarning} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
-import {FieldValueType} from 'sentry/utils/fields';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {
+  copyToClipboard as copyTextToClipboard,
+  useCopyToClipboard,
+} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useProjects} from 'sentry/utils/useProjects';
 import {
-  Actions,
-  ActionTriggerType,
-  CellAction,
-  copyToClipboard,
+  CellActionContainer,
+  EllipsisActionMenu,
 } from 'sentry/views/discover/table/cellAction';
-import type {TableColumn} from 'sentry/views/discover/table/types';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {
   useLogsAutoRefreshEnabled,
@@ -70,7 +69,6 @@ import {
   DetailsWrapper,
   getLogColors,
   LogAttributeTreeWrapper,
-  LogDetailTableActionsButtonBar,
   LogDetailTableActionsCell,
   LogDetailTableBodyCell,
   LogFirstCellContent,
@@ -123,12 +121,6 @@ type LogsRowProps = {
   onExpand?: (logItemId: string) => void;
   onExpandHeight?: (logItemId: string, estimatedHeight: number) => void;
 };
-
-const ALLOWED_CELL_ACTIONS: Actions[] = [
-  Actions.ADD,
-  Actions.EXCLUDE,
-  Actions.COPY_TO_CLIPBOARD,
-];
 
 function isInsideButton(element: Element | null): boolean {
   let i = 10;
@@ -394,17 +386,6 @@ export const LogRowContent = memo(function LogRowContent({
             />
           );
 
-          const discoverColumn: TableColumn<keyof TableDataRow> = {
-            column: {
-              field,
-              kind: 'field',
-            },
-            name: field,
-            key: field,
-            isSortable: true,
-            type: FieldValueType.STRING,
-          };
-
           const shouldRenderActions =
             !embedded &&
             field !== OurLogKnownFieldKey.TIMESTAMP &&
@@ -413,36 +394,15 @@ export const LogRowContent = memo(function LogRowContent({
           return (
             <LogTableBodyCell key={field} data-test-id={'log-table-cell-' + field}>
               {shouldRenderActions ? (
-                <CellAction
-                  column={discoverColumn}
-                  dataRow={dataRow as unknown as TableDataRow}
-                  handleCellAction={(actions, cellValue) => {
-                    switch (actions) {
-                      case Actions.ADD:
-                        addSearchFilter({
-                          key: field,
-                          value: cellValue,
-                        });
-                        break;
-                      case Actions.EXCLUDE:
-                        addSearchFilter({
-                          key: field,
-                          value: cellValue,
-                          negated: true,
-                        });
-                        break;
-                      case Actions.COPY_TO_CLIPBOARD:
-                        copyToClipboard(cellValue);
-                        break;
-                      default:
-                        break;
-                    }
-                  }}
-                  allowActions={ALLOWED_CELL_ACTIONS}
-                  triggerType={ActionTriggerType.ELLIPSIS}
+                <LogCellAction
+                  field={field}
+                  value={value}
+                  fullLogData={traceItemsResult?.data}
+                  logId={String(dataRow[OurLogKnownFieldKey.ID])}
+                  addSearchFilter={addSearchFilter}
                 >
                   {renderedField}
-                </CellAction>
+                </LogCellAction>
               ) : (
                 renderedField
               )}
@@ -612,13 +572,14 @@ function LogRowDetails({
 }
 
 function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowItem}) {
-  const theme = useTheme();
   const addSearchFilter = useAddSearchFilter();
   return (
-    <LogDetailTableActionsButtonBar>
+    <Flex gap="xl">
       <Button
         priority="link"
         size="sm"
+        style={{fontWeight: 'normal'}}
+        icon={<IconAdd />}
         onClick={() => {
           addSearchFilter({
             key: OurLogKnownFieldKey.MESSAGE,
@@ -626,12 +587,13 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
           });
         }}
       >
-        <IconAdd size="md" style={{paddingRight: theme.space.xs}} />
         {t('Add to filter')}
       </Button>
       <Button
         priority="link"
         size="sm"
+        style={{fontWeight: 'normal'}}
+        icon={<IconSubtract />}
         onClick={() => {
           addSearchFilter({
             key: OurLogKnownFieldKey.MESSAGE,
@@ -640,10 +602,9 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
           });
         }}
       >
-        <IconSubtract size="md" style={{paddingRight: theme.space.xs}} />
         {t('Exclude from filter')}
       </Button>
-    </LogDetailTableActionsButtonBar>
+    </Flex>
   );
 }
 
@@ -654,7 +615,6 @@ function LogRowDetailsActions({
   fullLogDataResult: UseApiQueryResult<TraceItemDetailsResponse, RequestError>;
   tableDataRow: LogTableRowItem;
 }) {
-  const theme = useTheme();
   const {data, isPending, isError} = fullLogDataResult;
   const isFrozen = useLogsFrozenIsFrozen();
   const organization = useOrganization();
@@ -665,12 +625,12 @@ function LogRowDetailsActions({
   // Memoize in case we are attempting to copy large JSON objects.
   const json = useMemo(() => ourlogToJson(data), [data]);
 
-  const betterCopyToClipboard = useCallback(() => {
+  const copyAsJson = useCallback(() => {
     if (!json) {
       return;
     }
     copy(json, {
-      successMessage: t('Copied!'),
+      successMessage: t('Copied as JSON'),
       errorMessage: t('Failed to copy'),
     }).then(() => {
       trackAnalytics('logs.table.row_copied_as_json', {
@@ -680,6 +640,19 @@ function LogRowDetailsActions({
     });
   }, [copy, organization, tableDataRow, json]);
 
+  const copyText = useCallback(() => {
+    const message = String(tableDataRow[OurLogKnownFieldKey.MESSAGE] ?? '');
+    if (!message) {
+      return;
+    }
+    copyTextToClipboard(message, {
+      successMessage: t('Copied message'),
+      errorMessage: t('Failed to copy'),
+    });
+  }, [tableDataRow]);
+
+  const message = tableDataRow[OurLogKnownFieldKey.MESSAGE];
+
   return (
     <Fragment>
       {showFilterButtons ? (
@@ -687,17 +660,132 @@ function LogRowDetailsActions({
       ) : (
         <span />
       )}
-      <LogDetailTableActionsButtonBar>
+      <Flex gap="xl">
         <Button
           priority="link"
           size="sm"
-          onClick={betterCopyToClipboard}
+          style={{fontWeight: 'normal'}}
+          icon={<IconCopy />}
+          onClick={copyText}
+          disabled={!message}
+        >
+          {t('Copy message')}
+        </Button>
+        <Button
+          priority="link"
+          size="sm"
+          style={{fontWeight: 'normal'}}
+          icon={<IconJson />}
+          onClick={copyAsJson}
           disabled={isPending || isError || !json}
         >
-          <IconJson size="md" style={{paddingRight: theme.space.xs}} />
           {t('Copy as JSON')}
         </Button>
-      </LogDetailTableActionsButtonBar>
+      </Flex>
     </Fragment>
+  );
+}
+
+function LogCellAction({
+  children,
+  field,
+  value,
+  fullLogData,
+  logId,
+  addSearchFilter,
+}: {
+  addSearchFilter: (filter: {
+    key: string;
+    value: string | number | boolean;
+    negated?: boolean;
+  }) => void;
+  children: React.ReactNode;
+  field: string;
+  fullLogData: TraceItemDetailsResponse | undefined;
+  logId: string;
+  value: unknown;
+}) {
+  const organization = useOrganization();
+  const {copy} = useCopyToClipboard();
+  const pendingCopyJsonRef = useRef(false);
+
+  const json = useMemo(() => ourlogToJson(fullLogData), [fullLogData]);
+
+  const doCopyJson = useCallback(
+    (jsonStr: string) => {
+      copy(jsonStr, {
+        successMessage: t('Copied as JSON'),
+        errorMessage: t('Failed to copy'),
+      }).then(() => {
+        trackAnalytics('logs.table.row_copied_as_json', {
+          log_id: logId,
+          organization,
+        });
+      });
+    },
+    [copy, logId, organization]
+  );
+
+  useEffect(() => {
+    if (pendingCopyJsonRef.current && json) {
+      pendingCopyJsonRef.current = false;
+      doCopyJson(json);
+    }
+  }, [json, doCopyJson]);
+
+  const items = useMemo(() => {
+    const menuItems = [];
+
+    const filterValue = value as string | number | boolean;
+
+    menuItems.push({
+      key: 'add-to-filter',
+      label: t('Add to filter'),
+      onAction: () => addSearchFilter({key: field, value: filterValue}),
+    });
+
+    menuItems.push({
+      key: 'exclude-from-filter',
+      label: t('Exclude from filter'),
+      onAction: () => addSearchFilter({key: field, value: filterValue, negated: true}),
+    });
+
+    if (value) {
+      menuItems.push({
+        key: 'copy-message',
+        label: t('Copy message'),
+        onAction: () => {
+          const text =
+            typeof value === 'object'
+              ? JSON.stringify(value)
+              : `${value as string | number | boolean}`;
+          copyTextToClipboard(text, {
+            successMessage: t('Copied message'),
+            errorMessage: t('Failed to copy'),
+          });
+        },
+      });
+    }
+
+    menuItems.push({
+      key: 'copy-json',
+      label: t('Copy as JSON'),
+      onAction: () => {
+        if (json) {
+          doCopyJson(json);
+        } else {
+          pendingCopyJsonRef.current = true;
+        }
+      },
+    });
+
+    return menuItems;
+  }, [addSearchFilter, field, value, json, doCopyJson]);
+
+  return (
+    <CellActionContainer>
+      {children}
+      <EllipsisActionMenu items={items} />
+    </CellActionContainer>
   );
 }
