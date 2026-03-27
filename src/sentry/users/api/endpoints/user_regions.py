@@ -40,6 +40,8 @@ class UserRegionEndpointPermissions(UserPermission):
         return False
 
 
+# TODO(cells): Deprecate once Synapse handles cross-cell fan-out for organization
+# listing and the frontend no longer needs locality URLs for client-side fan-out.
 @control_silo_endpoint
 class UserRegionsEndpoint(UserEndpoint):
     owner = ApiOwner.HYBRID_CLOUD
