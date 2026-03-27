@@ -69,7 +69,6 @@ from sentry.constants import (
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
     SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
-    SEER_DEFAULT_CODING_AGENT_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
     ObjectStatus,
 )
@@ -242,12 +241,7 @@ ORG_OPTIONS = (
         bool,
         ENABLE_SEER_CODING_DEFAULT,
     ),
-    (
-        "defaultCodingAgent",
-        "sentry:seer_default_coding_agent",
-        str,
-        SEER_DEFAULT_CODING_AGENT_DEFAULT,
-    ),
+    ("defaultCodingAgent", "sentry:seer_default_coding_agent", str | None, None),
     (
         "defaultCodingAgentIntegrationId",
         "sentry:seer_default_coding_agent_integration_id",

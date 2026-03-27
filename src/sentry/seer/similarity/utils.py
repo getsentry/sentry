@@ -13,7 +13,6 @@ from sentry.constants import (
     AUTO_OPEN_PRS_DEFAULT,
     DATA_ROOT,
     SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
-    SEER_DEFAULT_CODING_AGENT_DEFAULT,
 )
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
@@ -582,11 +581,9 @@ def set_default_project_auto_open_prs(organization: Organization, project: Proje
     if not is_seer_seat_based_tier_enabled(organization):
         return
 
-    coding_agent = organization.get_option(
-        "sentry:seer_default_coding_agent", SEER_DEFAULT_CODING_AGENT_DEFAULT
-    )
+    coding_agent = organization.get_option("sentry:seer_default_coding_agent")
     coding_agent_integration_id = organization.get_option(
-        "sentry:seer_default_coding_agent_integration_id", None
+        "sentry:seer_default_coding_agent_integration_id"
     )
     automation_handoff: SeerAutomationHandoffConfiguration | None = None
     if coding_agent and coding_agent_integration_id is not None:
@@ -599,6 +596,7 @@ def set_default_project_auto_open_prs(organization: Organization, project: Proje
             ),
         )
 
+    # We need to make an API call to Seer to set this preference
     preference = SeerProjectPreference(
         organization_id=organization.id,
         project_id=project.id,

@@ -22,7 +22,6 @@ from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import (
     RESERVED_ORGANIZATION_SLUGS,
     SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
-    SEER_DEFAULT_CODING_AGENT_DEFAULT,
     ObjectStatus,
 )
 from sentry.core.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
@@ -1498,7 +1497,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     def test_default_coding_agent_default(self) -> None:
         response = self.get_success_response(self.organization.slug)
-        assert response.data["defaultCodingAgent"] == SEER_DEFAULT_CODING_AGENT_DEFAULT
+        assert response.data["defaultCodingAgent"] is None
 
     def test_default_coding_agent_can_be_set(self) -> None:
         data = {"defaultCodingAgent": "seer"}
@@ -1522,13 +1521,10 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
-        data = {"defaultCodingAgent": SEER_DEFAULT_CODING_AGENT_DEFAULT}
+        data = {"defaultCodingAgent": None}
         self.get_success_response(self.organization.slug, **data)
 
-        assert (
-            self.organization.get_option("sentry:seer_default_coding_agent")
-            == SEER_DEFAULT_CODING_AGENT_DEFAULT
-        )
+        assert self.organization.get_option("sentry:seer_default_coding_agent") is None
         with assume_test_silo_mode_of(AuditLogEntry):
             assert not AuditLogEntry.objects.filter(organization_id=self.organization.id).exists()
 

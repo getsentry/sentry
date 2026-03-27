@@ -12,7 +12,6 @@ from sentry.analytics.events.autofix_automation_events import AiAutofixAutomatio
 from sentry.constants import (
     AUTO_OPEN_PRS_DEFAULT,
     SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
-    SEER_DEFAULT_CODING_AGENT_DEFAULT,
     ObjectStatus,
 )
 from sentry.models.group import Group
@@ -244,11 +243,9 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
                 "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
             )
 
-    coding_agent = organization.get_option(
-        "sentry:seer_default_coding_agent", SEER_DEFAULT_CODING_AGENT_DEFAULT
-    )
+    coding_agent = organization.get_option("sentry:seer_default_coding_agent")
     coding_agent_integration_id = organization.get_option(
-        "sentry:seer_default_coding_agent_integration_id", None
+        "sentry:seer_default_coding_agent_integration_id"
     )
     default_handoff: dict[str, Any] | None = None
     if coding_agent and coding_agent_integration_id is not None:
