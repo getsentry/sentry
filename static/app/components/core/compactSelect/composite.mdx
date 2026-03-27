@@ -14,7 +14,7 @@ resources:
 
 import {useState} from 'react';
 
-import {CompositeSelect} from '@sentry/scraps/compactSelect';
+import {CompositeSelect, type SelectKey} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {IconSentry} from 'sentry/icons';
@@ -132,8 +132,8 @@ Use `<CompositeSelect.ClearButton>` in `menuHeaderTrailingItems` to add a "Clear
 Only render the button when there is an active selection to clear.
 
 export function ClearButtonDemo() {
-  const [month, setMonth] = useState(null);
-  const [tags, setTags] = useState([]);
+  const [month, setMonth] = useState<SelectKey | null>(null);
+  const [tags, setTags] = useState<string[]>([]);
   const monthOptions = [
     {value: 'jan', label: 'January'},
     {value: 'feb', label: 'February'},
