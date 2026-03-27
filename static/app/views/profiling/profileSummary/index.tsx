@@ -632,19 +632,16 @@ const ProfileVisualizationContainer = styled('div')<{hideRegressions}>`
   flex: 1 1 100%;
 `;
 
+const LayoutPageWithHiddenFooter = styled(Layout.Page)`
+  ~ footer {
+    display: none;
+  }
+`;
+
 const ProfileSummaryContainer = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1 1 100%;
-
-  /*
-   * The footer component is a sibling of this div.
-   * Remove it so the flamegraph can take up the
-   * entire screen.
-   */
-  ~ footer {
-    display: none;
-  }
 `;
 
 const PROFILE_DIGEST_FIELDS = [
@@ -781,12 +778,12 @@ const ProfileDigestLabel = styled('span')`
 
 export default function ProfileSummaryPageToggle() {
   return (
-    <Layout.Page>
+    <LayoutPageWithHiddenFooter>
       <ProfileSummaryContainer data-test-id="profile-summary-redesign">
         <ErrorBoundary>
           <ProfileSummaryPage />
         </ErrorBoundary>
       </ProfileSummaryContainer>
-    </Layout.Page>
+    </LayoutPageWithHiddenFooter>
   );
 }
