@@ -20,8 +20,8 @@ import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesW
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
-import {MetricHeatmap} from 'sentry/views/explore/metrics/metricHeatmap';
 import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
+import {MetricHeatmap} from 'sentry/views/explore/metrics/metricHeatmap';
 import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   useMetricLabel,
