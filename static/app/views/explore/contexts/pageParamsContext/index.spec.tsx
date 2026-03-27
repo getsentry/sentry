@@ -66,11 +66,7 @@ describe('SpanQueryParamsProvider', () => {
   }
 
   function renderTestComponent(defaultPageParams?: any) {
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>
-    );
+    render(<Component />, {additionalWrapper: Wrapper});
 
     act(() =>
       setQueryParams({
@@ -92,11 +88,7 @@ describe('SpanQueryParamsProvider', () => {
   }
 
   it('has expected default', () => {
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>
-    );
+    render(<Component />, {additionalWrapper: Wrapper});
 
     expect(queryParams).toEqual(
       expect.objectContaining({

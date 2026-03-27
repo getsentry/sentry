@@ -72,10 +72,8 @@ describe('LogsExportButton', () => {
 
   it('should render browser export button for small datasets', () => {
     render(
-      <ProviderWrapper>
-        <LogsExportButton isLoading={false} tableData={mockTableData} error={null} />
-      </ProviderWrapper>,
-      {initialRouterConfig, organization}
+      <LogsExportButton isLoading={false} tableData={mockTableData} error={null} />,
+      {initialRouterConfig, organization, additionalWrapper: ProviderWrapper}
     );
 
     expect(screen.getByTestId('export-download-csv')).toBeInTheDocument();
@@ -92,10 +90,8 @@ describe('LogsExportButton', () => {
     });
 
     render(
-      <ProviderWrapper>
-        <LogsExportButton isLoading={false} tableData={largeTableData} error={null} />
-      </ProviderWrapper>,
-      {initialRouterConfig, organization}
+      <LogsExportButton isLoading={false} tableData={largeTableData} error={null} />,
+      {initialRouterConfig, organization, additionalWrapper: ProviderWrapper}
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Export'}));
@@ -127,10 +123,8 @@ describe('LogsExportButton', () => {
     );
 
     render(
-      <ProviderWrapper>
-        <LogsExportButton isLoading={false} tableData={mockTableData} error={null} />
-      </ProviderWrapper>,
-      {initialRouterConfig, organization}
+      <LogsExportButton isLoading={false} tableData={mockTableData} error={null} />,
+      {initialRouterConfig, organization, additionalWrapper: ProviderWrapper}
     );
 
     await userEvent.click(screen.getByTestId('export-download-csv'));
@@ -143,38 +137,34 @@ describe('LogsExportButton', () => {
   });
 
   it('should disable button when loading', () => {
-    render(
-      <ProviderWrapper>
-        <LogsExportButton isLoading tableData={mockTableData} error={null} />
-      </ProviderWrapper>,
-      {initialRouterConfig, organization}
-    );
+    render(<LogsExportButton isLoading tableData={mockTableData} error={null} />, {
+      initialRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
 
     expect(screen.getByRole('button', {name: 'Export'})).toBeDisabled();
   });
 
   it('should disable button when there is an error', () => {
     render(
-      <ProviderWrapper>
-        <LogsExportButton
-          isLoading={false}
-          tableData={mockTableData}
-          error={new Error('Test error')}
-        />
-      </ProviderWrapper>,
-      {initialRouterConfig, organization}
+      <LogsExportButton
+        isLoading={false}
+        tableData={mockTableData}
+        error={new Error('Test error')}
+      />,
+      {initialRouterConfig, organization, additionalWrapper: ProviderWrapper}
     );
 
     expect(screen.getByRole('button', {name: 'Export'})).toBeDisabled();
   });
 
   it('should disable button when table data is empty', () => {
-    render(
-      <ProviderWrapper>
-        <LogsExportButton isLoading={false} tableData={[]} error={null} />
-      </ProviderWrapper>,
-      {initialRouterConfig, organization}
-    );
+    render(<LogsExportButton isLoading={false} tableData={[]} error={null} />, {
+      initialRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
 
     expect(screen.getByRole('button', {name: 'Export'})).toBeDisabled();
   });

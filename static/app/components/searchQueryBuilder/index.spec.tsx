@@ -5220,16 +5220,12 @@ describe('SearchQueryBuilder', () => {
           );
         }
 
-        render(
-          <AskSeerWrapper>
-            <SearchQueryBuilder {...defaultProps} />
-          </AskSeerWrapper>,
-          {
-            organization: {
-              features: ['gen-ai-features'],
-            },
-          }
-        );
+        render(<SearchQueryBuilder {...defaultProps} />, {
+          organization: {
+            features: ['gen-ai-features'],
+          },
+          additionalWrapper: AskSeerWrapper,
+        });
 
         await userEvent.click(getLastInput());
 

@@ -72,14 +72,12 @@ describe('FieldRenderer tests', () => {
 
   it('renders span.op', () => {
     render(
-      <Wrapper>
-        <FieldRenderer
-          column={eventView.getColumns()[3]}
-          data={mockedEventData}
-          meta={{}}
-        />
-      </Wrapper>,
-      {organization}
+      <FieldRenderer
+        column={eventView.getColumns()[3]}
+        data={mockedEventData}
+        meta={{}}
+      />,
+      {organization, additionalWrapper: Wrapper}
     );
 
     expect(screen.getByText('test_op')).toBeInTheDocument();
@@ -88,14 +86,12 @@ describe('FieldRenderer tests', () => {
   describe('span timestamp is less than 30 days', () => {
     it('renders span id link to trace view', () => {
       render(
-        <Wrapper>
-          <FieldRenderer
-            column={eventView.getColumns()[0]}
-            data={mockedEventData}
-            meta={{}}
-          />
-        </Wrapper>,
-        {organization}
+        <FieldRenderer
+          column={eventView.getColumns()[0]}
+          data={mockedEventData}
+          meta={{}}
+        />,
+        {organization, additionalWrapper: Wrapper}
       );
 
       expect(screen.getByText('spanId')).toBeInTheDocument();
@@ -117,14 +113,12 @@ describe('FieldRenderer tests', () => {
 
     it('renders span id link to similar spans', async () => {
       render(
-        <Wrapper>
-          <FieldRenderer
-            column={eventView.getColumns()[0]}
-            data={mockedEventData}
-            meta={{}}
-          />
-        </Wrapper>,
-        {organization}
+        <FieldRenderer
+          column={eventView.getColumns()[0]}
+          data={mockedEventData}
+          meta={{}}
+        />,
+        {organization, additionalWrapper: Wrapper}
       );
 
       expect(screen.getByText('spanId')).toBeInTheDocument();
@@ -146,14 +140,12 @@ describe('FieldRenderer tests', () => {
   describe('transaction timestamp is less than 30 days', () => {
     it('renders transaction id link to trace view', () => {
       render(
-        <Wrapper>
-          <FieldRenderer
-            column={eventView.getColumns()[4]}
-            data={mockedEventData}
-            meta={{}}
-          />
-        </Wrapper>,
-        {organization}
+        <FieldRenderer
+          column={eventView.getColumns()[4]}
+          data={mockedEventData}
+          meta={{}}
+        />,
+        {organization, additionalWrapper: Wrapper}
       );
 
       expect(screen.getByText('transactionId')).toBeInTheDocument();
@@ -175,14 +167,12 @@ describe('FieldRenderer tests', () => {
 
     it('renders transaction id link to similar transactions', async () => {
       render(
-        <Wrapper>
-          <FieldRenderer
-            column={eventView.getColumns()[4]}
-            data={mockedEventData}
-            meta={{}}
-          />
-        </Wrapper>,
-        {organization}
+        <FieldRenderer
+          column={eventView.getColumns()[4]}
+          data={mockedEventData}
+          meta={{}}
+        />,
+        {organization, additionalWrapper: Wrapper}
       );
 
       expect(screen.getByText('transactionId')).toBeInTheDocument();
@@ -204,14 +194,12 @@ describe('FieldRenderer tests', () => {
   describe('trace timestamp is less than 30 days', () => {
     it('renders trace id link to trace view', () => {
       render(
-        <Wrapper>
-          <FieldRenderer
-            column={eventView.getColumns()[2]}
-            data={mockedEventData}
-            meta={{}}
-          />
-        </Wrapper>,
-        {organization}
+        <FieldRenderer
+          column={eventView.getColumns()[2]}
+          data={mockedEventData}
+          meta={{}}
+        />,
+        {organization, additionalWrapper: Wrapper}
       );
 
       expect(screen.getByText('traceId')).toBeInTheDocument();
@@ -233,14 +221,12 @@ describe('FieldRenderer tests', () => {
 
     it('renders trace id link to trace view', async () => {
       render(
-        <Wrapper>
-          <FieldRenderer
-            column={eventView.getColumns()[2]}
-            data={mockedEventData}
-            meta={{}}
-          />
-        </Wrapper>,
-        {organization}
+        <FieldRenderer
+          column={eventView.getColumns()[2]}
+          data={mockedEventData}
+          meta={{}}
+        />,
+        {organization, additionalWrapper: Wrapper}
       );
 
       expect(screen.getByText('traceId')).toBeInTheDocument();
@@ -261,14 +247,12 @@ describe('FieldRenderer tests', () => {
 
   it('renders timestamp', () => {
     render(
-      <Wrapper>
-        <FieldRenderer
-          column={eventView.getColumns()[1]}
-          data={mockedEventData}
-          meta={{}}
-        />
-      </Wrapper>,
-      {organization}
+      <FieldRenderer
+        column={eventView.getColumns()[1]}
+        data={mockedEventData}
+        meta={{}}
+      />,
+      {organization, additionalWrapper: Wrapper}
     );
 
     expect(screen.getByRole('time')).toBeInTheDocument();
@@ -277,28 +261,24 @@ describe('FieldRenderer tests', () => {
 
   it('renders description without project badge', () => {
     render(
-      <Wrapper>
-        <FieldRenderer
-          column={eventView.getColumns()[5]}
-          data={mockedEventData}
-          meta={{}}
-        />
-      </Wrapper>,
-      {organization}
+      <FieldRenderer
+        column={eventView.getColumns()[5]}
+        data={mockedEventData}
+        meta={{}}
+      />,
+      {organization, additionalWrapper: Wrapper}
     );
     expect(screen.queryByTestId('platform-icon-javascript')).not.toBeInTheDocument();
   });
 
   it('renders name with project badge', () => {
     render(
-      <Wrapper>
-        <FieldRenderer
-          column={eventView.getColumns()[6]}
-          data={mockedEventData}
-          meta={{}}
-        />
-      </Wrapper>,
-      {organization}
+      <FieldRenderer
+        column={eventView.getColumns()[6]}
+        data={mockedEventData}
+        meta={{}}
+      />,
+      {organization, additionalWrapper: Wrapper}
     );
     expect(screen.getByTestId('platform-icon-javascript')).toBeInTheDocument();
   });
