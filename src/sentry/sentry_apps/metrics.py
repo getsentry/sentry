@@ -72,7 +72,6 @@ class SentryAppWebhookHaltReason(StrEnum):
     CONNECTION_RESET = "connection_reset"
     HARD_TIMEOUT = "hard_timeout"
     CIRCUIT_BROKEN = "circuit_broken"
-    HARD_TIMEOUT = "hard_timeout"
 
 
 class SentryAppExternalRequestFailureReason(StrEnum):
