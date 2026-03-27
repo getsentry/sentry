@@ -1,4 +1,4 @@
-from typing import Any, NotRequired, TypedDict, TypeVar
+from typing import Any, Literal, NotRequired, TypedDict, TypeVar
 
 from django.db import router, transaction
 from rest_framework import serializers
@@ -23,14 +23,17 @@ from sentry.workflow_engine.endpoints.validators.base.data_condition_group impor
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
     log_alerting_quota_hit,
+    perform_bulk_detector_workflow_operations,
     remove_items_by_api_input,
     update_owner,
+    validate_detectors_exist_and_have_permissions,
     validate_json_schema,
 )
 from sentry.workflow_engine.models import (
     Action,
     DataConditionGroup,
     DataConditionGroupAction,
+    DetectorWorkflow,
     Workflow,
     WorkflowDataConditionGroup,
 )
@@ -60,6 +63,11 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
     name = serializers.CharField(required=True, max_length=256, help_text="The name of the alert")
     enabled = serializers.BooleanField(
         required=False, default=True, help_text="Whether the alert is enabled or disabled"
+    )
+    detector_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        help_text="The IDs of the monitors to connect this alert to. Use 'Fetch an Organization's Monitors' to find the IDs.",
     )
     config = serializers.JSONField(
         required=False,
@@ -257,6 +265,13 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         return filters
 
     def update(self, instance: Workflow, validated_data: InputData) -> Workflow:
+        organization = self.context["organization"]
+        request = self.context["request"]
+
+        detector_ids = None
+        if "detector_ids" in validated_data:
+            detector_ids = validated_data.pop("detector_ids")
+
         with transaction.atomic(router.db_for_write(Workflow)):
             # Update the Workflow.when_condition_group
             triggers = validated_data.pop("triggers", None)
@@ -276,6 +291,37 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
 
             # Update the workflow
             instance.update(**validated_data)
+
+            # Update detector connections
+            if detector_ids is not None:
+                validate_detectors_exist_and_have_permissions(detector_ids, organization, request)
+
+                existing_detector_workflows = list(
+                    DetectorWorkflow.objects.filter(
+                        workflow_id=instance.id,
+                    )
+                )
+                new_detector_ids = set(detector_ids) - {
+                    dw.detector_id for dw in existing_detector_workflows
+                }
+
+                detector_workflows_to_add: list[
+                    dict[Literal["detector_id", "workflow_id"], int]
+                ] = [
+                    {"detector_id": detector_id, "workflow_id": instance.id}
+                    for detector_id in new_detector_ids
+                ]
+                detector_workflows_to_remove = [
+                    dw for dw in existing_detector_workflows if dw.detector_id not in detector_ids
+                ]
+
+                perform_bulk_detector_workflow_operations(
+                    detector_workflows_to_add,
+                    detector_workflows_to_remove,
+                    request,
+                    organization,
+                )
+
             instance.save()
             return instance
 
@@ -306,6 +352,8 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
     def create(self, validated_value: InputData) -> Workflow:
         condition_group_validator = BaseDataConditionGroupValidator(context=self.context)
         action_validator = BaseActionValidator(context=self.context)
+        organization = self.context["organization"]
+        request = self.context["request"]
 
         self._validate_workflow_limits()
 
@@ -325,17 +373,37 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
 
             owner_user_id, owner_team_id = update_owner(validated_value.get("owner"))
 
-            workflow = Workflow.objects.create(
-                name=validated_value["name"],
-                enabled=validated_value["enabled"],
-                config=validated_value["config"],
-                organization_id=self.context["organization"].id,
-                environment_id=environment.id if environment else None,
-                when_condition_group=when_condition_group,
-                created_by_id=self.context["request"].user.id,
-                owner_user_id=owner_user_id,
-                owner_team_id=owner_team_id,
-            )
+            with transaction.atomic(router.db_for_write(Workflow)):
+                workflow = Workflow.objects.create(
+                    name=validated_value["name"],
+                    enabled=validated_value["enabled"],
+                    config=validated_value["config"],
+                    organization_id=organization.id,
+                    environment_id=environment.id if environment else None,
+                    when_condition_group=when_condition_group,
+                    created_by_id=request.user.id,
+                    owner_user_id=owner_user_id,
+                    owner_team_id=owner_team_id,
+                )
+                # connect detectors
+                detector_ids = validated_value.get("detector_ids")
+                if detector_ids:
+                    validate_detectors_exist_and_have_permissions(
+                        detector_ids, organization, request
+                    )
+
+                    detector_workflows_to_add: list[
+                        dict[Literal["detector_id", "workflow_id"], int]
+                    ] = [
+                        {"detector_id": detector_id, "workflow_id": workflow.id}
+                        for detector_id in detector_ids
+                    ]
+                    perform_bulk_detector_workflow_operations(
+                        detector_workflows_to_add=detector_workflows_to_add,
+                        detector_workflows_to_remove=[],
+                        request=request,
+                        organization=organization,
+                    )
 
             # TODO -- can we bulk create: actions, dcga's and the workflow dcg?
             # Create actions and action filters, then associate them to the workflow
@@ -357,8 +425,8 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
                     )
 
             create_audit_entry(
-                request=self.context["request"],
-                organization=self.context["organization"],
+                request=request,
+                organization=organization,
                 target_object=workflow.id,
                 event=audit_log.get_event_id("WORKFLOW_ADD"),
                 data=workflow.get_audit_log_data(),

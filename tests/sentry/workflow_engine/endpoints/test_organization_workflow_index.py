@@ -972,6 +972,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         workflow_data = {
             **self.valid_workflow,
             "detectorIds": [other_detector.id],
+            "name": "inaccessible project",
         }
 
         self.get_error_response(
@@ -983,6 +984,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         # Verify no detector-workflow connections were created
         created_detector_workflows = DetectorWorkflow.objects.all()
         assert created_detector_workflows.count() == 0
+        assert Workflow.objects.filter(name=workflow_data["name"]).count() == 0
 
     def test_create_workflow_with_accessible_project_detector(self) -> None:
         """

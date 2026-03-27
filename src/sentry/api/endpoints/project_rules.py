@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from typing import Any, Literal, NotRequired, TypedDict, cast
 
 from django.conf import settings
-from django.db import router, transaction
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from drf_spectacular.utils import extend_schema
@@ -52,9 +51,6 @@ from sentry.workflow_engine.endpoints.validators.base.workflow import (
     ActionFilterInput,
     WorkflowInput,
     WorkflowValidator,
-)
-from sentry.workflow_engine.endpoints.validators.detector_workflow import (
-    BulkWorkflowDetectorsValidator,
 )
 from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
     translate_to_data_condition_data,
@@ -819,6 +815,11 @@ def format_request_data(
     }
     workflow_payload["actionFilters"] = [action_filters]
 
+    issue_stream_detector = Detector.get_issue_stream_detector_for_project(project.id)
+    if issue_stream_detector is None:
+        raise serializers.ValidationError("Could not find issue stream detector for project")
+    workflow_payload["detectorIds"] = [issue_stream_detector.id]
+
     return workflow_payload
 
 
@@ -922,23 +923,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 context={"organization": project.organization, "request": request},
             )
             validator.is_valid(raise_exception=True)
-
-            with transaction.atomic(router.db_for_write(Workflow)):
-                workflow = validator.create(validator.validated_data)
-                issue_stream_detector = Detector.get_issue_stream_detector_for_project(project.id)
-                if issue_stream_detector is None:
-                    raise serializers.ValidationError(
-                        "Could not find issue stream detector for project"
-                    )
-                bulk_validator = BulkWorkflowDetectorsValidator(
-                    data={
-                        "workflow_id": workflow.id,
-                        "detector_ids": [issue_stream_detector.id],
-                    },
-                    context={"organization": project.organization, "request": request},
-                )
-                bulk_validator.is_valid(raise_exception=True)
-                bulk_validator.save()
+            workflow = validator.create(validator.validated_data)
 
             return Response(
                 serialize(workflow, request.user, WorkflowEngineRuleSerializer()),
