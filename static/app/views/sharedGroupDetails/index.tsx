@@ -9,7 +9,9 @@ import {Footer} from 'sentry/components/footer';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {SharedIssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace/sharedIssueStackTrace';
 import {t} from 'sentry/locale';
+import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -94,13 +96,7 @@ function SharedGroupDetails() {
                   padding="3xl"
                   className="group-overview event-details-container"
                 >
-                  <BorderlessEventEntries
-                    organization={org}
-                    group={group}
-                    event={group.latestEvent}
-                    project={group.project}
-                    isShare
-                  />
+                  <SharedEventContent event={group.latestEvent} org={org} group={group} />
                 </Container>
                 <Footer />
               </div>
@@ -109,6 +105,54 @@ function SharedGroupDetails() {
         </div>
       </OrganizationContext>
     </SentryDocumentTitle>
+  );
+}
+
+function SharedEventContent({
+  event,
+  org,
+  group,
+}: {
+  group: Group;
+  org: {features: string[]; slug: string; name?: string};
+  event?: Group['latestEvent'];
+}) {
+  if (!event) {
+    return (
+      <BorderlessEventEntries
+        organization={org}
+        group={group}
+        event={event}
+        project={group.project}
+        isShare
+      />
+    );
+  }
+
+  const exceptionEntry = event.entries?.find(e => e.type === EntryType.EXCEPTION);
+  const stacktraceEntry = event.entries?.find(e => e.type === EntryType.STACKTRACE);
+
+  const hideEntryTypes = [
+    ...(exceptionEntry ? [EntryType.EXCEPTION] : []),
+    ...(stacktraceEntry ? [EntryType.STACKTRACE] : []),
+  ];
+
+  return (
+    <div>
+      {exceptionEntry ? (
+        <SharedIssueStackTrace event={event} values={exceptionEntry.data.values ?? []} />
+      ) : stacktraceEntry ? (
+        <SharedIssueStackTrace event={event} stacktrace={stacktraceEntry.data} />
+      ) : null}
+      <BorderlessEventEntries
+        organization={org}
+        group={group}
+        event={event}
+        project={group.project}
+        isShare
+        hideEntryTypes={hideEntryTypes}
+      />
+    </div>
   );
 }
 
