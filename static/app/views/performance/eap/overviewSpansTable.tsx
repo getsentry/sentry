@@ -112,9 +112,10 @@ const PROFILE_COLUMN: OverviewSpansColumn = {
 type Props = {
   eventView: EventView;
   transactionName: string;
+  maxDuration?: number;
 };
 
-export function OverviewSpansTable({eventView, transactionName}: Props) {
+export function OverviewSpansTable({eventView, transactionName, maxDuration}: Props) {
   const {selection} = usePageFilters();
   const location = useLocation();
   const {projects} = useProjects();
@@ -148,10 +149,16 @@ export function OverviewSpansTable({eventView, transactionName}: Props) {
   const defaultQuery = new MutableSearch(searchQuery);
   defaultQuery.setFilterValues('is_transaction', ['true']);
   defaultQuery.setFilterValues('transaction', [transactionName]);
+  if (maxDuration !== undefined && maxDuration > 0) {
+    defaultQuery.setFilterValues('span.duration', [`<=${maxDuration.toFixed(0)}`]);
+  }
 
   const countQuery = new MutableSearch(searchQuery);
   countQuery.setFilterValues('is_transaction', ['true']);
   countQuery.setFilterValues('transaction', [transactionName]);
+  if (maxDuration !== undefined && maxDuration > 0) {
+    countQuery.setFilterValues('span.duration', [`<=${maxDuration.toFixed(0)}`]);
+  }
 
   const {data: numEvents, error: numEventsError} = useSpans(
     {

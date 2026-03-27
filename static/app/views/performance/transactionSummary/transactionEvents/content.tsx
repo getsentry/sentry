@@ -52,8 +52,7 @@ import {
 } from 'sentry/views/performance/utils';
 
 import {EventsTable} from './eventsTable';
-import type {EventsDisplayFilterName} from './utils';
-import {getEventsFilterOptions} from './utils';
+import {EventsDisplayFilterName, getEventsFilterOptions} from './utils';
 
 function EAPSearchBar({
   projects,
@@ -207,8 +206,18 @@ export function EventsContent(props: Props) {
     webVital,
   ]);
 
+  const {eventsDisplayFilterName, percentileValues} = props;
+  const maxDuration =
+    eventsDisplayFilterName === EventsDisplayFilterName.P100
+      ? undefined
+      : percentileValues?.[eventsDisplayFilterName];
+
   const table = shouldUseEAP ? (
-    <OverviewSpansTable eventView={eventView} transactionName={transactionName} />
+    <OverviewSpansTable
+      eventView={eventView}
+      transactionName={transactionName}
+      maxDuration={maxDuration}
+    />
   ) : (
     <EventsTable
       theme={theme}
@@ -310,19 +319,17 @@ function Search(props: Props) {
           />
         )}
       </StyledSearchBarWrapper>
-      {!shouldUseEAP && (
-        <CompactSelect
-          trigger={triggerProps => (
-            <OverlayTrigger.Button {...triggerProps} prefix={t('Percentile')} />
-          )}
-          value={eventsDisplayFilterName}
-          onChange={opt => onChangeEventsDisplayFilter(opt.value)}
-          options={Object.entries(eventsFilterOptions).map(([name, filter]) => ({
-            value: name as EventsDisplayFilterName,
-            label: filter.label,
-          }))}
-        />
-      )}
+      <CompactSelect
+        trigger={triggerProps => (
+          <OverlayTrigger.Button {...triggerProps} prefix={t('Percentile')} />
+        )}
+        value={eventsDisplayFilterName}
+        onChange={opt => onChangeEventsDisplayFilter(opt.value)}
+        options={Object.entries(eventsFilterOptions).map(([name, filter]) => ({
+          value: name as EventsDisplayFilterName,
+          label: filter.label,
+        }))}
+      />
       {!shouldUseEAP && (
         <LinkButton
           to={eventView.getResultsViewUrlTarget(
@@ -344,7 +351,16 @@ function OpenInExploreButton({
   location,
   organization,
   transactionName,
-}: Pick<Props, 'location' | 'organization' | 'transactionName'>) {
+  eventsDisplayFilterName,
+  percentileValues,
+}: Pick<
+  Props,
+  | 'location'
+  | 'organization'
+  | 'transactionName'
+  | 'eventsDisplayFilterName'
+  | 'percentileValues'
+>) {
   const {selection} = usePageFilters();
 
   if (!organization.features.includes('visibility-explore-view')) {
@@ -360,6 +376,14 @@ function OpenInExploreButton({
   const query = new MutableSearch(searchQuery);
   query.setFilterValues('is_transaction', ['true']);
   query.setFilterValues('transaction', [transactionName]);
+
+  const maxDuration =
+    eventsDisplayFilterName === EventsDisplayFilterName.P100
+      ? undefined
+      : percentileValues?.[eventsDisplayFilterName];
+  if (maxDuration !== undefined && maxDuration > 0) {
+    query.setFilterValues('span.duration', [`<=${maxDuration.toFixed(0)}`]);
+  }
 
   const exploreUrl = getExploreUrl({
     organization,
@@ -379,11 +403,13 @@ const FilterActions = styled('div')<{eap: boolean}>`
   margin-bottom: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: ${p => (p.eap ? 'auto 1fr auto' : 'repeat(4, min-content)')};
+    grid-template-columns: ${p =>
+      p.eap ? 'auto 1fr auto auto' : 'repeat(4, min-content)'};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    grid-template-columns: ${p => (p.eap ? 'auto 1fr auto' : 'auto auto 1fr auto auto')};
+    grid-template-columns: ${p =>
+      p.eap ? 'auto 1fr auto auto' : 'auto auto 1fr auto auto'};
   }
 `;
 
