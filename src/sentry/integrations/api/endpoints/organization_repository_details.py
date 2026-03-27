@@ -12,13 +12,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.repository import RepositorySerializer as RepositoryApiSerializer
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
-from sentry.hybridcloud.rpc import coerce_id_from
-from sentry.integrations.services.integration import integration_service
 from sentry.models.commit import Commit
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
@@ -37,7 +34,6 @@ class RepositorySerializer(serializers.Serializer):
     )
     name = serializers.CharField(required=False)
     url = serializers.URLField(required=False, allow_blank=True)
-    integrationId = EmptyIntegerField(required=False, allow_null=True)
 
 
 @cell_silo_endpoint
@@ -85,18 +81,6 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
                 update_kwargs["status"] = ObjectStatus.HIDDEN
             else:
                 raise NotImplementedError
-        if result.get("integrationId"):
-            integration = integration_service.get_integration(
-                integration_id=result["integrationId"],
-                organization_id=coerce_id_from(organization),
-                status=ObjectStatus.ACTIVE,
-            )
-            if integration is None:
-                return Response({"detail": "Invalid integration id"}, status=400)
-
-            update_kwargs["integration_id"] = integration.id
-            update_kwargs["provider"] = f"integrations:{integration.provider}"
-
         if update_kwargs:
             old_status = repo.status
             with transaction.atomic(router.db_for_write(Repository)):
