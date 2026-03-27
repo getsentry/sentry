@@ -7,6 +7,8 @@ import type {
   Repository,
 } from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchDataQuery, fetchMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -79,17 +81,20 @@ export function useScmRepoSelection({
     // query filtered by name to avoid pagination issues with the full list.
     setBusy(true);
     try {
-      const [matches] = await queryClient.fetchQuery({
-        queryKey: [
-          `/organizations/${organization.slug}/repos/`,
-          {
-            query: {
-              status: 'active',
-              integration_id: integration.id,
-              query: repo.identifier,
-            },
+      const queryKey: ApiQueryKey = [
+        getApiUrl('/organizations/$organizationIdOrSlug/repos/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        {
+          query: {
+            status: 'active',
+            integration_id: integration.id,
+            query: repo.identifier,
           },
-        ],
+        },
+      ];
+      const [matches] = await queryClient.fetchQuery({
+        queryKey,
         queryFn: fetchDataQuery<Repository[]>,
         staleTime: 0,
       });
