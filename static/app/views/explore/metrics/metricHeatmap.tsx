@@ -1,26 +1,28 @@
 import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 
-import styled from '@emotion/styled';
-
+import {VisualMap} from 'sentry/components/charts/components/visualMap';
+import {HeatMapChart} from 'sentry/components/charts/heatMapChart';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 const NUM_Y_BUCKETS = 10;
 
-// Color scale from design: index = intensity 0–10
+// Color scale interpolated across three design stops:
+// #eeefff (low) → #7553ff (mid) → #990056 (high)
+// Steps 1–5: segment 1, steps 6–10: segment 2
 const HEATMAP_COLORS = [
-  'transparent', // 0: empty
-  '#dedefd', // 1
-  '#b6afff', // 2
-  '#8060ff', // 3
-  '#5936df', // 4
-  '#4212b3', // 5
-  '#4a17a1', // 6
-  '#66128c', // 7
-  '#a32087', // 8
-  '#cc3092', // 9
-  '#f0369a', // 10
+  '#eeefff', // 1  — #eeefff
+  '#d0c8ff', // 2
+  '#b2a1ff', // 3
+  '#937aff', // 4
+  '#7553ff', // 5  — #7553ff
+  '#7c42dd', // 6
+  '#8332bb', // 7
+  '#8b219a', // 8
+  '#921178', // 9
+  '#990056', // 10 — #990056
 ] as const;
 
 function formatAxisValue(value: number): string {
@@ -43,10 +45,12 @@ function formatTimestamp(ms: number): string {
 }
 
 interface HeatmapData {
-  intensityGrid: number[][];
+  // ECharts heatmap data: [xIndex, yIndex, intensity]
+  data: Array<[number, number, number]>;
   maxVal: number;
   minVal: number;
   timestamps: number[];
+  yLabels: string[];
 }
 
 function buildHeatmapData(
@@ -65,7 +69,7 @@ function buildHeatmapData(
   }
 
   if (allValues.length === 0) {
-    return {intensityGrid: [], timestamps: [], minVal: 0, maxVal: 0};
+    return {data: [], timestamps: [], yLabels: [], minVal: 0, maxVal: 0};
   }
 
   const minVal = Math.min(...allValues);
@@ -101,11 +105,27 @@ function buildHeatmapData(
   }
 
   const maxCount = Math.max(...counts.flatMap(row => row), 1);
-  const intensityGrid = counts.map(row =>
-    row.map(count => (count > 0 ? Math.max(1, Math.round((count / maxCount) * 10)) : 0))
-  );
 
-  return {intensityGrid, timestamps, minVal, maxVal};
+  // Build flat [xIndex, yIndex, intensity] array for ECharts.
+  // Always emit every cell (including empty ones at intensity 0) so the tooltip
+  // target exists across the full grid — empty cells are mapped to transparent
+  // in the visualMap so they're invisible but still hoverable.
+  const data: Array<[number, number, number]> = [];
+  for (let yBucket = 0; yBucket < NUM_Y_BUCKETS; yBucket++) {
+    for (let timeIdx = 0; timeIdx < timestamps.length; timeIdx++) {
+      const count = counts[yBucket]![timeIdx]!;
+      const intensity = count > 0 ? Math.max(1, Math.round((count / maxCount) * 10)) : 0;
+      data.push([timeIdx, yBucket, intensity]);
+    }
+  }
+
+  // Y-axis labels: bucket boundaries from high to low
+  const yLabels = Array.from({length: NUM_Y_BUCKETS}, (_, i) => {
+    const val = minVal + ((i + 0.5) / NUM_Y_BUCKETS) * range;
+    return formatAxisValue(val);
+  });
+
+  return {data, timestamps, yLabels, minVal, maxVal};
 }
 
 interface MetricHeatmapProps {
@@ -113,145 +133,112 @@ interface MetricHeatmapProps {
 }
 
 export function MetricHeatmap({timeseriesResult}: MetricHeatmapProps) {
+  const theme = useTheme();
   const visualize = useMetricVisualize();
   const aggregate = visualize.yAxis;
 
-  const {intensityGrid, timestamps, minVal, maxVal} = useMemo(
+  const {data, timestamps, yLabels} = useMemo(
     () => buildHeatmapData(timeseriesResult.data, aggregate),
     [timeseriesResult.data, aggregate]
   );
 
-  const range = maxVal - minVal || 1;
+  const xAxisLabels = useMemo(
+    () => timestamps.map(ts => formatTimestamp(ts)),
+    [timestamps]
+  );
 
-  const yLabels = Array.from({length: NUM_Y_BUCKETS + 1}, (_, i) => {
-    const val = maxVal - (i / NUM_Y_BUCKETS) * range;
-    return formatAxisValue(val);
-  });
-
-  const xLabelCount = Math.min(6, timestamps.length);
-  const xLabelIndices =
-    timestamps.length <= xLabelCount
-      ? timestamps.map((_, i) => i)
-      : Array.from({length: xLabelCount}, (_, i) =>
-          Math.round((i / (xLabelCount - 1)) * (timestamps.length - 1))
-        );
-
-  if (intensityGrid.length === 0 || timestamps.length === 0) {
-    return <EmptyState>No data</EmptyState>;
+  if (data.length === 0 || timestamps.length === 0) {
+    return null;
   }
 
+  // HeatMapChart expects { seriesName, data, dataArray, ...HeatmapSeriesOption }
+  // Pass the flat [xIdx, yIdx, intensity] triples via dataArray to skip the
+  // default [name, value] mapping that HeatMapChart does on `data`.
+  const series = [
+    {
+      seriesName: aggregate,
+      data: [] as Array<{name: string; value: number}>,
+      dataArray: data,
+      // ECharts 5: rounded cells
+      itemStyle: {
+        borderRadius: 0,
+        borderWidth: 1,
+        borderColor: theme.background,
+      },
+      // ECharts 5: blur non-hovered cells on hover
+      emphasis: {
+        focus: 'self' as const,
+        itemStyle: {
+          borderRadius: 0,
+          borderWidth: 2,
+          borderColor: theme.tokens.border.focused,
+        },
+      },
+      // ECharts 5: smooth transition when data updates
+      universalTransition: {
+        enabled: true,
+      },
+    },
+  ];
+
+  const visualMaps = [
+    VisualMap({
+      type: 'piecewise',
+      show: false,
+      pieces: [
+        {gte: 0, lte: 0, color: 'rgba(0,0,0,0)'},
+        ...HEATMAP_COLORS.map((color, i) => ({gte: i + 1, lte: i + 1, color})),
+      ],
+      seriesIndex: 0,
+      dimension: 2,
+    }),
+  ];
+
   return (
-    <HeatmapContainer>
-      <YAxis>
-        {yLabels.map((label, i) => (
-          <YLabel key={i}>{label}</YLabel>
-        ))}
-      </YAxis>
-      <GridAndXAxis>
-        <Grid>
-          {[...intensityGrid].reverse().map((row, reversedIdx) => (
-            <HeatmapRow key={reversedIdx}>
-              {row.map((intensity, timeIdx) => (
-                <HeatmapCell key={timeIdx} intensity={intensity} />
-              ))}
-            </HeatmapRow>
-          ))}
-        </Grid>
-        <XAxis>
-          {xLabelIndices.map(idx => (
-            <XLabel key={idx} style={{left: `${(idx / (timestamps.length - 1)) * 100}%`}}>
-              <XTick />
-              {formatTimestamp(timestamps[idx]!)}
-            </XLabel>
-          ))}
-        </XAxis>
-      </GridAndXAxis>
-    </HeatmapContainer>
+    <HeatMapChart
+      height={280}
+      series={series}
+      visualMaps={visualMaps}
+      xAxis={{
+        type: 'category',
+        data: xAxisLabels,
+        axisLine: {show: false},
+        axisTick: {show: false},
+        axisLabel: {
+          color: theme.tokens.content.secondary,
+          fontSize: 11,
+          interval: Math.max(0, Math.floor(xAxisLabels.length / 6) - 1),
+        },
+        splitLine: {show: false},
+      }}
+      yAxis={{
+        type: 'category',
+        data: yLabels,
+        axisLine: {show: false},
+        axisTick: {show: false},
+        axisLabel: {
+          color: theme.tokens.content.secondary,
+          fontSize: 11,
+        },
+        splitLine: {show: false},
+      }}
+      tooltip={{
+        formatter: (params: any) => {
+          const [timeIdx, yBucket, intensity] = params.data as [number, number, number];
+          const time = xAxisLabels[timeIdx] ?? '';
+          const bucket = yLabels[yBucket] ?? '';
+          const body =
+            intensity === 0
+              ? `<div><span class="tooltip-label"><strong>${aggregate}</strong></span> No data</div>`
+              : `<div><span class="tooltip-label">${params.marker} <strong>${aggregate}</strong></span> ~${bucket}</div>`;
+          return [
+            `<div class="tooltip-series">${body}</div>`,
+            `<div class="tooltip-footer tooltip-footer-centered">${time}</div>`,
+            '<div class="tooltip-arrow"></div>',
+          ].join('');
+        },
+      }}
+      grid={{top: 20, bottom: 20, left: 4, right: 0, containLabel: true}}
+    />
   );
 }
-
-const HeatmapContainer = styled('div')`
-  display: flex;
-  width: 100%;
-  height: 280px;
-  gap: ${p => p.theme.space.xs};
-  padding: ${p => p.theme.space.sm} 0;
-`;
-
-const YAxis = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding-bottom: 24px;
-  flex-shrink: 0;
-`;
-
-const YLabel = styled('div')`
-  font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.tokens.content.secondary};
-  text-align: right;
-  white-space: nowrap;
-  line-height: 16px;
-`;
-
-const GridAndXAxis = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-`;
-
-const Grid = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  border-radius: ${p => p.theme.radius.md};
-`;
-
-const HeatmapRow = styled('div')`
-  display: flex;
-  flex: 1;
-  min-height: 0;
-`;
-
-const HeatmapCell = styled('div')<{intensity: number}>`
-  flex: 1;
-  min-width: 0;
-  background-color: ${p => HEATMAP_COLORS[p.intensity] ?? 'transparent'};
-`;
-
-const XAxis = styled('div')`
-  position: relative;
-  height: 24px;
-  flex-shrink: 0;
-`;
-
-const XLabel = styled('div')`
-  position: absolute;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.tokens.content.secondary};
-  white-space: nowrap;
-`;
-
-const XTick = styled('div')`
-  width: 1px;
-  height: 4px;
-  background-color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const EmptyState = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 280px;
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.md};
-`;
