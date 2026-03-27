@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from sentry.incidents.utils.process_update_helpers import get_aggregation_value
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
-from sentry.search.events.datasets.discover import InvalidIssueSearchQuery
+from sentry.search.exceptions import InvalidIssueSearchQuery
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import get_entity_subscription_from_snuba_query
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType

@@ -294,6 +294,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 /src/sentry/search/events/                                                  @getsentry/data-browsing
 /src/sentry/search/eap/                                                     @getsentry/data-browsing
+/src/sentry/search/exceptions.py                                            @getsentry/data-browsing
 
 /src/sentry/issue_detection/                                             @getsentry/issue-detection-backend
 /tests/sentry/issue_detection/                                           @getsentry/issue-detection-backend
@@ -865,6 +866,10 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/integrations/perforce/                                    @getsentry/ecosystem @getsentry/scm
 /tests/sentry/scm/                                                      @getsentry/scm
 ## End of SCM
+
+## SCM Frontend
+/static/app/components/repositories                                   @getsentry/coding-workflows-sentry-frontend @getsentry/scm
+## End of SCM Frontend
 
 # End of Coding Workflows
 

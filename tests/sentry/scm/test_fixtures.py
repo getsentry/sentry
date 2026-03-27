@@ -4,7 +4,6 @@ from unittest.mock import MagicMock
 
 from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
 from sentry.integrations.models import Integration
-from sentry.scm.private.provider import Provider
 from sentry.scm.types import (
     ActionResult,
     BuildConclusion,
@@ -25,6 +24,7 @@ from sentry.scm.types import (
     PaginatedActionResult,
     PaginatedResponseMeta,
     PaginationParams,
+    Provider,
     PullRequest,
     PullRequestBranch,
     PullRequestCommit,
@@ -496,7 +496,7 @@ class BaseTestProvider(Provider):
                 base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
             ),
             type="github",
-            raw=raw,
+            raw={"headers": None, "data": raw},
             meta={},
         )
 
@@ -517,7 +517,7 @@ class BaseTestProvider(Provider):
                 ),
             ],
             type="github",
-            raw={},
+            raw={"headers": None, "data": None},
             meta=_DEFAULT_PAGINATED_META,
         )
 
@@ -525,7 +525,7 @@ class BaseTestProvider(Provider):
         return ActionResult(
             data=Comment(id="101", body=body, author=None),
             type="github",
-            raw={},
+            raw={"headers": None, "data": None},
             meta={},
         )
 
@@ -549,7 +549,7 @@ class BaseTestProvider(Provider):
                 ),
             ],
             type="github",
-            raw={},
+            raw={"headers": None, "data": None},
             meta=_DEFAULT_PAGINATED_META,
         )
 
@@ -557,7 +557,7 @@ class BaseTestProvider(Provider):
         return ActionResult(
             data=Comment(id="201", body=body, author=None),
             type="github",
-            raw={},
+            raw={"headers": None, "data": None},
             meta={},
         )
 
@@ -579,7 +579,7 @@ class BaseTestProvider(Provider):
                 ReactionResult(id="2", content="eyes", author={"id": "2", "username": "otheruser"}),
             ],
             type="github",
-            raw={},
+            raw={"headers": None, "data": None},
             meta=_DEFAULT_PAGINATED_META,
         )
 
@@ -589,7 +589,7 @@ class BaseTestProvider(Provider):
         return ActionResult(
             data=ReactionResult(id="1", content=reaction, author=None),
             type="github",
-            raw={},
+            raw={"headers": None, "data": None},
             meta={},
         )
 
@@ -617,7 +617,7 @@ class BaseTestProvider(Provider):
                 ),
             ],
             type="github",
-            raw={},
+            raw={"headers": None, "data": None},
             meta=_DEFAULT_PAGINATED_META,
         )
 
@@ -627,7 +627,7 @@ class BaseTestProvider(Provider):
         return ActionResult(
             data=ReactionResult(id="1", content=reaction, author=None),
             type="github",
-            raw={},
+            raw={"headers": None, "data": None},
             meta={},
         )
 
@@ -652,7 +652,7 @@ class BaseTestProvider(Provider):
                 ),
             ],
             type="github",
-            raw={},
+            raw={"headers": None, "data": None},
             meta=_DEFAULT_PAGINATED_META,
         )
 
@@ -662,7 +662,7 @@ class BaseTestProvider(Provider):
         return ActionResult(
             data=ReactionResult(id="1", content=reaction, author=None),
             type="github",
-            raw={},
+            raw={"headers": None, "data": None},
             meta={},
         )
 
@@ -685,7 +685,7 @@ class BaseTestProvider(Provider):
                 ),
             ],
             type="github",
-            raw={},
+            raw={"headers": None, "data": None},
             meta=_DEFAULT_PAGINATED_META,
         )
 
@@ -695,7 +695,7 @@ class BaseTestProvider(Provider):
         return ActionResult(
             data=ReactionResult(id="1", content=reaction, author=None),
             type="github",
-            raw={},
+            raw={"headers": None, "data": None},
             meta={},
         )
 
@@ -712,7 +712,7 @@ class BaseTestProvider(Provider):
         return ActionResult(
             data=GitRef(ref=f"refs/heads/{branch}", sha="abc123def456"),
             type="github",
-            raw={},
+            raw={"headers": None, "data": None},
             meta={},
         )
 
@@ -720,7 +720,7 @@ class BaseTestProvider(Provider):
         return ActionResult(
             data=GitRef(ref=branch, sha=sha),
             type="github",
-            raw={},
+            raw={"headers": None, "data": None},
             meta={},
         )
 
@@ -728,7 +728,7 @@ class BaseTestProvider(Provider):
         return ActionResult(
             data=GitRef(ref=branch, sha=sha),
             type="github",
-            raw={},
+            raw={"headers": None, "data": None},
             meta={},
         )
 
@@ -738,7 +738,7 @@ class BaseTestProvider(Provider):
         return ActionResult(
             data=GitBlob(sha="blob123abc"),
             type="github",
-            raw={},
+            raw={"headers": None, "data": None},
             meta={},
         )
 
@@ -759,7 +759,7 @@ class BaseTestProvider(Provider):
                 size=11,
             ),
             type="github",
-            raw={},
+            raw={"headers": None, "data": None},
             meta={},
         )
 
@@ -782,7 +782,7 @@ class BaseTestProvider(Provider):
                 files=[CommitFile(filename="src/main.py", status="modified", patch="@@ -1 +1 @@")],
             ),
             type="github",
-            raw={},
+            raw={"headers": None, "data": None},
             meta={},
         )
 
@@ -796,7 +796,7 @@ class BaseTestProvider(Provider):
         return PaginatedActionResult(
             data=[inner["data"]],
             type="github",
-            raw={},
+            raw={"headers": None, "data": None},
             meta=_DEFAULT_PAGINATED_META,
         )
 
@@ -811,7 +811,7 @@ class BaseTestProvider(Provider):
         return PaginatedActionResult(
             data=[inner["data"]],
             type="github",
-            raw={},
+            raw={"headers": None, "data": None},
             meta=_DEFAULT_PAGINATED_META,
         )
 
@@ -826,7 +826,7 @@ class BaseTestProvider(Provider):
         return PaginatedActionResult(
             data=[inner["data"]],
             type="github",
-            raw={},
+            raw={"headers": None, "data": None},
             meta=_DEFAULT_PAGINATED_META,
         )
 
@@ -849,7 +849,7 @@ class BaseTestProvider(Provider):
                 truncated=False,
             ),
             type="github",
-            raw={},
+            raw={"headers": None, "data": None},
             meta={},
         )
 
@@ -865,7 +865,7 @@ class BaseTestProvider(Provider):
                 message="Initial commit",
             ),
             type="github",
-            raw={},
+            raw={"headers": None, "data": None},
             meta={},
         )
 
@@ -885,7 +885,7 @@ class BaseTestProvider(Provider):
                 truncated=False,
             ),
             type="github",
-            raw={},
+            raw={"headers": None, "data": None},
             meta={},
         )
 
@@ -902,7 +902,7 @@ class BaseTestProvider(Provider):
                 message=message,
             ),
             type="github",
-            raw={},
+            raw={"headers": None, "data": None},
             meta={},
         )
 
@@ -926,7 +926,7 @@ class BaseTestProvider(Provider):
                 ),
             ],
             type="github",
-            raw={},
+            raw={"headers": None, "data": None},
             meta=_DEFAULT_PAGINATED_META,
         )
 
@@ -949,7 +949,7 @@ class BaseTestProvider(Provider):
                 ),
             ],
             type="github",
-            raw={},
+            raw={"headers": None, "data": None},
             meta=_DEFAULT_PAGINATED_META,
         )
 
@@ -961,7 +961,7 @@ class BaseTestProvider(Provider):
         return ActionResult(
             data="diff --git a/file.py b/file.py\n--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new",
             type="github",
-            raw={},
+            raw={"headers": None, "data": None},
             meta={},
         )
 
@@ -988,7 +988,7 @@ class BaseTestProvider(Provider):
                 ),
             ],
             type="github",
-            raw=raw,
+            raw={"headers": None, "data": raw},
             meta=_DEFAULT_PAGINATED_META,
         )
 
@@ -1013,7 +1013,7 @@ class BaseTestProvider(Provider):
                 base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
             ),
             type="github",
-            raw=raw,
+            raw={"headers": None, "data": raw},
             meta={},
         )
 
@@ -1038,7 +1038,7 @@ class BaseTestProvider(Provider):
                 base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
             ),
             type="github",
-            raw=raw,
+            raw={"headers": None, "data": raw},
             meta={},
         )
 
@@ -1067,7 +1067,7 @@ class BaseTestProvider(Provider):
                 base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
             ),
             type="github",
-            raw=raw,
+            raw={"headers": None, "data": raw},
             meta={},
         )
 
@@ -1093,7 +1093,7 @@ class BaseTestProvider(Provider):
                 body=raw["body"],
             ),
             type="github",
-            raw=raw,
+            raw={"headers": None, "data": raw},
             meta={},
         )
 
@@ -1112,7 +1112,7 @@ class BaseTestProvider(Provider):
                 body=raw["body"],
             ),
             type="github",
-            raw=raw,
+            raw={"headers": None, "data": raw},
             meta={},
         )
 
@@ -1128,7 +1128,7 @@ class BaseTestProvider(Provider):
         return ActionResult(
             data=Review(id=str(raw["id"]), html_url=raw["html_url"]),
             type="github",
-            raw=raw,
+            raw={"headers": None, "data": raw},
             meta={},
         )
 
@@ -1155,7 +1155,7 @@ class BaseTestProvider(Provider):
                 html_url=raw["html_url"],
             ),
             type="github",
-            raw=raw,
+            raw={"headers": None, "data": raw},
             meta={},
         )
 
@@ -1174,7 +1174,7 @@ class BaseTestProvider(Provider):
                 html_url=raw["html_url"],
             ),
             type="github",
-            raw=raw,
+            raw={"headers": None, "data": raw},
             meta={},
         )
 
@@ -1198,7 +1198,7 @@ class BaseTestProvider(Provider):
                 html_url=raw["html_url"],
             ),
             type="github",
-            raw=raw,
+            raw={"headers": None, "data": raw},
             meta={},
         )
 

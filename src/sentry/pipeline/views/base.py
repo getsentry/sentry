@@ -58,7 +58,7 @@ class ApiPipelineEndpoint[P, D = Any, V = Any](Protocol):
 
 
 type ApiPipelineStep[P] = ApiPipelineEndpoint[P] | Callable[[], ApiPipelineEndpoint[P]]
-type ApiPipelineSteps[P] = Sequence[ApiPipelineStep[P]] | None
+type ApiPipelineSteps[P] = Sequence[ApiPipelineStep[P]]
 
 
 def render_react_view(

@@ -16,13 +16,13 @@ import {
 } from 'sentry/components/guidedSteps/guidedSteps';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PanelBody} from 'sentry/components/panels/panelBody';
+import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
 import {t} from 'sentry/locale';
 import {DEFAULT_CODE_REVIEW_TRIGGERS} from 'sentry/types/integrations';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {useSeerOnboardingContext} from 'getsentry/views/seerAutomation/onboarding/hooks/seerOnboardingContext';
-import {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useBulkUpdateRepositorySettings';
 
 import {MaxWidthPanel, PanelDescription, StepContent} from './common';
 import {RepositorySelector} from './repositorySelector';

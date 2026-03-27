@@ -79,6 +79,74 @@ describe('useDuplicateDashboard', () => {
     expect(createMock).toHaveBeenCalled();
     expect(onSuccess).toHaveBeenCalled();
   });
+
+  it('copies saved filters and page filters when duplicating a prebuilt dashboard', async () => {
+    const savedFilters: DashboardFilters = {
+      globalFilter: [
+        {
+          dataset: WidgetType.SPANS,
+          tag: {key: 'span.system', name: 'span.system'},
+          value: 'postgresql',
+        },
+      ],
+    };
+    // Mock for fetchDashboard (saved instance with user's filters)
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/dashboards/55/`,
+      body: DashboardFixture([], {
+        id: '55',
+        prebuiltId: PrebuiltDashboardId.BACKEND_QUERIES,
+        filters: savedFilters,
+        projects: [1, 2],
+        environment: ['production'],
+        period: '7d',
+      }),
+    });
+    // Mock for resolveLinkedDashboardIds (resolves linked summary dashboard)
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/dashboards/`,
+      method: 'GET',
+      body: [
+        DashboardFixture([], {
+          id: '56',
+          prebuiltId: PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY,
+        }),
+      ],
+    });
+    const createMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/dashboards/`,
+      method: 'POST',
+      body: DashboardFixture([], {id: '200'}),
+    });
+
+    const onSuccess = jest.fn();
+    const {result} = renderHookWithProviders(() => useDuplicateDashboard({onSuccess}), {
+      organization,
+    });
+
+    await act(async () => {
+      await result.current(
+        DashboardListItemFixture({
+          id: '55',
+          prebuiltId: PrebuiltDashboardId.BACKEND_QUERIES,
+        }),
+        'grid'
+      );
+    });
+
+    expect(createMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          filters: savedFilters,
+          projects: [1, 2],
+          environment: ['production'],
+          period: '7d',
+        }),
+      })
+    );
+    expect(onSuccess).toHaveBeenCalled();
+  });
 });
 
 describe('useDuplicatePrebuiltDashboard', () => {
@@ -88,7 +156,7 @@ describe('useDuplicatePrebuiltDashboard', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('fetches saved dashboard details and duplicates with saved filters', async () => {
+  it('fetches saved dashboard details and duplicates with saved filters and page filters', async () => {
     const savedFilters: DashboardFilters = {
       globalFilter: [
         {
@@ -104,6 +172,9 @@ describe('useDuplicatePrebuiltDashboard', () => {
         id: '55',
         prebuiltId: PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY,
         filters: savedFilters,
+        projects: [3, 4],
+        environment: ['staging'],
+        period: '14d',
       }),
     });
     const createMock = MockApiClient.addMockResponse({
@@ -125,7 +196,12 @@ describe('useDuplicatePrebuiltDashboard', () => {
     expect(createMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        data: expect.objectContaining({filters: savedFilters}),
+        data: expect.objectContaining({
+          filters: savedFilters,
+          projects: [3, 4],
+          environment: ['staging'],
+          period: '14d',
+        }),
       })
     );
     expect(onSuccess).toHaveBeenCalledWith(expect.objectContaining({id: '300'}));

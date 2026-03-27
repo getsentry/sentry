@@ -1,3 +1,5 @@
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {
@@ -28,6 +30,7 @@ import {
 import {t} from 'sentry/locale';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
@@ -49,6 +52,7 @@ function useNavigationActions(): CommandPaletteAction[] {
   const prefix = `/organizations/${slug}`;
   const {starredViews} = useStarredIssueViews();
   const {data: starredDashboards = []} = useGetStarredDashboards();
+  const {projects} = useProjects();
 
   const issuesChildren: CommandPaletteActionChild[] = [
     makeCommandPaletteLink({
@@ -218,6 +222,19 @@ function useNavigationActions(): CommandPaletteAction[] {
       )
     );
 
+  const projectSettingsChildren: CommandPaletteActionChild[] =
+    organization.features.includes('cmd-k-supercharged')
+      ? projects.map(project =>
+          makeCommandPaletteLink({
+            display: {
+              label: project.name,
+              icon: <ProjectAvatar project={project} size={16} />,
+            },
+            to: `/settings/${slug}/projects/${project.slug}/`,
+          })
+        )
+      : [];
+
   return [
     makeCommandPaletteGroup({
       groupingKey: 'navigate',
@@ -260,7 +277,17 @@ function useNavigationActions(): CommandPaletteAction[] {
       },
       actions: settingsChildren,
     }),
-  ];
+    organization.features.includes('cmd-k-supercharged')
+      ? makeCommandPaletteGroup({
+          groupingKey: 'navigate',
+          display: {
+            label: t('Project Settings'),
+            icon: <IconSettings />,
+          },
+          actions: projectSettingsChildren,
+        })
+      : null,
+  ].filter(x => x !== null);
 }
 
 function useNavigationToggleCollapsed(): CommandPaletteAction {

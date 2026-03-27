@@ -178,26 +178,6 @@ def make_provider(client: RecordingClient | None = None) -> tuple[GitHubProvider
     return provider, transport
 
 
-def assert_action_result(result: Any, *, expected_data: Any, raw: Any) -> None:
-    assert result["type"] == "github"
-    assert result["raw"] == raw
-    assert result["data"] == expected_data
-    assert result["meta"] == {}
-
-
-def assert_paginated_result(
-    result: Any,
-    *,
-    expected_data: Any,
-    raw: Any,
-    next_cursor: str,
-) -> None:
-    assert result["type"] == "github"
-    assert result["raw"] == raw
-    assert result["data"] == expected_data
-    assert result["meta"] == {"next_cursor": next_cursor}
-
-
 def expected_comment(raw: dict[str, Any]) -> dict[str, Any]:
     return {
         "id": str(raw["id"]),
@@ -857,12 +837,11 @@ def test_paginated_methods(case: dict[str, Any]) -> None:
 
     result = getattr(provider, case["name"])(**case["kwargs"])
 
-    assert_paginated_result(
-        result,
-        expected_data=case["expected_data"],
-        raw=case["raw"],
-        next_cursor=case["next_cursor"],
-    )
+    assert result["type"] == "github"
+    assert result["raw"] == {"data": case["raw"], "headers": {}}
+    assert result["data"] == case["expected_data"]
+    assert result["meta"] == {"next_cursor": case["next_cursor"]}
+
     assert client.calls == [
         {
             "operation": "get",
@@ -885,7 +864,11 @@ def test_action_methods(case: dict[str, Any]) -> None:
 
     result = getattr(provider, case["name"])(**case["kwargs"])
 
-    assert_action_result(result, expected_data=case["expected_data"], raw=case["raw"])
+    assert result["type"] == "github"
+    assert result["raw"] == {"data": case["raw"], "headers": case.get("headers", {})}
+    assert result["data"] == case["expected_data"]
+    assert result["meta"] == {}
+
     expected_call = {"operation": case["operation"], "path": case["path"]}
     if "data" in case:
         expected_call["data"] = case["data"]
@@ -916,7 +899,13 @@ def test_get_pull_request_diff_uses_raw_request_and_extracts_meta() -> None:
     result = provider.get_pull_request_diff("42")
 
     assert result["type"] == "github"
-    assert result["raw"] == "diff --git a/f.py b/f.py"
+    assert result["raw"] == {
+        "data": "diff --git a/f.py b/f.py",
+        "headers": {
+            "ETag": '"etag-123"',
+            "Last-Modified": "Tue, 04 Feb 2026 10:00:00 GMT",
+        },
+    }
     assert result["data"] == "diff --git a/f.py b/f.py"
     assert result["meta"]["etag"] == '"etag-123"'
     assert result["meta"]["last_modified"].isoformat() == "2026-02-04T10:00:00+00:00"

@@ -11,6 +11,7 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 
 export const StyledPanel = styled(Panel)`
   margin-bottom: 0px;
+  overflow: hidden;
 `;
 
 interface StyledPanelHeaderProps extends ComponentProps<typeof PanelHeader> {
@@ -31,19 +32,17 @@ export function StyledPanelHeader({
     <Flex justify={justify} radius={radius} height="100%">
       {flexProps => (
         <Text as="div" wrap="nowrap">
-          <PanelHeader lightText={lightText} {...flexProps} {...props}>
+          <TablePanelHeader lightText={lightText} {...flexProps} {...props}>
             {children}
-          </PanelHeader>
+          </TablePanelHeader>
         </Text>
       )}
     </Flex>
   );
 }
 
-export const TracePanelContent = styled('div')`
-  width: 100%;
-  display: grid;
-  grid-template-columns: 116px auto repeat(3, min-content) 95px;
+const TablePanelHeader = styled(PanelHeader)`
+  border-radius: 0;
 `;
 
 export const StyledPanelItem = styled(PanelItem)<{

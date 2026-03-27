@@ -247,7 +247,7 @@ export function getTraceAttributesTreeActions(
 /**
  * Attempts to parse a JSON string, recursively unwrapping double-stringified arrays.
  */
-export function tryParseJson(value: unknown): unknown {
+export function tryParseJsonRecursive(value: unknown): unknown {
   if (typeof value !== 'string') {
     return value;
   }
@@ -256,7 +256,7 @@ export function tryParseJson(value: unknown): unknown {
     if (!Array.isArray(parsedValue)) {
       return parsedValue;
     }
-    return parsedValue.map((item: unknown): unknown => tryParseJson(item));
+    return parsedValue.map((item: unknown): unknown => tryParseJsonRecursive(item));
   } catch {
     return value;
   }

@@ -13,12 +13,15 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
-      - name: Getsentry Token
-        id: getsentry
-        uses: getsentry/action-github-app-token@5c1e90706fe007857338ac1bfbd7a4177db2f789 # v4.0.0
+      - name: github app token
+        id: app-token
+        uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3.0.0
         with:
-          app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
-          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+          app-id: ${{ vars.SENTRY_API_SCHEMA_UPDATER_APP_CLIENT_ID }}
+          private-key: ${{ secrets.SENTRY_API_SCHEMA_UPDATER_PRIVATE_KEY }}
+          repositories: |
+            sentry
+            sentry-api-schema
 
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -42,7 +45,9 @@ jobs:
           ref: 'main'
           repository: getsentry/sentry-api-schema
           path: sentry-api-schema
-          token: ${{ steps.getsentry.outputs.token }}
+          # using app token so that `Git Commit & Push` step has the right permissions
+          # https://github.com/stefanzweifel/git-auto-commit-action/tree/master?tab=readme-ov-file#push-to-protected-branches
+          token: ${{ steps.app-token.outputs.token }}
 
       - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
         if: steps.changes.outputs.api_docs == 'true'
@@ -75,5 +80,5 @@ jobs:
           repository: sentry-api-schema
           branch: main
           commit_message: Generated
-          commit_user_email: bot@getsentry.com
-          commit_user_name: openapi-getsentry-bot
+          commit_user_email: 271575301+sentry-api-schema-updater[bot]@users.noreply.github.com
+          commit_user_name: sentry-api-schema-updater[bot]
