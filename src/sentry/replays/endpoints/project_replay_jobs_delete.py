@@ -17,7 +17,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.replay_examples import ReplayExamples
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
 from sentry.replays.models import ReplayDeletionJobModel
@@ -203,6 +203,7 @@ class ProjectReplayDeletionJobDetailEndpoint(ProjectReplayEndpoint):
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
+            ReplayParams.JOB_ID,
         ],
         responses={
             200: inline_sentry_response_serializer(
