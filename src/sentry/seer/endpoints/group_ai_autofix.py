@@ -168,7 +168,6 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             "organizations:seer-explorer",
             # Access to seer explorer powered autofix
             "organizations:autofix-on-explorer",
-            "organizations:autofix-on-explorer-v2",
         ]
 
         batch_features = features.batch_has(
