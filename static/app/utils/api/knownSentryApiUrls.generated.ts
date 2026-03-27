@@ -465,6 +465,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/org-auth-tokens/'
   | '/organizations/$organizationIdOrSlug/org-auth-tokens/$tokenId/'
   | '/organizations/$organizationIdOrSlug/pinned-searches/'
+  | '/organizations/$organizationIdOrSlug/pipeline/$pipelineName/'
   | '/organizations/$organizationIdOrSlug/plugins/'
   | '/organizations/$organizationIdOrSlug/plugins/$pluginSlug/deprecation-info/'
   | '/organizations/$organizationIdOrSlug/plugins/configs/'
