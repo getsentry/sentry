@@ -419,7 +419,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             trigger_push_changes(
                 group,
                 run_id,
-                referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+                referrer=AutofixReferrer.ON_COMPLETION_HOOK,
                 state=state,
             )
         except Exception:
