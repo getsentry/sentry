@@ -752,17 +752,21 @@ SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
 # An enum is better because there shouldn't be multiple "modes".
 SENTRY_MODE = SentryMode.SELF_HOSTED
 
-# If this instance is a region silo, which region is it running in?
-SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
+# If this instance is a cell silo, which cell is it running in?
+SENTRY_LOCAL_CELL = os.environ.get("SENTRY_REGION", None)
 
 # Returns the customer single tenant ID.
 CUSTOMER_ID = os.environ.get("CUSTOMER_ID", None)
 
 # List of the available cells (e.g. "us1", "us2", "de1")
-SENTRY_REGION_CONFIG: list[CellConfig] = []
+SENTRY_CELLS: list[CellConfig] = []
 
 # Mapping of localities (e.g. "us", "de") to their constituent cells (e.g. "us1", "us2")
 SENTRY_LOCALITIES: list[LocalityConfig] = []
+
+# TODO(cells): Superceded by SENTRY_LOCAL_CELL and SENTRY_CELLS. Remove once migration is complete.
+SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
+SENTRY_REGION_CONFIG: list[CellConfig] = []
 
 # Shared secret used to sign cross-region RPC requests.
 RPC_SHARED_SECRET: list[str] | None = None
