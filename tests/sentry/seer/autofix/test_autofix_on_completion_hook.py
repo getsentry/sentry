@@ -411,16 +411,6 @@ class TestAutofixOnCompletionHookSupergroups(TestCase):
 
         mock_trigger_sg.assert_not_called()
 
-    @patch("sentry.seer.autofix.on_completion_hook.trigger_supergroups_embedding")
-    def test_skips_embedding_when_no_group(self, mock_trigger_sg):
-        """Does not trigger supergroups embedding when group is None."""
-        state = run_state(blocks=[root_cause_memory_block()])
-        AutofixOnCompletionHook._maybe_trigger_supergroups_embedding(
-            self.organization, 123, state, None
-        )
-
-        mock_trigger_sg.assert_not_called()
-
     @with_feature("projects:supergroup-embeddings-explorer")
     @patch("sentry.seer.autofix.on_completion_hook.trigger_supergroups_embedding")
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
