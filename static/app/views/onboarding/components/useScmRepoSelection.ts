@@ -78,7 +78,11 @@ export function useScmRepoSelection({
         queryFn: fetchDataQuery<Repository[]>,
         staleTime: 0,
       });
-      const existing = matches?.find(r => r.externalSlug === repo.identifier);
+      // Match on name rather than externalSlug because externalSlug varies
+      // by provider (e.g. GitLab uses a numeric project ID) while name is
+      // consistently the full repo path (e.g. "getsentry/sentry") across
+      // all providers — matching repo.identifier from the search results.
+      const existing = matches?.find(r => r.name === repo.identifier);
 
       if (existing) {
         onSelect({...optimistic, ...existing});
