@@ -1,8 +1,9 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import {FieldKind} from 'sentry/utils/fields';
 import {
   useTraceItemSearchQueryBuilderProps,
@@ -246,5 +247,101 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
       'log.duration',
       'log.flag',
     ]);
+  });
+
+  it('calls validateQuery when filter keys change', async () => {
+    const validateMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/validate/',
+      method: 'POST',
+      body: {attributes: {'span.op': {valid: true}}},
+    });
+
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: defaultInitialProps,
+      organization,
+    });
+
+    act(() => {
+      result.current.onChange?.('span.op:db', {
+        parsedQuery: parseSearch('span.op:db'),
+        queryIsValid: true,
+      });
+    });
+
+    await waitFor(() => {
+      expect(validateMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('does not call validateQuery when only filter values change', async () => {
+    const validateMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/validate/',
+      method: 'POST',
+      body: {attributes: {'span.op': {valid: true}}},
+    });
+
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: defaultInitialProps,
+      organization,
+    });
+
+    await act(async () => {
+      result.current.onChange?.('span.op:db', {
+        parsedQuery: parseSearch('span.op:db'),
+        queryIsValid: true,
+      });
+    });
+
+    expect(validateMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      result.current.onChange?.('span.op:web', {
+        parsedQuery: parseSearch('span.op:web'),
+        queryIsValid: true,
+      });
+    });
+
+    // Still only 1 call — value changed but keys didn't
+    expect(validateMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls validateQuery when a new filter key is added', async () => {
+    const validateMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/validate/',
+      method: 'POST',
+      body: {
+        attributes: {
+          'span.op': {valid: true},
+          'other.key': {valid: true},
+        },
+      },
+    });
+
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: defaultInitialProps,
+      organization,
+    });
+
+    act(() => {
+      result.current.onChange?.('span.op:db', {
+        parsedQuery: parseSearch('span.op:db'),
+        queryIsValid: true,
+      });
+    });
+
+    await waitFor(() => {
+      expect(validateMock).toHaveBeenCalledTimes(1);
+    });
+
+    act(() => {
+      result.current.onChange?.('span.op:db other.key:val', {
+        parsedQuery: parseSearch('span.op:db other.key:val'),
+        queryIsValid: true,
+      });
+    });
+
+    await waitFor(() => {
+      expect(validateMock).toHaveBeenCalledTimes(2);
+    });
   });
 });

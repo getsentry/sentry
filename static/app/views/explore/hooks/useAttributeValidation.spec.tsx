@@ -2,18 +2,19 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import {
   extractFilterKeys,
   useAttributeValidation,
+  type AttributeValidationSelection,
 } from 'sentry/views/explore/hooks/useAttributeValidation';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-jest.mock('sentry/components/pageFilters/usePageFilters');
-
 const ORG_SLUG = 'org-slug';
-const DEFAULT_DATETIME = {period: '14d', start: null, end: null, utc: false};
+const DEFAULT_SELECTION: AttributeValidationSelection = {
+  datetime: {period: '14d', start: null, end: null, utc: false},
+  projects: [],
+};
 
 describe('extractFilterKeys', () => {
   it('returns empty array for null parsedQuery', () => {
@@ -51,19 +52,6 @@ describe('extractFilterKeys', () => {
 describe('useAttributeValidation', () => {
   const organization = OrganizationFixture({slug: ORG_SLUG});
 
-  beforeEach(() => {
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: DEFAULT_DATETIME,
-        environments: [],
-        projects: [],
-      },
-    });
-  });
-
   it('returns empty invalidFilterKeys initially', () => {
     const {result} = renderHookWithProviders(
       () => useAttributeValidation(TraceItemDataset.SPANS),
@@ -86,7 +74,7 @@ describe('useAttributeValidation', () => {
     );
 
     await act(async () => {
-      await result.current.validateQuery('');
+      await result.current.validateQuery('', DEFAULT_SELECTION);
     });
 
     expect(mockValidate).not.toHaveBeenCalled();
@@ -111,7 +99,10 @@ describe('useAttributeValidation', () => {
     );
 
     await act(async () => {
-      await result.current.validateQuery('span.op:db unknown_key:value');
+      await result.current.validateQuery(
+        'span.op:db unknown_key:value',
+        DEFAULT_SELECTION
+      );
     });
 
     await waitFor(() => {
@@ -132,11 +123,60 @@ describe('useAttributeValidation', () => {
     );
 
     await act(async () => {
-      await result.current.validateQuery('span.op:db');
+      await result.current.validateQuery('span.op:db', DEFAULT_SELECTION);
     });
 
     await waitFor(() => {
       expect(result.current.invalidFilterKeys).toEqual([]);
     });
+  });
+
+  it('skips validation when keys and selection are unchanged', async () => {
+    const mockValidate = MockApiClient.addMockResponse({
+      url: `/organizations/${ORG_SLUG}/trace-items/attributes/validate/`,
+      method: 'POST',
+      body: {attributes: {'span.op': {valid: true}}},
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useAttributeValidation(TraceItemDataset.SPANS),
+      {organization}
+    );
+
+    await act(async () => {
+      await result.current.validateQuery('span.op:db', DEFAULT_SELECTION);
+    });
+
+    await act(async () => {
+      await result.current.validateQuery('span.op:web', DEFAULT_SELECTION);
+    });
+
+    expect(mockValidate).toHaveBeenCalledTimes(1);
+  });
+
+  it('re-validates when selection changes', async () => {
+    const mockValidate = MockApiClient.addMockResponse({
+      url: `/organizations/${ORG_SLUG}/trace-items/attributes/validate/`,
+      method: 'POST',
+      body: {attributes: {'span.op': {valid: true}}},
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useAttributeValidation(TraceItemDataset.SPANS),
+      {organization}
+    );
+
+    await act(async () => {
+      await result.current.validateQuery('span.op:db', DEFAULT_SELECTION);
+    });
+
+    await act(async () => {
+      await result.current.validateQuery('span.op:db', {
+        datetime: {period: '7d', start: null, end: null, utc: false},
+        projects: [],
+      });
+    });
+
+    expect(mockValidate).toHaveBeenCalledTimes(2);
   });
 });

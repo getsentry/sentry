@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useMemo} from 'react';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {SpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {
   SearchQueryBuilder,
@@ -108,20 +109,26 @@ export function useTraceItemSearchQueryBuilderProps({
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
 
-  const {invalidFilterKeys, validateQuery} = useAttributeValidation(itemType, projects);
+  const {invalidFilterKeys, validateQuery} = useAttributeValidation(itemType);
+  const {selection} = usePageFilters();
+  const effectiveProjects = projects ?? selection.projects;
+  const validationSelection = useMemo(
+    () => ({datetime: selection.datetime, projects: effectiveProjects}),
+    [selection.datetime, effectiveProjects]
+  );
 
   useEffect(() => {
     if (initialQuery) {
-      validateQuery(initialQuery);
+      validateQuery(initialQuery, validationSelection);
     }
-  }, [initialQuery, validateQuery]);
+  }, [initialQuery, validateQuery, validationSelection]);
 
   const wrappedOnChange = useCallback(
     (query: string, state: CallbackSearchState) => {
-      validateQuery(query);
+      validateQuery(query, validationSelection);
       onChange?.(query, state);
     },
-    [validateQuery, onChange]
+    [validateQuery, validationSelection, onChange]
   );
   const functionTags = useFunctionTags(itemType, supportedAggregates);
   const filterKeySections = useFilterKeySections(itemType, stringAttributes);
