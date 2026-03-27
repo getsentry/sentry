@@ -297,6 +297,7 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     priorityLockedAt: NotRequired[datetime | None]
     seerFixabilityScore: NotRequired[float | None]
     seerAutofixLastTriggered: NotRequired[datetime | None]
+    seerExplorerAutofixLastTriggered: NotRequired[datetime | None]
     project: NotRequired[GroupProjectResponse]
     type: NotRequired[str]
     issueType: NotRequired[str]

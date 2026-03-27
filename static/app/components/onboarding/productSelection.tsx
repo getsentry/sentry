@@ -26,7 +26,7 @@ interface DisabledProduct {
 
 export type DisabledProducts = Partial<Record<ProductSolution, DisabledProduct>>;
 
-function getDisabledProducts(organization: Organization): DisabledProducts {
+export function getDisabledProducts(organization: Organization): DisabledProducts {
   const disabledProducts: DisabledProducts = {};
   const hasSessionReplay = organization.features.includes('session-replay');
   const hasPerformance = organization.features.includes('performance-view');

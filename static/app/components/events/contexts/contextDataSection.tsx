@@ -1,6 +1,6 @@
 import {ExternalLink} from '@sentry/scraps/link';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
 import {CONTEXT_DOCS_LINK} from 'sentry/components/events/contexts/utils';

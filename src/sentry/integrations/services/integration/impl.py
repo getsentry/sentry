@@ -212,6 +212,21 @@ class DatabaseBackedIntegrationService(IntegrationService):
 
         return [serialize_organization_integration(oi) for oi in ois]
 
+    def get_organization_ids_with_providers(
+        self,
+        *,
+        providers: list[str],
+        status: int | None = None,
+    ) -> list[int]:
+        kwargs: dict[str, Any] = {"integration__provider__in": providers}
+        if status is not None:
+            kwargs["status"] = status
+        return list(
+            OrganizationIntegration.objects.filter(**kwargs)
+            .values_list("organization_id", flat=True)
+            .distinct()
+        )
+
     def organization_context(
         self,
         *,

@@ -20,7 +20,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';

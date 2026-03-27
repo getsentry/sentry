@@ -303,7 +303,7 @@ class ProxyCircuitBreakerTestCase(ApiGatewayTestCase):
             mock_breaker_class.return_value = self._make_breaker_mock(allow_request=False)
             request = RequestFactory().get("http://sentry.io/get")
             proxy_request(request, self.organization.slug, url_name)
-        key_used = mock_breaker_class.call_args[0][0]
+        key_used = mock_breaker_class.call_args.kwargs["key"]
         assert key_used == f"apigateway.proxy.{self.REGION.name}"
 
     @responses.activate

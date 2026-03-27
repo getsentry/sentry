@@ -15,9 +15,7 @@ export function parseLinkHeader(header: string | null): Result {
 
   headerValues.forEach(val => {
     const match =
-      /<([^>]+)>; rel="([^"]+)"(?:; results="([^"]+)")?(?:; cursor="([^"]+)")?/g.exec(
-        val
-      );
+      /<([^>]+)>; rel="([^"]+)"(?:; results="([^"]+)")?(?:; cursor="([^"]+)")?/.exec(val);
     if (!match) {
       return;
     }

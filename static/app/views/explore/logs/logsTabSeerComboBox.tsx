@@ -259,11 +259,6 @@ export function LogsTabSeerComboBox() {
     ]
   );
 
-  const areAiFeaturesAllowed =
-    enableAISearch &&
-    !organization?.hideAiFeatures &&
-    organization.features.includes('gen-ai-features');
-
   const usePollingEndpoint = organization.features.includes(
     'gen-ai-search-agent-translate'
   );
@@ -311,7 +306,7 @@ export function LogsTabSeerComboBox() {
     []
   );
 
-  if (!areAiFeaturesAllowed) {
+  if (!enableAISearch) {
     return null;
   }
 

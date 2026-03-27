@@ -6,7 +6,7 @@ import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
 import {SearchBar} from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';

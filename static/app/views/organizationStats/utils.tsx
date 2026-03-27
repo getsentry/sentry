@@ -34,7 +34,8 @@ export function formatUsageWithUnits(
 ): string {
   if (
     dataCategory === DATA_CATEGORY_INFO.attachment.plural ||
-    dataCategory === DATA_CATEGORY_INFO.log_byte.plural
+    dataCategory === DATA_CATEGORY_INFO.log_byte.plural ||
+    dataCategory === DATA_CATEGORY_INFO.trace_metric_byte.plural
   ) {
     if (options.useUnitScaling) {
       return formatBytesBase10(usageQuantity);
@@ -70,10 +71,12 @@ export function getFormatUsageOptions(dataCategory: DataCategory): FormatOptions
   return {
     isAbbreviated:
       dataCategory !== DATA_CATEGORY_INFO.attachment.plural &&
-      dataCategory !== DATA_CATEGORY_INFO.log_byte.plural,
+      dataCategory !== DATA_CATEGORY_INFO.log_byte.plural &&
+      dataCategory !== DATA_CATEGORY_INFO.trace_metric_byte.plural,
     useUnitScaling:
       dataCategory === DATA_CATEGORY_INFO.attachment.plural ||
-      dataCategory === DATA_CATEGORY_INFO.log_byte.plural,
+      dataCategory === DATA_CATEGORY_INFO.log_byte.plural ||
+      dataCategory === DATA_CATEGORY_INFO.trace_metric_byte.plural,
   };
 }
 

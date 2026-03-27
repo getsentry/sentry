@@ -143,9 +143,9 @@ class OrganizationUnsubscribeIssue(OrganizationUnsubscribeBase[Group]):
         return issue
 
     def unsubscribe(self, request: Request, instance: Group):
-        GroupSubscription.objects.create_or_update(
+        GroupSubscription.objects.update_or_create(
             group=instance,
             project_id=instance.project_id,
             user_id=request.user.pk,
-            values={"is_active": False},
+            defaults={"is_active": False},
         )

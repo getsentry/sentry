@@ -40,6 +40,7 @@ import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphR
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useLocation} from 'sentry/utils/useLocation';
+import {LayoutPageWithHiddenFooter} from 'sentry/views/profiling/layoutPageWithHiddenFooter';
 import {LOADING_PROFILE_GROUP} from 'sentry/views/profiling/profileGroupProvider';
 
 const PROFILE_TYPE = 'differential aggregate flamegraph' as const;
@@ -348,26 +349,24 @@ const DifferentialFlamegraphContainer = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1;
-
-  ~ footer {
-    display: none;
-  }
 `;
 
 function DifferentialFlamegraphWithProviders() {
   return (
-    <FlamegraphThemeProvider>
-      <FlamegraphStateProvider
-        initialState={{
-          preferences: {
-            sorting: 'alphabetical',
-            view: 'top down',
-          },
-        }}
-      >
-        <DifferentialFlamegraphView />
-      </FlamegraphStateProvider>
-    </FlamegraphThemeProvider>
+    <LayoutPageWithHiddenFooter>
+      <FlamegraphThemeProvider>
+        <FlamegraphStateProvider
+          initialState={{
+            preferences: {
+              sorting: 'alphabetical',
+              view: 'top down',
+            },
+          }}
+        >
+          <DifferentialFlamegraphView />
+        </FlamegraphStateProvider>
+      </FlamegraphThemeProvider>
+    </LayoutPageWithHiddenFooter>
   );
 }
 

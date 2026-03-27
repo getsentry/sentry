@@ -3,7 +3,7 @@ import {isValidElement, useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {BreadcrumbCodeSnippet} from 'sentry/components/replays/breadcrumbs/breadcrumbCodeSnippet';
 import {BreadcrumbComparisonButton} from 'sentry/components/replays/breadcrumbs/breadcrumbComparisonButton';
 import {BreadcrumbDescription} from 'sentry/components/replays/breadcrumbs/breadcrumbDescription';

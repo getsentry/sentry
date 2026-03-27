@@ -100,7 +100,7 @@ class OpsgenieClientTest(APITestCase):
             "details": {
                 "Project Name": self.project.name,
                 "Triggering Rules": "my rule",
-                "Triggering Rule URLs": f"http://example.com/organizations/baz/alerts/rules/{self.project.slug}/{rule.id}/details/",
+                "Triggering Rule URLs": f"http://example.com/organizations/baz/issues/alerts/rules/{self.project.slug}/{rule.id}/details/",
                 "Sentry Group": "Hello world",
                 "Sentry ID": group_id,
                 "Logger": "",
@@ -167,7 +167,7 @@ class OpsgenieClientTest(APITestCase):
             "details": {
                 "Project Name": self.project.name,
                 "Triggering Rules": rule.label,
-                "Triggering Rule URLs": f"http://example.com/organizations/baz/alerts/rules/{self.project.slug}/{rule.data['actions'][0]['legacy_rule_id']}/details/",
+                "Triggering Rule URLs": f"http://example.com/organizations/baz/issues/alerts/rules/{self.project.slug}/{rule.data['actions'][0]['legacy_rule_id']}/details/",
                 "Sentry Group": "Hello world",
                 "Sentry ID": group_id,
                 "Logger": "",

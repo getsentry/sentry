@@ -8,11 +8,9 @@ import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t, tct} from 'sentry/locale';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import EventView from 'sentry/utils/discover/eventView';
-import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {getCurrentTrendParameter} from 'sentry/views/performance/trends/utils';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from './landing/utils';
 
@@ -181,8 +179,7 @@ export function prepareQueryForLandingPage(searchQuery: any, withStaticFilters: 
 
 export function generateGenericPerformanceEventView(
   location: Location,
-  withStaticFilters: boolean,
-  organization: Organization
+  withStaticFilters: boolean
 ): EventView {
   const {query} = location;
 
@@ -224,19 +221,6 @@ export function generateGenericPerformanceEventView(
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
   eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
-
-  if (query.trendParameter) {
-    // projects and projectIds are not necessary here since trendParameter will always
-    // be present in location and will not be determined based on the project type
-    const trendParameter = getCurrentTrendParameter(location, [], []);
-    if (
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      WEB_VITAL_DETAILS[trendParameter.column] &&
-      !organization.features.includes('performance-new-trends')
-    ) {
-      eventView.additionalConditions.addFilterValues('has', [trendParameter.column]);
-    }
-  }
 
   return eventView;
 }
@@ -472,14 +456,9 @@ export function generateFrontendOtherPerformanceEventView(
 export function generatePerformanceEventView(
   location: Location,
   projects: Project[],
-  {isTrends = false, withStaticFilters = false} = {},
-  organization: Organization
+  {isTrends = false, withStaticFilters = false} = {}
 ) {
-  const eventView = generateGenericPerformanceEventView(
-    location,
-    withStaticFilters,
-    organization
-  );
+  const eventView = generateGenericPerformanceEventView(location, withStaticFilters);
   if (isTrends) {
     return eventView;
   }

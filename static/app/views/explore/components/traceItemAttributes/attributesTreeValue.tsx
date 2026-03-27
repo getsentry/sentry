@@ -2,7 +2,7 @@ import {type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/links/externalLink';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {AnnotatedAttributeTooltip} from 'sentry/views/explore/components/annotatedAttributeTooltip';

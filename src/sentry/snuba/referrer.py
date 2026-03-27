@@ -132,6 +132,9 @@ class Referrer(StrEnum):
     API_EXPLORE_LOGS_RAW_COUNT_NORMAL = "api.explore.logs.raw-count.normal"
     API_EXPLORE_LOGS_RAW_COUNT_HIGH_ACCURACY = "api.explore.logs.raw-count.high-accuracy"
     API_EXPLORE_TRACEMETRICS_RAW_COUNT_NORMAL = "api.explore.tracemetrics.raw-count.normal"
+    API_EXPLORE_TRACEMETRICS_RAW_COUNT_NORMAL_EXTRAPOLATED_TOTAL = (
+        "api.explore.tracemetrics.raw-count.normal-extrapolated-total"
+    )
     API_EXPLORE_TRACEMETRICS_RAW_COUNT_HIGH_ACCURACY = (
         "api.explore.tracemetrics.raw-count.high-accuracy"
     )

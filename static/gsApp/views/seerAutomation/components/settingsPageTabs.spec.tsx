@@ -20,9 +20,17 @@ describe('SettingsPageTabs', () => {
     });
 
     expect(screen.getByRole('tab', {name: 'Overview'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Repositories'})).toHaveAttribute(
+      'href',
+      `/settings/${organization.slug}/seer/scm/`
+    );
     expect(screen.getByRole('link', {name: 'Autofix'})).toHaveAttribute(
       'href',
       `/settings/${organization.slug}/seer/projects/`
+    );
+    expect(screen.getByRole('link', {name: 'Code Review'})).toHaveAttribute(
+      'href',
+      `/settings/${organization.slug}/seer/repos/`
     );
   });
 
@@ -49,7 +57,7 @@ describe('SettingsPageTabs', () => {
       'href',
       `/settings/${organization.slug}/seer/repos/`
     );
-    expect(screen.getByRole('link', {name: 'Source Code Management'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: 'Repositories'})).toHaveAttribute(
       'href',
       `/settings/${organization.slug}/seer/scm/`
     );

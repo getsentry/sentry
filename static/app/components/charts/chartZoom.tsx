@@ -5,6 +5,7 @@ import type {
   ToolboxComponentOption,
   XAXisComponentOption,
 } from 'echarts';
+import type {Location} from 'history';
 import moment, {type MomentInput} from 'moment-timezone';
 import * as qs from 'query-string';
 
@@ -18,10 +19,10 @@ import type {
   EChartFinishedHandler,
   EChartRestoreHandler,
 } from 'sentry/types/echarts';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
-// eslint-disable-next-line no-restricted-imports
-import {withSentryRouter} from 'sentry/utils/withSentryRouter';
+import {useLocation} from 'sentry/utils/useLocation';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 const getDate = (date: MomentInput) =>
   date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
@@ -52,6 +53,8 @@ export interface ZoomRenderProps extends Pick<Props, ZoomPropKeys> {
 
 type Props = {
   children: (props: ZoomRenderProps) => React.ReactNode;
+  location: Location;
+  navigate: ReactRouter3Navigate;
   disabled?: boolean;
   end?: DateString;
   onChartReady?: EChartChartReadyHandler;
@@ -60,7 +63,6 @@ type Props = {
   onRestore?: EChartRestoreHandler;
   onZoom?: (period: Period) => void;
   period?: string | null;
-  router?: InjectedRouter;
   saveOnZoom?: boolean;
   start?: DateString;
   usePageDate?: boolean;
@@ -135,7 +137,7 @@ class ChartZoom extends Component<Props> {
    * Saves a callback function to be called after chart animation is completed
    */
   setPeriod = ({period, start, end}: any, saveHistory = false) => {
-    const {router, onZoom, usePageDate, saveOnZoom} = this.props;
+    const {location, navigate, onZoom, usePageDate, saveOnZoom} = this.props;
     const startFormatted = getDate(start);
     const endFormatted = getDate(end);
 
@@ -156,20 +158,17 @@ class ChartZoom extends Component<Props> {
       end: endFormatted,
     });
 
-    if (usePageDate && router) {
+    if (usePageDate) {
       const newQuery = {
-        ...router.location.query,
+        ...location.query,
         pageStart: start ? getUtcDateString(start) : undefined,
         pageEnd: end ? getUtcDateString(end) : undefined,
         pageStatsPeriod: period ?? undefined,
       };
 
       // Only push new location if query params has changed because this will cause a heavy re-render
-      if (qs.stringify(newQuery) !== qs.stringify(router.location.query)) {
-        router.push({
-          pathname: router.location.pathname,
-          query: newQuery,
-        });
+      if (qs.stringify(newQuery) !== qs.stringify(location.query)) {
+        navigate({pathname: location.pathname, query: newQuery});
       }
     } else {
       updateDateTime(
@@ -180,7 +179,8 @@ class ChartZoom extends Component<Props> {
             : startFormatted,
           end: endFormatted ? getUtcToLocalDateObject(endFormatted) : endFormatted,
         },
-        router,
+        location,
+        navigate,
         {save: saveOnZoom}
       );
     }
@@ -317,7 +317,6 @@ class ChartZoom extends Component<Props> {
       children,
       xAxisIndex,
 
-      router: _router,
       onZoom: _onZoom,
       onRestore: _onRestore,
       onChartReady: _onChartReady,
@@ -377,6 +376,14 @@ class ChartZoom extends Component<Props> {
 }
 
 /**
+ * Wrapper that injects `navigate` and `location` hooks into ChartZoom.
  * @deprecated use useChartZoom instead
  */
-export default withSentryRouter(ChartZoom);
+function ChartZoomWithHooks(props: Omit<Props, 'navigate' | 'location'>) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  return <ChartZoom {...props} navigate={navigate} location={location} />;
+}
+
+// eslint-disable-next-line @sentry/no-default-exports
+export default ChartZoomWithHooks;

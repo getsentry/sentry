@@ -46,7 +46,7 @@ class UserDetailsGetTest(UserDetailsTest):
         resp = self.get_success_response("me")
 
         assert resp.data["id"] == str(self.user.id)
-        assert resp.data["options"]["theme"] == "light"
+        assert resp.data["options"]["theme"] == "system"
         assert resp.data["options"]["defaultIssueEvent"] == "recommended"
         assert resp.data["options"]["timezone"] == "UTC"
         assert resp.data["options"]["language"] == "en"

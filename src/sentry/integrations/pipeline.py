@@ -4,16 +4,20 @@ import logging
 from collections.abc import Callable, Sequence
 from typing import Any, Never, TypedDict
 
+import sentry_sdk
 from django.db import IntegrityError
+from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase, HttpResponseRedirect
 from django.utils import timezone
 from django.utils.translation import gettext as _
+from sentry_sdk.tracing import TransactionSource
 
 from sentry import analytics, features
 from sentry.analytics.events.integration_pipeline_step import IntegrationPipelineStep
 from sentry.api.serializers import serialize
 from sentry.auth.superuser import superuser_has_permission
 from sentry.constants import ObjectStatus
+from sentry.features.exceptions import FeatureNotRegistered
 from sentry.integrations.base import IntegrationData, IntegrationDomain, IntegrationProvider
 from sentry.integrations.manager import default_manager
 from sentry.integrations.models.integration import Integration
@@ -22,13 +26,15 @@ from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
+from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.base import Pipeline
 from sentry.pipeline.store import PipelineSessionStore
-from sentry.pipeline.views.base import PipelineView
+from sentry.pipeline.types import PipelineStepResult
+from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.silo.base import SiloMode
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
@@ -36,9 +42,58 @@ from sentry.utils import metrics
 from sentry.web.helpers import render_to_response
 from sentry.workflow_engine.service.action import action_service
 
-__all__ = ["IntegrationPipeline"]
+__all__ = ["IntegrationPipeline", "IntegrationPipelineError", "initialize_integration_pipeline"]
 
 logger = logging.getLogger(__name__)
+
+
+class IntegrationPipelineError(Exception):
+    """Raised when an integration pipeline cannot be initialized."""
+
+    def __init__(self, message: str, not_found: bool = False) -> None:
+        self.not_found = not_found
+        super().__init__(message)
+
+
+def initialize_integration_pipeline(
+    request: HttpRequest,
+    organization: Organization | RpcOrganization,
+    provider_id: str,
+) -> IntegrationPipeline:
+    """
+    Creates, validates, and initializes an IntegrationPipeline for the given
+    organization and provider. Raises IntegrationPipelineError if any pre-checks
+    fail (feature flags disabled or provider cannot be added).
+    """
+    scope = sentry_sdk.get_current_scope()
+    scope.set_transaction_name(f"integration.{provider_id}", source=TransactionSource.VIEW)
+
+    pipeline = IntegrationPipeline(
+        request=request, organization=organization, provider_key=provider_id
+    )
+
+    assert isinstance(pipeline.provider, IntegrationProvider)
+
+    is_feature_enabled: dict[str, bool] = {}
+    for feature in pipeline.provider.features:
+        feature_flag_name = "organizations:integrations-%s" % feature.value
+        try:
+            features.get(feature_flag_name, None)
+            is_feature_enabled[feature_flag_name] = features.has(feature_flag_name, organization)
+        except FeatureNotRegistered:
+            is_feature_enabled[feature_flag_name] = True
+
+    if not any(is_feature_enabled.values()):
+        raise IntegrationPipelineError(
+            "At least one feature from this list has to be enabled in order to setup the integration:\n%s"
+            % "\n".join(is_feature_enabled)
+        )
+
+    if not pipeline.provider.can_add:
+        raise IntegrationPipelineError("Integration cannot be added.", not_found=True)
+
+    pipeline.initialize()
+    return pipeline
 
 
 class _IntegrationDefaults(TypedDict):
@@ -117,6 +172,9 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
     ]:
         return self.provider.get_pipeline_views()
 
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+        return self.provider.get_pipeline_api_steps()
+
     def get_analytics_event(self) -> analytics.Event | None:
         pipeline_type = "reauth" if self.fetch_state("integration_id") else "install"
         return IntegrationPipelineStep(
@@ -146,9 +204,8 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
                 id=self.organization.id, user_id=self.request.user.id
             )
 
-            if (
-                org_context
-                and (not org_context.member or "org:integrations" not in org_context.member.scopes)
+            if not org_context or (
+                (not org_context.member or "org:integrations" not in org_context.member.scopes)
                 and not superuser_has_permission(self.request, ["org:integrations"])
             ):
                 error_message = "You must be an organization owner, manager or admin to install this integration."
@@ -188,14 +245,17 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
                 )
                 return self.render_warning(str(e))
 
-            response = self._finish_pipeline(data)
+            try:
+                response = self._finish_pipeline(data)
+            except IntegrationError as e:
+                lifecycle.record_failure(e)
+                return self._dialog_response({"error": str(e)}, False)
 
             extra = data.get("post_install_data", {})
 
             self.provider.create_audit_log_entry(
                 self.integration, self.organization, self.request, "install", extra=extra
             )
-            # Enable all actions for the organization installing the integration
             self._enable_actions()
             self.provider.post_install(self.integration, self.organization, extra=extra)
             self.clear_session()
@@ -208,7 +268,13 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
 
         return response
 
-    def _finish_pipeline(self, data: IntegrationData) -> HttpResponseBase:
+    def _install_integration(self, data: IntegrationData) -> OrganizationIntegration:
+        """
+        Core model operations for finishing the pipeline: create/update
+        Integration, link identity, create OrganizationIntegration.
+
+        Raises IntegrationError on failure. Returns the created OrganizationIntegration.
+        """
         if "expect_exists" in data:
             self.integration = Integration.objects.get(
                 provider=self.provider.integration_key, external_id=data["external_id"]
@@ -229,7 +295,6 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
             idp_external_id = data.get("idp_external_id", data["external_id"])
             idp_config = data.get("idp_config", {})
 
-            # Create identity provider for this integration if necessary
             idp, created = IdentityProvider.objects.get_or_create(
                 external_id=idp_external_id, type=identity["type"], defaults={"config": idp_config}
             )
@@ -278,19 +343,15 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
                             "provider_key": self.provider.key,
                         },
                     )
-                    # if we don't need a default identity, we don't have to throw an error
+                    # If we don't need a default identity, we don't have to throw an error
                     if self.provider.needs_default_identity:
-                        # The external_id is linked to a different user.
                         proper_name = idp.get_provider().name
-                        return self._dialog_response(
-                            {
-                                "error": _(
-                                    "The provided %(proper_name)s account is linked to a different Sentry user. "
-                                    "To continue linking the current Sentry user, please use a different %(proper_name)s account."
-                                )
-                                % ({"proper_name": proper_name})
-                            },
-                            False,
+                        raise IntegrationError(
+                            _(
+                                "The provided %(proper_name)s account is linked to a different Sentry user. "
+                                "To continue linking the current Sentry user, please use a different %(proper_name)s account."
+                            )
+                            % ({"proper_name": proper_name})
                         )
 
         default_auth_id = None
@@ -309,7 +370,7 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
                     "integration_id": self.integration.id,
                 },
             )
-            return self.error(
+            raise IntegrationError(
                 "This integration has already been installed on another Sentry organization which resides in a different cell. Installation could not be completed."
             )
 
@@ -317,8 +378,15 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
             self.organization, self.request.user, default_auth_id=default_auth_id
         )
 
+        if org_integration is None:
+            raise IntegrationError("Could not create the integration for this organization.")
+
+        return org_integration
+
+    def _finish_pipeline(self, data: IntegrationData) -> HttpResponseBase:
+        org_integration = self._install_integration(data)
+
         extra = data.get("post_install_data", {})
-        # If a particular provider has a redirect for a successful install, use that instead of the generic success
         redirect_url_format = extra.get("redirect_url_format", None)
         if redirect_url_format is not None:
             return self._get_redirect_response(redirect_url_format=redirect_url_format)
@@ -358,6 +426,57 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
             organization_id=self.organization.id,
             integration_id=self.integration.id,
             status=ObjectStatus.ACTIVE,
+        )
+
+    def api_finish_pipeline(self) -> PipelineStepResult:
+        with IntegrationPipelineViewEvent(
+            interaction_type=IntegrationPipelineViewType.FINISH_PIPELINE,
+            domain=IntegrationDomain.GENERAL,
+            provider_key=self.provider.key,
+        ).capture() as lifecycle:
+            org_context = organization_service.get_organization_by_id(
+                id=self.organization.id, user_id=self.request.user.id
+            )
+
+            if not org_context or (
+                (not org_context.member or "org:integrations" not in org_context.member.scopes)
+                and not superuser_has_permission(self.request, ["org:integrations"])
+            ):
+                return PipelineStepResult.error(
+                    "You must be an organization owner, manager or admin to install this integration."
+                )
+
+            try:
+                data = self.provider.build_integration(self.state.data)
+            except IntegrationError as e:
+                lifecycle.record_failure(e)
+                return PipelineStepResult.error(str(e))
+            except IntegrationProviderError as e:
+                return PipelineStepResult.error(str(e))
+
+            try:
+                org_integration = self._install_integration(data)
+            except IntegrationError as e:
+                lifecycle.record_failure(e)
+                return PipelineStepResult.error(str(e))
+
+            extra = data.get("post_install_data", {})
+
+            self.provider.create_audit_log_entry(
+                self.integration, self.organization, self.request, "install", extra=extra
+            )
+            self._enable_actions()
+            self.provider.post_install(self.integration, self.organization, extra=extra)
+            self.clear_session()
+
+        metrics.incr(
+            "sentry.integrations.installation_finished",
+            tags={"integration_name": self.provider.key},
+            sample_rate=1.0,
+        )
+
+        return PipelineStepResult.complete(
+            data=serialize(org_integration, self.request.user),
         )
 
     def _get_redirect_response(self, redirect_url_format: str) -> HttpResponseRedirect:

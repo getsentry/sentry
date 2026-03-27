@@ -19,7 +19,7 @@ import type {Project} from 'sentry/types/project';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import TransactionSummaryLayout from 'sentry/views/performance/transactionSummary/layout';
-import TransactionSummaryTab from 'sentry/views/performance/transactionSummary/tabs';
+import {Tab as TransactionSummaryTab} from 'sentry/views/performance/transactionSummary/tabs';
 import TransactionSummary from 'sentry/views/performance/transactionSummary/transactionOverview';
 
 const teams = [

@@ -263,7 +263,7 @@ const propNamesToIgnore = [
 const omitIgnoredProps = (props: EventsRequestProps) =>
   omitBy(props, (_value, key) => propNamesToIgnore.includes(key));
 
-class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState> {
+export class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState> {
   static defaultProps: DefaultProps = {
     period: undefined,
     start: null,
@@ -658,7 +658,6 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
     });
   }
 }
-export default EventsRequest;
 
 /**
  * Transforms query response into timeseries data to be used in a chart

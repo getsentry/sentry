@@ -732,6 +732,20 @@ function MyForm() {
 }
 ```
 
+### Resetting After Save
+
+When a form stays on the page after submission (e.g., settings pages), call `form.reset()` after a successful mutation. This re-syncs the form with updated `defaultValues` so it becomes pristine again — any UI that depends on the form being dirty (like conditionally shown Save/Cancel buttons) will update correctly.
+
+```tsx
+onSubmit: ({value}) =>
+  mutation
+    .mutateAsync(value)
+    .then(() => form.reset())
+    .catch(() => {}),
+```
+
+> **Note**: `AutoSaveForm` handles this automatically. You only need to add this when using `useScrapsForm`.
+
 ### Submit Button
 
 ```tsx
@@ -828,7 +842,11 @@ onSubmit: ({value}) => {
   // Return the promise to keep form.isSubmitting working
   // Add .catch(() => {}) to avoid unhandled rejection - error handling
   // is done by TanStack Query (onError callback, mutation.isError state)
-  return mutation.mutateAsync(value).catch(() => {});
+  // Add .then(() => form.reset()) if the form stays on the page after save
+  return mutation
+    .mutateAsync(value)
+    .then(() => form.reset())
+    .catch(() => {});
 };
 ```
 
@@ -915,6 +933,23 @@ const opts = mutationOptions({
 
 Make sure the zod schema's types are compatible with the API type. For example, if the API expects a string union like `'off' | 'low' | 'high'`, use `z.enum(['off', 'low', 'high'])` instead of `z.string()`.
 
+### Form Reset After Save
+
+```tsx
+// ❌ Don't forget to reset forms that stay on the page after save
+onSubmit: ({value}) => {
+  return mutation.mutateAsync(value).catch(() => {});
+};
+
+// ✅ Call form.reset() after successful save to sync with updated defaultValues
+onSubmit: ({value}) => {
+  return mutation
+    .mutateAsync(value)
+    .then(() => form.reset())
+    .catch(() => {});
+};
+```
+
 ### Layout Choice
 
 ```tsx
@@ -941,6 +976,7 @@ When creating a new form:
 - [ ] Choose appropriate layout (Stack or Row)
 - [ ] Handle server errors with `setFieldErrors`
 - [ ] Add `<form.SubmitButton>` for submission
+- [ ] Call `form.reset()` after successful mutation if the form stays on the page
 
 When creating auto-save fields:
 

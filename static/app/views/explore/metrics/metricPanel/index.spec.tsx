@@ -97,8 +97,8 @@ describe('MetricPanel', () => {
     fields: ['id', 'timestamp'],
     sortBys: [{field: 'timestamp', kind: 'desc'}],
     aggregateCursor: '',
-    aggregateFields: [new VisualizeFunction('per_second(value)')],
-    aggregateSortBys: [{field: 'per_second(value)', kind: 'desc'}],
+    aggregateFields: [new VisualizeFunction('sum(value)')],
+    aggregateSortBys: [{field: 'sum(value)', kind: 'desc'}],
   });
 
   describe('flag OFF (tracemetrics-enabled only)', () => {

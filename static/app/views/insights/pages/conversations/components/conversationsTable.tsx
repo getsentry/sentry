@@ -33,6 +33,7 @@ import {
   type Conversation,
   type ConversationUser,
 } from 'sentry/views/insights/pages/conversations/hooks/useConversations';
+import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 
 interface ConversationsTableProps {
   openConversationViewDrawer: ReturnType<
@@ -141,7 +142,7 @@ const CELL_MAX_CHARS = 256;
 function TooltipContent({text}: {text: string}) {
   return (
     <TooltipTextContainer>
-      <MarkedText text={ellipsize(text, TOOLTIP_MAX_CHARS)} />
+      <AIContentRenderer text={ellipsize(text, TOOLTIP_MAX_CHARS)} inline />
     </TooltipTextContainer>
   );
 }

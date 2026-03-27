@@ -14,6 +14,7 @@ import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTra
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
+import {resolveAgentName} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   getIsAiAgentSpan,
   getToolSpansFilter,
@@ -110,7 +111,7 @@ function getAISpanAttributes({
 
   const genAiOpType = attributes['gen_ai.operation.type'] as string | undefined;
 
-  const agentName = attributes['gen_ai.agent.name'] || attributes['gen_ai.function_id'];
+  const agentName = resolveAgentName(attributes);
   if (agentName) {
     highlightedAttributes.push({
       name: t('Agent Name'),

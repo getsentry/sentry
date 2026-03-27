@@ -21,6 +21,13 @@ export function computeSidebarBadges(items: SidebarItem[]): void {
       continue;
     }
 
+    if (item.type === 'renamed') {
+      if (item.pairs.length > 1) {
+        item.badge = String(item.pairs.length);
+      }
+      continue;
+    }
+
     if (item.images.length > 1) {
       item.badge = String(item.images.length);
     }

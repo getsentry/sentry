@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {HighlightModalContainer} from 'sentry/components/highlightModalContainer';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';

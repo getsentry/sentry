@@ -11,14 +11,14 @@ from sentry.types.cell import Cell
 
 def update_organization_mapping_from_instance(
     organization: Organization,
-    region: Cell,
+    cell: Cell,
     customer_id: CustomerId | tuple[str | None] | None = None,
 ) -> RpcOrganizationMappingUpdate:
     return RpcOrganizationMappingUpdate(
         name=organization.name,
         status=organization.status,
         slug=organization.slug,
-        region_name=region.name,
+        cell_name=cell.name,
         requires_2fa=bool(organization.flags.require_2fa),
         early_adopter=bool(organization.flags.early_adopter),
         codecov_access=bool(organization.flags.codecov_access),
@@ -39,7 +39,7 @@ def serialize_organization_mapping(org_mapping: OrganizationMapping) -> RpcOrgan
         id=org_mapping.organization_id,
         slug=org_mapping.slug,
         name=org_mapping.name,
-        region_name=org_mapping.cell_name,
+        cell_name=org_mapping.cell_name,
         date_created=org_mapping.date_created,
         customer_id=org_mapping.customer_id,
         status=org_mapping.status,

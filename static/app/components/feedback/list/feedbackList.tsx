@@ -8,7 +8,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ApiResult} from 'sentry/api';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackListHeader} from 'sentry/components/feedback/list/feedbackListHeader';
 import {FeedbackListItem} from 'sentry/components/feedback/list/feedbackListItem';
 import {useFeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';

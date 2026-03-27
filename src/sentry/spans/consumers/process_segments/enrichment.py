@@ -261,15 +261,18 @@ def _us(timestamp: float) -> int:
 
 
 def compute_breakdowns(
-    spans: Sequence[SpanEvent],
+    child_spans: Sequence[SpanEvent],
     breakdowns_config: dict[str, dict[str, Any]],
 ) -> dict[str, Attribute]:
     """
-    Computes breakdowns from all spans and writes them to the segment span.
+    Computes breakdowns from child spans, returned as an attributes dict ready
+    to merge into a segment span.
 
     Breakdowns are measurements that are derived from the spans in the segment.
-    By convention, their unit is in milliseconds. In the end, these measurements
-    are converted into attributes on the span trace item.
+    By convention, their unit is in milliseconds.
+
+    The segment span itself must be excluded from ``child_spans`` to avoid
+    inflating breakdowns with the segment's own duration.
     """
 
     ret: dict[str, Attribute] = {}
@@ -277,7 +280,7 @@ def compute_breakdowns(
         ty = breakdown_config.get("type")
 
         if ty == "spanOperations":
-            breakdowns = _compute_span_ops(spans, breakdown_config)
+            breakdowns = _compute_span_ops(child_spans, breakdown_config)
         else:
             continue
 

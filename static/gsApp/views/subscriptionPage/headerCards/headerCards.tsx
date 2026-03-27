@@ -1,6 +1,6 @@
 import {Grid} from '@sentry/scraps/layout';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import type {Organization} from 'sentry/types/organization';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 

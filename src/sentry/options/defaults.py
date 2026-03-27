@@ -893,6 +893,9 @@ register("aws-lambda.host-region", default="us-east-2", flags=FLAG_AUTOMATOR_MOD
 # the number of threads we should use to install Lambdas
 register("aws-lambda.thread-count", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Intercom Integration
+register("intercom.sentry-api-secret", flags=FLAG_NOSTORE | FLAG_CREDENTIAL, default="")
+
 # Snuba
 register(
     "snuba.search.pre-snuba-candidates-optimizer",
@@ -2526,6 +2529,16 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# TTL in seconds for nodestore cache entries. Event bodies are immutable
+# so longer TTLs are safe and improve cache hit rates for batch reads
+# (e.g. group events list endpoint).
+register(
+    "nodestore.cache-ttl",
+    default=300,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # === Backpressure related runtime options ===
 
 # Enables monitoring of services for backpressure management.
@@ -3324,12 +3337,6 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "spans.buffer.done-flush-conditional-zrem",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Segments consumer
 register(
     "spans.process-segments.consumer.enable",
@@ -3665,6 +3672,22 @@ register(
     default=10000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Tuning knobs for the periodic fire-history cleanup task.
+# time_limit is a wall-clock budget checked *between* batches, so a single
+# batch that exceeds it will still run to completion. Setting it to 0
+# prevents any batches from running.
+register(
+    "workflow_engine.fire_history_cleanup.time_limit_seconds",
+    type=Float,
+    default=5.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "workflow_engine.fire_history_cleanup.batch_size",
+    type=Int,
+    default=10000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Restrict uptime issue creation for specific host provider identifiers. Items
 # in this list map to the `host_provider_id` column in the UptimeSubscription
@@ -3854,8 +3877,9 @@ register(
 
 # Taskbroker flags
 register(
-    "taskworker.enabled",
-    default=True,
+    "taskworker.producer.max_futures",
+    type=Int,
+    default=1000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -3863,18 +3887,6 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "taskworker.grpc_service_config",
-    type=String,
-    default="""{"loadBalancingConfig": [{"round_robin": {}}]}""",
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.fetch_next.disabled_pools",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 
 # Enable HTTP/2 transport in Sentry SDK
 register(

@@ -12,7 +12,7 @@ const FIRST_ROW_WIDGTS = spaceWidgetsEquallyOnRow(
   [
     {
       id: 'avg-time-in-queue-widget',
-      title: t('Avg Time in Queue'),
+      title: t('Average Time in Queue'),
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.SPANS,
       interval: '5m',
@@ -29,7 +29,7 @@ const FIRST_ROW_WIDGTS = spaceWidgetsEquallyOnRow(
     },
     {
       id: 'avg-processing-time-widget',
-      title: t('Avg Processing Time'),
+      title: t('Average Processing Time'),
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.SPANS,
       interval: '5m',

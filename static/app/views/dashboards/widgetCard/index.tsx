@@ -7,14 +7,13 @@ import omit from 'lodash/omit';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {DateTime} from 'sentry/components/dateTime';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
   isWidgetViewerPath,
   WidgetViewerQueryField,
 } from 'sentry/components/modals/widgetViewerModal/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
-import {Placeholder} from 'sentry/components/placeholder';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {t, tct} from 'sentry/locale';
@@ -23,6 +22,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Confidence, Organization} from 'sentry/types/organization';
+import {CAN_MARK} from 'sentry/utils/analytics';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
@@ -40,7 +40,7 @@ import {withPageFilters} from 'sentry/utils/withPageFilters';
 // eslint-disable-next-line no-restricted-imports
 import {withSentryRouter} from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
-import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import type {DashboardFilters, Widget as TWidget} from 'sentry/views/dashboards/types';
 import {
   DashboardFilterKeys,
   DisplayType,
@@ -49,8 +49,9 @@ import {
 } from 'sentry/views/dashboards/types';
 import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
-import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import {VisualizationWidget} from './visualizationWidget';
@@ -89,7 +90,7 @@ type Props = WithRouterProps & {
   location: Location;
   organization: Organization;
   selection: PageFilters;
-  widget: Widget;
+  widget: TWidget;
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
   borderless?: boolean;
@@ -112,11 +113,10 @@ type Props = WithRouterProps & {
   onEdit?: () => void;
   onLegendSelectChanged?: () => void;
   onSetTransactionsDataset?: () => void;
-  onUpdate?: (widget: Widget | null) => void;
+  onUpdate?: (widget: TWidget | null) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   onWidgetTableSort?: (sort: Sort) => void;
-  renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   shouldResize?: boolean;
   showConfidenceWarning?: boolean;
   showContextMenu?: boolean;
@@ -171,7 +171,6 @@ function WidgetCard(props: Props) {
     selection,
     widget,
     isMobile,
-    renderErrorMessage,
     tableItemLimit,
     windowWidth,
     dashboardFilters,
@@ -243,6 +242,9 @@ function WidgetCard(props: Props) {
       return;
     }
     if (currentDashboardId) {
+      if (CAN_MARK) {
+        performance.mark('dashboard.widget.fullScreenViewClick');
+      }
       navigate(
         normalizeUrl({
           pathname: `/organizations/${organization.slug}/dashboard/${currentDashboardId}/widget/${props.index}/`,
@@ -321,12 +323,24 @@ function WidgetCard(props: Props) {
     ? t('Widget query condition is invalid.')
     : undefined;
 
+  const errorBoundaryHandler = () => {
+    return (
+      <Widget
+        Title={<Widget.WidgetTitle title={widget.title} />}
+        Visualization={
+          <Widget.WidgetError
+            error={t("Something went wrong with this widget, we're looking into it!")}
+          />
+        }
+        noVisualizationPadding
+      />
+    );
+  };
+
   const canUseTimeseriesVisualization = widgetCanUseTimeSeriesVisualization(widget);
   if (canUseTimeseriesVisualization) {
     return (
-      <ErrorBoundary
-        customComponent={() => <ErrorCard>{t('Error loading widget data')}</ErrorCard>}
-      >
+      <ErrorBoundary customComponent={errorBoundaryHandler}>
         <VisuallyCompleteWithData
           id="DashboardList-FirstWidgetCard"
           hasData={
@@ -355,7 +369,6 @@ function WidgetCard(props: Props) {
               onDataFetched={onDataFetched}
               onWidgetTableSort={onWidgetTableSort}
               onWidgetTableResizeColumn={onWidgetTableResizeColumn}
-              renderErrorMessage={renderErrorMessage}
               onDataFetchStart={onDataFetchStart}
               tableItemLimit={tableItemLimit}
               widgetInterval={widgetInterval}
@@ -368,9 +381,7 @@ function WidgetCard(props: Props) {
   }
 
   return (
-    <ErrorBoundary
-      customComponent={() => <ErrorCard>{t('Error loading widget data')}</ErrorCard>}
-    >
+    <ErrorBoundary customComponent={errorBoundaryHandler}>
       <VisuallyCompleteWithData
         id="DashboardList-FirstWidgetCard"
         hasData={
@@ -399,7 +410,6 @@ function WidgetCard(props: Props) {
             selection={selection}
             widget={widget}
             isMobile={isMobile}
-            renderErrorMessage={renderErrorMessage}
             tableItemLimit={tableItemLimit}
             windowWidth={windowWidth}
             onDataFetched={onDataFetched}
@@ -427,7 +437,7 @@ function WidgetCard(props: Props) {
 
 export default withApi(withOrganization(withPageFilters(withSentryRouter(WidgetCard))));
 
-function useOnDemandWarning(props: {widget: Widget}): string | null {
+function useOnDemandWarning(props: {widget: TWidget}): string | null {
   const organization = useOrganization();
 
   if (!hasOnDemandMetricWidgetFeature(organization)) {
@@ -463,7 +473,7 @@ function useOnDemandWarning(props: {widget: Widget}): string | null {
   return null;
 }
 
-function useTimeRangeWarning({widget}: {widget: Widget}) {
+function useTimeRangeWarning({widget}: {widget: TWidget}) {
   const {
     selection: {datetime},
   } = usePageFilters();
@@ -509,7 +519,7 @@ function useConflictingFilterWarning({
   dashboardFilters,
 }: {
   dashboardFilters: DashboardFilters | undefined;
-  widget: Widget;
+  widget: TWidget;
 }) {
   const conflictingFilterKeys = useMemo(() => {
     if (!dashboardFilters) return [];
@@ -525,7 +535,7 @@ function useConflictingFilterWarning({
     });
     const globalFilterKeys =
       dashboardFilters?.[DashboardFilterKeys.GLOBAL_FILTER]
-        ?.filter(filter => filter.dataset === widget.widgetType)
+        ?.filter(filter => filter.dataset === widget.widgetType && filter.value !== '')
         .map(filter => filter.tag.key) ?? [];
 
     const widgetFilterKeySet = new Set(widgetFilterKeys);
@@ -541,17 +551,6 @@ function useConflictingFilterWarning({
 
   return null;
 }
-
-const ErrorCard = styled(Placeholder)`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: ${p => p.theme.colors.red100};
-  border: 1px solid ${p => p.theme.colors.red200};
-  color: ${p => p.theme.colors.red200};
-  border-radius: ${p => p.theme.radius.md};
-  margin-bottom: ${p => p.theme.space.xl};
-`;
 
 export const WidgetDescription = styled('small')`
   display: block;

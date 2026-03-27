@@ -41,6 +41,11 @@ seer_anomaly_detection_default_connection_pool = connection_from_url(
     timeout=settings.SEER_DEFAULT_TIMEOUT,
 )
 
+seer_grouping_default_connection_pool = connection_from_url(
+    settings.SEER_GROUPING_URL,
+    timeout=settings.SEER_DEFAULT_TIMEOUT,
+)
+
 
 @sentry_sdk.tracing.trace
 def make_signed_seer_api_request(
@@ -132,6 +137,10 @@ class ExplorerIndexRequest(TypedDict):
     projects: list[ExplorerIndexProject]
 
 
+class ExplorerIndexSentryKnowledgeRequest(TypedDict):
+    replace_existing: bool
+
+
 class LlmGenerateRequest(TypedDict):
     provider: str
     model: str
@@ -151,6 +160,20 @@ def make_org_project_knowledge_index_request(
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v1/automation/explorer/index/org-project-knowledge",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+def make_index_sentry_knowledge_request(
+    body: ExplorerIndexSentryKnowledgeRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/automation/explorer/index/sentry-knowledge",
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
@@ -245,6 +268,11 @@ class SupergroupsListRequest(TypedDict):
 class SupergroupsGetRequest(TypedDict):
     organization_id: int
     supergroup_id: int
+
+
+class SupergroupsGetByGroupIdsRequest(TypedDict):
+    organization_id: int
+    group_ids: list[int]
 
 
 class ServiceMapUpdateRequest(TypedDict):
@@ -374,6 +402,20 @@ def make_supergroups_get_request(
     )
 
 
+def make_supergroups_get_by_group_ids_request(
+    body: SupergroupsGetByGroupIdsRequest,
+    viewer_context: SeerViewerContext,
+    timeout: int | float | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v0/issues/supergroups/get-by-group-ids",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
 def make_service_map_update_request(
     body: ServiceMapUpdateRequest,
     timeout: int | float | None = None,
@@ -480,6 +522,24 @@ def make_compare_distributions_request(
     return make_signed_seer_api_request(
         seer_anomaly_detection_default_connection_pool,
         "/v1/workflows/compare/cohort",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+class DeleteGroupingRecordsByProjectRequest(TypedDict):
+    project_id: int
+
+
+def make_delete_grouping_records_by_project_request(
+    body: DeleteGroupingRecordsByProjectRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_grouping_default_connection_pool,
+        "/v0/issues/similar-issues/grouping-record/delete",
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,

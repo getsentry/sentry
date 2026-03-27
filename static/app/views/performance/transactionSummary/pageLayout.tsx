@@ -24,7 +24,7 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {
   MetricsCardinalityProvider,
   useMetricsCardinalityContext,
@@ -47,7 +47,7 @@ import {profilesRouteWithQuery} from './transactionProfiles/utils';
 import {replaysRouteWithQuery} from './transactionReplays/utils';
 import {tagsRouteWithQuery} from './transactionTags/utils';
 import {TransactionHeader} from './header';
-import Tab from './tabs';
+import {Tab} from './tabs';
 import type {TransactionThresholdMetric} from './transactionThresholdModal';
 import {generateTransactionSummaryRoute, transactionSummaryRouteWithQuery} from './utils';
 

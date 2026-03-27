@@ -12,6 +12,7 @@ import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface UseScmRepoSelectionOptions {
+  integration: Integration;
   onSelect: (repo?: Repository) => void;
   reposByIdentifier: Map<string, IntegrationRepository>;
 }
@@ -37,11 +38,12 @@ function buildOptimisticRepo(
 }
 
 export function useScmRepoSelection({
+  integration,
   onSelect,
   reposByIdentifier,
 }: UseScmRepoSelectionOptions) {
   const organization = useOrganization();
-  const {selectedIntegration, selectedRepository} = useOnboardingContext();
+  const {selectedRepository} = useOnboardingContext();
   const [busy, setBusy] = useState(false);
 
   // Fetch repos already registered in Sentry for this integration, so we
@@ -53,9 +55,9 @@ export function useScmRepoSelection({
       getApiUrl('/organizations/$organizationIdOrSlug/repos/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
-      {query: {status: 'active', integration_id: selectedIntegration?.id ?? ''}},
+      {query: {status: 'active', integration_id: integration.id}},
     ],
-    {staleTime: 0, enabled: !!selectedIntegration}
+    {staleTime: 0}
   );
 
   const existingReposBySlug = useMemo(
@@ -82,13 +84,13 @@ export function useScmRepoSelection({
 
   const handleSelect = async (selection: {value: string}) => {
     const repo = reposByIdentifier.get(selection.value);
-    if (!repo || !selectedIntegration) {
+    if (!repo) {
       return;
     }
 
     cleanupPreviousAdd();
 
-    const optimistic = buildOptimisticRepo(repo, selectedIntegration);
+    const optimistic = buildOptimisticRepo(repo, integration);
     onSelect(optimistic);
 
     if (repo.isInstalled) {
@@ -108,9 +110,9 @@ export function useScmRepoSelection({
         url: `/organizations/${organization.slug}/repos/`,
         method: 'POST',
         data: {
-          installation: selectedIntegration.id,
+          installation: integration.id,
           identifier: repo.identifier,
-          provider: `integrations:${selectedIntegration.provider.key}`,
+          provider: `integrations:${integration.provider.key}`,
         },
       });
       onSelect({...optimistic, ...created});
@@ -149,7 +151,7 @@ export function useScmRepoSelection({
 
   return {
     // Busy while adding/removing a repo or while existing repos are still
-    // loading. The UI disables the CompactSelect and remove button when true.
+    // loading. The UI disables the Select and remove button when true.
     busy: busy || existingReposPending,
     handleSelect,
     handleRemove,

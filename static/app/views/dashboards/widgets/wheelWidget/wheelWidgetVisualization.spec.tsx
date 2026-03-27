@@ -1,21 +1,9 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {PageFilters} from 'sentry/types/core';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
 
 describe('WheelWidgetVisualization', () => {
-  const mockSelection: PageFilters = {
-    datetime: {
-      period: '7d',
-      start: null,
-      end: null,
-      utc: null,
-    },
-    projects: [],
-    environments: [],
-  };
-
   const mockTableResults: TableDataWithTitle[] = [
     {
       title: 'Web Vitals',
@@ -41,27 +29,16 @@ describe('WheelWidgetVisualization', () => {
 
   it('renders the performance score ring when data is provided', () => {
     const {container} = render(
-      <WheelWidgetVisualization
-        tableResults={mockTableResults}
-        loading={false}
-        selection={mockSelection}
-      />
+      <WheelWidgetVisualization tableResults={mockTableResults} />
     );
 
-    expect(screen.getByText('Last 7 days')).toBeInTheDocument();
     expect(screen.getByText('80')).toBeInTheDocument();
     // eslint-disable-next-line testing-library/no-container
     expect(container.querySelectorAll('circle')).toHaveLength(10); // 2 per vital
   });
 
   it('returns null when tableResults is undefined', () => {
-    const {container} = render(
-      <WheelWidgetVisualization
-        tableResults={undefined}
-        loading={false}
-        selection={mockSelection}
-      />
-    );
+    const {container} = render(<WheelWidgetVisualization tableResults={undefined} />);
 
     expect(container).toBeEmptyDOMElement();
   });

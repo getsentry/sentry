@@ -148,7 +148,10 @@ export interface AutoCompleteProps<T> extends DefaultProps {
   resetInputOnClose?: boolean;
 }
 
-class AutoComplete<T extends Item> extends Component<AutoCompleteProps<T>, State<T>> {
+export class AutoComplete<T extends Item> extends Component<
+  AutoCompleteProps<T>,
+  State<T>
+> {
   static defaultProps = defaultProps;
 
   state: State<T> = this.getInitialState();
@@ -536,5 +539,3 @@ class AutoComplete<T extends Item> extends Component<AutoCompleteProps<T>, State
     );
   }
 }
-
-export default AutoComplete;

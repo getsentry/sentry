@@ -13049,6 +13049,120 @@ class ForwardToClientTest(NamedTuple):
                 "meta": {"next_cursor": None},
             },
         ),
+        ForwardToClientTest(
+            provider_method=GitLabProvider.get_git_commit,
+            provider_args={"sha": "6104942438c14ec7bd21c6cd5bd995272b3faff6"},
+            client_calls=[
+                ClientForwardedCall(
+                    client_method="get_commit",
+                    client_args=(
+                        "79787061",
+                        "6104942438c14ec7bd21c6cd5bd995272b3faff6",
+                    ),
+                    client_kwds={},
+                    client_return_value={
+                        "id": "6104942438c14ec7bd21c6cd5bd995272b3faff6",
+                        "short_id": "6104942438c",
+                        "title": "Sanitize for network graph",
+                        "message": "Sanitize for network graph",
+                        "author_name": "randx",
+                        "author_email": "user@example.com",
+                        "created_at": "2021-09-20T09:06:12.300+03:00",
+                    },
+                ),
+            ],
+            provider_return_value={
+                "data": {
+                    "sha": "6104942438c14ec7bd21c6cd5bd995272b3faff6",
+                    "tree": {"sha": "6104942438c14ec7bd21c6cd5bd995272b3faff6"},
+                    "message": "Sanitize for network graph",
+                },
+                "type": "gitlab",
+                "raw": {
+                    "id": "6104942438c14ec7bd21c6cd5bd995272b3faff6",
+                    "short_id": "6104942438c",
+                    "title": "Sanitize for network graph",
+                    "message": "Sanitize for network graph",
+                    "author_name": "randx",
+                    "author_email": "user@example.com",
+                    "created_at": "2021-09-20T09:06:12.300+03:00",
+                },
+                "meta": {},
+            },
+        ),
+        ForwardToClientTest(
+            provider_method=GitLabProvider.get_tree,
+            provider_args={
+                "tree_sha": "6104942438c14ec7bd21c6cd5bd995272b3faff6",
+                "recursive": True,
+            },
+            client_calls=[
+                ClientForwardedCall(
+                    client_method="get_repository_tree",
+                    client_args=("79787061",),
+                    client_kwds={
+                        "ref": "6104942438c14ec7bd21c6cd5bd995272b3faff6",
+                        "recursive": True,
+                    },
+                    client_return_value=[
+                        {
+                            "id": "a1e8f8d745cc87e3a9248358d9352bb7f9a0aeba",
+                            "name": "html",
+                            "type": "tree",
+                            "path": "files/html",
+                            "mode": "040000",
+                        },
+                        {
+                            "id": "4535904260b1082e14f867f7a24fd8c21495bde3",
+                            "name": "images",
+                            "type": "tree",
+                            "path": "files/images",
+                            "mode": "040000",
+                        },
+                    ],
+                ),
+            ],
+            provider_return_value={
+                "data": {
+                    "sha": "6104942438c14ec7bd21c6cd5bd995272b3faff6",
+                    "tree": [
+                        {
+                            "path": "files/html",
+                            "mode": "040000",
+                            "type": "tree",
+                            "sha": "a1e8f8d745cc87e3a9248358d9352bb7f9a0aeba",
+                            "size": None,
+                        },
+                        {
+                            "path": "files/images",
+                            "mode": "040000",
+                            "type": "tree",
+                            "sha": "4535904260b1082e14f867f7a24fd8c21495bde3",
+                            "size": None,
+                        },
+                    ],
+                    "truncated": False,
+                },
+                "type": "gitlab",
+                "raw": [
+                    {
+                        "id": "a1e8f8d745cc87e3a9248358d9352bb7f9a0aeba",
+                        "name": "html",
+                        "type": "tree",
+                        "path": "files/html",
+                        "mode": "040000",
+                    },
+                    {
+                        "id": "4535904260b1082e14f867f7a24fd8c21495bde3",
+                        "name": "images",
+                        "type": "tree",
+                        "path": "files/images",
+                        "mode": "040000",
+                    },
+                ],
+                "meta": {},
+            },
+        ),
     ],
     ids=lambda param: param.provider_method.__name__,
 )

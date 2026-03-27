@@ -34,3 +34,10 @@ export const canUseMetricsUIRefresh = (organization: Organization) => {
     organization.features.includes('tracemetrics-ui-refresh')
   );
 };
+
+export const canUseMetricsStatsBytesUI = (organization: Organization) => {
+  return (
+    canUseMetricsUI(organization) &&
+    organization.features.includes('tracemetrics-stats-bytes-ui')
+  );
+};

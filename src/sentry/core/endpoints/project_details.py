@@ -57,7 +57,7 @@ from sentry.models.projectredirect import ProjectRedirect
 from sentry.notifications.utils import has_alert_integration
 from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
-from sentry.tasks.delete_seer_grouping_records import call_seer_delete_project_grouping_records
+from sentry.tasks.seer.delete_seer_grouping_records import call_seer_delete_project_grouping_records
 from sentry.tempest.utils import has_tempest_access
 
 logger = logging.getLogger(__name__)
