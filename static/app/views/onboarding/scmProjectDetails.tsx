@@ -21,6 +21,7 @@ import {
   DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
   getRequestDataFragment,
   type AlertRuleOptions,
+  RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
 
 import {ScmAlertFrequency} from './components/scmAlertFrequency';
@@ -61,9 +62,9 @@ export function ScmProjectDetails({onComplete}: StepProps) {
     setAlertRuleConfig(prev => ({...prev, [key]: value}));
     if (key === 'alertSetting') {
       const optionMap: Record<number, string> = {
-        0: 'high_priority',
-        1: 'custom',
-        2: 'create_later',
+        [RuleAction.DEFAULT_ALERT]: 'high_priority',
+        [RuleAction.CUSTOMIZED_ALERTS]: 'custom',
+        [RuleAction.CREATE_ALERT_LATER]: 'create_later',
       };
       trackAnalytics('onboarding.scm_project_details_alert_selected', {
         organization,
