@@ -252,6 +252,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             result = trigger_coding_agent_handoff(
                 group=group,
                 run_id=run_id,
+                referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
                 integration_id=integration_id,
                 provider=provider,
                 user_id=request.user.id if request.user else None,
@@ -264,7 +265,11 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     {"detail": "run_id is required for open_pr"}, status=status.HTTP_400_BAD_REQUEST
                 )
             try:
-                trigger_push_changes(group, run_id)
+                trigger_push_changes(
+                    group,
+                    run_id,
+                    referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+                )
             except SeerPermissionError:
                 return Response(status=status.HTTP_404_NOT_FOUND)
             return Response({"run_id": run_id}, status=status.HTTP_202_ACCEPTED)
