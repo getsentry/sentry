@@ -1,6 +1,5 @@
-import {useRef, useState} from 'react';
+import {useState} from 'react';
 
-import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import type {
   Integration,
   IntegrationRepository,
@@ -45,25 +44,7 @@ export function useScmRepoSelection({
 }: UseScmRepoSelectionOptions) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const {selectedRepository} = useOnboardingContext();
   const [busy, setBusy] = useState(false);
-
-  // Track the ID of a repo we added during this session so we can clean
-  // it up if the user switches to a different repo.
-  const addedRepoIdRef = useRef<string | null>(null);
-
-  // Best-effort cleanup: fire-and-forget the hide request. If it fails the
-  // repo stays registered in Sentry but is non-critical for the onboarding flow.
-  const cleanupPreviousAdd = () => {
-    if (addedRepoIdRef.current) {
-      fetchMutation({
-        url: `/organizations/${organization.slug}/repos/${addedRepoIdRef.current}/`,
-        method: 'PUT',
-        data: {status: 'hidden'},
-      }).catch(() => {});
-      addedRepoIdRef.current = null;
-    }
-  };
 
   const handleSelect = async (selection: {value: string}) => {
     const repo = reposByIdentifier.get(selection.value);
@@ -71,14 +52,13 @@ export function useScmRepoSelection({
       return;
     }
 
-    cleanupPreviousAdd();
-
     const optimistic = buildOptimisticRepo(repo, integration);
     onSelect(optimistic);
 
-    // Check if the repo already exists in Sentry (e.g. created by the
-    // background link_all_repos task or a previous session). Use a targeted
-    // query filtered by name to avoid pagination issues with the full list.
+    // Look up the repo in Sentry. The background link_all_repos task
+    // registers all repos after integration install, so most repos will
+    // already exist. Use a targeted query filtered by name to avoid
+    // pagination issues with the full list.
     setBusy(true);
     try {
       const queryKey: ApiQueryKey = [
@@ -105,7 +85,7 @@ export function useScmRepoSelection({
         return;
       }
 
-      // Repo not found — create it.
+      // Repo not yet registered (link_all_repos may still be running).
       const created = await fetchMutation<Repository>({
         url: `/organizations/${organization.slug}/repos/`,
         method: 'POST',
@@ -116,7 +96,6 @@ export function useScmRepoSelection({
         },
       });
       onSelect({...optimistic, ...created});
-      addedRepoIdRef.current = created.id;
     } catch {
       onSelect(undefined);
     } finally {
@@ -124,34 +103,11 @@ export function useScmRepoSelection({
     }
   };
 
-  const handleRemove = async () => {
-    if (!selectedRepository) {
-      return;
-    }
-
-    const previous = selectedRepository;
+  const handleRemove = () => {
     onSelect(undefined);
-
-    if (addedRepoIdRef.current && addedRepoIdRef.current === previous.id) {
-      setBusy(true);
-      try {
-        await fetchMutation({
-          url: `/organizations/${organization.slug}/repos/${previous.id}/`,
-          method: 'PUT',
-          data: {status: 'hidden'},
-        });
-        addedRepoIdRef.current = null;
-      } catch {
-        onSelect(previous);
-      } finally {
-        setBusy(false);
-      }
-    }
   };
 
   return {
-    // Busy while adding/removing a repo.
-    // The UI disables the Select and remove button when true.
     busy,
     handleSelect,
     handleRemove,
