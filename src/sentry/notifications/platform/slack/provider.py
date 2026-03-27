@@ -195,3 +195,8 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
             return SendSuccessResult(provider_message_id=response.get("ts"), is_threaded=True)
         except IntegrationError as e:
             return integration_error_result(e, is_threaded=True)
+
+
+@provider_registry.register(NotificationProviderKey.SLACK_STAGING)
+class SlackStagingNotificationProvider(SlackNotificationProvider):
+    key = NotificationProviderKey.SLACK_STAGING
