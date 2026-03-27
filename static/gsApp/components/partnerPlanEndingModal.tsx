@@ -158,7 +158,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
               <LinkButton
                 size="md"
                 to={`/checkout/${organization.slug}/?referrer=partner_plan_ending_modal`}
-                aria-label="Upgrade Now"
+                aria-label="Upgrade to a Paid Plan"
                 priority="primary"
                 onClick={() =>
                   trackGetsentryAnalytics('partner_billing_migration.modal.clicked_cta', {
@@ -169,7 +169,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
                   })
                 }
               >
-                {t('Upgrade Now')}
+                {t('Upgrade to a Paid Plan')}
               </LinkButton>
             ) : (
               <Button
