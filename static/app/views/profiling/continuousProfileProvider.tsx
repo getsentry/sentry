@@ -9,7 +9,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {LayoutPageWithHiddenFooter} from 'sentry/views/profiling/utils';
+import {LayoutPageWithHiddenFooter} from 'sentry/views/profiling/layoutPageWithHiddenFooter';
 
 import {ContinuousProfileProvider, ProfileTransactionContext} from './profilesProvider';
 

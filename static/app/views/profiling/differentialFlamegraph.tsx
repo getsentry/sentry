@@ -40,8 +40,8 @@ import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphR
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useLocation} from 'sentry/utils/useLocation';
+import {LayoutPageWithHiddenFooter} from 'sentry/views/profiling/layoutPageWithHiddenFooter';
 import {LOADING_PROFILE_GROUP} from 'sentry/views/profiling/profileGroupProvider';
-import {LayoutPageWithHiddenFooter} from 'sentry/views/profiling/utils';
 
 const PROFILE_TYPE = 'differential aggregate flamegraph' as const;
 

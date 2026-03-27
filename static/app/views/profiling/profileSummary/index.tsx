@@ -67,9 +67,9 @@ import {
   useFlamegraph,
 } from 'sentry/views/profiling/flamegraphProvider';
 import {ProfilesSummaryChart} from 'sentry/views/profiling/landing/profilesSummaryChart';
+import {LayoutPageWithHiddenFooter} from 'sentry/views/profiling/layoutPageWithHiddenFooter';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfilesTable} from 'sentry/views/profiling/profileSummary/profilesTable';
-import {LayoutPageWithHiddenFooter} from 'sentry/views/profiling/utils';
 
 import {MostRegressedProfileFunctions} from './regressedProfileFunctions';
 import {SlowestProfileFunctions} from './slowestProfileFunctions';
