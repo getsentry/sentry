@@ -60,8 +60,14 @@ from sentry.scm.errors import (
     SCMProviderException,
     SCMUnhandledException,
 )
-from sentry.scm.private.provider import GetBranchProtocol, GetIssueReactionsProtocol
-from sentry.scm.types import PaginatedActionResult, ReactionResult, Referrer, Repository
+from sentry.scm.types import (
+    GetBranchProtocol,
+    GetIssueReactionsProtocol,
+    PaginatedActionResult,
+    ReactionResult,
+    Referrer,
+    Repository,
+)
 from tests.sentry.scm.test_fixtures import BaseTestProvider
 
 

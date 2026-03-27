@@ -246,7 +246,7 @@ def trigger_autofix_explorer(
             artifact_schema=artifact_schema,
         )
 
-    group.update(seer_autofix_last_triggered=timezone.now())
+    group.update(seer_explorer_autofix_last_triggered=timezone.now())
 
     payload = {
         "run_id": run_id,

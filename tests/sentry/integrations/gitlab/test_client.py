@@ -324,6 +324,29 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         assert resp == orjson.loads(GET_COMMIT_RESPONSE)
 
     @responses.activate
+    def test_get_repository_tree(self) -> None:
+        tree_response = [
+            {
+                "id": "a1e8f8d7",
+                "name": "html",
+                "type": "tree",
+                "path": "files/html",
+                "mode": "040000",
+            },
+        ]
+        responses.add(
+            method=responses.GET,
+            url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/tree",
+            json=tree_response,
+        )
+        resp = self.gitlab_client.get_repository_tree(
+            str(self.gitlab_id), ref="main", recursive=True
+        )
+        assert resp == tree_response
+        assert "ref=main" in responses.calls[0].request.url
+        assert "recursive=true" in responses.calls[0].request.url
+
+    @responses.activate
     def test_get_rate_limit_info_from_response(self) -> None:
         """
         When rate limit headers present, parse them and return a GitLabRateLimitInfo object

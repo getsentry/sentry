@@ -19,12 +19,14 @@ from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentic
 from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException
 from sentry.scm.errors import (
+    SCMCodedError,
     SCMError,
     SCMProviderException,
     SCMProviderNotSupported,
     SCMRpcActionCallError,
     SCMRpcActionNotFound,
     SCMRpcCouldNotDeserializeRequest,
+    SCMUnhandledException,
 )
 from sentry.scm.private.rpc import dispatch
 from sentry.silo.base import SiloMode
@@ -72,9 +74,12 @@ class ScmRpcSignatureAuthentication(StandardAuthentication):
             raise AuthenticationFailed(
                 {
                     "errors": [
-                        {
-                            "detail": f"SCM RPC signature validation failed: {signature_validation_error}"
-                        }
+                        _make_error(
+                            exception_type="AuthenticationFailure",
+                            status_code=401,
+                            title="SCM RPC signature validation failed.",
+                            detail=signature_validation_error,
+                        )
                     ]
                 }
             )
@@ -151,82 +156,78 @@ class ScmRpcServiceEndpoint(Endpoint):
         try:
             result = dispatch(method_name, request.data)
         except SCMRpcActionNotFound as e:
-            return Response(
-                {
-                    "errors": [
-                        {
-                            "status": "404",
-                            "title": "Not found",
-                            "detail": f"Could not find action {e.action_name}",
-                        }
-                    ]
-                },
-                status=404,
+            sentry_sdk.capture_exception()
+            return _make_single_error_response(
+                exception_type="SCMRpcActionNotFound",
+                status_code=404,
+                title="Not found",
+                detail=f"Could not find action {e.action_name}",
+                action_name=e.action_name,
             )
         except SCMRpcCouldNotDeserializeRequest as e:
-            return Response(
-                {
-                    "errors": [
-                        {
-                            "status": "400",
-                            "title": "The request could not be deserialized.",
-                            "meta": error,
-                        }
-                        for error in e.args[0]
-                    ]
-                },
-                status=400,
+            sentry_sdk.capture_exception()
+            return _make_errors_response(
+                status_code=400,
+                errors=[
+                    _make_error(
+                        exception_type="SCMRpcCouldNotDeserializeRequest",
+                        status_code=400,
+                        title="The request could not be deserialized.",
+                        meta=error,
+                    )
+                    for error in e.args[0]
+                ],
             )
         except SCMRpcActionCallError as e:
-            return Response(
-                {
-                    "errors": [
-                        {
-                            "status": "500",
-                            "title": "An unexpected error occurred.",
-                            "detail": e.message,
-                        }
-                    ]
-                },
-                status=500,
+            sentry_sdk.capture_exception()
+            return _make_single_error_response(
+                exception_type="SCMRpcActionCallError",
+                status_code=500,
+                title="An unexpected error occurred.",
+                detail=e.message,
+                action_name=e.action_name,
+                message=e.message,
             )
         except SCMProviderNotSupported as e:
             sentry_sdk.capture_exception()
-            return Response(
-                data={
-                    "errors": [
-                        {"status": "400", "title": "Provider not supported.", "detail": e.message}
-                    ]
-                },
-                status=400,
+            return _make_single_error_response(
+                exception_type="SCMProviderNotSupported",
+                status_code=400,
+                title="Provider not supported.",
+                detail=e.message,
             )
         except SCMProviderException as e:
             sentry_sdk.capture_exception()
-            return Response(
-                data={
-                    "errors": [
-                        {
-                            "status": "503",
-                            "title": "The service provider raised an error.",
-                            "detail": self._make_details(e),
-                        }
-                    ]
-                },
-                status=503,
+            return _make_single_error_response(
+                exception_type="SCMProviderException",
+                status_code=503,
+                title="The service provider raised an error.",
+                detail=_make_detail(e),
+            )
+        except SCMCodedError as e:
+            sentry_sdk.capture_exception()
+            return _make_single_error_response(
+                exception_type="SCMCodedError",
+                code=e.code,
+                status_code=500,
+                title="An error occurred.",
+                detail=_make_detail(e),
+            )
+        except SCMUnhandledException as e:
+            sentry_sdk.capture_exception()
+            return _make_single_error_response(
+                exception_type="SCMUnhandledException",
+                status_code=500,
+                title="An unexpected error occurred.",
+                detail=_make_detail(e),
             )
         except SCMError as e:
             sentry_sdk.capture_exception()
-            return Response(
-                data={
-                    "errors": [
-                        {
-                            "status": "500",
-                            "title": "An unexpected error occurred.",
-                            "detail": self._make_details(e),
-                        }
-                    ]
-                },
-                status=500,
+            return _make_single_error_response(
+                exception_type="SCMError",
+                status_code=500,
+                title="An unexpected error occurred.",
+                detail=_make_detail(e),
             )
         except Exception:
             sentry_sdk.capture_exception()
@@ -234,9 +235,72 @@ class ScmRpcServiceEndpoint(Endpoint):
         else:
             return Response(data={"data": result})
 
-    def _make_details(self, e: BaseException) -> list[Any]:
-        details = list(e.args)
-        while e.__cause__:
-            e = e.__cause__
-            details.extend(e.args)
-        return details
+
+def _make_single_error_response(
+    *,
+    exception_type: str,
+    status_code: int,
+    title: str,
+    detail: str,
+    code: str | None = None,
+    message: str | None = None,
+    action_name: str | None = None,
+) -> Response:
+    return _make_errors_response(
+        status_code=status_code,
+        errors=[
+            _make_error(
+                status_code=status_code,
+                title=title,
+                detail=detail,
+                exception_type=exception_type,
+                code=code,
+                message=message,
+                action_name=action_name,
+            )
+        ],
+    )
+
+
+def _make_errors_response(*, status_code: int, errors: list[dict[str, Any]]) -> Response:
+    return Response(data={"errors": errors}, status=status_code)
+
+
+def _make_error(
+    *,
+    exception_type: str,
+    status_code: int,
+    title: str,
+    detail: str | None = None,
+    code: str | None = None,
+    message: str | None = None,
+    action_name: str | None = None,
+    meta: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    error: dict[str, Any] = {
+        "status": str(status_code),
+        "title": title,
+    }
+    if detail is not None:
+        error["detail"] = detail
+    if meta is None:
+        meta = {}
+    if exception_type is not None:
+        meta["exception_type"] = exception_type
+    if code is not None:
+        meta["code"] = code
+    if message is not None:
+        meta["message"] = message
+    if action_name is not None:
+        meta["action_name"] = action_name
+    if meta:
+        error["meta"] = meta
+    return error
+
+
+def _make_detail(e: BaseException) -> str:
+    details = list(e.args)
+    while e.__cause__:
+        e = e.__cause__
+        details.extend(e.args)
+    return ", ".join(str(detail) for detail in details)

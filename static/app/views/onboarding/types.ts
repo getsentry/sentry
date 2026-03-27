@@ -3,7 +3,10 @@ import type {Project} from 'sentry/types/project';
 
 export type StepProps = {
   genSkipOnboardingLink: () => React.ReactNode;
-  onComplete: (selectedPlatforms?: OnboardingSelectedSDK) => void;
+  onComplete: (
+    selectedPlatforms?: OnboardingSelectedSDK,
+    query?: Record<string, string[]>
+  ) => void;
   stepIndex: number;
   recentCreatedProject?: Project;
 };

@@ -1,6 +1,5 @@
 from collections.abc import Callable
 
-from sentry import ratelimits
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.integration import Integration
@@ -9,51 +8,10 @@ from sentry.integrations.services.integration.service import integration_service
 from sentry.models.repository import Repository as RepositoryModel
 from sentry.scm.errors import SCMCodedError, SCMError, SCMUnhandledException
 from sentry.scm.private.ipc import record_count_metric
-from sentry.scm.private.provider import Provider
 from sentry.scm.private.providers.github import GitHubProvider
 from sentry.scm.private.providers.gitlab import GitLabProvider
-from sentry.scm.types import ExternalId, ProviderName, Referrer, Repository, RepositoryId
-
-
-def is_rate_limited(
-    organization_id: int,
-    referrer: Referrer,
-    provider: str,
-    limit: int,
-    window: int,
-) -> bool:
-    return ratelimits.backend.is_limited(
-        f"scm_platform.{organization_id}.{referrer}.{provider}", limit=limit, window=window
-    )
-
-
-def is_rate_limited_with_allocation_policy(
-    organization_id: int,
-    referrer: Referrer,
-    provider: str,
-    window: int,
-    allocation_policy: dict[Referrer, int],
-) -> bool:
-    # Check if the referrer has reserved quota they have exclusive access to.
-    if referrer != "shared" and referrer in allocation_policy:
-        is_allocation_exhausted = is_rate_limited(
-            organization_id,
-            referrer,
-            provider,
-            limit=allocation_policy[referrer],
-            window=window,
-        )
-        if not is_allocation_exhausted:
-            return False
-
-    # Check if the shared pool has quota.
-    return is_rate_limited(
-        organization_id,
-        "shared",
-        provider,
-        limit=allocation_policy["shared"],
-        window=window,
-    )
+from sentry.scm.private.rate_limit import RateLimitProvider, RedisRateLimitProvider
+from sentry.scm.types import ExternalId, Provider, ProviderName, Referrer, Repository, RepositoryId
 
 
 def map_integration_to_provider(
@@ -63,11 +21,17 @@ def map_integration_to_provider(
     get_installation: Callable[
         [Integration | RpcIntegration, int], IntegrationInstallation
     ] = lambda i, oid: i.get_installation(organization_id=oid),
+    rate_limit_provider: RateLimitProvider | None = None,
 ) -> Provider:
     client = get_installation(integration, organization_id).get_client()
 
     if integration.provider == "github":
-        return GitHubProvider(client, organization_id, repository)
+        return GitHubProvider(
+            client,
+            organization_id,
+            repository,
+            rate_limit_provider=rate_limit_provider or RedisRateLimitProvider(),
+        )
     elif integration.provider == "gitlab":
         return GitLabProvider(client, organization_id, repository)
     else:
