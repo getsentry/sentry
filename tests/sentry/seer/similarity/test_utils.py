@@ -1246,7 +1246,7 @@ class TestSetDefaultProjectAutoOpenPrs(TestCase):
     @patch("sentry.seer.similarity.utils.write_preference_to_sentry_db")
     @patch("sentry.seer.similarity.utils.set_project_seer_preference")
     @patch("sentry.seer.similarity.utils.is_seer_seat_based_tier_enabled", return_value=True)
-    def test_seer_agent_default_stopping_point(
+    def test_seer_agent_default(
         self, mock_tier: MagicMock, mock_set_pref: MagicMock, mock_dual_write: MagicMock
     ):
         """Seer agent, no auto_open_prs, default stopping point (code_changes)."""
@@ -1259,7 +1259,7 @@ class TestSetDefaultProjectAutoOpenPrs(TestCase):
     @patch("sentry.seer.similarity.utils.write_preference_to_sentry_db")
     @patch("sentry.seer.similarity.utils.set_project_seer_preference")
     @patch("sentry.seer.similarity.utils.is_seer_seat_based_tier_enabled", return_value=True)
-    def test_seer_agent_custom_stopping_point(
+    def test_seer_agent_with_custom_stopping_point(
         self, mock_tier: MagicMock, mock_set_pref: MagicMock, mock_dual_write: MagicMock
     ):
         """Seer agent, no auto_open_prs, custom stopping point (root_cause)."""
@@ -1277,20 +1277,20 @@ class TestSetDefaultProjectAutoOpenPrs(TestCase):
     def test_seer_agent_with_auto_open_prs(
         self, mock_tier: MagicMock, mock_set_pref: MagicMock, mock_dual_write: MagicMock
     ):
-        """auto_open_prs=True forces stopping point to open_pr regardless of default."""
+        """auto_open_prs does not override stopping point."""
         self.organization.update_option("sentry:auto_open_prs", True)
         self.organization.update_option("sentry:default_stopping_point", "root_cause")
 
         set_default_project_auto_open_prs(self.organization, self.project)
 
         pref = mock_set_pref.call_args[0][0]
-        assert pref.automated_run_stopping_point == "open_pr"
+        assert pref.automated_run_stopping_point == "root_cause"
         assert pref.automation_handoff is None
 
     @patch("sentry.seer.similarity.utils.write_preference_to_sentry_db")
     @patch("sentry.seer.similarity.utils.set_project_seer_preference")
     @patch("sentry.seer.similarity.utils.is_seer_seat_based_tier_enabled", return_value=True)
-    def test_external_agent_no_auto_open_prs(
+    def test_external_agent_default(
         self, mock_tier: MagicMock, mock_set_pref: MagicMock, mock_dual_write: MagicMock
     ):
         agents = [
@@ -1321,8 +1321,9 @@ class TestSetDefaultProjectAutoOpenPrs(TestCase):
     def test_external_agent_with_auto_open_prs(
         self, mock_tier: MagicMock, mock_set_pref: MagicMock, mock_dual_write: MagicMock
     ):
-        """auto_open_prs=True forces open_pr and sets auto_create_pr on handoff."""
+        """auto_open_prs sets auto_create_pr on handoff but does not override stopping point."""
         self.organization.update_option("sentry:auto_open_prs", True)
+        self.organization.update_option("sentry:default_stopping_point", "root_cause")
         agents = [
             ("cursor_background_agent", 1234),
             ("claude_code_agent", 5678),
@@ -1338,7 +1339,7 @@ class TestSetDefaultProjectAutoOpenPrs(TestCase):
                 set_default_project_auto_open_prs(self.organization, self.project)
 
                 pref = mock_set_pref.call_args[0][0]
-                assert pref.automated_run_stopping_point == "open_pr"
+                assert pref.automated_run_stopping_point == "root_cause"
                 assert pref.automation_handoff is not None
                 assert pref.automation_handoff.target == agent
                 assert pref.automation_handoff.integration_id == integration_id

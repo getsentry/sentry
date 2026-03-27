@@ -23,7 +23,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
-    AutofixStoppingPoint,
     is_seer_seat_based_tier_enabled,
     set_project_seer_preference,
     write_preference_to_sentry_db,
@@ -579,20 +578,14 @@ def set_default_project_auto_open_prs(organization: Organization, project: Proje
     Reads org options (default_automated_run_stopping_point, auto_open_prs, default_coding_agent,
     default_coding_agent_integration_id) and writes the corresponding project-level
     options (stopping point, handoff config).
-
-    When auto_open_prs is True, stopping_point is forced to open_pr regardless of
-    default_stopping_point.
     """
     if not is_seer_seat_based_tier_enabled(organization):
         return
 
     auto_open_prs = bool(organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT))
-    if auto_open_prs:
-        stopping_point = AutofixStoppingPoint.OPEN_PR
-    else:
-        stopping_point = organization.get_option(
-            "sentry:default_stopping_point", SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
-        )
+    stopping_point = organization.get_option(
+        "sentry:default_stopping_point", SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+    )
 
     coding_agent = organization.get_option(
         "sentry:seer_default_coding_agent", SEER_DEFAULT_CODING_AGENT_DEFAULT
