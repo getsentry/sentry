@@ -17,15 +17,52 @@ import {Text} from '@sentry/scraps/text';
 import {openModal} from 'sentry/actionCreators/modal';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
 import {ScmRepoTreeModal} from 'sentry/components/repositories/scmRepoTreeModal';
 import {IconSettings} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {fetchMutation, useQuery} from 'sentry/utils/queryClient';
+import {useInfiniteQuery} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSeerOverviewData} from 'sentry/views/settings/seer/overview/useSeerOverviewData';
 import {useAgentOptions} from 'sentry/views/settings/seer/seerAgentHooks';
+
+export function useAutofixOverviewData() {
+  const organization = useOrganization();
+
+  // Autofix Data
+  const autofixSettingsResult = useInfiniteQuery({
+    ...bulkAutofixAutomationSettingsInfiniteOptions({organization}),
+    select: ({pages}) => {
+      const autofixItems = pages.flatMap(page => page.json).filter(s => s !== null);
+
+      const projectsWithRepos = autofixItems.filter(settings => settings.reposCount > 0);
+      const projectsWithAutomation = autofixItems.filter(
+        settings => settings.autofixAutomationTuning !== 'off'
+      );
+      const projectsWithCreatePr = autofixItems.filter(
+        settings => settings.automationHandoff?.auto_create_pr
+      );
+
+      return {
+        autofixItems,
+        projectsWithRepos,
+        projectsWithAutomation,
+        projectsWithCreatePr,
+        totalProjects: autofixItems.length ?? 0,
+        projectsWithReposCount: projectsWithRepos.length ?? 0,
+        projectsWithAutomationCount: projectsWithAutomation.length ?? 0,
+        projectsWithCreatePrCount: projectsWithCreatePr.length ?? 0,
+      };
+    },
+  });
+  useFetchAllPages({result: autofixSettingsResult});
+  return autofixSettingsResult;
+}
 
 interface Props {
   isLoading: boolean;
@@ -132,7 +169,7 @@ export function AutofixOverviewSection({stats, isLoading}: Props) {
               </Container>
             </field.Layout.Row>
 
-            <Flex align="center" alignSelf="end" gap="md" width="50%" paddingLeft="md">
+            <Flex align="center" alignSelf="end" gap="md" width="50%" paddingLeft="xl">
               <Button
                 size="xs"
                 busy={isLoading}
@@ -197,7 +234,7 @@ export function AutofixOverviewSection({stats, isLoading}: Props) {
               </Container>
             </field.Layout.Row>
 
-            <Flex align="center" alignSelf="end" gap="md" width="50%" paddingLeft="md">
+            <Flex align="center" alignSelf="end" gap="md" width="50%" paddingLeft="xl">
               <Button
                 size="xs"
                 busy={isLoading}

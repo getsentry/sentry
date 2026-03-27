@@ -16,7 +16,10 @@ import type {Organization} from 'sentry/types/organization';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {AutofixOverviewSection} from 'sentry/views/settings/seer/overview/autofixOverviewSection';
+import {
+  AutofixOverviewSection,
+  useAutofixOverviewData,
+} from 'sentry/views/settings/seer/overview/autofixOverviewSection';
 import {
   CodeReviewOverviewSection,
   useCodeReviewOverviewSection,
@@ -25,7 +28,6 @@ import {
   SCMOverviewSection,
   useSCMOverviewSection,
 } from 'sentry/views/settings/seer/overview/scmOverviewSection';
-import {useSeerOverviewData} from 'sentry/views/settings/seer/overview/useSeerOverviewData';
 
 import {SeerSettingsPageContent} from 'getsentry/views/seerAutomation/components/seerSettingsPageContent';
 import {SeerSettingsPageWrapper} from 'getsentry/views/seerAutomation/components/seerSettingsPageWrapper';
@@ -47,7 +49,7 @@ export function SeerAutomationSettings() {
   const showSeerOverview = true; //  organization.features.includes('seer-overview');
 
   const scmOverviewData = useSCMOverviewSection();
-  const autofixOverviewData = useSeerOverviewData();
+  const autofixOverviewData = useAutofixOverviewData();
   const codeReviewOverviewData = useCodeReviewOverviewSection();
 
   const orgEndpoint = `/organizations/${organization.slug}/`;
@@ -99,7 +101,11 @@ export function SeerAutomationSettings() {
         />
         {showSeerOverview ? (
           <Fragment>
-            <AutofixOverviewSection {...autofixOverviewData} />
+            <AutofixOverviewSection
+              {...autofixOverviewData}
+              canWrite={canWrite}
+              organization={organization}
+            />
             <CodeReviewOverviewSection
               {...codeReviewOverviewData}
               canWrite={canWrite}
