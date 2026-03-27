@@ -14,11 +14,11 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
+import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
-import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -230,13 +230,7 @@ function ColumnEditorRow({
       }}
       {...attributes}
     >
-      <StyledButton
-        aria-label={t('Drag to reorder')}
-        priority="transparent"
-        size="sm"
-        icon={<IconGrabbable size="sm" />}
-        {...listeners}
-      />
+      <StyledDragReorderButton size="sm" iconSize="sm" {...listeners} />
       {isGroupBy(column.column) ? (
         <GroupBySelector
           groupBy={column.column}
@@ -536,6 +530,11 @@ const RowContainer = styled('div')`
   :not(:first-child) {
     margin-top: ${p => p.theme.space.md};
   }
+`;
+
+const StyledDragReorderButton = styled(DragReorderButton)`
+  padding-left: 0;
+  padding-right: 0;
 `;
 
 const StyledButton = styled(Button)`
