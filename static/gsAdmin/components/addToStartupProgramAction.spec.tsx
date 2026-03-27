@@ -57,14 +57,14 @@ describe('AddToStartupProgramAction', () => {
     expect(await screen.findByTestId('balance')).toHaveTextContent('$30.00 owed');
   });
 
-  it('has default values for credit amount and notes', async () => {
+  it('has default values for credit amount and program', async () => {
     triggerAddToStartupProgramModal(modalProps);
 
     renderGlobalModal();
     expect(await screen.findByRole('spinbutton', {name: 'Credit Amount'})).toHaveValue(
       5000
     );
-    expect(screen.getByRole('textbox', {name: 'Notes'})).toHaveValue('sentryforstartups');
+    expect(screen.getByText('Sentry for Startups')).toBeInTheDocument();
   });
 
   it('can submit with default values', async () => {
@@ -97,7 +97,57 @@ describe('AddToStartupProgramAction', () => {
     expect(onSuccess).toHaveBeenCalled();
   });
 
-  it('can submit with custom values', async () => {
+  it('can submit with a different program selected', async () => {
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/_admin/customers/${organization.slug}/balance-changes/`,
+      method: 'POST',
+      body: {},
+    });
+
+    triggerAddToStartupProgramModal(modalProps);
+
+    const {waitForModalToHide} = renderGlobalModal();
+
+    // Change the program dropdown
+    await userEvent.click(await screen.findByText('Sentry for Startups'));
+    await userEvent.click(screen.getByText('Y Combinator'));
+
+    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
+
+    await waitForModalToHide();
+
+    await waitFor(() => {
+      expect(updateMock).toHaveBeenCalledWith(
+        `/_admin/customers/${organization.slug}/balance-changes/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            creditAmount: 500000,
+            ticketUrl: '',
+            notes: 'ycombinator',
+          },
+        })
+      );
+    });
+  });
+
+  it('shows custom notes field when "Other" is selected', async () => {
+    triggerAddToStartupProgramModal(modalProps);
+
+    renderGlobalModal();
+
+    // Custom notes should not be visible initially
+    expect(screen.queryByRole('textbox', {name: 'Custom Notes'})).not.toBeInTheDocument();
+
+    // Select "Other"
+    await userEvent.click(await screen.findByText('Sentry for Startups'));
+    await userEvent.click(screen.getByText('Other'));
+
+    // Custom notes field should now be visible
+    expect(screen.getByRole('textbox', {name: 'Custom Notes'})).toBeInTheDocument();
+  });
+
+  it('can submit with custom notes when "Other" is selected', async () => {
     const updateMock = MockApiClient.addMockResponse({
       url: `/_admin/customers/${organization.slug}/balance-changes/`,
       method: 'POST',
@@ -115,9 +165,14 @@ describe('AddToStartupProgramAction', () => {
 
     await userEvent.type(screen.getByRole('textbox', {name: 'Ticket URL'}), url);
 
-    const notesInput = screen.getByRole('textbox', {name: 'Notes'});
-    await userEvent.clear(notesInput);
-    await userEvent.type(notesInput, 'custom note');
+    // Select "Other" to show custom notes
+    await userEvent.click(screen.getByText('Sentry for Startups'));
+    await userEvent.click(screen.getByText('Other'));
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Custom Notes'}),
+      'custom note'
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
 
@@ -156,7 +211,6 @@ describe('AddToStartupProgramAction', () => {
     expect(submitButton).toBeDisabled();
     expect(screen.getByRole('spinbutton', {name: 'Credit Amount'})).toBeDisabled();
     expect(screen.getByRole('textbox', {name: 'Ticket URL'})).toBeDisabled();
-    expect(screen.getByRole('textbox', {name: 'Notes'})).toBeDisabled();
     await waitForModalToHide();
   });
 
@@ -205,7 +259,6 @@ describe('AddToStartupProgramAction', () => {
       {timeout: 5_000}
     );
     expect(screen.getByRole('textbox', {name: 'Ticket URL'})).toBeEnabled();
-    expect(screen.getByRole('textbox', {name: 'Notes'})).toBeEnabled();
     expect(screen.getByRole('button', {name: /submit/i})).toBeEnabled();
   }, 25_000);
 
