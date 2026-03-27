@@ -82,7 +82,15 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         if group_id is None:
             return
 
-        group = Group.objects.get(id=group_id, project__organization_id=organization.id)
+        try:
+            group = Group.objects.get(id=group_id, project__organization_id=organization.id)
+        except Group.DoesNotExist:
+            logger.info(
+                "autofix.on_completion_hook.group_not_found",
+                extra={"run_id": run_id, "organization_id": organization.id, "group_id": group_id},
+            )
+            return
+
         group.update(seer_explorer_autofix_last_triggered=timezone.now())
 
         # Send webhook for the completed step
@@ -227,11 +235,14 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         organization: Organization,
         run_id: int,
         state: SeerRunState,
-        group: Group,
+        group: Group | None,
     ) -> None:
         """Trigger supergroups embedding if feature flag is enabled."""
         current_step = cls._get_current_step(state)
         if current_step != AutofixStep.ROOT_CAUSE:
+            return
+
+        if group is None:
             return
 
         if not features.has("projects:supergroup-embeddings-explorer", group.project):
