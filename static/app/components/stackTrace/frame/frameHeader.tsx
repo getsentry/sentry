@@ -189,11 +189,13 @@ function FrameLocationTooltip({
   frame: Frame;
   frameDisplayPath: string;
 }) {
+  const externalUrl = frame.absPath && isUrl(frame.absPath) ? frame.absPath : undefined;
   const absPath =
-    frame.absPath && frame.absPath !== frameDisplayPath ? frame.absPath : undefined;
+    frame.absPath && frame.absPath !== frameDisplayPath && !externalUrl
+      ? frame.absPath
+      : undefined;
   const sourceMap = frame.mapUrl ?? frame.map;
   const showSourceMap = !!frame.origAbsPath && !!sourceMap;
-  const externalUrl = frame.absPath && isUrl(frame.absPath) ? frame.absPath : undefined;
 
   const hasContent = !!absPath || showSourceMap || !!externalUrl;
 
@@ -217,8 +219,9 @@ function FrameLocationTooltip({
             <Fragment>
               <strong>{t('URL')}</strong>
               <a
-                role="link"
+                href={externalUrl}
                 onClick={e => {
+                  e.preventDefault();
                   e.stopPropagation();
                   openNavigateToExternalLinkModal({linkText: externalUrl});
                 }}
