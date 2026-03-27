@@ -7,6 +7,7 @@ import {StructuredEventData} from 'sentry/components/structuredEventData';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {AnnotatedAttributeTooltip} from 'sentry/views/explore/components/annotatedAttributeTooltip';
+import {InlineJsonHighlight} from 'sentry/views/explore/components/traceItemAttributes/inlineJsonHighlight';
 import {getAttributeItem} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
 
@@ -94,20 +95,26 @@ export function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>
     );
   }
 
-  return isUrl(value) ? (
-    <AttributeLinkText>
-      <ExternalLink
-        onClick={e => {
-          e.preventDefault();
-          openNavigateToExternalLinkModal({linkText: value});
-        }}
-      >
-        {defaultValue}
-      </ExternalLink>
-    </AttributeLinkText>
-  ) : (
-    defaultValue
-  );
+  if (isUrl(value)) {
+    return (
+      <AttributeLinkText>
+        <ExternalLink
+          onClick={e => {
+            e.preventDefault();
+            openNavigateToExternalLinkModal({linkText: value});
+          }}
+        >
+          {defaultValue}
+        </ExternalLink>
+      </AttributeLinkText>
+    );
+  }
+
+  if (value.includes('{') || value.includes('[')) {
+    return <InlineJsonHighlight value={value} />;
+  }
+
+  return defaultValue;
 }
 
 const AttributeLinkText = styled('span')`
