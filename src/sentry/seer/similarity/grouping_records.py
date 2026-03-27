@@ -8,12 +8,13 @@ from django.conf import settings
 from urllib3.exceptions import MaxRetryError, ReadTimeoutError, TimeoutError
 
 from sentry import options
-from sentry.conf.server import (
-    SEER_HASH_GROUPING_RECORDS_DELETE_URL,
-    SEER_PROJECT_GROUPING_RECORDS_DELETE_URL,
-)
+from sentry.conf.server import SEER_HASH_GROUPING_RECORDS_DELETE_URL
 from sentry.net.http import connection_from_url
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.seer.signed_seer_api import (
+    DeleteGroupingRecordsByProjectRequest,
+    make_delete_grouping_records_by_project_request,
+    make_signed_seer_api_request,
+)
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
@@ -39,11 +40,9 @@ def call_seer_to_delete_project_grouping_records(
     project_id: int,
 ) -> bool:
     try:
-        # TODO: Move this over to POST json_api implementation
-        response = seer_grouping_connection_pool.urlopen(
-            "GET",
-            f"{SEER_PROJECT_GROUPING_RECORDS_DELETE_URL}/{project_id}",
-            headers={"Content-Type": "application/json;charset=utf-8"},
+        body: DeleteGroupingRecordsByProjectRequest = {"project_id": project_id}
+        response = make_delete_grouping_records_by_project_request(
+            body,
             timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,
         )
     except ReadTimeoutError:

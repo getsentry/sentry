@@ -641,7 +641,10 @@ function TableComponent({
     let cellActions = ALLOWED_CELL_ACTIONS;
     if (disableTableActions) {
       cellActions = [];
-    } else if (widget.widgetType === WidgetType.SPANS) {
+    } else if (
+      organization.features.includes('visibility-explore-view') &&
+      widget.widgetType === WidgetType.SPANS
+    ) {
       cellActions = [...ALLOWED_CELL_ACTIONS, Actions.OPEN_ROW_IN_EXPLORE];
     }
 

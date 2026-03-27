@@ -12,6 +12,11 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {getRepoStatusLabel} from 'sentry/components/repositories/getRepoStatusLabel';
+import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
+import {
+  getRepositoryWithSettingsQueryKey,
+  useRepositoryWithSettings,
+} from 'sentry/components/repositories/useRepositoryWithSettings';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {t} from 'sentry/locale';
@@ -26,11 +31,6 @@ import {useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
-import {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useBulkUpdateRepositorySettings';
-import {
-  getRepositoryWithSettingsQueryKey,
-  useRepositoryWithSettings,
-} from 'getsentry/views/seerAutomation/onboarding/hooks/useRepositoryWithSettings';
 
 interface Props {
   gridColumns: string;

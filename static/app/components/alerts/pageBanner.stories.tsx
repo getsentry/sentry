@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import replaysDeadRageBackground from 'sentry-images/spot/replay-dead-rage-changelog.svg';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {InlineCode} from '@sentry/scraps/code';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {PageBanner} from 'sentry/components/alerts/pageBanner';
@@ -42,7 +43,7 @@ export default Storybook.story('PageBanner', story => {
       <Fragment>
         <p>
           This example renders an X in the top-right corner. You can wire it up with
-          something like <kbd>useDismissAlert()</kbd>.
+          something like <InlineCode>useDismissAlert()</InlineCode>.
         </p>
         <p>
           Is Dismissed? <var>{String(isDismissed)}</var>
@@ -72,7 +73,7 @@ export default Storybook.story('PageBanner', story => {
       <Fragment>
         <p>
           The banner will resize if it's shrunk really narrow. To make it expand inside a
-          flex parent set <kbd>flex-grow:1</kbd>.
+          flex parent set <InlineCode>flex-grow:1</InlineCode>.
         </p>
         <p>
           <Button size="sm" onClick={() => setFlexGrow(!flexGrow)}>
