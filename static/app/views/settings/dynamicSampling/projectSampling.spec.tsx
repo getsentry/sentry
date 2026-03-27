@@ -58,17 +58,10 @@ describe('ProjectSampling', () => {
     });
   });
 
-  function getProjectRateInput() {
-    // The first spinbutton is the org rate, the second is the project rate
-    const inputs = screen.getAllByRole('spinbutton');
-    return inputs[inputs.length - 1]!;
-  }
-
   async function waitForProjectRateInput() {
-    // Wait for the project table to render — the ProjectBadge component
-    // renders a link with this accessible name
-    await screen.findByRole('link', {name: 'View Project Details'});
-    return getProjectRateInput();
+    return screen.findByRole('spinbutton', {
+      name: 'Sample rate for project-slug',
+    });
   }
 
   it('renders project rate inputs with initial values', async () => {

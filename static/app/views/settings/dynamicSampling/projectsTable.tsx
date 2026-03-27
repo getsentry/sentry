@@ -394,6 +394,7 @@ const TableRow = memo(function TableRow({
               onChange={handleChange}
               size="sm"
               value={sampleRate}
+              aria-label={t('Sample rate for %s', project.slug)}
             />
           </Tooltip>
         </FirstCellLine>
