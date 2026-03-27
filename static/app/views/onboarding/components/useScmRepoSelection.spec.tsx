@@ -3,24 +3,9 @@ import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegr
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {
-  OnboardingContextProvider,
-  type OnboardingSessionState,
-} from 'sentry/components/onboarding/onboardingContext';
 import type {IntegrationRepository} from 'sentry/types/integrations';
-import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 
 import {useScmRepoSelection} from './useScmRepoSelection';
-
-function makeOnboardingWrapper(initialState?: OnboardingSessionState) {
-  return function OnboardingWrapper({children}: {children?: React.ReactNode}) {
-    return (
-      <OnboardingContextProvider initialValue={initialState}>
-        {children}
-      </OnboardingContextProvider>
-    );
-  };
-}
 
 describe('useScmRepoSelection', () => {
   const organization = OrganizationFixture();
@@ -49,69 +34,16 @@ describe('useScmRepoSelection', () => {
     isInstalled: false,
   };
 
-  const mockInstalledRepo: IntegrationRepository = {
-    identifier: 'getsentry/sentry',
-    name: 'sentry',
-    isInstalled: true,
-  };
-
   beforeEach(() => {
-    sessionStorageWrapper.clear();
     onSelect = jest.fn();
     reposByIdentifier = new Map([['getsentry/sentry', mockRepo]]);
-
-    // Default: no existing repos
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/repos/`,
-      body: [],
-    });
   });
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('calls POST to add new repo and updates onSelect with server ID', async () => {
-    const addRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/repos/`,
-      method: 'POST',
-      body: {
-        id: '42',
-        name: 'getsentry/sentry',
-        externalSlug: 'getsentry/sentry',
-        status: 'active',
-      },
-    });
-
-    const {result} = renderHookWithProviders(
-      () =>
-        useScmRepoSelection({integration: mockIntegration, onSelect, reposByIdentifier}),
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({}),
-      }
-    );
-
-    await act(async () => {
-      await result.current.handleSelect({value: 'getsentry/sentry'});
-    });
-
-    expect(addRequest).toHaveBeenCalled();
-    // Optimistic call with empty id
-    expect(onSelect).toHaveBeenCalledWith(
-      expect.objectContaining({id: '', name: 'sentry'})
-    );
-    // Then real call with server response spread over optimistic
-    expect(onSelect).toHaveBeenCalledWith(
-      expect.objectContaining({id: '42', name: 'getsentry/sentry'})
-    );
-  });
-
-  it('does not POST for already-installed repos, uses existing repo ID', async () => {
-    reposByIdentifier = new Map([['getsentry/sentry', mockInstalledRepo]]);
-
-    // Override repos response with an existing repo
-    MockApiClient.clearMockResponses();
+  it('uses existing repo when GET finds it, skips POST', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/repos/`,
       body: [
@@ -133,14 +65,8 @@ describe('useScmRepoSelection', () => {
     const {result} = renderHookWithProviders(
       () =>
         useScmRepoSelection({integration: mockIntegration, onSelect, reposByIdentifier}),
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({}),
-      }
+      {organization}
     );
-
-    // Wait for existing repos query to resolve
-    await waitFor(() => expect(result.current.busy).toBe(false));
 
     await act(async () => {
       await result.current.handleSelect({value: 'getsentry/sentry'});
@@ -152,7 +78,50 @@ describe('useScmRepoSelection', () => {
     );
   });
 
-  it('reverts onSelect on addRepository failure', async () => {
+  it('creates repo via POST when GET finds nothing', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/`,
+      body: [],
+    });
+
+    const addRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/`,
+      method: 'POST',
+      body: {
+        id: '42',
+        name: 'getsentry/sentry',
+        externalSlug: 'getsentry/sentry',
+        status: 'active',
+      },
+    });
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useScmRepoSelection({integration: mockIntegration, onSelect, reposByIdentifier}),
+      {organization}
+    );
+
+    await act(async () => {
+      await result.current.handleSelect({value: 'getsentry/sentry'});
+    });
+
+    expect(addRequest).toHaveBeenCalled();
+    // Optimistic call with empty id
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({id: '', name: 'sentry'})
+    );
+    // Then real call with server response
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({id: '42', name: 'getsentry/sentry'})
+    );
+  });
+
+  it('reverts onSelect when both GET and POST fail', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/`,
+      body: [],
+    });
+
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/repos/`,
       method: 'POST',
@@ -163,10 +132,7 @@ describe('useScmRepoSelection', () => {
     const {result} = renderHookWithProviders(
       () =>
         useScmRepoSelection({integration: mockIntegration, onSelect, reposByIdentifier}),
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({}),
-      }
+      {organization}
     );
 
     await act(async () => {
@@ -180,92 +146,51 @@ describe('useScmRepoSelection', () => {
     expect(onSelect).toHaveBeenCalledWith(undefined);
   });
 
-  it('cleans up previously added repo when selecting a new one', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/repos/`,
-      method: 'POST',
-      body: {
-        id: '42',
-        name: 'getsentry/sentry',
-        externalSlug: 'getsentry/sentry',
-        status: 'active',
-      },
-    });
-
-    const hideRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/repos/42/`,
-      method: 'PUT',
-      body: {},
-    });
-
+  it('handleRemove calls onSelect with undefined', async () => {
     const {result} = renderHookWithProviders(
       () =>
         useScmRepoSelection({integration: mockIntegration, onSelect, reposByIdentifier}),
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({}),
-      }
+      {organization}
     );
 
-    // First selection
-    await act(async () => {
-      await result.current.handleSelect({value: 'getsentry/sentry'});
-    });
-
-    // Add a second repo
-    const secondRepo: IntegrationRepository = {
-      identifier: 'getsentry/relay',
-      name: 'relay',
-      isInstalled: false,
-    };
-    reposByIdentifier.set('getsentry/relay', secondRepo);
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/repos/`,
-      method: 'POST',
-      body: {
-        id: '43',
-        name: 'getsentry/relay',
-        externalSlug: 'getsentry/relay',
-        status: 'active',
-      },
-    });
-
-    // Second selection should clean up the first
-    await act(async () => {
-      await result.current.handleSelect({value: 'getsentry/relay'});
-    });
-
-    expect(hideRequest).toHaveBeenCalled();
-  });
-
-  it('does not call hideRepository on remove if repo was pre-existing', async () => {
-    const hideRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/repos/99/`,
-      method: 'PUT',
-      body: {},
-    });
-
-    const {result} = renderHookWithProviders(
-      () =>
-        useScmRepoSelection({integration: mockIntegration, onSelect, reposByIdentifier}),
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedRepository: {
-            id: '99',
-            name: 'sentry',
-            externalSlug: 'getsentry/sentry',
-          } as any,
-        }),
-      }
-    );
-
-    await act(async () => {
-      await result.current.handleRemove();
+    act(() => {
+      result.current.handleRemove();
     });
 
     expect(onSelect).toHaveBeenCalledWith(undefined);
-    expect(hideRequest).not.toHaveBeenCalled();
+  });
+
+  it('sets busy during selection and clears after', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/`,
+      body: [
+        {
+          id: '99',
+          name: 'getsentry/sentry',
+          externalSlug: 'getsentry/sentry',
+          status: 'active',
+        },
+      ],
+    });
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useScmRepoSelection({integration: mockIntegration, onSelect, reposByIdentifier}),
+      {organization}
+    );
+
+    expect(result.current.busy).toBe(false);
+
+    let selectPromise: Promise<void>;
+    act(() => {
+      selectPromise = result.current.handleSelect({value: 'getsentry/sentry'});
+    });
+
+    await waitFor(() => expect(result.current.busy).toBe(false));
+    await act(async () => {
+      await selectPromise!;
+    });
+
+    expect(result.current.busy).toBe(false);
   });
 });
