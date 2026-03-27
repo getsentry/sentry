@@ -83,7 +83,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             group = None
         else:
             try:
-                group = Group.objects.get(id=group_id)
+                group = Group.objects.get(id=group_id, project__organization_id=organization.id)
             except Group.DoesNotExist:
                 group = None
 
