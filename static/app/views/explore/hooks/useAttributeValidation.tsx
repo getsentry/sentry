@@ -40,11 +40,16 @@ function extractFilterKeys(parsedQuery: ParseResult | null): string[] {
     return EMPTY_KEYS;
   }
   const keySet = new Set<string>();
-  for (const token of parsedQuery) {
-    if (token.type === Token.FILTER) {
-      keySet.add(getKeyName(token.key));
+  function walk(tokens: ParseResult) {
+    for (const token of tokens) {
+      if (token.type === Token.FILTER) {
+        keySet.add(getKeyName(token.key));
+      } else if (token.type === Token.LOGIC_GROUP) {
+        walk(token.inner);
+      }
     }
   }
+  walk(parsedQuery);
   return keySet.size > 0 ? [...keySet].sort() : EMPTY_KEYS;
 }
 
