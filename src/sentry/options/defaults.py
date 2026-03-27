@@ -2676,16 +2676,15 @@ register(
 )
 
 # Circuit breaker configuration for webhook endpoint failure detection.
-# Keys match RateBasedCircuitBreakerConfig
+# Keys match RateBasedTripStrategyConfig + CircuitBreakerConfig
 register(
     "sentry-apps.webhook.circuit-breaker.config",
     type=Dict,
     default={
-        "error_limit": 5000,  # 5,000 errors in 10 minutes
         "error_limit_window": 600,  # 10 minutes
         "broken_state_duration": 300,  # 5 minutes
-        "error_rate_threshold": 0.5,  # 50% error rate
-        "error_floor": 500,  # 500 errors before error rate check applies
+        "threshold": 0.5,  # 50% error rate
+        "floor": 500,  # 500 errors before error rate check applies
     },
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

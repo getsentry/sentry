@@ -24,11 +24,9 @@ from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.taskworker.timeout import timeout_alarm
 from sentry.utils import metrics
+from sentry.utils.circuit_breaker2 import CircuitBreaker, RateBasedTripStrategy
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
-from sentry.utils.sentry_apps.circuit_breaker import (
-    RateBasedCircuitBreaker,
-    circuit_breaker_tracking,
-)
+from sentry.utils.sentry_apps.circuit_breaker import circuit_breaker_tracking
 
 if TYPE_CHECKING:
     from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
@@ -56,7 +54,6 @@ def _handle_webhook_timeout(signum: int, frame: FrameType | None) -> None:
     """Handler for when a webhook request exceeds the hard timeout deadline.
     - This is a workaround for safe_create_connection sockets hanging when the given url
     cannot be reached or resolved.
-    - TODO(christinarlong): Add sentry app disabling logic here
     """
     raise WebhookTimeoutError("Webhook request exceeded hard timeout deadline")
 
@@ -131,14 +128,16 @@ def send_and_save_webhook_request(
             )
 
             # Circuit breaker gate — keyed per app slug
-            circuit_breaker: RateBasedCircuitBreaker | None = None
+            circuit_breaker: CircuitBreaker | None = None
             if organization_context is not None and features.has(
                 "organizations:sentry-app-webhook-circuit-breaker",
                 organization_context.organization,
             ):
-                circuit_breaker = RateBasedCircuitBreaker(
-                    f"sentry-app.webhook.{sentry_app.slug}",
-                    options.get("sentry-apps.webhook.circuit-breaker.config"),
+                config = options.get("sentry-apps.webhook.circuit-breaker.config")
+                circuit_breaker = CircuitBreaker(
+                    key=f"sentry-app.webhook.{sentry_app.slug}",
+                    config=config,
+                    trip_strategy=RateBasedTripStrategy.from_config(config),
                 )
                 if not circuit_breaker.should_allow_request():
                     dry_run = options.get("sentry-apps.webhook.circuit-breaker.dry-run")

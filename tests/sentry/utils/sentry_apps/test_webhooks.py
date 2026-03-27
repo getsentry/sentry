@@ -14,11 +14,10 @@ from sentry.utils.sentry_apps.webhooks import send_and_save_webhook_request
 
 CIRCUIT_BREAKER_OPTIONS = {
     "sentry-apps.webhook.circuit-breaker.config": {
-        "error_limit": 10000,
         "error_limit_window": 600,
         "broken_state_duration": 300,
-        "error_rate_threshold": 0.5,
-        "error_floor": 5,  # low floor for testing
+        "threshold": 0.5,
+        "floor": 5,  # low floor for testing
     },
     "sentry-apps.webhook.circuit-breaker.dry-run": False,
     "sentry-apps.webhook.timeout.sec": 1.0,
@@ -66,7 +65,7 @@ class WebhookCircuitBreakerTest(TestCase):
         {**CIRCUIT_BREAKER_OPTIONS, "sentry-apps.webhook.circuit-breaker.dry-run": True}
     )
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
-    @patch("sentry.utils.sentry_apps.webhooks.RateBasedCircuitBreaker")
+    @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
     def test_dry_run_emits_metric_but_sends_webhook(self, MockBreaker, mock_safe_urlopen):
         """In dry-run mode, a broken circuit emits would_block but still sends."""
         mock_breaker_instance = MockBreaker.return_value
@@ -86,7 +85,7 @@ class WebhookCircuitBreakerTest(TestCase):
     @with_feature("organizations:sentry-app-webhook-circuit-breaker")
     @override_options(CIRCUIT_BREAKER_OPTIONS)
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
-    @patch("sentry.utils.sentry_apps.webhooks.RateBasedCircuitBreaker")
+    @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
     def test_blocking_mode_returns_empty_response(self, MockBreaker, mock_safe_urlopen):
         """With dry-run OFF, a broken circuit blocks the webhook."""
         mock_breaker_instance = MockBreaker.return_value
@@ -99,7 +98,7 @@ class WebhookCircuitBreakerTest(TestCase):
     @with_feature("organizations:sentry-app-webhook-circuit-breaker")
     @override_options(CIRCUIT_BREAKER_OPTIONS)
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
-    @patch("sentry.utils.sentry_apps.webhooks.RateBasedCircuitBreaker")
+    @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
     def test_timeout_calls_record_error(self, MockBreaker, mock_safe_urlopen):
         """Timeout exceptions should call record_error()."""
         mock_breaker_instance = MockBreaker.return_value
@@ -114,7 +113,7 @@ class WebhookCircuitBreakerTest(TestCase):
     @with_feature("organizations:sentry-app-webhook-circuit-breaker")
     @override_options(CIRCUIT_BREAKER_OPTIONS)
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
-    @patch("sentry.utils.sentry_apps.webhooks.RateBasedCircuitBreaker")
+    @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
     def test_success_calls_record_success(self, MockBreaker, mock_safe_urlopen):
         """Successful responses should call record_success()."""
         mock_breaker_instance = MockBreaker.return_value
