@@ -53,7 +53,10 @@ export function getAutomationActionsWarning(
 }
 
 export function useAutomationProjectIds(automation: Automation): string[] {
-  const {data: detectors} = useDetectorsQuery({ids: automation.detectorIds});
+  const {data: detectors} = useDetectorsQuery(
+    {ids: automation.detectorIds},
+    {enabled: automation.detectorIds.length > 0}
+  );
   return [
     ...new Set(detectors?.map(detector => detector.projectId).filter(x => x) ?? []),
   ] as string[];
