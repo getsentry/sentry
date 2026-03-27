@@ -1,6 +1,6 @@
-# SegmentKey is an internal identifier used by the redis buffer that is also
-# directly used as raw redis key. the format is
-# "span-buf:s:{project_id:trace_id}:span_id", and the type is bytes because our
+# SegmentKey is an internal identifier used by the redis buffer to identify a segment
+# in a queue or find the segment's spans payloads.
+# The format is"span-buf:s:{project_id:trace_id}:span_id", and the type is bytes because our
 # redis client is bytes.
 #
 # The segment ID in the Kafka protocol is only the span ID.
