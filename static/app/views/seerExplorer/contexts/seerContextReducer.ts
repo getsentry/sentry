@@ -28,8 +28,10 @@ export const INITIAL_SEER_CONTEXT_STATE: SeerContextState = {
 
 /**
  * Collect the IDs of a node and all its descendants from the flat map.
+ * Exported so callers (e.g. the provider's unregisterNode) can mirror the
+ * same removal set against out-of-band storage like nodeDataRef.
  */
-function collectDescendantIds(
+export function collectDescendantIds(
   nodes: Map<string, SeerContextNode>,
   nodeId: string,
   result = new Set<string>()
