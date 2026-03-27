@@ -136,6 +136,7 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
         ],
+        request=ReplayDeletionJobCreateSerializer,
         responses={
             201: inline_sentry_response_serializer(
                 "CreateReplayDeletionJob", ReplayDeletionJobDetailResponse
