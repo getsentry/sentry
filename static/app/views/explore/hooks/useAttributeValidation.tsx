@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useRef, useState} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -85,6 +85,7 @@ export function useAttributeValidation(
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const effectiveProjects = projects ?? selection.projects;
+  const requestCounterRef = useRef(0);
 
   const validateQuery = useCallback(
     async (query: string) => {
@@ -93,6 +94,7 @@ export function useAttributeValidation(
         setInvalidFilterKeys([]);
         return;
       }
+      const currentRequest = ++requestCounterRef.current;
       try {
         const [data] = await queryClient.fetchQuery(
           validateAttributesQueryOptions({
@@ -103,11 +105,13 @@ export function useAttributeValidation(
             projects: effectiveProjects,
           })
         );
-        setInvalidFilterKeys(
-          Object.entries(data.attributes)
-            .filter(([, result]) => !result.valid)
-            .map(([key]) => key)
-        );
+        if (currentRequest === requestCounterRef.current) {
+          setInvalidFilterKeys(
+            Object.entries(data.attributes)
+              .filter(([, result]) => !result.valid)
+              .map(([key]) => key)
+          );
+        }
       } catch {
         // leave previous state on error
       }
