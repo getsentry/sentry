@@ -206,6 +206,11 @@ class SlackRequest:
         elif verification_token and self._check_verification_token(verification_token):
             return
 
+        # If production credentials failed, try the staging app's signing secret.
+        staging_signing_secret = options.get("slack-staging.signing-secret")
+        if staging_signing_secret and self._check_signing_secret(staging_signing_secret):
+            return
+
         # unfortunately, we can't know which auth was supposed to succeed
         self._error("slack.action.auth")
         raise SlackRequestError(status=status_.HTTP_401_UNAUTHORIZED)
