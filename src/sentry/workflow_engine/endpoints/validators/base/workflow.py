@@ -386,7 +386,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
                 owner_team_id=owner_team_id,
             )
             # connect detectors
-            detector_ids = validated_value.get("detector_ids")
+            detector_ids = set(validated_value.get("detector_ids"))
             if detector_ids:
                 validate_detectors_exist_and_have_permissions(detector_ids, organization, request)
 
