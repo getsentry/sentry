@@ -1,7 +1,6 @@
 import {useCallback, useState} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {ParseResult} from 'sentry/components/searchSyntax/parser';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
@@ -23,12 +22,15 @@ interface ValidateAttributesResponse {
   attributes: Record<string, AttributeValidationResult>;
 }
 
-interface ValidateAttributesParams {
+export interface AttributeValidationSelection {
   datetime: PageFilters['datetime'];
+  projects?: PageFilters['projects'];
+}
+
+interface ValidateAttributesParams extends AttributeValidationSelection {
   filterKeys: string[];
   itemType: TraceItemDataset;
   organizationSlug: string;
-  projects?: PageFilters['projects'];
 }
 
 const EMPTY_KEYS: string[] = [];
@@ -72,22 +74,24 @@ function validateAttributesQueryOptions({
       },
     ] satisfies ApiQueryKey,
     queryFn: fetchDataQuery<ValidateAttributesResponse>,
+    staleTime: Infinity,
     enabled: filterKeys.length > 0,
   });
 }
 
-export function useAttributeValidation(
-  itemType: TraceItemDataset,
-  projects?: number[]
-): {invalidFilterKeys: string[]; validateQuery: (query: string) => Promise<void>} {
+export function useAttributeValidation(itemType: TraceItemDataset): {
+  invalidFilterKeys: string[];
+  validateQuery: (
+    query: string,
+    selection: AttributeValidationSelection
+  ) => Promise<void>;
+} {
   const [invalidFilterKeys, setInvalidFilterKeys] = useState<string[]>([]);
   const queryClient = useQueryClient();
   const organization = useOrganization();
-  const {selection} = usePageFilters();
-  const effectiveProjects = projects ?? selection.projects;
 
   const validateQuery = useCallback(
-    async (query: string) => {
+    async (query: string, selection: AttributeValidationSelection) => {
       const keys = extractFilterKeys(parseSearch(query));
       if (!keys.length) {
         setInvalidFilterKeys([]);
@@ -98,8 +102,7 @@ export function useAttributeValidation(
           itemType,
           filterKeys: keys,
           organizationSlug: organization.slug,
-          datetime: selection.datetime,
-          projects: effectiveProjects,
+          ...selection,
         });
         await queryClient.cancelQueries({queryKey: [options.queryKey[0]]});
         const [data] = await queryClient.fetchQuery(options);
@@ -112,7 +115,7 @@ export function useAttributeValidation(
         // leave previous state on error
       }
     },
-    [queryClient, organization.slug, itemType, selection.datetime, effectiveProjects]
+    [queryClient, organization.slug, itemType]
   );
 
   return {invalidFilterKeys, validateQuery};
