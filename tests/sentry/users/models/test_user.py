@@ -52,7 +52,7 @@ _TEST_CELLS = (
 )
 
 
-@control_silo_test(regions=_TEST_CELLS)
+@control_silo_test(cells=_TEST_CELLS)
 class UserHybridCloudDeletionTest(TestCase):
     def setUp(self) -> None:
         super().setUp()

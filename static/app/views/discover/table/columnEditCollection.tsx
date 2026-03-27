@@ -10,8 +10,9 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {getOffsetOfElement} from 'sentry/components/performance/waterfall/utils';
-import {IconAdd, IconDelete, IconGrabbable, IconWarning} from 'sentry/icons';
+import {IconAdd, IconDelete, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -484,13 +485,9 @@ class ColumnEditCollection extends Component<Props, State> {
           className={isGhost ? '' : DRAG_CLASS}
         >
           {canDrag ? (
-            <DragAndReorderButton
-              aria-label={t('Drag to reorder')}
+            <StyledDragReorderButton
               onMouseDown={event => this.startDrag(event, i)}
               onTouchStart={event => this.startDrag(event, i)}
-              icon={<IconGrabbable size="xs" />}
-              size="zero"
-              priority="transparent"
             />
           ) : singleColumn && showAliasField ? null : (
             <span />
@@ -789,7 +786,7 @@ const RemoveButton = styled(Button)`
   height: ${p => p.theme.form.md.height};
 `;
 
-const DragAndReorderButton = styled(Button)`
+const StyledDragReorderButton = styled(DragReorderButton)`
   height: ${p => p.theme.form.md.height};
 `;
 

@@ -184,10 +184,22 @@ export const LogRowContent = memo(function LogRowContent({
   }
 
   function onPointerUp(event: SyntheticEvent) {
-    if (event.target instanceof Element && isInsideButton(event.target)) {
-      // do not expand the context menu if you clicked a button
-      return;
+    // do not expand the context menu if...
+    if (event.target instanceof Element) {
+      // ... you clicked a button
+      if (isInsideButton(event.target)) {
+        return;
+      }
+
+      // ... you clicked outside the row (e.g. a portal button)
+      if (
+        !(event.currentTarget instanceof Node) ||
+        !event.currentTarget.contains(event.target)
+      ) {
+        return;
+      }
     }
+
     if (window.getSelection()?.toString() === '') {
       toggleExpanded();
     }

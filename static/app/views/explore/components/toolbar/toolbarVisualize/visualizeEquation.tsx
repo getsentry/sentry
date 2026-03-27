@@ -8,8 +8,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
+import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {IconDelete} from 'sentry/icons/iconDelete';
-import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
 import {EQUATION_PREFIX, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {
@@ -98,13 +98,7 @@ export function VisualizeEquation({
       {...attributes}
     >
       {dragColumnId === undefined ? null : (
-        <Button
-          aria-label={t('Drag to reorder')}
-          priority="transparent"
-          size="zero"
-          icon={<IconGrabbable size="sm" />}
-          {...listeners}
-        />
+        <DragReorderButton iconSize="sm" {...listeners} />
       )}
       {label}
       <Flex flex={1}>

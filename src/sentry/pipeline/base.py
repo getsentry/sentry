@@ -275,6 +275,14 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
         """Returns True if this pipeline supports API mode."""
         return self.get_pipeline_api_steps() is not None
 
+    @property
+    def is_api_mode(self) -> bool:
+        """Returns True if this pipeline session was initiated via the API."""
+        return bool(self._fetch_state("api_mode"))
+
+    def set_api_mode(self, enabled: bool = True) -> None:
+        self.bind_state("api_mode", enabled)
+
     def _assert_user_authorization(self) -> None:
         assert not (self.state.uid is not None and self.state.uid != self.request.user.id), (
             ERR_MISMATCHED_USER

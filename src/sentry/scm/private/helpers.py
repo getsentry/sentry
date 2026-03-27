@@ -8,11 +8,10 @@ from sentry.integrations.services.integration.service import integration_service
 from sentry.models.repository import Repository as RepositoryModel
 from sentry.scm.errors import SCMCodedError, SCMError, SCMUnhandledException
 from sentry.scm.private.ipc import record_count_metric
-from sentry.scm.private.provider import Provider
 from sentry.scm.private.providers.github import GitHubProvider
 from sentry.scm.private.providers.gitlab import GitLabProvider
 from sentry.scm.private.rate_limit import RateLimitProvider, RedisRateLimitProvider
-from sentry.scm.types import ExternalId, ProviderName, Referrer, Repository, RepositoryId
+from sentry.scm.types import ExternalId, Provider, ProviderName, Referrer, Repository, RepositoryId
 
 
 def map_integration_to_provider(
