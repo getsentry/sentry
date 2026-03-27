@@ -373,10 +373,10 @@ class User(Model, AbstractBaseUser):
         if is_user_delete:
             user_cells = set(find_all_cell_names())
         else:
-            cells = find_cells_for_user(identifier)
+            user_cells = find_cells_for_user(identifier)
 
         return OutboxCategory.USER_UPDATE.as_control_outboxes(
-            cell_names=cells,
+            cell_names=user_cells,
             object_identifier=identifier,
             shard_identifier=identifier,
         )
