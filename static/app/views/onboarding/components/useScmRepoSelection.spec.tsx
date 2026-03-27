@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
-import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import type {IntegrationRepository} from 'sentry/types/integrations';
 
@@ -116,7 +116,7 @@ describe('useScmRepoSelection', () => {
     );
   });
 
-  it('reverts onSelect when both GET and POST fail', async () => {
+  it('reverts onSelect on POST failure', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/repos/`,
       body: [],
@@ -146,7 +146,30 @@ describe('useScmRepoSelection', () => {
     expect(onSelect).toHaveBeenCalledWith(undefined);
   });
 
-  it('handleRemove calls onSelect with undefined', async () => {
+  it('reverts onSelect on GET failure', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/`,
+      statusCode: 500,
+      body: {detail: 'Internal Error'},
+    });
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useScmRepoSelection({integration: mockIntegration, onSelect, reposByIdentifier}),
+      {organization}
+    );
+
+    await act(async () => {
+      await result.current.handleSelect({value: 'getsentry/sentry'});
+    });
+
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({id: '', name: 'sentry'})
+    );
+    expect(onSelect).toHaveBeenCalledWith(undefined);
+  });
+
+  it('handleRemove calls onSelect with undefined', () => {
     const {result} = renderHookWithProviders(
       () =>
         useScmRepoSelection({integration: mockIntegration, onSelect, reposByIdentifier}),
@@ -160,7 +183,7 @@ describe('useScmRepoSelection', () => {
     expect(onSelect).toHaveBeenCalledWith(undefined);
   });
 
-  it('sets busy during selection and clears after', async () => {
+  it('clears busy state after selection completes', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/repos/`,
       body: [
@@ -181,14 +204,8 @@ describe('useScmRepoSelection', () => {
 
     expect(result.current.busy).toBe(false);
 
-    let selectPromise: Promise<void>;
-    act(() => {
-      selectPromise = result.current.handleSelect({value: 'getsentry/sentry'});
-    });
-
-    await waitFor(() => expect(result.current.busy).toBe(false));
     await act(async () => {
-      await selectPromise!;
+      await result.current.handleSelect({value: 'getsentry/sentry'});
     });
 
     expect(result.current.busy).toBe(false);
