@@ -208,7 +208,9 @@ function ManageDashboards() {
           pin: 'favorites',
           per_page:
             dashboardsLayout === GRID ? rowCount * columnCount : DASHBOARD_TABLE_NUM_ROWS,
-          ...(isOnlyPrebuilt ? {filter: DashboardFilter.ONLY_PREBUILT} : {}),
+          ...(isOnlyPrebuilt
+            ? {filter: DashboardFilter.ONLY_PREBUILT}
+            : {filter: DashboardFilter.EXCLUDE_PREBUILT}),
         },
       },
     ],
