@@ -373,37 +373,34 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
 
             owner_user_id, owner_team_id = update_owner(validated_value.get("owner"))
 
-            with transaction.atomic(router.db_for_write(Workflow)):
-                workflow = Workflow.objects.create(
-                    name=validated_value["name"],
-                    enabled=validated_value["enabled"],
-                    config=validated_value["config"],
-                    organization_id=organization.id,
-                    environment_id=environment.id if environment else None,
-                    when_condition_group=when_condition_group,
-                    created_by_id=request.user.id,
-                    owner_user_id=owner_user_id,
-                    owner_team_id=owner_team_id,
-                )
-                # connect detectors
-                detector_ids = validated_value.get("detector_ids")
-                if detector_ids:
-                    validate_detectors_exist_and_have_permissions(
-                        detector_ids, organization, request
-                    )
+            workflow = Workflow.objects.create(
+                name=validated_value["name"],
+                enabled=validated_value["enabled"],
+                config=validated_value["config"],
+                organization_id=organization.id,
+                environment_id=environment.id if environment else None,
+                when_condition_group=when_condition_group,
+                created_by_id=request.user.id,
+                owner_user_id=owner_user_id,
+                owner_team_id=owner_team_id,
+            )
+            # connect detectors
+            detector_ids = validated_value.get("detector_ids")
+            if detector_ids:
+                validate_detectors_exist_and_have_permissions(detector_ids, organization, request)
 
-                    detector_workflows_to_add: list[
-                        dict[Literal["detector_id", "workflow_id"], int]
-                    ] = [
-                        {"detector_id": detector_id, "workflow_id": workflow.id}
-                        for detector_id in detector_ids
-                    ]
-                    perform_bulk_detector_workflow_operations(
-                        detector_workflows_to_add=detector_workflows_to_add,
-                        detector_workflows_to_remove=[],
-                        request=request,
-                        organization=organization,
-                    )
+                detector_workflows_to_add: list[
+                    dict[Literal["detector_id", "workflow_id"], int]
+                ] = [
+                    {"detector_id": detector_id, "workflow_id": workflow.id}
+                    for detector_id in detector_ids
+                ]
+                perform_bulk_detector_workflow_operations(
+                    detector_workflows_to_add=detector_workflows_to_add,
+                    detector_workflows_to_remove=[],
+                    request=request,
+                    organization=organization,
+                )
 
             # TODO -- can we bulk create: actions, dcga's and the workflow dcg?
             # Create actions and action filters, then associate them to the workflow
