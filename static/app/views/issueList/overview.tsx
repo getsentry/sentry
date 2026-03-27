@@ -37,6 +37,7 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useSuperGroups} from 'sentry/utils/supergroup/useSuperGroups';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -162,6 +163,9 @@ function IssueListOverview({
   }, [groups]);
 
   useIssuesINPObserver();
+
+  const {data: supergroupLookup, isLoading: supergroupsLoading} =
+    useSuperGroups(groupIds);
 
   const onRealtimePoll = useCallback(
     (data: any, {queryCount: newQueryCount}: {queryCount: number}) => {
@@ -900,8 +904,9 @@ function IssueListOverview({
             displayReprocessingActions={displayReprocessingActions}
             memberList={memberList}
             selectedProjectIds={selection.projects}
-            issuesLoading={issuesLoading}
+            issuesLoading={issuesLoading || supergroupsLoading}
             statsLoading={statsLoading}
+            supergroupLookup={supergroupLookup}
             error={error}
             refetchGroups={fetchData}
             paginationCaption={
