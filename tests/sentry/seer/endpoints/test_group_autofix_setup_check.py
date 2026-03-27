@@ -281,7 +281,11 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             response = self.client.get(url, format="json")
 
             assert response.status_code == 200
-            assert response.data["autofixEnabled"] is False
+            if setting is None or setting == AutofixAutomationTuningSettings.OFF:
+                expected = False
+            else:
+                expected = True
+            assert response.data["autofixEnabled"] is expected
 
     def test_autofix_automation_tuning_off(self) -> None:
         self._set_seat_based_tier_cache(True)
