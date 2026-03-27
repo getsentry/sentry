@@ -891,8 +891,10 @@ describe('Core StackTrace', () => {
             {
               ...frame,
               absPath: 'https://example.com/static/app.js',
+              colNo: 42,
               filename: 'app.js',
               inApp: true,
+              lineNo: 1,
             },
           ],
         }}
@@ -904,9 +906,15 @@ describe('Core StackTrace', () => {
     await userEvent.hover(screen.getByText('app.js'), {delay: null});
     act(() => jest.advanceTimersByTime(2000));
 
+    const link = await screen.findByRole('link', {
+      name: 'https://example.com/static/app.js',
+    });
+    expect(link).toHaveAttribute('href', 'https://example.com/static/app.js');
+    expect(await screen.findByText('Absolute Path')).toBeInTheDocument();
     expect(
-      await screen.findByRole('link', {name: 'https://example.com/static/app.js'})
+      screen.getByText('https://example.com/static/app.js:1:42')
     ).toBeInTheDocument();
+    expect(screen.getAllByText('https://example.com/static/app.js')).toHaveLength(1);
     jest.useRealTimers();
   });
 });
