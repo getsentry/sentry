@@ -193,26 +193,22 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
             )
     except Timeout:
         metrics.incr("apigateway.proxy.request_timeout", tags=metric_tags)
-        try:
-            if circuit_breaker is not None:
-                circuit_breaker.record_error()
-        except Exception:
-            logger.exception("Failed to record circuitbreaker failure")
+        if circuit_breaker is not None:
+            circuit_breaker.record_error()
 
         # remote silo timeout. Use DRF timeout instead
         raise RequestTimeout()
     except ConnectionError:
         metrics.incr("apigateway.proxy.connection_error", tags=metric_tags)
-        try:
-            if circuit_breaker is not None:
-                circuit_breaker.record_error()
-        except Exception:
-            logger.exception("Failed to record circuitbreaker failure")
+        if circuit_breaker is not None:
+            circuit_breaker.record_error()
 
         raise
 
-    if resp.status_code >= 500:
+    if resp.status_code >= 502:
         metrics.incr("apigateway.proxy.request_failed", tags=metric_tags)
+        if circuit_breaker is not None:
+            circuit_breaker.record_error()
 
     new_headers = clean_outbound_headers(resp.headers)
     resp.headers.clear()
