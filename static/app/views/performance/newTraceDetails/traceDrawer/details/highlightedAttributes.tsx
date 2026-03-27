@@ -20,7 +20,7 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {SpanFields} from 'sentry/views/insights/types';
-import {tryParseJson} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import {tryParseJsonRecursive} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 type HighlightedAttribute = {
   name: string;
@@ -41,7 +41,7 @@ function getAIToolDefinitions(
 ): any[] | null {
   const toolDefinitions = attributes['gen_ai.tool.definitions'];
   if (toolDefinitions) {
-    const parsed = tryParseJson(toolDefinitions.toString());
+    const parsed = tryParseJsonRecursive(toolDefinitions.toString());
     if (Array.isArray(parsed)) {
       return parsed;
     }
@@ -49,7 +49,7 @@ function getAIToolDefinitions(
 
   const availableTools = attributes['gen_ai.request.available_tools'];
   if (availableTools) {
-    const parsed = tryParseJson(availableTools.toString());
+    const parsed = tryParseJsonRecursive(availableTools.toString());
     if (Array.isArray(parsed)) {
       return parsed;
     }

@@ -9,13 +9,24 @@ import {isUrl} from 'sentry/utils/string/isUrl';
 import {AnnotatedAttributeTooltip} from 'sentry/views/explore/components/annotatedAttributeTooltip';
 import {getAttributeItem} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
-import {tryParseJson} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 import type {
   AttributesFieldRender,
   AttributesTreeContent,
   AttributesTreeRowConfig,
 } from './attributesTree';
+
+function tryParseJson(value: unknown) {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return undefined;
+  }
+}
 
 export function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>({
   config,
@@ -60,6 +71,7 @@ export function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>
       );
     }
   }
+
   const parsedJson = tryParseJson(content.value);
   if (typeof parsedJson === 'object' && parsedJson !== null) {
     return (
