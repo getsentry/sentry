@@ -461,9 +461,9 @@ export const useSeerExplorer = () => {
       return undefined;
     }
 
-    const hasAssistantResponse = serverBlocks.some(
-      (b, i) => i > optimistic.insertIndex && b.message.role === 'assistant'
-    );
+    const hasAssistantResponse = serverBlocks
+      .slice(optimistic.insertIndex + 1)
+      .some(b => b.message.role === 'assistant');
 
     if (hasAssistantResponse) {
       setOptimistic(null);
