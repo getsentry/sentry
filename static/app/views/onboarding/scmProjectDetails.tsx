@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Button} from '@sentry/scraps/button';
@@ -40,10 +40,7 @@ export function ScmProjectDetails({onComplete}: StepProps) {
     trackAnalytics('onboarding.scm_project_details_step_viewed', {organization});
   }, [organization]);
 
-  const firstAdminTeam = useMemo(
-    () => teams.find((team: Team) => team.access.includes('team:admin')),
-    [teams]
-  );
+  const firstAdminTeam = teams.find((team: Team) => team.access.includes('team:admin'));
   const defaultName = slugify(selectedPlatform?.key ?? '');
 
   // State tracks user edits; derived values fall back to defaults from context/teams
@@ -57,23 +54,40 @@ export function ScmProjectDetails({onComplete}: StepProps) {
     DEFAULT_ISSUE_ALERT_OPTIONS_VALUES
   );
 
-  const handleAlertChange = useCallback(
-    <K extends keyof AlertRuleOptions>(key: K, value: AlertRuleOptions[K]) => {
-      setAlertRuleConfig(prev => ({...prev, [key]: value}));
-      if (key === 'alertSetting') {
-        const optionMap: Record<number, string> = {
-          0: 'high_priority',
-          1: 'custom',
-          2: 'create_later',
-        };
-        trackAnalytics('onboarding.scm_project_details_alert_selected', {
-          organization,
-          option: optionMap[value as number] ?? String(value),
-        });
-      }
-    },
-    [organization]
-  );
+  function handleAlertChange<K extends keyof AlertRuleOptions>(
+    key: K,
+    value: AlertRuleOptions[K]
+  ) {
+    setAlertRuleConfig(prev => ({...prev, [key]: value}));
+    if (key === 'alertSetting') {
+      const optionMap: Record<number, string> = {
+        0: 'high_priority',
+        1: 'custom',
+        2: 'create_later',
+      };
+      trackAnalytics('onboarding.scm_project_details_alert_selected', {
+        organization,
+        option: optionMap[value as number] ?? String(value),
+      });
+    }
+  }
+
+  function handleProjectNameBlur() {
+    if (projectName !== null) {
+      trackAnalytics('onboarding.scm_project_details_name_edited', {
+        organization,
+        custom: projectName !== defaultName,
+      });
+    }
+  }
+
+  function handleTeamChange({value}: {value: string}) {
+    setTeamSlug(value);
+    trackAnalytics('onboarding.scm_project_details_team_selected', {
+      organization,
+      team: value,
+    });
+  }
 
   const canSubmit =
     projectNameResolved.length > 0 &&
@@ -81,7 +95,7 @@ export function ScmProjectDetails({onComplete}: StepProps) {
     !!selectedPlatform &&
     !createProjectAndRules.isPending;
 
-  const handleCreateProject = useCallback(async () => {
+  async function handleCreateProject() {
     if (!selectedPlatform || !canSubmit) {
       return;
     }
@@ -113,18 +127,7 @@ export function ScmProjectDetails({onComplete}: StepProps) {
       addErrorMessage(t('Failed to create project'));
       Sentry.captureException(error);
     }
-  }, [
-    selectedPlatform,
-    canSubmit,
-    organization,
-    createProjectAndRules,
-    projectNameResolved,
-    teamSlugResolved,
-    alertRuleConfig,
-    selectedFeatures,
-    setCreatedProjectSlug,
-    onComplete,
-  ]);
+  }
 
   return (
     <Flex direction="column" align="center" gap="2xl" flexGrow={1}>
@@ -149,14 +152,7 @@ export function ScmProjectDetails({onComplete}: StepProps) {
             placeholder={t('project-name')}
             value={projectNameResolved}
             onChange={e => setProjectName(slugify(e.target.value))}
-            onBlur={() => {
-              if (projectName !== null) {
-                trackAnalytics('onboarding.scm_project_details_name_edited', {
-                  organization,
-                  custom: projectName !== defaultName,
-                });
-              }
-            }}
+            onBlur={handleProjectNameBlur}
           />
         </Stack>
 
@@ -175,13 +171,7 @@ export function ScmProjectDetails({onComplete}: StepProps) {
             placeholder={t('Select a Team')}
             teamFilter={(tm: Team) => tm.access.includes('team:admin')}
             value={teamSlugResolved}
-            onChange={({value}: {value: string}) => {
-              setTeamSlug(value);
-              trackAnalytics('onboarding.scm_project_details_team_selected', {
-                organization,
-                team: value,
-              });
-            }}
+            onChange={handleTeamChange}
           />
         </Stack>
 
