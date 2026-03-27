@@ -32,16 +32,21 @@ Segments are flushed out to `buffered-spans` topic under two conditions:
 
 Now how does that look like in Redis? For each incoming span, we:
 
-1. Try to figure out what the name of the respective span buffer is (`set_key` in `add-buffer.lua`)
-  a. We look up any "redirects" from the span buffer's parent_span_id (hashmap at "span-buf:ssr:{project_id:trace_id}") to another key.
-  b. Otherwise we use "span-buf:s:{project_id:trace_id}:span_id"
-2. Rename any span buffers keyed under the span's own span ID to `set_key`, merging their contents.
-3. Add the ingested span's payload to the set under `set_key`.
-4. To a "global queue", we write the set's key, sorted by timeout.
+1. Store the span payload in a payload key:
+   "span-buf:s:{project_id:trace_id:span_id}:span_id". Each subsegment
+   gets its own key, distributed across Redis cluster nodes.
+2. The Lua script (add-buffer.lua) receives the span IDs and:
+   a. Follows redirects from parent_span_id (hashmap at
+      "span-buf:ssr:{project_id:trace_id}") to find the segment root.
+   b. Updates the redirect table so future spans can find the segment root.
+   c. Merges member-keys indexes and counters (ingested count, byte count)
+      from span IDs that were previously separate segment roots into the
+      current segment root.
+3. To a "global queue", we write the segment key, sorted by timeout.
 
 Eventually, flushing cronjob looks at that global queue, and removes all timed
-out keys from it. Then fetches the sets associated with those keys, and deletes
-the sets.
+out keys from it. Then fetches the payload keys for each segment via the
+member-keys index, loads their data, and cleans up.
 
 This happens in two steps: Get the to-be-flushed segments in `flush_segments`,
 then the consumer produces them, then they are deleted from Redis
@@ -55,12 +60,14 @@ than the original topic.
 
 Glossary for types of keys:
 
-    * span-buf:s:* -- the actual set keys, containing span payloads. Each key contains all data for a segment. The most memory-intensive kind of key.
+    * span-buf:s:{project_id:trace_id:span_id}:span_id -- payload keys containing span payloads, distributed across cluster nodes.
+    * span-buf:mk:{project_id:trace_id}:root_span_id -- member-keys index, tracks which payload keys belong to a segment.
     * span-buf:q:* -- the priority queue, used to determine which segments are ready to be flushed.
-    * span-buf:hrs:* -- simple bool key to flag a segment as "has root span" (HRS)
-    * span-buf:ssr:* -- redirect mappings so that each incoming span ID can be mapped to the right span-buf:s: set.
-    * span-buf:ic:* -- ingested count, tracks total number of spans originally ingested for a segment (used to calculate dropped spans for outcome tracking)
-    * span-buf:ibc:* -- ingested byte count, tracks total bytes originally ingested for a segment
+    * span-buf:ssr:{project_id:trace_id} -- redirect mappings so that each incoming span ID can be mapped to the right segment.
+    * span-buf:hrs:<segment_key> -- flags a segment as "has root span" (HRS).
+    * span-buf:ic:<segment_key> -- ingested count, total spans originally ingested for a segment.
+    * span-buf:ibc:<segment_key> -- ingested byte count, total bytes originally ingested for a segment.
+    <segment_key> -- an internal identifier, see `spans.segment_key` module.
 """
 
 from __future__ import annotations
@@ -204,11 +211,7 @@ class SpansBuffer:
         redis_ttl = options.get("spans.buffer.redis-ttl")
         timeout = options.get("spans.buffer.timeout")
         root_timeout = options.get("spans.buffer.root-timeout")
-        max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
         max_spans_per_evalsha = options.get("spans.buffer.max-spans-per-evalsha")
-        write_distributed_payloads = options.get("spans.buffer.write-distributed-payloads")
-        write_merged_payloads = options.get("spans.buffer.write-merged-payloads")
-
         result_meta = []
         is_root_span_count = 0
 
@@ -236,14 +239,9 @@ class SpansBuffer:
                 with self.client.pipeline(transaction=False) as p:
                     for (project_and_trace, parent_span_id), subsegment in batch:
                         set_members = self._prepare_payloads(subsegment)
-                        if write_distributed_payloads:
-                            dist_key = self._get_payload_key(project_and_trace, parent_span_id)
-                            p.sadd(dist_key, *set_members)
-                            p.expire(dist_key, redis_ttl)
-
-                        if write_merged_payloads:
-                            set_key = self._get_span_key(project_and_trace, parent_span_id)
-                            p.sadd(set_key, *set_members)
+                        payload_key = self._get_payload_key(project_and_trace, parent_span_id)
+                        p.sadd(payload_key, *set_members)
+                        p.expire(payload_key, redis_ttl)
 
                     p.execute()
 
@@ -282,10 +280,7 @@ class SpansBuffer:
                             parent_span_id,
                             is_segment_span,
                             redis_ttl,
-                            max_segment_bytes,
                             byte_count,
-                            "true" if write_distributed_payloads else "false",
-                            "true" if write_merged_payloads else "false",
                             *span_ids,
                         )
 
@@ -685,8 +680,6 @@ class SpansBuffer:
 
         page_size = options.get("spans.buffer.segment-page-size")
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
-        read_distributed_payloads = options.get("spans.buffer.read-distributed-payloads")
-        write_distributed_payloads = options.get("spans.buffer.write-distributed-payloads")
 
         payloads: dict[SegmentKey, list[bytes]] = {key: [] for key in segment_keys}
         payload_keys_map: dict[SegmentKey, list[PayloadKey]] = {key: [] for key in segment_keys}
@@ -694,37 +687,28 @@ class SpansBuffer:
         self._last_decompress_latency_ms = 0
         decompress_latency_ms = 0.0
 
-        # Maps each scan key back to the segment it belongs to. For merged
-        # keys these are the same; for distributed keys many map to one segment.
+        # Maps each payload key back to the segment it belongs to.
+        # Multiple distributed payload keys map to one segment.
         scan_key_to_segment: dict[SegmentKey | PayloadKey, SegmentKey] = {}
-
-        # When read_distributed_payloads is off, scan merged segment keys directly.
-        # When on, skip them — all data lives in distributed keys.
         cursors: dict[bytes, int] = {}
-        if not read_distributed_payloads:
+
+        with self.client.pipeline(transaction=False) as p:
             for key in segment_keys:
-                scan_key_to_segment[key] = key
-                cursors[key] = 0
+                p.smembers(self._get_payload_key_index(key))
+            mk_results = p.execute()
 
-        if write_distributed_payloads:
-            with self.client.pipeline(transaction=False) as p:
-                for key in segment_keys:
-                    p.smembers(self._get_payload_key_index(key))
-                mk_results = p.execute()
-
-            for key, payload_key_span_ids in zip(segment_keys, mk_results):
-                project_id, trace_id, _ = parse_segment_key(key)
-                project_and_trace = f"{project_id.decode('ascii')}:{trace_id.decode('ascii')}"
-                segment_payload_keys: list[PayloadKey] = []
-                for payload_key_span_id in payload_key_span_ids:
-                    payload_key = self._get_payload_key(
-                        project_and_trace, payload_key_span_id.decode("ascii")
-                    )
-                    segment_payload_keys.append(payload_key)
-                    if read_distributed_payloads:
-                        scan_key_to_segment[payload_key] = key
-                        cursors[payload_key] = 0
-                payload_keys_map[key] = segment_payload_keys
+        for key, payload_key_span_ids in zip(segment_keys, mk_results):
+            project_id, trace_id, _ = parse_segment_key(key)
+            project_and_trace = f"{project_id.decode('ascii')}:{trace_id.decode('ascii')}"
+            segment_payload_keys: list[PayloadKey] = []
+            for payload_key_span_id in payload_key_span_ids:
+                payload_key = self._get_payload_key(
+                    project_and_trace, payload_key_span_id.decode("ascii")
+                )
+                segment_payload_keys.append(payload_key)
+                scan_key_to_segment[payload_key] = key
+                cursors[payload_key] = 0
+            payload_keys_map[key] = segment_payload_keys
 
         dropped_segments: set[SegmentKey] = set()
 
