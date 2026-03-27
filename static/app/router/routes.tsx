@@ -36,7 +36,6 @@ import {OverviewWrapper} from 'sentry/views/issueList/overviewWrapper';
 import {IssueTaxonomy} from 'sentry/views/issueList/taxonomies';
 import {OrganizationContainerRoute} from 'sentry/views/organizationContainer';
 import {OrganizationLayout} from 'sentry/views/organizationLayout';
-import {OrganizationStatsWrapper} from 'sentry/views/organizationStats/organizationStatsWrapper';
 import {Tab as TransactionSummaryTab} from 'sentry/views/performance/transactionSummary/tabs';
 import {ProjectEventRedirect} from 'sentry/views/projectEventRedirect';
 import {redirectDeprecatedProjectRoute} from 'sentry/views/projects/redirectDeprecatedProjectRoute';
@@ -814,12 +813,21 @@ function buildRoutes(): RouteObject[] {
       {
         path: '/stats/',
         withOrgPath: true,
-        component: OrganizationStatsWrapper,
-        children: statsChildren,
+        redirectTo: '/settings/stats/',
+      },
+      {
+        path: '/stats/issues/',
+        withOrgPath: true,
+        redirectTo: '/settings/stats/issues/',
+      },
+      {
+        path: '/stats/health/',
+        withOrgPath: true,
+        redirectTo: '/settings/stats/health/',
       },
       {
         path: '/organizations/:orgId/stats/team/',
-        redirectTo: '/organizations/:orgId/stats/issues/',
+        redirectTo: '/organizations/:orgId/settings/stats/issues/',
       },
     ],
   };
