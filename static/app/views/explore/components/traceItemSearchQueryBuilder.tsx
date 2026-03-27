@@ -1,6 +1,5 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {SpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {
   SearchQueryBuilder,
@@ -8,24 +7,18 @@ import {
 } from 'sentry/components/searchQueryBuilder';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/types';
-import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {getHasTag} from 'sentry/utils/tag';
-import {useOrganization} from 'sentry/utils/useOrganization';
+import {useAttributeValidation} from 'sentry/views/explore/hooks/useAttributeValidation';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGetTraceItemAttributeTagKeys} from 'sentry/views/explore/hooks/useGetTraceItemAttributeTagKeys';
 import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
 import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
 import {TRACEMETRICS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/metrics/constants';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {
-  extractFilterKeys,
-  validateAttributesQueryOptions,
-} from 'sentry/views/explore/utils/attributeValidation';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
 export type TraceItemSearchQueryBuilderProps = {
@@ -115,40 +108,7 @@ export function useTraceItemSearchQueryBuilderProps({
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
 
-  const [invalidFilterKeys, setInvalidFilterKeys] = useState<string[]>([]);
-
-  const queryClient = useQueryClient();
-  const organization = useOrganization();
-  const {selection} = usePageFilters();
-  const effectiveProjects = projects ?? selection.projects;
-
-  const validateQuery = useCallback(
-    async (query: string) => {
-      const keys = extractFilterKeys(parseSearch(query));
-      if (!keys.length) {
-        setInvalidFilterKeys([]);
-        return;
-      }
-      try {
-        const [data] = await queryClient.fetchQuery(
-          validateAttributesQueryOptions({
-            itemType,
-            filterKeys: keys,
-            organizationSlug: organization.slug,
-            datetime: selection.datetime,
-            projects: effectiveProjects,
-          })
-        );
-        const invalid = Object.entries(data.attributes)
-          .filter(([, result]) => !result.valid)
-          .map(([key]) => key);
-        setInvalidFilterKeys(invalid);
-      } catch {
-        // leave previous state on error
-      }
-    },
-    [queryClient, organization.slug, itemType, selection.datetime, effectiveProjects]
-  );
+  const {invalidFilterKeys, validateQuery} = useAttributeValidation(itemType, projects);
 
   useEffect(() => {
     if (initialQuery) {
