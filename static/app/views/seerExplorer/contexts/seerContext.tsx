@@ -12,6 +12,7 @@ import {
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 
 import {
+  collectDescendantIds,
   INITIAL_SEER_CONTEXT_STATE,
   SeerContextAction,
   seerContextReducer,
@@ -141,12 +142,20 @@ export function SeerContextProvider({children}: SeerContextProviderProps) {
   );
 
   const unregisterNode = useCallback((nodeId: string) => {
+    // Mirror the reducer's descendant removal against nodeDataRef so stale
+    // data doesn't accumulate in the ref across mount/unmount cycles.
+    const toRemove = collectDescendantIds(stateRef.current.nodes, nodeId);
+    for (const id of toRemove) {
+      nodeDataRef.current.delete(id);
+    }
     dispatch({type: SeerContextAction.UNREGISTER_NODE, nodeId});
   }, []);
 
   const updateNodeData = useCallback((nodeId: string, data: Record<string, unknown>) => {
-    const existing = nodeDataRef.current.get(nodeId) ?? {};
-    nodeDataRef.current.set(nodeId, {...existing, ...data});
+    // Replace rather than merge: useSeerContext(data) always passes the
+    // complete data object for the component, so merging would retain keys
+    // that were dropped between renders.
+    nodeDataRef.current.set(nodeId, data);
   }, []);
 
   // Memoize so that the context value reference is stable across re-renders.
