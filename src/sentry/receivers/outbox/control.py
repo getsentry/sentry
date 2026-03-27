@@ -57,6 +57,7 @@ def process_sentry_app_updates(object_identifier: int, cell_name: str, **kwds: A
 
     # Spawn a task to clear caches, as there can be 1000+ installations
     # for a sentry app.
+    # TODO(cells): switch to clear_cell_cache once deployed on all pods
     clear_region_cache.delay(sentry_app_id=sentry_app.id, region_name=cell_name)
 
 
