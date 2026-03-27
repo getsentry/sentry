@@ -1,6 +1,8 @@
 import {useMemo, useState} from 'react';
 import {Outlet} from 'react-router-dom';
+import styled from '@emotion/styled';
 
+import * as Layout from 'sentry/components/layouts/thirds';
 import {ContinuousProfileHeader} from 'sentry/components/profiling/continuousProfileHeader';
 import type {RequestState} from 'sentry/types/core';
 import type {EventTransaction} from 'sentry/types/event';
@@ -65,13 +67,21 @@ export default function ProfileAndTransactionProvider(): React.ReactElement {
       setProfile={setProfile}
     >
       <ProfileTransactionContext value={profileTransaction}>
-        <ContinuousProfileHeader
-          transaction={
-            profileTransaction.type === 'resolved' ? profileTransaction.data : null
-          }
-        />
-        <Outlet />
+        <LayoutPageWithHiddenFooter>
+          <ContinuousProfileHeader
+            transaction={
+              profileTransaction.type === 'resolved' ? profileTransaction.data : null
+            }
+          />
+          <Outlet />
+        </LayoutPageWithHiddenFooter>
       </ProfileTransactionContext>
     </ContinuousProfileProvider>
   );
 }
+
+const LayoutPageWithHiddenFooter = styled(Layout.Page)`
+  ~ footer {
+    display: none;
+  }
+`;

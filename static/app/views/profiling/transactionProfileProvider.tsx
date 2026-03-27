@@ -1,6 +1,8 @@
 import {useState} from 'react';
 import {Outlet} from 'react-router-dom';
+import styled from '@emotion/styled';
 
+import * as Layout from 'sentry/components/layouts/thirds';
 import {ProfileHeader} from 'sentry/components/profiling/profileHeader';
 import type {RequestState} from 'sentry/types/core';
 import type {EventTransaction} from 'sentry/types/event';
@@ -46,15 +48,23 @@ export default function ProfileAndTransactionProvider(): React.ReactElement {
       setProfile={setProfile}
     >
       <ProfileTransactionContext value={profileTransaction}>
-        <ProfileHeader
-          eventId={params.eventId!}
-          projectId={projectSlug}
-          transaction={
-            profileTransaction.type === 'resolved' ? profileTransaction.data : null
-          }
-        />
-        <Outlet />
+        <LayoutPageWithHiddenFooter>
+          <ProfileHeader
+            eventId={params.eventId!}
+            projectId={projectSlug}
+            transaction={
+              profileTransaction.type === 'resolved' ? profileTransaction.data : null
+            }
+          />
+          <Outlet />
+        </LayoutPageWithHiddenFooter>
       </ProfileTransactionContext>
     </TransactionProfileProvider>
   );
 }
+
+const LayoutPageWithHiddenFooter = styled(Layout.Page)`
+  ~ footer {
+    display: none;
+  }
+`;
