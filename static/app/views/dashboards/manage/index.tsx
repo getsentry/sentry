@@ -170,6 +170,9 @@ function ManageDashboards() {
   const isOnlyPrebuilt =
     hasPrebuiltDashboards && urlFilter === DashboardFilter.ONLY_PREBUILT;
 
+  const areAiFeaturesAllowed =
+    !organization.hideAiFeatures && organization.features.includes('gen-ai-features');
+
   const [showTemplates, setShowTemplatesLocal] = useLocalStorageState(
     SHOW_TEMPLATES_KEY,
     shouldShowTemplates()
@@ -208,7 +211,9 @@ function ManageDashboards() {
           pin: 'favorites',
           per_page:
             dashboardsLayout === GRID ? rowCount * columnCount : DASHBOARD_TABLE_NUM_ROWS,
-          ...(isOnlyPrebuilt ? {filter: DashboardFilter.ONLY_PREBUILT} : {}),
+          ...(isOnlyPrebuilt
+            ? {filter: DashboardFilter.ONLY_PREBUILT}
+            : {filter: DashboardFilter.EXCLUDE_PREBUILT}),
         },
       },
     ],
@@ -655,9 +660,9 @@ function ManageDashboards() {
                       )}
 
                       <FeedbackButton />
-                      <Feature features="dashboards-ai-generate">
+                      <Feature features={['dashboards-ai-generate']}>
                         {({hasFeature: hasAiGenerate}) =>
-                          hasAiGenerate ? (
+                          hasAiGenerate && areAiFeaturesAllowed ? (
                             <DashboardCreateLimitWrapper>
                               {({
                                 hasReachedDashboardLimit,
@@ -680,7 +685,7 @@ function ManageDashboards() {
                                       label: (
                                         <Flex gap="sm" align="center" as="span">
                                           {t('Generate dashboard')}
-                                          <FeatureBadge type="experimental" />
+                                          <FeatureBadge type="beta" />
                                         </Flex>
                                       ),
                                       onAction: () => onGenerateDashboard(),
