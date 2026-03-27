@@ -5,7 +5,6 @@ from collections.abc import Callable
 from enum import StrEnum
 from typing import TYPE_CHECKING, Literal
 
-from django.utils import timezone
 from pydantic import BaseModel
 
 from sentry.seer.autofix.artifact_schemas import (
@@ -246,8 +245,6 @@ def trigger_autofix_explorer(
             artifact_key=artifact_key,
             artifact_schema=artifact_schema,
         )
-
-    group.update(seer_explorer_autofix_last_triggered=timezone.now())
 
     payload = {
         "run_id": run_id,

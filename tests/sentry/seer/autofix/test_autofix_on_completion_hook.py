@@ -199,14 +199,14 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
     def test_maybe_continue_pipeline_no_metadata(self, mock_trigger):
         """Does not continue when metadata is missing."""
         state = run_state(blocks=[root_cause_memory_block()])
-        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state)
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
         mock_trigger.assert_not_called()
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_explorer")
     def test_maybe_continue_pipeline_no_stopping_point_in_metadata(self, mock_trigger):
         """Does not continue when stopping_point is missing from metadata."""
         state = run_state(blocks=[root_cause_memory_block()], metadata={"group_id": self.group.id})
-        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state)
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
         mock_trigger.assert_not_called()
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_explorer")
@@ -219,7 +219,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
                 "stopping_point": AutofixStoppingPoint.ROOT_CAUSE.value,
             },
         )
-        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state)
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
         mock_trigger.assert_not_called()
 
     @patch("sentry.seer.autofix.on_completion_hook.get_project_seer_preferences")
@@ -236,7 +236,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
                 "stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
             },
         )
-        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state)
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
         mock_trigger.assert_called_once()
         call_kwargs = mock_trigger.call_args.kwargs
         assert call_kwargs["group"].id == self.group.id
@@ -257,7 +257,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
                 "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
             },
         )
-        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state)
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
         mock_push_changes.assert_called_once_with(self.group, 123, state=state)
 
 
@@ -284,6 +284,8 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
     def setUp(self):
         super().setUp()
         self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+        self.group = self.create_group(project=self.project)
 
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
     def test_send_step_webhook_artifact_types(self, mock_broadcast):
@@ -322,7 +324,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         for i, test_case in enumerate(test_cases):
             mock_broadcast.reset_mock()
             state = run_state(blocks=[test_case["block"]])
-            AutofixOnCompletionHook._send_step_webhook(self.organization, run_id, state)
+            AutofixOnCompletionHook._send_step_webhook(self.organization, run_id, state, self.group)
 
             mock_broadcast.assert_called_once()
             call_kwargs = mock_broadcast.call_args.kwargs
@@ -346,7 +348,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
                 code_changes_memory_block(),
             ]
         )
-        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state)
+        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
 
         mock_broadcast.assert_called_once()
         call_kwargs = mock_broadcast.call_args.kwargs
@@ -365,7 +367,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
             artifacts=[],
         )
         state = run_state(blocks=[block])
-        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state)
+        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
 
         mock_broadcast.assert_not_called()
 
@@ -385,7 +387,9 @@ class TestAutofixOnCompletionHookSupergroups(TestCase):
         """Triggers supergroups embedding when root cause completes with feature flag enabled."""
         block = root_cause_memory_block()
         state = run_state(blocks=[block], metadata={"group_id": self.group.id})
-        AutofixOnCompletionHook._maybe_trigger_supergroups_embedding(self.organization, 123, state)
+        AutofixOnCompletionHook._maybe_trigger_supergroups_embedding(
+            self.organization, 123, state, self.group
+        )
 
         mock_trigger_sg.assert_called_once_with(
             organization_id=self.organization.id,
@@ -401,15 +405,9 @@ class TestAutofixOnCompletionHookSupergroups(TestCase):
             blocks=[root_cause_memory_block()],
             metadata={"group_id": self.group.id},
         )
-        AutofixOnCompletionHook._maybe_trigger_supergroups_embedding(self.organization, 123, state)
-
-        mock_trigger_sg.assert_not_called()
-
-    @patch("sentry.seer.autofix.on_completion_hook.trigger_supergroups_embedding")
-    def test_skips_embedding_when_no_group_id(self, mock_trigger_sg):
-        """Does not trigger supergroups embedding when group_id is missing from metadata."""
-        state = run_state(blocks=[root_cause_memory_block()])
-        AutofixOnCompletionHook._maybe_trigger_supergroups_embedding(self.organization, 123, state)
+        AutofixOnCompletionHook._maybe_trigger_supergroups_embedding(
+            self.organization, 123, state, self.group
+        )
 
         mock_trigger_sg.assert_not_called()
 
@@ -553,7 +551,7 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
             },
         )
 
-        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state)
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
 
         mock_trigger_handoff.assert_called_once()
 
