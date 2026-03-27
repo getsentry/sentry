@@ -63,9 +63,9 @@ function DummyDashboard({name, children}: {children?: ReactNode; name?: string})
   );
 }
 
-const ContextChart = registerSeerContext('chart', DummyChart as any);
-const ContextWidget = registerSeerContext('widget', DummyWidget as any);
-const ContextDashboard = registerSeerContext('dashboard', DummyDashboard as any);
+const ContextChart = registerSeerContext('chart', DummyChart);
+const ContextWidget = registerSeerContext('widget', DummyWidget);
+const ContextDashboard = registerSeerContext('dashboard', DummyDashboard);
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -169,7 +169,7 @@ describe('useSeerContext — data updates', () => {
       useSeerContext({count});
       return <div>{count}</div>;
     }
-    const ContextCounter = registerSeerContext('counter', Counter as any);
+    const ContextCounter = registerSeerContext('counter', Counter);
 
     const {rerender} = render(
       <SeerContextProvider>
@@ -209,8 +209,8 @@ describe('getSeerContext — full tree vs componentOnly', () => {
       useSeerContext({id: 'w2'});
       return <div>w2</div>;
     }
-    const CW1 = registerSeerContext('widget', Widget1 as any);
-    const CW2 = registerSeerContext('widget', Widget2 as any);
+    const CW1 = registerSeerContext('widget', Widget1);
+    const CW2 = registerSeerContext('widget', Widget2);
 
     render(
       <SeerContextProvider>
@@ -246,17 +246,14 @@ describe('getSeerContext — full tree vs componentOnly', () => {
     }
     const ContextDashboardWithCapture = registerSeerContext(
       'dashboard',
-      DashboardWithCapture as any
+      DashboardWithCapture
     );
 
     function SiblingDashboard() {
       useSeerContext({name: 'sibling'});
       return <div>sibling</div>;
     }
-    const ContextSiblingDashboard = registerSeerContext(
-      'dashboard',
-      SiblingDashboard as any
-    );
+    const ContextSiblingDashboard = registerSeerContext('dashboard', SiblingDashboard);
 
     render(
       <SeerContextProvider>
