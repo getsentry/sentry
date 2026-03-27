@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from rest_framework.exceptions import NotFound
+
 from sentry import features
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -12,7 +14,11 @@ from sentry.seer.autofix.autofix_agent import (
     trigger_coding_agent_handoff,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.utils import AutofixStoppingPoint, get_project_seer_preferences
+from sentry.seer.autofix.utils import (
+    AutofixStoppingPoint,
+    get_project_seer_preferences,
+    set_project_seer_preference,
+)
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.client_models import Artifact
@@ -516,6 +522,21 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                     "group_id": group_id,
                 },
             )
+        except NotFound:
+            logger.exception(
+                "autofix.on_completion_hook.coding_agent_handoff_integration_not_found",
+                extra={
+                    "run_id": run_id,
+                    "organization_id": organization.id,
+                    "integration_id": handoff_config.integration_id,
+                },
+            )
+            preference_response = get_project_seer_preferences(group.project_id)
+            if preference_response and preference_response.preference:
+                updated_preference = preference_response.preference.copy(
+                    update={"automation_handoff": None}
+                )
+                set_project_seer_preference(updated_preference)
         except Exception:
             logger.exception(
                 "autofix.on_completion_hook.coding_agent_handoff_failed",

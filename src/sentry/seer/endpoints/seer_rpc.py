@@ -579,7 +579,7 @@ def trigger_coding_agent_launch(
         trigger_source: Either "root_cause" or "solution" (default: "solution")
 
     Returns:
-        dict: {"success": bool}
+        dict: {"success": bool, "error_code": str | None}
     """
     try:
         launch_coding_agents_for_run(
@@ -589,7 +589,17 @@ def trigger_coding_agent_launch(
             trigger_source=AutofixTriggerSource(trigger_source),
         )
         return {"success": True}
-    except (NotFound, PermissionDenied, ValidationError, APIException):
+    except NotFound:
+        logger.exception(
+            "coding_agent.rpc_launch_error",
+            extra={
+                "organization_id": organization_id,
+                "integration_id": integration_id,
+                "run_id": run_id,
+            },
+        )
+        return {"success": False, "error_code": "integration_not_found"}
+    except (PermissionDenied, ValidationError, APIException):
         logger.exception(
             "coding_agent.rpc_launch_error",
             extra={
