@@ -385,7 +385,7 @@ class ProxyCircuitBreakerTestCase(ApiGatewayTestCase):
 
     @responses.activate
     @override_options(CB_ENABLED)
-    def test_504_response_does_not_record_error(self) -> None:
+    def test_504_response_does_record_error(self) -> None:
         responses.add(
             responses.GET,
             f"{self.CELL.address}/server-error",
