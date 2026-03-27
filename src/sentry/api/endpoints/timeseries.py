@@ -33,7 +33,7 @@ class SeriesMeta(TypedDict):
 
 class GroupBy(TypedDict):
     key: str
-    value: str | None
+    value: str | float | None
 
 
 class TimeSeries(TypedDict):
