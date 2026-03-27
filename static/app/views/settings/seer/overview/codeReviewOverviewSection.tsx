@@ -184,13 +184,12 @@ export function CodeReviewOverviewSection({
               onClick={() => refetch()}
             />
           </Flex>
-          <Text uppercase={false}>
-            <Link to={`/settings/${organization.slug}/seer/repos/`}>
-              <Flex align="center" gap="xs">
-                {t('Configure')} <IconSettings size="xs" />
-              </Flex>
-            </Link>
-          </Text>
+
+          <Link to={`/settings/${organization.slug}/seer/repos/`}>
+            <Flex align="center" gap="xs">
+              {t('Configure')} <IconSettings size="xs" />
+            </Flex>
+          </Link>
         </Flex>
       }
     >
