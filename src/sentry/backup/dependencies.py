@@ -7,7 +7,7 @@ from functools import lru_cache
 from typing import NamedTuple
 
 from django.db import models
-from django.db.models import Q, UniqueConstraint
+from django.db.models import Exists, OuterRef, Q, UniqueConstraint
 from django.db.models.fields.related import ForeignKey, OneToOneField
 
 from sentry.backup.helpers import EXCLUDED_APPS
@@ -704,6 +704,26 @@ def dedupe_and_reassign_groupsubscription_in_org(
     GroupSubscription.objects.filter(scoped, user_id=from_user_id).update(user_id=to_user_id)
 
 
+def _get_unique_constraints_for_field(
+    model: type[models.base.Model], field_name: str
+) -> list[tuple[frozenset[str], Q | None]]:
+    """
+    Return all unique constraints on ``model`` that include ``field_name``.
+    Each entry is ``(frozenset_of_field_names, optional_condition_Q)``.
+    """
+    results: list[tuple[frozenset[str], Q | None]] = []
+    for combo in model._meta.unique_together:
+        fields = frozenset(combo)
+        if field_name in fields:
+            results.append((fields, None))
+    for constraint in model._meta.constraints:
+        if isinstance(constraint, UniqueConstraint):
+            fields = frozenset(constraint.fields)
+            if field_name in fields:
+                results.append((fields, getattr(constraint, "condition", None)))
+    return results
+
+
 def merge_users_for_model_in_org(
     model: type[models.base.Model], *, organization_id: int, from_user_id: int, to_user_id: int
 ) -> None:
@@ -739,5 +759,26 @@ def merge_users_for_model_in_org(
     for_this_org = Q(**{field_name: organization_id for field_name in org_refs})
 
     for user_ref in user_refs:
+        # Delete from_user rows that would violate unique constraints when updated.
+        for unique_fields, condition in _get_unique_constraints_for_field(model, user_ref):
+            other_fields = unique_fields - {user_ref}
+            if not other_fields:
+                continue
+
+            # Build Exists subquery: find to_user rows matching on all non-user fields.
+            subquery_kwargs: dict[str, object] = {user_ref: to_user_id}
+            for field in other_fields:
+                subquery_kwargs[field] = OuterRef(field)
+
+            subquery = model.objects.filter(**subquery_kwargs)
+            if condition is not None:
+                subquery = subquery.filter(condition)
+
+            qs = model.objects.filter(for_this_org, **{user_ref: from_user_id})
+            if condition is not None:
+                qs = qs.filter(condition)
+            qs.filter(Exists(subquery)).delete()
+
+        # Now safe to update remaining rows.
         q = for_this_org & Q(**{user_ref: from_user_id})
         model.objects.filter(q).update(**{user_ref: to_user_id})

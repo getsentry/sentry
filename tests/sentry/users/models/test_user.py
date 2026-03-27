@@ -307,6 +307,56 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
             assert not GroupSubscription.objects.filter(group=group, user_id=from_user.id).exists()
             assert GroupSubscription.objects.filter(group=group, user_id=to_user.id).count() == 1
 
+    def test_merge_handles_recentsearch_conflicts(self) -> None:
+        from sentry.utils.hashlib import md5_text
+
+        from_user = self.create_user("from-user@example.com")
+        to_user = self.create_user("to-user@example.com")
+        org = self.create_organization(name="recentsearch-conflict-org")
+
+        with outbox_runner():
+            with assume_test_silo_mode(SiloMode.CELL):
+                self.create_member(user=from_user, organization=org)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            query = "is:unresolved"
+            query_hash = md5_text(query).hexdigest()
+            RecentSearch.objects.create(
+                organization=org, user_id=from_user.id, type=0, query=query, query_hash=query_hash
+            )
+            RecentSearch.objects.create(
+                organization=org, user_id=to_user.id, type=0, query=query, query_hash=query_hash
+            )
+
+        with outbox_runner():
+            from_user.merge_to(to_user)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert not RecentSearch.objects.filter(organization=org, user_id=from_user.id).exists()
+            assert RecentSearch.objects.filter(organization=org, user_id=to_user.id).count() == 1
+
+    def test_merge_handles_groupbookmark_conflicts(self) -> None:
+        from_user = self.create_user("from-user@example.com")
+        to_user = self.create_user("to-user@example.com")
+        org = self.create_organization(name="bookmark-conflict-org")
+
+        with outbox_runner():
+            with assume_test_silo_mode(SiloMode.CELL):
+                self.create_member(user=from_user, organization=org)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            project = self.create_project(organization=org)
+            group = self.create_group(project=project)
+            GroupBookmark.objects.create(project=project, group=group, user_id=from_user.id)
+            GroupBookmark.objects.create(project=project, group=group, user_id=to_user.id)
+
+        with outbox_runner():
+            from_user.merge_to(to_user)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert not GroupBookmark.objects.filter(group=group, user_id=from_user.id).exists()
+            assert GroupBookmark.objects.filter(group=group, user_id=to_user.id).count() == 1
+
     @expect_models(
         ORG_MEMBER_MERGE_TESTED,
         OrgAuthToken,
