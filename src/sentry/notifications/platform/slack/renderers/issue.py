@@ -33,7 +33,7 @@ class IssueSlackRenderer(NotificationRenderer[SlackRenderable]):
         blocks_dict = SlackIssuesMessageBuilder(
             group=group,
             event=event,
-            tags=set(tags.split(",")) if tags else None,
+            tags=set(tag.strip() for tag in tags.split(",")) if tags else None,
             rules=[data.rule.to_rule()] if data.rule else None,
             notes=data.rule.data.get("notes", None) or None,
             link_to_event=True,
