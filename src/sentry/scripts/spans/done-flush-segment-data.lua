@@ -1,4 +1,4 @@
--- Conditionally delete segment data only if the ingested count hasn't changed.
+-- Conditionally delete segment metadata only if the ingested count hasn't changed.
 -- This is atomic with add-buffer.lua on the same {project_id:trace_id} slot,
 -- preventing data loss when process_spans adds new spans between flush and cleanup.
 --
@@ -17,7 +17,6 @@ if ic and tonumber(ic) == expected_ic then
     redis.call("DEL", "span-buf:hrs:" .. segment_key)
     redis.call("DEL", ic_key)
     redis.call("DEL", "span-buf:ibc:" .. segment_key)
-    redis.call("UNLINK", segment_key)
     return 1
 end
 
