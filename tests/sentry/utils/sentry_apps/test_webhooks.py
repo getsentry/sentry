@@ -9,7 +9,7 @@ from sentry.sentry_apps.utils.webhooks import IssueActionType, SentryAppResource
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from sentry.utils.sentry_apps.webhooks import send_and_save_webhook_request
 
 CIRCUIT_BREAKER_OPTIONS = {
@@ -25,7 +25,7 @@ CIRCUIT_BREAKER_OPTIONS = {
 }
 
 
-@region_silo_test
+@cell_silo_test
 class WebhookCircuitBreakerTest(TestCase):
     def setUp(self):
         self.organization = self.create_organization()
