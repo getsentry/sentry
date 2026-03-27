@@ -1139,6 +1139,11 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/settings/dynamicSampling')),
     },
     {
+      path: 'mcp-cli/',
+      name: t('MCP & CLI'),
+      component: make(() => import('sentry/views/settings/organizationMcpCli')),
+    },
+    {
       path: 'feature-flags/',
       name: t('Feature Flags'),
       children: [
@@ -2518,6 +2523,10 @@ function buildRoutes(): RouteObject[] {
       component: make(
         () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')
       ),
+    },
+    {
+      path: 'autofix/recent/',
+      component: make(() => import('sentry/views/issueList/pages/autofix/recentlyRun')),
     },
     {
       path: 'supergroups/',

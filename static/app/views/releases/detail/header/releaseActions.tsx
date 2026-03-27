@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {archiveRelease, restoreRelease} from 'sentry/actionCreators/release';
@@ -184,7 +184,7 @@ export function ReleaseActions({projectSlug, release, releaseMeta, refetchData}:
   const hasNext = !!release.currentProjectMeta.nextReleaseVersion;
 
   return (
-    <ButtonBar>
+    <Flex gap="sm" align="center">
       {openFeedbackForm ? (
         <Container display={{'2xs': 'none', xs: 'block'}}>
           <Button
@@ -247,7 +247,7 @@ export function ReleaseActions({projectSlug, release, releaseMeta, refetchData}:
         }}
         position="bottom-end"
       />
-    </ButtonBar>
+    </Flex>
   );
 }
 

@@ -15,6 +15,14 @@ import type {Organization} from 'sentry/types/organization';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {
+  CodeReviewOverviewSection,
+  useCodeReviewOverviewSection,
+} from 'sentry/views/settings/seer/overview/codeReviewOverviewSection';
+import {
+  SCMOverviewSection,
+  useSCMOverviewSection,
+} from 'sentry/views/settings/seer/overview/scmOverviewSection';
 
 import {SeerSettingsPageContent} from 'getsentry/views/seerAutomation/components/seerSettingsPageContent';
 import {SeerSettingsPageWrapper} from 'getsentry/views/seerAutomation/components/seerSettingsPageWrapper';
@@ -32,6 +40,11 @@ const schema = z.object({
 export function SeerAutomationSettings() {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
+
+  const showSeerOverview = organization.features.includes('seer-overview');
+
+  const scmOverviewData = useSCMOverviewSection();
+  const codeReviewOverviewData = useCodeReviewOverviewSection();
 
   const orgEndpoint = `/organizations/${organization.slug}/`;
   const orgMutationOpts = mutationOptions({
@@ -75,6 +88,11 @@ export function SeerAutomationSettings() {
         )}
       />
       <SeerSettingsPageContent>
+        <SCMOverviewSection
+          {...scmOverviewData}
+          canWrite={canWrite}
+          organizationSlug={organization.slug}
+        />
         <FieldGroup
           title={
             <Flex gap="md">
@@ -133,14 +151,16 @@ export function SeerAutomationSettings() {
                 label={t('Allow Autofix to create PRs by Default')}
                 hintText={
                   <Stack gap="sm">
-                    {tct(
-                      'For all new projects with connected repos, Seer will be able to make pull requests for [docs:highly actionable] issues.',
-                      {
-                        docs: (
-                          <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works" />
-                        ),
-                      }
-                    )}
+                    <span>
+                      {tct(
+                        'For all new projects with connected repos, Seer will be able to make pull requests for [docs:highly actionable] issues.',
+                        {
+                          docs: (
+                            <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works" />
+                          ),
+                        }
+                      )}
+                    </span>
                     {organization.enableSeerCoding === false && (
                       <Alert variant="warning">
                         {tct(
@@ -173,75 +193,85 @@ export function SeerAutomationSettings() {
             )}
           </AutoSaveForm>
         </FieldGroup>
-        <FieldGroup
-          title={
-            <Flex gap="md">
-              <span>{t('Default Code Review for New Repos')}</span>
-              <QuestionTooltip
-                isHoverable
-                title={tct(
-                  'These settings apply as repos are newly connected. Any [link:existing repos] will not be affected.',
-                  {
-                    link: <Link to={`/settings/${organization.slug}/seer/repos/`} />,
-                  }
-                )}
-                size="xs"
-                icon="info"
-              />
-            </Flex>
-          }
-        >
-          <AutoSaveForm
-            name="autoEnableCodeReview"
-            schema={schema}
-            initialValue={organization.autoEnableCodeReview ?? true}
-            mutationOptions={orgMutationOpts}
-          >
-            {field => (
-              <field.Layout.Row
-                label={t('Enable Code Review by Default')}
-                hintText={t(
-                  'For all new repos connected, Seer will review your PRs and flag potential bugs.'
-                )}
-              >
-                <field.Switch
-                  checked={field.state.value}
-                  onChange={field.handleChange}
-                  disabled={!canWrite}
+
+        {showSeerOverview ? (
+          <CodeReviewOverviewSection
+            {...codeReviewOverviewData}
+            canWrite={canWrite}
+            organization={organization}
+          />
+        ) : (
+          <FieldGroup
+            title={
+              <Flex gap="md">
+                <span>{t('Default Code Review for New Repos')}</span>
+                <QuestionTooltip
+                  isHoverable
+                  title={tct(
+                    'These settings apply as repos are newly connected. Any [link:existing repos] will not be affected.',
+                    {
+                      link: <Link to={`/settings/${organization.slug}/seer/repos/`} />,
+                    }
+                  )}
+                  size="xs"
+                  icon="info"
                 />
-              </field.Layout.Row>
-            )}
-          </AutoSaveForm>
-          <AutoSaveForm
-            name="defaultCodeReviewTriggers"
-            schema={schema}
-            initialValue={
-              organization.defaultCodeReviewTriggers ?? DEFAULT_CODE_REVIEW_TRIGGERS
+              </Flex>
             }
-            mutationOptions={orgMutationOpts}
           >
-            {field => (
-              <field.Layout.Row
-                label={t('Code Review Triggers')}
-                hintText={tct(
-                  'Reviews can always run on demand by calling [code:@sentry review], whenever a PR is opened, or after each commit is pushed to a PR.',
-                  {code: <code />}
-                )}
-              >
-                <field.Select
-                  multiple
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  disabled={!canWrite}
-                  options={[
-                    {value: 'on_ready_for_review', label: t('On Ready for Review')},
-                    {value: 'on_new_commit', label: t('On New Commit')},
-                  ]}
-                />
-              </field.Layout.Row>
-            )}
-          </AutoSaveForm>
-        </FieldGroup>
+            <AutoSaveForm
+              name="autoEnableCodeReview"
+              schema={schema}
+              initialValue={organization.autoEnableCodeReview ?? true}
+              mutationOptions={orgMutationOpts}
+            >
+              {field => (
+                <field.Layout.Row
+                  label={t('Enable Code Review by Default')}
+                  hintText={t(
+                    'For all new repos connected, Seer will review your PRs and flag potential bugs.'
+                  )}
+                >
+                  <field.Switch
+                    checked={field.state.value}
+                    onChange={field.handleChange}
+                    disabled={!canWrite}
+                  />
+                </field.Layout.Row>
+              )}
+            </AutoSaveForm>
+            <AutoSaveForm
+              name="defaultCodeReviewTriggers"
+              schema={schema}
+              initialValue={
+                organization.defaultCodeReviewTriggers ?? DEFAULT_CODE_REVIEW_TRIGGERS
+              }
+              mutationOptions={orgMutationOpts}
+            >
+              {field => (
+                <field.Layout.Row
+                  label={t('Code Review Triggers')}
+                  hintText={tct(
+                    'Reviews can always run on demand by calling [code:@sentry review], whenever a PR is opened, or after each commit is pushed to a PR.',
+                    {code: <code />}
+                  )}
+                >
+                  <field.Select
+                    multiple
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    disabled={!canWrite}
+                    options={[
+                      {value: 'on_ready_for_review', label: t('On Ready for Review')},
+                      {value: 'on_new_commit', label: t('On New Commit')},
+                    ]}
+                  />
+                </field.Layout.Row>
+              )}
+            </AutoSaveForm>
+          </FieldGroup>
+        )}
+
         <FieldGroup title={t('Advanced Settings')}>
           <AutoSaveForm
             name="enableSeerEnhancedAlerts"

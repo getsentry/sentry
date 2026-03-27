@@ -15,6 +15,7 @@ from sentry.constants import DataCategory
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.preprod.build_distribution_webhooks import send_build_distribution_webhook
 from sentry.preprod.eap.write import (
     produce_preprod_build_distribution_to_eap,
     produce_preprod_size_metric_to_eap,
@@ -33,6 +34,7 @@ from sentry.preprod.size_analysis.tasks import (
     compare_preprod_artifact_size_analysis,
     maybe_emit_issues_from_absolute_size_results,
 )
+from sentry.preprod.size_analysis.webhooks import send_size_analysis_webhook
 from sentry.preprod.vcs.pr_comments.tasks import create_preprod_pr_comment_task
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 from sentry.silo.base import SiloMode
@@ -610,6 +612,10 @@ def _assemble_preprod_artifact_size_analysis(
                         },
                     )
 
+        # Fire webhook unconditionally — the comparison task won't run
+        # (re-raise below) so notify subscribers with whatever DB state exists.
+        send_size_analysis_webhook(artifact=preprod_artifact, organization_id=org_id)
+
         # Re-raise to trigger further error handling if needed
         raise
     finally:
@@ -745,6 +751,8 @@ def _assemble_preprod_artifact_installable_app(
     with transaction.atomic(router.db_for_write(PreprodArtifact)):
         preprod_artifact.installable_app_file_id = assemble_result.bundle.id
         preprod_artifact.save(update_fields=["installable_app_file_id", "date_updated"])
+
+    send_build_distribution_webhook(artifact=preprod_artifact, organization_id=org_id)
 
     try:
         organization = preprod_artifact.project.organization

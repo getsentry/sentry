@@ -1,7 +1,7 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
@@ -88,11 +88,7 @@ function IssueStackTraceLineCoverageLegend() {
     return null;
   }
 
-  return (
-    <Container paddingTop="md">
-      <LineCoverageLegend />
-    </Container>
-  );
+  return <LineCoverageLegend />;
 }
 
 export function IssueStackTrace(props: IssueStackTraceProps) {
@@ -239,39 +235,43 @@ function IssueStackTraceContent({
 
     return (
       <InterimSection type={sectionKey} title="Stack Trace" actions={sectionActions}>
-        {hasExceptionInfo && (
+        <Flex direction="column" gap="lg">
           <Flex direction="column" gap="sm">
-            <div>
-              <ExceptionHeader type={type} module={module} />
-            </div>
-            <ExceptionDescription
-              value={value}
-              mechanism={exc.mechanism}
-              meta={excMeta}
-            />
+            {hasExceptionInfo && (
+              <Fragment>
+                <div>
+                  <ExceptionHeader type={type} module={module} />
+                </div>
+                <ExceptionDescription
+                  value={value}
+                  mechanism={exc.mechanism}
+                  meta={excMeta}
+                />
+              </Fragment>
+            )}
+            <IssueStackTraceLineCoverageLegend />
           </Flex>
-        )}
-        <ErrorBoundary customComponent={null}>
-          <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
-        </ErrorBoundary>
-        <StackTraceProvider
-          exceptionIndex={isStandalone ? undefined : exc.exceptionIndex}
-          event={event}
-          stacktrace={exc.stacktrace}
-          minifiedStacktrace={exc.rawStacktrace ?? undefined}
-          meta={isStandalone ? rawEntryMeta : excMeta?.stacktrace}
-        >
-          <StackTraceFrames
-            frameContextComponent={IssueStackTraceFrameContext}
-            frameActionsComponent={IssueFrameActions}
+          <ErrorBoundary customComponent={null}>
+            <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
+          </ErrorBoundary>
+          <StackTraceProvider
+            exceptionIndex={isStandalone ? undefined : exc.exceptionIndex}
+            event={event}
+            stacktrace={exc.stacktrace}
+            minifiedStacktrace={exc.rawStacktrace ?? undefined}
+            meta={isStandalone ? rawEntryMeta : excMeta?.stacktrace}
+          >
+            <StackTraceFrames
+              frameContextComponent={IssueStackTraceFrameContext}
+              frameActionsComponent={IssueFrameActions}
+            />
+          </StackTraceProvider>
+          <IssueStackTraceSuspectCommits
+            event={event}
+            group={group}
+            projectSlug={projectSlug}
           />
-        </StackTraceProvider>
-        <IssueStackTraceLineCoverageLegend />
-        <IssueStackTraceSuspectCommits
-          event={event}
-          group={group}
-          projectSlug={projectSlug}
-        />
+        </Flex>
       </InterimSection>
     );
   }
@@ -287,6 +287,7 @@ function IssueStackTraceContent({
           )}
         </Text>
         <Separator orientation="horizontal" border="primary" />
+        <IssueStackTraceLineCoverageLegend />
         {exceptions.map((exc, idx) => {
           if (
             exc.mechanism?.parent_id !== undefined &&
@@ -356,7 +357,6 @@ function IssueStackTraceContent({
             </Disclosure>
           );
         })}
-        <IssueStackTraceLineCoverageLegend />
         <IssueStackTraceSuspectCommits
           event={event}
           group={group}

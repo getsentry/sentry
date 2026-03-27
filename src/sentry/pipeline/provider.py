@@ -4,7 +4,7 @@ import abc
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
-from sentry.pipeline.views.base import PipelineView
+from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
 
 
 class PipelineProvider[P](abc.ABC):
@@ -35,6 +35,13 @@ class PipelineProvider[P](abc.ABC):
         interface. Each view will be dispatched in order.
         >>> return [OAuthInitView(), OAuthCallbackView()]
         """
+
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[P] | None:
+        """
+        Return API step objects for this provider's pipeline, or None if API
+        mode is not supported. Override to enable the pipeline API.
+        """
+        return None
 
     def update_config(self, config: Mapping[str, Any]) -> None:
         """

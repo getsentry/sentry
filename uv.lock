@@ -1750,13 +1750,13 @@ wheels = [
 
 [[package]]
 name = "pytest-django"
-version = "4.9.0"
+version = "4.12.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "pytest", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/pytest_django-4.9.0-py3-none-any.whl", hash = "sha256:1d83692cb39188682dbb419ff0393867e9904094a549a7d38a3154d5731b2b99" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pytest_django-4.12.0-py3-none-any.whl", hash = "sha256:3ff300c49f8350ba2953b90297d23bf5f589db69545f56f1ec5f8cff5da83e85" },
 ]
 
 [[package]]
@@ -2363,7 +2363,7 @@ requires-dist = [
     { name = "sentry-forked-email-reply-parser", specifier = ">=0.5.12.post1" },
     { name = "sentry-kafka-schemas", specifier = ">=2.1.27" },
     { name = "sentry-ophio", specifier = ">=1.1.3" },
-    { name = "sentry-protos", specifier = ">=0.8.7" },
+    { name = "sentry-protos", specifier = ">=0.8.8" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.9.25" },
     { name = "sentry-sdk", extras = ["http2"], specifier = ">=2.47.0" },
@@ -2393,7 +2393,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "codeowners-coverage", specifier = ">=0.2.1" },
+    { name = "codeowners-coverage", specifier = ">=0.3.0" },
     { name = "covdefaults", specifier = ">=2.3.0" },
     { name = "devservices", specifier = ">=1.2.4" },
     { name = "django-stubs", specifier = ">=5.2.9" },
@@ -2413,7 +2413,7 @@ dev = [
     { name = "pre-commit", specifier = ">=4.2.0" },
     { name = "pytest", specifier = ">=8.1.2" },
     { name = "pytest-cov", specifier = ">=4.0.0" },
-    { name = "pytest-django", specifier = ">=4.9.0" },
+    { name = "pytest-django", specifier = ">=4.12.0" },
     { name = "pytest-fail-slow", specifier = ">=0.3.0" },
     { name = "pytest-json-report", specifier = ">=1.5.0" },
     { name = "pytest-rerunfailures", specifier = ">=15.0" },
@@ -2537,7 +2537,7 @@ wheels = [
 
 [[package]]
 name = "sentry-protos"
-version = "0.8.7"
+version = "0.8.8"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "grpc-stubs", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2546,7 +2546,7 @@ dependencies = [
     { name = "protobuf", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.8.7-py3-none-any.whl", hash = "sha256:15a1b4a6ea8fc8ccb4200a0ab75c15255cabf74bfec94d5277744d814d9ca0aa" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.8.8-py3-none-any.whl", hash = "sha256:04c0fa7d28d0392d468d37c5c53d2c6fae627b56616217e385c53e06ffbc8a0d" },
 ]
 
 [[package]]

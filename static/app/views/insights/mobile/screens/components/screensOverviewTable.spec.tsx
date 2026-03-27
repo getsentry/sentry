@@ -1,21 +1,16 @@
-import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {useLocation} from 'sentry/utils/useLocation';
 import {
   ScreensOverviewTable,
   type Row,
 } from 'sentry/views/insights/mobile/screens/components/screensOverviewTable';
 
-jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/views/insights/common/utils/useModuleURL');
-jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('ScreensOverviewTable', () => {
   const organization = OrganizationFixture({
@@ -23,35 +18,33 @@ describe('ScreensOverviewTable', () => {
   });
   const project = ProjectFixture();
 
-  const location = {
-    action: 'PUSH',
-    hash: '',
-    key: '',
-    pathname: '/organizations/org-slug/performance/mobile/mobile-vitals',
-    query: {
-      project: project.id,
-    },
-    search: '',
-    state: undefined,
-  } as Location;
-
-  jest.mocked(useLocation).mockReturnValue(location);
-  jest.mocked(usePageFilters).mockReturnValue(
-    PageFilterStateFixture({
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [parseInt(project.id, 10)],
+  const initialRouterConfig = {
+    location: {
+      pathname: '/organizations/org-slug/performance/mobile/mobile-vitals',
+      query: {
+        project: project.id,
       },
-    })
-  );
+    },
+    route: '/organizations/:orgId/performance/mobile/mobile-vitals',
+  };
 
-  const mockEventView = EventView.fromLocation(location);
+  beforeEach(() => {
+    PageFiltersStore.onInitializeUrlState({
+      projects: [parseInt(project.id, 10)],
+      environments: [],
+      datetime: {
+        period: '10d',
+        start: null,
+        end: null,
+        utc: false,
+      },
+    });
+  });
+
+  const mockEventView = EventView.fromLocation({
+    pathname: '/organizations/org-slug/performance/mobile/mobile-vitals',
+    query: {project: project.id},
+  } as any);
 
   const mockData = {
     data: [
@@ -83,6 +76,7 @@ describe('ScreensOverviewTable', () => {
       />,
       {
         organization,
+        initialRouterConfig,
       }
     );
 

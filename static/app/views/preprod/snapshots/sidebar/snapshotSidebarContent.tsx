@@ -27,7 +27,7 @@ interface SectionConfig {
   type: DiffStatus;
 }
 
-const SECTION_ORDER: SectionConfig[] = [
+export const SECTION_ORDER: SectionConfig[] = [
   {
     type: DiffStatus.CHANGED,
     label: t('Modified'),
@@ -105,7 +105,10 @@ export function SnapshotSidebarContent({
 
   useEffect(() => {
     if (sectionParam && sectionRef.current) {
-      sectionRef.current.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+      sectionRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+      });
       setSectionParam(null);
     }
   }, [sectionParam, setSectionParam]);
@@ -125,6 +128,20 @@ export function SnapshotSidebarContent({
     }
     return groups;
   }, [items, isDiffMode]);
+
+  useEffect(() => {
+    if (!currentItemKey || !groupedItems) {
+      return;
+    }
+    for (const [sectionType, sectionItems] of groupedItems.entries()) {
+      if (sectionItems.some(item => item.key === currentItemKey)) {
+        setExpandedSections(prev =>
+          prev[sectionType] ? prev : {...prev, [sectionType]: true}
+        );
+        break;
+      }
+    }
+  }, [currentItemKey, groupedItems]);
 
   useEffect(() => {
     if (!listRef.current || !currentItemKey) {
@@ -216,7 +233,17 @@ export function SnapshotSidebarContent({
                       </Text>
                     </Flex>
                     <Flex align="center" gap="xs">
-                      <Text size="sm">{sectionItems.length}</Text>
+                      <Text size="sm">
+                        {/* changed/renamed store images as pairs; added/removed/unchanged use images */}
+                        {sectionItems.reduce(
+                          (sum, item) =>
+                            sum +
+                            (item.type === 'changed' || item.type === 'renamed'
+                              ? item.pairs.length
+                              : item.images.length),
+                          0
+                        )}
+                      </Text>
                       {section.icon}
                     </Flex>
                   </Flex>

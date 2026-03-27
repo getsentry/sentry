@@ -39,6 +39,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 from sentry.api import event_search
 from sentry.discover import arithmetic
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.group import Group, parse_short_id
 from sentry.models.project import Project
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
@@ -63,7 +64,23 @@ from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events import constants as qb_constants
 from sentry.search.events import fields
 from sentry.search.events import filter as event_filter
+from sentry.search.events.filter import to_list
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
+from sentry.search.exceptions import InvalidIssueSearchQuery
+
+
+def collect_issue_short_ids_from_parsed_terms(terms: Sequence[object]) -> set[str]:
+    """Collect non-empty issue filter values from a parsed search tree (including OR/AND)."""
+    out: set[str] = set()
+    for term in terms:
+        if isinstance(term, event_search.SearchFilter):
+            if term.key.name == "issue":
+                for v in to_list(term.value.value):
+                    if v:
+                        out.add(str(v))
+        elif isinstance(term, event_search.ParenExpression):
+            out |= collect_issue_short_ids_from_parsed_terms(term.children)
+    return out
 
 
 @dataclass(frozen=True)
@@ -88,6 +105,7 @@ class SearchResolver:
             VirtualColumnDefinition | None,
         ],
     ] = field(default_factory=dict)
+    qualified_short_id_to_group_id_cache: dict[int, dict[str, int]] = field(default_factory=dict)
 
     def get_function_definition(
         self, function_name: str
@@ -201,6 +219,39 @@ class SearchResolver:
             )
         )
 
+    def _init_issue_short_id_cache(
+        self,
+        parsed_terms: Sequence[object],
+    ) -> None:
+        """One bulk Group lookup for issue short ids in the query; store maps on this resolver."""
+        if "issue" not in self.definitions.filter_aliases or self.params.organization_id is None:
+            return
+
+        collected = collect_issue_short_ids_from_parsed_terms(parsed_terms)
+        if not collected:
+            return
+        try:
+            groups = list(
+                Group.objects.by_qualified_short_id_bulk(
+                    organization_id=self.params.organization_id, short_ids_raw=list(collected)
+                )
+            )
+        except Group.DoesNotExist:
+            raise InvalidIssueSearchQuery(sorted(collected))
+
+        idx = {(g.project.slug.lower(), g.short_id): g for g in groups}
+
+        for raw in collected:
+            parsed = parse_short_id(raw)
+            if parsed is None:
+                raise InvalidIssueSearchQuery(sorted(collected))
+            g = idx.get((parsed.project_slug, parsed.short_id))
+            if g is None:
+                raise InvalidIssueSearchQuery(sorted(collected))
+            if g.project.id not in self.qualified_short_id_to_group_id_cache:
+                self.qualified_short_id_to_group_id_cache[g.project.id] = {}
+            self.qualified_short_id_to_group_id_cache[g.project.id][raw] = g.id
+
     def __resolve_query(
         self, querystring: str | None
     ) -> tuple[
@@ -226,6 +277,9 @@ class SearchResolver:
                 raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
             else:
                 raise InvalidSearchQuery(f"Parse error for: {querystring}")
+
+        # If occurrences dataset, cache group_id to issues mapping.
+        self._init_issue_short_id_cache(parsed_terms)
 
         if any(
             isinstance(term, event_search.ParenExpression)
@@ -392,7 +446,7 @@ class SearchResolver:
     ) -> list[str] | str:
         # Convert the term to the expected values
         final_raw_value: str | list[str] = []
-        resolved_context = context.constructor(self.params)
+        resolved_context = context.constructor(self.params, self)
         reversed_context = {v: k for k, v in resolved_context.value_map.items()}
         if isinstance(raw_value, list):
             new_value = []
@@ -437,7 +491,7 @@ class SearchResolver:
 
         converter = self.definitions.filter_aliases.get(name)
         if converter is not None:
-            return converter(self.params, term)
+            return converter(self.params, term, self)
 
         return [term]
 
@@ -664,7 +718,7 @@ class SearchResolver:
         Time series request do not support virtual column contexts, so we have to remap the value back to the original column.
         (see https://github.com/getsentry/eap-planning/issues/236)
         """
-        context = context_definition.constructor(self.params)
+        context = context_definition.constructor(self.params, self)
 
         is_number_column = (
             context.from_column_name in SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS["number"]
@@ -695,7 +749,7 @@ class SearchResolver:
         Time series request do not support virtual column contexts, so we have to remap the value back to the original column.
         (see https://github.com/getsentry/eap-planning/issues/236)
         """
-        context = context_definition.constructor(self.params)
+        context = context_definition.constructor(self.params, self)
         is_number_column = (
             context.from_column_name in SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS["number"]
         )
@@ -856,7 +910,7 @@ class SearchResolver:
         for context_definition in context_definitions:
             if context_definition is None:
                 continue
-            context = context_definition.constructor(self.params)
+            context = context_definition.constructor(self.params, self)
             if context is None or context.to_column_name in existing_target_columns:
                 continue
             else:
@@ -1288,7 +1342,7 @@ class SearchResolver:
     def remap_value_using_context_definition(
         self, context_definition: VirtualColumnDefinition, value: str | int | list[str] | Any
     ) -> str | int | list[str] | Any:
-        context = context_definition.constructor(self.params)
+        context = context_definition.constructor(self.params, self)
 
         # if the value passed is one of the potential values, then it's expected
         # and we should pass it through as is

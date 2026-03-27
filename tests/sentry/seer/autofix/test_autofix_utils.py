@@ -6,6 +6,7 @@ import pytest
 
 from sentry.constants import DataCategory
 from sentry.seer.autofix.constants import AutofixStatus
+from sentry.seer.autofix.trigger import is_issue_eligible_for_seer_automation
 from sentry.seer.autofix.utils import (
     AutofixState,
     AutofixTriggerSource,
@@ -15,7 +16,6 @@ from sentry.seer.autofix.utils import (
     get_autofix_prompt,
     get_coding_agent_prompt,
     has_project_connected_repos,
-    is_issue_eligible_for_seer_automation,
     is_seer_seat_based_tier_enabled,
     resolve_repository_ids,
     set_project_seer_preference,
@@ -957,7 +957,7 @@ class TestWritePreferencesToSentryDb(TestCase):
         assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
         assert SeerProjectRepository.objects.filter(project=self.project).count() == 0
 
-    def test_writes_project_options_defaults(self):
+    def test_deletes_project_options_when_defaults(self):
         preference = SeerProjectPreference(
             organization_id=self.organization.id, project_id=self.project.id, repositories=[]
         )
