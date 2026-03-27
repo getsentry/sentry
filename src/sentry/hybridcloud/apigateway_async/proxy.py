@@ -13,7 +13,7 @@ from wsgiref.util import is_hop_by_hop
 import httpx
 from asgiref.sync import sync_to_async
 from django.conf import settings
-from django.http import HttpRequest, HttpResponse, StreamingHttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse, StreamingHttpResponse
 from django.http.response import HttpResponseBase
 
 from sentry import options
@@ -34,9 +34,16 @@ from sentry.types.cell import (
 from sentry.utils import metrics
 from sentry.utils.http import BodyAsyncWrapper
 
+from .circuitbreaker import (
+    CircuitBreakerManager,
+    CircuitBreakerOverflow,
+    CircuitBreakerWindowOverflow,
+)
+
 logger = logging.getLogger(__name__)
 
 proxy_client = httpx.AsyncClient()
+circuitbreakers = CircuitBreakerManager()
 
 # Endpoints that handle uploaded files have higher timeouts configured
 # and we need to honor those timeouts when proxying.
@@ -141,8 +148,9 @@ async def proxy_cell_request(
     request: HttpRequest,
     cell: Cell,
     url_name: str,
-) -> StreamingHttpResponse:
+) -> HttpResponseBase:
     """Take a django request object and proxy it to a cell silo"""
+    metric_tags = {"region": cell.name, "url_name": url_name}
     target_url = urljoin(cell.address, request.path)
 
     content_encoding = request.headers.get("Content-Encoding")
@@ -154,37 +162,59 @@ async def proxy_cell_request(
     query_params = request.GET
 
     timeout = ENDPOINT_TIMEOUT_OVERRIDE.get(url_name, settings.GATEWAY_PROXY_TIMEOUT)
-    metric_tags = {"region": cell.name, "url_name": url_name}
 
     # XXX: See sentry.testutils.pytest.sentry for more information
     if settings.APIGATEWAY_PROXY_SKIP_RELAY and request.path.startswith("/api/0/relays/"):
         return StreamingHttpResponse(streaming_content="relay proxy skipped", status=404)
 
-    if url_name == "sentry-api-0-organization-objectstore":
-        if content_encoding:
-            header_dict["Content-Encoding"] = content_encoding
-        data = get_raw_body_async(request)
-    else:
-        data = BodyAsyncWrapper(request.body)
-        # With request streaming, and without `Content-Length` header,
-        # `httpx` will set chunked transfer encoding.
-        # Upstream doesn't necessarily support this,
-        # thus we re-add the header if it was present in the original request.
-        if content_length:
-            header_dict["Content-Length"] = content_length
-
     try:
-        with metrics.timer("apigateway.proxy_request.duration", tags=metric_tags):
-            req = proxy_client.build_request(
-                request.method,
-                target_url,
-                headers=header_dict,
-                params=dict(query_params) if query_params is not None else None,
-                content=_stream_request(data) if data else None,  # type: ignore[arg-type]
-                timeout=timeout,
-            )
-            resp = await proxy_client.send(req, stream=True, follow_redirects=False)
-            return _adapt_response(resp, target_url)
-    except (httpx.TimeoutException, asyncio.CancelledError):
-        # remote silo timeout. Use DRF timeout instead
-        raise RequestTimeout()
+        async with circuitbreakers.get(cell.name) as circuitbreaker:
+            if url_name == "sentry-api-0-organization-objectstore":
+                if content_encoding:
+                    header_dict["Content-Encoding"] = content_encoding
+                data = get_raw_body_async(request)
+            else:
+                data = BodyAsyncWrapper(request.body)
+                # With request streaming, and without `Content-Length` header,
+                # `httpx` will set chunked transfer encoding.
+                # Upstream doesn't necessarily support this,
+                # thus we re-add the header if it was present in the original request.
+                if content_length:
+                    header_dict["Content-Length"] = content_length
+
+            try:
+                with metrics.timer("apigateway.proxy_request.duration", tags=metric_tags):
+                    req = proxy_client.build_request(
+                        request.method,
+                        target_url,
+                        headers=header_dict,
+                        params=dict(query_params) if query_params is not None else None,
+                        content=_stream_request(data) if data else None,  # type: ignore[arg-type]
+                        timeout=timeout,
+                    )
+                    resp = await proxy_client.send(req, stream=True, follow_redirects=False)
+                    if resp.status_code >= 502:
+                        metrics.incr("apigateway.proxy.request_failed", tags=metric_tags)
+                        circuitbreaker.incr_failures()
+                    return _adapt_response(resp, target_url)
+            except (httpx.TimeoutException, asyncio.CancelledError):
+                metrics.incr("apigateway.proxy.request_timeout", tags=metric_tags)
+                circuitbreaker.incr_failures()
+                # remote silo timeout. Use DRF timeout instead
+                raise RequestTimeout()
+            except httpx.RequestError:
+                metrics.incr("apigateway.proxy.request_failed", tags=metric_tags)
+                circuitbreaker.incr_failures()
+                raise
+    except CircuitBreakerOverflow:
+        metrics.incr("apigateway.proxy.circuit_breaker.overflow", tags=metric_tags)
+        return JsonResponse(
+            {"error": "apigateway", "detail": "Too many requests"},
+            status=429,
+        )
+    except CircuitBreakerWindowOverflow:
+        metrics.incr("apigateway.proxy.circuit_breaker.rejected", tags=metric_tags)
+        return JsonResponse(
+            {"error": "apigateway", "detail": "Downstream service temporarily unavailable"},
+            status=503,
+        )
