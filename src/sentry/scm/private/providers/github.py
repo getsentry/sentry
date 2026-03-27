@@ -712,7 +712,7 @@ class GitHubProvider:
         return {
             "data": response.text,
             "type": "github",
-            "raw": {"data": response.text, "headers": response.headers},
+            "raw": {"data": response.text, "headers": dict(response.headers)},
             "meta": _extract_response_meta(response),
         }
 
@@ -933,7 +933,7 @@ class GitHubProvider:
         return {
             "data": ArchiveLink(url=response.headers["Location"], headers={}),
             "type": "github",
-            "raw": {"data": response.headers["Location"], "headers": response.headers},
+            "raw": {"data": response.headers["Location"], "headers": dict(response.headers)},
             "meta": _extract_response_meta(response),
         }
 
@@ -1125,7 +1125,7 @@ def map_action[T](
     return {
         "data": fn(raw),
         "type": "github",
-        "raw": {"data": raw, "headers": response.headers},
+        "raw": {"data": raw, "headers": dict(response.headers)},
         "meta": _extract_response_meta(response),
     }
 
@@ -1143,6 +1143,6 @@ def map_paginated_action[T](
     return {
         "data": fn(raw),
         "type": "github",
-        "raw": {"data": raw, "headers": response.headers},
+        "raw": {"data": raw, "headers": dict(response.headers)},
         "meta": meta,
     }
