@@ -183,7 +183,7 @@ class SiloModeTestDecorator:
         if include_monolith_run:
             silo_modes |= frozenset([SiloMode.MONOLITH])
 
-        mod = _SiloModeTestModification(silo_modes=silo_modes, cells=cells)
+        mod = _SiloModeTestModification(silo_modes=silo_modes, cells=tuple(cells))
         return mod.apply if decorated_obj is None else mod.apply(decorated_obj)
 
 
