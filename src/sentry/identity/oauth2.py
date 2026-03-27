@@ -32,6 +32,7 @@ from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
+from sentry.pipeline.base import Pipeline
 from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, ApiUnauthorized
@@ -282,7 +283,7 @@ class OAuth2ApiStep:
         self.bind_key = bind_key
         self.extra_authorize_params = extra_authorize_params or {}
 
-    def get_step_data(self, pipeline: Any, request: HttpRequest) -> dict[str, str]:
+    def get_step_data(self, pipeline: Pipeline[Any, Any], request: HttpRequest) -> dict[str, str]:
         params = urlencode(
             {
                 "client_id": self.client_id,
@@ -301,7 +302,7 @@ class OAuth2ApiStep:
     def handle_post(
         self,
         validated_data: dict[str, str],
-        pipeline: Any,
+        pipeline: Pipeline[Any, Any],
         request: HttpRequest,
     ) -> PipelineStepResult:
         code = validated_data["code"]
