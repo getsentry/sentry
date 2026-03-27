@@ -180,10 +180,38 @@ def send_and_save_webhook_request(
                         timeout=options.get("sentry-apps.webhook.timeout.sec"),
                     )
 
+                if response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE:
+                    raise ApiHostError.from_request(response.request)
+                elif response.status_code == status.HTTP_504_GATEWAY_TIMEOUT:
+                    raise ApiTimeoutError.from_request(response.request)
+                elif 400 <= response.status_code < 500:
+                    raise ClientError(response.status_code, url, response=response)
+
+                response.raise_for_status()
+
         except WebhookTimeoutError:
             lifecycle.record_halt(
                 halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.HARD_TIMEOUT}"
             )
+            raise
+        except ApiHostError:
+            lifecycle.record_halt(
+                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.INTEGRATOR_ERROR}"
+            )
+            raise
+        except ApiTimeoutError:
+            lifecycle.record_halt(
+                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.INTEGRATOR_ERROR}"
+            )
+            raise
+        except ClientError as e:
+            lifecycle.record_halt(
+                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.GOT_CLIENT_ERROR}_{e.code}",
+                sample_log_rate=0.05,
+            )
+            raise
+        except RequestException as e:
+            lifecycle.record_halt(e)
             raise
         except (Timeout, ConnectionError) as e:
             error_type = e.__class__.__name__.lower()
@@ -205,7 +233,6 @@ def send_and_save_webhook_request(
                 headers=app_platform_event.headers,
             )
             lifecycle.record_halt(e)
-            # Re-raise the exception because some of these tasks might retry on the exception
             raise
         except ChunkedEncodingError:
             lifecycle.record_halt(
@@ -251,30 +278,5 @@ def send_and_save_webhook_request(
                     "response_code": response.status_code,
                 },
             )
-
-        if response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE:
-            lifecycle.record_halt(
-                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.INTEGRATOR_ERROR}"
-            )
-            raise ApiHostError.from_request(response.request)
-
-        elif response.status_code == status.HTTP_504_GATEWAY_TIMEOUT:
-            lifecycle.record_halt(
-                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.INTEGRATOR_ERROR}"
-            )
-            raise ApiTimeoutError.from_request(response.request)
-
-        elif 400 <= response.status_code < 500:
-            lifecycle.record_halt(
-                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.GOT_CLIENT_ERROR}_{response.status_code}",
-                sample_log_rate=0.05,
-            )
-            raise ClientError(response.status_code, url, response=response)
-
-        try:
-            response.raise_for_status()
-        except RequestException as e:
-            lifecycle.record_halt(e)
-            raise
 
         return response
