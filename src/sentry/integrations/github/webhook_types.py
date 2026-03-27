@@ -22,7 +22,10 @@ class GithubWebhookType(StrEnum):
 
 
 # Event type strings (X-GitHub-Event header values) that the cell webhook endpoint processes.
-# INSTALLATION is handled in control only.
+# INSTALLATION and INSTALLATION_REPOSITORIES are handled in control only.
+_CONTROL_ONLY_EVENTS = frozenset(
+    {GithubWebhookType.INSTALLATION, GithubWebhookType.INSTALLATION_REPOSITORIES}
+)
 CELL_PROCESSED_GITHUB_EVENTS = frozenset(
-    t.value for t in GithubWebhookType if t != GithubWebhookType.INSTALLATION
+    t.value for t in GithubWebhookType if t not in _CONTROL_ONLY_EVENTS
 )

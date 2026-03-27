@@ -363,6 +363,216 @@ class InstallationDeleteEventWebhookTest(APITestCase):
         mock_codecov_unlink.assert_not_called()
 
 
+@control_silo_test
+class InstallationRepositoriesEventWebhookTest(APITestCase):
+    def setUp(self) -> None:
+        self.url = "/extensions/github/webhook/"
+        self.secret = "b3002c3e321d4b7880360d397db2ccfd"
+        options.set("github-app.webhook-secret", self.secret)
+
+    def _make_event(self, action="added", repos_added=None, repos_removed=None):
+        return json.dumps(
+            {
+                "action": action,
+                "installation": {"id": 2},
+                "repositories_added": repos_added or [],
+                "repositories_removed": repos_removed or [],
+                "repository_selection": "selected",
+                "sender": {"id": 1, "login": "octocat"},
+            }
+        )
+
+    def _compute_signatures(self, body: str) -> tuple[str, str]:
+        from sentry.integrations.github.webhook import GitHubIntegrationsWebhookEndpoint
+
+        sha1 = GitHubIntegrationsWebhookEndpoint.compute_signature(
+            "sha1", body.encode(), self.secret
+        )
+        sha256 = GitHubIntegrationsWebhookEndpoint.compute_signature(
+            "sha256", body.encode(), self.secret
+        )
+        return f"sha1={sha1}", f"sha256={sha256}"
+
+    @patch("sentry.integrations.github.webhook.InstallationRepositoriesEventWebhook.__call__")
+    def test_webhook_dispatches_to_handler(self, mock_call: MagicMock) -> None:
+        """Verify the endpoint routes installation_repositories events to the correct handler."""
+        body = self._make_event(
+            repos_added=[{"id": 1, "full_name": "getsentry/sentry"}],
+        )
+        sha1, sha256 = self._compute_signatures(body)
+
+        response = self.client.post(
+            path=self.url,
+            data=body,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="installation_repositories",
+            HTTP_X_HUB_SIGNATURE=sha1,
+            HTTP_X_HUB_SIGNATURE_256=sha256,
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        assert response.status_code == 204
+        assert mock_call.called
+
+    @patch(
+        "sentry.integrations.github.tasks.sync_repos_on_install_change.sync_repos_on_install_change.apply_async"
+    )
+    def test_handler_dispatches_task_on_repos_added(self, mock_apply_async: MagicMock) -> None:
+        """Test the handler class directly — repos_added dispatches the async task."""
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        integration = self.create_integration(
+            name="octocat",
+            organization=self.organization,
+            external_id="2",
+            provider="github",
+            metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+        )
+
+        from sentry.integrations.github.webhook import InstallationRepositoriesEventWebhook
+
+        handler = InstallationRepositoriesEventWebhook()
+        handler(
+            event={
+                "installation": {"id": 2},
+                "action": "added",
+                "repositories_added": [{"id": 10, "full_name": "getsentry/sentry"}],
+                "repositories_removed": [],
+                "repository_selection": "selected",
+            }
+        )
+
+        mock_apply_async.assert_called_once()
+        kwargs = mock_apply_async.call_args[1]["kwargs"]
+        assert kwargs["integration_id"] == integration.id
+        assert kwargs["action"] == "added"
+        assert len(kwargs["repos_added"]) == 1
+        assert kwargs["repos_added"][0]["id"] == 10
+        assert kwargs["repos_removed"] == []
+        assert kwargs["repository_selection"] == "selected"
+
+    @patch(
+        "sentry.integrations.github.tasks.sync_repos_on_install_change.sync_repos_on_install_change.apply_async"
+    )
+    def test_handler_dispatches_task_on_repos_removed(self, mock_apply_async: MagicMock) -> None:
+        """Test the handler class directly — repos_removed dispatches the async task."""
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        self.create_integration(
+            name="octocat",
+            organization=self.organization,
+            external_id="2",
+            provider="github",
+            metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+        )
+
+        from sentry.integrations.github.webhook import InstallationRepositoriesEventWebhook
+
+        handler = InstallationRepositoriesEventWebhook()
+        handler(
+            event={
+                "installation": {"id": 2},
+                "action": "removed",
+                "repositories_added": [],
+                "repositories_removed": [{"id": 20, "full_name": "getsentry/old-repo"}],
+                "repository_selection": "selected",
+            }
+        )
+
+        mock_apply_async.assert_called_once()
+        kwargs = mock_apply_async.call_args[1]["kwargs"]
+        assert kwargs["action"] == "removed"
+        assert len(kwargs["repos_removed"]) == 1
+
+    @patch(
+        "sentry.integrations.github.tasks.sync_repos_on_install_change.sync_repos_on_install_change.apply_async"
+    )
+    def test_handler_skips_when_no_repos(self, mock_apply_async: MagicMock) -> None:
+        """No repos added or removed — task should not be dispatched."""
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        self.create_integration(
+            name="octocat",
+            organization=self.organization,
+            external_id="2",
+            provider="github",
+            metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+        )
+
+        from sentry.integrations.github.webhook import InstallationRepositoriesEventWebhook
+
+        handler = InstallationRepositoriesEventWebhook()
+        handler(
+            event={
+                "installation": {"id": 2},
+                "action": "added",
+                "repositories_added": [],
+                "repositories_removed": [],
+                "repository_selection": "selected",
+            }
+        )
+
+        mock_apply_async.assert_not_called()
+
+    @patch(
+        "sentry.integrations.github.tasks.sync_repos_on_install_change.sync_repos_on_install_change.apply_async"
+    )
+    def test_handler_skips_when_no_installation(self, mock_apply_async: MagicMock) -> None:
+        """Missing installation in event — handler returns early."""
+        from sentry.integrations.github.webhook import InstallationRepositoriesEventWebhook
+
+        handler = InstallationRepositoriesEventWebhook()
+        handler(event={"repositories_added": [{"id": 1}], "repositories_removed": []})
+
+        mock_apply_async.assert_not_called()
+
+    @patch(
+        "sentry.integrations.github.tasks.sync_repos_on_install_change.sync_repos_on_install_change.apply_async"
+    )
+    def test_handler_skips_when_integration_not_found(self, mock_apply_async: MagicMock) -> None:
+        """Integration doesn't exist in Sentry — handler returns early."""
+        from sentry.integrations.github.webhook import InstallationRepositoriesEventWebhook
+
+        handler = InstallationRepositoriesEventWebhook()
+        handler(
+            event={
+                "installation": {"id": 99999},
+                "action": "added",
+                "repositories_added": [{"id": 1, "full_name": "org/repo"}],
+                "repositories_removed": [],
+                "repository_selection": "selected",
+            }
+        )
+
+        mock_apply_async.assert_not_called()
+
+    @patch(
+        "sentry.integrations.github.tasks.sync_repos_on_install_change.sync_repos_on_install_change.apply_async"
+    )
+    def test_handler_propagates_host_for_ghe(self, mock_apply_async: MagicMock) -> None:
+        """GitHub Enterprise uses host prefix for external_id."""
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        self.create_integration(
+            name="octocat",
+            organization=self.organization,
+            external_id="github.mycompany.com:2",
+            provider="github",
+            metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+        )
+
+        from sentry.integrations.github.webhook import InstallationRepositoriesEventWebhook
+
+        handler = InstallationRepositoriesEventWebhook()
+        handler(
+            event={
+                "installation": {"id": 2},
+                "action": "added",
+                "repositories_added": [{"id": 1, "full_name": "org/repo"}],
+                "repositories_removed": [],
+                "repository_selection": "selected",
+            },
+            host="github.mycompany.com",
+        )
+
+        mock_apply_async.assert_called_once()
+
+
 class PushEventWebhookTest(APITestCase):
     def setUp(self) -> None:
         self.url = "/extensions/github/webhook/"
