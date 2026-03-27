@@ -8,6 +8,7 @@ import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Duration} from 'sentry/components/duration';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Pagination, type CursorHandler} from 'sentry/components/pagination';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
@@ -287,7 +288,7 @@ function renderBodyCell(
       const target = getTraceDetailsUrl({
         organization,
         traceSlug: traceId,
-        dateSelection: {},
+        dateSelection: normalizeDateTimeParams(location.query),
         timestamp: row.timestamp,
         location,
         source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
