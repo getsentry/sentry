@@ -8,7 +8,8 @@ import {LoadingStreamGroup, StreamGroup} from 'sentry/components/stream/group';
 import {SupergroupRow} from 'sentry/components/stream/supergroupRow';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
-import {useSuperGroupForIssues} from 'sentry/utils/supergroup/useSuperGroupForIssues';
+import {aggregateSupergroupStats} from 'sentry/utils/supergroup/aggregateSupergroupStats';
+import type {SupergroupLookup} from 'sentry/utils/supergroup/useSuperGroups';
 import {useApi} from 'sentry/utils/useApi';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -31,6 +32,7 @@ type GroupListBodyProps = {
   query: string;
   refetchGroups: () => void;
   selectedProjectIds: number[];
+  supergroupLookup?: SupergroupLookup;
 };
 
 type GroupListProps = {
@@ -40,6 +42,7 @@ type GroupListProps = {
   memberList: IndexedMembersByProject;
   onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
   query: string;
+  supergroupLookup?: SupergroupLookup;
 };
 
 const COLUMNS: GroupListColumn[] = [
@@ -52,8 +55,6 @@ const COLUMNS: GroupListColumn[] = [
   'assignee',
   'lastTriggered',
 ];
-
-const NESTED_COLUMNS: GroupListColumn[] = ['event', 'users', 'priority', 'assignee'];
 
 type RenderItem =
   | {id: string; type: 'issue'}
@@ -91,6 +92,7 @@ export function GroupListBody({
   selectedProjectIds,
   pageSize,
   onActionTaken,
+  supergroupLookup,
 }: GroupListBodyProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -128,6 +130,7 @@ export function GroupListBody({
       displayReprocessingLayout={displayReprocessingLayout}
       groupStatsPeriod={groupStatsPeriod}
       onActionTaken={onActionTaken}
+      supergroupLookup={supergroupLookup}
     />
   );
 }
@@ -191,10 +194,10 @@ function GroupList({
   displayReprocessingLayout,
   groupStatsPeriod,
   onActionTaken,
+  supergroupLookup,
 }: GroupListProps) {
   const theme = useTheme();
   const organization = useOrganization();
-  const {getSuperGroupForIssue} = useSuperGroupForIssues();
   const [isSavedSearchesOpen] = useSyncedLocalStorageState(
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
     false
@@ -205,6 +208,7 @@ function GroupList({
   );
 
   const hasTopIssuesUI = organization.features.includes('top-issues-ui');
+  const getSuperGroupForIssue = (id: string) => supergroupLookup?.[id] ?? null;
   const renderItems = buildRenderItems(groupIds, getSuperGroupForIssue, hasTopIssuesUI);
 
   const renderStreamGroup = (id: string, columns: GroupListColumn[]) => {
@@ -237,16 +241,20 @@ function GroupList({
         }
 
         const {supergroup, matchingIds} = item;
+        const memberGroups = matchingIds
+          .map(id => GroupStore.get(id) as Group | undefined)
+          .filter((g): g is Group => g !== undefined);
+        const stats = aggregateSupergroupStats(memberGroups, groupStatsPeriod);
 
         return (
           <SupergroupRow
             key={`sg-${supergroup.id}`}
             supergroup={supergroup}
             matchedCount={matchingIds.length}
+            aggregatedStats={stats}
           />
         );
       })}
     </PanelBody>
   );
 }
-

@@ -10,6 +10,7 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import type {SupergroupLookup} from 'sentry/utils/supergroup/useSuperGroups';
 import {useLocation} from 'sentry/utils/useLocation';
 import {IssueListActions} from 'sentry/views/issueList/actions';
 import {GroupListBody} from 'sentry/views/issueList/groupListBody';
@@ -40,6 +41,7 @@ interface IssueListTableProps {
   selection: PageFilters;
   statsLoading: boolean;
   statsPeriod: string;
+  supergroupLookup?: SupergroupLookup;
 }
 
 export function IssueListTable({
@@ -64,6 +66,7 @@ export function IssueListTable({
   paginationAnalyticsEvent,
   issuesSuccessfullyLoaded,
   pageSize,
+  supergroupLookup,
 }: IssueListTableProps) {
   const location = useLocation();
 
@@ -124,6 +127,7 @@ export function IssueListTable({
                       pageSize={pageSize}
                       refetchGroups={refetchGroups}
                       onActionTaken={onActionTaken}
+                      supergroupLookup={supergroupLookup}
                     />
                   </VisuallyCompleteWithData>
                 </PanelBody>
