@@ -246,7 +246,8 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
 
     auto_open_prs = bool(organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT))
     default_stopping_point = organization.get_option(
-        "sentry:default_stopping_point", SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+        "sentry:default_automated_run_stopping_point",
+        SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     )
 
     coding_agent = organization.get_option(

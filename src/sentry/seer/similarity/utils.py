@@ -582,16 +582,17 @@ def set_default_project_auto_open_prs(organization: Organization, project: Proje
     if not is_seer_seat_based_tier_enabled(organization):
         return
 
-    auto_open_prs = bool(organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT))
-    stopping_point = organization.get_option(
-        "sentry:default_stopping_point", SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
-    )
-
     coding_agent = organization.get_option(
         "sentry:seer_default_coding_agent", SEER_DEFAULT_CODING_AGENT_DEFAULT
     )
     coding_agent_integration_id = organization.get_option(
         "sentry:seer_default_coding_agent_integration_id", None
+    )
+
+    auto_open_prs = bool(organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT))
+    stopping_point = organization.get_option(
+        "sentry:default_automated_run_stopping_point",
+        SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     )
 
     automation_handoff: SeerAutomationHandoffConfiguration | None = None

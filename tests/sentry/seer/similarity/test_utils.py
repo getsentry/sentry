@@ -1263,7 +1263,7 @@ class TestSetDefaultProjectAutoOpenPrs(TestCase):
         self, mock_tier: MagicMock, mock_set_pref: MagicMock, mock_dual_write: MagicMock
     ):
         """Seer agent, no auto_open_prs, custom stopping point (root_cause)."""
-        self.organization.update_option("sentry:default_stopping_point", "root_cause")
+        self.organization.update_option("sentry:default_automated_run_stopping_point", "root_cause")
 
         set_default_project_auto_open_prs(self.organization, self.project)
 
@@ -1277,9 +1277,9 @@ class TestSetDefaultProjectAutoOpenPrs(TestCase):
     def test_seer_agent_with_auto_open_prs(
         self, mock_tier: MagicMock, mock_set_pref: MagicMock, mock_dual_write: MagicMock
     ):
-        """auto_open_prs does not override stopping point."""
+        """auto_open_prs does not override contradictory stopping point."""
         self.organization.update_option("sentry:auto_open_prs", True)
-        self.organization.update_option("sentry:default_stopping_point", "root_cause")
+        self.organization.update_option("sentry:default_automated_run_stopping_point", "root_cause")
 
         set_default_project_auto_open_prs(self.organization, self.project)
 
@@ -1293,6 +1293,7 @@ class TestSetDefaultProjectAutoOpenPrs(TestCase):
     def test_external_agent_default(
         self, mock_tier: MagicMock, mock_set_pref: MagicMock, mock_dual_write: MagicMock
     ):
+        """external agent, no auto_open_prs, default stopping point and handoff."""
         agents = [
             ("cursor_background_agent", 1234),
             ("claude_code_agent", 5678),
@@ -1323,7 +1324,7 @@ class TestSetDefaultProjectAutoOpenPrs(TestCase):
     ):
         """auto_open_prs sets auto_create_pr on handoff but does not override stopping point."""
         self.organization.update_option("sentry:auto_open_prs", True)
-        self.organization.update_option("sentry:default_stopping_point", "root_cause")
+        self.organization.update_option("sentry:default_automated_run_stopping_point", "root_cause")
         agents = [
             ("cursor_background_agent", 1234),
             ("claude_code_agent", 5678),
