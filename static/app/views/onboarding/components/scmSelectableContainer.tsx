@@ -1,8 +1,7 @@
-import type {ComponentProps} from 'react';
-
+import type {ContainerProps} from '@sentry/scraps/layout';
 import {Container} from '@sentry/scraps/layout';
 
-interface ScmSelectableContainerProps extends ComponentProps<typeof Container> {
+type ScmSelectableContainerProps = ContainerProps & {
   isSelected: boolean;
   /**
    * Accent borders are thicker than secondary borders, causing a layout
@@ -12,7 +11,7 @@ interface ScmSelectableContainerProps extends ComponentProps<typeof Container> {
    * selected border variant.
    */
   borderCompensation?: number;
-}
+};
 
 export function ScmSelectableContainer({
   isSelected,
