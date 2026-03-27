@@ -91,11 +91,7 @@ describe('ExploreToolbar', () => {
       return <ExploreToolbar />;
     }
 
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>
-    );
+    render(<Component />, {additionalWrapper: Wrapper});
 
     const section = screen.getByTestId('section-visualizes');
 
@@ -112,11 +108,7 @@ describe('ExploreToolbar', () => {
       return <ExploreToolbar />;
     }
 
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>
-    );
+    render(<Component />, {additionalWrapper: Wrapper});
 
     const section = screen.getByTestId('section-visualizes');
 
@@ -146,11 +138,7 @@ describe('ExploreToolbar', () => {
       return <ExploreToolbar />;
     }
 
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>
-    );
+    render(<Component />, {additionalWrapper: Wrapper});
 
     const section = screen.getByTestId('section-visualizes');
 
@@ -171,11 +159,7 @@ describe('ExploreToolbar', () => {
       return <ExploreToolbar />;
     }
 
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>
-    );
+    render(<Component />, {additionalWrapper: Wrapper});
 
     const section = screen.getByTestId('section-visualizes');
 
@@ -211,11 +195,7 @@ describe('ExploreToolbar', () => {
       return <ExploreToolbar />;
     }
 
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>
-    );
+    render(<Component />, {additionalWrapper: Wrapper});
 
     const section = screen.getByTestId('section-visualizes');
 
@@ -254,11 +234,7 @@ describe('ExploreToolbar', () => {
       return <ExploreToolbar />;
     }
 
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>
-    );
+    render(<Component />, {additionalWrapper: Wrapper});
 
     const section = screen.getByTestId('section-visualizes');
 
@@ -316,11 +292,7 @@ describe('ExploreToolbar', () => {
       groupBys = useQueryParamsGroupBys();
       return <ExploreToolbar />;
     }
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>
-    );
+    render(<Component />, {additionalWrapper: Wrapper});
 
     let options: HTMLElement[];
     const section = screen.getByTestId('section-group-by');
@@ -401,11 +373,7 @@ describe('ExploreToolbar', () => {
       mode = useQueryParamsMode();
       return <ExploreToolbar />;
     }
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>
-    );
+    render(<Component />, {additionalWrapper: Wrapper});
 
     expect(mode).toEqual(Mode.SAMPLES);
     expect(groupBys).toEqual(['']);
@@ -429,11 +397,7 @@ describe('ExploreToolbar', () => {
       mode = useQueryParamsMode();
       return <ExploreToolbar />;
     }
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>
-    );
+    render(<Component />, {additionalWrapper: Wrapper});
 
     expect(mode).toEqual(Mode.SAMPLES);
     expect(groupBys).toEqual(['']);
@@ -453,11 +417,7 @@ describe('ExploreToolbar', () => {
       aggregateFields = useQueryParamsAggregateFields();
       return <ExploreToolbar />;
     }
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>
-    );
+    render(<Component />, {additionalWrapper: Wrapper});
 
     expect(aggregateFields).toEqual([
       {groupBy: ''},
@@ -481,11 +441,7 @@ describe('ExploreToolbar', () => {
       sortBys = useQueryParamsSortBys();
       return <ExploreToolbar />;
     }
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>
-    );
+    render(<Component />, {additionalWrapper: Wrapper});
 
     const section = screen.getByTestId('section-sort-by');
 
@@ -538,11 +494,7 @@ describe('ExploreToolbar', () => {
       sortBys = useQueryParamsAggregateSortBys();
       return <ExploreToolbar />;
     }
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>
-    );
+    render(<Component />, {additionalWrapper: Wrapper});
 
     act(() => setMode(Mode.AGGREGATE));
 
@@ -615,11 +567,7 @@ describe('ExploreToolbar', () => {
       return <ExploreToolbar />;
     }
 
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>
-    );
+    render(<Component />, {additionalWrapper: Wrapper});
 
     const section = screen.getByTestId('section-sort-by');
 
@@ -651,24 +599,20 @@ describe('ExploreToolbar', () => {
       return <ExploreToolbar />;
     }
     act(() => {
-      render(
-        <Wrapper>
-          <Component />
-        </Wrapper>,
-        {
-          organization,
-          initialRouterConfig: {
-            location: {
-              pathname: '/traces/',
-              query: {
-                visualize: encodeURIComponent(
-                  '{"chartType":1,"yAxes":["p95(span.duration)"]}'
-                ),
-              },
+      render(<Component />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/traces/',
+            query: {
+              visualize: encodeURIComponent(
+                '{"chartType":1,"yAxes":["p95(span.duration)"]}'
+              ),
             },
           },
-        }
-      );
+        },
+        additionalWrapper: Wrapper,
+      });
     });
 
     const section = screen.getByTestId('section-save-as');
@@ -682,24 +626,20 @@ describe('ExploreToolbar', () => {
     function Component() {
       return <ExploreToolbar />;
     }
-    const {router} = render(
-      <Wrapper>
-        <Component />
-      </Wrapper>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/traces/',
-            query: {
-              visualize: encodeURIComponent(
-                '{"chartType":1,"yAxes":["p95(span.duration)"]}'
-              ),
-            },
+    const {router} = render(<Component />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {
+            visualize: encodeURIComponent(
+              '{"chartType":1,"yAxes":["p95(span.duration)"]}'
+            ),
           },
         },
-      }
-    );
+      },
+      additionalWrapper: Wrapper,
+    });
 
     await userEvent.click(screen.getByRole('button', {name: 'Add Chart'}));
 
@@ -723,24 +663,20 @@ describe('ExploreToolbar', () => {
     function Component() {
       return <ExploreToolbar />;
     }
-    const {router} = render(
-      <Wrapper>
-        <Component />
-      </Wrapper>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/traces/',
-            query: {
-              visualize: encodeURIComponent(
-                '{"chartType":1,"yAxes":["avg(span.duration)"]}'
-              ),
-            },
+    const {router} = render(<Component />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {
+            visualize: encodeURIComponent(
+              '{"chartType":1,"yAxes":["avg(span.duration)"]}'
+            ),
           },
         },
-      }
-    );
+      },
+      additionalWrapper: Wrapper,
+    });
 
     const section = screen.getByTestId('section-save-as');
 
@@ -768,24 +704,20 @@ describe('ExploreToolbar', () => {
     function Component() {
       return <ExploreToolbar />;
     }
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/traces/',
-            query: {
-              visualize: encodeURIComponent(
-                '{"chartType":1,"yAxes":["count(span.duration)"]}'
-              ),
-            },
+    render(<Component />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {
+            visualize: encodeURIComponent(
+              '{"chartType":1,"yAxes":["count(span.duration)"]}'
+            ),
           },
         },
-      }
-    );
+      },
+      additionalWrapper: Wrapper,
+    });
 
     const section = screen.getByTestId('section-save-as');
 
@@ -846,28 +778,24 @@ describe('ExploreToolbar', () => {
       return <ExploreToolbar />;
     }
 
-    const {router} = render(
-      <Wrapper>
-        <Component />
-      </Wrapper>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/traces/',
-            query: {
-              query: '',
-              visualize: '{"chartType":1,"yAxes":["count(span.duration)"]}',
-              groupBy: 'span.op',
-              sort: '-count(span.duration)',
-              field: 'count(span.duration)',
-              id: '123',
-              mode: 'aggregate',
-            },
+    const {router} = render(<Component />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {
+            query: '',
+            visualize: '{"chartType":1,"yAxes":["count(span.duration)"]}',
+            groupBy: 'span.op',
+            sort: '-count(span.duration)',
+            field: 'count(span.duration)',
+            id: '123',
+            mode: 'aggregate',
           },
         },
-      }
-    );
+      },
+      additionalWrapper: Wrapper,
+    });
     screen.getByText('Save as\u2026');
     const section = screen.getByTestId('section-sort-by');
     await userEvent.click(within(section).getByRole('button', {name: 'Desc'}));

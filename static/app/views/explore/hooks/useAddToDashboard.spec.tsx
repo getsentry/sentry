@@ -37,11 +37,7 @@ describe('AddToDashboardButton', () => {
   });
 
   it('opens the dashboard modal with the correct query for samples mode', async () => {
-    render(
-      <Wrapper>
-        <TestPage visualizeIndex={0} />
-      </Wrapper>
-    );
+    render(<TestPage visualizeIndex={0} />, {additionalWrapper: Wrapper});
 
     await userEvent.click(screen.getByText('Add to Dashboard'));
 
@@ -88,11 +84,7 @@ describe('AddToDashboardButton', () => {
   ])(
     'opens the dashboard modal with display type $expectedDisplayType for chart type $chartType',
     async ({chartType, expectedDisplayType}) => {
-      render(
-        <Wrapper>
-          <TestPage visualizeIndex={1} />
-        </Wrapper>
-      );
+      render(<TestPage visualizeIndex={1} />, {additionalWrapper: Wrapper});
 
       act(() =>
         setVisualizes([
@@ -138,11 +130,7 @@ describe('AddToDashboardButton', () => {
   );
 
   it('opens the dashboard modal with the correct query based on the visualize index', async () => {
-    render(
-      <Wrapper>
-        <TestPage visualizeIndex={1} />
-      </Wrapper>
-    );
+    render(<TestPage visualizeIndex={1} />, {additionalWrapper: Wrapper});
 
     act(() =>
       setVisualizes([
@@ -187,11 +175,7 @@ describe('AddToDashboardButton', () => {
   });
 
   it('uses the yAxes for the aggregate mode', async () => {
-    render(
-      <Wrapper>
-        <TestPage visualizeIndex={0} />
-      </Wrapper>
-    );
+    render(<TestPage visualizeIndex={0} />, {additionalWrapper: Wrapper});
 
     act(() => setMode(Mode.AGGREGATE));
 
@@ -224,11 +208,7 @@ describe('AddToDashboardButton', () => {
   });
 
   it('takes the first 3 yAxes', async () => {
-    render(
-      <Wrapper>
-        <TestPage visualizeIndex={0} />
-      </Wrapper>
-    );
+    render(<TestPage visualizeIndex={0} />, {additionalWrapper: Wrapper});
 
     act(() => setMode(Mode.AGGREGATE));
     act(() =>

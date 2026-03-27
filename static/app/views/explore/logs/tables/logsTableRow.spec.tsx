@@ -213,17 +213,15 @@ describe('logsTableRow', () => {
     jest.useFakeTimers();
     expect(rowDetailsMock).toHaveBeenCalledTimes(0);
     render(
-      <ProviderWrapper>
-        <LogRowContent
-          dataRow={rowData}
-          highlightTerms={[]}
-          meta={LogFixtureMeta(rowData)}
-          sharedHoverTimeoutRef={
-            {current: null} as React.MutableRefObject<NodeJS.Timeout | null>
-          }
-        />
-      </ProviderWrapper>,
-      {organization, initialRouterConfig}
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={
+          {current: null} as React.MutableRefObject<NodeJS.Timeout | null>
+        }
+      />,
+      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
 
     expect(screen.queryByLabelText('Toggle trace details')).not.toBeInTheDocument(); // Fake button
@@ -247,19 +245,17 @@ describe('logsTableRow', () => {
 
   it('renders row details', async () => {
     render(
-      <ProviderWrapper>
-        <LogRowContent
-          dataRow={rowData}
-          highlightTerms={[]}
-          meta={LogFixtureMeta(rowData)}
-          sharedHoverTimeoutRef={
-            {
-              current: null,
-            } as React.MutableRefObject<NodeJS.Timeout | null>
-          }
-        />
-      </ProviderWrapper>,
-      {organization, initialRouterConfig}
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={
+          {
+            current: null,
+          } as React.MutableRefObject<NodeJS.Timeout | null>
+        }
+      />,
+      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
 
     // Check that the log body and timestamp are rendered
@@ -349,19 +345,21 @@ describe('logsTableRow', () => {
 
   it('shows a link when hovering over code file path in the table', async () => {
     render(
-      <ProviderWrapper>
-        <LogRowContent
-          dataRow={rowDataWithCodeFilePath}
-          highlightTerms={[]}
-          meta={LogFixtureMeta(rowDataWithCodeFilePath)}
-          sharedHoverTimeoutRef={
-            {
-              current: null,
-            } as React.MutableRefObject<NodeJS.Timeout | null>
-          }
-        />
-      </ProviderWrapper>,
-      {organization, initialRouterConfig: initialRouterConfigWithCodeFilePath}
+      <LogRowContent
+        dataRow={rowDataWithCodeFilePath}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowDataWithCodeFilePath)}
+        sharedHoverTimeoutRef={
+          {
+            current: null,
+          } as React.MutableRefObject<NodeJS.Timeout | null>
+        }
+      />,
+      {
+        organization,
+        initialRouterConfig: initialRouterConfigWithCodeFilePath,
+        additionalWrapper: ProviderWrapper,
+      }
     );
 
     // Expand the row to show the attributes
@@ -430,19 +428,17 @@ describe('logsTableRow', () => {
     });
 
     render(
-      <ProviderWrapper>
-        <LogRowContent
-          dataRow={rowData}
-          highlightTerms={[]}
-          meta={LogFixtureMeta(rowData)}
-          sharedHoverTimeoutRef={
-            {
-              current: null,
-            } as React.MutableRefObject<NodeJS.Timeout | null>
-          }
-        />
-      </ProviderWrapper>,
-      {organization, initialRouterConfig}
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={
+          {
+            current: null,
+          } as React.MutableRefObject<NodeJS.Timeout | null>
+        }
+      />,
+      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
 
     // Expand the row to show the action buttons
@@ -531,19 +527,21 @@ describe('logsTableRow', () => {
     });
 
     render(
-      <ProviderWrapper>
-        <LogRowContent
-          dataRow={rowDataWithScrubbedFields}
-          highlightTerms={[]}
-          meta={LogFixtureMeta(rowDataWithScrubbedFields)}
-          sharedHoverTimeoutRef={
-            {
-              current: null,
-            } as React.MutableRefObject<NodeJS.Timeout | null>
-          }
-        />
-      </ProviderWrapper>,
-      {organization, initialRouterConfig: initialRouterConfigWithScrubbedFields}
+      <LogRowContent
+        dataRow={rowDataWithScrubbedFields}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowDataWithScrubbedFields)}
+        sharedHoverTimeoutRef={
+          {
+            current: null,
+          } as React.MutableRefObject<NodeJS.Timeout | null>
+        }
+      />,
+      {
+        organization,
+        initialRouterConfig: initialRouterConfigWithScrubbedFields,
+        additionalWrapper: ProviderWrapper,
+      }
     );
 
     const logTableRow = await screen.findByTestId('log-table-row');

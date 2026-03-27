@@ -139,15 +139,11 @@ describe('MetricsTabContent', () => {
   });
 
   it('should add a metric when Add Metric button is clicked', async () => {
-    render(
-      <ProviderWrapper>
-        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
-      </ProviderWrapper>,
-      {
-        initialRouterConfig,
-        organization,
-      }
-    );
+    render(<MetricsTabContent datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
 
     let toolbars = screen.getAllByTestId('metric-toolbar');
     expect(toolbars).toHaveLength(1);
@@ -189,15 +185,11 @@ describe('MetricsTabContent', () => {
   });
 
   it('should fire analytics for metadata', async () => {
-    render(
-      <ProviderWrapper>
-        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
-      </ProviderWrapper>,
-      {
-        initialRouterConfig,
-        organization,
-      }
-    );
+    render(<MetricsTabContent datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
 
     const toolbars = screen.getAllByTestId('metric-toolbar');
     expect(toolbars).toHaveLength(1);
@@ -344,15 +336,11 @@ describe('MetricsTabContent', () => {
       route: '/organizations/:orgId/explore/metrics/',
     };
 
-    render(
-      <ProviderWrapper>
-        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
-      </ProviderWrapper>,
-      {
-        initialRouterConfig: initialRouterConfigWithGroupBy,
-        organization,
-      }
-    );
+    render(<MetricsTabContent datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig: initialRouterConfigWithGroupBy,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
 
     const toolbars = screen.getAllByTestId('metric-toolbar');
     expect(toolbars).toHaveLength(1);
@@ -385,15 +373,11 @@ describe('MetricsTabContent', () => {
   });
 
   it('should fire analytics when filter is changed', async () => {
-    render(
-      <ProviderWrapper>
-        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
-      </ProviderWrapper>,
-      {
-        initialRouterConfig,
-        organization,
-      }
-    );
+    render(<MetricsTabContent datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
 
     const toolbars = screen.getAllByTestId('metric-toolbar');
     expect(toolbars).toHaveLength(1);
@@ -471,15 +455,11 @@ describe('MetricsTabContent', () => {
       body: {},
     });
 
-    render(
-      <ProviderWrapper>
-        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
-      </ProviderWrapper>,
-      {
-        initialRouterConfig,
-        organization,
-      }
-    );
+    render(<MetricsTabContent datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
 
     const toolbars = screen.getAllByTestId('metric-toolbar');
     expect(toolbars).toHaveLength(1);
@@ -536,12 +516,11 @@ describe('MetricsTabContent', () => {
     });
 
     const {router} = render(
-      <ProviderWrapper>
-        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
-      </ProviderWrapper>,
+      <MetricsTabContent datePageFilterProps={datePageFilterProps} />,
       {
         initialRouterConfig,
         organization,
+        additionalWrapper: ProviderWrapper,
       }
     );
 
@@ -696,15 +675,11 @@ describe('MetricsTabContent (tracemetrics-ui-refresh)', () => {
   });
 
   it('toggles the query builder sidebar with the expand control', async () => {
-    render(
-      <ProviderWrapper>
-        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
-      </ProviderWrapper>,
-      {
-        initialRouterConfig,
-        organization,
-      }
-    );
+    render(<MetricsTabContent datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
 
     await waitFor(() => {
       expect(
