@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
@@ -104,7 +105,8 @@ export function useScmRepoSelection({
         },
       });
       onSelect({...optimistic, ...created});
-    } catch {
+    } catch (error) {
+      Sentry.captureException(error);
       addErrorMessage(t('Failed to select repository'));
       onSelect(undefined);
     } finally {
