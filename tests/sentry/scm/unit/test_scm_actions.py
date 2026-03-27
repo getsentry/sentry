@@ -751,7 +751,10 @@ def test_exec_records_failure_metric_on_unhandled_exception():
         assert isinstance(scm, GetBranchProtocol)
         scm.get_branch(branch="main")
 
-    assert metrics == [("sentry.scm.actions.failed", 1, {})]
+    assert metrics == [
+        ("sentry.scm.actions.failed_by_provider", 1, {"provider": ExplodingProvider.__name__}),
+        ("sentry.scm.actions.failed_by_referrer", 1, {"referrer": "shared"}),
+    ]
 
 
 def test_exec_passes_custom_referrer():

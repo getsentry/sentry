@@ -416,7 +416,12 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         )
 
         try:
-            trigger_push_changes(group, run_id, state=state)
+            trigger_push_changes(
+                group,
+                run_id,
+                referrer=AutofixReferrer.ON_COMPLETION_HOOK,
+                state=state,
+            )
         except Exception:
             logger.exception(
                 "autofix.on_completion_hook.push_changes_failed",
@@ -491,6 +496,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             result = trigger_coding_agent_handoff(
                 group=group,
                 run_id=run_id,
+                referrer=AutofixReferrer.ON_COMPLETION_HOOK,
                 integration_id=handoff_config.integration_id,
             )
             logger.info(

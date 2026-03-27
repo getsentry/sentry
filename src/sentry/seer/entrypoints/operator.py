@@ -227,7 +227,11 @@ class SeerAutofixOperator[CachePayloadT]:
                         run_id=None,
                     )
                 elif stopping_point == AutofixStoppingPoint.OPEN_PR:
-                    trigger_push_changes(group, run_id)
+                    trigger_push_changes(
+                        group,
+                        run_id,
+                        referrer=AutofixReferrer.SLACK,
+                    )
                 else:
                     # NOTE: Stopping point here is really just what
                     # step to run next. Not the same as the stopping_point

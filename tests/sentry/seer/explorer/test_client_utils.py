@@ -44,20 +44,12 @@ class TestHasSeerExplorerAccessWithDetail(TestCase):
             result = has_seer_explorer_access_with_detail(self.org, self.user)
         assert result == (True, None)
 
-    def test_only_autofix_on_explorer_v2_flag(self):
-        with self.feature(
-            {"organizations:gen-ai-features": True, "organizations:autofix-on-explorer-v2": True}
-        ):
-            result = has_seer_explorer_access_with_detail(self.org, self.user)
-        assert result == (True, None)
-
     def test_all_explorer_flags_enabled(self):
         with self.feature(
             {
                 "organizations:gen-ai-features": True,
                 "organizations:seer-explorer": True,
                 "organizations:autofix-on-explorer": True,
-                "organizations:autofix-on-explorer-v2": True,
             }
         ):
             result = has_seer_explorer_access_with_detail(self.org, self.user)
@@ -71,7 +63,6 @@ class TestHasSeerExplorerAccessWithDetail(TestCase):
                 "organizations:gen-ai-features": True,
                 "organizations:seer-explorer": True,
                 "organizations:autofix-on-explorer": True,
-                "organizations:autofix-on-explorer-v2": True,
             }
         ):
             result = has_seer_explorer_access_with_detail(self.org, self.user)

@@ -112,15 +112,16 @@ def exec_provider_fn[P: Provider, T](
     if provider.is_rate_limited(referrer):
         raise SCMCodedError(provider, referrer, code="rate_limit_exceeded")
 
+    provider_name = provider.__class__.__name__
+
     try:
         result = provider_fn()
-        record_count(
-            "sentry.scm.actions.success_by_provider", 1, {"provider": provider.__class__.__name__}
-        )
+        record_count("sentry.scm.actions.success_by_provider", 1, {"provider": provider_name})
         record_count("sentry.scm.actions.success_by_referrer", 1, {"referrer": referrer})
         return result
     except SCMError:
         raise
     except Exception as e:
-        record_count("sentry.scm.actions.failed", 1, {})
+        record_count("sentry.scm.actions.failed_by_provider", 1, {"provider": provider_name})
+        record_count("sentry.scm.actions.failed_by_referrer", 1, {"referrer": referrer})
         raise SCMUnhandledException from e

@@ -2,6 +2,7 @@ from typing import TypedDict
 from unittest.mock import MagicMock, patch
 
 from sentry.seer.autofix.autofix_agent import AutofixStep
+from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.on_completion_hook import (
     PIPELINE_ORDER,
     STOPPING_POINT_TO_STEP,
@@ -258,7 +259,12 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
             },
         )
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state)
-        mock_push_changes.assert_called_once_with(self.group, 123, state=state)
+        mock_push_changes.assert_called_once_with(
+            self.group,
+            123,
+            referrer=AutofixReferrer.ON_COMPLETION_HOOK,
+            state=state,
+        )
 
 
 class TestPipelineConstants(TestCase):
