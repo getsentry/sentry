@@ -35,7 +35,7 @@ interface ValidateAttributesParams extends AttributeValidationSelection {
 
 const EMPTY_KEYS: string[] = [];
 
-export function extractFilterKeys(parsedQuery: ParseResult | null): string[] {
+function extractFilterKeys(parsedQuery: ParseResult | null): string[] {
   if (!parsedQuery) {
     return EMPTY_KEYS;
   }
