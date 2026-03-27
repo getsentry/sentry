@@ -1,5 +1,7 @@
 import {useState} from 'react';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {t} from 'sentry/locale';
 import type {
   Integration,
   IntegrationRepository,
@@ -102,6 +104,7 @@ export function useScmRepoSelection({
       });
       onSelect({...optimistic, ...created});
     } catch {
+      addErrorMessage(t('Failed to select repository'));
       onSelect(undefined);
     } finally {
       setBusy(false);
