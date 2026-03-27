@@ -6,7 +6,7 @@ Understanding the pipeline helps locate where things break:
 
 1. **Model save/delete** writes outbox row inside `outbox_context(transaction.atomic(...))`
 2. **On commit**: if `flush=True`, `drain_shard()` runs synchronously for that shard
-3. **Periodic task**: `enqueue_outbox_jobs` (region) / `enqueue_outbox_jobs_control` (control) runs on a cron schedule
+3. **Periodic task**: `enqueue_outbox_jobs` (cell) / `enqueue_outbox_jobs_control` (control) runs on a cron schedule
 4. **`schedule_batch`** partitions the ID range into `CONCURRENCY=5` chunks and spawns `drain_outbox_shards` tasks
 5. **`drain_outbox_shards`** calls `process_outbox_batch` which:
    - Calls `find_scheduled_shards(lo, hi)` to find shards with `scheduled_for <= now`
@@ -71,9 +71,9 @@ Both tables share these columns:
 
 `sentry_controloutbox` has one additional column:
 
-| Column        | Type    | Description                   |
-| ------------- | ------- | ----------------------------- |
-| `region_name` | varchar | Target region for this outbox |
+| Column        | Type    | Description                 |
+| ------------- | ------- | --------------------------- |
+| `region_name` | varchar | Target cell for this outbox |
 
 ### Resolving Enum Values
 
@@ -92,10 +92,10 @@ When generating SQL for a developer, **print the query to the terminal** so they
 2. Comments mapping integer values to their enum names
 3. Reasonable `LIMIT` clauses to avoid overwhelming output
 
-#### Find stuck shards (region)
+#### Find stuck shards (cell)
 
 ```sql
--- Find region outbox shards stuck in backoff
+-- Find cell outbox shards stuck in backoff
 -- shard_scope: 0 = ORGANIZATION_SCOPE, 1 = USER_SCOPE, etc.
 -- category: see OutboxCategory enum in category.py
 SELECT
@@ -199,7 +199,7 @@ LIMIT 10;
 
 When a developer asks you to debug stuck outboxes:
 
-1. **Determine the table**: Ask which model or direction is involved, or infer from context. Use `sentry_regionoutbox` for region models, `sentry_controloutbox` for control models.
+1. **Determine the table**: Ask which model or direction is involved, or infer from context. Use `sentry_regionoutbox` for cell models, `sentry_controloutbox` for control models.
 2. **Resolve enum values**: Read `src/sentry/hybridcloud/outbox/category.py` to get the integer values for the relevant `OutboxCategory` and `OutboxScope`.
 3. **Construct the query**: Use the templates above, substituting resolved values. Always add comments with the human-readable enum names.
 4. **Print to terminal**: Output the final SQL so the developer can copy it. Do NOT attempt to run it — you don't have production database access.
@@ -212,10 +212,10 @@ When a developer asks you to debug stuck outboxes:
 The `should_skip_shard()` method checks these options:
 
 ```python
-# Skip specific organization shards (region outboxes)
+# Skip specific organization shards (cell outboxes)
 "hybrid_cloud.authentication.disabled_organization_shards": [org_id_1, org_id_2]
 
-# Skip specific user shards (region/control outboxes)
+# Skip specific user shards (cell/control outboxes)
 "hybrid_cloud.authentication.disabled_user_shards": [user_id_1, user_id_2]
 ```
 
@@ -252,7 +252,7 @@ For local debugging or in a Django shell:
 ```python
 from sentry.hybridcloud.models.outbox import CellOutbox, ControlOutbox
 
-# Top 10 deepest region shards
+# Top 10 deepest cell shards
 for shard in CellOutbox.get_shard_depths_descending(limit=10):
     print(f"Scope={shard['shard_scope']} ID={shard['shard_identifier']} Depth={shard['depth']}")
 ```
