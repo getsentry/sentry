@@ -1,12 +1,13 @@
 import {createContext, useContext, useReducer, useRef} from 'react';
 
+import {useHotkeys} from '@sentry/scraps/hotkey';
+
 import {
   openCommandPaletteDeprecated,
   toggleCommandPalette,
 } from 'sentry/actionCreators/modal';
 import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
 import {unreachable} from 'sentry/utils/unreachable';
-import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export type LinkedList = {

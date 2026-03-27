@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Hotkey} from '@sentry/scraps/hotkey';
 import {Flex, Grid} from '@sentry/scraps/layout';
 
-import {HotkeysLabel} from 'sentry/components/hotkeysLabel';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
 import type {BooleanOperator, SearchConfig} from 'sentry/components/searchSyntax/parser';
@@ -147,7 +147,7 @@ export function SearchDropdown({
                 onClick={() => runShortcut(shortcut)}
               >
                 <HotkeyGlyphWrapper>
-                  <HotkeysLabel
+                  <Hotkey
                     value={shortcut.hotkeys?.display ?? shortcut.hotkeys?.actual ?? []}
                   />
                 </HotkeyGlyphWrapper>

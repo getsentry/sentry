@@ -1,3 +1,4 @@
+import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import {
   fetchMutation,
@@ -6,8 +7,6 @@ import {
   type UseMutationOptions,
 } from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
-import {getRepositoryWithSettingsQueryKey} from 'getsentry/views/seerAutomation/onboarding/hooks/useRepositoryWithSettings';
 
 export type RepositorySettings =
   | {

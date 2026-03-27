@@ -1166,6 +1166,7 @@ const StyledPageFrameReorderableFakeLink = styled('div')<{
   }
 
   &:active {
+    color: ${p => p.theme.tokens.content.primary};
     border: 1px solid ${p => p.theme.tokens.interactive.transparent.accent.border};
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.accent.background.active};
@@ -1283,6 +1284,7 @@ const PageFrameSidebarNavigationLink = styled(Link)`
   }
 
   &:active {
+    color: ${p => p.theme.tokens.content.primary};
     border: 1px solid ${p => p.theme.tokens.interactive.transparent.accent.border};
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.accent.background.active};
