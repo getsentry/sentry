@@ -1107,6 +1107,7 @@ function ViewerTableV2({
   }
 
   const cellActions =
+    organization.features.includes('visibility-explore-view') &&
     tableWidget.widgetType === WidgetType.SPANS
       ? [...ALLOWED_CELL_ACTIONS, Actions.OPEN_ROW_IN_EXPLORE]
       : ALLOWED_CELL_ACTIONS;

@@ -8,6 +8,7 @@ import type {CollectionChildren} from '@react-types/shared';
 
 import {Badge} from '@sentry/scraps/badge';
 import {ListBox} from '@sentry/scraps/compactSelect';
+import {useHotkeys} from '@sentry/scraps/hotkey';
 import {InputGroup} from '@sentry/scraps/input';
 
 import {Overlay} from 'sentry/components/overlay';
@@ -16,7 +17,6 @@ import {useRegistry} from 'sentry/debug/notifications/hooks/useRegistry';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {fzf} from 'sentry/utils/search/fzf';
-import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 export function DebugNotificationsSearch() {

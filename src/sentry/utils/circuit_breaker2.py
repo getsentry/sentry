@@ -8,7 +8,7 @@ and get rid of the old one, at which point this can lose the `2`.
 import logging
 import time
 from enum import Enum
-from typing import Any, Literal, NotRequired, TypedDict, overload
+from typing import Any, Literal, NotRequired, Protocol, TypedDict, overload
 
 from django.conf import settings
 
@@ -37,24 +37,234 @@ class CircuitBreakerState(Enum):
 
 
 class CircuitBreakerConfig(TypedDict):
-    # The number of errors within the given time period necessary to trip the breaker
-    error_limit: int
-    # The time period, in seconds, over which we're tracking errors
     error_limit_window: int
-    # How long, in seconds, to stay in the BROKEN state (blocking all requests) before entering the
-    # RECOVERY phase
+    """
+    The time period, in seconds, over which we're tracking errors
+    """
     broken_state_duration: int
-    # The number of errors within the given time period necessary to trip the breaker while in
-    # RECOVERY. Will be set automatically to 10% of `error_limit` if not provided.
-    recovery_error_limit: NotRequired[int]
-    # The length, in seconds, of each time bucket ("granule") used by the underlying rate limiter -
-    # effectively the resolution of the time window. Will be set automatically based on
-    # `error_limit_window` if not provided.
+    """
+    How long, in seconds, to stay in the BROKEN state (blocking all requests) before entering the
+    RECOVERY phase
+    """
     error_limit_window_granularity: NotRequired[int]
-    # How long, in seconds, to stay in the RECOVERY state (allowing requests but with a stricter
-    # error limit) before returning to normal operation. Will be set to twice `error_limit_window`
-    # if not provided.
+    """
+    The length, in seconds, of each time bucket ("granule") used by the underlying rate limiter -
+    effectively the resolution of the time window. Will be set automatically based on
+    `error_limit_window` if not provided.
+    """
     recovery_duration: NotRequired[int]
+    """
+    How long, in seconds, to stay in the RECOVERY state (allowing requests but with a stricter
+    error limit) before returning to normal operation. Will be set to twice `error_limit_window`
+    if not provided.
+    """
+    metrics_key: NotRequired[str]
+    """
+    Optional override for the key used in metric names. Use when the cache key is high-cardinality
+    (e.g. per-app) but metrics should aggregate at a system level. Defaults to `key`.
+    """
+
+
+# Used by rate-based strategies as a very large quota capacity — effectively unlimited, so
+# error_count and total_requests can be counted accurately without hitting the cap.
+_COUNTER_QUOTA_LIMIT = 2_000_000_000
+
+
+class CountBasedTripStrategyConfig(CircuitBreakerConfig):
+    error_limit: int
+    """
+    The number of errors within the given time period necessary to trip the breaker.
+    """
+    recovery_error_limit: NotRequired[int]
+    """
+    The number of errors within the given time period necessary to trip the breaker while in RECOVERY.
+    """
+
+
+class RateBasedTripStrategyConfig(CircuitBreakerConfig):
+    threshold: float
+    """
+    What % of total requests must be errors to trip the breaker.
+    """
+    floor: int
+    """
+    Minimum amount of errors to trip the breaker.
+    """
+
+
+class TripStrategy(Protocol):
+    def primary_quota_limit(self) -> int:
+        """Total hit capacity for the primary (OK state) error counter."""
+        ...
+
+    def recovery_quota_limit(self) -> int:
+        """Total hit capacity for the recovery state error counter."""
+        ...
+
+    def initialize(self, key: str, window: int, window_granularity: int) -> None:
+        """Set up any Redis quotas needed. Called by CircuitBreaker.__init__."""
+        ...
+
+    def tracking_quotas(self, is_recovery: bool = False) -> list[Quota]:
+        """Extra quotas to increment on every request (both record_error and record_success).
+        count-based trip strategies shouldn't track total requests."""
+        ...
+
+    def should_trip(
+        self,
+        controlling_quota: Quota,
+        remaining_errors: int,
+        limiter: RedisSlidingWindowRateLimiter,
+        key: str,
+        window_end: int,
+        *,
+        is_recovery: bool = False,
+    ) -> bool:
+        """Whether the current error count/rate warrants tripping to BROKEN."""
+        ...
+
+
+class CountBasedTripStrategy(TripStrategy):
+    """Trips the breaker when the error count within the window reaches a fixed threshold."""
+
+    @classmethod
+    def from_config(cls, config: CountBasedTripStrategyConfig) -> "CountBasedTripStrategy":
+        return cls(
+            error_limit=config["error_limit"],
+            recovery_error_limit=config.get("recovery_error_limit"),
+        )
+
+    def __init__(self, error_limit: int, recovery_error_limit: int | None = None) -> None:
+        self.error_limit = error_limit
+        self._recovery_error_limit = (
+            recovery_error_limit
+            if recovery_error_limit is not None
+            else self._default_recovery_limit
+        )
+
+    @property
+    def _default_recovery_limit(self) -> int:
+        return max(self.error_limit // DEFAULT_RECOVERY_STRICTNESS, 1)
+
+    def initialize(self, key: str, window: int, window_granularity: int) -> None:
+        # In the following sanity check, if we're in dev, throw an error on bad config so it can be
+        # fixed permanently. In prod, just warn and fix it ourselves.
+        if self._recovery_error_limit >= self.error_limit:
+            log = logger.error if settings.DEBUG else logger.warning
+            log(
+                "Circuit breaker '%s' has a recovery error limit (%d) greater than or equal"
+                + " to its primary error limit (%d). Using the stricter error-limit-based"
+                + " default (%d) instead.",
+                key,
+                self._recovery_error_limit,
+                self.error_limit,
+                self._default_recovery_limit,
+            )
+            self._recovery_error_limit = self._default_recovery_limit
+
+    def primary_quota_limit(self) -> int:
+        return self.error_limit
+
+    def recovery_quota_limit(self) -> int:
+        return self._recovery_error_limit
+
+    def tracking_quotas(self, is_recovery: bool = False) -> list[Quota]:
+        return []
+
+    def should_trip(
+        self,
+        controlling_quota: Quota,
+        remaining_errors: int,
+        limiter: RedisSlidingWindowRateLimiter,
+        key: str,
+        window_end: int,
+        *,
+        is_recovery: bool = False,
+    ) -> bool:
+        error_count = controlling_quota.limit - remaining_errors
+        threshold = self._recovery_error_limit if is_recovery else self.error_limit
+        return error_count >= threshold
+
+
+class RateBasedTripStrategy(TripStrategy):
+    """Trips the breaker when error_count >= floor AND error_count / total_requests >= threshold."""
+
+    @classmethod
+    def from_config(cls, config: RateBasedTripStrategyConfig) -> "RateBasedTripStrategy":
+        return cls(threshold=config["threshold"], floor=config["floor"])
+
+    def __init__(self, threshold: float, floor: int) -> None:
+        self.threshold = threshold
+        self.floor = floor
+        self._total_requests_quota: Quota | None = None
+        self._recovery_total_requests_quota: Quota | None = None
+
+    def initialize(self, key: str, window: int, window_granularity: int) -> None:
+        self._total_requests_quota = Quota(
+            window,
+            window_granularity,
+            _COUNTER_QUOTA_LIMIT,
+            f"{key}.circuit_breaker.total_requests",
+        )
+
+        self._recovery_total_requests_quota = Quota(
+            window,
+            window_granularity,
+            _COUNTER_QUOTA_LIMIT,
+            f"{key}.circuit_breaker.recovery.total_recovery_requests",
+        )
+
+    def primary_quota_limit(self) -> int:
+        return _COUNTER_QUOTA_LIMIT
+
+    def recovery_quota_limit(self) -> int:
+        return _COUNTER_QUOTA_LIMIT
+
+    def tracking_quotas(self, is_recovery: bool = False) -> list[Quota]:
+        if self._recovery_total_requests_quota is None or self._total_requests_quota is None:
+            raise ValueError("Cannot get tracking quotas before initialization")
+
+        # We need to track the number of requests in the recovery state to get an accurate error rate
+        return (
+            [self._recovery_total_requests_quota, self._total_requests_quota]
+            if is_recovery
+            else [self._total_requests_quota]
+        )
+
+    def should_trip(
+        self,
+        controlling_quota: Quota,
+        remaining_errors: int,
+        limiter: RedisSlidingWindowRateLimiter,
+        key: str,
+        window_end: int,
+        *,
+        is_recovery: bool = False,
+    ) -> bool:
+        error_count = controlling_quota.limit - remaining_errors
+        if error_count < self.floor:
+            return False
+
+        # total_grants is the number of remaining requests out of the quota limit,
+        # so we need to subtract it from the quota limit to get the number of requests counted
+        controlling_total_requests_quota = (
+            self._recovery_total_requests_quota if is_recovery else self._total_requests_quota
+        )
+
+        if controlling_total_requests_quota is None:
+            raise ValueError("Cannot get controlling total requests quota before initialization")
+
+        _, total_grants = limiter.check_within_quotas(
+            [RequestedQuota(key, _COUNTER_QUOTA_LIMIT, [controlling_total_requests_quota])],
+            window_end,
+        )
+        total_requests_counted = _COUNTER_QUOTA_LIMIT - total_grants[0].granted
+
+        # Guard against division by zero but this should never happen
+        if total_requests_counted == 0:
+            return False
+
+        return (error_count / total_requests_counted) >= self.threshold
 
 
 class CircuitBreaker:
@@ -83,10 +293,12 @@ class CircuitBreaker:
     Usage:
 
     def get_top_dogs(payload):
-        # See `CircuitBreakerConfig` class for config options
+        # See `CircuitBreakerConfig` and `CountBasedTripStrategyConfig` for config options
+        config = options.get("squirrel_chasing.circuit_breaker_config")
         breaker = CircuitBreaker(
             settings.SQUIRREL_CHASING_CIRCUIT_BREAKER_KEY,
-            options.get("squirrel_chasing.circuit_breaker_config"),
+            config,
+            CountBasedTripStrategy.from_config(config),
         )
 
         # Check the state of the breaker before calling the service
@@ -123,14 +335,16 @@ class CircuitBreaker:
     easily monitored.
     """
 
-    def __init__(self, key: str, config: CircuitBreakerConfig):
+    def __init__(
+        self,
+        key: str,
+        config: CircuitBreakerConfig,
+        trip_strategy: TripStrategy,
+    ):
         self.key = key
+        self.metrics_key = config.get("metrics_key", key)
         self.broken_state_key = f"{key}.circuit_breaker.broken"
         self.recovery_state_key = f"{key}.circuit_breaker.in_recovery"
-
-        self.error_limit = config["error_limit"]
-        default_recovery_error_limit = max(self.error_limit // DEFAULT_RECOVERY_STRICTNESS, 1)
-        self.recovery_error_limit = config.get("recovery_error_limit", default_recovery_error_limit)
 
         self.window = config["error_limit_window"]
         self.window_granularity = config.get(
@@ -147,34 +361,30 @@ class CircuitBreaker:
         )
         self.redis_pipeline = self.limiter.client.pipeline()
 
+        self.trip_strategy = trip_strategy
+
+        # Initialize each strategy (validation and Redis quota setup happen here)
+        self.trip_strategy.initialize(key, self.window, self.window_granularity)
+
+        primary_limit = self.trip_strategy.primary_quota_limit()
+        recovery_limit = self.trip_strategy.recovery_quota_limit()
+
         self.primary_quota = Quota(
             self.window,
             self.window_granularity,
-            self.error_limit,
+            primary_limit,
             f"{key}.circuit_breaker.ok",
         )
         self.recovery_quota = Quota(
             self.window,
             self.window_granularity,
-            self.recovery_error_limit,
+            recovery_limit,
             f"{key}.circuit_breaker.recovery",
         )
 
-        # In the following sanity checks, if we're in dev, throw an error on bad config so it can be
+        # In the following sanity check, if we're in dev, throw an error on bad config so it can be
         # fixed permanently. In prod, just warn and fix it ourselves.
         log = logger.error if settings.DEBUG else logger.warning
-
-        if self.recovery_error_limit >= self.error_limit:
-            log(
-                "Circuit breaker '%s' has a recovery error limit (%d) greater than or equal"
-                + " to its primary error limit (%d). Using the stricter error-limit-based"
-                + " default (%d) instead.",
-                key,
-                self.recovery_error_limit,
-                self.error_limit,
-                default_recovery_error_limit,
-            )
-            self.recovery_error_limit = default_recovery_error_limit
 
         # XXX: If we discover we have a config where we want this combo to work, we can consider
         # using the `MockCircuitBreaker._clear_quota` helper, which is currently only used in tests,
@@ -195,6 +405,39 @@ class CircuitBreaker:
                 default_recovery_duration,
             )
             self.recovery_duration = default_recovery_duration
+
+    def record_success(self) -> None:
+        """Record a successful request. Only meaningful when a strategy tracks total requests."""
+        now = int(time.time())
+        state, _ = self._get_state_and_remaining_time()
+        if state == CircuitBreakerState.BROKEN:
+            return
+
+        tracking = self.trip_strategy.tracking_quotas(
+            is_recovery=state == CircuitBreakerState.RECOVERY
+        )
+        if not tracking:
+            return
+
+        # Tell the limiter to increment the key by 1 for each tracking quota
+        self.limiter.use_quotas(
+            [RequestedQuota(self.key, 1, tracking)],
+            [GrantedQuota(self.key, 1, [])],
+            now,
+        )
+
+    def _should_trip(self, controlling_quota: Quota) -> bool:
+        window_end_time = int(time.time())
+        remaining = self._get_remaining_error_quota(controlling_quota, window_end_time)
+        is_recovery = controlling_quota is self.recovery_quota
+        return self.trip_strategy.should_trip(
+            controlling_quota,
+            remaining,
+            self.limiter,
+            self.key,
+            window_end_time,
+            is_recovery=is_recovery,
+        )
 
     def record_error(self) -> None:
         """
@@ -227,14 +470,20 @@ class CircuitBreaker:
             if state == CircuitBreakerState.RECOVERY
             else [self.primary_quota]
         )
+        quotas = [
+            *quotas,
+            *self.trip_strategy.tracking_quotas(is_recovery=state == CircuitBreakerState.RECOVERY),
+        ]
+
         self.limiter.use_quotas(
-            [RequestedQuota(self.key, 1, quotas)], [GrantedQuota(self.key, 1, [])], now
+            [RequestedQuota(self.key, 1, quotas)],
+            [GrantedQuota(self.key, 1, [])],
+            now,
         )
 
         # If incrementing has made us hit the current limit, switch to the BROKEN state
         controlling_quota = self._get_controlling_quota(state)
-        remaining_errors_allowed = self._get_remaining_error_quota(controlling_quota)
-        if remaining_errors_allowed == 0:
+        if self._should_trip(controlling_quota):
             logger.warning(
                 "Circuit breaker '%s' error limit hit",
                 self.key,
@@ -245,7 +494,7 @@ class CircuitBreaker:
                 },
             )
             metrics.incr(
-                f"circuit_breaker.{self.key}.error_limit_hit",
+                f"circuit_breaker.{self.metrics_key}.error_limit_hit",
                 sample_rate=1.0,
                 tags={"current_state": state.value},
             )
@@ -258,7 +507,7 @@ class CircuitBreaker:
             broken_state_expiry = now + broken_state_timeout
             recovery_state_expiry = now + recovery_state_timeout
 
-            # Set reids keys for switching state. While they're both set (starting now) we'll be in
+            # Set redis keys for switching state. While they're both set (starting now) we'll be in
             # the BROKEN state. Once `broken_state_key` expires in redis we'll switch to RECOVERY,
             # and then once `recovery_state_key` expires we'll be back to normal.
             try:
@@ -283,17 +532,18 @@ class CircuitBreaker:
         remaining, whether requests should be allowed through.
         """
         state, _ = self._get_state_and_remaining_time()
+
+        if state == CircuitBreakerState.BROKEN:
+            metrics.incr(f"circuit_breaker.{self.metrics_key}.request_blocked")
+            return False
+
         controlling_quota = self._get_controlling_quota(state)
 
-        if (
-            state == CircuitBreakerState.BROKEN
-            or
-            # If there's no remaining quota, in theory we should already be in a broken state. That
-            # said, it's possible we could be in a race condition and hit this just as the state is
-            # being changed, so just to be safe we also check qouta here.
-            self._get_remaining_error_quota(controlling_quota) <= 0
-        ):
-            metrics.incr(f"circuit_breaker.{self.key}.request_blocked")
+        # If there's no remaining quota, in theory we should already be in a broken state. That
+        # said, it's possible we could be in a race condition and hit this just as the state is
+        # being changed, so just to be safe we also check here.
+        if self._should_trip(controlling_quota):
+            metrics.incr(f"circuit_breaker.{self.metrics_key}.request_blocked")
             return False
 
         return True

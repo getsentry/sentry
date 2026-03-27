@@ -46,10 +46,6 @@ bin/load-integration-data
 bin/load-mocks
 bin/merge-catalogs
 bin/model-dependency-graphviz
-bin/preprod/test_pr_details
-bin/preprod/trigger_pr_comment
-bin/preprod/trigger_size_status_check
-bin/preprod/trigger_snapshot_status_check
 bin/run-model-tests
 bin/save-integration-data
 bin/send_metrics.py
@@ -756,8 +752,6 @@ static/app/components/hook.spec.tsx
 static/app/components/hook.tsx
 static/app/components/hookOrDefault.spec.tsx
 static/app/components/hookOrDefault.tsx
-static/app/components/hotkeysLabel.spec.tsx
-static/app/components/hotkeysLabel.tsx
 static/app/components/hovercard.spec.tsx
 static/app/components/hovercard.tsx
 static/app/components/iconCircledNumber.tsx
@@ -1507,6 +1501,8 @@ static/gsAdmin/components/addGiftBudgetAction.tsx
 static/gsAdmin/components/addGiftEventsAction.spec.tsx
 static/gsAdmin/components/addGiftEventsAction.tsx
 static/gsAdmin/components/addOrRemoveOrgModal.tsx
+static/gsAdmin/components/addToStartupProgramAction.spec.tsx
+static/gsAdmin/components/addToStartupProgramAction.tsx
 static/gsAdmin/components/adminConfirmationModal.spec.tsx
 static/gsAdmin/components/adminConfirmationModal.tsx
 static/gsAdmin/components/beacons/beaconCheckins.tsx

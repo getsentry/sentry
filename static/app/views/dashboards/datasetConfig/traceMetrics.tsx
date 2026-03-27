@@ -56,7 +56,7 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 
 // This is a placeholder that currently signals that no metric is selected
 // When the metrics are loaded up, the first metric is selected and this will be filled out
-export const EMPTY_METRIC_SELECTION = 'avg(value,,,-)';
+const EMPTY_METRIC_SELECTION = 'sum(value)';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -69,7 +69,7 @@ const DEFAULT_WIDGET_QUERY: WidgetQuery = {
 };
 
 const DEFAULT_FIELD: QueryFieldValue = {
-  function: ['avg', 'value', undefined, undefined],
+  function: ['sum', 'value', undefined, undefined],
   kind: FieldValueKind.FUNCTION,
 };
 

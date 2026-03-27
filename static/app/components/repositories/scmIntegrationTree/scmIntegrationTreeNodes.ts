@@ -1,4 +1,3 @@
-import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
 import type {
   ProviderFilter,
   RepoFilter,
@@ -25,6 +24,7 @@ type Props = {
   scmIntegrations: OrganizationIntegration[];
   scmProviders: IntegrationProvider[];
   search: string;
+  supportedProviderIds: string[];
   togglingRepos: Set<string>;
 };
 
@@ -41,13 +41,14 @@ export function buildIntegrationTreeNodes({
   search,
   repoFilter,
   providerFilter,
+  supportedProviderIds,
 }: Props): TreeNode[] {
   const nodes: TreeNode[] = [];
   const query = search.trim().toLowerCase();
 
   const visibleProviders =
     providerFilter === 'seer-supported'
-      ? scmProviders.filter(p => isSupportedAutofixProvider({id: p.key, name: p.name}))
+      ? scmProviders.filter(p => supportedProviderIds.includes(p.key))
       : scmProviders;
 
   for (const provider of visibleProviders) {
