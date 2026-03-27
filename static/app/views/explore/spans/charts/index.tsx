@@ -67,10 +67,6 @@ export const EXPLORE_CHART_TYPE_OPTIONS = [
     value: ChartType.BAR,
     label: t('Bar'),
   },
-  {
-    value: ChartType.HEATMAP,
-    label: t('Heatmap'),
-  },
 ];
 
 const EXPLORE_CHART_GROUP = 'explore-charts_group';

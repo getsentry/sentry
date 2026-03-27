@@ -72,8 +72,17 @@ function buildHeatmapData(
     return {data: [], timestamps: [], yLabels: [], minVal: 0, maxVal: 0};
   }
 
-  const minVal = Math.min(...allValues);
-  const maxVal = Math.max(...allValues);
+  let minVal = allValues[0]!;
+  let maxVal = allValues[0]!;
+  for (let i = 1; i < allValues.length; i++) {
+    const value = allValues[i]!;
+    if (value < minVal) {
+      minVal = value;
+    }
+    if (value > maxVal) {
+      maxVal = value;
+    }
+  }
   const range = maxVal - minVal || 1;
 
   const timestampSet = new Set<number>();
@@ -104,7 +113,14 @@ function buildHeatmapData(
     }
   }
 
-  const maxCount = Math.max(...counts.flatMap(row => row), 1);
+  let maxCount = 1;
+  for (const row of counts) {
+    for (const count of row) {
+      if (count > maxCount) {
+        maxCount = count;
+      }
+    }
+  }
 
   // Build flat [xIndex, yIndex, intensity] array for ECharts.
   // Always emit every cell (including empty ones at intensity 0) so the tooltip

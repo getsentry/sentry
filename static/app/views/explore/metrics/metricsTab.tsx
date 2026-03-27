@@ -94,7 +94,7 @@ function MetricsQueryBuilderSection() {
 
   if (canUseMetricsUIRefresh(organization)) {
     return (
-      <MetricsControlBar>
+      <Container padding="lg" background="primary" borderBottom="primary">
         <Flex direction="column" gap="sm" width="100%">
           {metricQueries.map((metricQuery, index) => {
             return (
@@ -119,7 +119,7 @@ function MetricsQueryBuilderSection() {
             />
           </Flex>
         </Flex>
-      </MetricsControlBar>
+      </Container>
     );
   }
 
@@ -219,11 +219,5 @@ const MetricsQueryBuilderContainer = styled(Container)`
   padding: ${p => p.theme.space.xl};
   background-color: ${p => p.theme.tokens.background.primary};
   border-top: none;
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-`;
-
-const MetricsControlBar = styled('div')`
-  padding: ${p => p.theme.space.lg};
-  background-color: ${p => p.theme.tokens.background.primary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
