@@ -28,6 +28,14 @@ function tryParseJson(value: unknown) {
   }
 }
 
+function hasNestedObject(value: unknown) {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const values = Array.isArray(value) ? value : Object.values(value);
+  return values.some(v => typeof v === 'object' && v !== null);
+}
+
 export function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>({
   config,
   content,
@@ -79,7 +87,9 @@ export function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>
         data={parsedJson}
         maxDefaultDepth={2}
         withAnnotatedText={false}
-        className={value.length <= 48 ? 'compact' : undefined}
+        className={
+          value.length <= 48 && !hasNestedObject(parsedJson) ? 'compact' : undefined
+        }
       />
     );
   }

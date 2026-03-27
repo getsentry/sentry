@@ -208,6 +208,18 @@ describe('AttributesTreeValue', () => {
     expect(pre).toHaveClass('compact');
   });
 
+  it('renders short JSON with nested objects without compact class', () => {
+    const jsonContent = {
+      ...defaultProps.content,
+      value: '{"a":{"b":{"c":{"d":1}}}}',
+    };
+
+    render(<AttributesTreeValue {...defaultProps} content={jsonContent} />);
+
+    const pre = screen.getByText('a').closest('pre');
+    expect(pre).not.toHaveClass('compact');
+  });
+
   it('renders long JSON without compact class', () => {
     const jsonContent = {
       ...defaultProps.content,
