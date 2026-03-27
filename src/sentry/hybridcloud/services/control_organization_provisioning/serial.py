@@ -11,7 +11,7 @@ def serialize_slug_reservation(
         id=slug_reservation.id,
         organization_id=slug_reservation.organization_id,
         slug=slug_reservation.slug,
-        region_name=slug_reservation.cell_name,
+        cell_name=slug_reservation.cell_name,
         user_id=slug_reservation.user_id,
         reservation_type=slug_reservation.reservation_type,
     )

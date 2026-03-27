@@ -927,6 +927,14 @@ class ReplayParams:
         description="""The ID of the segment you'd like to retrieve.""",
     )
 
+    JOB_ID = OpenApiParameter(
+        name="job_id",
+        location="path",
+        required=True,
+        type=OpenApiTypes.INT,
+        description="""The ID of the replay deletion job you'd like to retrieve.""",
+    )
+
 
 class NotificationParams:
     TRIGGER_TYPE = OpenApiParameter(

@@ -8,9 +8,9 @@ import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {IconAdd} from 'sentry/icons';
 import {IconDelete} from 'sentry/icons/iconDelete';
-import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';
@@ -80,13 +80,7 @@ export function ToolbarVisualizeDropdown({
       {...attributes}
     >
       {dragColumnId === undefined ? null : (
-        <Button
-          aria-label={t('Drag to reorder')}
-          priority="transparent"
-          size="zero"
-          icon={<IconGrabbable size="sm" />}
-          {...listeners}
-        />
+        <DragReorderButton iconSize="sm" {...listeners} />
       )}
       {label}
       <AggregateCompactSelect

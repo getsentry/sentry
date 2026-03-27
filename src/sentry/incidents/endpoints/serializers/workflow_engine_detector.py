@@ -257,7 +257,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
                 for detector_trigger in detector_trigger_data_conditions
             ],
             condition_group__in=Subquery(workflow_dcg_ids),
-        )
+        ).select_related("condition_group")
 
         dcgas = DataConditionGroupAction.objects.filter(
             condition_group__in=[

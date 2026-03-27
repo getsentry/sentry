@@ -33,3 +33,21 @@ def parse_release_version(release_version: str) -> ParsedReleaseVersion | None:
         return ParsedReleaseVersion(app_id=app_id, build_version=build_version)
 
     return None
+
+
+def format_bytes_base10(size_bytes: int) -> str:
+    """Format file size using decimal (base-10) units. Matches the frontend implementation of formatBytesBase10."""
+    units = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"]
+    threshold = 1000
+
+    if size_bytes < threshold:
+        return f"{size_bytes} {units[0]}"
+
+    u = 0
+    number = float(size_bytes)
+    max_unit = len(units) - 1
+    while number >= threshold and u < max_unit:
+        number /= threshold
+        u += 1
+
+    return f"{number:.1f} {units[u]}"

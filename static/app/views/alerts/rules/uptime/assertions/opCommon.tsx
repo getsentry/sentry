@@ -7,8 +7,9 @@ import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
-import {IconDelete, IconGrabbable} from 'sentry/icons';
+import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {AssertionFormError} from 'sentry/views/alerts/rules/uptime/formErrors';
 import {
@@ -85,13 +86,9 @@ export function OpContainer({
             <Text size="sm" bold>
               <label htmlFor={inputId}>{label}</label>
             </Text>
-            <Button
-              size="zero"
-              priority="transparent"
-              icon={<IconGrabbable size="xs" />}
+            <DragReorderButton
               aria-label={t('Reorder assertion')}
               ref={setActivatorNodeRef}
-              style={{cursor: 'grab'}}
               {...listeners}
               {...attributes}
             />
