@@ -63,7 +63,6 @@ from sentry.models.groupinbox import GroupInbox
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.events.constants import EQUALITY_OPERATORS
-from sentry.search.events.filter import to_list
 from sentry.search.snuba.backend import assigned_or_suggested_filter
 from sentry.search.snuba.executors import get_search_filter
 from sentry.utils.cursors import Cursor, CursorResult
@@ -178,10 +177,15 @@ def _get_issue_id_shortcut_ids(
         return None
     if sf.key.name != "issue.id" or sf.operator not in EQUALITY_OPERATORS:
         return None
+    raw = sf.value.raw_value
     try:
-        return [int(v) for v in to_list(sf.value.raw_value)]
+        if isinstance(raw, (list, tuple)):
+            return [int(v) for v in raw]
+        if isinstance(raw, (int, float, str)):
+            return [int(raw)]
     except (ValueError, TypeError):
-        return None
+        pass
+    return None
 
 
 @extend_schema(tags=["Events"])
