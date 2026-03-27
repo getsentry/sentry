@@ -38,7 +38,7 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {OverviewSpansTable} from 'sentry/views/performance/eap/overviewSpansTable';
+import {SampledEventsTable} from 'sentry/views/performance/eap/sampledEventsTable';
 import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {
@@ -213,7 +213,7 @@ export function EventsContent(props: Props) {
       : percentileValues?.[eventsDisplayFilterName];
 
   const table = shouldUseEAP ? (
-    <OverviewSpansTable
+    <SampledEventsTable
       eventView={eventView}
       transactionName={transactionName}
       maxDuration={maxDuration}
