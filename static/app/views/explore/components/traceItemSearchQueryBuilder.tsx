@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo} from 'react';
+import {useMemo} from 'react';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {SpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
@@ -7,7 +7,6 @@ import {
   type SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
-import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
@@ -109,7 +108,6 @@ export function useTraceItemSearchQueryBuilderProps({
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
 
-  const {invalidFilterKeys, validateQuery} = useAttributeValidation(itemType);
   const {selection} = usePageFilters();
   const effectiveProjects = projects ?? selection.projects;
   const validationSelection = useMemo(
@@ -117,18 +115,10 @@ export function useTraceItemSearchQueryBuilderProps({
     [selection.datetime, effectiveProjects]
   );
 
-  useEffect(() => {
-    if (initialQuery) {
-      validateQuery(initialQuery, validationSelection);
-    }
-  }, [initialQuery, validateQuery, validationSelection]);
-
-  const wrappedOnChange = useCallback(
-    (query: string, state: CallbackSearchState) => {
-      validateQuery(query, validationSelection);
-      onChange?.(query, state);
-    },
-    [validateQuery, validationSelection, onChange]
+  const {invalidFilterKeys} = useAttributeValidation(
+    itemType,
+    initialQuery ?? '',
+    validationSelection
   );
   const functionTags = useFunctionTags(itemType, supportedAggregates);
   const filterKeySections = useFilterKeySections(itemType, stringAttributes);
@@ -165,7 +155,7 @@ export function useTraceItemSearchQueryBuilderProps({
       initialQuery,
       fieldDefinitionGetter: getTraceItemFieldDefinitionFunction(itemType, filterTags),
       onSearch,
-      onChange: wrappedOnChange,
+      onChange,
       onBlur,
       getFilterTokenWarning,
       searchSource,
@@ -213,7 +203,7 @@ export function useTraceItemSearchQueryBuilderProps({
       numberSecondaryAliases,
       onBlur,
       onCaseInsensitiveClick,
-      wrappedOnChange,
+      onChange,
       onSearch,
       placeholderText,
       portalTarget,

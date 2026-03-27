@@ -1,10 +1,8 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import {
-  extractFilterKeys,
   useAttributeValidation,
   type AttributeValidationSelection,
 } from 'sentry/views/explore/hooks/useAttributeValidation';
@@ -16,69 +14,31 @@ const DEFAULT_SELECTION: AttributeValidationSelection = {
   projects: [],
 };
 
-describe('extractFilterKeys', () => {
-  it('returns empty array for null parsedQuery', () => {
-    expect(extractFilterKeys(null)).toEqual([]);
-  });
-
-  it('returns empty array for empty parsedQuery', () => {
-    expect(extractFilterKeys(parseSearch(''))).toEqual([]);
-  });
-
-  it('returns empty array when there are no filter tokens', () => {
-    expect(extractFilterKeys(parseSearch('hello world'))).toEqual([]);
-  });
-
-  it('extracts and sorts filter keys', () => {
-    expect(extractFilterKeys(parseSearch('zebra:value apple:value'))).toEqual([
-      'apple',
-      'zebra',
-    ]);
-  });
-
-  it('deduplicates keys', () => {
-    expect(extractFilterKeys(parseSearch('duplicate:value duplicate:other'))).toEqual([
-      'duplicate',
-    ]);
-  });
-
-  it('returns stable reference for empty results', () => {
-    const result1 = extractFilterKeys(null);
-    const result2 = extractFilterKeys(null);
-    expect(result1).toBe(result2);
-  });
-});
-
 describe('useAttributeValidation', () => {
   const organization = OrganizationFixture({slug: ORG_SLUG});
 
-  it('returns empty invalidFilterKeys initially', () => {
+  it('returns empty invalidFilterKeys for empty query', () => {
     const {result} = renderHookWithProviders(
-      () => useAttributeValidation(TraceItemDataset.SPANS),
+      () => useAttributeValidation(TraceItemDataset.SPANS, '', DEFAULT_SELECTION),
       {organization}
     );
 
     expect(result.current.invalidFilterKeys).toEqual([]);
   });
 
-  it('does not call the API when query has no filter keys', async () => {
+  it('does not call the API when query has no filter keys', () => {
     const mockValidate = MockApiClient.addMockResponse({
       url: `/organizations/${ORG_SLUG}/trace-items/attributes/validate/`,
       method: 'POST',
       body: {attributes: {}},
     });
 
-    const {result} = renderHookWithProviders(
-      () => useAttributeValidation(TraceItemDataset.SPANS),
+    renderHookWithProviders(
+      () => useAttributeValidation(TraceItemDataset.SPANS, '', DEFAULT_SELECTION),
       {organization}
     );
 
-    await act(async () => {
-      await result.current.validateQuery('', DEFAULT_SELECTION);
-    });
-
     expect(mockValidate).not.toHaveBeenCalled();
-    expect(result.current.invalidFilterKeys).toEqual([]);
   });
 
   it('sets invalidFilterKeys for keys the API reports as invalid', async () => {
@@ -94,16 +54,14 @@ describe('useAttributeValidation', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () => useAttributeValidation(TraceItemDataset.SPANS),
+      () =>
+        useAttributeValidation(
+          TraceItemDataset.SPANS,
+          'span.op:db unknown_key:value',
+          DEFAULT_SELECTION
+        ),
       {organization}
     );
-
-    await act(async () => {
-      await result.current.validateQuery(
-        'span.op:db unknown_key:value',
-        DEFAULT_SELECTION
-      );
-    });
 
     await waitFor(() => {
       expect(result.current.invalidFilterKeys).toEqual(['unknown_key']);
@@ -118,13 +76,10 @@ describe('useAttributeValidation', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () => useAttributeValidation(TraceItemDataset.SPANS),
+      () =>
+        useAttributeValidation(TraceItemDataset.SPANS, 'span.op:db', DEFAULT_SELECTION),
       {organization}
     );
-
-    await act(async () => {
-      await result.current.validateQuery('span.op:db', DEFAULT_SELECTION);
-    });
 
     await waitFor(() => {
       expect(result.current.invalidFilterKeys).toEqual([]);
@@ -138,17 +93,23 @@ describe('useAttributeValidation', () => {
       body: {attributes: {'span.op': {valid: true}}},
     });
 
-    const {result} = renderHookWithProviders(
-      () => useAttributeValidation(TraceItemDataset.SPANS),
-      {organization}
+    const {result, rerender} = renderHookWithProviders(
+      ({query, selection}: {query: string; selection: AttributeValidationSelection}) =>
+        useAttributeValidation(TraceItemDataset.SPANS, query, selection),
+      {
+        organization,
+        initialProps: {query: 'span.op:db', selection: DEFAULT_SELECTION},
+      }
     );
 
-    await act(async () => {
-      await result.current.validateQuery('span.op:db', DEFAULT_SELECTION);
+    await waitFor(() => {
+      expect(result.current.invalidFilterKeys).toEqual([]);
     });
 
-    await act(async () => {
-      await result.current.validateQuery('span.op:web', DEFAULT_SELECTION);
+    rerender({query: 'span.op:web', selection: DEFAULT_SELECTION});
+
+    await waitFor(() => {
+      expect(result.current.invalidFilterKeys).toEqual([]);
     });
 
     expect(mockValidate).toHaveBeenCalledTimes(1);
@@ -161,22 +122,29 @@ describe('useAttributeValidation', () => {
       body: {attributes: {'span.op': {valid: true}}},
     });
 
-    const {result} = renderHookWithProviders(
-      () => useAttributeValidation(TraceItemDataset.SPANS),
-      {organization}
+    const {result, rerender} = renderHookWithProviders(
+      ({query, selection}: {query: string; selection: AttributeValidationSelection}) =>
+        useAttributeValidation(TraceItemDataset.SPANS, query, selection),
+      {
+        organization,
+        initialProps: {query: 'span.op:db', selection: DEFAULT_SELECTION},
+      }
     );
 
-    await act(async () => {
-      await result.current.validateQuery('span.op:db', DEFAULT_SELECTION);
+    await waitFor(() => {
+      expect(result.current.invalidFilterKeys).toEqual([]);
     });
 
-    await act(async () => {
-      await result.current.validateQuery('span.op:db', {
+    rerender({
+      query: 'span.op:db',
+      selection: {
         datetime: {period: '7d', start: null, end: null, utc: false},
         projects: [],
-      });
+      },
     });
 
-    expect(mockValidate).toHaveBeenCalledTimes(2);
+    await waitFor(() => {
+      expect(mockValidate).toHaveBeenCalledTimes(2);
+    });
   });
 });

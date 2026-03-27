@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useMemo} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {ParseResult} from 'sentry/components/searchSyntax/parser';
@@ -8,7 +8,7 @@ import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import type {PageFilters} from 'sentry/types/core';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchDataQuery, queryOptions, useQueryClient} from 'sentry/utils/queryClient';
+import {fetchDataQuery, queryOptions, useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -79,46 +79,35 @@ function validateAttributesQueryOptions({
   });
 }
 
-export function useAttributeValidation(itemType: TraceItemDataset): {
+export function useAttributeValidation(
+  itemType: TraceItemDataset,
+  query: string,
+  selection: AttributeValidationSelection
+): {
   invalidFilterKeys: string[];
-  validateQuery: (
-    query: string,
-    selection: AttributeValidationSelection
-  ) => Promise<void>;
 } {
-  const [invalidFilterKeys, setInvalidFilterKeys] = useState<string[]>([]);
-  const queryClient = useQueryClient();
   const organization = useOrganization();
 
-  const validateQuery = useCallback(
-    async (query: string, selection: AttributeValidationSelection) => {
-      const keys = extractFilterKeys(parseSearch(query));
-      if (!keys.length) {
-        setInvalidFilterKeys([]);
-        return;
-      }
-      try {
-        const options = validateAttributesQueryOptions({
-          itemType,
-          filterKeys: keys,
-          organizationSlug: organization.slug,
-          ...selection,
-        });
-        await queryClient.cancelQueries({
-          queryKey: [options.queryKey[0], {method: 'POST', data: {itemType}}],
-        });
-        const [data] = await queryClient.fetchQuery(options);
-        setInvalidFilterKeys(
-          Object.entries(data.attributes)
-            .filter(([, result]) => !result.valid)
-            .map(([key]) => key)
-        );
-      } catch {
-        // leave previous state on error
-      }
-    },
-    [queryClient, organization.slug, itemType]
+  const filterKeys = useMemo(() => extractFilterKeys(parseSearch(query)), [query]);
+
+  const {data} = useQuery(
+    validateAttributesQueryOptions({
+      itemType,
+      filterKeys,
+      organizationSlug: organization.slug,
+      ...selection,
+    })
   );
 
-  return {invalidFilterKeys, validateQuery};
+  const invalidFilterKeys = useMemo(() => {
+    if (!data) {
+      return EMPTY_KEYS;
+    }
+
+    return Object.entries(data?.[0]?.attributes)
+      .filter(([, result]) => !result.valid)
+      .map(([key]) => key);
+  }, [data]);
+
+  return {invalidFilterKeys};
 }
