@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 
 import type {SpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {
@@ -110,12 +110,13 @@ export function useTraceItemSearchQueryBuilderProps({
 
   const {invalidFilterKeys, validateQuery} = useAttributeValidation(itemType, projects);
 
+  const initialQueryValidatedRef = useRef(false);
   useEffect(() => {
-    if (initialQuery) {
+    if (initialQuery && !initialQueryValidatedRef.current) {
       validateQuery(initialQuery);
+      initialQueryValidatedRef.current = true;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initialQuery, validateQuery]);
 
   const wrappedOnChange = useCallback(
     (query: string, state: CallbackSearchState) => {
