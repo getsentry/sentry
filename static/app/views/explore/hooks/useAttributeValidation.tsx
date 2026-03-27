@@ -13,13 +13,13 @@ import {fetchDataQuery, queryOptions, useQueryClient} from 'sentry/utils/queryCl
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 
-export interface AttributeValidationResult {
+interface AttributeValidationResult {
   valid: boolean;
   error?: string;
   type?: 'boolean' | 'number' | 'string';
 }
 
-export interface ValidateAttributesResponse {
+interface ValidateAttributesResponse {
   attributes: Record<string, AttributeValidationResult>;
 }
 
@@ -33,10 +33,6 @@ interface ValidateAttributesParams {
 
 const EMPTY_KEYS: string[] = [];
 
-/**
- * Extracts and sorts unique filter key names from a parsed search query.
- * Sorting ensures stable query keys regardless of token order.
- */
 export function extractFilterKeys(parsedQuery: ParseResult | null): string[] {
   if (!parsedQuery) {
     return EMPTY_KEYS;
@@ -50,10 +46,36 @@ export function extractFilterKeys(parsedQuery: ParseResult | null): string[] {
   return keySet.size > 0 ? [...keySet].sort() : EMPTY_KEYS;
 }
 
-/**
- * Hook that manages invalid filter key state and exposes a validateQuery
- * function that parses a query string and validates its keys against the API.
- */
+function validateAttributesQueryOptions({
+  itemType,
+  filterKeys,
+  organizationSlug,
+  datetime,
+  projects,
+}: ValidateAttributesParams) {
+  return queryOptions({
+    queryKey: [
+      getApiUrl('/organizations/$organizationIdOrSlug/trace-items/attributes/validate/', {
+        path: {organizationIdOrSlug: organizationSlug},
+      }),
+      {
+        method: 'POST' as const,
+        data: {itemType, attributes: filterKeys},
+        query: {
+          ...Object.fromEntries(
+            Object.entries(normalizeDateTimeParams(datetime)).filter(
+              (entry): entry is [string, string | string[]] => entry[1] !== null
+            )
+          ),
+          ...(projects?.length ? {project: projects.map(String)} : {}),
+        },
+      },
+    ] satisfies ApiQueryKey,
+    queryFn: fetchDataQuery<ValidateAttributesResponse>,
+    enabled: filterKeys.length > 0,
+  });
+}
+
 export function useAttributeValidation(
   itemType: TraceItemDataset,
   projects?: number[]
@@ -94,38 +116,4 @@ export function useAttributeValidation(
   );
 
   return {invalidFilterKeys, validateQuery};
-}
-
-/**
- * Returns TanStack Query options for validating trace item filter keys against
- * the API. Use with queryClient.fetchQuery for imperative fetching.
- */
-export function validateAttributesQueryOptions({
-  itemType,
-  filterKeys,
-  organizationSlug,
-  datetime,
-  projects,
-}: ValidateAttributesParams) {
-  return queryOptions({
-    queryKey: [
-      getApiUrl('/organizations/$organizationIdOrSlug/trace-items/attributes/validate/', {
-        path: {organizationIdOrSlug: organizationSlug},
-      }),
-      {
-        method: 'POST' as const,
-        data: {itemType, attributes: filterKeys},
-        query: {
-          ...Object.fromEntries(
-            Object.entries(normalizeDateTimeParams(datetime)).filter(
-              (entry): entry is [string, string | string[]] => entry[1] !== null
-            )
-          ),
-          ...(projects?.length ? {project: projects.map(String)} : {}),
-        },
-      },
-    ] satisfies ApiQueryKey,
-    queryFn: fetchDataQuery<ValidateAttributesResponse>,
-    enabled: filterKeys.length > 0,
-  });
 }
