@@ -14,7 +14,7 @@ from django.http import HttpRequest, HttpResponse, JsonResponse, StreamingHttpRe
 from django.http.response import HttpResponseBase
 from requests import Response as ExternalResponse
 from requests import request as external_request
-from requests.exceptions import Timeout
+from requests.exceptions import ConnectionError, Timeout
 
 from sentry import options
 from sentry.api.exceptions import RequestTimeout
@@ -193,18 +193,22 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
             )
     except Timeout:
         metrics.incr("apigateway.proxy.request_timeout", tags=metric_tags)
-        try:
-            if circuit_breaker is not None:
-                circuit_breaker.record_error()
-        except Exception:
-            logger.exception("Failed to record circuitbreaker failure")
+        if circuit_breaker is not None:
+            circuit_breaker.record_error()
 
         # remote silo timeout. Use DRF timeout instead
         raise RequestTimeout()
+    except ConnectionError:
+        metrics.incr("apigateway.proxy.connection_error", tags=metric_tags)
+        if circuit_breaker is not None:
+            circuit_breaker.record_error()
 
-    if resp.status_code >= 500 and circuit_breaker is not None:
+        raise
+
+    if resp.status_code >= 502:
         metrics.incr("apigateway.proxy.request_failed", tags=metric_tags)
-        circuit_breaker.record_error()
+        if circuit_breaker is not None:
+            circuit_breaker.record_error()
 
     new_headers = clean_outbound_headers(resp.headers)
     resp.headers.clear()

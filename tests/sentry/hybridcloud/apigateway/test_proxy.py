@@ -7,7 +7,7 @@ import responses
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.http import HttpResponse
 from django.test.client import RequestFactory
-from requests.exceptions import Timeout
+from requests.exceptions import ConnectionError, Timeout
 
 from sentry.api.exceptions import RequestTimeout
 from sentry.hybridcloud.apigateway.proxy import proxy_request
@@ -352,7 +352,58 @@ class ProxyCircuitBreakerTestCase(ApiGatewayTestCase):
 
     @responses.activate
     @override_options(CB_ENABLED)
-    def test_5xx_response_records_error(self) -> None:
+    def test_connection_error_records_error(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{self.CELL.address}/connect-error",
+            body=ConnectionError(),
+        )
+        with patch("sentry.hybridcloud.apigateway.proxy.CircuitBreaker") as mock_breaker_class:
+            mock_breaker = self._make_breaker_mock(allow_request=True)
+            mock_breaker_class.return_value = mock_breaker
+            request = RequestFactory().get("http://sentry.io/connect-error")
+            with pytest.raises(ConnectionError):
+                proxy_request(request, self.organization.slug, url_name)
+        mock_breaker.record_error.assert_called_once()
+
+    @responses.activate
+    @override_options(CB_ENABLED)
+    def test_connection_error_records_metric(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{self.CELL.address}/connect-error",
+            body=ConnectionError(),
+        )
+        with patch("sentry.hybridcloud.apigateway.proxy.metrics") as mock_metrics:
+            request = RequestFactory().get("http://sentry.io/connect-error")
+            with pytest.raises(ConnectionError):
+                proxy_request(request, self.organization.slug, url_name)
+        mock_metrics.incr.assert_any_call(
+            "apigateway.proxy.connection_error",
+            tags={"region": self.CELL.name, "url_name": url_name},
+        )
+
+    @responses.activate
+    @override_options(CB_ENABLED)
+    def test_504_response_does_record_error(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{self.CELL.address}/server-error",
+            status=504,
+            body=json.dumps({"detail": "gateway timeout"}),
+            content_type="application/json",
+        )
+        with patch("sentry.hybridcloud.apigateway.proxy.CircuitBreaker") as mock_breaker_class:
+            mock_breaker = self._make_breaker_mock(allow_request=True)
+            mock_breaker_class.return_value = mock_breaker
+            request = RequestFactory().get("http://sentry.io/server-error")
+            resp = proxy_request(request, self.organization.slug, url_name)
+        assert resp.status_code == 504
+        mock_breaker.record_error.assert_called_once()
+
+    @responses.activate
+    @override_options(CB_ENABLED)
+    def test_500_response_does_not_record_error(self) -> None:
         responses.add(
             responses.GET,
             f"{self.CELL.address}/server-error",
@@ -366,7 +417,7 @@ class ProxyCircuitBreakerTestCase(ApiGatewayTestCase):
             request = RequestFactory().get("http://sentry.io/server-error")
             resp = proxy_request(request, self.organization.slug, url_name)
         assert resp.status_code == 500
-        mock_breaker.record_error.assert_called_once()
+        mock_breaker.record_error.assert_not_called()
 
     @responses.activate
     @override_options(CB_ENABLED)
