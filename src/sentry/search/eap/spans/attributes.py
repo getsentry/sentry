@@ -456,6 +456,8 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         simple_sentry_field("os.name"),
         simple_sentry_field("app_start_type"),
         simple_sentry_field("ttid"),
+        simple_sentry_field("server.address"),
+        simple_sentry_field("segment.name"),
         simple_measurements_field("app_start_cold", "millisecond"),
         simple_measurements_field("app_start_warm", "millisecond"),
         simple_measurements_field("frames_frozen"),
