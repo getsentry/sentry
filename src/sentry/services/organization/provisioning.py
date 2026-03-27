@@ -207,7 +207,7 @@ def handle_organization_provisioning_outbox_payload(
 
 @receiver(process_control_outbox, sender=OutboxCategory.PROVISION_ORGANIZATION)
 def process_provision_organization_outbox(
-    object_identifier: int, region_name: str, payload: Any, **kwds: Any
+    object_identifier: int, cell_name: str, payload: Any, **kwds: Any
 ):
     try:
         provision_payload = OrganizationProvisioningOptions.parse_obj(payload)
@@ -218,7 +218,7 @@ def process_provision_organization_outbox(
 
     handle_organization_provisioning_outbox_payload(
         organization_id=object_identifier,
-        cell_name=region_name,
+        cell_name=cell_name,
         provisioning_payload=provision_payload,
     )
 
@@ -286,9 +286,9 @@ def handle_possible_organization_slug_swap(*, cell_name: str, org_slug_reservati
 
 @receiver(process_control_outbox, sender=OutboxCategory.ORGANIZATION_SLUG_RESERVATION_UPDATE)
 def update_organization_slug_reservation(
-    object_identifier: int, region_name: str, **kwds: Any
+    object_identifier: int, cell_name: str, **kwds: Any
 ) -> None:
     handle_possible_organization_slug_swap(
-        cell_name=region_name,
+        cell_name=cell_name,
         org_slug_reservation_id=object_identifier,
     )
