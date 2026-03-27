@@ -32,21 +32,28 @@ import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {AnimatePresence, motion} from 'framer-motion';
 import PlatformIcon from 'platformicons/build/platformIcon';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
+import {
+  DropdownMenu,
+  type DropdownMenuProps,
+  type MenuItemProps,
+} from 'sentry/components/dropdownMenu';
 import {useHovercardContext} from 'sentry/components/hovercard';
 import {
   IconAllProjects,
   IconChevron,
   IconClose,
+  IconEllipsis,
   IconGrabbable,
   IconMyProjects,
 } from 'sentry/icons';
+import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableTransition} from 'sentry/utils/testableTransition';
@@ -282,7 +289,7 @@ interface SecondaryNavigationHeaderProps {
 function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   const {layout} = usePrimaryNavigation();
   const {view, setView} = useSecondaryNavigation();
-  const isCollapsed = view !== 'expanded';
+  const collapsed = view !== 'expanded';
   const hasPageFrame = useHasPageFrameFeature();
   const isMobilePageFrame = hasPageFrame && layout === 'mobile';
 
@@ -314,21 +321,21 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
           <Button
             size="xs"
             icon={<IconClose />}
-            aria-label={isCollapsed ? t('Expand') : t('Collapse')}
+            aria-label={collapsed ? t('Expand') : t('Collapse')}
             onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
             priority="transparent"
           />
         ) : layout === 'mobile' ? null : (
           <Button
             size="xs"
-            icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
-            aria-label={isCollapsed ? t('Expand') : t('Collapse')}
+            icon={<IconChevron direction={collapsed ? 'right' : 'left'} isDouble />}
+            aria-label={collapsed ? t('Expand') : t('Collapse')}
             onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
-            priority={isCollapsed ? 'primary' : 'transparent'}
+            priority={collapsed ? 'primary' : 'transparent'}
             analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
             analyticsEventKey="sidebar_secondary_toggle_button_clicked"
             analyticsParams={{
-              is_collapsed: isCollapsed,
+              is_collapsed: collapsed,
             }}
           />
         )}
@@ -358,37 +365,57 @@ function SecondaryNavigationBody(props: SecondaryNavigationBodyProps) {
 interface SectionTitleProps {
   canCollapse: boolean;
   children: ReactNode;
-  isCollapsed: boolean;
-  setIsCollapsed: (isCollapsed: boolean) => void;
+  collapsed: boolean;
+  onCollapsedChange: (collapsed: boolean) => void;
   trailingItems?: ReactNode;
 }
 
 function SectionTitle(props: SectionTitleProps) {
+  if (props.trailingItems && props.canCollapse) {
+    return (
+      <Grid columns="1fr auto" align="center" width="100%">
+        <Grid columns="1fr auto" align="center" width="100%" padding="sm lg">
+          {p => (
+            <Fragment>
+              <Button
+                size="sm"
+                priority="transparent"
+                onClick={() => props.onCollapsedChange(!props.collapsed)}
+                {...p}
+              >
+                <Text bold ellipsis align="left">
+                  {props.children}
+                </Text>
+              </Button>
+              <Flex align="center" flexShrink={0}>
+                {props.trailingItems}
+                <ChevronButton
+                  collapsed={props.collapsed}
+                  onClick={() => props.onCollapsedChange(!props.collapsed)}
+                />
+              </Flex>
+            </Fragment>
+          )}
+        </Grid>
+      </Grid>
+    );
+  }
+
   if (props.canCollapse) {
     return (
       <Grid columns="1fr auto" align="center" width="100%" padding="sm lg">
         {p => (
           <Button
-            {...p}
             size="sm"
             priority="transparent"
-            onClick={() => props.setIsCollapsed(!props.isCollapsed)}
+            onClick={() => props.onCollapsedChange(!props.collapsed)}
+            {...p}
           >
             <Text bold ellipsis align="left">
               {props.children}
             </Text>
-            <Flex align="center" flexShrink={0} aria-hidden="true">
-              {props.trailingItems ? (
-                <div onClick={e => e.stopPropagation()}>{props.trailingItems}</div>
-              ) : (
-                props.canCollapse && (
-                  <IconChevron
-                    direction={props.isCollapsed ? 'down' : 'up'}
-                    size="xs"
-                    variant="muted"
-                  />
-                )
-              )}
+            <Flex align="center" flexShrink={0}>
+              <ChevronIcon collapsed={props.collapsed} />
             </Flex>
           </Button>
         )}
@@ -397,14 +424,30 @@ function SectionTitle(props: SectionTitleProps) {
   }
 
   return (
-    <Grid columns="1fr auto" align="center" width="100%" padding="sm lg">
-      <Text bold ellipsis align="left">
-        {props.children}
-      </Text>
-      <Flex justify="end" align="center" flexShrink={0}>
-        {props.trailingItems}
-      </Flex>
+    <Grid columns="1fr auto" align="center" width="100%">
+      {props.children}
+      {props.trailingItems}
     </Grid>
+  );
+}
+
+function ChevronIcon(props: {collapsed: boolean}) {
+  return (
+    <IconChevron direction={props.collapsed ? 'down' : 'up'} size="xs" variant="muted" />
+  );
+}
+
+function ChevronButton(
+  props: Omit<Exclude<ButtonProps, 'children'>, 'aria-label'> & {collapsed: boolean}
+) {
+  return (
+    <Button
+      size="xs"
+      aria-label={props.collapsed ? t('Expand') : t('Collapse')}
+      icon={<ChevronIcon collapsed={props.collapsed} aria-hidden="true" />}
+      priority="transparent"
+      {...props}
+    />
   );
 }
 
@@ -419,12 +462,12 @@ interface SecondaryNavigationSectionProps {
 function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
   const collapsible = props.collapsible ?? true;
   const {layout} = usePrimaryNavigation();
-  const [isCollapsedState, setIsCollapsedState] = useLocalStorageState(
+  const [collapsedState, onCollapsedChangeState] = useLocalStorageState(
     `secondary-nav-section-${props.id}-collapsed`,
     false
   );
   const canCollapse = collapsible && layout === 'sidebar';
-  const isCollapsed = canCollapse ? isCollapsedState : false;
+  const collapsed = canCollapse ? collapsedState : false;
 
   return (
     <Container padding="md sm" data-nav-section>
@@ -432,13 +475,13 @@ function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
         <SectionTitle
           trailingItems={props.trailingItems}
           canCollapse={canCollapse}
-          isCollapsed={isCollapsed}
-          setIsCollapsed={setIsCollapsedState}
+          collapsed={collapsed}
+          onCollapsedChange={onCollapsedChangeState}
         >
           {props.title}
         </SectionTitle>
       ) : null}
-      <Collapsible collapsed={isCollapsed} disabled={!canCollapse}>
+      <Collapsible collapsed={collapsed} disabled={!canCollapse}>
         {props.children}
       </Collapsible>
     </Container>
@@ -833,6 +876,18 @@ function ReorderableListItem<T extends {id: string | number}>(
   );
 }
 
+interface SecondaryNavigationReorderableSectionProps extends SecondaryNavigationSectionProps {
+  children: ReactNode;
+}
+
+function SecondaryNavigationReorderableSection(
+  props: SecondaryNavigationReorderableSectionProps
+) {
+  return (
+    <SecondaryNavigationSection {...props}>{props.children}</SecondaryNavigationSection>
+  );
+}
+
 interface SecondaryNavigationReorderableListProps<T extends {id: string | number}> {
   children: (item: T) => ReactNode;
   items: T[];
@@ -897,6 +952,49 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
     </DndContext>
   );
 }
+
+interface SecondaryNavigationOverflowMenuProps extends Omit<
+  DropdownMenuProps,
+  'triggerProps' | 'trigger'
+> {
+  items: MenuItemProps[];
+}
+
+function SecondaryNavigationOverflowMenu(props: SecondaryNavigationOverflowMenuProps) {
+  const theme = useTheme();
+  const portalContainerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    portalContainerRef.current = document.body;
+  }, []);
+
+  return (
+    <DropdownMenu
+      size="sm"
+      position="bottom-end"
+      usePortal
+      zIndex={theme.zIndex.modal}
+      portalContainerRef={portalContainerRef}
+      trigger={triggerProps => (
+        <IconDefaultsProvider size="xs">
+          <CondensedButton
+            {...triggerProps}
+            size="xs"
+            priority="transparent"
+            icon={<IconEllipsis />}
+            aria-label={t('Section Options')}
+          />
+        </IconDefaultsProvider>
+      )}
+      {...props}
+    />
+  );
+}
+
+const CondensedButton = styled(Button)`
+  width: 18px;
+  height: 18px;
+`;
 
 interface SecondaryNavigationReorderableLinkProps extends Omit<
   SecondaryNavigationItemProps,
@@ -1313,7 +1411,9 @@ export const SecondaryNavigation = {
   Link: SecondaryNavigationLink,
   ProjectIcon: SecondaryNavigationProjectIcon,
   Sidebar: SecondarySidebar,
+  ReorderableSection: SecondaryNavigationReorderableSection,
   ReorderableList: SecondaryNavigationReorderableList,
   ReorderableLink: SecondaryNavigationReorderableLink,
   Indicator: SecondaryNavigationIndicator,
+  OverflowMenu: SecondaryNavigationOverflowMenu,
 };
