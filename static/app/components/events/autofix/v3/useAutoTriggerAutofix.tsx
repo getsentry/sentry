@@ -3,12 +3,12 @@ import {useEffect, useRef} from 'react';
 import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import type {Group} from 'sentry/types/group';
 
-interface UseAutotriggerAutofixOptions {
+interface UseAutoTriggerAutofixOptions {
   autofix: ReturnType<typeof useExplorerAutofix>;
   group: Group;
 }
 
-export function useAutotriggerAutofix({autofix, group}: UseAutotriggerAutofixOptions) {
+export function useAutoTriggerAutofix({autofix, group}: UseAutoTriggerAutofixOptions) {
   const alreadyTriggered = useRef(false);
 
   // extract startStep first here so we can depend on it directly as `autofix` itself is unstable.

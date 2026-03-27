@@ -29,7 +29,7 @@ import {
   RootCausePreview,
   SolutionPreview,
 } from 'sentry/components/events/autofix/v3/autofixPreviews';
-import {useAutotriggerAutofix} from 'sentry/components/events/autofix/v3/useAutotriggerAutofix';
+import {useAutoTriggerAutofix} from 'sentry/components/events/autofix/v3/useAutoTriggerAutofix';
 import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -126,7 +126,7 @@ export function AutofixContent({aiConfig, group, project, event}: AutofixContent
   const autofix = useExplorerAutofix(group.id);
   const {data: setupCheck, isPending} = useSeerOnboardingCheck();
 
-  useAutotriggerAutofix({autofix, group});
+  useAutoTriggerAutofix({autofix, group});
 
   if (
     // waiting on the onboarding checks to load

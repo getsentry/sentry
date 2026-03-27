@@ -3,7 +3,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {useAutotriggerAutofix} from 'sentry/components/events/autofix/v3/useAutotriggerAutofix';
+import {useAutoTriggerAutofix} from 'sentry/components/events/autofix/v3/useAutoTriggerAutofix';
 
 function makeAutofix(
   overrides: Partial<ReturnType<typeof useExplorerAutofix>> = {}
@@ -20,7 +20,7 @@ function makeAutofix(
   } as ReturnType<typeof useExplorerAutofix>;
 }
 
-describe('useAutotriggerAutofix', () => {
+describe('useAutoTriggerAutofix', () => {
   it('starts root_cause when seerAutofixLastTriggered is set but seerExplorerAutofixLastTriggered is not', () => {
     const autofix = makeAutofix();
     const group = GroupFixture({
@@ -28,7 +28,7 @@ describe('useAutotriggerAutofix', () => {
       seerExplorerAutofixLastTriggered: null,
     });
 
-    renderHook(() => useAutotriggerAutofix({autofix, group}));
+    renderHook(() => useAutoTriggerAutofix({autofix, group}));
 
     expect(autofix.startStep).toHaveBeenCalledWith('root_cause');
     expect(autofix.startStep).toHaveBeenCalledTimes(1);
@@ -41,7 +41,7 @@ describe('useAutotriggerAutofix', () => {
       seerExplorerAutofixLastTriggered: '2024-01-02T00:00:00Z',
     });
 
-    renderHook(() => useAutotriggerAutofix({autofix, group}));
+    renderHook(() => useAutoTriggerAutofix({autofix, group}));
 
     expect(autofix.startStep).not.toHaveBeenCalled();
   });
@@ -53,7 +53,7 @@ describe('useAutotriggerAutofix', () => {
       seerExplorerAutofixLastTriggered: null,
     });
 
-    const {rerender} = renderHook(() => useAutotriggerAutofix({autofix, group}));
+    const {rerender} = renderHook(() => useAutoTriggerAutofix({autofix, group}));
 
     rerender();
     rerender();
