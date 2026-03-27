@@ -715,7 +715,7 @@ class APITestCaseMixin:
 
         mock_client = MockedProxy()
         with mock.patch(
-            "sentry.hybridcloud.apigateway.proxy.proxy_client",
+            "sentry.hybridcloud.apigateway_async.proxy.proxy_client",
             new=mock_client,
         ):
             yield
