@@ -202,7 +202,7 @@ class ReplayExamples:
 
     GET_REPLAY_DELETION_JOBS = [
         OpenApiExample(
-            "List replay deletion jobs",
+            "List replay batch deletion jobs",
             value={
                 "data": [
                     {
@@ -225,7 +225,7 @@ class ReplayExamples:
 
     CREATE_REPLAY_DELETION_JOB = [
         OpenApiExample(
-            "Create a replay deletion job",
+            "Create an async job to batch delete replay instances",
             value={
                 "data": {
                     "id": 1,
@@ -246,7 +246,7 @@ class ReplayExamples:
 
     GET_REPLAY_DELETION_JOB = [
         OpenApiExample(
-            "Get a replay deletion job",
+            "Get a replay batch deletion job",
             value={
                 "data": {
                     "id": 1,
