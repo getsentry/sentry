@@ -46,6 +46,7 @@ class CircuitBreaker:
         self._counters[self._counter_idx] += 1
 
     def window_overflow(self) -> bool:
+        self._maybe_counter_flip()
         return self._counters[self._counter_idx] > self.failures
 
     def overflow(self) -> bool:
