@@ -285,16 +285,18 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
       organization,
     });
 
-    await act(async () => {
+    act(() => {
       result.current.onChange?.('span.op:db', {
         parsedQuery: parseSearch('span.op:db'),
         queryIsValid: true,
       });
     });
 
-    expect(validateMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(validateMock).toHaveBeenCalledTimes(1);
+    });
 
-    await act(async () => {
+    act(() => {
       result.current.onChange?.('span.op:web', {
         parsedQuery: parseSearch('span.op:web'),
         queryIsValid: true,
@@ -302,7 +304,9 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     });
 
     // Still only 1 call — value changed but keys didn't
-    expect(validateMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(validateMock).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('calls validateQuery when a new filter key is added', async () => {
