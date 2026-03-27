@@ -19,8 +19,8 @@ import {
   DisableDetectorAction,
 } from 'sentry/views/detectors/components/details/common/actions';
 import {EditDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
+import {DetectorNameField} from 'sentry/views/detectors/components/forms/common/detectorNameField';
 import {getSubmitButtonTitle} from 'sentry/views/detectors/components/forms/common/getSubmitButtonTitle';
-import {DetectorNameField} from 'sentry/views/detectors/components/forms/detectorBaseFields';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useEditDetectorFormSubmit} from 'sentry/views/detectors/hooks/useEditDetectorFormSubmit';
 

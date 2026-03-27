@@ -12,9 +12,9 @@ import type {
 } from 'sentry/types/workflowEngine/detectors';
 import {useLocation} from 'sentry/utils/useLocation';
 import {NewDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
+import {DetectorNameField} from 'sentry/views/detectors/components/forms/common/detectorNameField';
 import {NewDetectorFooter} from 'sentry/views/detectors/components/forms/common/footer';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
-import {DetectorNameField} from 'sentry/views/detectors/components/forms/detectorBaseFields';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useCreateDetectorFormSubmit} from 'sentry/views/detectors/hooks/useCreateDetectorFormSubmit';
 
