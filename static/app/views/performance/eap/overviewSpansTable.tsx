@@ -432,7 +432,7 @@ function renderOperationDurationCell(row: Record<string, any>, theme: Theme) {
           </div>
         );
       })}
-      <div key="other" style={{width: toPercent(otherPercentage || 0)}}>
+      <div key="other" style={{width: toPercent(Math.max(otherPercentage, 0))}}>
         <Tooltip title={<div>{t('Other')}</div>} containerDisplayMode="block">
           <OtherRelativeOpsBreakdown />
         </Tooltip>
