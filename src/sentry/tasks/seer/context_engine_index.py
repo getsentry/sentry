@@ -218,7 +218,7 @@ def get_allowed_org_ids_context_engine_indexing() -> list[int]:
     Get the list of allowed organizations for context engine indexing.
 
     Divides all active orgs with github integration (Seer prerequisite) into 24 buckets via md5 hash.
-    Only the bucket matching the current hour is checked for the seer-explorer-context-engine
+    Only the bucket matching the current hour is checked for the seer-explorer-index
     feature flag, keeping feature check volume at ~1/24th of total orgs.
     """
     with sentry_sdk.start_span(
@@ -255,7 +255,7 @@ def get_allowed_org_ids_context_engine_indexing() -> list[int]:
             Organization.objects.filter(id__in=hourly_scm_org_ids, status=ObjectStatus.ACTIVE),
             result_value_getter=lambda o: o.id,
         ):
-            if features.has("organizations:seer-explorer-context-engine", org):
+            if features.has("organizations:seer-explorer-index", org):
                 eligible_org_ids.append(org.id)
 
         logger.info(
@@ -276,7 +276,7 @@ def schedule_context_engine_indexing_tasks() -> None:
     Schedule context engine indexing tasks for all allowed organizations.
 
     Dispatches index_org_project_knowledge and build_service_map for each org
-    with the seer-explorer-context-engine feature flag enabled.
+    with the seer-explorer-index feature flag enabled.
     """
     if not options.get("explorer.context_engine_indexing.enable"):
         logger.info("explorer.context_engine_indexing.enable flag is disabled")

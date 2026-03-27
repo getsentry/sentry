@@ -1,7 +1,9 @@
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {getKeyCode} from 'sentry/utils/getKeyCode';
-import {useHotkeys} from 'sentry/utils/useHotkeys';
+import {useHotkeys} from '@sentry/scraps/hotkey';
+
+// eslint-disable-next-line boundaries/entry-point
+import {getKeyCode} from './keyMappings';
 
 describe('useHotkeys', () => {
   let events: Record<string, (evt: EventListenerOrEventListenerObject) => void> = {};
@@ -15,10 +17,8 @@ describe('useHotkeys', () => {
   }
 
   beforeEach(() => {
-    // Empty our events before each test case
     events = {};
 
-    // Define the addEventListener method with a Jest mock function
     document.addEventListener = jest.fn((event: string, callback: () => any) => {
       events[event] = callback;
     });

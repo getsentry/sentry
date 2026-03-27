@@ -1,4 +1,4 @@
-import {Fragment, useLayoutEffect, useMemo, useEffect, useCallback} from 'react';
+import {Fragment, useCallback, useLayoutEffect, useMemo} from 'react';
 import {preload} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -6,7 +6,6 @@ import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selecti
 import {mergeProps} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useTreeState} from '@react-stately/tree';
-import * as Sentry from '@sentry/react';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import errorIllustration from 'sentry-images/spot/computer-missing.svg';
@@ -29,14 +28,13 @@ import {
   useCommandPaletteDispatch,
   useCommandPaletteState,
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
+import {useCommandPaletteAnalytics} from 'sentry/components/commandPalette/useCommandPaletteAnalytics';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IconArrow, IconClose, IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {fzf} from 'sentry/utils/search/fzf';
 import type {Theme} from 'sentry/utils/theme';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
 const MotionButton = motion.create(Button);
 const MotionIconSearch = motion.create(IconSearch);
@@ -68,7 +66,6 @@ export function CommandPalette(props: CommandPaletteProps) {
   const theme = useTheme();
 
   const actions = useCommandPaletteActions();
-  const organization = useOrganization();
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
 
@@ -91,13 +88,31 @@ export function CommandPalette(props: CommandPaletteProps) {
     const items = search(state.query, scopedActions);
   }, [state.query, actions, state.action]);
 
+<<<<<<< HEAD
   const [keys, keyList] = useMemo(() => {
     const sectionKeys = new Set(sections.map(({key}) => `section-${key}`));
     return [sectionKeys, Array.from(sectionKeys)];
   }, [sections]);
+=======
+  const analytics = useCommandPaletteAnalytics(filteredActions.length);
+
+  const sections = useMemo(
+    () => groupActionsBySection(filteredActions),
+    [filteredActions]
+  );
+>>>>>>> master
+
+  const sectionHeaderKeys = useMemo(
+    () => new Set(sections.map(({key}) => `section-${key}`)),
+    [sections]
+  );
 
   const treeState = useTreeState({
+<<<<<<< HEAD
     disabledKeys: keyList,
+=======
+    disabledKeys: [...sectionHeaderKeys],
+>>>>>>> master
     children: sections.flatMap(({key: sectionKey, label, children}) => [
       <Item<CommandPaletteActionMenuItem & {hideCheck: boolean; label: string}>
         key={`section-${sectionKey}`}
@@ -122,12 +137,20 @@ export function CommandPalette(props: CommandPaletteProps) {
 
   const firstFocusableKey = useMemo(() => {
     for (const item of treeState.collection) {
+<<<<<<< HEAD
       if (!keys.has(String(item.key))) {
+=======
+      if (!sectionHeaderKeys.has(String(item.key))) {
+>>>>>>> master
         return item;
       }
     }
     return undefined;
+<<<<<<< HEAD
   }, [treeState.collection, keys]);
+=======
+  }, [treeState.collection, sectionHeaderKeys]);
+>>>>>>> master
 
   useLayoutEffect(() => {
     if (treeState.selectionManager.focusedKey !== null) {
@@ -158,25 +181,23 @@ export function CommandPalette(props: CommandPaletteProps) {
 
   const onActionSelection = useCallback(
     (key: ReturnType<typeof treeState.collection.getFirstKey> | null) => {
-      const action = filteredActions.find(a => a.key === key);
+      const resultIndex = filteredActions.findIndex(a => a.key === key);
+      const action = resultIndex >= 0 ? filteredActions[resultIndex] : undefined;
       if (!action) {
         return;
       }
 
       if (action.type === 'group') {
-        trackAnalytics('command_palette.action_selected', {
-          organization,
-          action: action.display.label,
-          query: state.query,
-        });
+        analytics.recordGroupAction(action, resultIndex);
         dispatch({type: 'push action', action});
         return;
       }
 
+      analytics.recordAction(action, resultIndex, action.groupingKey ?? '');
       dispatch({type: 'trigger action'});
       props.onAction(action);
     },
-    [filteredActions, dispatch, props, treeState, organization, state.query]
+    [filteredActions, dispatch, props, analytics, treeState]
   );
 
   return (
@@ -428,6 +449,7 @@ function flattenActions(
 
     flattened.push(action);
 
+<<<<<<< HEAD
     if (action.type === 'group') {
       if (!action.actions.length) {
         Sentry.logger.warn('Command palette group has no children', {
@@ -435,6 +457,14 @@ function flattenActions(
         });
       }
       flattened.push(...flattenActions(action.actions));
+=======
+    if (action.type === 'group' && action.actions.length > 0) {
+      const childParentLabel = parentLabel
+        ? `${parentLabel} → ${action.display.label}`
+        : action.display.label;
+
+      flattened.push(...flattenActions(action.actions, childParentLabel));
+>>>>>>> master
     }
   }
 
@@ -442,25 +472,6 @@ function flattenActions(
 }
 
 function CommandPaletteNoResults() {
-  const organization = useOrganization();
-  const {query, action} = useCommandPaletteState();
-
-  useEffect(() => {
-    const actionLabel =
-      typeof action?.value.action.display.label === 'string'
-        ? action.value.action.display.label
-        : undefined;
-    trackAnalytics('command_palette.no_results', {
-      organization,
-      query,
-      action: actionLabel,
-    });
-    Sentry.logger.info('Command palette returned no results', {
-      query,
-      action: actionLabel,
-    });
-  }, [organization, query, action]);
-
   return (
     <Flex
       direction="column"

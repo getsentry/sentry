@@ -281,11 +281,11 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
         condition_group = self.create_data_condition_group(
             organization=self.project.organization,
         )
-        # Trigger when relative diff > 0.1 (10%)
+        # Trigger when relative diff > 10 (10%)
         self.create_data_condition(
             condition_group=condition_group,
             type=Condition.GREATER,
-            comparison=0.1,
+            comparison=10,
             condition_result=DetectorPriorityLevel.HIGH,
         )
         detector = self.create_detector(
@@ -296,7 +296,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             workflow_condition_group=condition_group,
         )
 
-        # (5000000 - 4000000) / 4000000 = 0.25 > 0.1
+        # (5000000 - 4000000) / 4000000 = 25% > 10%
         data_packet: SizeAnalysisDataPacket = DataPacket(
             source_id="test",
             packet={
@@ -316,11 +316,11 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
         condition_group = self.create_data_condition_group(
             organization=self.project.organization,
         )
-        # Trigger when relative diff > 0.1 (10%)
+        # Trigger when relative diff > 10 (10%)
         self.create_data_condition(
             condition_group=condition_group,
             type=Condition.GREATER,
-            comparison=0.1,
+            comparison=10,
             condition_result=DetectorPriorityLevel.HIGH,
         )
         detector = self.create_detector(
@@ -331,7 +331,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             workflow_condition_group=condition_group,
         )
 
-        # (5000000 - 4900000) / 4900000 ≈ 0.02 < 0.1
+        # (5000000 - 4900000) / 4900000 ≈ 2.04% < 10%
         data_packet: SizeAnalysisDataPacket = DataPacket(
             source_id="test",
             packet={
