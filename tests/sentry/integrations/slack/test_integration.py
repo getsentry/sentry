@@ -59,6 +59,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         expected_client_id="slack-client-id",
         expected_client_secret="slack-client-secret",
         customer_domain=None,
+        init_params=None,
     ):
         responses.reset()
 
@@ -66,7 +67,11 @@ class SlackIntegrationTest(IntegrationTestCase):
         if customer_domain:
             kwargs["HTTP_HOST"] = customer_domain
 
-        resp = self.client.get(self.init_path, **kwargs)
+        init_path = self.init_path
+        if init_params:
+            init_path = f"{init_path}?{urlencode(init_params)}"
+
+        resp = self.client.get(init_path, **kwargs)
         assert resp.status_code == 302
         redirect = urlparse(resp["Location"])
         assert redirect.scheme == "https"
