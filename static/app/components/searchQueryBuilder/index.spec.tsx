@@ -1089,19 +1089,41 @@ describe('SearchQueryBuilder', () => {
 
       await userEvent.click(await screen.findByRole('option', {name: 'Firefox'}));
 
-      // New token should have a value
+      // New token should have a value, and selecting from dropdown switches operator to "is"
       expect(
         screen.getByRole('row', {
-          name: `browser.name:${WildcardOperators.CONTAINS}Firefox`,
+          name: 'browser.name:Firefox',
         })
       ).toBeInTheDocument();
 
       // Now we call onChange
       expect(mockOnChange).toHaveBeenCalledTimes(1);
       expect(mockOnChange).toHaveBeenCalledWith(
-        `browser.name:${WildcardOperators.CONTAINS}Firefox`,
+        'browser.name:Firefox',
         expect.anything()
       );
+    });
+
+    it('does not switch operator to "is" when filter already has a value', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery={`browser.name:${WildcardOperators.CONTAINS}firefox`}
+        />,
+        {organization: {features: ['search-query-builder-input-flow-changes']}}
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+      await userEvent.click(await screen.findByRole('option', {name: 'Chrome'}));
+
+      // Operator should remain "contains" since there was already a value
+      expect(
+        await screen.findByRole('row', {
+          name: `browser.name:${WildcardOperators.CONTAINS}[firefox,Chrome]`,
+        })
+      ).toBeInTheDocument();
     });
 
     it('can add free text by typing', async () => {
@@ -1266,9 +1288,10 @@ describe('SearchQueryBuilder', () => {
       await userEvent.keyboard('{enter}');
       await userEvent.click(screen.getByRole('option', {name: '[Filtered]'}));
 
+      // Selecting from dropdown switches operator from contains to "is"
       expect(
         await screen.findByRole('row', {
-          name: `message:${WildcardOperators.CONTAINS}"[Filtered]"`,
+          name: 'message:"[Filtered]"',
         })
       ).toBeInTheDocument();
     });
