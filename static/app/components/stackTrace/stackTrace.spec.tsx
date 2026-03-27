@@ -9,7 +9,6 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import type {SourceMapDebugBlueThunderResponse} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 import {DisplayOptions} from 'sentry/components/stackTrace/displayOptions';
 import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
 import {IssueFrameActions} from 'sentry/components/stackTrace/issueStackTrace/issueFrameActions';
@@ -497,7 +496,7 @@ describe('Core StackTrace', () => {
         release_has_some_artifact: false,
         sdk_debug_id_support: 'not-supported',
         sdk_version: '10.0.0',
-      } satisfies SourceMapDebugBlueThunderResponse,
+      },
     });
 
     render(
