@@ -25,7 +25,7 @@ from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.hook.service import hook_service
-from sentry.sentry_apps.tasks.sentry_apps import clear_region_cache
+from sentry.sentry_apps.tasks.sentry_apps import clear_cell_cache
 from sentry.users.models.identity import Identity
 from sentry.workflow_engine.service.action.service import action_service
 
@@ -57,8 +57,7 @@ def process_sentry_app_updates(object_identifier: int, cell_name: str, **kwds: A
 
     # Spawn a task to clear caches, as there can be 1000+ installations
     # for a sentry app.
-    # TODO(cells): switch to clear_cell_cache once deployed on all pods
-    clear_region_cache.delay(sentry_app_id=sentry_app.id, region_name=cell_name)
+    clear_cell_cache.delay(sentry_app_id=sentry_app.id, cell_name=cell_name)
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.SENTRY_APP_DELETE)
