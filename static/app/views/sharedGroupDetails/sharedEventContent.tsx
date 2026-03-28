@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {EventEntry} from 'sentry/components/events/eventEntry';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
@@ -32,15 +33,19 @@ export function SharedEventContent({organization, project, event, group}: Props)
   return (
     <div>
       {event.userReport && group && (
-        <EventDataSection title={t('User Feedback')} type="user-feedback">
-          <EventUserFeedback
-            report={event.userReport}
-            orgSlug={organization.slug}
-            issueId={group.id}
-          />
-        </EventDataSection>
+        <ErrorBoundary mini>
+          <EventDataSection title={t('User Feedback')} type="user-feedback">
+            <EventUserFeedback
+              report={event.userReport}
+              orgSlug={organization.slug}
+              issueId={group.id}
+            />
+          </EventDataSection>
+        </ErrorBoundary>
       )}
-      <EventEvidence event={event} project={project} />
+      <ErrorBoundary mini>
+        <EventEvidence event={event} project={project} />
+      </ErrorBoundary>
       {Array.isArray(event.entries) &&
         event.entries.map((entry, entryIdx) => (
           <EventEntry
@@ -53,7 +58,9 @@ export function SharedEventContent({organization, project, event, group}: Props)
             isShare
           />
         ))}
-      <EventPackageData event={event} />
+      <ErrorBoundary mini>
+        <EventPackageData event={event} />
+      </ErrorBoundary>
     </div>
   );
 }
