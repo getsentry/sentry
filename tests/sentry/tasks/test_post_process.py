@@ -1973,7 +1973,6 @@ class SnoozeTestMixin(BasePostProcessGroupMixin):
 
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection")
 class SDKCrashMonitoringTestMixin(BasePostProcessGroupMixin):
-    @with_feature("organizations:sdk-crash-detection")
     @override_options(
         {
             "issues.sdk_crash_detection.cocoa.project_id": 1234,
@@ -2014,7 +2013,6 @@ class SDKCrashMonitoringTestMixin(BasePostProcessGroupMixin):
         assert react_native_config.sample_rate == 1.0
         assert react_native_config.organization_allowlist == [1]
 
-    @with_feature("organizations:sdk-crash-detection")
     @override_options(
         {
             "issues.sdk_crash_detection.cocoa.project_id": 1234,
@@ -2038,29 +2036,11 @@ class SDKCrashMonitoringTestMixin(BasePostProcessGroupMixin):
 
         mock_sdk_crash_detection.detect_sdk_crash.assert_not_called()
 
-    def test_sdk_crash_monitoring_is_not_called_with_disabled_feature(
-        self, mock_sdk_crash_detection
-    ):
-        event = self.create_event(
-            data={"message": "testing"},
-            project_id=self.project.id,
-        )
-
-        self.call_post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            event=event,
-        )
-
-        mock_sdk_crash_detection.detect_sdk_crash.assert_not_called()
-
     @override_options(
         {
             "issues.sdk_crash_detection.cocoa.project_id": None,
         }
     )
-    @with_feature("organizations:sdk-crash-detection")
     def test_sdk_crash_monitoring_is_not_called_without_project_id(
         self, mock_sdk_crash_detection: MagicMock
     ) -> None:

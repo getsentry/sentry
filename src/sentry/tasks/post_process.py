@@ -1290,9 +1290,6 @@ def sdk_crash_monitoring(job: PostProcessJob):
 
     event = job["event"]
 
-    if not features.has("organizations:sdk-crash-detection", event.project.organization):
-        return
-
     with sentry_sdk.start_span(op="post_process.build_sdk_crash_config"):
         configs = build_sdk_crash_detection_configs()
         if not configs or len(configs) == 0:
