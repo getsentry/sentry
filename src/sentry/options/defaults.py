@@ -1029,57 +1029,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enable sending the flag to the microservice to tell it to purposefully take longer than our
-# timeout, to see the effect on the overall error event processing backlog
-register(
-    "processing.severity-backlog-test.timeout",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Enable sending the flag to the microservice to tell it to purposefully send back an error, to see
-# the effect on the overall error event processing backlog
-register(
-    "processing.severity-backlog-test.error",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "issues.severity.first-event-severity-calculation-projects-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "issues.severity.seer-project-rate-limit",
-    type=Any,
-    default={"limit": 5, "window": 1},
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "issues.severity.seer-global-rate-limit",
-    type=Any,
-    default={"limit": 20, "window": 1},
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "issues.severity.seer-circuit-breaker-passthrough-limit",
-    type=Dict,
-    default={"limit": 1, "window": 10},
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "issues.severity.seer-timeout",
-    type=Float,
-    default=0.2,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 register(
     "issues.priority.projects-allowlist",
     type=Sequence,

@@ -82,7 +82,6 @@ UNUSED_ON_FRONTEND_FEATURES: Final = "unusedFeatures"
 # so we exclude them from the response if the unusedFeatures collapse parameter is set
 PROJECT_FEATURES_NOT_USED_ON_FRONTEND = {
     "discard-transaction",
-    "first-event-severity-calculation",
     "alert-filters",
     "servicehooks",
     "similarity-embeddings",
