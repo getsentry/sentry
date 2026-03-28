@@ -6,7 +6,6 @@ import {Grid} from '@sentry/scraps/layout';
 import {TextArea} from '@sentry/scraps/textarea';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -17,6 +16,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 type Props = {
   dateUpdated: string | null;
@@ -56,64 +57,57 @@ export function OwnerInput({
   page,
   project,
 }: Props) {
-  const [hasChanges, setHasChanges] = useState(false);
   const [text, setText] = useState<string | null>(null);
   const [error, setError] = useState<InputError | null>(null);
 
+  const mutation = useMutation<IssueOwnership, RequestError>({
+    mutationFn: () =>
+      fetchMutation({
+        method: 'PUT',
+        url: `/projects/${organization.slug}/${project.slug}/ownership/`,
+        data: {raw: text ?? initialText},
+      }),
+    onSuccess: ownership => {
+      addSuccessMessage(t('Updated issue ownership rules'));
+      onSave?.(ownership);
+      trackIntegrationAnalytics('project_ownership.saved', {
+        page,
+        organization,
+        net_change:
+          (text ?? initialText).split('\n').filter(x => x).length -
+          initialText.split('\n').filter(x => x).length,
+      });
+    },
+    onError: (caught: RequestError) => {
+      setError(caught.responseJSON as InputError);
+      if (caught.status === 403) {
+        addErrorMessage(
+          t("You don't have permission to modify issue ownership rules for this project")
+        );
+      } else if (
+        caught.status === 400 &&
+        (caught.responseJSON as InputError)?.raw?.[0]?.startsWith('Invalid rule owners:')
+      ) {
+        addErrorMessage(
+          t(
+            'Unable to save issue ownership rule changes: %s',
+            (caught.responseJSON as InputError).raw[0]
+          )
+        );
+      } else {
+        addErrorMessage(t('Unable to save issue ownership rule changes'));
+      }
+    },
+  });
+
+  const hasChanges = (text ?? initialText) !== (mutation.data?.raw ?? initialText);
+
   const handleUpdateOwnership = () => {
     setError(null);
-
-    const api = new Client();
-    const request = api.requestPromise(
-      `/projects/${organization.slug}/${project.slug}/ownership/`,
-      {
-        method: 'PUT',
-        data: {raw: text || ''},
-      }
-    );
-
-    request
-      .then(ownership => {
-        addSuccessMessage(t('Updated issue ownership rules'));
-        setHasChanges(false);
-        setText(text);
-        onSave?.(ownership);
-        trackIntegrationAnalytics('project_ownership.saved', {
-          page,
-          organization,
-          net_change:
-            (text?.split('\n').filter(x => x).length ?? 0) -
-            initialText.split('\n').filter(x => x).length,
-        });
-      })
-      .catch(caught => {
-        setError(caught.responseJSON);
-        if (caught.status === 403) {
-          addErrorMessage(
-            t(
-              "You don't have permission to modify issue ownership rules for this project"
-            )
-          );
-        } else if (
-          caught.status === 400 &&
-          caught.responseJSON.raw?.[0].startsWith('Invalid rule owners:')
-        ) {
-          addErrorMessage(
-            t(
-              'Unable to save issue ownership rule changes: %s',
-              caught.responseJSON.raw[0]
-            )
-          );
-        } else {
-          addErrorMessage(t('Unable to save issue ownership rule changes'));
-        }
-      });
-
-    return request;
+    mutation.mutate();
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setHasChanges(true);
     setText(e.target.value);
   };
 
