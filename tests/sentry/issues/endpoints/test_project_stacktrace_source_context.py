@@ -34,6 +34,7 @@ class ProjectStacktraceSourceContextTest(APITestCase):
         )
 
         self.login_as(self.user)
+        self.project.update_option("sentry:scm_source_context_enabled", True)
 
     def test_feature_flag_required(self) -> None:
         response = self.get_response(
@@ -42,6 +43,16 @@ class ProjectStacktraceSourceContextTest(APITestCase):
             qs_params={"file": "src/main.py", "lineNo": "10", "platform": "python"},
         )
         assert response.status_code == 404
+
+    def test_project_option_required(self) -> None:
+        self.project.update_option("sentry:scm_source_context_enabled", False)
+        with self.feature("organizations:scm-source-context"):
+            response = self.get_response(
+                self.organization.slug,
+                self.project.slug,
+                qs_params={"file": "src/main.py", "lineNo": "10", "platform": "python"},
+            )
+            assert response.status_code == 404
 
     def test_missing_filepath(self) -> None:
         with self.feature("organizations:scm-source-context"):
