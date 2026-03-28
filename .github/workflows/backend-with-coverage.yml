@@ -137,6 +137,8 @@ jobs:
       contents: read
       id-token: write
       actions: read # used for DIM metadata
+      statuses: write # for codecov status checks
+      pull-requests: write # for codecov PR comments
     needs: [check-existing-coverage, backend-test-with-cov-context, calculate-shards]
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -183,6 +185,21 @@ jobs:
           fi
 
           mv .coverage ".coverage.combined"
+
+      - name: Generate Cobertura XML report
+        run: |
+          uvx --with covdefaults --with sentry-covdefaults-disable-branch-coverage \
+            coverage xml -i --data-file=.coverage.combined -o coverage.xml
+
+      - name: Upload coverage to Codecov
+        uses: getsentry/codecov-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: ./coverage.xml
+          coverage-format: cobertura
+          flags: backend
+          name: backend-coverage
+          fail-ci-if-error: false
 
       - name: Authenticate to Google Cloud
         id: gcloud-auth
