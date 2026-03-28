@@ -967,7 +967,7 @@ class GitHubBaseClient(
             api_request_type=GitHubApiRequestType.GET_LABELS,
         )
 
-    def get_types(self, owner: str) -> list[Any]:
+    def get_org_issue_types(self, owner: str) -> list[Any]:
         """
         Fetches all issue types for an organization.
         https://docs.github.com/en/rest/orgs/issue-types#list-issue-types-for-an-organization

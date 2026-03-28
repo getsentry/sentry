@@ -180,14 +180,14 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
         assignees = self.get_allowed_assignees(default_repo) if default_repo else []
         labels: Sequence[tuple[str, str]] = []
-        types: Sequence[tuple[str, str]] = []
+        issue_types: Sequence[tuple[str, str]] = []
         if default_repo:
             owner, repo = default_repo.split("/")
             labels = self.get_repo_labels(owner, repo)
             try:
-                types = self.get_org_types(owner)
+                issue_types = self.get_org_issue_types(owner)
             except IntegrationResourceNotFoundError:
-                types = []
+                issue_types = []
 
         autocomplete_url = reverse(
             "sentry-integration-github-search", args=[org.slug, self.model.id]
@@ -229,7 +229,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
                 "type": "select",
                 "multiple": False,
                 "required": False,
-                "choices": types,
+                "choices": issue_types,
             },
         ]
 
@@ -398,10 +398,10 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
         return labels
 
-    def get_org_types(self, owner: str) -> Sequence[tuple[str, str]]:
+    def get_org_issue_types(self, owner: str) -> Sequence[tuple[str, str]]:
         client = self.get_client()
         try:
-            response = client.get_types(owner)
+            response = client.get_org_issue_types(owner)
         except Exception as e:
             self.raise_error(e)
 
