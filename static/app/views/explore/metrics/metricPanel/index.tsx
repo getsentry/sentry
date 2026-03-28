@@ -20,6 +20,7 @@ import {SideBySideOrientation} from 'sentry/views/explore/metrics/metricPanel/si
 import {StackedOrientation} from 'sentry/views/explore/metrics/metricPanel/stackedOrientation';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
+import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {getMetricTableColumnType} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsAggregateSortBys,
@@ -87,6 +88,8 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
     panelIndex: queryIndex,
   });
 
+  const visualize = useMetricVisualize();
+
   if (hasMetricsUIRefresh) {
     return (
       <Panel data-test-id="metric-panel">
@@ -98,13 +101,15 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
               isMetricOptionsEmpty={isMetricOptionsEmpty}
               queryIndex={queryIndex}
             />
-            <MetricInfoTabs
-              traceMetric={traceMetric}
-              additionalActions={undefined}
-              contentsHidden={infoContentHidden}
-              orientation={orientation}
-              isMetricOptionsEmpty={isMetricOptionsEmpty}
-            />
+            {visualize.visible && (
+              <MetricInfoTabs
+                traceMetric={traceMetric}
+                additionalActions={undefined}
+                contentsHidden={infoContentHidden}
+                orientation={orientation}
+                isMetricOptionsEmpty={isMetricOptionsEmpty}
+              />
+            )}
           </Stack>
         </PanelBody>
       </Panel>
