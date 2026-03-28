@@ -33,7 +33,12 @@
 
   <link rel="mask-icon" sizes="any" href="{% absolute_asset_url "sentry" "images/logos/logo-sentry.svg" %}" color="#FB4226">
 
+  {% block styles_shared %}
   <link href="{% frontend_app_asset_url "sentry" "entrypoints/sentry.css" %}" rel="stylesheet"/>
+  {% endblock %}
+  {% block styles_django %}
+  <link href="{% frontend_app_asset_url "sentryDjango" "entrypoints/sentryDjango.css" %}" rel="stylesheet"/>
+  {% endblock %}
 
   <title>{% block title %}Sentry{% endblock %}</title>
 
