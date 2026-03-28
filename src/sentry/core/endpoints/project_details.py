@@ -251,7 +251,10 @@ E.g. `['release', 'environment']`""",
     targetSampleRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     dynamicSamplingBiases = DynamicSamplingBiasSerializer(required=False, many=True)
     tempestFetchScreenshots = serializers.BooleanField(required=False)
-    scmSourceContextEnabled = serializers.BooleanField(required=False)
+    scmSourceContextEnabled = serializers.BooleanField(
+        required=False,
+        help_text="Enable on-demand source context fetching from SCM integrations for stack traces.",
+    )
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
