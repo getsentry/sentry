@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 from sentry.processing_errors.grouptype import (
+    NativeConfigurationType,
     ProcessingErrorCheckStatus,
     SourcemapConfigurationType,
 )
@@ -73,3 +74,21 @@ class TestEnsureDetector(TestCase):
     def test_uses_description_as_name(self) -> None:
         detector = ensure_detector(self.project, SourcemapConfigurationType)
         assert detector.name == SourcemapConfigurationType.description
+
+    def test_creates_native_detector(self) -> None:
+        detector = ensure_detector(self.project, NativeConfigurationType)
+
+        assert detector.type == NativeConfigurationType.slug
+        assert detector.name == NativeConfigurationType.description
+        assert detector.project == self.project
+
+        state = DetectorState.objects.get(detector=detector)
+        assert state.is_triggered is False
+
+    def test_separate_detectors_per_config_type(self) -> None:
+        sourcemap = ensure_detector(self.project, SourcemapConfigurationType)
+        native = ensure_detector(self.project, NativeConfigurationType)
+
+        assert sourcemap.id != native.id
+        assert sourcemap.type == SourcemapConfigurationType.slug
+        assert native.type == NativeConfigurationType.slug

@@ -10,7 +10,7 @@ from sentry.processing_errors.detection import (
     _cache_key_triggered,
     detect_processing_issues,
 )
-from sentry.processing_errors.grouptype import SourcemapConfigurationType
+from sentry.processing_errors.grouptype import NativeConfigurationType, SourcemapConfigurationType
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models import DetectorState
 
@@ -38,6 +38,10 @@ def _make_job(event, is_reprocessed=False):
 
 def _sourcemap_config():
     return DETECTOR_CONFIGS[0]
+
+
+def _native_config():
+    return DETECTOR_CONFIGS[1]
 
 
 class TestDetectSourcemapIssues(TestCase):
@@ -183,3 +187,102 @@ class TestDetectSourcemapIssues(TestCase):
 
         state.refresh_from_db()
         assert state.date_updated == original_date_updated
+
+
+class TestDetectNativeIssues(TestCase):
+    def setUp(self):
+        super().setUp()
+        config = _native_config()
+        cache.delete(_cache_key_triggered(config.slug, self.project.id))
+
+    def test_native_errors_trigger_detector(self) -> None:
+        event = _FakeEvent(
+            self.project,
+            errors=[{"type": "native_missing_dsym", "image": "libfoo.so"}],
+            platform="cocoa",
+        )
+
+        with self.feature("organizations:native-issue-detection"):
+            detect_processing_issues(_make_job(event))
+
+        state = DetectorState.objects.get(
+            detector__type=NativeConfigurationType.slug,
+            detector__project=self.project,
+        )
+        assert state.is_triggered is True
+
+        config = _native_config()
+        assert cache.get(_cache_key_triggered(config.slug, self.project.id)) is not None
+
+    def test_proguard_errors_trigger_detector(self) -> None:
+        event = _FakeEvent(
+            self.project,
+            errors=[{"type": "proguard_missing_mapping"}],
+            platform="java",
+        )
+
+        with self.feature("organizations:native-issue-detection"):
+            detect_processing_issues(_make_job(event))
+
+        state = DetectorState.objects.get(
+            detector__type=NativeConfigurationType.slug,
+            detector__project=self.project,
+        )
+        assert state.is_triggered is True
+
+    def test_js_errors_do_not_trigger_native(self) -> None:
+        event = _FakeEvent(
+            self.project,
+            errors=[{"type": "js_no_source", "url": "https://example.com/app.js"}],
+        )
+
+        with self.feature("organizations:native-issue-detection"):
+            detect_processing_issues(_make_job(event))
+
+        assert not DetectorState.objects.filter(
+            detector__type=NativeConfigurationType.slug,
+            detector__project=self.project,
+        ).exists()
+
+    def test_feature_flag_off_does_not_trigger(self) -> None:
+        event = _FakeEvent(
+            self.project,
+            errors=[{"type": "native_missing_dsym", "image": "libfoo.so"}],
+            platform="cocoa",
+        )
+
+        detect_processing_issues(_make_job(event))
+
+        assert not DetectorState.objects.filter(
+            detector__type=NativeConfigurationType.slug,
+            detector__project=self.project,
+        ).exists()
+
+    def test_sourcemap_and_native_trigger_independently(self) -> None:
+        event = _FakeEvent(
+            self.project,
+            errors=[
+                {"type": "js_no_source", "url": "https://example.com/app.js"},
+                {"type": "native_missing_dsym", "image": "libfoo.so"},
+            ],
+        )
+
+        with self.feature(
+            {
+                "organizations:sourcemap-issue-detection": True,
+                "organizations:native-issue-detection": True,
+            }
+        ):
+            detect_processing_issues(_make_job(event))
+
+        sourcemap_state = DetectorState.objects.get(
+            detector__type=SourcemapConfigurationType.slug,
+            detector__project=self.project,
+        )
+        assert sourcemap_state.is_triggered is True
+
+        native_state = DetectorState.objects.get(
+            detector__type=NativeConfigurationType.slug,
+            detector__project=self.project,
+        )
+        assert native_state.is_triggered is True

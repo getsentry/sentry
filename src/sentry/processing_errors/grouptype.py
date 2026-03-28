@@ -71,6 +71,18 @@ JS_SOURCEMAP_ERROR_TYPES = frozenset(
 )
 
 
+NATIVE_ERROR_TYPES = frozenset(
+    {
+        EventErrorType.NATIVE_MISSING_DSYM,
+        EventErrorType.NATIVE_BAD_DSYM,
+        EventErrorType.NATIVE_UNSUPPORTED_DSYM,
+        EventErrorType.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM,
+        EventErrorType.PROGUARD_MISSING_MAPPING,
+        EventErrorType.PROGUARD_MISSING_LINENO,
+    }
+)
+
+
 class ProcessingErrorDetectorHandler(
     StatefulDetectorHandler[ProcessingErrorPacketValue, ProcessingErrorCheckStatus],
     abc.ABC,
@@ -270,4 +282,37 @@ class SourcemapConfigurationType(GroupType):
     enable_status_change_workflow_notifications = False
     enable_workflow_notifications = False
     # We want to show these separately to normal issue types
+    in_default_search = False
+
+
+class NativeDetectorHandler(ProcessingErrorDetectorHandler):
+    error_types = NATIVE_ERROR_TYPES
+    fingerprint_key = "native"
+    issue_title = "Broken debug symbols detected"
+    issue_subtitle = (
+        "Debug symbols or Proguard mappings are not configured correctly for this project"
+    )
+
+
+@dataclass(frozen=True)
+class NativeConfigurationType(GroupType):
+    type_id = 13002
+    slug = "native_configuration"
+    description = "Native Configuration Issue"
+    category = GroupCategory.CONFIGURATION.value
+    category_v2 = GroupCategory.CONFIGURATION.value
+    released = False
+    default_priority = PriorityLevel.LOW
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+    creation_quota = Quota(3600, 60, 100)
+    notification_config = NotificationConfig(context=[])
+    detector_settings = DetectorSettings(
+        handler=NativeDetectorHandler,
+        validator=None,
+        config_schema={},
+    )
+    enable_user_status_and_priority_changes = False
+    enable_status_change_workflow_notifications = False
+    enable_workflow_notifications = False
     in_default_search = False
