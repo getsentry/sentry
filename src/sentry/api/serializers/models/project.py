@@ -1114,6 +1114,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 attrs, "sentry:seer_scanner_automation"
             ),
             "debugFilesRole": attrs["options"].get("sentry:debug_files_role"),
+            "scmSourceContextEnabled": self.get_value_with_default(
+                attrs, "sentry:scm_source_context_enabled"
+            ),
         }
 
         if has_tempest_access(obj.organization):
