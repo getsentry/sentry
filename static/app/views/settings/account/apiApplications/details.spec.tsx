@@ -8,6 +8,8 @@ import {
 import ApiApplicationDetails from 'sentry/views/settings/account/apiApplications/details';
 
 describe('ApiApplicationDetails', () => {
+  const oauthBaseUrl = 'https://sentry-jest-tests.example.com/oauth';
+
   it('renders basic details for confidential client', async () => {
     MockApiClient.addMockResponse({
       url: '/api-applications/abcd/',
@@ -55,6 +57,10 @@ describe('ApiApplicationDetails', () => {
     expect(screen.getByLabelText('Client Secret')).toBeInTheDocument();
     expect(screen.getByLabelText('Authorization URL')).toBeInTheDocument();
     expect(screen.getByLabelText('Token URL')).toBeInTheDocument();
+    expect(screen.getByDisplayValue(`${oauthBaseUrl}/authorize/`)).toBeInTheDocument();
+    expect(screen.getByDisplayValue(`${oauthBaseUrl}/token/`)).toBeInTheDocument();
+    expect(screen.queryByLabelText('Device Authorization URL')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Device Verification URL')).not.toBeInTheDocument();
   });
 
   it('handles client secret rotation', async () => {
@@ -160,6 +166,10 @@ describe('ApiApplicationDetails', () => {
     expect(screen.getByLabelText('Client ID')).toBeInTheDocument();
     expect(screen.getByDisplayValue('public-app')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Public CLI App')).toBeInTheDocument();
+    expect(screen.getByDisplayValue(`${oauthBaseUrl}/authorize/`)).toBeInTheDocument();
+    expect(screen.getByDisplayValue(`${oauthBaseUrl}/token/`)).toBeInTheDocument();
+    expect(screen.getByDisplayValue(`${oauthBaseUrl}/device/code/`)).toBeInTheDocument();
+    expect(screen.getByDisplayValue(`${oauthBaseUrl}/device/`)).toBeInTheDocument();
   });
 
   it('renders confidential client with client secret section', async () => {
@@ -202,5 +212,7 @@ describe('ApiApplicationDetails', () => {
     expect(
       screen.queryByText(/This is a public client, designed for CLIs/)
     ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Device Authorization URL')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Device Verification URL')).not.toBeInTheDocument();
   });
 });
