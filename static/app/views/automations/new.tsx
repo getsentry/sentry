@@ -7,6 +7,7 @@ import {Observer} from 'mobx-react-lite';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FormModel} from 'sentry/components/forms/model';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
@@ -153,6 +154,7 @@ export default function AutomationNewSettings() {
       try {
         const automation = await createAutomation(newAutomationData);
         onSubmitSuccess(formModel.getData());
+        addSuccessMessage(t('Alert created'));
         trackAnalytics('automation.created', {
           organization,
           ...analyticsPayload,
@@ -234,7 +236,7 @@ export default function AutomationNewSettings() {
           <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
             <Observer>
               {() => (
-                <Button priority="primary" type="submit" disabled={model.isSaving}>
+                <Button priority="primary" type="submit" busy={model.isSaving}>
                   {t('Create Alert')}
                 </Button>
               )}

@@ -44,6 +44,8 @@ export function useEditDetectorFormSubmit<
         return;
       }
 
+      formModel.setFormSaving();
+
       try {
         // Use getTransformedData() instead of raw data to apply field-level
         // getValue transformations (e.g., assertion normalization)
@@ -63,7 +65,7 @@ export function useEditDetectorFormSubmit<
           ...getDetectorAnalyticsPayload(resultDetector),
         });
 
-        addSuccessMessage(t('Monitor updated successfully'));
+        addSuccessMessage(t('Monitor updated'));
 
         if (onSuccess) {
           onSuccess(resultDetector as TDetector);
