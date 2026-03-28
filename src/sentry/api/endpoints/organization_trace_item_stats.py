@@ -14,7 +14,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_trace_item_attributes import adjust_start_end_window
-from sentry.api.event_search import translate_escape_sequences
+from sentry.api.event_search import (
+    get_pinned_attributes,
+    translate_escape_sequences,
+)
 from sentry.api.serializers.base import serialize
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
@@ -162,6 +165,7 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                 )
 
         def data_fn(offset: int, limit: int):
+            query_string = serialized.get("query", "")
             table_results = get_table_results()
             if not table_results["data"]:
                 return {"data": []}, 0
@@ -177,6 +181,8 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
             except (IndexError, KeyError):
                 return {"data": []}, 0
 
+            pinned_attributes = get_pinned_attributes(query_string)
+
             sanitized_keys = []
             for internal_name in internal_alias_attr_keys:
                 public_alias = SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.get("string", {}).get(
@@ -184,6 +190,9 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                 )
 
                 if public_alias in SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS:
+                    continue
+
+                if public_alias in pinned_attributes:
                     continue
 
                 if value_substring_match:

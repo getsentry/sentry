@@ -21,6 +21,7 @@ from sentry.api.event_search import (
     default_config,
     flatten,
     gen_wildcard_value,
+    get_pinned_attributes,
     parse_search_query,
     translate_wildcard_as_clickhouse_pattern,
 )
@@ -1527,3 +1528,27 @@ def test_handles_ends_with_wildcard_op_translations(query, expected) -> None:
     assert isinstance(filters[0], SearchFilter)
     actual = filters[0].to_query_string()
     assert actual == expected
+
+
+class TestGetPinnedAttributes:
+    @pytest.mark.parametrize(
+        ("query", "expected"),
+        [
+            pytest.param("", set(), id="empty_query"),
+            pytest.param("span.op:db", {"span.op"}, id="single_pinned"),
+            pytest.param(
+                "span.op:db browser.name:chrome",
+                {"span.op", "browser.name"},
+                id="implicit_and",
+            ),
+            pytest.param("span.op:db OR browser.name:chrome", set(), id="or_operator"),
+            pytest.param("span.op:db*", set(), id="wildcard"),
+            pytest.param("!span.op:db", set(), id="negation"),
+            pytest.param("span.op:[db, http]", set(), id="in_filter"),
+            pytest.param("!has:span.op", set(), id="not_has"),
+            pytest.param("(a:1 OR b:2) AND c:3", set(), id="nested_or"),
+            pytest.param("(a:1 b:2) c:3", {"a", "b", "c"}, id="nested_and"),
+        ],
+    )
+    def test_get_pinned_attributes(self, query, expected):
+        assert get_pinned_attributes(query) == expected

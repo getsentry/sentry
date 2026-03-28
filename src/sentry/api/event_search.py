@@ -1953,3 +1953,52 @@ def parse_search_query(
         get_field_type=get_field_type,
         get_function_result_type=get_function_result_type,
     ).visit(tree)
+
+
+def _contains_or(tokens: Sequence[QueryToken]) -> bool:
+    for token in tokens:
+        if isinstance(token, str) and SearchBoolean.is_or_operator(token):
+            return True
+        if isinstance(token, ParenExpression) and _contains_or(token.children):
+            return True
+    return False
+
+
+def _collect_pinned(tokens: Sequence[QueryToken]) -> set[str]:
+    pinned: set[str] = set()
+    for token in tokens:
+        if isinstance(token, SearchFilter):
+            if (
+                token.operator == "="
+                and not token.is_negation
+                and not token.is_in_filter
+                and isinstance(token.value.raw_value, str)
+                and token.value.raw_value != ""
+                and not token.value.is_wildcard()
+            ):
+                pinned.add(token.key.name)
+        elif isinstance(token, ParenExpression):
+            pinned.update(_collect_pinned(token.children))
+    return pinned
+
+
+def get_pinned_attributes(query: str) -> set[str]:
+    """Return the set of attribute names that are pinned to a single value in the query.
+
+    An attribute is "pinned" when it is filtered with ``=`` to a single non-wildcard value
+    (e.g. ``span.op:db``).
+
+    If the query contains any ``OR`` operator we conservatively return an empty set
+    because the pinned assumption no longer holds.
+    """
+    if not query:
+        return set()
+    try:
+        tokens = parse_search_query(query)
+    except InvalidSearchQuery:
+        return set()
+
+    if _contains_or(tokens):
+        return set()
+
+    return _collect_pinned(tokens)

@@ -176,6 +176,33 @@ class OrganizationTraceItemsStatsEndpointTest(
             item["label"] == "mobile" or item["label"] == "tablet" for item in device_data
         )
 
+    def test_pinned_attribute_excluded_from_breakdown(self) -> None:
+        tags = [
+            ({"browser": "chrome", "device": "desktop"}, 100),
+            ({"browser": "chrome", "device": "mobile"}, 100),
+            ({"browser": "firefox", "device": "tablet"}, 100),
+        ]
+
+        for tag, duration in tags:
+            self._store_span(tags=tag, duration=duration)
+
+        response = self.do_request(
+            query={
+                "query": "browser:chrome",
+                "statsType": ["attributeDistributions"],
+            }
+        )
+        assert response.status_code == 200, response.data
+        assert len(response.data["data"]) == 1
+        attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
+
+        # "browser" is pinned by the query filter, so it must be excluded
+        assert "browser" not in attribute_distribution
+        assert "sentry.browser" not in attribute_distribution
+
+        # "device" is not pinned, so it should still appear
+        assert "sentry.device" in attribute_distribution
+
     @override_options({"explore.trace-items.keys.max": 3})
     def test_pagination_with_limit(self) -> None:
         tags = [
