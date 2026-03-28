@@ -964,6 +964,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     tempestFetchScreenshots: NotRequired[bool]
     autofixAutomationTuning: NotRequired[str]
     seerScannerAutomation: NotRequired[bool]
+    scmSourceContextEnabled: NotRequired[bool]
     debugFilesRole: NotRequired[str | None]
 
 
