@@ -2600,20 +2600,19 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         assert spec_map[field]
         assert spec_map[field_two]
 
-        mep_query = TopMetricsQueryBuilder(
-            Dataset.PerformanceMetrics,
-            self.params,
-            3600 * 24,
-            [{"customtag1": "div > text"}, {"customtag2": "red"}],
-            query="",
-            selected_columns=groupbys,
-            timeseries_columns=[field, field_two],
-            config=QueryBuilderConfig(
-                on_demand_metrics_enabled=False,
-            ),
-        )
-
-        assert not mep_query._on_demand_metric_spec_map
+        with pytest.raises(IncompatibleMetricsQuery):
+            TopMetricsQueryBuilder(
+                Dataset.PerformanceMetrics,
+                self.params,
+                3600 * 24,
+                [{"customtag1": "div > text"}, {"customtag2": "red"}],
+                query="",
+                selected_columns=groupbys,
+                timeseries_columns=[field, field_two],
+                config=QueryBuilderConfig(
+                    on_demand_metrics_enabled=False,
+                ),
+            )
         result = query.run_query("test_query")
 
         assert result["data"]
