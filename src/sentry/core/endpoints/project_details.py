@@ -469,11 +469,12 @@ E.g. `['release', 'environment']`""",
         return value
 
     def validate_scmSourceContextEnabled(self, value):
-        organization = self.context["project"].organization
-        if not features.has("organizations:scm-source-context", organization):
-            raise serializers.ValidationError(
-                "Organization does not have the SCM source context feature enabled."
-            )
+        if value:
+            organization = self.context["project"].organization
+            if not features.has("organizations:scm-source-context", organization):
+                raise serializers.ValidationError(
+                    "Organization does not have the SCM source context feature enabled."
+                )
         return value
 
     def validate_debugFilesRole(self, value):
