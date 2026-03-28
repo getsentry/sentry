@@ -101,10 +101,6 @@ def create_test_cells(*names: str, single_tenants: Iterable[str] = ()) -> tuple[
     )
 
 
-# TODO(cells): Remove alias once no longer used in getsentry
-create_test_regions = create_test_cells
-
-
 def _model_silo_limit(t: type[Model]) -> ModelSiloLimit:
     from sentry.db.models.base import ModelSiloLimit
 
@@ -173,8 +169,6 @@ class SiloModeTestDecorator:
         self,
         *,
         cells: Sequence[Cell] = (),
-        # TODO(cells): Remove alias once no longer used in getsentry
-        regions: Sequence[Cell] | None = None,
         include_monolith_run: bool = False,
     ) -> Callable[[T], T]: ...
 
@@ -183,16 +177,13 @@ class SiloModeTestDecorator:
         decorated_obj: Any = None,
         *,
         cells: Sequence[Cell] = (),
-        # TODO(cells): Remove alias once no longer used in getsentry
-        regions: Sequence[Cell] | None = None,
         include_monolith_run: bool = False,
     ) -> Any:
         silo_modes = self.silo_modes
         if include_monolith_run:
             silo_modes |= frozenset([SiloMode.MONOLITH])
 
-        resolved_cells = tuple(cells or regions or ())
-        mod = _SiloModeTestModification(silo_modes=silo_modes, cells=resolved_cells)
+        mod = _SiloModeTestModification(silo_modes=silo_modes, cells=tuple(cells))
         return mod.apply if decorated_obj is None else mod.apply(decorated_obj)
 
 
