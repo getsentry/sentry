@@ -18,6 +18,9 @@ class IdentifierKey(StrEnum):
 
 
 class Notification(NamedTuple):
+    # NOTE: `event` may be a partial Event, with only: (project_id, event_id, group_id, datetime).
+    # Don't use without understanding the implications.
+    # TODO: Use more specialized type once we've stopped pickle-ing.
     event: Event | GroupEvent
     rules: Sequence[int] = ()
     notification_uuid: str | None = None

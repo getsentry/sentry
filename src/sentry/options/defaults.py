@@ -207,6 +207,16 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Digests
+# When true, digests will use JSON+zstd encoding instead of pickle+zlib.
+# Decoding should support both until no more pickle+zlib data is in the wild.
+register(
+    "digests.encode-json-zstd",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # TOTP (Auth app)
 register(
     "totp.disallow-new-enrollment",
