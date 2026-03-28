@@ -18,7 +18,10 @@ from sentry.utils.cache import cache
 from sentry.utils.event_frames import EventFrame
 
 if TYPE_CHECKING:
+    from sentry.integrations.base import IntegrationInstallation
+    from sentry.integrations.services.integration.model import RpcIntegration
     from sentry.issues.endpoints.project_stacktrace_link import StacktraceLinkContext
+    from sentry.models.repository import Repository
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +66,104 @@ def _format_context(
     return result
 
 
+def _resolve_integration(
+    config: RepositoryProjectPathConfig,
+) -> tuple[RpcIntegration, RepositoryIntegration] | None:
+    """Resolve the integration and installation for a code mapping config."""
+    integration = integration_service.get_integration(
+        organization_integration_id=config.organization_integration_id,
+        status=ObjectStatus.ACTIVE,
+    )
+    if not integration:
+        return None
+
+    install = integration.get_installation(organization_id=config.project.organization_id)
+    if not isinstance(install, RepositoryIntegration):
+        return None
+
+    return integration, install
+
+
+def _fetch_file_from_scm(
+    install: IntegrationInstallation,
+    integration_id: int,
+    repository: Repository,
+    src_path: str,
+    ref: str,
+    cache_key: str,
+) -> tuple[str | None, str | None]:
+    """
+    Fetch file content from SCM, using cache when available.
+
+    Returns (file_content, error). If error is "rate_limited", the caller
+    should stop iterating entirely.
+    """
+    file_content: str | None = cache.get(cache_key)
+    if file_content is not None:
+        return file_content, None
+
+    try:
+        client = install.get_client()
+    except Exception:
+        logger.warning(
+            "scm_source_context.get_client_error",
+            extra={
+                "integration_id": integration_id,
+                "src_path": src_path,
+            },
+            exc_info=True,
+        )
+        return None, "integration_error"
+
+    try:
+        file_content = client.get_file(repository, src_path, ref)
+    except NotImplementedError:
+        return None, "get_file_not_supported"
+    except ApiRateLimitedError:
+        return None, "rate_limited"
+    except ApiError as e:
+        if e.code == 404:
+            return None, "file_not_found"
+        elif e.code == 403:
+            return None, "integration_forbidden"
+        else:
+            logger.warning(
+                "scm_source_context.fetch_error",
+                extra={
+                    "error": str(e),
+                    "integration_id": integration_id,
+                    "src_path": src_path,
+                },
+            )
+            return None, "integration_error"
+
+    if file_content is not None:
+        cache.set(cache_key, file_content, SOURCE_CONTEXT_CACHE_TTL)
+
+    return file_content, None
+
+
+def _extract_source_lines(
+    file_content: str,
+    lineno: int,
+    context_lines: int,
+) -> tuple[list[list[int | str]], str | None]:
+    """
+    Extract context lines from file content around the given line number.
+
+    Returns (context, error).
+    """
+    lines = [line.encode("utf-8") for line in file_content.splitlines()]
+
+    if lineno < 1 or lineno > len(lines):
+        return [], "line_out_of_range"
+
+    pre_context, context_line, post_context = get_source_context(lines, lineno, context_lines)
+
+    context = _format_context(pre_context, context_line, post_context, lineno, context_lines)
+    return context, None
+
+
 def fetch_source_context_from_scm(
     configs: Sequence[RepositoryProjectPathConfig],
     ctx: StacktraceLinkContext,
@@ -92,6 +193,9 @@ def fetch_source_context_from_scm(
         result["error"] = "invalid_line_number"
         return result
 
+    # Resolve integration and install once per unique org_integration_id
+    resolved_integrations: dict[int, tuple[RpcIntegration, RepositoryIntegration] | None] = {}
+
     for config in configs:
         src_path = convert_stacktrace_frame_path_to_source_path(
             frame=EventFrame.from_dict(ctx),
@@ -102,85 +206,45 @@ def fetch_source_context_from_scm(
         if not src_path:
             continue
 
-        integration = integration_service.get_integration(
-            organization_integration_id=config.organization_integration_id,
-            status=ObjectStatus.ACTIVE,
-        )
-        if not integration:
+        org_integration_id = config.organization_integration_id
+        if org_integration_id not in resolved_integrations:
+            resolved_integrations[org_integration_id] = _resolve_integration(config)
+
+        resolved = resolved_integrations[org_integration_id]
+        if resolved is None:
             continue
 
-        install = integration.get_installation(organization_id=config.project.organization_id)
-        if not isinstance(install, RepositoryIntegration):
-            continue
+        integration, install = resolved
 
         ref = ctx.get("commit_id") or str(config.default_branch or "")
         cache_key = _make_cache_key(
-            config.organization_integration_id,
+            org_integration_id,
             config.repository_id,
             src_path,
             ref,
         )
 
-        # Try cache first
-        file_content: str | None = cache.get(cache_key)
+        file_content, fetch_error = _fetch_file_from_scm(
+            install, integration.id, config.repository, src_path, ref, cache_key
+        )
 
-        if file_content is None:
-            try:
-                client = install.get_client()
-            except Exception:
-                logger.warning(
-                    "scm_source_context.get_client_error",
-                    extra={
-                        "integration_id": integration.id,
-                        "src_path": src_path,
-                    },
-                    exc_info=True,
-                )
-                result["error"] = "integration_error"
-                continue
-
-            try:
-                file_content = client.get_file(config.repository, src_path, ref)
-            except NotImplementedError:
-                result["error"] = "get_file_not_supported"
-                continue
-            except ApiRateLimitedError:
-                result["error"] = "rate_limited"
+        if fetch_error:
+            result["error"] = fetch_error
+            if fetch_error == "rate_limited":
                 return result
-            except ApiError as e:
-                if e.code == 404:
-                    result["error"] = "file_not_found"
-                elif e.code == 403:
-                    result["error"] = "integration_forbidden"
-                else:
-                    result["error"] = "integration_error"
-                    logger.warning(
-                        "scm_source_context.fetch_error",
-                        extra={
-                            "error": str(e),
-                            "integration_id": integration.id,
-                            "src_path": src_path,
-                        },
-                    )
-                continue
-
-            if file_content is not None:
-                cache.set(cache_key, file_content, SOURCE_CONTEXT_CACHE_TTL)
-
-        lines = [line.encode("utf-8") for line in file_content.splitlines()]
-
-        if lineno < 1 or lineno > len(lines):
-            result["error"] = "line_out_of_range"
             continue
 
-        pre_context, context_line, post_context = get_source_context(lines, lineno, context_lines)
+        if file_content is None:
+            continue
 
-        result["context"] = _format_context(
-            pre_context, context_line, post_context, lineno, context_lines
-        )
+        context, extract_error = _extract_source_lines(file_content, lineno, context_lines)
+        if extract_error:
+            result["error"] = extract_error
+            continue
+
+        result["context"] = context
         result["error"] = None
 
-        # Also generate the source URL for convenience
         try:
             source_url = install.get_stacktrace_link(
                 config.repository, src_path, str(config.default_branch or ""), ctx.get("commit_id")
