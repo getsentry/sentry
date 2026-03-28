@@ -6,6 +6,7 @@ import jsonschema
 import orjson
 import sentry_sdk
 from django.conf import settings
+from django.db.models import Sum
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -16,6 +17,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.debug_files.upload import find_missing_chunks
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.models.files.fileblob import FileBlob
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiAssembleEvent
@@ -27,6 +29,8 @@ from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_ch
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.tasks.assemble import ChunkFileState
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+
+PREPROD_ARTIFACT_MAX_FILE_SIZE = 5 * 1024 * 1024 * 1024  # 5GB
 
 SUPPORTED_VCS_PROVIDERS = [
     IntegrationProviderSlug.GITHUB,
@@ -189,6 +193,22 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
             # If not, we assume this is a poll and report NOT_FOUND
             if not chunks:
                 return Response({"state": ChunkFileState.NOT_FOUND, "missingChunks": []})
+
+            # Check total file size before queuing assembly
+            total_size = (
+                FileBlob.objects.filter(
+                    checksum__in=chunks,
+                    fileblobowner__organization_id=project.organization_id,
+                ).aggregate(total=Sum("size"))["total"]
+                or 0
+            )
+            if total_size > PREPROD_ARTIFACT_MAX_FILE_SIZE:
+                return Response(
+                    {
+                        "error": f"File size ({total_size}) exceeds maximum allowed size ({PREPROD_ARTIFACT_MAX_FILE_SIZE})"
+                    },
+                    status=400,
+                )
 
             try:
                 artifact = create_preprod_artifact(

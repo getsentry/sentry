@@ -11,6 +11,7 @@ from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.fileblobowner import FileBlobOwner
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.preprod.api.endpoints.organization_preprod_artifact_assemble import (
+    PREPROD_ARTIFACT_MAX_FILE_SIZE,
     validate_preprod_artifact_schema,
     validate_vcs_parameters,
 )
@@ -1108,3 +1109,51 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         )
         assert response.status_code == 403, response.content
         assert response.data["detail"] == "Organization does not have quota for preprod features"
+
+    def test_assemble_file_size_exceeds_limit(self) -> None:
+        """Test that files exceeding the max size limit are rejected."""
+        content = b"test content for size limit"
+        total_checksum = sha1(content).hexdigest()
+
+        blob = FileBlob.from_file(ContentFile(content))
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
+
+        with patch(
+            "sentry.preprod.api.endpoints.organization_preprod_artifact_assemble.PREPROD_ARTIFACT_MAX_FILE_SIZE",
+            1,  # Set limit to 1 byte to trigger the check
+        ):
+            response = self.client.post(
+                self.url,
+                data={
+                    "checksum": total_checksum,
+                    "chunks": [blob.checksum],
+                },
+                HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            )
+
+        assert response.status_code == 400, response.content
+        assert "exceeds maximum allowed size" in response.data["error"]
+
+    def test_assemble_file_size_within_limit(self) -> None:
+        """Test that files within the max size limit are accepted."""
+        content = b"small content"
+        total_checksum = sha1(content).hexdigest()
+
+        blob = FileBlob.from_file(ContentFile(content))
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
+
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [blob.checksum],
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["state"] == ChunkFileState.CREATED
+
+    def test_preprod_artifact_max_file_size_is_5gb(self) -> None:
+        """Test that the max file size constant is set to 5GB."""
+        assert PREPROD_ARTIFACT_MAX_FILE_SIZE == 5 * 1024 * 1024 * 1024
