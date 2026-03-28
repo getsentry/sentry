@@ -45,7 +45,6 @@ def _format_context(
     context_line: bytes | None,
     post_context: list[bytes] | None,
     lineno: int,
-    context_size: int = LINES_OF_CONTEXT,
 ) -> list[list[int | str]]:
     """Format source context into [[lineNo, content], ...] tuples for the frontend."""
     result: list[list[int | str]] = []
@@ -160,7 +159,7 @@ def _extract_source_lines(
 
     pre_context, context_line, post_context = get_source_context(lines, lineno, context_lines)
 
-    context = _format_context(pre_context, context_line, post_context, lineno, context_lines)
+    context = _format_context(pre_context, context_line, post_context, lineno)
     return context, None
 
 
@@ -217,6 +216,7 @@ def fetch_source_context_from_scm(
         integration, install = resolved
 
         ref = ctx.get("commit_id") or str(config.default_branch or "")
+
         cache_key = _make_cache_key(
             org_integration_id,
             config.repository_id,
@@ -250,7 +250,7 @@ def fetch_source_context_from_scm(
                 config.repository, src_path, str(config.default_branch or ""), ctx.get("commit_id")
             )
             result["source_url"] = source_url
-        except (ApiError, Exception):
+        except ApiError:
             pass
 
         return result
