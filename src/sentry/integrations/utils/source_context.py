@@ -192,14 +192,18 @@ def fetch_source_context_from_scm(
         result["error"] = "invalid_line_number"
         return result
 
+    frame = EventFrame.from_dict(ctx)
+    platform = ctx["platform"]
+    sdk_name = ctx.get("sdk_name")
+
     # Resolve integration and install once per unique org_integration_id
     resolved_integrations: dict[int, tuple[RpcIntegration, RepositoryIntegration] | None] = {}
 
     for config in configs:
         src_path = convert_stacktrace_frame_path_to_source_path(
-            frame=EventFrame.from_dict(ctx),
-            platform=ctx["platform"],
-            sdk_name=ctx.get("sdk_name"),
+            frame=frame,
+            platform=platform,
+            sdk_name=sdk_name,
             code_mapping=config,
         )
         if not src_path:
