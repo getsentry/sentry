@@ -12,12 +12,15 @@ from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesResponse,
     TraceItemAttributeValuesRequest,
 )
-from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta
+from sentry_protos.snuba.v1.request_common_pb2 import (
+    PageToken,
+    RequestMeta,
+)
 from sentry_protos.snuba.v1.request_common_pb2 import (
     TraceItemType as ProtoTraceItemType,
 )
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ExistsFilter, OrFilter, TraceItemFilter
 
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
@@ -840,10 +843,13 @@ def adjust_start_end_window(start_date: datetime, end_date: datetime) -> tuple[d
     return start_date, end_date
 
 
-class OrganizationTraceItemAttributeValidateSerializer(serializers.Serializer):
+class OrganizationTraceItemAttributeValidateQuerySerializer(serializers.Serializer):
     itemType = serializers.ChoiceField(
         [e.value for e in SupportedTraceItemType], required=True, source="item_type"
     )
+
+
+class OrganizationTraceItemAttributeValidateBodySerializer(serializers.Serializer):
     attributes = serializers.ListField(
         child=serializers.CharField(max_length=300),
         min_length=1,
@@ -862,6 +868,72 @@ def serialize_type(search_type: constants.SearchType) -> str:
     return "number"
 
 
+def _check_attributes_by_type(
+    meta: RequestMeta,
+    attr_type: AttributeKey.Type.ValueType,
+    names: list[str],
+) -> set[tuple[AttributeKey.Type.ValueType, str]]:
+    """Check which typed attribute names exist in storage for the active window."""
+    if not names:
+        return set()
+
+    requested_names = set(names)
+    names_request = TraceItemAttributeNamesRequest(
+        meta=meta,
+        limit=10000,
+        type=attr_type,
+        intersecting_attributes_filter=TraceItemFilter(
+            or_filter=OrFilter(
+                filters=[
+                    TraceItemFilter(
+                        exists_filter=ExistsFilter(key=AttributeKey(type=attr_type, name=name))
+                    )
+                    for name in requested_names
+                ]
+            )
+        ),
+    )
+    names_response = snuba_rpc.attribute_names_rpc(names_request)
+    return {
+        (attr_type, attribute.name)
+        for attribute in names_response.attributes
+        if attribute.name in requested_names
+    }
+
+
+# We want to limit the number of threads to the number of attribute types to avoid overwhelming the RPC server.
+MAX_ATTRIBUTE_VALIDATION_THREADS = 3
+
+
+def _check_attributes_exist(
+    resolver: SearchResolver,
+    item_type: SupportedTraceItemType,
+    attrs_by_type: dict[AttributeKey.Type.ValueType, list[str]],
+) -> set[tuple[AttributeKey.Type.ValueType, str]]:
+    """Check which typed attribute internal names exist in storage."""
+    if not attrs_by_type:
+        return set()
+
+    meta = resolver.resolve_meta(referrer=Referrer.API_TRACE_ITEM_ATTRIBUTE_VALIDATE.value)
+    meta.trace_item_type = constants.SUPPORTED_TRACE_ITEM_TYPE_MAP.get(
+        item_type, ProtoTraceItemType.TRACE_ITEM_TYPE_SPAN
+    )
+
+    found: set[tuple[AttributeKey.Type.ValueType, str]] = set()
+    with ThreadPoolExecutor(
+        thread_name_prefix="attr_validate",
+        max_workers=MAX_ATTRIBUTE_VALIDATION_THREADS,
+    ) as pool:
+        futures = [
+            pool.submit(_check_attributes_by_type, meta, attr_type, names)
+            for attr_type, names in attrs_by_type.items()
+        ]
+        for future in futures:
+            found.update(future.result())
+
+    return found
+
+
 @cell_silo_endpoint
 class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttributesEndpointBase):
     publish_status = {
@@ -873,13 +945,16 @@ class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttrib
         if not self.has_feature(organization, request):
             return Response(status=404)
 
-        serializer = OrganizationTraceItemAttributeValidateSerializer(data=request.data)
+        query_serializer = OrganizationTraceItemAttributeValidateQuerySerializer(data=request.GET)
+        if not query_serializer.is_valid():
+            return Response(query_serializer.errors, status=400)
+
+        serializer = OrganizationTraceItemAttributeValidateBodySerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        validated = serializer.validated_data
-        item_type = SupportedTraceItemType(validated["item_type"])
-        attribute_names: list[str] = validated["attributes"]
+        item_type = SupportedTraceItemType(query_serializer.validated_data["item_type"])
+        attribute_names: list[str] = serializer.validated_data["attributes"]
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
@@ -897,17 +972,47 @@ class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttrib
         )
 
         results: dict[str, dict[str, Any]] = {}
+        # Collect unknown (user tag) attributes that need storage validation
+        unknown_attrs: list[tuple[str, Any]] = []
+
         for attr_name in attribute_names:
             try:
                 resolved, _context = resolver.resolve_attribute(attr_name)
-                results[attr_name] = {
-                    "valid": True,
-                    "type": serialize_type(resolved.search_type),
-                }
+                if attr_name in definitions.contexts or attr_name in definitions.columns:
+                    # Known column or virtual context — always valid
+                    results[attr_name] = {
+                        "valid": True,
+                        "type": serialize_type(resolved.search_type),
+                    }
+                else:
+                    # User tag — need to verify it exists in storage
+                    unknown_attrs.append((attr_name, resolved))
             except InvalidSearchQuery as e:
                 results[attr_name] = {
                     "valid": False,
                     "error": str(e),
                 }
+
+        if unknown_attrs:
+            # Group by proto type because the storage check is keyed on
+            # (proto_type, internal_name) — the same display name can exist
+            # as both a string and a number attribute simultaneously.
+            attrs_by_type: dict[AttributeKey.Type.ValueType, list[str]] = {}
+            for _, resolved in unknown_attrs:
+                attrs_by_type.setdefault(resolved.proto_type, []).append(resolved.internal_name)
+            with handle_query_errors():
+                existing = _check_attributes_exist(resolver, item_type, attrs_by_type)
+
+            for attr_name, resolved in unknown_attrs:
+                if (resolved.proto_type, resolved.internal_name) in existing:
+                    results[attr_name] = {
+                        "valid": True,
+                        "type": serialize_type(resolved.search_type),
+                    }
+                else:
+                    results[attr_name] = {
+                        "valid": False,
+                        "error": f"Unknown attribute: {attr_name}",
+                    }
 
         return Response({"attributes": results})

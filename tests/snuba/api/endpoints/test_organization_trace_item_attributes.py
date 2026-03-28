@@ -2272,7 +2272,9 @@ class OrganizationTraceItemAttributeValuesEndpointTraceMetricsTest(
         assert "POST" in values
 
 
-class OrganizationTraceItemAttributeValidateEndpointTest(APITestCase, SnubaTestCase, SpanTestCase):
+class OrganizationTraceItemAttributeValidateEndpointTest(
+    APITestCase, BaseSpansTestCase, SpanTestCase
+):
     viewname = "sentry-api-0-organization-trace-item-attributes-validate"
     feature_flags = {
         "organizations:visibility-explore-view": True,
@@ -2283,7 +2285,7 @@ class OrganizationTraceItemAttributeValidateEndpointTest(APITestCase, SnubaTestC
         self.login_as(user=self.user)
         self.project = self.create_project()
 
-    def do_request(self, payload=None, features=None, **kwargs):
+    def do_request(self, payload=None, features=None, query_params=None, **kwargs):
         if features is None:
             features = self.feature_flags
 
@@ -2292,68 +2294,58 @@ class OrganizationTraceItemAttributeValidateEndpointTest(APITestCase, SnubaTestC
                 self.viewname,
                 kwargs={"organization_id_or_slug": self.organization.slug},
             )
+            if query_params:
+                encoded = "&".join(f"{k}={v}" for k, v in query_params.items())
+                url = f"{url}?{encoded}"
             return self.client.post(url, payload, format="json", **kwargs)
 
     def test_no_feature(self):
         response = self.do_request(
-            payload={
-                "itemType": "spans",
-                "attributes": ["span.duration"],
-            },
+            payload={"attributes": ["span.duration"]},
+            query_params={"itemType": "spans"},
             features={},
         )
         assert response.status_code == 404
 
     def test_missing_item_type(self):
         response = self.do_request(
-            payload={
-                "attributes": ["span.duration"],
-            },
+            payload={"attributes": ["span.duration"]},
         )
         assert response.status_code == 400
 
     def test_missing_attributes(self):
         response = self.do_request(
-            payload={
-                "itemType": "spans",
-            },
+            payload={},
+            query_params={"itemType": "spans"},
         )
         assert response.status_code == 400
 
     def test_empty_attributes_list(self):
         response = self.do_request(
-            payload={
-                "itemType": "spans",
-                "attributes": [],
-            },
+            payload={"attributes": []},
+            query_params={"itemType": "spans"},
         )
         assert response.status_code == 400
 
     def test_too_many_attributes(self):
         response = self.do_request(
-            payload={
-                "itemType": "spans",
-                "attributes": [f"attr{i}" for i in range(101)],
-            },
+            payload={"attributes": [f"attr{i}" for i in range(101)]},
+            query_params={"itemType": "spans"},
         )
         assert response.status_code == 400
 
     def test_unsupported_item_type(self):
         response = self.do_request(
-            payload={
-                "itemType": "uptime_results",
-                "attributes": ["some.attr"],
-            },
+            payload={"attributes": ["some.attr"]},
+            query_params={"itemType": "uptime_results"},
         )
         assert response.status_code == 400
         assert "Unsupported item type" in response.data["detail"]
 
     def test_well_known_attributes(self):
         response = self.do_request(
-            payload={
-                "itemType": "spans",
-                "attributes": ["span.duration"],
-            },
+            payload={"attributes": ["span.duration"]},
+            query_params={"itemType": "spans"},
         )
         assert response.status_code == 200
         attr = response.data["attributes"]["span.duration"]
@@ -2362,52 +2354,100 @@ class OrganizationTraceItemAttributeValidateEndpointTest(APITestCase, SnubaTestC
 
     def test_virtual_context_attributes(self):
         response = self.do_request(
-            payload={
-                "itemType": "spans",
-                "attributes": ["project"],
-            },
+            payload={"attributes": ["project"]},
+            query_params={"itemType": "spans"},
         )
         assert response.status_code == 200
         attr = response.data["attributes"]["project"]
         assert attr["valid"] is True
         assert attr["type"] == "string"
 
-    def test_user_tags(self):
+    def test_user_tags_not_in_storage(self):
         response = self.do_request(
             payload={
-                "itemType": "spans",
                 "attributes": [
                     "my.custom.tag",
                     "tags[x,string]",
                     "tags[numberAttr,number]",
-                    "tags[booleanAttr,boolean]",
-                ],
+                ]
             },
+            query_params={"itemType": "spans"},
+        )
+        assert response.status_code == 200
+        for key in ["my.custom.tag", "tags[x,string]", "tags[numberAttr,number]"]:
+            assert response.data["attributes"][key]["valid"] is False
+            assert "error" in response.data["attributes"][key]
+
+    def test_user_tags_in_storage(self):
+        # Existing and nonexistent tags are validated in separate requests because
+        # the local test Snuba (used in CI) returns empty results for an OrFilter
+        # containing multiple ExistsFilters when some reference nonexistent
+        # attributes, even though real Snuba handles it fine.
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+            tags={"my.custom.tag": "hello"},
+        )
+
+        response = self.do_request(
+            payload={"attributes": ["my.custom.tag"]},
+            query_params={"itemType": "spans"},
         )
         assert response.status_code == 200
         tag1 = response.data["attributes"]["my.custom.tag"]
         assert tag1["valid"] is True
         assert tag1["type"] == "string"
 
-        tag2 = response.data["attributes"]["tags[x,string]"]
-        assert tag2["valid"] is True
-        assert tag2["type"] == "string"
+        response = self.do_request(
+            payload={"attributes": ["nonexistent.tag"]},
+            query_params={"itemType": "spans"},
+        )
+        assert response.status_code == 200
+        tag2 = response.data["attributes"]["nonexistent.tag"]
+        assert tag2["valid"] is False
+        assert "error" in tag2
 
-        tag3 = response.data["attributes"]["tags[numberAttr,number]"]
-        assert tag3["valid"] is True
-        assert tag3["type"] == "number"
+    def test_user_tags_same_name_different_types(self):
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+            tags={"foo": "hello"},
+        )
 
-        tag4 = response.data["attributes"]["tags[booleanAttr,boolean]"]
-        assert tag4["valid"] is True
-        assert tag4["type"] == "boolean"
+        response = self.do_request(
+            payload={"attributes": ["tags[foo,string]", "tags[foo,number]"]},
+            query_params={"itemType": "spans"},
+        )
+        assert response.status_code == 200
+
+        attrs = response.data["attributes"]
+        assert attrs["tags[foo,string]"]["valid"] is True
+        assert attrs["tags[foo,string]"]["type"] == "string"
+
+        assert attrs["tags[foo,number]"]["valid"] is False
+        assert "error" in attrs["tags[foo,number]"]
 
     def test_invalid_attributes(self):
         long_attr = "a" * 201
         response = self.do_request(
-            payload={
-                "itemType": "spans",
-                "attributes": [long_attr, "tags[foo,faketype]"],
-            },
+            payload={"attributes": [long_attr, "tags[foo,faketype]"]},
+            query_params={"itemType": "spans"},
         )
         assert response.status_code == 200
 
@@ -2418,17 +2458,36 @@ class OrganizationTraceItemAttributeValidateEndpointTest(APITestCase, SnubaTestC
         assert "error" in response.data["attributes"]["tags[foo,faketype]"]
 
     def test_mixed_valid_and_invalid(self):
+        # Existing and nonexistent tags are validated in separate requests because
+        # the local test Snuba (used in CI) returns empty results for an OrFilter
+        # containing multiple ExistsFilters when some reference nonexistent
+        # attributes, even though real Snuba handles it fine.
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+            tags={"my.custom.tag": "hello"},
+        )
+
         long_attr = "a" * 201
+
         response = self.do_request(
             payload={
-                "itemType": "spans",
                 "attributes": [
                     "span.duration",
                     "project",
                     "my.custom.tag",
                     long_attr,
-                ],
+                ]
             },
+            query_params={"itemType": "spans"},
         )
         assert response.status_code == 200
         attrs = response.data["attributes"]
@@ -2444,3 +2503,43 @@ class OrganizationTraceItemAttributeValidateEndpointTest(APITestCase, SnubaTestC
 
         assert attrs[long_attr]["valid"] is False
         assert "error" in attrs[long_attr]
+
+        response = self.do_request(
+            payload={"attributes": ["nonexistent.tag"]},
+            query_params={"itemType": "spans"},
+        )
+        assert response.status_code == 200
+        attrs = response.data["attributes"]
+        assert attrs["nonexistent.tag"]["valid"] is False
+        assert "error" in attrs["nonexistent.tag"]
+
+    def test_stats_period_limits_time_range(self):
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=before_now(days=2).replace(microsecond=0),
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+            tags={"old.tag": "hello"},
+        )
+
+        # Wide time range should find the tag
+        response = self.do_request(
+            payload={"attributes": ["old.tag"]},
+            query_params={"itemType": "spans", "statsPeriod": "7d"},
+        )
+        assert response.status_code == 200
+        assert response.data["attributes"]["old.tag"]["valid"] is True
+
+        # Narrow time range should not find the tag
+        response = self.do_request(
+            payload={"attributes": ["old.tag"]},
+            query_params={"itemType": "spans", "statsPeriod": "1h"},
+        )
+        assert response.status_code == 200
+        assert response.data["attributes"]["old.tag"]["valid"] is False
