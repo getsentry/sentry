@@ -29,6 +29,7 @@ const StackTraceFrameRowRoot = memo(function StackTraceFrameRowRoot({
   const {
     event,
     frames,
+    hasScmSourceContext,
     lastFrameIndex,
     platform,
     stacktrace,
@@ -43,6 +44,7 @@ const StackTraceFrameRowRoot = memo(function StackTraceFrameRowRoot({
     frame: row.frame,
     registers,
     platform,
+    hasScmSourceContext,
   });
 
   const frameContextId = useId();

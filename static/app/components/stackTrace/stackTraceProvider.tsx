@@ -22,6 +22,7 @@ export function StackTraceProvider({
   exceptionIndex,
   event,
   frameSourceMapDebuggerData,
+  hasScmSourceContext,
   hideSourceMapDebugger,
   minifiedStacktrace,
   stacktrace,
@@ -106,9 +107,10 @@ export function StackTraceProvider({
           frame: row.frame,
           registers,
           platform,
+          hasScmSourceContext,
         });
       }),
-    [rows, frames.length, activeStacktrace.registers, platform]
+    [rows, frames.length, activeStacktrace.registers, platform, hasScmSourceContext]
   );
 
   const toggleHiddenFrames = useCallback((frameIndex: number) => {
@@ -124,6 +126,7 @@ export function StackTraceProvider({
       exceptionIndex,
       event,
       hasAnyExpandableFrames,
+      hasScmSourceContext: hasScmSourceContext ?? false,
       platform,
       project,
       stacktrace: activeStacktrace,
@@ -143,6 +146,7 @@ export function StackTraceProvider({
       frameSourceMapDebuggerData,
       frames,
       hasAnyExpandableFrames,
+      hasScmSourceContext,
       hideSourceMapDebugger,
       hiddenFrameToggleMap,
       lastFrameIndex,
