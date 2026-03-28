@@ -1,5 +1,6 @@
 import logging
 from enum import Enum
+from re import finditer
 from typing import Any
 
 import sentry_sdk
@@ -16,6 +17,7 @@ from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import AdditionalQueries, EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
+from sentry.services.eventstore.query_preprocessing import get_all_merged_group_ids
 from sentry.snuba import rpc_dataset_common
 from sentry.utils.snuba import process_value
 
@@ -59,7 +61,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
     ) -> EAPResponse:
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(
-                query_string=query_string,
+                query_string=cls._update_eap_query_string_with_merged_group_ids(query_string),
                 selected_columns=selected_columns,
                 equations=equations,
                 orderby=orderby,
@@ -121,7 +123,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
 
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(
-                query_string=query_string,
+                query_string=cls._update_eap_query_string_with_merged_group_ids(query_string),
                 selected_columns=selected_columns,
                 equations=equations,
                 orderby=orderby,
@@ -186,7 +188,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
         rpc_request, _aggregates, groupbys_resolved = cls.get_timeseries_query(
             search_resolver=search_resolver,
             params=params,
-            query_string=query_string,
+            query_string=cls._update_eap_query_string_with_merged_group_ids(query_string),
             y_axes=y_axes,
             groupby=groupby,
             referrer=referrer,
@@ -268,3 +270,40 @@ class Occurrences(rpc_dataset_common.RPCBase):
             )
 
         return None
+
+    @staticmethod
+    def _update_eap_query_string_with_merged_group_ids(qs: str) -> str:
+        matches = finditer(r"group_id:(\d+|\[(\d(, )?)+\])", qs)
+        pieces = []
+        i = 0
+        for m in matches:
+            match_start, match_end = m.span()
+            if match_start != i:
+                pieces.append(qs[i:match_start])
+
+            match = qs[match_start:match_end]
+            if "[" in match:
+                group_ids = match.split("[")[1][:-1].split(", ")
+                all_group_ids = get_all_merged_group_ids({int(gid) for gid in group_ids})
+
+                # Only need to update in the "new matches found" case.
+                if len(all_group_ids) > len(group_ids):
+                    pieces.append(f"group_id:[{', '.join(str(gid) for gid in all_group_ids)}]")
+                else:
+                    pieces.append(match)
+
+            else:
+                group_id = match.split(":")[1]
+                all_group_ids = get_all_merged_group_ids({int(group_id)})
+
+                # Only need to update in the "new matches found" case.
+                if len(all_group_ids) > 1:
+                    pieces.append(f"group_id:[{', '.join(str(gid) for gid in all_group_ids)}]")
+                else:
+                    pieces.append(match)
+
+            i = match_end
+
+        pieces.append(qs[i:])
+
+        return "".join(pieces)
