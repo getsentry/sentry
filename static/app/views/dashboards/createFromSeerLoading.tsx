@@ -1,4 +1,5 @@
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {IndeterminateLoader} from '@sentry/scraps/loader';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -17,6 +18,9 @@ export function CreateFromSeerLoading({blocks, seerRunId}: CreateFromSeerLoading
     <Layout.Page withPadding background="secondary">
       <Flex direction="column" gap="lg" align="center" justify="center" flex="1">
         <Flex direction="column" gap="sm" width="640px">
+          <Container paddingBottom="lg">
+            <IndeterminateLoader />
+          </Container>
           <Heading as="h3">{t('Generating Dashboard')}</Heading>
           <Text variant="muted">
             {t('Stay on this page while we get this made for you')}

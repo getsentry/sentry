@@ -1,0 +1,88 @@
+---
+title: IndeterminateLoader
+description: An animated squiggle loader that fills its container to indicate indeterminate progress.
+category: status
+source: '@sentry/scraps/loader'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/loader/indeterminateLoader.tsx
+---
+
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {IndeterminateLoader} from '@sentry/scraps/loader';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/loader');
+
+The `IndeterminateLoader` renders a repeating squiggle pattern with an animated color wipe to indicate indeterminate loading progress. It fills 100% of its parent's width.
+
+## Usage
+
+<Storybook.Demo>
+  <IndeterminateLoader />
+</Storybook.Demo>
+
+```jsx
+<IndeterminateLoader />
+```
+
+## Contained Width
+
+Constrain the loader's width by wrapping it in a sized container.
+
+<Storybook.Demo>
+  <Flex direction="column" gap="lg">
+    <Container style={{width: 120}}>
+      <IndeterminateLoader />
+    </Container>
+    <Container style={{width: 240}}>
+      <IndeterminateLoader />
+    </Container>
+    <IndeterminateLoader />
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Container style={{width: 120}}>
+  <IndeterminateLoader />
+</Container>
+
+<Container style={{width: 240}}>
+  <IndeterminateLoader />
+</Container>
+
+<IndeterminateLoader />
+```
+
+## Monochrome
+
+Use `variant="monochrome"` to inherit `currentColor` from the parent. The track renders at 25% opacity and the accent at full opacity.
+
+This is used internally in the `<Button busy>` component.
+
+<Storybook.Demo>
+  <Flex direction="column" gap="lg">
+    <Container style={{width: '320px', color: '#7553ff'}}>
+      <IndeterminateLoader variant="monochrome" />
+    </Container>
+    <Container style={{width: '320px', color: '#f0369a'}}>
+      <IndeterminateLoader variant="monochrome" />
+    </Container>
+    <IndeterminateLoader variant="monochrome" />
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Container style={{color: '#7553ff'}}>
+  <IndeterminateLoader variant="monochrome" />
+</Container>
+```
+
+## Accessibility
+
+The component renders with `role="progressbar"` and a default `aria-label` of `"Loading"`. Override the label to provide more specific context:
+
+```jsx
+<IndeterminateLoader aria-label="Saving changes" />
+```
