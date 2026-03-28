@@ -1,7 +1,11 @@
 from django.urls import reverse
 
+from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.preprod.models import PreprodArtifact
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
 class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
@@ -162,3 +166,19 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         assert data["isInstallable"] is False
         assert data["installUrl"] is None
         assert data["isCodeSignatureValid"] is False
+
+    def test_org_auth_token_with_org_ci_scope(self):
+        """Org auth tokens with org:ci scope can access install details (used by sentry-cli build download)."""
+        token_str = generate_token(self.organization.slug, "")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrgAuthToken.objects.create(
+                organization_id=self.organization.id,
+                name="CI Token",
+                token_hashed=hash_token(token_str),
+                scope_list=["org:ci"],
+            )
+
+        response = self.client.get(self._get_url(), HTTP_AUTHORIZATION=f"Bearer {token_str}")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["buildId"] == str(self.preprod_artifact.id)

@@ -8,7 +8,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.preprod_examples import PreprodExamples
 from sentry.apidocs.parameters import GlobalParams
@@ -30,6 +30,7 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpoint(OrganizationEndpoi
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
+    permission_classes = (OrganizationReleasePermission,)
     rate_limits = RateLimitConfig(
         limit_overrides={
             "GET": {
