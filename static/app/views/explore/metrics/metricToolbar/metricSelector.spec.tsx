@@ -251,16 +251,16 @@ describe('MetricSelector', () => {
       expect(onChange).toHaveBeenCalledTimes(1);
     });
 
-    it('ArrowDown from search moves focus to first option', async () => {
+    it('ArrowDown from search keeps focus in input', async () => {
       render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
         organization,
       });
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      const searchInput = await screen.findByPlaceholderText('Search metrics\u2026');
       await userEvent.keyboard('{ArrowDown}');
 
-      expect(
-        await screen.findByRole('option', {name: SORTED_METRIC_NAMES[0]!})
-      ).toHaveFocus();
+      // DOM focus stays on search input; virtual focus moves to first option
+      expect(searchInput).toHaveFocus();
     });
 
     it('ArrowDown twice selects second option with Enter', async () => {
