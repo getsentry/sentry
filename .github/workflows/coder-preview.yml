@@ -1,0 +1,60 @@
+name: Coder PR Preview
+on:
+  pull_request:
+    types: [labeled, unlabeled, synchronize, closed]
+
+permissions:
+  deployments: write
+  contents: read
+
+env:
+  CODER_URL: https://coder.sentry.dev
+
+jobs:
+  deploy:
+    if: |
+      (github.event.action == 'labeled' && github.event.label.name == 'deploy-preview') ||
+      (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'deploy-preview'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Compute workspace name
+        id: name
+        run: |
+          WORKSPACE_NAME=$(scripts/coder-preview/compute-name.sh sentry "${{ github.event.pull_request.number }}")
+          echo "workspace_name=${WORKSPACE_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy preview
+        env:
+          CODER_SESSION_TOKEN: ${{ secrets.CODER_SESSION_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          WORKSPACE_NAME: ${{ steps.name.outputs.workspace_name }}
+          TEMPLATE_NAME: sentry-devbox
+        run: scripts/coder-preview/deploy.sh
+
+  destroy:
+    if: |
+      github.event.action == 'closed' ||
+      (github.event.action == 'unlabeled' && github.event.label.name == 'deploy-preview')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Compute workspace name
+        id: name
+        run: |
+          WORKSPACE_NAME=$(scripts/coder-preview/compute-name.sh sentry "${{ github.event.pull_request.number }}")
+          echo "workspace_name=${WORKSPACE_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Destroy preview
+        env:
+          CODER_SESSION_TOKEN: ${{ secrets.CODER_SESSION_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          WORKSPACE_NAME: ${{ steps.name.outputs.workspace_name }}
+        run: scripts/coder-preview/destroy.sh
