@@ -1,5 +1,5 @@
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
@@ -34,19 +34,19 @@ class WorkflowEngineDataConditionSerializer(Serializer):
         item_list: Sequence[DataCondition],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> defaultdict[DataCondition, dict[str, list[str]]]:
+    ) -> MutableMapping[DataCondition, Any]:
         # Build the chain: trigger → detector → workflows → workflow DCGs,
         # keeping per-detector scoping so actions don't bleed across detectors.
 
         # trigger.condition_group → detector
         condition_group_ids = {t.condition_group_id for t in item_list}
-        cg_to_detector_id: dict[int, int] = {
-            d.workflow_condition_group_id: d.id
+        detectors_by_cg: dict[int, Detector] = {
+            d.workflow_condition_group_id: d
             for d in Detector.objects.filter(workflow_condition_group__in=condition_group_ids)
         }
 
         # detector → workflow IDs
-        detector_ids = set(cg_to_detector_id.values())
+        detector_ids = {d.id for d in detectors_by_cg.values()}
         detector_to_workflow_ids: dict[int, set[int]] = defaultdict(set)
         for det_id, wf_id in DetectorWorkflow.objects.filter(detector__in=detector_ids).values_list(
             "detector_id", "workflow_id"
@@ -103,10 +103,18 @@ class WorkflowEngineDataConditionSerializer(Serializer):
             )
         )
 
-        result: defaultdict[DataCondition, dict[str, list[str]]] = defaultdict(dict)
+        # Bulk-fetch alert_rule_id mappings
+        alert_rule_id_map: dict[int, int | None] = dict(
+            AlertRuleDetector.objects.filter(detector__in=detector_ids).values_list(
+                "detector_id", "alert_rule_id"
+            )
+        )
+
+        result: defaultdict[DataCondition, dict[str, Any]] = defaultdict(dict)
 
         for trigger in item_list:
-            detector_id = cg_to_detector_id.get(trigger.condition_group_id)
+            detector = detectors_by_cg.get(trigger.condition_group_id)
+            detector_id = detector.id if detector else None
             trigger_dcg_ids = detector_to_dcg_ids.get(detector_id, set()) if detector_id else set()
 
             # Find DCGs in this detector's workflows that match the trigger's priority level
@@ -137,7 +145,17 @@ class WorkflowEngineDataConditionSerializer(Serializer):
                 WorkflowEngineActionSerializer(),
                 alert_rule_trigger_id=alert_rule_trigger_id,
             )
+
+            alert_rule_id = (
+                alert_rule_id_map.get(detector_id, get_fake_id_from_object_id(detector_id))
+                if detector_id
+                else None
+            )
+
             result[trigger]["actions"] = serialized_actions
+            result[trigger]["detector"] = detector
+            result[trigger]["alert_rule_trigger_id"] = alert_rule_trigger_id
+            result[trigger]["alert_rule_id"] = alert_rule_id
 
         return result
 
@@ -149,22 +167,9 @@ class WorkflowEngineDataConditionSerializer(Serializer):
         **kwargs: Any,
     ) -> dict[str, Any]:
         # XXX: we are assuming that the obj/DataCondition is a detector trigger
-        detector = Detector.objects.get(workflow_condition_group=obj.condition_group)
-        try:
-            alert_rule_trigger_id = DataConditionAlertRuleTrigger.objects.values_list(
-                "alert_rule_trigger_id", flat=True
-            ).get(data_condition=obj)
-        except DataConditionAlertRuleTrigger.DoesNotExist:
-            # this data condition does not have an analog in the old system,
-            # but we need to return *something*
-            alert_rule_trigger_id = get_fake_id_from_object_id(obj.id)
-        try:
-            alert_rule_id = AlertRuleDetector.objects.values_list("alert_rule_id", flat=True).get(
-                detector=detector.id
-            )
-        except AlertRuleDetector.DoesNotExist:
-            # this detector does not have an analog in the old system
-            alert_rule_id = get_fake_id_from_object_id(detector.id)
+        detector = attrs["detector"]
+        alert_rule_trigger_id = attrs["alert_rule_trigger_id"]
+        alert_rule_id = attrs["alert_rule_id"]
 
         if obj.type == Condition.ANOMALY_DETECTION:
             threshold_type = obj.comparison["threshold_type"]
