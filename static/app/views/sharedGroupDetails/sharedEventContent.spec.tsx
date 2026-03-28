@@ -1,15 +1,16 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {EventEntryFixture} from 'sentry-fixture/eventEntry';
 import {GroupFixture} from 'sentry-fixture/group';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import type {SharedViewOrganization} from 'sentry/types/organization';
+
 import {SharedEventContent} from './sharedEventContent';
 
 describe('SharedEventContent', () => {
-  const organization = OrganizationFixture();
+  const organization: SharedViewOrganization = {slug: 'test-org', features: []};
   const project = ProjectFixture();
 
   it('renders event entries', () => {

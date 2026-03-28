@@ -8,11 +8,11 @@ import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {Organization, SharedViewOrganization} from 'sentry/types/organization';
+import type {SharedViewOrganization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
 interface Props {
-  organization: Organization | SharedViewOrganization;
+  organization: SharedViewOrganization;
   project: Project;
   event?: Event;
   group?: Group;

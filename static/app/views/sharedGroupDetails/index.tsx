@@ -10,6 +10,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import type {Organization, SharedViewOrganization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useParams} from 'sentry/utils/useParams';
@@ -67,13 +68,16 @@ function SharedGroupDetails() {
     return <NotFound />;
   }
 
-  // project.organization is not a real organization, it's just the slug and name
-  // Add the features array to avoid errors when using OrganizationContext
-  const org = {...group.project.organization, features: []};
+  // Backend only provides {slug, name} for the organization.
+  // Add features: [] for OrganizationContext compatibility.
+  const org: SharedViewOrganization = {
+    ...group.project.organization,
+    features: [],
+  };
 
   return (
     <SentryDocumentTitle noSuffix title={group?.title ?? 'Sentry'}>
-      <OrganizationContext value={org}>
+      <OrganizationContext value={org as Organization}>
         <div className="app">
           <div className="pattern-bg" />
           <div className="container">
