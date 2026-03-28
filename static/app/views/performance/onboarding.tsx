@@ -12,6 +12,7 @@ import tourTrace from 'sentry-images/spot/performance-tour-trace.svg';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import {
   addErrorMessage,
@@ -87,6 +88,31 @@ const docsLink = (
     {t('Setup')}
   </LinkButton>
 );
+
+function TraceDrainsLink() {
+  return (
+    <TraceDrainsLinkWrapper>
+      <BodyTitle>{t('OpenTelemetry Drains and Forwarders')}</BodyTitle>
+      <SubTitle>
+        {tct(
+          'You can use [link:OpenTelemetry Drains] to send traces from platforms like [vercelLink:Vercel] and [herokuLink:Heroku], or via the [otlpLink:OpenTelemetry Collector].',
+          {
+            link: <ExternalLink href="https://docs.sentry.io/product/drains/" />,
+            vercelLink: (
+              <ExternalLink href="https://docs.sentry.io/product/drains/integration/vercel/" />
+            ),
+            herokuLink: (
+              <ExternalLink href="https://docs.sentry.io/product/drains/integration/heroku/" />
+            ),
+            otlpLink: (
+              <ExternalLink href="https://docs.sentry.io/product/drains/integration/opentelemetry-collector/" />
+            ),
+          }
+        )}
+      </SubTitle>
+    </TraceDrainsLinkWrapper>
+  );
+}
 
 export const PERFORMANCE_TOUR_STEPS: TourStep[] = [
   {
@@ -391,7 +417,10 @@ function OnboardingPanel({
               </HeaderWrapper>
               <Divider />
               <Body>
-                <Setup>{children}</Setup>
+                <Setup>
+                  {children}
+                  <TraceDrainsLink />
+                </Setup>
                 <Preview>
                   <BodyTitle>{t('Preview a Sentry Trace')}</BodyTitle>
                   <Arcade
@@ -704,6 +733,10 @@ const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) 
 
 const SubTitle = styled('div')`
   margin-bottom: ${p => p.theme.space.md};
+`;
+
+const TraceDrainsLinkWrapper = styled('div')`
+  padding-top: ${space(2)};
 `;
 
 const Title = styled('div')`

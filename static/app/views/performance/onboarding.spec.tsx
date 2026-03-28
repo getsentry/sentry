@@ -70,6 +70,9 @@ describe('Testing new onboarding ui', () => {
     render(<Onboarding organization={organization} project={projectMock} />);
     expect(await screen.findByText('Query for Traces, Get Answers')).toBeInTheDocument();
     expect(await screen.findByText('Preview a Sentry Trace')).toBeInTheDocument();
+    expect(
+      await screen.findByText('OpenTelemetry Drains and Forwarders')
+    ).toBeInTheDocument();
 
     expect(
       await screen.findByText(
