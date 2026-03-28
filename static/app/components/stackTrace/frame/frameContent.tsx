@@ -32,7 +32,7 @@ const COVERAGE_TEXT: Record<Coverage, string | undefined> = {
 };
 
 interface FrameContentProps {
-  effectiveContext?: Array<[number, string]>;
+  effectiveContext?: Array<[number, string | null]>;
   isLoadingSourceContext?: boolean;
   sourceLineCoverage?: Array<Coverage | undefined>;
 }
