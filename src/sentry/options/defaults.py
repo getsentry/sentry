@@ -1067,9 +1067,13 @@ register(
 )
 
 register(
-    "issues.severity.seer-circuit-breaker-passthrough-limit",
+    "issues.severity.seer-circuit-breaker-config",
     type=Dict,
-    default={"limit": 1, "window": 10},
+    default={
+        "error_limit": 30,
+        "error_limit_window": 3600,  # 1 hr
+        "broken_state_duration": 300,  # 5 min
+    },
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 

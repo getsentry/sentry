@@ -137,11 +137,7 @@ from sentry.usage_accountant import record
 from sentry.utils import metrics
 from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.cache import cache_key_for_event
-from sentry.utils.circuit_breaker import (
-    ERROR_COUNT_CACHE_KEY,
-    CircuitBreakerPassthrough,
-    circuit_breaker_activated,
-)
+from sentry.utils.circuit_breaker2 import CircuitBreaker
 from sentry.utils.dates import to_datetime
 from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, is_handled
 from sentry.utils.eventuser import EventUser
@@ -172,8 +168,6 @@ CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 
 
 HIGH_SEVERITY_THRESHOLD = 0.1
-
-SEER_ERROR_COUNT_KEY = ERROR_COUNT_CACHE_KEY("sentry.seer.severity-failures")
 
 
 @dataclass
@@ -2040,11 +2034,11 @@ def _get_severity_metadata_for_group(
     if not is_error_group:
         return {}
 
-    passthrough_data = options.get(
-        "issues.severity.seer-circuit-breaker-passthrough-limit",
-        CircuitBreakerPassthrough(limit=1, window=10),
+    circuit_breaker = CircuitBreaker(
+        settings.SEER_SEVERITY_CIRCUIT_BREAKER_KEY,
+        options.get("issues.severity.seer-circuit-breaker-config"),
     )
-    if circuit_breaker_activated("sentry.seer.severity", passthrough_data=passthrough_data):
+    if not circuit_breaker.should_allow_request():
         logger.warning(
             "get_severity_metadata_for_group.circuit_breaker_activated",
             extra={"event_id": event.event_id, "project_id": project_id},
@@ -2096,7 +2090,7 @@ def _get_severity_metadata_for_group(
         }
     except Exception as e:
         logger.warning("Failed to calculate severity score for group", repr(e))
-        update_severity_error_count()
+        circuit_breaker.record_error()
         metrics.incr("issues.severity.error")
         return {}
 
@@ -2139,19 +2133,6 @@ def _get_priority_for_group(severity: Mapping[str, Any], kwargs: Mapping[str, An
         )
 
         return PriorityLevel.MEDIUM
-
-
-def update_severity_error_count(reset=False) -> None:
-    timeout = 60 * 60  # 1 hour
-    if reset:
-        cache.set(SEER_ERROR_COUNT_KEY, 0, timeout=timeout)
-        return
-
-    try:
-        cache.incr(SEER_ERROR_COUNT_KEY)
-        cache.touch(SEER_ERROR_COUNT_KEY, timeout=timeout)
-    except ValueError:
-        cache.set(SEER_ERROR_COUNT_KEY, 1, timeout=timeout)
 
 
 def _get_severity_score(event: Event) -> tuple[float, str]:
@@ -2205,6 +2186,11 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
 
     logger_data["payload"] = payload
 
+    circuit_breaker = CircuitBreaker(
+        settings.SEER_SEVERITY_CIRCUIT_BREAKER_KEY,
+        options.get("issues.severity.seer-circuit-breaker-config"),
+    )
+
     with sentry_sdk.start_span(op=op):
         try:
             with metrics.timer(op):
@@ -2220,22 +2206,20 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                 reason = "ml"
         except MaxRetryError:
             reason = "microservice_max_retry"
-            update_severity_error_count()
+            circuit_breaker.record_error()
             metrics.incr("issues.severity.error", tags={"reason": "max_retries"})
             logger.exception("Seer severity microservice max retries exceeded")
         except TimeoutError:
             reason = "microservice_timeout"
-            update_severity_error_count()
+            circuit_breaker.record_error()
             metrics.incr("issues.severity.error", tags={"reason": "timeout"})
             logger.exception("Seer severity microservice timeout")
         except Exception:
             reason = "microservice_error"
-            update_severity_error_count()
+            circuit_breaker.record_error()
             metrics.incr("issues.severity.error", tags={"reason": "unknown"})
             logger.exception("Seer severity microservice error")
             sentry_sdk.capture_exception()
-        else:
-            update_severity_error_count(reset=True)
 
     return severity, reason
 

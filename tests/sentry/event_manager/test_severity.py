@@ -9,7 +9,6 @@ from unittest.mock import MagicMock, patch
 import orjson
 import pytest
 from django.conf import settings
-from django.core.cache import cache
 from django.test import override_settings
 from urllib3 import HTTPResponse
 from urllib3.exceptions import ConnectTimeoutError, MaxRetryError
@@ -17,7 +16,6 @@ from urllib3.exceptions import ConnectTimeoutError, MaxRetryError
 from sentry import options
 from sentry.constants import PLACEHOLDER_EVENT_TITLES
 from sentry.event_manager import (
-    SEER_ERROR_COUNT_KEY,
     EventManager,
     _get_severity_score,
     severity_connection_pool,
@@ -81,7 +79,6 @@ class TestGetEventSeverity(TestCase):
         )
         assert severity == 0.1231
         assert reason == "ml"
-        assert cache.get(SEER_ERROR_COUNT_KEY) == 0
 
         with (
             override_options({"seer.api.use-shared-secret": 1.0}),
@@ -140,7 +137,6 @@ class TestGetEventSeverity(TestCase):
             )
             assert severity == 0.1231
             assert reason == "ml"
-            assert cache.get(SEER_ERROR_COUNT_KEY) == 0
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
@@ -235,10 +231,12 @@ class TestGetEventSeverity(TestCase):
             severity_connection_pool, "/issues/severity-score", Exception("It broke")
         ),
     )
+    @patch("sentry.utils.circuit_breaker2.CircuitBreaker.record_error")
     @patch("sentry.event_manager.metrics.incr")
     def test_max_retry_exception(
         self,
         mock_metrics_incr: MagicMock,
+        mock_record_error: MagicMock,
         _mock_urlopen: MagicMock,
     ) -> None:
         manager = EventManager(
@@ -262,16 +260,18 @@ class TestGetEventSeverity(TestCase):
         mock_metrics_incr.assert_any_call("issues.severity.error", tags={"reason": "max_retries"})
         assert severity == 1.0
         assert reason == "microservice_max_retry"
-        assert cache.get(SEER_ERROR_COUNT_KEY) == 1
+        mock_record_error.assert_called_once()
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
         side_effect=ConnectTimeoutError(),
     )
+    @patch("sentry.utils.circuit_breaker2.CircuitBreaker.record_error")
     @patch("sentry.event_manager.metrics.incr")
     def test_timeout_error(
         self,
         mock_metrics_incr: MagicMock,
+        mock_record_error: MagicMock,
         _mock_urlopen: MagicMock,
     ) -> None:
         manager = EventManager(
@@ -295,18 +295,20 @@ class TestGetEventSeverity(TestCase):
         mock_metrics_incr.assert_any_call("issues.severity.error", tags={"reason": "timeout"})
         assert severity == 1.0
         assert reason == "microservice_timeout"
-        assert cache.get(SEER_ERROR_COUNT_KEY) == 1
+        mock_record_error.assert_called_once()
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
         side_effect=Exception("It broke"),
     )
+    @patch("sentry.utils.circuit_breaker2.CircuitBreaker.record_error")
     @patch("sentry.event_manager.sentry_sdk.capture_exception")
     @patch("sentry.event_manager.metrics.incr")
     def test_other_exception(
         self,
         mock_metrics_incr: MagicMock,
         mock_capture_exception: MagicMock,
+        mock_record_error: MagicMock,
         _mock_urlopen: MagicMock,
     ) -> None:
         manager = EventManager(
@@ -331,7 +333,7 @@ class TestGetEventSeverity(TestCase):
         mock_metrics_incr.assert_any_call("issues.severity.error", tags={"reason": "unknown"})
         assert severity == 1.0
         assert reason == "microservice_error"
-        assert cache.get(SEER_ERROR_COUNT_KEY) == 1
+        mock_record_error.assert_called_once()
 
 
 @with_feature("projects:first-event-severity-calculation")
@@ -446,5 +448,4 @@ class TestEventManagerSeverity(TestCase):
 
             assert event.group
             assert "severity" not in event.group.get_event_metadata()
-            assert cache.get(SEER_ERROR_COUNT_KEY) is None
             assert mock_get_severity_score.call_count == 0
