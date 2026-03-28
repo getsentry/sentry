@@ -608,10 +608,48 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
     ) -> str:
         """
-        Get file contents from Perforce depot.
-        Required by abstract base class but not used (CODEOWNERS).
+        Get file contents from Perforce depot using ``p4 print``.
+
+        API docs: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_print.html
+
+        Args:
+            repo: Repository object containing depot path config
+            path: File path relative to depot root
+            ref: Changelist number or file revision (e.g. "42" → ``@42``,
+                 or already contains ``#``/``@``). None for head revision.
+            codeowners: Not used for Perforce
+
+        Returns:
+            File contents as a UTF-8 string
+
+        Raises:
+            ApiError(404): File not found in depot
+            ApiError(500): Perforce connection or command error
         """
-        raise NotImplementedError("get_file is not supported for Perforce")
+        from sentry.shared_integrations.exceptions import ApiError
+
+        with self._connect() as p4:
+            depot_path = self.build_depot_path(repo, path)
+
+            # Append revision/changelist specifier if provided
+            if ref and "#" not in depot_path and "@" not in depot_path:
+                depot_path = f"{depot_path}@{ref}"
+
+            try:
+                result = p4.run("print", depot_path)
+            except P4Exception as e:
+                raise ApiError(str(e), code=404)
+
+            # p4 print returns a list: first element is file metadata dict,
+            # remaining elements are file content strings/bytes
+            if len(result) < 2:
+                raise ApiError(f"File not found: {depot_path}", code=404)
+
+            content_parts = result[1:]
+            return "".join(
+                part.decode("utf-8", errors="replace") if isinstance(part, bytes) else part
+                for part in content_parts
+            )
 
     def create_comment(self, repo: str, issue_id: str, data: dict[str, Any]) -> Any:
         """Create comment. Not applicable for Perforce."""
