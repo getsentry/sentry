@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import Collection, Iterator
-from typing import TYPE_CHECKING, NamedTuple, TypeGuard, overload
+from typing import TYPE_CHECKING, Any, NamedTuple, TypeGuard, overload
 from urllib.parse import quote, urljoin, urlparse
 
+from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.http import HttpRequest
 
@@ -226,6 +227,32 @@ def is_using_customer_domain(request: HttpRequest) -> TypeGuard[_HttpRequestWith
     return bool(hasattr(request, "subdomain") and request.subdomain)
 
 
+class BodyAsyncWrapper:
+    def __init__(self, body: Any):
+        self._bool = bool(body)
+        self.body = [body] if isinstance(body, bytes) else body
+
+    def __bool__(self) -> bool:
+        return self._bool
+
+    def __aiter__(self):
+        return BodyAsyncIter(self)
+
+
+class BodyAsyncIter:
+    def __init__(self, parent: BodyAsyncWrapper):
+        self.biter = iter(parent.body)
+
+    def _anext(self):
+        try:
+            return self.biter.__next__()
+        except StopIteration:
+            raise StopAsyncIteration
+
+    async def __anext__(self) -> bytes:
+        return await sync_to_async(self._anext)()
+
+
 class BodyWithLength:
     """Wraps an HttpRequest with a __len__ so that the requests library does not assume length=0 in all cases"""
 
@@ -235,8 +262,25 @@ class BodyWithLength:
     def __iter__(self) -> Iterator[bytes]:
         return iter(self.request)
 
+    def __aiter__(self) -> BodyWithLengthAiter:
+        return BodyWithLengthAiter(self)
+
     def __len__(self) -> int:
         return int(self.request.headers.get("Content-Length", "0"))
 
     def read(self, size: int | None = None) -> bytes:
         return self.request.read(size)
+
+
+class BodyWithLengthAiter:
+    def __init__(self, parent: BodyWithLength):
+        self.biter = iter(parent.request)
+
+    def _anext(self):
+        try:
+            return self.biter.__next__()
+        except StopIteration:
+            raise StopAsyncIteration
+
+    async def __anext__(self) -> bytes:
+        return await sync_to_async(self._anext)()

@@ -35,6 +35,7 @@
 /src/sentry/projectoptions/                             @getsentry/app-backend
 /src/sentry/receivers/                                  @getsentry/app-backend
 /src/sentry/ratelimits/                                 @getsentry/app-backend
+/src/sentry/asgi.py                                     @getsentry/app-backend
 
 /tests/js/sentry-test/                                  @getsentry/app-frontend
 /static/app/utils/                                      @getsentry/app-frontend

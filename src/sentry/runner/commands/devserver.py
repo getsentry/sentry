@@ -471,9 +471,11 @@ def devserver(
                 "SENTRY_SILO_DEVSERVER": "1",
                 "SENTRY_SILO_MODE": "CONTROL",
                 "SENTRY_REGION": "",
+                "SENTRY_ASYNC_APIGW": "true",
                 "SENTRY_CONTROL_SILO_PORT": server_port,
                 "SENTRY_REGION_SILO_PORT": str(ports["region.server"]),
                 "SENTRY_DEVSERVER_BIND": f"127.0.0.1:{server_port}",
+                "SENTRY_GRANIAN_IFACE": "asginl",
                 "SENTRY_GRANIAN_PORT": str(ports["server"]),
                 "SENTRY_GRANIAN_WORKERS": "2",
             }
