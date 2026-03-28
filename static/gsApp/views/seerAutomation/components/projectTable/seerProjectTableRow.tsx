@@ -176,10 +176,12 @@ export function SeerProjectTableRow({
         {autofixSettings ? (
           autofixSettings.reposCount === 0 ? (
             <Tooltip
-              title={t('Seer works best on projects with at least one connected repo.')}
+              title={t(
+                'Seer Autofix only works on projects with at least one connected repo.'
+              )}
             >
               <Flex align="center" gap="sm">
-                <IconWarning variant="warning" />
+                <IconWarning variant="error" />
                 <Text tabular>{0}</Text>
               </Flex>
             </Tooltip>
