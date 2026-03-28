@@ -91,6 +91,7 @@ export type Project = {
   preprodSnapshotStatusChecksEnabled?: boolean;
   preprodSnapshotStatusChecksFailOnAdded?: boolean;
   preprodSnapshotStatusChecksFailOnRemoved?: boolean;
+  scmSourceContextEnabled?: boolean;
   securityToken?: string;
   securityTokenHeader?: string;
   seerScannerAutomation?: boolean;
