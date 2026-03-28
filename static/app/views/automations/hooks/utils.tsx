@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
 import type {Automation, StatusWarning} from 'sentry/types/workflowEngine/automations';
 import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataConditions';
@@ -52,11 +53,21 @@ export function getAutomationActionsWarning(
   return null;
 }
 
-export function useAutomationProjectIds(automation: Automation): string[] {
-  const {data: detectors} = useDetectorsQuery({ids: automation.detectorIds});
-  return [
+export function useAutomationProjectSlugs(automation: Automation) {
+  const {data: detectors, isLoading} = useDetectorsQuery(
+    {ids: automation.detectorIds},
+    {enabled: automation.detectorIds.length > 0}
+  );
+
+  const projectIds = [
     ...new Set(detectors?.map(detector => detector.projectId).filter(x => x) ?? []),
   ] as string[];
+
+  const projectSlugs = projectIds.map(
+    projectId => ProjectsStore.getById(projectId)?.slug
+  ) as string[];
+
+  return {projectSlugs, isLoading};
 }
 
 export function findConflictingConditions(
