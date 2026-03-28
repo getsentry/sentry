@@ -321,7 +321,12 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         response = self.client.post(self.url, data=config_data, format="json")
         assert response.status_code == 201, response.content
 
-        new_code_mapping = RepositoryProjectPathConfig.objects.get(
+        # Both mappings should coexist: the original and the newly derived one
+        mappings = RepositoryProjectPathConfig.objects.filter(
             project=self.project, stack_root="/stack/root"
         )
-        assert new_code_mapping.source_root == "/source/root"
+        assert mappings.count() == 2
+        assert set(mappings.values_list("source_root", flat=True)) == {
+            "/source/root/wrong",
+            "/source/root",
+        }
