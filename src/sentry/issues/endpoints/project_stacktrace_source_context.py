@@ -47,9 +47,12 @@ class ProjectStacktraceSourceContextEndpoint(ProjectEndpoint):
         ):
             return Response(status=404)
 
+        if not project.get_option("sentry:scm_source_context_enabled", False):
+            return Response(status=404)
+
         ctx = generate_context(request.GET)
 
-        if not ctx["file"]:
+        if ctx["file"] == "":
             return Response({"detail": "Filepath is required"}, status=400)
 
         if not ctx["line_no"]:
