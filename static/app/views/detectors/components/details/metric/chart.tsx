@@ -45,6 +45,7 @@ import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/use
 import {useMetricTimestamps} from 'sentry/views/detectors/hooks/useMetricTimestamps';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {getDetectorChartFormatters} from 'sentry/views/detectors/utils/detectorChartFormatting';
+import {getChartQueryInterval} from 'sentry/views/detectors/utils/getChartQueryInterval';
 
 /**
  * Shift data points from bucket-start to bucket-end timestamps.
@@ -215,6 +216,13 @@ export function useMetricDetectorChart({
   const dataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
   const datasetConfig = getDatasetConfig(dataset);
   const aggregate = datasetConfig.fromApiAggregate(snubaQuery.aggregate);
+  const {queryInterval, windowSize} = getChartQueryInterval({
+    timeWindow: snubaQuery.timeWindow,
+    statsPeriod,
+    start,
+    end,
+  });
+
   const {
     series,
     comparisonSeries,
@@ -237,6 +245,7 @@ export function useMetricDetectorChart({
     start,
     end,
     options: {enabled},
+    queryInterval,
   });
 
   const metricTimestamps = useMetricTimestamps(series);
@@ -444,6 +453,26 @@ export function useMetricDetectorChart({
           unit,
           serverOutputType,
         }).formatTooltipValue,
+        // Override the tooltip time label to show the full rolling window range
+        ...(windowSize > 1 && {
+          formatAxisLabel: (
+            value: number,
+            isTimestamp: boolean,
+            utc: boolean,
+            showTimeInTooltip: boolean,
+            addSecondsToTimeFormat: boolean
+          ) =>
+            String(
+              defaultFormatAxisLabel(
+                value - (windowSize - 1) * queryInterval * 1000,
+                isTimestamp,
+                utc,
+                showTimeInTooltip,
+                addSecondsToTimeFormat,
+                windowSize * queryInterval * 1000
+              )
+            ),
+        }),
       },
       ...chartZoomProps,
       onChartReady: chart => {
@@ -461,10 +490,12 @@ export function useMetricDetectorChart({
     height,
     isLoading,
     openPeriodMarkerResult,
+    queryInterval,
     series,
     serverOutputType,
     snubaQuery.timeWindow,
     unit,
+    windowSize,
     yAxes,
   ]);
 
