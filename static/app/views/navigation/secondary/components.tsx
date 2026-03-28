@@ -489,7 +489,7 @@ function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
   return (
     <Container padding="md sm" data-nav-section>
       {props.title ? (
-        <Flex align="center">
+        <Flex align="center" data-section-title>
           {props.leadingItems}
           <Container flex="1" minWidth="0">
             <SectionTitle
@@ -895,17 +895,20 @@ function ReorderableListItem<T extends {id: string | number}>(
 type SecondaryNavigationReorderableSectionProps = Omit<
   SecondaryNavigationSectionProps,
   'leadingItems'
->;
+> & {
+  draggable?: boolean;
+};
 
 function SecondaryNavigationReorderableSection(
   props: SecondaryNavigationReorderableSectionProps
 ) {
+  const {draggable = true, ...sectionProps} = props;
   const ctx = useReorderableContext();
   return (
     <ReorderableSectionContainer>
       <SecondaryNavigationSection
-        {...props}
-        leadingItems={ctx ? <GrabHandle variant="inline" /> : undefined}
+        {...sectionProps}
+        leadingItems={ctx && draggable ? <GrabHandle variant="inline" /> : undefined}
       >
         {props.children}
       </SecondaryNavigationSection>
@@ -914,10 +917,25 @@ function SecondaryNavigationReorderableSection(
 }
 
 const ReorderableSectionContainer = styled('div')`
-  :hover [data-drag-icon],
-  :has(:focus-visible) [data-drag-icon] {
-    opacity: 1;
-    pointer-events: auto;
+  [data-section-title] {
+    border-radius: ${p => p.theme.radius.md};
+    cursor: pointer;
+
+    &:hover {
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.neutral.background.hover};
+    }
+
+    &:active {
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.background.active};
+    }
+
+    &:hover [data-section-drag-icon],
+    &:has(:focus-visible) [data-section-drag-icon] {
+      opacity: 1;
+      pointer-events: auto;
+    }
   }
 `;
 
@@ -1276,7 +1294,8 @@ function GrabHandle({variant = 'overlay'}: GrabHandleProps) {
           {...attributes}
           $overlay={isOverlay}
           aria-label={t('Drag to reorder')}
-          data-drag-icon
+          data-drag-icon={isOverlay || undefined}
+          data-section-drag-icon={isOverlay ? undefined : true}
           ref={setActivatorNodeRef}
           style={{cursor: isDragging ? 'grabbing' : 'grab'}}
           onClick={e => e.stopPropagation()}

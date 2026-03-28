@@ -46,8 +46,9 @@ export function DashboardsSecondaryNavigation() {
   const hasPrebuiltDashboards = organization.features.includes(
     'dashboards-prebuilt-insights-dashboards'
   );
-  const hasStarredReordering =
-    true || organization.features.includes('dashboards-starred-reordering');
+  const hasStarredReordering = organization.features.includes(
+    'dashboards-starred-reordering'
+  );
 
   const urlFilter = decodeScalar(location.query.filter) as DashboardFilter | undefined;
   const isOnlyPrebuilt = urlFilter === DashboardFilter.ONLY_PREBUILT;
@@ -235,6 +236,7 @@ function DashboardReorderableSection({children, id}: {children: ReactNode; id: s
   return (
     <SecondaryNavigation.ReorderableSection
       id={id}
+      draggable={state !== 'renaming'}
       collapsible={state !== 'renaming'}
       collapsed={isCollapsed}
       onCollapsedChange={setIsCollapsed}
