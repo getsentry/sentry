@@ -29,7 +29,14 @@ class WorkflowEngineActionSerializer(Serializer):
                 action__in=[item.id for item in item_list]
             )
         }
-        return {item: {"aarta": aarta_by_action_id.get(item.id)} for item in item_list}
+        targets_by_action_id = MetricAlertRegistryHandler.get_targets(item_list)
+        return {
+            item: {
+                "aarta": aarta_by_action_id.get(item.id),
+                "target": targets_by_action_id.get(item.id),
+            }
+            for item in item_list
+        }
 
     def serialize(
         self, obj: Action, attrs: Mapping[str, Any], user: User | RpcUser | AnonymousUser, **kwargs
@@ -44,7 +51,7 @@ class WorkflowEngineActionSerializer(Serializer):
         aarta = attrs.get("aarta")
         priority = obj.data.get("priority")
         type_value = ActionService.get_value(obj.type)
-        target = MetricAlertRegistryHandler.target(obj)
+        target = attrs.get("target")
 
         target_type = obj.config.get("target_type")
         target_identifier = obj.config.get("target_identifier")
