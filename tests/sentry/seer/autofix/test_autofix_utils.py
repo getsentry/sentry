@@ -11,12 +11,14 @@ from sentry.seer.autofix.utils import (
     AutofixState,
     AutofixTriggerSource,
     CodingAgentStatus,
+    bulk_read_preferences_from_sentry_db,
     bulk_write_preferences_to_sentry_db,
     deduplicate_repositories,
     get_autofix_prompt,
     get_coding_agent_prompt,
     has_project_connected_repos,
     is_seer_seat_based_tier_enabled,
+    read_preference_from_sentry_db,
     resolve_repository_ids,
     set_project_seer_preference,
     write_preference_to_sentry_db,
@@ -1218,3 +1220,154 @@ class TestWritePreferencesToSentryDb(TestCase):
         assert p1_repo.branch_name == "new-branch"
         p2_repo = SeerProjectRepository.objects.get(project=project2)
         assert p2_repo.branch_name == "project-2-branch"
+
+
+class TestReadPreferenceFromSentryDb(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+        self.repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="ext123",
+            name="test-org/test-repo",
+        )
+
+    def test_unconfigured_project_returns_none(self):
+        result = read_preference_from_sentry_db(self.project)
+        assert result is None
+
+    def test_project_with_repos_only(self):
+        spr = SeerProjectRepository.objects.create(
+            project=self.project,
+            repository=self.repo,
+            branch_name="main",
+            instructions="Be helpful",
+        )
+        SeerProjectRepositoryBranchOverride.objects.create(
+            seer_project_repository=spr,
+            tag_name="environment",
+            tag_value="production",
+            branch_name="release",
+        )
+
+        result = read_preference_from_sentry_db(self.project)
+        assert result is not None
+        assert result.project_id == self.project.id
+        assert result.organization_id == self.organization.id
+        assert len(result.repositories) == 1
+        assert result.repositories[0].owner == "test-org"
+        assert result.repositories[0].name == "test-repo"
+        assert result.repositories[0].branch_name == "main"
+        assert result.repositories[0].instructions == "Be helpful"
+        assert len(result.repositories[0].branch_overrides) == 1
+        assert result.repositories[0].branch_overrides[0].tag_name == "environment"
+        assert result.repositories[0].branch_overrides[0].tag_value == "production"
+        assert result.repositories[0].branch_overrides[0].branch_name == "release"
+        assert result.automated_run_stopping_point == "code_changes"
+        assert result.automation_handoff is None
+
+    def test_project_with_stopping_point_only(self):
+        self.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
+
+        result = read_preference_from_sentry_db(self.project)
+        assert result is not None
+        assert result.automated_run_stopping_point == "open_pr"
+        assert result.repositories == []
+        assert result.automation_handoff is None
+
+    def test_project_with_handoff_only(self):
+        self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
+        self.project.update_option(
+            "sentry:seer_automation_handoff_target", "cursor_background_agent"
+        )
+        self.project.update_option("sentry:seer_automation_handoff_integration_id", 42)
+        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
+
+        result = read_preference_from_sentry_db(self.project)
+        assert result is not None
+        assert result.automation_handoff is not None
+        assert result.automation_handoff.handoff_point == "root_cause"
+        assert result.automation_handoff.target == "cursor_background_agent"
+        assert result.automation_handoff.integration_id == 42
+        assert result.automation_handoff.auto_create_pr is True
+
+    def test_partial_handoff_returns_none_handoff(self):
+        self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
+
+        result = read_preference_from_sentry_db(self.project)
+        assert result is not None
+        assert result.automation_handoff is None
+
+
+class TestBulkReadPreferencesFromSentryDb(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization()
+        self.project1 = self.create_project(organization=self.organization)
+        self.project2 = self.create_project(organization=self.organization)
+        self.project3 = self.create_project(organization=self.organization)
+        self.repo = self.create_repo(
+            project=self.project1,
+            provider="integrations:github",
+            external_id="ext123",
+            name="test-org/test-repo",
+        )
+
+    def test_empty_project_ids_returns_empty(self):
+        result = bulk_read_preferences_from_sentry_db(self.organization.id, [])
+        assert result == {}
+
+    def test_bulk_returns_correct_preferences(self):
+        SeerProjectRepository.objects.create(
+            project=self.project1, repository=self.repo, branch_name="main"
+        )
+        self.project2.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
+        self.project2.update_option("sentry:seer_automation_handoff_point", "root_cause")
+        self.project2.update_option(
+            "sentry:seer_automation_handoff_target", "cursor_background_agent"
+        )
+        self.project2.update_option("sentry:seer_automation_handoff_integration_id", 99)
+
+        result = bulk_read_preferences_from_sentry_db(
+            self.organization.id,
+            [self.project1.id, self.project2.id],
+        )
+
+        pref1 = result[self.project1.id]
+        assert len(pref1.repositories) == 1
+        assert pref1.repositories[0].branch_name == "main"
+        assert pref1.automated_run_stopping_point == "code_changes"
+        assert pref1.automation_handoff is None
+
+        pref2 = result[self.project2.id]
+        assert pref2.repositories == []
+        assert pref2.automated_run_stopping_point == "open_pr"
+        assert pref2.automation_handoff is not None
+        assert pref2.automation_handoff.handoff_point == "root_cause"
+        assert pref2.automation_handoff.integration_id == 99
+
+    def test_only_configured_projects_returned(self):
+        SeerProjectRepository.objects.create(
+            project=self.project1, repository=self.repo, branch_name="main"
+        )
+        self.project2.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
+
+        result = bulk_read_preferences_from_sentry_db(
+            self.organization.id,
+            [self.project1.id, self.project2.id, self.project3.id],
+        )
+
+        assert self.project1.id in result
+        assert self.project2.id in result
+        assert self.project3.id not in result
+
+    def test_wrong_organization_excluded(self):
+        other_org = self.create_organization()
+        SeerProjectRepository.objects.create(
+            project=self.project1, repository=self.repo, branch_name="main"
+        )
+
+        result = bulk_read_preferences_from_sentry_db(other_org.id, [self.project1.id])
+        assert result == {}
