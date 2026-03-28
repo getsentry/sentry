@@ -4,7 +4,6 @@ import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {NotFound} from 'sentry/components/errors/notFound';
-import {BorderlessEventEntries} from 'sentry/components/events/eventEntries';
 import {Footer} from 'sentry/components/footer';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -16,6 +15,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useParams} from 'sentry/utils/useParams';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
+import {SharedEventContent} from './sharedEventContent';
 import {SharedGroupHeader} from './sharedGroupHeader';
 
 function SharedGroupDetails() {
@@ -94,12 +94,11 @@ function SharedGroupDetails() {
                   padding="3xl"
                   className="group-overview event-details-container"
                 >
-                  <BorderlessEventEntries
+                  <SharedEventContent
                     organization={org}
                     group={group}
                     event={group.latestEvent}
                     project={group.project}
-                    isShare
                   />
                 </Container>
                 <Footer />
