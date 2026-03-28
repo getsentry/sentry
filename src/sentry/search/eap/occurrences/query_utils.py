@@ -74,3 +74,30 @@ def keyed_counts_subset_match(
         return False
 
     return all(exp_count <= control_map[key] for key, exp_count in experimental_map.items())
+
+
+ISSUE_PLATFORM_EAP_COLUMN_MAP: dict[str, str] = {
+    "issue.id": "group_id",
+}
+_ISSUE_PLATFORM_EAP_REVERSE_COLUMN_MAP = {v: k for k, v in ISSUE_PLATFORM_EAP_COLUMN_MAP.items()}
+
+
+def translate_issue_platform_column_to_eap(column: str) -> str:
+    return ISSUE_PLATFORM_EAP_COLUMN_MAP.get(column, column)
+
+
+def translate_issue_platform_column_from_eap(column: str) -> str:
+    return _ISSUE_PLATFORM_EAP_REVERSE_COLUMN_MAP.get(column, column)
+
+
+def translate_issue_platform_orderby_to_eap(orderby: list[str] | None) -> list[str] | None:
+    if orderby is None:
+        return None
+
+    translated: list[str] = []
+    for orderby_column in orderby:
+        descending = orderby_column.startswith("-")
+        column_name = orderby_column.lstrip("-")
+        translated_name = translate_issue_platform_column_to_eap(column_name)
+        translated.append(f"-{translated_name}" if descending else translated_name)
+    return translated
