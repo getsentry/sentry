@@ -90,7 +90,6 @@ def test_dispatch_task(mock_dispatch: Mock) -> None:
         is_regression=None,
         is_new_group_environment=False,
         queue="post_process_errors",
-        group_states=None,
         occurrence_id=None,
         eventstream_type=None,
     )
@@ -119,7 +118,6 @@ def test_dispatch_task_with_occurrence(mock_post_process_group: Mock) -> None:
             "cache_key": "e:066f15fe1cd2406aaa7c6a07471d7aef:2",
             "eventstream_type": None,
             "group_id": 44,
-            "group_states": None,
             "is_new": False,
             "is_new_group_environment": False,
             "is_regression": None,
