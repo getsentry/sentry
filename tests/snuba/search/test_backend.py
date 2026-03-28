@@ -959,6 +959,65 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         )
         assert set(results) == {self.group1}
 
+    def test_sort_by_last_seen_respects_event_level_filter(self) -> None:
+        """Sort by date with level:fatal must order by last fatal event, not group.last_seen."""
+        # Group A: fatal at T1, then warning at T2 (T2 > T1) -> group A.last_seen = T2
+        # Group B: fatal at T3 (T1 < T3 < T2) -> group B.last_seen = T3
+        # With level:fatal, correct order is B first (last fatal T3), then A (last fatal T1).
+        # Wrong (postgres) order would be A first (group.last_seen T2), then B (T3).
+        proj = self.create_project(organization=self.project.organization)
+        t1 = before_now(days=5)
+        t2 = before_now(days=1)
+        t3 = before_now(days=3)
+
+        event_a_fatal = self.store_event(
+            data={
+                "fingerprint": ["level-sort-group-a"],
+                "message": "group a fatal",
+                "timestamp": t1.isoformat(),
+                "level": "fatal",
+                "stacktrace": {"frames": [{"module": "a"}]},
+            },
+            project_id=proj.id,
+        )
+        group_a = event_a_fatal.group
+        self.store_event(
+            data={
+                "fingerprint": ["level-sort-group-a"],
+                "message": "group a warning",
+                "timestamp": t2.isoformat(),
+                "level": "warning",
+                "stacktrace": {"frames": [{"module": "a"}]},
+            },
+            project_id=proj.id,
+        )
+        group_a.update(last_seen=t2)  # group's last_seen is the warning event
+        self.store_group(group_a)
+
+        event_b_fatal = self.store_event(
+            data={
+                "fingerprint": ["level-sort-group-b"],
+                "message": "group b fatal",
+                "timestamp": t3.isoformat(),
+                "level": "fatal",
+                "stacktrace": {"frames": [{"module": "b"}]},
+            },
+            project_id=proj.id,
+        )
+        group_b = event_b_fatal.group
+        self.store_group(group_b)
+
+        results = self.make_query(
+            projects=[proj],
+            search_filter_query="level:fatal",
+            sort_by="date",
+        )
+        result_list = list(results)
+        assert len(result_list) == 2
+        # B's last fatal is t3, A's last fatal is t1; t3 > t1 so B must be first
+        assert result_list[0].id == group_b.id
+        assert result_list[1].id == group_a.id
+
     def test_date_filter(self) -> None:
         results = self.make_query(
             date_from=self.event2.datetime,
