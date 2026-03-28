@@ -55,7 +55,7 @@ const StackTraceFrameRowRoot = memo(function StackTraceFrameRowRoot({
       frameIndex: row.frameIndex,
       hiddenFrameCount: row.hiddenFrameCount,
       hiddenFramesExpanded: !!hiddenFrameToggleMap[row.frameIndex],
-      isExpandable: isFrameExpandable,
+      isExpandable: !!isFrameExpandable,
       isExpanded,
       nextFrame: row.nextFrame,
       platform,

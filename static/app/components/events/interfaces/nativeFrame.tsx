@@ -42,6 +42,7 @@ import type {
 import type {PlatformKey} from 'sentry/types/project';
 import {StackView, type StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {withSentryAppComponents} from 'sentry/utils/withSentryAppComponents';
 import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
@@ -130,12 +131,16 @@ function NativeFrame({
     // We know the debug section is rendered (only once streamline ui is enabled)
     (hasStreamlinedUI ? !!debugSectionConfig : true);
 
+  const organization = useOrganization();
+  const hasScmSourceContext = organization.features.includes('scm-source-context');
+
   const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
   const expandable = isExpandable({
     frame,
     registers,
     platform,
     emptySourceNotation,
+    hasScmSourceContext,
   });
 
   const inlineFrame =
@@ -282,7 +287,7 @@ function NativeFrame({
     <StackTraceFrame data-test-id="stack-trace-frame">
       <StrictClick onClick={handleToggleContext}>
         <RowHeader
-          expandable={expandable}
+          expandable={!!expandable}
           isInAppFrame={frame.inApp}
           isSubFrame={!!isSubFrame}
           onMouseEnter={handleMouseEnter}

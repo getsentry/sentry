@@ -5,6 +5,7 @@ import keyBy from 'lodash/keyBy';
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {useLineCoverageContext} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageContext';
 import {parseAssembly} from 'sentry/components/events/interfaces/utils';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
@@ -27,7 +28,9 @@ import {ContextLineNumber} from './contextLineNumber';
 import {FrameRegisters} from './frameRegisters';
 import {FrameVariables} from './frameVariables';
 import {usePrismTokensSourceContext} from './usePrismTokensSourceContext';
+import {useSourceContext} from './useSourceContext';
 import {useStacktraceCoverage} from './useStacktraceCoverage';
+import {hasPotentialSourceContext} from './utils';
 
 type Props = {
   components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
@@ -89,6 +92,35 @@ export function Context({
     [projects, event]
   );
 
+  const hasScmSourceContext = organization.features.includes('scm-source-context');
+  const shouldFetchSourceContext =
+    hasScmSourceContext &&
+    defined(project) &&
+    !hasContextSource &&
+    isExpanded &&
+    hasPotentialSourceContext(frame);
+
+  const {data: sourceContextData, isPending: isLoadingSourceContext} = useSourceContext(
+    {
+      event,
+      frame,
+      orgSlug: organization?.slug || '',
+      projectSlug: project?.slug,
+    },
+    {enabled: shouldFetchSourceContext}
+  );
+
+  const scmContext: Frame['context'] | undefined = useMemo(() => {
+    if (!sourceContextData?.context?.length) {
+      return undefined;
+    }
+    return sourceContextData.context;
+  }, [sourceContextData]);
+
+  // Use SCM-fetched context when the frame has no embedded context
+  const effectiveContext = hasContextSource ? frame?.context : scmContext;
+  const effectiveHasContextSource = hasContextSource || !!scmContext?.length;
+
   const {data: coverage, isPending: isLoadingCoverage} = useStacktraceCoverage(
     {
       event,
@@ -110,8 +142,8 @@ export function Context({
    */
   const activeLineNumber = frame.lineNo;
   const contextLines = isExpanded
-    ? frame?.context
-    : frame?.context?.filter(l => l[0] === activeLineNumber);
+    ? effectiveContext
+    : effectiveContext?.filter(l => l[0] === activeLineNumber);
 
   const hasCoverageData =
     !isLoadingCoverage && coverage?.status === CodecovStatusCode.COVERAGE_EXISTS;
@@ -142,7 +174,15 @@ export function Context({
     fileExtension,
   });
 
-  if (!hasContextSource && !hasContextVars && !hasContextRegisters && !hasAssembly) {
+  const isLoadingScmContext = shouldFetchSourceContext && isLoadingSourceContext;
+
+  if (
+    !isLoadingScmContext &&
+    !effectiveHasContextSource &&
+    !hasContextVars &&
+    !hasContextRegisters &&
+    !hasAssembly
+  ) {
     return emptySourceNotation ? (
       <EmptyContext>
         <StyledIconFlag size="xs" />
@@ -151,7 +191,7 @@ export function Context({
     ) : null;
   }
 
-  const startLineNo = hasContextSource ? frame.context[0]![0] : 0;
+  const startLineNo = effectiveHasContextSource ? (effectiveContext?.[0]?.[0] ?? 0) : 0;
 
   const prismClassName = fileExtension ? `language-${fileExtension}` : '';
 
@@ -162,12 +202,17 @@ export function Context({
       className={`${className} context ${isExpanded ? 'expanded' : ''}`}
       data-test-id="frame-context"
     >
-      {frame.context && lines.length > 0 ? (
+      {isLoadingScmContext ? (
+        <EmptyContext>
+          <LoadingIndicator mini size={16} />
+          {t('Loading source context…')}
+        </EmptyContext>
+      ) : effectiveContext && lines.length > 0 ? (
         <CodeWrapper className={prismClassName}>
           <pre className={prismClassName}>
             <code className={prismClassName}>
               {lines.map((line, i) => {
-                const contextLine = contextLines[i]!;
+                const contextLine = contextLines![i]!;
                 const isActive = activeLineNumber === contextLine[0];
 
                 return (

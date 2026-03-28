@@ -88,6 +88,7 @@ export type Project = {
   preprodSizeEnabledQuery?: string | null;
   preprodSizeStatusChecksEnabled?: boolean;
   preprodSizeStatusChecksRules?: unknown[];
+  scmSourceContextEnabled?: boolean;
   securityToken?: string;
   securityTokenHeader?: string;
   seerScannerAutomation?: boolean;
