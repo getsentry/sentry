@@ -21,6 +21,7 @@ from sentry.seer.endpoints.seer_rpc import (
     get_attributes_for_span,
     get_github_enterprise_integration_config,
     has_repo_code_mappings,
+    trigger_coding_agent_launch,
     validate_repo,
 )
 from sentry.seer.explorer.tools import get_trace_item_attributes
@@ -1317,3 +1318,35 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         assert result == {"valid": True, "integration_id": integration.id}
+
+    def test_trigger_coding_agent_launch_integration_not_found(self) -> None:
+        """Test that trigger_coding_agent_launch returns success=False when integration is missing"""
+        with self._caplog.at_level(logging.WARNING):
+            result = trigger_coding_agent_launch(
+                organization_id=self.organization.id,
+                integration_id=342471,
+                run_id=12345,
+                trigger_source="solution",
+            )
+
+        assert result == {"success": False}
+        assert "coding_agent.rpc_launch_not_found" in self._caplog.text
+
+    def test_trigger_coding_agent_launch_integration_inactive(self) -> None:
+        """Test that trigger_coding_agent_launch returns success=False when integration is inactive"""
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor",
+            status=ObjectStatus.DISABLED,
+        )
+
+        with self._caplog.at_level(logging.WARNING):
+            result = trigger_coding_agent_launch(
+                organization_id=self.organization.id,
+                integration_id=integration.id,
+                run_id=12345,
+                trigger_source="solution",
+            )
+
+        assert result == {"success": False}
+        assert "coding_agent.rpc_launch_not_found" in self._caplog.text
