@@ -75,6 +75,7 @@ OPTION_KEYS = frozenset(
         "sentry:preprod_size_enabled_by_customer",
         "sentry:preprod_distribution_enabled_by_customer",
         "sentry:preprod_distribution_pr_comments_enabled_by_customer",
+        "sentry:scm_source_context_enabled",
         "quotas:spike-protection-disabled",
         "feedback:branding",
         "digests:mail:minimum_delay",

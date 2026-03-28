@@ -273,6 +273,7 @@ DETAILED_PROJECT = {
     "highlightTags": [],
     "highlightContext": {},
     "highlightPreset": {"tags": [], "context": {}},
+    "scmSourceContextEnabled": False,
 }
 
 PROJECT_SUMMARY = {
