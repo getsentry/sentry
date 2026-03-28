@@ -492,6 +492,7 @@ export const withMetricsOnboarding = new Set<PlatformKey>([
   'ruby',
   'ruby-rack',
   'ruby-rails',
+  'unity',
 ]);
 
 // List of platforms that do not have metrics support. We make use of this list in the product to not provide any Metrics
