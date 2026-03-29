@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -8,6 +8,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {InputField} from 'sentry/components/forms/fields/inputField';
 import {NumberField} from 'sentry/components/forms/fields/numberField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {Form, type FormProps} from 'sentry/components/forms/form';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
@@ -15,6 +16,20 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 import type {Subscription} from 'getsentry/types';
 import {formatBalance} from 'getsentry/utils/billing';
+
+const STARTUP_PROGRAM_OPTIONS = [
+  {value: 'ycombinator', label: 'ycombinator'},
+  {value: 'sentryforstartups', label: 'sentryforstartups'},
+  {value: 'a16z', label: 'a16z'},
+  {value: 'accelatoms', label: 'accelatoms'},
+  {value: 'accelfam', label: 'accelfam'},
+  {value: 'renderstack', label: 'renderstack'},
+  {value: 'finpack', label: 'finpack'},
+  {value: 'betaworks', label: 'betaworks'},
+  {value: 'alchemist', label: 'alchemist'},
+  {value: 'antler', label: 'antler'},
+  {value: 'other', label: 'Enter custom notes'},
+];
 
 function coerceValue(value: number) {
   if (isNaN(value)) {
@@ -46,6 +61,8 @@ function AddToStartupProgramModal({
   Header,
   Body,
 }: AddToStartupProgramModalProps) {
+  const [showCustomNotes, setShowCustomNotes] = useState(false);
+
   const {mutate, isPending} = useMutation<
     Record<string, any>,
     RequestError,
@@ -82,7 +99,13 @@ function AddToStartupProgramModal({
     const creditAmountInput = Number(data.creditAmount);
     const creditAmount = coerceValue(creditAmountInput);
     const ticketUrl = typeof data.ticketUrl === 'string' ? data.ticketUrl : '';
-    const notes = typeof data.notes === 'string' ? data.notes : '';
+    const rawNotes = typeof data.notes === 'string' ? data.notes : '';
+    const notes =
+      rawNotes === 'other'
+        ? typeof data.customNotes === 'string'
+          ? data.customNotes
+          : ''
+        : rawNotes;
 
     if (!creditAmount || isPending) {
       return;
@@ -139,14 +162,27 @@ function AddToStartupProgramModal({
                 stacked
                 disabled={isPending}
               />
-              <TextField
+              <SelectField
                 name="notes"
                 label="Notes"
+                options={STARTUP_PROGRAM_OPTIONS}
                 inline={false}
                 stacked
-                maxLength={500}
                 disabled={isPending}
+                onChange={value => {
+                  setShowCustomNotes(value === 'other');
+                }}
               />
+              {showCustomNotes && (
+                <TextField
+                  name="customNotes"
+                  label="Custom Notes"
+                  inline={false}
+                  stacked
+                  maxLength={500}
+                  disabled={isPending}
+                />
+              )}
             </div>
           </Flex>
         </Form>

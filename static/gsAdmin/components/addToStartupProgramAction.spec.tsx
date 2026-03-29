@@ -64,7 +64,7 @@ describe('AddToStartupProgramAction', () => {
     expect(await screen.findByRole('spinbutton', {name: 'Credit Amount'})).toHaveValue(
       5000
     );
-    expect(screen.getByRole('textbox', {name: 'Notes'})).toHaveValue('sentryforstartups');
+    expect(screen.getByText('sentryforstartups')).toBeInTheDocument();
   });
 
   it('can submit with default values', async () => {
@@ -97,7 +97,69 @@ describe('AddToStartupProgramAction', () => {
     expect(onSuccess).toHaveBeenCalled();
   });
 
-  it('can submit with custom values', async () => {
+  it('can submit with a different option selected', async () => {
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/_admin/customers/${organization.slug}/balance-changes/`,
+      method: 'POST',
+      body: {},
+    });
+
+    triggerAddToStartupProgramModal(modalProps);
+
+    const {waitForModalToHide} = renderGlobalModal();
+
+    await userEvent.click(await screen.findByText('sentryforstartups'));
+    await userEvent.click(screen.getByText('ycombinator'));
+
+    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
+
+    await waitForModalToHide();
+
+    await waitFor(() => {
+      expect(updateMock).toHaveBeenCalledWith(
+        `/_admin/customers/${organization.slug}/balance-changes/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            creditAmount: 500000,
+            ticketUrl: '',
+            notes: 'ycombinator',
+          },
+        })
+      );
+    });
+  });
+
+  it('shows custom notes field when "Enter custom notes" is selected', async () => {
+    triggerAddToStartupProgramModal(modalProps);
+
+    renderGlobalModal();
+
+    expect(screen.queryByRole('textbox', {name: 'Custom Notes'})).not.toBeInTheDocument();
+
+    await userEvent.click(await screen.findByText('sentryforstartups'));
+    await userEvent.click(screen.getByText('Enter custom notes'));
+
+    expect(screen.getByRole('textbox', {name: 'Custom Notes'})).toBeInTheDocument();
+  });
+
+  it('hides custom notes field when switching back to a preset option', async () => {
+    triggerAddToStartupProgramModal(modalProps);
+
+    renderGlobalModal();
+
+    // Select "Enter custom notes"
+    await userEvent.click(await screen.findByText('sentryforstartups'));
+    await userEvent.click(screen.getByText('Enter custom notes'));
+    expect(screen.getByRole('textbox', {name: 'Custom Notes'})).toBeInTheDocument();
+
+    // Switch back to a preset option
+    await userEvent.click(screen.getByText('Enter custom notes'));
+    await userEvent.click(screen.getByText('a16z'));
+    expect(screen.queryByRole('textbox', {name: 'Custom Notes'})).not.toBeInTheDocument();
+  });
+
+  it('can submit with custom notes', async () => {
     const updateMock = MockApiClient.addMockResponse({
       url: `/_admin/customers/${organization.slug}/balance-changes/`,
       method: 'POST',
@@ -115,9 +177,13 @@ describe('AddToStartupProgramAction', () => {
 
     await userEvent.type(screen.getByRole('textbox', {name: 'Ticket URL'}), url);
 
-    const notesInput = screen.getByRole('textbox', {name: 'Notes'});
-    await userEvent.clear(notesInput);
-    await userEvent.type(notesInput, 'custom note');
+    await userEvent.click(screen.getByText('sentryforstartups'));
+    await userEvent.click(screen.getByText('Enter custom notes'));
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Custom Notes'}),
+      'custom note'
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
 
@@ -156,7 +222,6 @@ describe('AddToStartupProgramAction', () => {
     expect(submitButton).toBeDisabled();
     expect(screen.getByRole('spinbutton', {name: 'Credit Amount'})).toBeDisabled();
     expect(screen.getByRole('textbox', {name: 'Ticket URL'})).toBeDisabled();
-    expect(screen.getByRole('textbox', {name: 'Notes'})).toBeDisabled();
     await waitForModalToHide();
   });
 
@@ -205,7 +270,6 @@ describe('AddToStartupProgramAction', () => {
       {timeout: 5_000}
     );
     expect(screen.getByRole('textbox', {name: 'Ticket URL'})).toBeEnabled();
-    expect(screen.getByRole('textbox', {name: 'Notes'})).toBeEnabled();
     expect(screen.getByRole('button', {name: /submit/i})).toBeEnabled();
   }, 25_000);
 
