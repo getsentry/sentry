@@ -278,7 +278,7 @@ export function parseAssembly(assembly: string | null) {
   for (let i = 1; i < pieces.length; i++) {
     const [key, value] = pieces[i]!.trim().split('=');
 
-    // eslint-disable-next-line default-case
+    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
     switch (key) {
       case 'Version':
         version = value;

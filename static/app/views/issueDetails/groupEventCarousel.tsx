@@ -230,8 +230,6 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
             });
             break;
           }
-          default:
-            break;
         }
       }}
     />

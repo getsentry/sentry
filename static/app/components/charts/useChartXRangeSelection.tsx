@@ -361,7 +361,6 @@ export function useChartXRangeSelection({
 
     document.body.addEventListener('click', handleInsideSelectionClick, true);
 
-    // eslint-disable-next-line consistent-return
     return () => {
       document.body.removeEventListener('click', handleInsideSelectionClick, true);
     };
@@ -422,7 +421,6 @@ export function useChartXRangeSelection({
       enableBrushMode();
     });
 
-    // eslint-disable-next-line consistent-return
     return () => {
       if (brushStateSyncFrameRef.current) {
         cancelAnimationFrame(brushStateSyncFrameRef.current);

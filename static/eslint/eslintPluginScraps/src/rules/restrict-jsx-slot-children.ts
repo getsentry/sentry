@@ -112,12 +112,12 @@ function isReactFragment(nameNode: TSESTree.JSXTagNameExpression) {
  */
 function getDisplayName(node: TSESTree.JSXTagNameExpression): string {
   switch (node.type) {
+    case AST_NODE_TYPES.JSXIdentifier:
+      return node.name;
     case AST_NODE_TYPES.JSXMemberExpression:
       return `${getDisplayName(node.object)}.${node.property.name}`;
     case AST_NODE_TYPES.JSXNamespacedName:
       return `${node.namespace.name}:${node.name.name}`;
-    default:
-      return node.name;
   }
 }
 

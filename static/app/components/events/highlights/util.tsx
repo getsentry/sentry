@@ -181,7 +181,6 @@ export function getRuntimeLabelAndTooltip(
     return null;
   }
 
-  // eslint-disable-next-line default-case
   switch (event.contexts.runtime?.name || '') {
     case 'node':
       return {label: t('Backend'), tooltip: t('Error from Node.js Server Runtime')};
