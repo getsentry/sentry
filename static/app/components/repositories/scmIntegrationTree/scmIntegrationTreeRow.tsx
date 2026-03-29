@@ -1,7 +1,7 @@
-import {useEffect, useState, type CSSProperties, type ReactNode} from 'react';
+import {Fragment, useEffect, useState, type CSSProperties, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Badge} from '@sentry/scraps/badge';
+import {Badge, Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
@@ -182,12 +182,20 @@ export function ScmIntegrationTreeRow({
               <Flex align="center" gap="sm">
                 {node.isReposPending ? (
                   <LoadingReposMessage />
+                ) : node.repoCount === 0 ? (
+                  <Tag variant="muted">{t('disabled')}</Tag>
                 ) : (
-                  <Badge variant="muted">
-                    {t('%s/%s repos connected', node.connectedRepoCount, node.repoCount)}
-                  </Badge>
+                  <Fragment>
+                    <Badge variant="muted">
+                      {t(
+                        '%s/%s repos connected',
+                        node.connectedRepoCount,
+                        node.repoCount
+                      )}
+                    </Badge>
+                    <ProviderConfigLink integration={node.integration} />
+                  </Fragment>
                 )}
-                <ProviderConfigLink integration={node.integration} />
               </Flex>
             </Flex>
           </Flex>

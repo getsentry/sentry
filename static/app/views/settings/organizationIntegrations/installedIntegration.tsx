@@ -1,13 +1,13 @@
 import {Component, Fragment} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Access} from 'sentry/components/acl/access';
-import {CircleIndicator} from 'sentry/components/circleIndicator';
 import {Confirm} from 'sentry/components/confirm';
 import {IconDelete, IconSettings, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -188,7 +188,7 @@ export class InstalledIntegration extends Component<Props> {
                   </Confirm>
                 </Tooltip>
               </div>
-              <StyledIntegrationStatus
+              <IntegrationStatus
                 status={this.integrationStatus}
                 // Let the hook handle the alert for disabled org integrations
                 hideTooltip={integration.organizationIntegrationStatus === 'disabled'}
@@ -213,33 +213,23 @@ const IntegrationItemBox = styled('div')`
   flex: 1;
 `;
 
-function IntegrationStatus(
-  props: React.HTMLAttributes<HTMLDivElement> & {
-    status: ObjectStatus;
-    hideTooltip?: boolean;
-  }
-) {
-  const theme = useTheme();
-  const {status, hideTooltip, ...p} = props;
-  const color = status === 'active' ? theme.tokens.content.success : theme.colors.gray400;
-  const inner = (
-    <div {...p}>
-      <CircleIndicator size={6} color={color} />
-      <IntegrationStatusText data-test-id="integration-status">
-        {status === 'active'
-          ? t('enabled')
-          : status === 'pending_deletion'
-            ? t('pending deletion')
-            : status === 'disabled'
-              ? t('disabled')
-              : t('unknown')}
-      </IntegrationStatusText>
-    </div>
-  );
-  return hideTooltip ? (
-    inner
-  ) : (
+function IntegrationStatus({
+  status,
+  hideTooltip,
+}: {
+  status: ObjectStatus;
+  hideTooltip?: boolean;
+}) {
+  const label = {
+    active: <Tag variant="success">{t('enabled')}</Tag>,
+    pending_deletion: <Tag variant="info">{t('pending deletion')}</Tag>,
+    disabled: <Tag variant="muted">{t('disabled')}</Tag>,
+    deletion_in_progress: <Tag variant="muted">{t('unknown')}</Tag>,
+  }[status] ?? <Tag variant="muted">{t('unknown')}</Tag>;
+
+  return (
     <Tooltip
+      disabled={hideTooltip}
       title={
         status === 'active'
           ? t('This integration can be disabled by clicking the Uninstall button')
@@ -247,25 +237,16 @@ function IntegrationStatus(
             ? t('This integration has been disconnected from the external provider')
             : t('Deletion takes a few minutes to complete.')
       }
+      skipWrapper
     >
-      {inner}
+      <Flex align="center">
+        <IntegrationStatusText data-test-id="integration-status">
+          {label}
+        </IntegrationStatusText>
+      </Flex>
     </Tooltip>
   );
 }
-
-const StyledIntegrationStatus = styled(IntegrationStatus)`
-  display: flex;
-  align-items: center;
-  color: ${p => p.theme.tokens.content.secondary};
-  font-weight: light;
-  text-transform: capitalize;
-  &:before {
-    content: '|';
-    color: ${p => p.theme.colors.gray200};
-    margin-right: ${p => p.theme.space.md};
-    font-weight: ${p => p.theme.font.weight.sans.regular};
-  }
-`;
 
 const IntegrationStatusText = styled('div')`
   margin: 0 ${p => p.theme.space.sm} 0 ${p => p.theme.space.xs};
