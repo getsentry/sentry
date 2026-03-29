@@ -199,6 +199,47 @@ class GroupResolutionTest(TestCase):
     def test_no_release_with_no_resolution(self) -> None:
         assert not GroupResolution.has_resolution(self.group, None)
 
+    def test_stale_current_release_version_with_semver_flip(self) -> None:
+        """
+        Integration resolves "in next release" while follows_semver is False (mixed
+        semver/non-semver releases). current_release_version is set via date ordering.
+        Later, follows_semver flips to True for the event's release, but has_resolution
+        compares against the stale current_release_version instead of the resolution's
+        release, causing a false regression on an older semver version.
+        """
+        current_at_resolution = self.create_release(
+            version="foo_package@1.3",
+            date_added=timezone.now() - timedelta(minutes=45),
+        )
+        resolved_in_release = self.create_release(
+            version="foo_package@1.5",
+            date_added=timezone.now() - timedelta(minutes=30),
+        )
+        # Out-of-order: older semver but created later (hotfix branch)
+        event_release = self.create_release(
+            version="foo_package@1.4",
+            date_added=timezone.now() - timedelta(minutes=15),
+        )
+        # Non-semver release makes follows_semver False at resolution time;
+        # by event time it's no longer in the recent 3 so follows_semver flips to True
+        self.create_release(
+            version="foo_package@nightly-100",
+            date_added=timezone.now() - timedelta(minutes=60),
+        )
+
+        # Mirrors Jira integration's resolve_next_release: type stays in_next_release,
+        # release points to "next" by date, current_release_version is stale
+        GroupResolution.objects.create(
+            release=resolved_in_release,
+            current_release_version=current_at_resolution.version,
+            group=self.group,
+            type=GroupResolution.Type.in_next_release,
+            status=GroupResolution.Status.pending,
+        )
+
+        # Fix is in 1.5; event on 1.4 (< 1.5 in semver) should not regress
+        assert GroupResolution.has_resolution(self.group, event_release)
+
     def test_all_resolutions_are_implemented(self) -> None:
         resolution_types = [
             attr for attr in vars(GroupResolution.Type) if not attr.startswith("__")
