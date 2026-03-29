@@ -3,12 +3,12 @@ import posixpath
 import re
 import uuid
 from collections.abc import Iterable, Mapping, Sequence, Set
-from typing import TYPE_CHECKING, TypedDict, TypeGuard
+from typing import TYPE_CHECKING, NotRequired, TypedDict, TypeGuard, cast
 
 import jsonschema
 import orjson
 from django.db import IntegrityError, router
-from django.db.models import Case, Exists, IntegerField, Q, QuerySet, Value, When
+from django.db.models import Case, Exists, F, IntegerField, Q, QuerySet, Value, When
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework import status
 from rest_framework.request import Request
@@ -422,18 +422,56 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
         return Response({"associatedDsymFiles": []})
 
 
-def get_file_info(file) -> tuple[str | None, str | None, list[str]]:
+class AssembleRequestFile(TypedDict):
+    """One file entry from the DIF assemble request body."""
+
+    name: str
+    chunks: list[str]
+    debug_id: NotRequired[str]
+
+
+AssembleRequestPayload = dict[str, AssembleRequestFile]
+"""Mapping from file checksums to the corresponding assemble request payload."""
+
+
+def parse_assemble_request_payload(body: bytes) -> AssembleRequestPayload:
+    """Parse and validate the DIF assemble request body."""
+    schema: dict[str, object] = {
+        "type": "object",
+        "patternProperties": {
+            "^[0-9a-f]{40}$": {
+                "type": "object",
+                "required": ["name", "chunks"],
+                "properties": {
+                    "name": {"type": "string"},
+                    "debug_id": {"type": "string"},
+                    "chunks": {
+                        "type": "array",
+                        "items": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+                    },
+                },
+                "additionalProperties": True,
+            }
+        },
+        "additionalProperties": False,
+    }
+    payload_obj: object = orjson.loads(body)
+    jsonschema.validate(payload_obj, schema)
+    return cast(AssembleRequestPayload, payload_obj)
+
+
+def get_file_info(file: AssembleRequestFile) -> tuple[str, str | None, list[str]]:
     """
     Extracts file information from one assemble payload.
     """
-    name = file.get("name")
+    name = file["name"]
     debug_id = file.get("debug_id")
-    chunks = file.get("chunks", [])
+    chunks = file["chunks"]
 
     return name, debug_id, chunks
 
 
-def batch_assemble(project, files):
+def batch_assemble(project: Project, files: AssembleRequestPayload):
     """
     Performs assembling in a batch fashion, issuing queries that span multiple files.
     """
@@ -477,7 +515,7 @@ def batch_assemble(project, files):
     )
 
     for debug_file in existing_debug_files:
-        checksum = debug_file.checksum
+        checksum = debug_file.nonnull_checksum
         file = files_to_check.pop(checksum)
         requested_debug_id = requested_debug_ids_by_checksum[checksum]
 
@@ -558,22 +596,22 @@ def batch_assemble(project, files):
     return file_response
 
 
-def _get_requested_debug_id(file) -> str | None:
+def _get_requested_debug_id(file: AssembleRequestFile) -> str | None:
     """Returns the effective requested debug ID for one assemble payload.
 
     This normalizes an explicit ``debug_id`` when present, or derives one from a
     ProGuard-style request name such as ``/proguard/mapping-<uuid>.txt``.
     """
-    return get_debug_id_from_dif_request(name=file.get("name"), debug_id=file.get("debug_id"))
+    return get_debug_id_from_dif_request(name=file["name"], debug_id=file.get("debug_id"))
 
 
-def _is_requested_proguard(file) -> bool:
+def _is_requested_proguard(file: AssembleRequestFile) -> bool:
     """Returns whether one assemble payload should be treated as a ProGuard request.
 
     This is true only when the request's effective debug ID comes from a
     ProGuard-style filename, rather than merely from an explicit ``debug_id``.
     """
-    name = file.get("name")
+    name = file["name"]
     requested_debug_id = _get_requested_debug_id(file)
     return (
         requested_debug_id is not None
@@ -583,7 +621,7 @@ def _is_requested_proguard(file) -> bool:
 
 def _is_proguard_reupload_clone_request(
     requested_debug_id: str | None,
-    file,
+    file: AssembleRequestFile,
     selected_debug_id: str | None,
 ) -> TypeGuard[str]:
     """Return whether the assemble request should clone a ProGuard debug file."""
@@ -595,6 +633,7 @@ def _is_proguard_reupload_clone_request(
 
 
 class _DebugFileAnnotations(TypedDict):
+    nonnull_checksum: str
     requested_debug_id_match: int
     proguard_clone_source_match: int
 
@@ -639,8 +678,11 @@ def _find_existing_debug_files(
         ProjectDebugFile.objects.filter(
             project_id=project.id,
             checksum__in=checksums,
+            checksum__isnull=False,
         )
         .annotate(
+            # Mirror the filtered checksum into an annotated non-null field for type safety.
+            nonnull_checksum=F("checksum"),
             requested_debug_id_match=_build_requested_debug_id_match_annotation(
                 requested_debug_ids_by_checksum.items()
             ),
@@ -740,29 +782,8 @@ class DifAssembleEndpoint(ProjectEndpoint):
 
         :auth: required
         """
-        schema = {
-            "type": "object",
-            "patternProperties": {
-                "^[0-9a-f]{40}$": {
-                    "type": "object",
-                    "required": ["name", "chunks"],
-                    "properties": {
-                        "name": {"type": "string"},
-                        "debug_id": {"type": "string"},
-                        "chunks": {
-                            "type": "array",
-                            "items": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-                        },
-                    },
-                    "additionalProperties": True,
-                }
-            },
-            "additionalProperties": False,
-        }
-
         try:
-            files = orjson.loads(request.body)
-            jsonschema.validate(files, schema)
+            files = parse_assemble_request_payload(request.body)
         except jsonschema.ValidationError as e:
             return Response({"error": str(e).splitlines()[0]}, status=400)
         except Exception:
