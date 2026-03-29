@@ -14,6 +14,14 @@
     // Skip type checking of all declaration files
     "skipLibCheck": true,
 
+    // Explicitly list which @types/* packages to include as global types
+    "types": [
+      "gtag.js",
+      "jest",
+      "node",
+      "webpack-env"
+    ],
+
     // We do not actually use tsc to output any JavaScript anywhere
     "noEmit": true,
 
@@ -23,7 +31,6 @@
     "jsxImportSource": "@emotion/react",
 
     // Type checking specific options
-    "alwaysStrict": false,
     "noFallthroughCasesInSwitch": true,
     "noImplicitAny": true,
     "noImplicitReturns": true,
@@ -35,19 +42,9 @@
     "strictBindCallApply": false,
     "useUnknownInCatchVariables": true,
 
-    // Emit configuration
-    "declaration": false,
-    "declarationMap": false,
-    "downlevelIteration": true,
-    "importHelpers": true,
-    "inlineSources": false,
-    "noEmitHelpers": true,
-    "sourceMap": true,
     "pretty": false,
-    "allowJs": true,
     "checkJs": true,
 
-    "esModuleInterop": true,
     "experimentalDecorators": false,
     "resolveJsonModule": true,
     "verbatimModuleSyntax": true,
