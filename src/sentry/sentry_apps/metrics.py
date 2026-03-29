@@ -71,6 +71,7 @@ class SentryAppWebhookHaltReason(StrEnum):
     RESTRICTED_IP = "restricted_ip"
     CONNECTION_RESET = "connection_reset"
     HARD_TIMEOUT = "hard_timeout"
+    CIRCUIT_BROKEN = "circuit_broken"
 
 
 class SentryAppExternalRequestFailureReason(StrEnum):
