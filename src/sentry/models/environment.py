@@ -1,8 +1,10 @@
+import logging
 import re
 from typing import ClassVar, Self
 from urllib.parse import unquote
 
-from django.db import models
+import psycopg2.errors
+from django.db import IntegrityError, models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -18,6 +20,8 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
+
+logger = logging.getLogger(__name__)
 
 OK_NAME_PATTERN = re.compile(ENVIRONMENT_NAME_PATTERN)
 
@@ -110,9 +114,27 @@ class Environment(Model):
         cache_key = f"envproj:c:{self.id}:{project.id}"
 
         if cache.get(cache_key) is None:
-            EnvironmentProject.objects.get_or_create(
-                project=project, environment=self, defaults={"is_hidden": is_hidden}
-            )
+            try:
+                EnvironmentProject.objects.get_or_create(
+                    project=project, environment=self, defaults={"is_hidden": is_hidden}
+                )
+            except IntegrityError as e:
+                # Handle the case where the project is deleted concurrently during event processing.
+                # This can occur as a race condition where a project is deleted between when an event
+                # is accepted for processing and when the EnvironmentProject association is created.
+                # (See SENTRY-5M9B for context)
+                if isinstance(e.__cause__, psycopg2.errors.ForeignKeyViolation):
+                    logger.warning(
+                        "Failed to create EnvironmentProject due to project being deleted",
+                        extra={
+                            "environment_id": self.id,
+                            "project_id": project.id,
+                            "error": str(e),
+                        },
+                    )
+                    return
+                # Re-raise if it's a different IntegrityError
+                raise
             # The object already exists, we cache the action to reduce the load on the database.
             cache.set(cache_key, 1, 3600)
 
