@@ -2,7 +2,10 @@ from datetime import UTC, datetime
 from unittest.mock import Mock, patch
 
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
-from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
+from sentry.integrations.github_copilot.client import (
+    GITHUB_COPILOT_MAX_PROBLEM_STATEMENT_LENGTH,
+    GithubCopilotAgentClient,
+)
 from sentry.integrations.github_copilot.models import GithubCopilotTask
 from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentStatus
 from sentry.seer.models import SeerRepoDefinition
@@ -234,7 +237,7 @@ class GithubCopilotAgentClientTest(TestCase):
 
     @patch.object(GithubCopilotAgentClient, "post")
     def test_launch_truncates_long_prompt(self, mock_post: Mock) -> None:
-        """Prompts exceeding 25,000 chars are truncated"""
+        """Prompts exceeding GITHUB_COPILOT_MAX_PROBLEM_STATEMENT_LENGTH chars are truncated"""
         prompt = "a" * 30000
         request = self._make_launch_request(prompt)
 
@@ -247,7 +250,7 @@ class GithubCopilotAgentClientTest(TestCase):
 
         call_data = mock_post.call_args[1]["data"]
         sent_prompt = call_data["problem_statement"]
-        assert len(sent_prompt) == 25000
+        assert len(sent_prompt) == GITHUB_COPILOT_MAX_PROBLEM_STATEMENT_LENGTH
 
     @patch.object(GithubCopilotAgentClient, "post")
     def test_launch_does_not_truncate_short_prompt(self, mock_post: Mock) -> None:
