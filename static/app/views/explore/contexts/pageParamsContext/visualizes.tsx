@@ -141,6 +141,7 @@ export function determineDefaultChartType(yAxes: readonly string[]): ChartType {
     [ChartType.BAR]: 0,
     [ChartType.LINE]: 0,
     [ChartType.AREA]: 0,
+    [ChartType.HEATMAP]: 0,
   };
 
   for (const yAxis of yAxes) {

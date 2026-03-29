@@ -21,6 +21,7 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
 import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
+import {MetricHeatmap} from 'sentry/views/explore/metrics/metricHeatmap';
 import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   useMetricLabel,
@@ -210,12 +211,16 @@ function Graph({
     <Widget.WidgetTitle title={chartTitle} />
   );
 
+  const isHeatmap = visualize.chartType === ChartType.HEATMAP;
+
   const chartIcon =
     visualize.chartType === ChartType.LINE
       ? 'line'
       : visualize.chartType === ChartType.AREA
         ? 'area'
-        : 'bar';
+        : visualize.chartType === ChartType.HEATMAP
+          ? 'scatter'
+          : 'bar';
 
   const Actions = (
     <Fragment>
@@ -294,6 +299,8 @@ function Graph({
                 }
               )}
             />
+          ) : showChart && isHeatmap ? (
+            <MetricHeatmap timeseriesResult={timeseriesResult} />
           ) : showChart ? (
             <ChartVisualization chartInfo={chartInfo} />
           ) : undefined
