@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -121,7 +121,7 @@ export default function UptimeAlertDetails() {
   );
 
   return (
-    <Layout.Page>
+    <Fragment>
       <SentryDocumentTitle title={`${detector.name} — Alerts`} />
       <Layout.Header>
         <Layout.HeaderContent>
@@ -213,7 +213,7 @@ export default function UptimeAlertDetails() {
           />
         </Layout.Side>
       </Layout.Body>
-    </Layout.Page>
+    </Fragment>
   );
 }
 

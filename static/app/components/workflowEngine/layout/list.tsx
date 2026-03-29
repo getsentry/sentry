@@ -28,7 +28,6 @@ export function WorkflowEngineListLayout({
   const organization = useOrganization();
 
   return (
-    <Layout.Page>
       <NoProjectMessage organization={organization}>
         <Layout.Header unified>
           <Layout.HeaderContent>
@@ -47,6 +46,5 @@ export function WorkflowEngineListLayout({
           </Layout.Main>
         </Layout.Body>
       </NoProjectMessage>
-    </Layout.Page>
   );
 }

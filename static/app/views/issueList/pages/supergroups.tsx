@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
@@ -120,7 +121,7 @@ function Supergroups() {
   }
 
   return (
-    <Layout.Page>
+    <Fragment>
       <Layout.Header noActionWrap unified>
         <Layout.HeaderContent>
           <Flex align="center" gap="md">
@@ -172,7 +173,7 @@ function Supergroups() {
           )}
         </Layout.Main>
       </Layout.Body>
-    </Layout.Page>
+    </Fragment>
   );
 }
 

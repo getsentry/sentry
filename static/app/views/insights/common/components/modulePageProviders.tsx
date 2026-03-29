@@ -1,4 +1,3 @@
-import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -54,11 +53,9 @@ export function ModulePageProviders({
       storageNamespace={view}
     >
       <SentryDocumentTitle title={fullPageTitle} orgSlug={organization.slug}>
-        <Layout.Page>
           <NoProjectMessage organization={organization}>
             <WidgetSyncContextProvider>{children}</WidgetSyncContextProvider>
           </NoProjectMessage>
-        </Layout.Page>
       </SentryDocumentTitle>
     </PageFiltersContainer>
   );

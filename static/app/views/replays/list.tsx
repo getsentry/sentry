@@ -115,7 +115,6 @@ export default function ReplaysListContainer() {
       <SentryDocumentTitle title="Session Replay" orgSlug={organization.slug}>
         <ReplayPreferencesContextProvider prefsStrategy={LocalStorageReplayPreferences}>
           <ReplayQueryParamsProvider>
-            <Layout.Page>
               <ReplaysHeader />
               <PageFiltersContainer>
                 <Layout.Body>
@@ -140,7 +139,6 @@ export default function ReplaysListContainer() {
                   </Layout.Main>
                 </Layout.Body>
               </PageFiltersContainer>
-            </Layout.Page>
           </ReplayQueryParamsProvider>
         </ReplayPreferencesContextProvider>
       </SentryDocumentTitle>

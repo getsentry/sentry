@@ -41,7 +41,6 @@ export default function SavedQueriesView() {
 
   return (
     <SentryDocumentTitle title={t('All Queries')} orgSlug={organization?.slug}>
-      <Layout.Page>
         <Layout.Header unified>
           <Layout.HeaderContent>
             <Layout.Title>{t('All Queries')}</Layout.Title>
@@ -88,7 +87,6 @@ export default function SavedQueriesView() {
             <SavedQueriesLandingContent />
           </Layout.Main>
         </Layout.Body>
-      </Layout.Page>
     </SentryDocumentTitle>
   );
 }

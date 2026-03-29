@@ -61,7 +61,7 @@ export default function ProjectAlertsEditor() {
   const {teams, isLoading: teamsLoading} = useUserTeams();
 
   return (
-    <Layout.Page>
+    <Fragment>
       <SentryDocumentTitle
         title={title}
         orgSlug={organization.slug}
@@ -133,6 +133,6 @@ export default function ProjectAlertsEditor() {
           </Fragment>
         )}
       </Layout.Body>
-    </Layout.Page>
+    </Fragment>
   );
 }

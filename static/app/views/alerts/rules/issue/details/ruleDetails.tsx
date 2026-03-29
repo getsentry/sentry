@@ -383,7 +383,6 @@ export default function AlertRuleDetails() {
   const {period, start, end, utc} = getDataDatetime();
   const cursor = decodeScalar(location.query.cursor);
   return (
-    <Layout.Page>
       <PageFiltersContainer
         skipInitializeUrlParams
         skipLoadLastUsed
@@ -517,7 +516,6 @@ export default function AlertRuleDetails() {
           </Layout.Side>
         </Layout.Body>
       </PageFiltersContainer>
-    </Layout.Page>
   );
 }
 

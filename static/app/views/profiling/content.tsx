@@ -157,7 +157,6 @@ export default function ProfilingContent() {
             : undefined
         }
       >
-        <Layout.Page>
           <ProfilingBetaAlertBanner organization={organization} />
           <Feature features="continuous-profiling-beta-ui">
             <ContinuousProfilingBetaAlertBanner organization={organization} />
@@ -243,7 +242,6 @@ export default function ProfilingContent() {
               )}
             </LayoutMain>
           </LayoutBody>
-        </Layout.Page>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );

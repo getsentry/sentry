@@ -5,7 +5,6 @@ import type {Location} from 'history';
 import {Flex} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useScrollToTop} from 'sentry/utils/useScrollToTop';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
@@ -23,13 +22,11 @@ export function SettingsWrapper() {
 
   return (
     <AnalyticsArea name="settings">
-      <Layout.Page>
         <StyledFlex flex="1" background={hasPageFrame ? 'primary' : undefined}>
           <BreadcrumbProvider>
             <Outlet />
           </BreadcrumbProvider>
         </StyledFlex>
-      </Layout.Page>
     </AnalyticsArea>
   );
 }

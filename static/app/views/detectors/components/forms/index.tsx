@@ -29,13 +29,11 @@ import {
 
 function PlaceholderForm() {
   return (
-    <Layout.Page>
       <Layout.Body>
         <Layout.Main width="full">
           <LoadingError message={t('This monitor type can not be created')} />
         </Layout.Main>
       </Layout.Body>
-    </Layout.Page>
   );
 }
 

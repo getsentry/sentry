@@ -46,13 +46,11 @@ const SORT_OPTIONS = [
 
 function NoAccess() {
   return (
-    <Layout.Page withPadding>
       <Alert.Container>
         <Alert variant="warning" showIcon={false}>
           {t("You don't have access to this feature")}
         </Alert>
       </Alert.Container>
-    </Layout.Page>
   );
 }
 
@@ -187,7 +185,6 @@ function DiscoverLanding() {
       renderDisabled={() => <NoAccess />}
     >
       <SentryDocumentTitle title={t('Discover')} orgSlug={organization.slug}>
-        <Layout.Page>
           <Layout.Header>
             <Layout.HeaderContent>
               <Breadcrumbs
@@ -275,7 +272,6 @@ function DiscoverLanding() {
               )}
             </Layout.Main>
           </Layout.Body>
-        </Layout.Page>
       </SentryDocumentTitle>
     </Feature>
   );

@@ -88,7 +88,6 @@ export default function BuildComparison() {
   if (headBuildDetailsQuery.isLoading) {
     return (
       <SentryDocumentTitle title={t('Build comparison')}>
-        <Layout.Page>
           <Layout.Header>
             <Placeholder
               height="20px"
@@ -102,7 +101,6 @@ export default function BuildComparison() {
               <LoadingIndicator />
             </Layout.Main>
           </Layout.Body>
-        </Layout.Page>
       </SentryDocumentTitle>
     );
   }
@@ -128,7 +126,6 @@ export default function BuildComparison() {
 
   return (
     <SentryDocumentTitle title={t('Build comparison')}>
-      <Layout.Page>
         <Layout.Header>
           <BuildCompareHeaderContent
             buildDetails={headBuildDetailsQuery.data}
@@ -142,7 +139,6 @@ export default function BuildComparison() {
         <Layout.Body>
           <Layout.Main width="full">{mainContent}</Layout.Main>
         </Layout.Body>
-      </Layout.Page>
     </SentryDocumentTitle>
   );
 }

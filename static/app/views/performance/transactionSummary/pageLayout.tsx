@@ -295,7 +295,6 @@ export function PageLayout(props: Props) {
               }
             >
               <Tabs value={tab} onChange={onTabChange}>
-                <Layout.Page>
                   <TransactionHeader
                     eventView={eventView}
                     location={location}
@@ -329,7 +328,6 @@ export function PageLayout(props: Props) {
                       <Outlet />
                     </TransactionSummaryContext>
                   </StyledBody>
-                </Layout.Page>
               </Tabs>
             </PageFiltersContainer>
           </PerformanceEventViewProvider>

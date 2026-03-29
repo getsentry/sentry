@@ -48,7 +48,6 @@ export default function MetricsContent() {
             : undefined
         }
       >
-        <Layout.Page>
           <MetricsHeader />
           {defined(onboardingProject) ? (
             <MetricsTabOnboarding
@@ -59,7 +58,6 @@ export default function MetricsContent() {
           ) : (
             <MetricsTabContent datePageFilterProps={datePageFilterProps} />
           )}
-        </Layout.Page>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );

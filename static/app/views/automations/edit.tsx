@@ -226,7 +226,6 @@ function AutomationEditForm({automation}: {automation: Automation}) {
     >
       <AutomationFormProvider automation={automation}>
         <AutomationDocumentTitle />
-        <Layout.Page>
           <StyledLayoutHeader>
             <HeaderInner maxWidth={maxWidth}>
               <Layout.HeaderContent>
@@ -263,7 +262,6 @@ function AutomationEditForm({automation}: {automation: Automation}) {
               </AutomationBuilderErrorContext.Provider>
             </Layout.Main>
           </StyledBody>
-        </Layout.Page>
         <StickyFooter>
           <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
             <EditAutomationActions automation={automation} form={model} />

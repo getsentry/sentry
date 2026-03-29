@@ -125,7 +125,6 @@ function ScreenDetailsPage() {
   return (
     <PageFiltersContainer>
       <SentryDocumentTitle title={t('Mobile Vitals')} orgSlug={organization.slug} />
-      <Layout.Page>
         <PageAlertProvider>
           <Tabs value={selectedTabKey} onChange={tabKey => handleTabChange(tabKey)}>
             <MobileHeader
@@ -154,7 +153,6 @@ function ScreenDetailsPage() {
             </Layout.Body>
           </Tabs>
         </PageAlertProvider>
-      </Layout.Page>
     </PageFiltersContainer>
   );
 }

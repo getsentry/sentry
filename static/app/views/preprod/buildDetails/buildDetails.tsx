@@ -151,7 +151,6 @@ export default function BuildDetails() {
   ) {
     return (
       <SentryDocumentTitle title={title}>
-        <Layout.Page>
           <BuildError
             title="Build details unavailable"
             message={
@@ -176,14 +175,12 @@ export default function BuildDetails() {
               </Stack>
             )}
           </BuildError>
-        </Layout.Page>
       </SentryDocumentTitle>
     );
   }
 
   return (
     <SentryDocumentTitle title={title}>
-      <Layout.Page>
         <PreprodQuotaAlert system />
         <Layout.Header>
           <BuildDetailsHeaderContent
@@ -217,7 +214,6 @@ export default function BuildDetails() {
             </BuildDetailsMain>
           </UrlParamBatchProvider>
         </BuildDetailsBody>
-      </Layout.Page>
     </SentryDocumentTitle>
   );
 }

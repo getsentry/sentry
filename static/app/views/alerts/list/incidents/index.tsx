@@ -263,7 +263,6 @@ class IncidentsList extends DeprecatedAsyncComponent<
 
     return (
       <SentryDocumentTitle title={t('Alerts')} orgSlug={organization.slug}>
-        <Layout.Page>
           <PageFiltersContainer>
             <AlertHeader activeTab="stream" />
             <Layout.Body>
@@ -286,7 +285,6 @@ class IncidentsList extends DeprecatedAsyncComponent<
               </Layout.Main>
             </Layout.Body>
           </PageFiltersContainer>
-        </Layout.Page>
       </SentryDocumentTitle>
     );
   }
@@ -305,7 +303,6 @@ export default function IncidentsListContainer() {
   }, []);
 
   const renderDisabled = () => (
-    <Layout.Page>
       <Layout.Body>
         <Layout.Main width="full">
           <Alert.Container>
@@ -315,7 +312,6 @@ export default function IncidentsListContainer() {
           </Alert.Container>
         </Layout.Main>
       </Layout.Body>
-    </Layout.Page>
   );
 
   return (

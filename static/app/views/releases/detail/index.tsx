@@ -5,7 +5,6 @@ import pick from 'lodash/pick';
 
 import {Alert} from '@sentry/scraps/alert';
 
-import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
@@ -160,7 +159,6 @@ function ReleasesDetail({
       );
       return (
         <SentryDocumentTitle title={pageTitle}>
-          <Layout.Page>
             <Alert.Container>
               <Alert variant="danger">
                 {possiblyWrongProject
@@ -168,7 +166,6 @@ function ReleasesDetail({
                   : t('There was an error loading the release details')}
               </Alert>
             </Alert.Container>
-          </Layout.Page>
         </SentryDocumentTitle>
       );
     },
@@ -189,9 +186,7 @@ function ReleasesDetail({
   if (isPending) {
     return (
       <SentryDocumentTitle title={pageTitle}>
-        <Layout.Page>
           <LoadingIndicator />
-        </Layout.Page>
       </SentryDocumentTitle>
     );
   }
@@ -205,7 +200,6 @@ function ReleasesDetail({
 
   return (
     <SentryDocumentTitle title={pageTitle}>
-      <Layout.Page>
         <NoProjectMessage organization={organization}>
           <ReleaseHeader
             location={location}
@@ -230,7 +224,6 @@ function ReleasesDetail({
             {children}
           </ReleaseContext>
         </NoProjectMessage>
-      </Layout.Page>
     </SentryDocumentTitle>
   );
 }
@@ -267,20 +260,16 @@ function ReleasesDetailContainer() {
 
   if (isPending) {
     return (
-      <Layout.Page>
         <LoadingIndicator />
-      </Layout.Page>
     );
   }
 
   if (isError && error.status === 404) {
     // This catches a 404 coming from the release endpoint and displays a custom error message.
     return (
-      <Layout.Page withPadding>
         <Alert.Container>
           <Alert variant="danger">{t('This release could not be found.')}</Alert>
         </Alert.Container>
-      </Layout.Page>
     );
   }
 

@@ -365,11 +365,9 @@ export default function SnapshotsPage() {
   if (isPending) {
     return (
       <SentryDocumentTitle title={t('Snapshot')}>
-        <Layout.Page>
           <Flex align="center" justify="center" padding="3xl">
             <LoadingIndicator />
           </Flex>
-        </Layout.Page>
       </SentryDocumentTitle>
     );
   }
@@ -377,18 +375,15 @@ export default function SnapshotsPage() {
   if (isError || !data) {
     return (
       <SentryDocumentTitle title={t('Snapshot')}>
-        <Layout.Page>
           <Flex align="center" justify="center" padding="3xl">
             <Text variant="muted">{t('Unable to load snapshot data.')}</Text>
           </Flex>
-        </Layout.Page>
       </SentryDocumentTitle>
     );
   }
 
   return (
     <SentryDocumentTitle title={t('Snapshot')}>
-      <Layout.Page>
         <Layout.Header>
           <SnapshotHeaderContent projectId={data.project_id} data={data} />
           <Layout.HeaderActions>
@@ -405,7 +400,6 @@ export default function SnapshotsPage() {
         </Layout.Header>
 
         {isComparisonProcessing ? processingContent : snapshotContent}
-      </Layout.Page>
     </SentryDocumentTitle>
   );
 }

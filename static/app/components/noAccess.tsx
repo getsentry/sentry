@@ -1,16 +1,13 @@
 import {Alert} from '@sentry/scraps/alert';
 
-import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 
 export function NoAccess() {
   return (
-    <Layout.Page withPadding>
       <Alert.Container>
         <Alert variant="warning" showIcon={false}>
           {t("You don't have access to this feature")}
         </Alert>
       </Alert.Container>
-    </Layout.Page>
   );
 }

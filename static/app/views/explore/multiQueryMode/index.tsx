@@ -62,9 +62,7 @@ export default function MultiQueryMode() {
             </Grid>
           </Layout.HeaderActions>
         </Layout.Header>
-        <Layout.Page>
           <MultiQueryModeContent />
-        </Layout.Page>
       </SentryDocumentTitle>
     </Feature>
   );

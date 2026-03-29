@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import type {ReactNode} from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
@@ -11,7 +12,6 @@ import * as qs from 'query-string';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {CursorHandler} from 'sentry/components/pagination';
@@ -869,7 +869,7 @@ function IssueListOverview({
   const {numPreviousIssues, numIssuesOnPage} = getPageCounts();
 
   return (
-    <Layout.Page>
+    <Fragment>
       <IssueViewsHeader
         selectedProjectIds={selection.projects}
         title={title}
@@ -928,7 +928,7 @@ function IssueListOverview({
           />
         </StyledMain>
       </StyledBody>
-    </Layout.Page>
+    </Fragment>
   );
 }
 

@@ -37,7 +37,6 @@ export default function InstallPage() {
   );
   return (
     <SentryDocumentTitle title="Install">
-      <Layout.Page>
         <Layout.Header>
           <BuildInstallHeader
             buildDetailsQuery={buildDetailsQuery}
@@ -66,7 +65,6 @@ export default function InstallPage() {
             </Layout.Main>
           </UrlParamBatchProvider>
         </Layout.Body>
-      </Layout.Page>
     </SentryDocumentTitle>
   );
 }

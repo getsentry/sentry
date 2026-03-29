@@ -110,15 +110,11 @@ export default function MonitorDetails() {
   }
 
   if (!monitor) {
-    return (
-      <Layout.Page>
-        <LoadingIndicator />
-      </Layout.Page>
-    );
+    return <LoadingIndicator />;
   }
 
   return (
-    <Layout.Page>
+    <Fragment>
       <SentryDocumentTitle title={`${monitor.name} — Alerts`} />
       <MonitorHeader monitor={monitor} orgSlug={organization.slug} onUpdate={onUpdate} />
       <Layout.Body>
@@ -189,7 +185,7 @@ export default function MonitorDetails() {
           </Layout.Side>
         </TimezoneProvider>
       </Layout.Body>
-    </Layout.Page>
+    </Fragment>
   );
 }
 

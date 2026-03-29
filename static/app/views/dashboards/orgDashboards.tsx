@@ -2,7 +2,6 @@ import {useEffect, useMemo, useRef, useState} from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {NotFound} from 'sentry/components/errors/notFound';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -202,9 +201,7 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
 
   if (isDashboardsPending || isSelectedDashboardLoading || isPrebuiltDashboardLoading) {
     return (
-      <Layout.Page withPadding>
         <LoadingIndicator />
-      </Layout.Page>
     );
   }
 
@@ -218,9 +215,7 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
     // the URL does not contain filters yet. The filters can either match the
     // saved filters, or can be different (i.e. sharing an unsaved state)
     return (
-      <Layout.Page withPadding>
         <LoadingIndicator />
-      </Layout.Page>
     );
   }
 

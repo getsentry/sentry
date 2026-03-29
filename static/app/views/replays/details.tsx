@@ -102,7 +102,6 @@ function ReplayDetailsContent() {
 
   return (
     <SentryDocumentTitle title={title}>
-      <Layout.Page>
         <FullViewport>
           {replay ? (
             <ReplayDetailsProviders
@@ -115,7 +114,6 @@ function ReplayDetailsContent() {
             content
           )}
         </FullViewport>
-      </Layout.Page>
     </SentryDocumentTitle>
   );
 }

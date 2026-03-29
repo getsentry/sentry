@@ -307,13 +307,11 @@ function Dashboard() {
 function OrganizationDashboard() {
   const organization = useOrganization();
   return (
-    <Layout.Page>
       <NoProjectMessage organization={organization}>
         <PageAlertProvider>
           <Dashboard />
         </PageAlertProvider>
       </NoProjectMessage>
-    </Layout.Page>
   );
 }
 

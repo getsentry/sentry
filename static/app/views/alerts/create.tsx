@@ -137,7 +137,7 @@ export default function Create() {
   const title = t('New Alert Rule');
 
   return (
-    <Layout.Page>
+    <Fragment>
       <SentryDocumentTitle title={title} projectSlug={project.slug} />
       <Layout.Header>
         <Layout.HeaderContent>
@@ -228,6 +228,6 @@ export default function Create() {
           </Fragment>
         )}
       </Layout.Body>
-    </Layout.Page>
+    </Fragment>
   );
 }

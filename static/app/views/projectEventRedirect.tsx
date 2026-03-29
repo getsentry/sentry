@@ -3,7 +3,6 @@ import {useEffect} from 'react';
 import {DetailedError} from 'sentry/components/errors/detailedError';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
@@ -122,9 +121,7 @@ export function ProjectEventRedirect() {
     (!isPending && event) // Prevents flash of loading error below once event is loaded successfully
   ) {
     return (
-      <Layout.Page withPadding>
         <LoadingIndicator />
-      </Layout.Page>
     );
   }
 

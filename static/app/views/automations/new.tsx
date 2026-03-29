@@ -193,7 +193,6 @@ export default function AutomationNewSettings() {
     >
       <AutomationFormProvider>
         <AutomationDocumentTitle />
-        <Layout.Page>
           <StyledLayoutHeader>
             <HeaderInner maxWidth={maxWidth}>
               <Layout.HeaderContent>
@@ -229,7 +228,6 @@ export default function AutomationNewSettings() {
               </AutomationBuilderErrorContext.Provider>
             </Layout.Main>
           </StyledBody>
-        </Layout.Page>
         <StickyFooter>
           <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
             <Observer>

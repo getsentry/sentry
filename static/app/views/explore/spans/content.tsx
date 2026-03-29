@@ -83,7 +83,6 @@ function ExploreContentInner() {
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
       <PageFiltersContainer maxPickableDays={datePageFilterProps.maxPickableDays}>
-        <Layout.Page>
           <SpansTabWrapper>
             <SpansTabHeader />
             {defined(onboardingProject) ? (
@@ -96,7 +95,6 @@ function ExploreContentInner() {
               <SpansTabContent datePageFilterProps={datePageFilterProps} />
             )}
           </SpansTabWrapper>
-        </Layout.Page>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );

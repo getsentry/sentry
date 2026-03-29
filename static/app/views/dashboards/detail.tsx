@@ -986,7 +986,6 @@ class DashboardDetail extends Component<Props, State> {
           },
         }}
       >
-        <Layout.Page withPadding>
           <OnDemandControlProvider location={location}>
             <MetricsResultsMetaProvider>
               <NoProjectMessage organization={organization}>
@@ -1061,7 +1060,6 @@ class DashboardDetail extends Component<Props, State> {
               </NoProjectMessage>
             </MetricsResultsMetaProvider>
           </OnDemandControlProvider>
-        </Layout.Page>
       </PageFiltersContainer>
     );
   }
@@ -1108,7 +1106,6 @@ class DashboardDetail extends Component<Props, State> {
     );
 
     const pageContent = (
-      <Layout.Page>
         <OnDemandControlProvider location={location}>
           <MetricsResultsMetaProvider>
             <NoProjectMessage organization={organization}>
@@ -1317,7 +1314,6 @@ class DashboardDetail extends Component<Props, State> {
             </NoProjectMessage>
           </MetricsResultsMetaProvider>
         </OnDemandControlProvider>
-      </Layout.Page>
     );
 
     return (

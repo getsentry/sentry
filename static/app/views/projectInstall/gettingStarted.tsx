@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Redirect} from 'sentry/components/redirect';
 import {allPlatforms} from 'sentry/data/platforms';
@@ -30,7 +29,7 @@ export default function GettingStarted() {
   const currentPlatform = allPlatforms.find(p => p.id === currentPlatformKey);
 
   return (
-    <GettingStartedLayout withPadding>
+    <GettingStartedLayout>
       {loadingProjects ? (
         <LoadingIndicator />
       ) : project ? (
@@ -47,7 +46,7 @@ export default function GettingStarted() {
   );
 }
 
-const GettingStartedLayout = styled(Layout.Page)`
+const GettingStartedLayout = styled('main')`
   background: ${p => p.theme.tokens.background.primary};
   padding-top: ${p => p.theme.space['2xl']};
 `;

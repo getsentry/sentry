@@ -358,7 +358,6 @@ export default function IssueViewsList() {
 
   return (
     <SentryDocumentTitle title={t('All Views')} orgSlug={organization.slug}>
-      <Layout.Page>
         <Layout.Header unified>
           <Layout.HeaderContent>
             <Layout.Title>{t('All Views')}</Layout.Title>
@@ -460,7 +459,6 @@ export default function IssueViewsList() {
             />
           </MainTableLayout>
         </Layout.Body>
-      </Layout.Page>
     </SentryDocumentTitle>
   );
 }

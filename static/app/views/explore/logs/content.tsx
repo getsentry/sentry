@@ -61,7 +61,6 @@ export default function LogsContent() {
           analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
           source="location"
         >
-          <Layout.Page>
             <LogsHeader />
             <LogsPageDataProvider allowHighFidelity>
               {defined(onboardingProject) ? (
@@ -74,7 +73,6 @@ export default function LogsContent() {
                 <LogsTabContent datePageFilterProps={datePageFilterProps} />
               )}
             </LogsPageDataProvider>
-          </Layout.Page>
         </LogsQueryParamsProvider>
       </PageFiltersContainer>
     </SentryDocumentTitle>

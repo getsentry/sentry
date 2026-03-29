@@ -264,7 +264,6 @@ function ScreensLandingPage() {
       moduleName={ModuleName.MOBILE_VITALS}
       maxPickableDays={maxPickableDays.maxPickableDays}
     >
-      <Layout.Page>
         <PageAlertProvider>
           <ModuleFeature moduleName={moduleName}>
             <Layout.Body>
@@ -323,7 +322,6 @@ function ScreensLandingPage() {
             </Layout.Body>
           </ModuleFeature>
         </PageAlertProvider>
-      </Layout.Page>
     </ModulePageProviders>
   );
 }

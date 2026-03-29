@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -162,7 +162,7 @@ export default function AlertWizard() {
   );
   const panelContent = getAlertWizardPanelContent({hasMetricIssues})[alertOption];
   return (
-    <Layout.Page>
+    <Fragment>
       <SentryDocumentTitle title={t('Alert Creation Wizard')} projectSlug={projectSlug} />
 
       <Layout.Header>
@@ -237,7 +237,7 @@ export default function AlertWizard() {
           </Flex>
         </Layout.Main>
       </Layout.Body>
-    </Layout.Page>
+    </Fragment>
   );
 }
 

@@ -4,7 +4,6 @@ import * as Sentry from '@sentry/react';
 
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
-import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -221,7 +220,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   );
 }
 
-const LayoutPageWithHiddenFooter = styled(Layout.Page)`
+const LayoutPageWithHiddenFooter = styled('main')`
   ~ footer {
     display: none;
   }

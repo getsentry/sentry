@@ -152,20 +152,16 @@ export function ProjectDetail() {
 
   if (!loadingProjects && !project) {
     return (
-      <Layout.Page withPadding>
         <LoadingError
           message={t('This project could not be found.')}
           onRetry={onRetryProjects}
         />
-      </Layout.Page>
     );
   }
 
   if (!loadingProjects && project && !project.hasAccess) {
     return (
-      <Layout.Page>
         <MissingProjectMembership organization={organization} project={project} />
-      </Layout.Page>
     );
   }
 
@@ -176,7 +172,6 @@ export function ProjectDetail() {
         skipLoadLastUsed
         showAbsolute={!hasOnlyBasicChart}
       >
-        <Layout.Page>
           <NoProjectMessage organization={organization}>
             <Layout.Header unified>
               <Layout.HeaderContent unified>
@@ -308,7 +303,6 @@ export function ProjectDetail() {
               </Layout.Side>
             </Layout.Body>
           </NoProjectMessage>
-        </Layout.Page>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );

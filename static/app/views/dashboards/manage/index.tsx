@@ -478,13 +478,11 @@ function ManageDashboards() {
 
   function renderNoAccess() {
     return (
-      <Layout.Page>
         <Alert.Container>
           <Alert variant="warning" showIcon={false}>
             {t("You don't have access to this feature")}
           </Alert>
         </Alert.Container>
-      </Layout.Page>
     );
   }
 
@@ -622,11 +620,8 @@ function ManageDashboards() {
       >
         <ErrorBoundary>
           {isError ? (
-            <Layout.Page withPadding>
               <RouteError error={error} />
-            </Layout.Page>
           ) : (
-            <Layout.Page>
               <NoProjectMessage organization={organization}>
                 <Layout.Header unified>
                   <Layout.HeaderContent unified>
@@ -769,7 +764,6 @@ function ManageDashboards() {
                   </Layout.Main>
                 </Layout.Body>
               </NoProjectMessage>
-            </Layout.Page>
           )}
         </ErrorBoundary>
       </SentryDocumentTitle>

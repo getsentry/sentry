@@ -210,7 +210,6 @@ export default function AlertRulesList() {
     <Fragment>
       <SentryDocumentTitle title={t('Alerts')} orgSlug={organization.slug} />
 
-      <Layout.Page>
         <PageFiltersContainer>
           <AlertHeader activeTab="rules" />
           <Layout.Body>
@@ -337,7 +336,6 @@ export default function AlertRulesList() {
             </Layout.Main>
           </Layout.Body>
         </PageFiltersContainer>
-      </Layout.Page>
     </Fragment>
   );
 }
