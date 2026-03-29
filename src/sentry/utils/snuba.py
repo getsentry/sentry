@@ -30,6 +30,7 @@ from sentry.api.helpers.error_upsampling import (
     UPSAMPLED_ERROR_AGGREGATION,
     are_any_projects_error_upsampled,
 )
+from sentry.issues.search import UnsupportedSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.grouprelease import GroupRelease
@@ -974,7 +975,13 @@ class SnubaQueryParams:
         # just subtract the NOT IN groups from the IN groups.
         if in_groups is not None:
             in_groups.difference_update(out_groups)
-            triple = ["group_id", "IN", get_all_merged_group_ids(in_groups)]
+
+            # An "group_id IN ()" clause breaks clickhouse.
+            # Better to make the exception (& expectations) clear.
+            if len(in_groups) > 0:
+                triple = ["group_id", "IN", get_all_merged_group_ids(in_groups)]
+            else:
+                raise UnsupportedSearchQuery("Found empty intersection of group_ids")
         elif len(out_groups) > 0:
             triple = ["group_id", "NOT IN", out_groups]
 
