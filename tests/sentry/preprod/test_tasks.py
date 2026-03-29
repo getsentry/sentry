@@ -467,6 +467,100 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         call_kwargs = mock_produce_to_kafka.call_args[1]
         assert PreprodFeature.SIZE_ANALYSIS in call_kwargs["requested_features"]
 
+    @patch("sentry.preprod.tasks._dispatch_taskbroker_shadow")
+    @patch("sentry.preprod.tasks.produce_preprod_artifact_to_kafka")
+    def test_shadow_taskbroker_dispatched_when_flag_enabled(
+        self, mock_produce_to_kafka, mock_shadow
+    ) -> None:
+        content = b"test shadow taskbroker dispatch"
+        fileobj = ContentFile(content)
+        total_checksum = sha1(content).hexdigest()
+
+        blob = FileBlob.from_file_with_organization(fileobj, self.organization)
+
+        artifact = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            build_configuration_name="release",
+        )
+        assert artifact is not None
+
+        with self.feature("organizations:launchpad-taskbroker-rollout"):
+            assemble_preprod_artifact(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                checksum=total_checksum,
+                chunks=[blob.checksum],
+                artifact_id=artifact.id,
+            )
+
+        mock_produce_to_kafka.assert_called_once()
+        mock_shadow.assert_called_once_with(self.project.id, self.organization.id, artifact.id)
+
+    @patch("sentry.preprod.tasks._dispatch_taskbroker_shadow")
+    @patch("sentry.preprod.tasks.produce_preprod_artifact_to_kafka")
+    def test_shadow_taskbroker_not_dispatched_when_flag_disabled(
+        self, mock_produce_to_kafka, mock_shadow
+    ) -> None:
+        content = b"test shadow taskbroker not dispatched"
+        fileobj = ContentFile(content)
+        total_checksum = sha1(content).hexdigest()
+
+        blob = FileBlob.from_file_with_organization(fileobj, self.organization)
+
+        artifact = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            build_configuration_name="release",
+        )
+        assert artifact is not None
+
+        assemble_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            chunks=[blob.checksum],
+            artifact_id=artifact.id,
+        )
+
+        mock_produce_to_kafka.assert_called_once()
+        mock_shadow.assert_not_called()
+
+    @patch("sentry.preprod.tasks._dispatch_taskbroker_shadow")
+    @patch("sentry.preprod.tasks.produce_preprod_artifact_to_kafka")
+    def test_shadow_taskbroker_dispatched_after_kafka(
+        self, mock_produce_to_kafka, mock_shadow
+    ) -> None:
+        content = b"test shadow taskbroker dispatch ordering"
+        fileobj = ContentFile(content)
+        total_checksum = sha1(content).hexdigest()
+
+        blob = FileBlob.from_file_with_organization(fileobj, self.organization)
+
+        artifact = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            build_configuration_name="release",
+        )
+        assert artifact is not None
+
+        with self.feature("organizations:launchpad-taskbroker-rollout"):
+            assemble_preprod_artifact(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                checksum=total_checksum,
+                chunks=[blob.checksum],
+                artifact_id=artifact.id,
+            )
+
+        mock_produce_to_kafka.assert_called_once()
+        mock_shadow.assert_called_once()
+        artifact.refresh_from_db()
+        assert artifact.state != PreprodArtifact.ArtifactState.FAILED
+
 
 class CreatePreprodArtifactTest(TestCase):
     def test_create_preprod_artifact_with_all_vcs_params_succeeds(self) -> None:
