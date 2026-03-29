@@ -36,7 +36,9 @@ class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if not self.has_release_permission(request, organization, release):
+        if not self.has_release_permission(
+            request, organization, release, require_all_projects=True
+        ):
             raise ResourceDoesNotExist
 
         schema = {
