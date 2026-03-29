@@ -188,7 +188,7 @@ def has_seer_explorer_access_with_detail(
 
 
 def collect_user_org_context(
-    user: SentryUser | AnonymousUser | None,
+    user: SentryUser | RpcUser | AnonymousUser | None,
     organization: Organization,
     request: Request | None = None,
 ) -> dict[str, Any]:
@@ -234,7 +234,7 @@ def collect_user_org_context(
 
     # Handle name attribute - SentryUser has name
     user_name: str | None = None
-    if isinstance(user, SentryUser):
+    if isinstance(user, (SentryUser, RpcUser)):
         user_name = user.name
 
     # Get user's timezone setting (IANA timezone name, e.g., "America/Los_Angeles")
