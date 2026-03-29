@@ -4,7 +4,7 @@ import logging
 from collections.abc import Sequence
 from typing import Self
 
-from sentry.grouping.fingerprinting.matchers import FingerprintMatcher
+from sentry.grouping.fingerprinting.matchers import CalleeMatcher, CallerMatcher, FingerprintMatcher
 from sentry.grouping.fingerprinting.types import (
     FingerprintRuleAttributes,
     FingerprintRuleConfig,
@@ -19,7 +19,7 @@ logger = logging.getLogger("sentry.events.grouping")
 class FingerprintRule:
     def __init__(
         self,
-        matchers: Sequence[FingerprintMatcher],
+        matchers: Sequence[FingerprintMatcher | CallerMatcher | CalleeMatcher],
         fingerprint: list[str],
         attributes: FingerprintRuleAttributes,
         is_builtin: bool = False,
@@ -32,16 +32,81 @@ class FingerprintRule:
     def test_for_match_with_event(
         self, event_datastore: EventDatastore
     ) -> None | FingerprintWithAttributes:
-        matchers_by_match_type: dict[str, list[FingerprintMatcher]] = {}
-        for matcher in self.matchers:
-            matchers_by_match_type.setdefault(matcher.match_type, []).append(matcher)
+        matchers_by_match_type: dict[
+            str, list[FingerprintMatcher | CallerMatcher | CalleeMatcher]
+        ] = {}
+        has_sibling_matchers = False
 
+        for matcher in self.matchers:
+            if isinstance(matcher, (CallerMatcher, CalleeMatcher)):
+                has_sibling_matchers = True
+                # Only add frame-related matchers to the dict for sibling matching
+                matchers_by_match_type.setdefault("frames", []).append(matcher)
+            else:
+                matchers_by_match_type.setdefault(matcher.match_type, []).append(matcher)
+
+        # If we have sibling matchers, we need to match against frame sequences
+        if has_sibling_matchers:
+            return self._test_with_frame_context(event_datastore, matchers_by_match_type)
+
+        # Original logic for simple matchers (no CallerMatcher/CalleeMatcher here)
         for match_type, matchers in matchers_by_match_type.items():
             for event_values in event_datastore.get_values(match_type):
-                if all(matcher.matches(event_values) for matcher in matchers):
+                if all(matcher.matches(event_values) for matcher in matchers):  # type: ignore[call-arg]
                     break
             else:
                 return None
+
+        return FingerprintWithAttributes(self.fingerprint, self.attributes)
+
+    def _test_with_frame_context(
+        self,
+        event_datastore: EventDatastore,
+        matchers_by_match_type: dict[str, list[FingerprintMatcher | CallerMatcher | CalleeMatcher]],
+    ) -> None | FingerprintWithAttributes:
+        # First, handle non-frame matchers
+        for match_type, matchers in matchers_by_match_type.items():
+            if match_type != "frames":
+                for event_values in event_datastore.get_values(match_type):
+                    # These are all FingerprintMatcher instances
+                    if all(
+                        m.matches(event_values)
+                        for m in matchers
+                        if isinstance(m, FingerprintMatcher)
+                    ):
+                        break
+                else:
+                    return None
+
+        # Now handle frame matchers with context
+        if "frames" in matchers_by_match_type:
+            frame_matchers = matchers_by_match_type["frames"]
+            all_frames = event_datastore.get_values("frames")
+
+            # Try to find a matching frame sequence
+            for frame_idx, frame in enumerate(all_frames):
+                match_found = True
+
+                for matcher in frame_matchers:
+                    if isinstance(matcher, CallerMatcher):
+                        if not matcher.matches(frame, frame_idx, all_frames):
+                            match_found = False
+                            break
+                    elif isinstance(matcher, CalleeMatcher):
+                        if not matcher.matches(frame, frame_idx, all_frames):
+                            match_found = False
+                            break
+                    else:
+                        # Regular frame matcher
+                        if not matcher.matches(frame):
+                            match_found = False
+                            break
+
+                if match_found:
+                    return FingerprintWithAttributes(self.fingerprint, self.attributes)
+
+            # No matching frame sequence found
+            return None
 
         return FingerprintWithAttributes(self.fingerprint, self.attributes)
 

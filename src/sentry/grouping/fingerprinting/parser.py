@@ -7,7 +7,7 @@ from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor, RegexNode
 
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
-from sentry.grouping.fingerprinting.matchers import FingerprintMatcher
+from sentry.grouping.fingerprinting.matchers import CalleeMatcher, CallerMatcher, FingerprintMatcher
 from sentry.grouping.fingerprinting.rules import FingerprintRule
 from sentry.grouping.fingerprinting.types import (
     FingerprintRuleAttributes,
@@ -33,8 +33,10 @@ line = _ (comment / rule / empty) newline?
 
 rule = _ matchers _ follow _ fingerprint
 
-matchers       = matcher+
-matcher        = _ negation? matcher_type sep argument
+matchers       = caller_matcher? frame_matcher+ callee_matcher?
+frame_matcher  = _ negation? matcher_type sep argument
+caller_matcher = _ "[" _ frame_matcher _ "]" _ "|"
+callee_matcher = _ "|" _ "[" _ frame_matcher _ "]"
 matcher_type   = key / quoted_key
 argument       = quoted / unquoted
 
@@ -93,13 +95,63 @@ class FingerprintingVisitor(NodeVisitor[list[FingerprintRule]]):
         self,
         _: object,
         children: tuple[
-            object, list[FingerprintMatcher], object, object, object, FingerprintWithAttributes
+            object,
+            list[FingerprintMatcher | CallerMatcher | CalleeMatcher],
+            object,
+            object,
+            object,
+            FingerprintWithAttributes,
         ],
     ) -> FingerprintRule:
-        _, matcher, _, _, _, (fingerprint, attributes) = children
-        return FingerprintRule(matcher, fingerprint, attributes)
+        _, matchers, _, _, _, (fingerprint, attributes) = children
+        return FingerprintRule(matchers, fingerprint, attributes)
 
-    def visit_matcher(
+    def visit_matchers(
+        self,
+        _: object,
+        children: tuple[
+            list[FingerprintMatcher | CallerMatcher | CalleeMatcher] | None,
+            list[FingerprintMatcher],
+            list[FingerprintMatcher | CallerMatcher | CalleeMatcher] | None,
+        ],
+    ) -> list[FingerprintMatcher | CallerMatcher | CalleeMatcher]:
+        caller_matcher, frame_matchers, callee_matcher = children
+        result: list[FingerprintMatcher | CallerMatcher | CalleeMatcher] = []
+
+        # Parsimonious wraps optional matches (? quantifier) in an extra list
+        # Flatten caller_matcher if it's a nested list
+        if caller_matcher and len(caller_matcher) > 0 and isinstance(caller_matcher[0], list):
+            result.extend(caller_matcher[0])
+        elif caller_matcher:
+            result.extend(caller_matcher)
+
+        result.extend(frame_matchers)
+
+        # Flatten callee_matcher if it's a nested list
+        if callee_matcher and len(callee_matcher) > 0 and isinstance(callee_matcher[0], list):
+            result.extend(callee_matcher[0])
+        elif callee_matcher:
+            result.extend(callee_matcher)
+
+        return result
+
+    def visit_caller_matcher(
+        self,
+        _: object,
+        children: tuple[object, object, object, FingerprintMatcher, object, object, object, object],
+    ) -> list[FingerprintMatcher | CallerMatcher | CalleeMatcher]:
+        _, _, _, frame_matcher, _, _, _, _ = children
+        return [CallerMatcher(frame_matcher)]
+
+    def visit_callee_matcher(
+        self,
+        _: object,
+        children: tuple[object, object, object, object, object, FingerprintMatcher, object, object],
+    ) -> list[FingerprintMatcher | CallerMatcher | CalleeMatcher]:
+        _, _, _, _, _, frame_matcher, _, _ = children
+        return [CalleeMatcher(frame_matcher)]
+
+    def visit_frame_matcher(
         self, _: object, children: tuple[object, list[str], str, object, str]
     ) -> FingerprintMatcher:
         _, negation, key, _, pattern = children

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Self
+from typing import Any
 
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.grouping.utils import bool_from_string
@@ -33,6 +33,18 @@ MATCHERS = {
     "app": "app",
     "sdk": "sdk",
     "release": "release",
+    # thread fields
+    "thread.id": "thread_id",
+    "thread.name": "thread_name",
+    "thread.state": "thread_state",
+    "thread.crashed": "thread_crashed",
+    "thread.current": "thread_current",
+    # internal keys that need to be deserializable (for backwards compat / JSON roundtrip)
+    "thread_id": "thread_id",
+    "thread_name": "thread_name",
+    "thread_state": "thread_state",
+    "thread_crashed": "thread_crashed",
+    "thread_current": "thread_current",
 }
 
 
@@ -69,6 +81,8 @@ class FingerprintMatcher:
             return "family"
         if self.key == "release":
             return "release"
+        if self.key.startswith("thread_"):
+            return "threads"
         return "frames"
 
     def matches(self, event_values: dict[str, Any]) -> bool:
@@ -121,6 +135,13 @@ class FingerprintMatcher:
         if self.key in ["level", "value"]:
             return glob_match(value, self.pattern, ignorecase=True)
 
+        if self.key in ["thread_crashed", "thread_current"]:
+            return value == bool_from_string(self.pattern)
+
+        if self.key in ["thread_id", "thread_name", "thread_state"]:
+            # Cast value to string since thread_id may be an integer
+            return glob_match(str(value), self.pattern, ignorecase=True)
+
         return glob_match(value, self.pattern, ignorecase=False)
 
     def _to_config_structure(self) -> list[str]:
@@ -130,9 +151,29 @@ class FingerprintMatcher:
         return [key, self.pattern]
 
     @classmethod
-    def _from_config_structure(cls, matcher: list[str]) -> Self:
+    def _from_config_structure(
+        cls, matcher: list[str]
+    ) -> FingerprintMatcher | CallerMatcher | CalleeMatcher:
         key, pattern = matcher
 
+        # Check for sibling matcher syntax
+        # CallerMatcher: [key]| or [!key]|
+        # CalleeMatcher: |[key] or |[!key]
+        if key.startswith("[") and key.endswith("]|"):
+            inner_key = key[1:-2]  # Remove [ and ]|
+            negated = inner_key.startswith("!")
+            inner_key = inner_key.lstrip("!")
+            inner_matcher = cls(inner_key, pattern, negated)
+            return CallerMatcher(inner_matcher)
+
+        if key.startswith("|[") and key.endswith("]"):
+            inner_key = key[2:-1]  # Remove |[ and ]
+            negated = inner_key.startswith("!")
+            inner_key = inner_key.lstrip("!")
+            inner_matcher = cls(inner_key, pattern, negated)
+            return CalleeMatcher(inner_matcher)
+
+        # Regular matcher
         negated = key.startswith("!")
         key = key.lstrip("!")
 
@@ -145,3 +186,75 @@ class FingerprintMatcher:
             self.key,
             self.pattern,
         )
+
+
+class CallerMatcher:
+    """
+    Wraps a FingerprintMatcher to match frames above (callers) in the stack.
+    Syntax: [ function:foo ] | matches when the caller is foo
+    """
+
+    def __init__(self, inner: FingerprintMatcher):
+        self.inner = inner
+
+    @property
+    def match_type(self) -> str:
+        # Caller matchers only work with frame-based matching
+        return "frames"
+
+    def matches(
+        self, event_values: dict[str, Any], frame_idx: int, all_frames: list[dict[str, Any]]
+    ) -> bool:
+        # Check if there's a caller frame (frame above in the visual stack trace)
+        # Frames are ordered from oldest (root) at index 0 to newest (crash) at the end
+        # In native debugging terms, the "caller" is visually above (closer to crash, higher index)
+        if frame_idx + 1 < len(all_frames):
+            caller_frame = all_frames[frame_idx + 1]
+            return self.inner.matches(caller_frame)
+        return False
+
+    def _to_config_structure(self) -> list[str]:
+        inner_structure = self.inner._to_config_structure()
+        # Mark as caller matcher by wrapping key with brackets and pipe
+        inner_structure[0] = f"[{inner_structure[0]}]|"
+        return inner_structure
+
+    @property
+    def text(self) -> str:
+        return f"[ {self.inner.text} ] |"
+
+
+class CalleeMatcher:
+    """
+    Wraps a FingerprintMatcher to match frames below (callees) in the stack.
+    Syntax: | [ function:bar ] matches when the callee is bar
+    """
+
+    def __init__(self, inner: FingerprintMatcher):
+        self.inner = inner
+
+    @property
+    def match_type(self) -> str:
+        # Callee matchers only work with frame-based matching
+        return "frames"
+
+    def matches(
+        self, event_values: dict[str, Any], frame_idx: int, all_frames: list[dict[str, Any]]
+    ) -> bool:
+        # Check if there's a callee frame (frame below in the visual stack trace)
+        # Frames are ordered from oldest (root) at index 0 to newest (crash) at the end
+        # In native debugging terms, the "callee" is visually below (further from crash, lower index)
+        if frame_idx > 0:
+            callee_frame = all_frames[frame_idx - 1]
+            return self.inner.matches(callee_frame)
+        return False
+
+    def _to_config_structure(self) -> list[str]:
+        inner_structure = self.inner._to_config_structure()
+        # Mark as callee matcher by wrapping key with pipe and brackets
+        inner_structure[0] = f"|[{inner_structure[0]}]"
+        return inner_structure
+
+    @property
+    def text(self) -> str:
+        return f"| [ {self.inner.text} ]"

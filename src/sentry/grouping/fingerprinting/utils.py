@@ -61,6 +61,14 @@ class _ReleaseInfo(TypedDict):
     release: str | None
 
 
+class _ThreadInfo(TypedDict):
+    thread_id: str | None
+    thread_name: str | None
+    thread_state: str | None
+    thread_crashed: bool
+    thread_current: bool
+
+
 class EventDatastore:
     def __init__(self, event: Mapping[str, Any]) -> None:
         self.event = event
@@ -73,6 +81,7 @@ class EventDatastore:
         self._sdk: list[_SdkInfo] | None = None
         self._family: list[_FamilyInfo] | None = None
         self._release: list[_ReleaseInfo] | None = None
+        self._threads: list[_ThreadInfo] | None = None
 
     def get_values(self, match_type: str) -> list[dict[str, Any]]:
         """
@@ -167,6 +176,21 @@ class EventDatastore:
             {"release": self.event["release"].strip() if self.event.get("release") else None}
         ]
         return self._release
+
+    def _get_threads(self) -> list[_ThreadInfo]:
+        if self._threads is None:
+            self._threads = []
+            for thread in get_path(self.event, "threads", "values", filter=True) or ():
+                self._threads.append(
+                    {
+                        "thread_id": thread.get("id"),
+                        "thread_name": thread.get("name"),
+                        "thread_state": thread.get("state"),
+                        "thread_crashed": bool(thread.get("crashed")),
+                        "thread_current": bool(thread.get("current")),
+                    }
+                )
+        return self._threads
 
 
 def parse_fingerprint_entry_as_variable(entry: str) -> str | None:
@@ -291,6 +315,43 @@ def resolve_fingerprint_variable(
             if tag_name == requested_tag and tag_value is not None:
                 return tag_value
         return "<no-value-for-tag-%s>" % requested_tag
+
+    elif variable_key in ("thread.name", "thread_name"):
+        # Get the crashed or current thread's name
+        threads = get_path(event.data, "threads", "values")
+        if threads:
+            # Prefer crashed thread, then current thread, then first thread
+            thread = next(
+                (t for t in threads if t.get("crashed")),
+                next((t for t in threads if t.get("current")), threads[0] if threads else None),
+            )
+            if thread and thread.get("name"):
+                return thread["name"]
+        return "<no-thread-name>"
+
+    elif variable_key in ("thread.id", "thread_id"):
+        # Get the crashed or current thread's id
+        threads = get_path(event.data, "threads", "values")
+        if threads:
+            thread = next(
+                (t for t in threads if t.get("crashed")),
+                next((t for t in threads if t.get("current")), threads[0] if threads else None),
+            )
+            if thread and thread.get("id"):
+                return str(thread["id"])
+        return "<no-thread-id>"
+
+    elif variable_key in ("thread.state", "thread_state"):
+        threads = get_path(event.data, "threads", "values")
+        if threads:
+            thread = next(
+                (t for t in threads if t.get("crashed")),
+                next((t for t in threads if t.get("current")), threads[0] if threads else None),
+            )
+            if thread and thread.get("state"):
+                return thread["state"]
+        return "<no-thread-state>"
+
     else:
         # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we
         # can remove `use_legacy_unknown_variable_handling` and just return the string. (At that
