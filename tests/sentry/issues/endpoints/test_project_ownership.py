@@ -200,8 +200,8 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             {
                 "matcher": {"type": "path", "pattern": "*.js"},
                 "owners": [
-                    {"type": "user", "identifier": "admin@localhost", "id": self.user.id},
-                    {"type": "team", "identifier": "tiger-team", "id": self.team.id},
+                    {"type": "user", "identifier": "admin@localhost", "id": str(self.user.id)},
+                    {"type": "team", "identifier": "tiger-team", "id": str(self.team.id)},
                 ],
             }
         ]
