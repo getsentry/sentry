@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-import pytest
 import responses
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
@@ -186,26 +185,20 @@ class JiraRequestParserTest(TestCase):
 
     @override_cells(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @responses.activate
     def test_get_response_multiple_regions(self) -> None:
-        responses.add(
-            responses.POST,
-            eu_locality.to_url("/extensions/jira/issue/LR-123/"),
-            body="region response",
-            status=200,
-        )
-        request = self.factory.post(path=f"{self.path_base}/issue/LR-123/")
+        # Use GET — the view only handles GET, and Jira sends GET for issue hooks.
+        request = self.factory.get(path=f"{self.path_base}/issue/LR-123/")
         parser = JiraRequestParser(request, self.get_response)
 
-        # Add a second organization. Jira only supports single regions.
         other_org = self.create_organization(owner=self.user, region="eu")
         integration = self.get_integration()
         integration.add_organization(other_org.id)
 
-        with patch.object(parser, "get_integration_from_request") as method:
-            method.return_value = integration
-            # assert ValueError is raised if the integration is not valid
-            with pytest.raises(ValueError):
-                parser.get_response()
+        with patch.object(parser, "get_integration_from_request") as mock_integration:
+            mock_integration.return_value = integration
+            response = parser.get_response()
 
+        # Must not 404 — multi-cell falls back to JiraSentryIssueDetailsControlView, not
+        # get_response_from_control_silo() which would 404 via the @cell_silo_view restriction.
+        assert response.status_code == 200
         assert_no_webhook_payloads()
