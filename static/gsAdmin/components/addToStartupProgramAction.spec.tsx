@@ -57,14 +57,14 @@ describe('AddToStartupProgramAction', () => {
     expect(await screen.findByTestId('balance')).toHaveTextContent('$30.00 owed');
   });
 
-  it('has default values for credit amount and program', async () => {
+  it('has default values for credit amount and notes', async () => {
     triggerAddToStartupProgramModal(modalProps);
 
     renderGlobalModal();
     expect(await screen.findByRole('spinbutton', {name: 'Credit Amount'})).toHaveValue(
       5000
     );
-    expect(screen.getByText('Sentry for Startups')).toBeInTheDocument();
+    expect(screen.getByText('sentryforstartups')).toBeInTheDocument();
   });
 
   it('can submit with default values', async () => {
@@ -97,7 +97,7 @@ describe('AddToStartupProgramAction', () => {
     expect(onSuccess).toHaveBeenCalled();
   });
 
-  it('can submit with a different program selected', async () => {
+  it('can submit with a different option selected', async () => {
     const updateMock = MockApiClient.addMockResponse({
       url: `/_admin/customers/${organization.slug}/balance-changes/`,
       method: 'POST',
@@ -108,9 +108,8 @@ describe('AddToStartupProgramAction', () => {
 
     const {waitForModalToHide} = renderGlobalModal();
 
-    // Change the program dropdown
-    await userEvent.click(await screen.findByText('Sentry for Startups'));
-    await userEvent.click(screen.getByText('Y Combinator'));
+    await userEvent.click(await screen.findByText('sentryforstartups'));
+    await userEvent.click(screen.getByText('ycombinator'));
 
     await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
 
@@ -131,23 +130,36 @@ describe('AddToStartupProgramAction', () => {
     });
   });
 
-  it('shows custom notes field when "Other" is selected', async () => {
+  it('shows custom notes field when "Enter custom notes" is selected', async () => {
     triggerAddToStartupProgramModal(modalProps);
 
     renderGlobalModal();
 
-    // Custom notes should not be visible initially
     expect(screen.queryByRole('textbox', {name: 'Custom Notes'})).not.toBeInTheDocument();
 
-    // Select "Other"
-    await userEvent.click(await screen.findByText('Sentry for Startups'));
-    await userEvent.click(screen.getByText('Other'));
+    await userEvent.click(await screen.findByText('sentryforstartups'));
+    await userEvent.click(screen.getByText('Enter custom notes'));
 
-    // Custom notes field should now be visible
     expect(screen.getByRole('textbox', {name: 'Custom Notes'})).toBeInTheDocument();
   });
 
-  it('can submit with custom notes when "Other" is selected', async () => {
+  it('hides custom notes field when switching back to a preset option', async () => {
+    triggerAddToStartupProgramModal(modalProps);
+
+    renderGlobalModal();
+
+    // Select "Enter custom notes"
+    await userEvent.click(await screen.findByText('sentryforstartups'));
+    await userEvent.click(screen.getByText('Enter custom notes'));
+    expect(screen.getByRole('textbox', {name: 'Custom Notes'})).toBeInTheDocument();
+
+    // Switch back to a preset option
+    await userEvent.click(screen.getByText('Enter custom notes'));
+    await userEvent.click(screen.getByText('a16z'));
+    expect(screen.queryByRole('textbox', {name: 'Custom Notes'})).not.toBeInTheDocument();
+  });
+
+  it('can submit with custom notes', async () => {
     const updateMock = MockApiClient.addMockResponse({
       url: `/_admin/customers/${organization.slug}/balance-changes/`,
       method: 'POST',
@@ -165,9 +177,8 @@ describe('AddToStartupProgramAction', () => {
 
     await userEvent.type(screen.getByRole('textbox', {name: 'Ticket URL'}), url);
 
-    // Select "Other" to show custom notes
-    await userEvent.click(screen.getByText('Sentry for Startups'));
-    await userEvent.click(screen.getByText('Other'));
+    await userEvent.click(screen.getByText('sentryforstartups'));
+    await userEvent.click(screen.getByText('Enter custom notes'));
 
     await userEvent.type(
       screen.getByRole('textbox', {name: 'Custom Notes'}),

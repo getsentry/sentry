@@ -18,17 +18,17 @@ import type {Subscription} from 'getsentry/types';
 import {formatBalance} from 'getsentry/utils/billing';
 
 const STARTUP_PROGRAM_OPTIONS = [
-  {value: 'ycombinator', label: 'Y Combinator'},
-  {value: 'sentryforstartups', label: 'Sentry for Startups'},
+  {value: 'ycombinator', label: 'ycombinator'},
+  {value: 'sentryforstartups', label: 'sentryforstartups'},
   {value: 'a16z', label: 'a16z'},
-  {value: 'accelatoms', label: 'Accelatoms'},
-  {value: 'accelfam', label: 'Accelfam'},
-  {value: 'renderstack', label: 'Renderstack'},
-  {value: 'finpack', label: 'Finpack'},
-  {value: 'betaworks', label: 'Betaworks'},
-  {value: 'alchemist', label: 'Alchemist'},
-  {value: 'antler', label: 'Antler'},
-  {value: 'other', label: 'Other'},
+  {value: 'accelatoms', label: 'accelatoms'},
+  {value: 'accelfam', label: 'accelfam'},
+  {value: 'renderstack', label: 'renderstack'},
+  {value: 'finpack', label: 'finpack'},
+  {value: 'betaworks', label: 'betaworks'},
+  {value: 'alchemist', label: 'alchemist'},
+  {value: 'antler', label: 'antler'},
+  {value: 'other', label: 'Enter custom notes'},
 ];
 
 function coerceValue(value: number) {
@@ -99,13 +99,13 @@ function AddToStartupProgramModal({
     const creditAmountInput = Number(data.creditAmount);
     const creditAmount = coerceValue(creditAmountInput);
     const ticketUrl = typeof data.ticketUrl === 'string' ? data.ticketUrl : '';
-    const notesProgram = typeof data.notesProgram === 'string' ? data.notesProgram : '';
+    const rawNotes = typeof data.notes === 'string' ? data.notes : '';
     const notes =
-      notesProgram === 'other'
-        ? typeof data.notesCustom === 'string'
-          ? data.notesCustom
+      rawNotes === 'other'
+        ? typeof data.customNotes === 'string'
+          ? data.customNotes
           : ''
-        : notesProgram;
+        : rawNotes;
 
     if (!creditAmount || isPending) {
       return;
@@ -141,8 +141,7 @@ function AddToStartupProgramModal({
           footerClass="modal-footer"
           initialData={{
             creditAmount: 5000,
-            notesProgram: 'sentryforstartups',
-            notesCustom: '',
+            notes: 'sentryforstartups',
           }}
         >
           <Flex direction="column" gap="md">
@@ -164,8 +163,8 @@ function AddToStartupProgramModal({
                 disabled={isPending}
               />
               <SelectField
-                name="notesProgram"
-                label="Program"
+                name="notes"
+                label="Notes"
                 options={STARTUP_PROGRAM_OPTIONS}
                 inline={false}
                 stacked
@@ -176,7 +175,7 @@ function AddToStartupProgramModal({
               />
               {showCustomNotes && (
                 <TextField
-                  name="notesCustom"
+                  name="customNotes"
                   label="Custom Notes"
                   inline={false}
                   stacked
