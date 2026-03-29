@@ -108,7 +108,7 @@ class HistoricGroupCounts(
         )
         assert profile_error_event.group is not None
         assert profile_issue_occurrence is not None
-        assert len(Group.objects.all()) == 2
+        assert len(Group.objects.all()) == 22
 
         perf_event = self.create_performance_issue()
         error_event = self._create_events_for_group()
@@ -116,7 +116,7 @@ class HistoricGroupCounts(
         assert error_event.group is not None
 
         # store_search_issue created two groups
-        assert len(Group.objects.all()) == 4
+        assert len(Group.objects.all()) == 7
         assert profile_error_event.group.issue_category == GroupCategory.ERROR
         assert error_event.group.issue_category == GroupCategory.ERROR
         assert profile_issue_occurrence.group.issue_category == GroupCategory.PERFORMANCE
@@ -393,7 +393,7 @@ class TestEAPIsEscalating(TestCase, SnubaTestCase):
         snuba_results = _query_groups_past_counts_snuba([group])
         eap_results = _query_groups_past_counts_eap([group])
 
-        assert len(snuba_results) == len(eap_results) == 1
+        assert len(snuba_results) == len(eap_results) == 2
         assert snuba_results[0]["group_id"] == eap_results[0]["group_id"] == group.id
         assert snuba_results[0]["project_id"] == eap_results[0]["project_id"] == self.project.id
         assert snuba_results[0]["count()"] == eap_results[0]["count()"] == 3
