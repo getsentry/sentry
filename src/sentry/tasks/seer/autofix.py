@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timedelta
+from typing import Any
 
 import sentry_sdk
 from django.utils import timezone
@@ -8,7 +9,11 @@ from taskbroker_client.state import current_task
 
 from sentry import analytics, features
 from sentry.analytics.events.autofix_automation_events import AiAutofixAutomationEvent
-from sentry.constants import ObjectStatus
+from sentry.constants import (
+    AUTO_OPEN_PRS_DEFAULT,
+    SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+    ObjectStatus,
+)
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -238,6 +243,21 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
                 "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
             )
 
+    coding_agent = organization.get_option("sentry:seer_default_coding_agent")
+    coding_agent_integration_id = organization.get_option(
+        "sentry:seer_default_coding_agent_integration_id"
+    )
+    default_handoff: dict[str, Any] | None = None
+    if coding_agent and coding_agent_integration_id is not None:
+        default_handoff = {
+            "handoff_point": "root_cause",
+            "target": coding_agent,
+            "integration_id": coding_agent_integration_id,
+            "auto_create_pr": bool(
+                organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT)
+            ),
+        }
+
     preferences_by_id = bulk_get_project_preferences(organization_id, project_ids)
 
     # Determine which projects need updates
@@ -262,9 +282,14 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
                 "organization_id": organization_id,
                 "project_id": project_id,
                 "repositories": repositories or [],
-                "automated_run_stopping_point": "code_changes",
+                "automated_run_stopping_point": organization.get_option(
+                    "sentry:default_automated_run_stopping_point",
+                    SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+                ),
                 "automation_handoff": (
-                    existing_pref.get("automation_handoff") if existing_pref else None
+                    existing_pref.get("automation_handoff")
+                    if existing_pref and existing_pref.get("automation_handoff")
+                    else default_handoff
                 ),
             }
         )
