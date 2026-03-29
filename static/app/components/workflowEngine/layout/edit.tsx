@@ -30,7 +30,7 @@ function EditLayoutComponent({children, formProps}: WorkflowEngineEditLayoutProp
   );
 }
 
-const StyledPage = styled('main')`
+const StyledPage = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   flex: unset;
 `;

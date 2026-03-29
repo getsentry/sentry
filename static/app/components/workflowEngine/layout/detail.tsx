@@ -23,7 +23,7 @@ function DetailLayoutComponent({children}: WorkflowEngineDetailLayoutProps) {
   return <StyledPage>{children}</StyledPage>;
 }
 
-const StyledPage = styled('main')`
+const StyledPage = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
 `;
 

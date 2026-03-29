@@ -46,7 +46,7 @@ export default function GettingStarted() {
   );
 }
 
-const GettingStartedLayout = styled('main')`
+const GettingStartedLayout = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   padding-top: ${p => p.theme.space['2xl']};
 `;

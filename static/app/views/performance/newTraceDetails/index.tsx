@@ -220,7 +220,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   );
 }
 
-const LayoutPageWithHiddenFooter = styled('main')`
+const LayoutPageWithHiddenFooter = styled('div')`
   ~ footer {
     display: none;
   }
