@@ -269,7 +269,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         end: datetime,
         having: Sequence[Sequence[Any]],
         aggregate_kwargs: TrendsSortWeights | None = None,
-        replace_trends_aggregation: bool | None = False,
+        use_issue_platform: bool = False,
     ) -> list[Any]:
         extra_aggregations = self.dependency_aggregations.get(sort_field, [])
         required_aggregations = set([sort_field, "total"] + extra_aggregations)
@@ -280,8 +280,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         aggregations = []
         for alias in required_aggregations:
             aggregation = self.aggregation_defs[alias]
-            if replace_trends_aggregation and alias == "trends":
-                aggregation = self.aggregation_defs["trends_issue_platform"]
+            if use_issue_platform and alias in ("trends", "recommended"):
+                aggregation = self.aggregation_defs[f"{alias}_issue_platform"]
             if callable(aggregation):
                 if aggregate_kwargs:
                     aggregation = aggregation(start, end, aggregate_kwargs.get(alias, {}))
@@ -333,14 +333,10 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 else:
                     conditions.append(converted_filter)
 
-        if sort_field == "trends" and group_category is not GroupCategory.ERROR.value:
-            aggregations = self._prepare_aggregations(
-                sort_field, start, end, having, aggregate_kwargs, True
-            )
-        else:
-            aggregations = self._prepare_aggregations(
-                sort_field, start, end, having, aggregate_kwargs
-            )
+        use_issue_platform = group_category is not GroupCategory.ERROR.value
+        aggregations = self._prepare_aggregations(
+            sort_field, start, end, having, aggregate_kwargs, use_issue_platform
+        )
 
         if cursor is not None:
             having.append((sort_field, ">=" if cursor.is_prev else "<=", cursor.value))
@@ -700,11 +696,92 @@ def trends_aggregation_impl(
             ]
 
 
+def _recommended_aggregation(
+    timestamp_column: str, type_column: str | None = None
+) -> Sequence[str]:
+    hour = 3600
+
+    # Recency: exponential decay based on time since last event (24hr halflife)
+    recency_weight = options.get("snuba.search.recommended.recency-weight")
+    age_hours = f"divide(minus(now(), max({timestamp_column})), {hour})"
+    recency = f"divide(1, pow(2, divide({age_hours}, 24)))"
+
+    # Spike: ratio of recent 6hr events to total 3d events
+    spike_weight = options.get("snuba.search.recommended.spike-weight")
+    recent_6h = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {6 * hour}))"
+    total_3d = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {3 * 24 * hour}))"
+    spike = f"least(1.0, divide({recent_6h}, plus({total_3d}, 1)))"
+
+    # Severity: max log level - maps fatal=1.0, error=0.75, warning=0.5, info=0.25, debug=0.0
+    severity_weight = options.get("snuba.search.recommended.severity-weight")
+    severity = (
+        "max(multiIf("
+        "equals(level, 'fatal'), 1.0, "
+        "equals(level, 'error'), 0.75, "
+        "equals(level, 'warning'), 0.5, "
+        "equals(level, 'info'), 0.25, "
+        "0.0))"
+    )
+
+    # User impact: ln(uniq(tags[sentry:user]) + 1)/ln(1001) - maps 1→~0, 10→0.33, 100→0.67, 1000→1.0
+    user_impact_weight = options.get("snuba.search.recommended.user-impact-weight")
+    user_impact = "least(1.0, divide(log(plus(uniq(tags[sentry:user]), 1)), log(1001)))"
+
+    # Event volume: ln(count() + 1)/ln(10001) - maps 1→~0, 10→0.25, 100→0.50, 1000→0.75, 10000+→1.0
+    event_volume_weight = options.get("snuba.search.recommended.event-volume-weight")
+    event_volume = "least(1.0, divide(log(plus(count(), 1)), log(10001)))"
+
+    # Group type boost: additive signal per issue type
+    group_type_boosts = options.get("snuba.search.recommended.group-type-boost")
+    if group_type_boosts:
+        type_expr = f"any({type_column})" if type_column else "1"
+        conditions = []
+        for type_id, boost in group_type_boosts.items():
+            conditions.append(f"equals({type_expr}, {type_id}), {boost}")
+        type_boost = f"multiIf({', '.join(conditions)}, 0.0)"
+    else:
+        type_boost = "0.0"
+
+    return [
+        (
+            f"plus(plus(plus(plus(plus("
+            f"multiply({recency_weight}, {recency}), "
+            f"multiply({spike_weight}, {spike})), "
+            f"multiply({severity_weight}, {severity})), "
+            f"multiply({user_impact_weight}, {user_impact})), "
+            f"multiply({event_volume_weight}, {event_volume})), "
+            f"{type_boost})"
+        ),
+        "",
+    ]
+
+
+def recommended_aggregation(
+    start: datetime,
+    end: datetime,
+    aggregate_kwargs: Any = None,
+) -> Sequence[str]:
+    return _recommended_aggregation(timestamp_column="timestamp")
+
+
+def recommended_issue_platform_aggregation(
+    start: datetime,
+    end: datetime,
+    aggregate_kwargs: Any = None,
+) -> Sequence[str]:
+    return _recommended_aggregation(
+        timestamp_column="client_timestamp", type_column="occurrence_type_id"
+    )
+
+
 class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
     ISSUE_FIELD_NAME = "group_id"
 
     logger = logging.getLogger("sentry.search.postgressnuba")
-    dependency_aggregations = {"trends": ["last_seen", "times_seen"]}
+    dependency_aggregations = {
+        "trends": ["last_seen", "times_seen"],
+        "recommended": ["last_seen", "times_seen", "user_count"],
+    }
     postgres_only_fields = {*SKIP_SNUBA_FIELDS, "regressed_in_release"}
     # add specific fields here on top of skip_snuba_fields from the serializer
     sort_strategies = {
@@ -712,6 +789,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "freq": "times_seen",
         "new": "first_seen",
         "trends": "trends",
+        "recommended": "recommended",
         "user": "user_count",
         # We don't need a corresponding snuba field here, since this sort only happens
         # in Postgres
@@ -723,10 +801,12 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "first_seen": ["multiply(toUInt64(min(coalesce(group_first_seen, timestamp))), 1000)", ""],
         "last_seen": ["multiply(toUInt64(max(timestamp)), 1000)", ""],
         "trends": trends_aggregation,
+        "recommended": recommended_aggregation,
         # Only makes sense with WITH TOTALS, returns 1 for an individual group.
         "total": ["uniq", ISSUE_FIELD_NAME],
         "user_count": ["uniq", "tags[sentry:user]"],
         "trends_issue_platform": trends_issue_platform_aggregation,
+        "recommended_issue_platform": recommended_issue_platform_aggregation,
     }
 
     @property
