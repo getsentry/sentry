@@ -87,7 +87,11 @@ export function replayerStepper<
         });
       } else {
         frameRef.current = undefined;
-        nextOrDone();
+        // Use requestAnimationFrame to break synchronous recursion and prevent
+        // stack overflow when many frames consecutively fail the filter
+        window.requestAnimationFrame(() => {
+          nextOrDone();
+        });
       }
     };
 
