@@ -1,0 +1,26 @@
+name: 'Automation: Label issue with product area'
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  add_product_area_label:
+    name: Add product area label
+    runs-on: ubuntu-latest
+    if: ${{ !github.event.issue.pull_request }}
+    permissions:
+      issues: write
+    steps:
+      - name: Get product area from issue body
+        uses: actions-ecosystem/action-regex-match@v2
+        id: productArea
+        with:
+          text: ${{ github.event.issue.body }}
+          regex: '### Product Area\n\n(.+?)(?:\n\n|\n?$)'
+
+      - name: Add product area label
+        if: steps.productArea.outputs.group1 != '' && steps.productArea.outputs.group1 != 'Unknown'
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: 'Product Area: ${{ steps.productArea.outputs.group1 }}'
