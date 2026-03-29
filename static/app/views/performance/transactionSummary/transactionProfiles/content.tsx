@@ -95,6 +95,7 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
 
   const {data, status} = useAggregateFlamegraphQuery({
     query,
+    ...(isEAP ? {dataSource: 'spans' as const} : {}),
   });
 
   const [frameFilter, setFrameFilter] = useLocalStorageState<
