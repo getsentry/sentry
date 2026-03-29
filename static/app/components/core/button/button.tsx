@@ -1,4 +1,5 @@
-import {keyframes} from '@emotion/react';
+import {lazy, Suspense, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -14,6 +15,10 @@ import {
 import type {DO_NOT_USE_ButtonProps as ButtonProps} from './types';
 import {useButtonFunctionality} from './useButtonFunctionality';
 
+const IndeterminateLoader = lazy(() =>
+  import('@sentry/scraps/loader').then(m => ({default: m.IndeterminateLoader}))
+);
+
 export type {ButtonProps};
 
 export function Button({
@@ -26,6 +31,11 @@ export function Button({
 }: ButtonProps) {
   const contextSize = useSizeContext();
   const size = explicitSize ?? contextSize ?? 'md';
+  const theme = useTheme();
+  const hasBeenBusy = useRef(false);
+  if (busy) {
+    hasBeenBusy.current = true;
+  }
   const {handleClick, hasChildren, accessibleLabel} = useButtonFunctionality({
     ...props,
     type,
@@ -59,34 +69,64 @@ export function Button({
           justify="center"
           minWidth="0"
           height="100%"
+          overflow="visible"
           whiteSpace="nowrap"
-          visibility={busy ? 'hidden' : undefined}
         >
-          {props.icon && (
-            <Flex
-              as="span"
-              align="center"
-              flexShrink={0}
-              marginRight={
-                hasChildren ? (size === 'xs' || size === 'zero' ? 'sm' : 'md') : undefined
-              }
-              aria-hidden="true"
-            >
-              <IconDefaultsProvider size={BUTTON_ICON_SIZES[size]}>
-                {props.icon}
-              </IconDefaultsProvider>
-            </Flex>
-          )}
-          {props.children}
-          {busy && (
+          <Flex
+            as="span"
+            align="center"
+            style={{
+              transition: busy
+                ? `opacity ${theme.motion.smooth.fast}, transform ${theme.motion.smooth.fast}`
+                : `opacity ${theme.motion.exit.fast}, transform ${theme.motion.exit.fast}`,
+              opacity: busy ? 0 : 1,
+              transform: busy
+                ? `translateY(${theme.space['2xs']}) scale(0.95)`
+                : 'translateY(0) scale(1)',
+            }}
+          >
+            {props.icon && (
+              <Flex
+                as="span"
+                align="center"
+                flexShrink={0}
+                marginRight={
+                  hasChildren
+                    ? size === 'xs' || size === 'zero'
+                      ? 'sm'
+                      : 'md'
+                    : undefined
+                }
+                aria-hidden="true"
+              >
+                <IconDefaultsProvider size={BUTTON_ICON_SIZES[size]}>
+                  {props.icon}
+                </IconDefaultsProvider>
+              </Flex>
+            )}
+            {props.children}
+          </Flex>
+          {hasBeenBusy.current && (
             <Flex
               align="center"
               justify="center"
               position="absolute"
-              visibility="visible"
-              inset={0}
+              inset="0"
+              style={{
+                marginInline: '-4px',
+                transition: busy
+                  ? `opacity ${theme.motion.exit.fast}, transform ${theme.motion.exit.fast}`
+                  : `opacity ${theme.motion.smooth.fast}, transform ${theme.motion.smooth.fast}`,
+                opacity: busy ? 1 : 0,
+                transform: busy
+                  ? 'translateY(0) scale(1)'
+                  : `translateY(-${theme.space['2xs']}) scale(0.95)`,
+                pointerEvents: busy ? undefined : 'none',
+              }}
             >
-              {({className}) => <BusySpinner className={className} aria-hidden />}
+              <Suspense fallback={null}>
+                <IndeterminateLoader variant="monochrome" aria-hidden />
+              </Suspense>
             </Flex>
           )}
         </Flex>
@@ -102,23 +142,4 @@ const StyledButton = styled('button')<
   }
 >`
   ${p => getButtonStyles(p)}
-`;
-
-const spin = keyframes`
-  to {
-    transform: rotate(360deg);
-  }
-`;
-
-const BusySpinner = styled('span')`
-  &::after {
-    content: '';
-    display: block;
-    width: 1em;
-    height: 1em;
-    border-radius: 50%;
-    border: 2px solid currentColor;
-    border-top-color: transparent;
-    animation: ${spin} 0.6s linear infinite;
-  }
 `;

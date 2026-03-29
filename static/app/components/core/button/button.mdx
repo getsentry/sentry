@@ -14,6 +14,9 @@ resources:
     WAI-ARIA Button Practices: https://www.w3.org/WAI/ARIA/apg/patterns/button/
 ---
 
+import {useState} from 'react';
+
+import {Flex} from '@sentry/scraps/layout';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 
@@ -158,29 +161,68 @@ The following table defines standardized call to action copy and icon pairings f
 | <IconZoom />                               | `zoom`      | Zoom Out                               | Applies to charts and zooms out (i.e. 200%)               |
 | <IconStar />                               | `star`      | Favorite                               | Hoisting item to primary view                             |
 
-## Disabled and Busy Buttons
+## Disabled Buttons
 
-Disabled and busy buttons are used to indicate the status of an item. Busy buttons should be used to indicate that an action is in progress. Disabled buttons should be used to indicate that an action is not available.
+Disabled buttons should be used to indicate that an action is not available.
 
 <Storybook.Demo>
+  <Button disabled>Cancel</Button>
   <Button disabled priority="primary">
-    Disabled
+    Submit
   </Button>
-  <Button disabled>Disabled</Button>
-  <Button busy priority="primary">
-    Busy
-  </Button>
-  <Button busy>Busy</Button>
 </Storybook.Demo>
 ```jsx
+<Button disabled>Cancel</Button>
 <Button disabled priority="primary">
-  Disabled
+  Submit
 </Button>
-<Button disabled>Disabled</Button>
-<Button busy priority="primary">
-  Busy
-</Button>
-<Button busy>Busy</Button>
+```
+
+### Busy Buttons
+
+Busy buttons should be used to indicate that an async action is in progress, usually connected to the `isPending` state of a query mutation.
+
+export function BusyDemo() {
+  const [busy, setBusy] = useState({cancel: false, submit: false});
+  /** @param key {'cancel' | 'submit'} */
+  const handleClick = key => {
+    setBusy(v => ({...v, [key]: true}));
+    setTimeout(() => {
+      setBusy(v => ({...v, [key]: false}));
+    }, 2500);
+  };
+  return (
+    <Flex gap="md">
+      <Button busy={busy.cancel} priority="default" onClick={() => handleClick('cancel')}>
+        Cancel
+      </Button>
+      <Button busy={busy.submit} priority="primary" onClick={() => handleClick('submit')}>
+        Submit
+      </Button>
+    </Flex>
+  );
+}
+
+<Storybook.Demo>
+  <BusyDemo />
+</Storybook.Demo>
+```jsx
+<Flex gap="md">
+  <Button
+    priority="secondary"
+    busy={cancelMutation.isPending}
+    onClick={cancelMutation.mutateAsync}
+  >
+    Cancel
+  </Button>
+  <Button
+    priority="primary"
+    busy={submitMutation.isPending}
+    onClick={submitMutation.mutateAsync}
+  >
+    Submit
+  </Button>
+</Flex>
 ```
 
 ## Icon-only Buttons
