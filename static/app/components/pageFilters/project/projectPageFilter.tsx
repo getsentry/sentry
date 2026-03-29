@@ -86,13 +86,26 @@ export function ProjectPageFilter({
     isReady: pageFilterIsReady,
   } = usePageFilters();
 
+  // In open-membership orgs every member implicitly has access to all projects, so
+  // "My Projects" (URL encoding: []) and "All Projects" (URL encoding: [-1]) are
+  // equivalent from the backend's perspective. We surface this honestly in the UI by
+  // defaulting to "All Projects" and hiding the "My Projects" option.
+  //
+  // Backend reference: src/sentry/api/bases/organization.py
+  //   _filter_projects_by_permissions() — when filter_by_membership=True it calls
+  //   has_project_membership(), but has_global_access=True (set for open-membership
+  //   orgs) means every project passes has_project_access(), making the two sentinel
+  //   values return identical result sets.
+  const isOpenMembership = organization.openMembership;
+
   const committedSelectionIntent = useMemo(
     () =>
       urlSelectionToIntent({
         projects,
         urlSelection: urlProjectSelection,
+        isOpenMembership,
       }),
-    [urlProjectSelection, projects]
+    [urlProjectSelection, projects, isOpenMembership]
   );
 
   // Track optimistically bookmarked projects to prevent star from disappearing
@@ -235,7 +248,7 @@ export function ProjectPageFilter({
                     ({projects.length})
                   </Text>
                   {/* Show separator if we are not displaying My Projects */}
-                  {memberProjectList.length > 0 ? null : (
+                  {memberProjectList.length > 0 && !isOpenMembership ? null : (
                     <Separator
                       orientation="horizontal"
                       aria-hidden
@@ -275,7 +288,9 @@ export function ProjectPageFilter({
             } satisfies SelectOption<number>,
           ]
         : []),
-      ...(memberProjectList.length > 0 && memberProjectList.length < projects.length
+      ...(!isOpenMembership &&
+      memberProjectList.length > 0 &&
+      memberProjectList.length < projects.length
         ? [
             {
               value: MY_PROJECTS_VALUE,
@@ -374,6 +389,7 @@ export function ProjectPageFilter({
     urlProjectSelection,
     optimisticallyBookmarkedProjects,
     organization,
+    isOpenMembership,
   ]);
 
   const routePath = useMemo(() => getRouteStringFromRoutes(routes), [routes]);
@@ -444,6 +460,7 @@ export function ProjectPageFilter({
         // Preserve the ALL_ACCESS_PROJECTS sentinel before it gets expanded to []
         // so toURLSelection can distinguish "All Projects selected" from "nothing selected".
         value: newValue.includes(ALL_ACCESS_PROJECTS) ? newValue : resolvedValue,
+        isOpenMembership,
       }),
       location,
       navigate,
@@ -496,7 +513,9 @@ export function ProjectPageFilter({
 
   const handleReset = () => {
     clearDraftSelectionState();
-    commitSelection(memberProjectIds(projects));
+    commitSelection(
+      isOpenMembership ? [ALL_ACCESS_PROJECTS] : memberProjectIds(projects)
+    );
     onReset?.();
 
     trackAnalytics('projectselector.clear', {
@@ -605,7 +624,10 @@ export function ProjectPageFilter({
       }
       onOpenChange={handleOpenChange}
       menuHeaderTrailingItems={
-        xor(stagedSelect.value, memberProjectIds(projects)).length > 0 ? (
+        xor(
+          stagedSelect.value,
+          isOpenMembership ? allProjectIds(projects) : memberProjectIds(projects)
+        ).length > 0 ? (
           <MenuComponents.ResetButton onClick={handleReset} />
         ) : null
       }
@@ -653,7 +675,9 @@ interface SelectionIntent {
 function urlSelectionToIntent({
   projects,
   urlSelection,
+  isOpenMembership,
 }: {
+  isOpenMembership: boolean;
   projects: Project[];
   urlSelection: number[];
 }): SelectionIntent {
@@ -661,11 +685,14 @@ function urlSelectionToIntent({
     return {kind: 'all', ids: allProjectIds(projects)};
   }
 
-  // Empty URL = "My Projects" (not "none" — that would be no selection at all).
-  // This holds regardless of showNonMemberProjects: in closed orgs the user's member
-  // projects are their accessible projects, so the default is still "My Projects".
+  // Empty URL = "My Projects" in closed orgs, but "All Projects" in open-membership
+  // orgs — because has_global_access=True makes the backend return all projects for
+  // both sentinels. See the comment near isOpenMembership in ProjectPageFilter for
+  // the full backend reference.
   if (urlSelection.length === 0) {
-    return {kind: 'my', ids: memberProjectIds(projects)};
+    return isOpenMembership
+      ? {kind: 'all', ids: allProjectIds(projects)}
+      : {kind: 'my', ids: memberProjectIds(projects)};
   }
 
   return selectionToIntent({
@@ -719,25 +746,35 @@ function selectionToIntent({
 function toURLSelection({
   projects,
   value,
+  isOpenMembership,
 }: {
+  isOpenMembership: boolean;
   projects: Project[];
   value: number[];
 }): number[] {
   if (value.includes(ALL_ACCESS_PROJECTS)) {
-    return [ALL_ACCESS_PROJECTS];
+    // In open-membership orgs keep using [] (no param) so the URL stays clean and
+    // backwards-compatible. The backend returns the same result set for both [] and
+    // [-1] when the org has open membership.
+    return isOpenMembership ? [] : [ALL_ACCESS_PROJECTS];
   }
 
   if (hasSameValues(value, allProjectIds(projects))) {
-    return [ALL_ACCESS_PROJECTS];
+    return isOpenMembership ? [] : [ALL_ACCESS_PROJECTS];
   }
 
   const memberProjectsSelected = memberProjectIds(projects).every(project =>
     value.includes(project)
   );
 
-  // "My Projects" — applies regardless of showNonMemberProjects so closed-org
-  // selections round-trip correctly through the compact [] URL encoding.
-  if (value.length === memberProjectIds(projects).length && memberProjectsSelected) {
+  // "My Projects" — applies only in closed-membership orgs. In open-membership orgs,
+  // [] means "All Projects", so we must not collapse a member-project selection to []
+  // or it will silently expand back to all projects on the next page load.
+  if (
+    !isOpenMembership &&
+    value.length === memberProjectIds(projects).length &&
+    memberProjectsSelected
+  ) {
     return [];
   }
 

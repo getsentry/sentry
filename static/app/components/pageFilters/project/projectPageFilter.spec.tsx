@@ -17,7 +17,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
-const organization = OrganizationFixture({features: ['open-membership']});
+const organization = OrganizationFixture();
 const projects = [
   ProjectFixture({id: '1', slug: 'project-1', isMember: true}),
   ProjectFixture({id: '2', slug: 'project-2', isMember: true}),
@@ -777,9 +777,18 @@ describe('ProjectPageFilter', () => {
     expect(within(projectRows[2]!).getByText('regular-project-a')).toBeInTheDocument();
     expect(within(projectRows[3]!).getByText('regular-project-b')).toBeInTheDocument();
 
+    // Navigate via keyboard to regular-project-a to make the Bookmark button visible.
+    // (hover is unreliable across tests due to shared pointer state in userEvent)
+    await waitFor(() => expect(screen.getByPlaceholderText('Search…')).toHaveFocus());
+    // No sentinel items (all 4 projects are members), so:
+    // ArrowDown x1 → selected-project, x2 → already-bookmarked, x3 → regular-project-a
+    await userEvent.keyboard('{ArrowDown}');
+    await userEvent.keyboard('{ArrowDown}');
+    await userEvent.keyboard('{ArrowDown}');
+
     // Bookmark regular-project-a while menu is open
     const regularProjectARow = screen.getByRole('row', {name: 'regular-project-a'});
-    await userEvent.hover(regularProjectARow);
+    expect(regularProjectARow).toHaveFocus();
     const bookmarkButton = within(regularProjectARow).getByRole('button', {
       name: 'Bookmark',
     });
@@ -863,18 +872,120 @@ describe('ProjectPageFilter', () => {
     });
   });
 
-  describe('closed-membership org defaults', () => {
-    let closedOrg: ReturnType<typeof OrganizationFixture>;
+  describe('open-membership org defaults', () => {
+    const openOrg = OrganizationFixture({openMembership: true});
 
-    beforeEach(() => {
-      // Org without open-membership; user is a regular member
-      closedOrg = OrganizationFixture({features: [], orgRole: 'member'});
-      OrganizationStore.onUpdate(closedOrg, {replace: true});
+    it('shows All Projects (not My Projects) as the default trigger label', async () => {
+      render(<ProjectPageFilter />, {
+        organization: openOrg,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/issues/', query: {}},
+        },
+      });
+
+      expect(
+        await screen.findByRole('button', {name: 'All Projects'})
+      ).toBeInTheDocument();
     });
 
+    it('does not show the My Projects option in the dropdown', async () => {
+      render(<ProjectPageFilter />, {
+        organization: openOrg,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/issues/', query: {}},
+        },
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
+
+      expect(
+        screen.queryByRole('checkbox', {name: 'Select My Projects'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('sends no project param for the default All Projects state', async () => {
+      const {router} = render(<ProjectPageFilter />, {
+        organization: openOrg,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/issues/', query: {}},
+        },
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
+      await userEvent.click(document.body);
+
+      await waitFor(() => {
+        expect(router.location.query.project).toBeUndefined();
+      });
+    });
+
+    it('resetting navigates to All Projects with no project param', async () => {
+      PageFiltersStore.onInitializeUrlState({
+        projects: [1],
+        environments: [],
+        datetime: {start: null, end: null, period: '14d', utc: null},
+      });
+
+      const {router} = render(<ProjectPageFilter />, {
+        organization: openOrg,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/issues/', query: {project: '1'}},
+        },
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'project-1'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Reset'}));
+
+      await waitFor(() => {
+        expect(router.location.query.project).toBeUndefined();
+      });
+
+      expect(screen.getByRole('button', {name: 'All Projects'})).toBeInTheDocument();
+    });
+
+    it('does not show Reset button when All Projects is the default state', async () => {
+      // In an open-membership org, the default is All Projects (empty URL).
+      // The Reset button must not appear just because memberProjectIds != [ALL_ACCESS_PROJECTS].
+      render(<ProjectPageFilter />, {
+        organization: openOrg,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/issues/', query: {}},
+        },
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
+
+      expect(screen.queryByRole('button', {name: 'Reset'})).not.toBeInTheDocument();
+    });
+
+    it('selecting exactly member projects preserves explicit project IDs in the URL', async () => {
+      // Bug: toURLSelection would collapse [1, 2] (member projects) to [] because
+      // value.length === memberProjectIds.length. In open-membership orgs [] means
+      // "All Projects", silently re-expanding the user's explicit selection on reload.
+      const {router} = render(<ProjectPageFilter />, {
+        organization: openOrg,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/issues/', query: {}},
+        },
+      });
+
+      // Default is All Projects — open the menu and uncheck the non-member project,
+      // leaving exactly the two member projects (1 and 2) selected.
+      await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select project-3'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+      // URL must carry explicit IDs — an undefined project param would mean All Projects.
+      await waitFor(() => {
+        expect(router.location.query.project).toBeDefined();
+      });
+    });
+  });
+
+  describe('closed-membership org defaults', () => {
     it('shows My Projects (not All Projects) as the default in closed orgs', async () => {
       render(<ProjectPageFilter />, {
-        organization: closedOrg,
+        organization,
         initialRouterConfig: {
           location: {pathname: '/organizations/org-slug/issues/', query: {}},
         },
@@ -888,7 +999,7 @@ describe('ProjectPageFilter', () => {
 
     it('correctly round-trips My Projects selection in closed orgs', async () => {
       const {router} = render(<ProjectPageFilter />, {
-        organization: closedOrg,
+        organization,
         initialRouterConfig: {
           location: {pathname: '/organizations/org-slug/issues/', query: {}},
         },
@@ -913,7 +1024,7 @@ describe('ProjectPageFilter', () => {
 
     it('selecting All Projects in a closed org writes project=-1 to the URL', async () => {
       const {router} = render(<ProjectPageFilter />, {
-        organization: closedOrg,
+        organization,
         initialRouterConfig: {
           location: {pathname: '/organizations/org-slug/issues/', query: {}},
         },
@@ -936,7 +1047,7 @@ describe('ProjectPageFilter', () => {
       });
 
       const {router} = render(<ProjectPageFilter />, {
-        organization: closedOrg,
+        organization,
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/issues/',
