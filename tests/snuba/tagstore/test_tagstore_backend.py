@@ -1105,11 +1105,86 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             self.proj1group1,
             [],
             "foo",
+            order_by="-last_seen",
             tenant_ids={"referrer": "r", "organization_id": 1234},
         ).get_result(1)[0]
 
         # top key should be "quux" as it's the most recent than "bar"
         assert top_key.value == "quux"
+
+    @mock.patch.object(
+        SnubaTagStorage.get_group_tag_value_iter,
+        "__defaults__",
+        (
+            "-first_seen",  # orderby default (unchanged)
+            1,  # limit default (set to 1 for test)
+            0,  # offset default (unchanged)
+            None,  # tenant_ids default (unchanged)
+        ),
+    )
+    def test_get_group_tag_value_paginator_sort_by_count_with_limit(self) -> None:
+        """When sorting by count with a limited fetch, the most frequent value should be returned."""
+        # Use a unique fingerprint so we get a fresh group with no setUp noise
+        # "frequent" has 2 events but older last_seen
+        event1 = self.store_event(
+            data={
+                "event_id": "a1" * 16,
+                "message": "count sort test",
+                "platform": "python",
+                "environment": "test",
+                "fingerprint": ["count-sort-test"],
+                "timestamp": (self.now - timedelta(seconds=5)).isoformat(),
+                "tags": {"foo": "frequent"},
+                "user": {"id": "user1"},
+                "exception": exception,
+            },
+            project_id=self.proj1.id,
+        )
+        test_group = event1.group
+
+        self.store_event(
+            data={
+                "event_id": "a2" * 16,
+                "message": "count sort test",
+                "platform": "python",
+                "environment": "test",
+                "fingerprint": ["count-sort-test"],
+                "timestamp": (self.now - timedelta(seconds=4)).isoformat(),
+                "tags": {"foo": "frequent"},
+                "user": {"id": "user1"},
+                "exception": exception,
+            },
+            project_id=self.proj1.id,
+        )
+
+        # "recent" has 1 event but more recent last_seen
+        self.store_event(
+            data={
+                "event_id": "a3" * 16,
+                "message": "count sort test",
+                "platform": "python",
+                "environment": "test",
+                "fingerprint": ["count-sort-test"],
+                "timestamp": self.now.isoformat(),
+                "tags": {"foo": "recent"},
+                "user": {"id": "user2"},
+                "exception": exception,
+            },
+            project_id=self.proj1.id,
+        )
+
+        top_key = self.ts.get_group_tag_value_paginator(
+            test_group,
+            [],
+            "foo",
+            order_by="-times_seen",
+            tenant_ids={"referrer": "r", "organization_id": 1234},
+        ).get_result(1)[0]
+
+        # With limit=1, only 1 value is fetched from Snuba.
+        # Before the fix, it always fetched by -last_seen, so "recent"
+        # would be returned instead of "frequent" (most seen).
+        assert top_key.value == "frequent"
 
     def test_error_upsampling_tag_value_counts(self) -> None:
         """Test that tag value counts are properly weighted when projects use error upsampling."""
