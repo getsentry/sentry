@@ -18,6 +18,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test, create_test_cells
 from sentry.utils import json
+from sentry.utils.http import absolute_uri
 
 
 class RobotsTxtTest(TestCase):
@@ -700,3 +701,69 @@ class McpJsonTest(TestCase):
         assert response.status_code == 200
         assert "max-age=3600" in response["Cache-Control"]
         assert "public" in response["Cache-Control"]
+
+
+class OAuthAuthorizationServerMetadataTest(TestCase):
+    @cached_property
+    def path(self) -> str:
+        # RFC 8414 fixes the discovery URL, so test the concrete well-known path
+        # and exact absolute endpoint values rather than Django route indirection.
+        return "/.well-known/oauth-authorization-server"
+
+    def test_metadata_response(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        assert response["Content-Type"] == "application/json"
+
+        data = json.loads(response.content)
+
+        # RFC 8414 required fields
+        assert "issuer" in data
+        assert "authorization_endpoint" in data
+        assert "token_endpoint" in data
+
+        assert data["authorization_endpoint"] == absolute_uri("/oauth/authorize/")
+        assert data["token_endpoint"] == absolute_uri("/oauth/token/")
+        assert data["userinfo_endpoint"] == absolute_uri("/oauth/userinfo/")
+        assert data["device_authorization_endpoint"] == absolute_uri("/oauth/device/code/")
+
+        assert data["grant_types_supported"] == [
+            "authorization_code",
+            "refresh_token",
+            "urn:ietf:params:oauth:grant-type:device_code",
+        ]
+
+        # OAuth 2.1 only allows "code" response type
+        assert data["response_types_supported"] == ["code"]
+
+        # S256 only per security best practices
+        assert data["code_challenge_methods_supported"] == ["S256"]
+
+        assert data["token_endpoint_auth_methods_supported"] == [
+            "client_secret_basic",
+            "client_secret_post",
+            "none",
+        ]
+
+        assert "scopes_supported" in data
+        assert data["scopes_supported"] == sorted(data["scopes_supported"])
+        assert "openid" in data["scopes_supported"]
+        assert "org:read" in data["scopes_supported"]
+        assert "project:read" in data["scopes_supported"]
+
+    def test_cache_control(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        assert "max-age=3600" in response["Cache-Control"]
+        assert "public" in response["Cache-Control"]
+
+    def test_issuer_matches_server(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            response = self.client.get(self.path)
+            data = json.loads(response.content)
+
+        assert data["issuer"] == "http://testserver"
