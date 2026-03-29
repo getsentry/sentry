@@ -22,11 +22,11 @@ export function SettingsWrapper() {
 
   return (
     <AnalyticsArea name="settings">
-        <StyledFlex flex="1" background={hasPageFrame ? 'primary' : undefined}>
-          <BreadcrumbProvider>
-            <Outlet />
-          </BreadcrumbProvider>
-        </StyledFlex>
+      <StyledFlex flex="1" background={hasPageFrame ? 'primary' : undefined}>
+        <BreadcrumbProvider>
+          <Outlet />
+        </BreadcrumbProvider>
+      </StyledFlex>
     </AnalyticsArea>
   );
 }

@@ -50,7 +50,7 @@ export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
               : undefined
             : undefined
         }
-        background="secondary"
+        background="primary"
         {...rest}
       />
     );
