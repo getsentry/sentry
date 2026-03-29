@@ -2,35 +2,15 @@ import {useMemo} from 'react';
 
 import {Select} from '@sentry/scraps/select';
 
-import {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {ScmSearchControl} from './scmSearchControl';
 import {useScmRepoSearch} from './useScmRepoSearch';
 import {useScmRepoSelection} from './useScmRepoSelection';
-
-/**
- * Custom Control that prepends a search icon inside the select input.
- * Control is the outermost flex container around ValueContainer + Indicators,
- * so adding a child here doesn't break react-select's internal layout.
- *
- * Props are typed as `any` because react-select's generic types don't
- * match the specific option shape our Select wrapper uses, and there's
- * no clean way to type custom components without casting. This matches
- * the pattern used elsewhere (e.g. ruleConditionsForm, typeSelector).
- */
-function SearchControl({children, ...props}: any) {
-  return (
-    <selectComponents.Control {...props}>
-      <IconSearch size="sm" variant="muted" style={{marginLeft: 12, flexShrink: 0}} />
-      {children}
-    </selectComponents.Control>
-  );
-}
 
 interface ScmRepoSelectorProps {
   integration: Integration;
@@ -121,7 +101,7 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
       isDisabled={busy}
       clearable
       searchable
-      components={{Control: SearchControl}}
+      components={{Control: ScmSearchControl}}
     />
   );
 }

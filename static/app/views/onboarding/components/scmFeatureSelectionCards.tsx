@@ -84,12 +84,21 @@ export function ScmFeatureSelectionCards({
   const totalCount = availableFeatures.length;
 
   return (
-    <Flex direction="column" gap="md" width="100%">
-      <Flex justify="between" align="center">
-        <Heading as="h3">{t('What do you want to set up?')}</Heading>
-        <Text variant="muted">{t('%s of %s selected', selectedCount, totalCount)}</Text>
-      </Flex>
-      <Grid columns={2} gap="md">
+    <Flex direction="column" gap="md" width="100%" justify="center">
+      <Grid columns="1fr auto 1fr" align="center" areas='"spacer heading counter"'>
+        <Flex area="heading">
+          <Heading as="h3">{t('What do you want to set up?')}</Heading>
+        </Flex>
+        <Flex area="counter" justify="end">
+          <Text variant="muted">{t('%s of %s selected', selectedCount, totalCount)}</Text>
+        </Flex>
+      </Grid>
+      <Grid
+        gap="lg"
+        columns={availableFeatures.length === 1 ? '1fr' : 'repeat(2, 1fr)'}
+        maxWidth={availableFeatures.length === 1 ? '50%' : undefined}
+        margin={availableFeatures.length === 1 ? '0 auto' : undefined}
+      >
         {availableFeatures.map(feature => {
           const meta = FEATURE_META[feature];
           const disabledProduct = disabledProducts[feature];

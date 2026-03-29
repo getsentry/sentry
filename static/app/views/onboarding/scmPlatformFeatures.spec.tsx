@@ -10,14 +10,30 @@ import {
   OnboardingContextProvider,
   type OnboardingSessionState,
 } from 'sentry/components/onboarding/onboardingContext';
+import * as analytics from 'sentry/utils/analytics';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 
 import {ScmPlatformFeatures} from './scmPlatformFeatures';
 
 jest.mock('sentry/actionCreators/modal');
 
-// Provide a small platform list so CompactSelect stays below the
-// virtualizeThreshold (50) and renders all options in JSDOM.
+// Mock the virtualizer so all items render in JSDOM (no layout engine).
+jest.mock('@tanstack/react-virtual', () => ({
+  useVirtualizer: jest.fn(({count}) => ({
+    getVirtualItems: () =>
+      Array.from({length: count}, (_, i) => ({
+        key: i,
+        index: i,
+        start: i * 36,
+        size: 36,
+      })),
+    getTotalSize: () => count * 36,
+    measureElement: jest.fn(),
+  })),
+}));
+
+// Provide a small platform list so the Select dropdown renders
+// a manageable number of options in JSDOM.
 jest.mock('sentry/data/platforms', () => {
   const actual = jest.requireActual('sentry/data/platforms');
   return {
@@ -161,6 +177,33 @@ describe('ScmPlatformFeatures', () => {
     expect(screen.getByRole('heading', {name: 'Select a platform'})).toBeInTheDocument();
   });
 
+  it('falls back to manual picker when platform detection fails', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/42/platforms/`,
+      statusCode: 500,
+      body: {detail: 'Internal Error'},
+    });
+
+    render(
+      <ScmPlatformFeatures
+        onComplete={jest.fn()}
+        stepIndex={2}
+        genSkipOnboardingLink={() => null}
+      />,
+      {
+        organization,
+        additionalWrapper: makeOnboardingWrapper({
+          selectedRepository: mockRepository,
+        }),
+      }
+    );
+
+    expect(
+      await screen.findByRole('heading', {name: 'Select a platform'})
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Recommended SDK')).not.toBeInTheDocument();
+  });
+
   it('renders manual picker when no repository in context', async () => {
     render(
       <ScmPlatformFeatures
@@ -284,11 +327,9 @@ describe('ScmPlatformFeatures', () => {
 
     await screen.findByRole('heading', {name: 'Select a platform'});
 
-    // Open the CompactSelect and select a base language
-    await userEvent.click(screen.getByRole('button', {name: 'None'}));
-    await userEvent.click(
-      await screen.findByRole('option', {name: 'Browser JavaScript'})
-    );
+    // Type into the Select to search and pick a base language
+    await userEvent.type(screen.getByRole('textbox'), 'JavaScript');
+    await userEvent.click(await screen.findByText('Browser JavaScript'));
 
     await waitFor(() => {
       expect(mockOpenModal).toHaveBeenCalled();
@@ -315,9 +356,9 @@ describe('ScmPlatformFeatures', () => {
 
     await screen.findByRole('heading', {name: 'Select a platform'});
 
-    // Open the CompactSelect and select a console platform
-    await userEvent.click(screen.getByRole('button', {name: 'None'}));
-    await userEvent.click(await screen.findByRole('option', {name: 'Nintendo Switch'}));
+    // Type into the Select to search and pick a console platform
+    await userEvent.type(screen.getByRole('textbox'), 'Nintendo');
+    await userEvent.click(await screen.findByText('Nintendo Switch'));
 
     await waitFor(() => {
       expect(mockOpenConsoleModal).toHaveBeenCalled();
@@ -374,5 +415,144 @@ describe('ScmPlatformFeatures', () => {
 
     expect(screen.getByRole('checkbox', {name: /Tracing/})).not.toBeChecked();
     expect(screen.getByRole('checkbox', {name: /Profiling/})).not.toBeChecked();
+  });
+
+  describe('analytics', () => {
+    let trackAnalyticsSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    });
+
+    it('fires step viewed event on mount', async () => {
+      render(
+        <ScmPlatformFeatures
+          onComplete={jest.fn()}
+          stepIndex={2}
+          genSkipOnboardingLink={() => null}
+        />,
+        {
+          organization,
+          additionalWrapper: makeOnboardingWrapper(),
+        }
+      );
+
+      await screen.findByRole('heading', {name: 'Select a platform'});
+
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'onboarding.scm_platform_features_step_viewed',
+        expect.objectContaining({organization})
+      );
+    });
+
+    it('fires platform selected event when clicking a detected platform', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/42/platforms/`,
+        body: {
+          platforms: [
+            DetectedPlatformFixture(),
+            DetectedPlatformFixture({
+              platform: 'python-django',
+              language: 'Python',
+              priority: 2,
+            }),
+          ],
+        },
+      });
+
+      render(
+        <ScmPlatformFeatures
+          onComplete={jest.fn()}
+          stepIndex={2}
+          genSkipOnboardingLink={() => null}
+        />,
+        {
+          organization,
+          additionalWrapper: makeOnboardingWrapper({
+            selectedRepository: mockRepository,
+          }),
+        }
+      );
+
+      // Wait for detected platforms, then click the second one
+      const djangoCard = await screen.findByRole('radio', {name: /Django/});
+      await userEvent.click(djangoCard);
+
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'onboarding.scm_platform_selected',
+        expect.objectContaining({
+          platform: 'python-django',
+          source: 'detected',
+        })
+      );
+    });
+
+    it('fires feature toggled event when toggling a feature', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/42/platforms/`,
+        body: {
+          platforms: [DetectedPlatformFixture({platform: 'python', language: 'Python'})],
+        },
+      });
+
+      render(
+        <ScmPlatformFeatures
+          onComplete={jest.fn()}
+          stepIndex={2}
+          genSkipOnboardingLink={() => null}
+        />,
+        {
+          organization,
+          additionalWrapper: makeOnboardingWrapper({
+            selectedRepository: mockRepository,
+            selectedFeatures: [ProductSolution.ERROR_MONITORING],
+          }),
+        }
+      );
+
+      await screen.findByText('What do you want to set up?');
+
+      await userEvent.click(screen.getByRole('checkbox', {name: /Tracing/}));
+
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'onboarding.scm_platform_feature_toggled',
+        expect.objectContaining({
+          feature: ProductSolution.PERFORMANCE_MONITORING,
+          enabled: true,
+          platform: 'python',
+        })
+      );
+    });
+
+    it('fires change platform event when clicking the link', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/42/platforms/`,
+        body: {platforms: [DetectedPlatformFixture()]},
+      });
+
+      render(
+        <ScmPlatformFeatures
+          onComplete={jest.fn()}
+          stepIndex={2}
+          genSkipOnboardingLink={() => null}
+        />,
+        {
+          organization,
+          additionalWrapper: makeOnboardingWrapper({
+            selectedRepository: mockRepository,
+          }),
+        }
+      );
+
+      const changeButton = await screen.findByRole('button', {
+        name: "Doesn't look right? Change platform",
+      });
+      await userEvent.click(changeButton);
+
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'onboarding.scm_platform_change_platform_clicked',
+        expect.objectContaining({organization})
+      );
+    });
   });
 });
