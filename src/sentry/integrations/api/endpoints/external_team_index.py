@@ -29,7 +29,7 @@ class ExternalTeamEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.INTEGRATIONS
 
     @extend_schema(
         operation_id="Create an External Team",
