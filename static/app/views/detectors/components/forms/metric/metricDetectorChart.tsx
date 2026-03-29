@@ -90,7 +90,7 @@ function ChartError() {
 function ChartLoading() {
   return (
     <Flex justify="center" align="center" height={CHART_HEIGHT}>
-      <Placeholder height={`${CHART_HEIGHT - 20}px`} />
+      <Placeholder height={`${CHART_HEIGHT}px`} />
     </Flex>
   );
 }
@@ -436,7 +436,6 @@ export function MetricDetectorChart({
 
 const ChartContainer = styled('div')`
   max-width: 1440px;
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const ChartFooter = styled('div')`
@@ -444,7 +443,6 @@ const ChartFooter = styled('div')`
   justify-content: space-between;
   align-items: center;
   padding: ${p => `${p.theme.space.sm} 0 ${p.theme.space.sm} ${p.theme.space.lg}`};
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const AnomalyLoadingIndicator = styled(LoadingIndicator)`

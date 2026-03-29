@@ -9,6 +9,7 @@ import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
 import {DescribeSection} from 'sentry/views/detectors/components/forms/common/describeSection';
+import {ProjectSection} from 'sentry/views/detectors/components/forms/common/projectSection';
 import {CronDetectorFormDetectSection} from 'sentry/views/detectors/components/forms/cron/detect';
 import {
   CRON_DEFAULT_SCHEDULE_TYPE,
@@ -43,6 +44,7 @@ function CronDetectorForm({detector}: {detector?: CronDetector}) {
         </Alert>
       )}
       <PreviewSection />
+      <ProjectSection />
       <CronDetectorFormDetectSection />
       <CronDetectorFormResolveSection />
       <AssignSection />
@@ -69,7 +71,6 @@ export function NewCronDetectorForm() {
       initialFormData={{
         scheduleType: CRON_DEFAULT_SCHEDULE_TYPE,
       }}
-      environment={false}
       disabledCreate={
         showingPlatformGuide
           ? t(
@@ -89,7 +90,6 @@ export function EditExistingCronDetectorForm({detector}: {detector: CronDetector
       detector={detector}
       formDataToEndpointPayload={cronFormDataToEndpointPayload}
       savedDetectorToFormData={cronSavedDetectorToFormData}
-      environment={false}
     >
       <CronDetectorForm detector={detector} />
     </EditDetectorLayout>
