@@ -51,7 +51,10 @@ def produce_processing_errors_to_eap(
     stored as attributes. This enables querying processing errors in EAP
     for configuration issue detection.
     """
-    trace_id = event_data.get("contexts", {}).get("trace", {}).get("trace_id")
+    # Use defensive null-safety pattern: event_data fields may be None if they
+    # were corrupted or stripped during upstream validation (e.g., contexts field
+    # exists but has invalid non-object value, triggering a processing error)
+    trace_id = (event_data.get("contexts") or {}).get("trace", {}).get("trace_id")
     if trace_id is None:
         logger.debug("Skipping EAP processing error production: missing trace_id")
         return
