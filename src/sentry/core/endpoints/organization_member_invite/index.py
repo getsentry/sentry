@@ -114,7 +114,7 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     permission_classes = (MemberInviteAndStaffPermission,)
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.UNOWNED
 
     def _invite_member(self, request, organization) -> Response:
         allowed_roles = get_allowed_org_roles(request, organization, creating_org_invite=True)

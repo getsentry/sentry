@@ -58,7 +58,7 @@ def filter_by_features(
 @control_silo_endpoint
 @extend_schema(tags=["Integrations"])
 class OrganizationIntegrationsEndpoint(OrganizationIntegrationBaseEndpoint):
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.UNOWNED
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }

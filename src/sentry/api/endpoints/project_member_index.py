@@ -22,7 +22,7 @@ class ProjectMemberIndexEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.UNOWNED
 
     @extend_schema(
         operation_id="List a Project's Organization Members",

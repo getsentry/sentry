@@ -16,7 +16,7 @@ class AuthenticatorIndexEndpoint(Endpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.UNOWNED
     permission_classes = (IsAuthenticated,)
 
     def get(self, request: Request) -> Response:

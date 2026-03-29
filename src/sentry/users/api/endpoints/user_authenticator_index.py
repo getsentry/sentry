@@ -16,7 +16,7 @@ class UserAuthenticatorIndexEndpoint(UserEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.UNOWNED
 
     def get(self, request: Request, user: User) -> Response:
         """Returns all interface for a user (un-enrolled ones), otherwise an empty array"""

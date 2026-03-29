@@ -12,7 +12,7 @@ from .base import AuthV2Endpoint
 
 @control_silo_endpoint
 class FeatureFlagView(AuthV2Endpoint):
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.UNOWNED
     publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL}
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(

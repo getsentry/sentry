@@ -16,7 +16,7 @@ class OrganizationAuthProvidersEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.UNOWNED
     permission_classes = (OrganizationAuthProviderPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:

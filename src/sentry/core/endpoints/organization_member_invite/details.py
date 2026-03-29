@@ -43,7 +43,7 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.UNOWNED
     permission_classes = (MemberInviteDetailsPermission,)
 
     def convert_args(

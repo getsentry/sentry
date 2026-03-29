@@ -158,7 +158,7 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.UNOWNED
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
         limit_overrides={

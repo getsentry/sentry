@@ -46,7 +46,7 @@ class BaseAuthIndexEndpoint(Endpoint):
     AuthIndexEndpoint and StaffAuthIndexEndpoint (in getsentry)
     """
 
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.UNOWNED
     authentication_classes = (QuietBasicAuthentication, SessionAuthentication)
 
     permission_classes = ()

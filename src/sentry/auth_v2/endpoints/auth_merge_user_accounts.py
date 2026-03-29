@@ -28,7 +28,7 @@ class AuthMergeUserAccountsEndpoint(AuthV2Endpoint):
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.UNOWNED
     """
     List and merge user accounts with the same primary email address.
     """

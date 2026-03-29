@@ -185,7 +185,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
     )
 
     permission_classes = (MemberAndStaffPermission,)
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.UNOWNED
 
     @extend_schema(
         operation_id="List an Organization's Members",
