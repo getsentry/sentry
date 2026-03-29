@@ -126,6 +126,12 @@ export interface SearchQueryBuilderProps {
    * and display the returned keys alongside any static filterKeys.
    */
   getTagKeys?: GetTagKeys;
+  /**
+   * List of filter key strings that are invalid.
+   * When provided, tokens with matching keys will display a warning state.
+   * The parent component is responsible for fetching and determining invalid keys.
+   */
+  invalidFilterKeys?: string[];
 
   /**
    * Allows for customization of the invalid token messages.
@@ -174,11 +180,11 @@ export interface SearchQueryBuilderProps {
    */
   portalTarget?: HTMLElement | null;
   queryInterface?: QueryInterfaceType;
+
   /**
    * If provided, saves and displays recent searches of the given type.
    */
   recentSearches?: SavedSearchType;
-
   /**
    * When set, provided keys will override default raw search capabilities, while
    * replacing it with options that include the provided keys, and the user's input

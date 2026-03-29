@@ -40,6 +40,11 @@ describe('NewMetricDetectorForm', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/validate/',
+      method: 'POST',
+      body: {attributes: {}},
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
       body: [],
     });

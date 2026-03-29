@@ -203,7 +203,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
 
   const isFocused = item.key === state.selectionManager.focusedKey;
 
-  const {dispatch} = useSearchQueryBuilder();
+  const {dispatch, invalidFilterKeys} = useSearchQueryBuilder();
   const {rowProps, gridCellProps} = useQueryBuilderGridItem(item, state, ref);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -227,12 +227,19 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
 
   const tokenHasError = 'invalid' in token && defined(token.invalid);
   const tokenHasWarning = 'warning' in token && defined(token.warning);
+  const isInvalidFilterKey = invalidFilterKeys.includes(getKeyName(token.key));
 
   return (
     <FilterWrapper
       aria-label={token.text}
       aria-invalid={tokenHasError}
-      state={tokenHasWarning ? 'warning' : tokenHasError ? 'invalid' : 'valid'}
+      state={
+        tokenHasWarning || isInvalidFilterKey
+          ? 'warning'
+          : tokenHasError
+            ? 'invalid'
+            : 'valid'
+      }
       ref={ref}
       {...modifiedRowProps}
     >
@@ -243,6 +250,11 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
         columnCount={4}
         containerDisplayMode="grid"
         forceVisible={filterMenuOpen ? false : undefined}
+        warning={
+          isInvalidFilterKey
+            ? t('Invalid key. "%s" is not a supported search key.', getKeyName(token.key))
+            : undefined
+        }
       >
         {token.filter === FilterType.IS || token.filter === FilterType.HAS ? null : (
           <BaseGridCell {...gridCellProps}>
