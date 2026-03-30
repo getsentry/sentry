@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mutationOptions} from '@tanstack/react-query';
@@ -275,6 +276,7 @@ function AgentNameForm({
   const bulkMutateSelectedAgent = useBulkMutateSelectedAgent({
     projects: projectsToUpdate,
   });
+  const [isBulkMutatingAgent, setIsBulkMutatingAgent] = useState(false);
 
   return (
     <AutoSaveForm
@@ -304,12 +306,16 @@ function AgentNameForm({
           <Flex align="center" alignSelf="end" gap="md" width="50%" paddingLeft="xl">
             <Button
               size="xs"
-              busy={isPending}
+              busy={isPending || isBulkMutatingAgent}
               disabled={
-                !canWrite || projectsWithPreferredAgent.length === projects.length
+                !canWrite ||
+                isBulkMutatingAgent ||
+                projectsWithPreferredAgent.length === projects.length
               }
-              onClick={() => {
-                bulkMutateSelectedAgent(preferredAgentIntegration, {});
+              onClick={async () => {
+                setIsBulkMutatingAgent(true);
+                await bulkMutateSelectedAgent(preferredAgentIntegration, {});
+                setIsBulkMutatingAgent(false);
               }}
             >
               {tn(
@@ -368,6 +374,7 @@ function CreatePrForm({
   const projectsToUpdate = projects.filter(p => !projectsWithCreatePrIds.has(p.id));
 
   const bulkMutateCreatePr = useBulkMutateCreatePr({projects: projectsToUpdate});
+  const [isBulkMutatingCreatePr, setIsBulkMutatingCreatePr] = useState(false);
 
   return (
     <AutoSaveForm
@@ -404,14 +411,17 @@ function CreatePrForm({
           <Flex align="center" alignSelf="end" gap="md" width="50%" paddingLeft="xl">
             <Button
               size="xs"
-              busy={isPending}
+              busy={isPending || isBulkMutatingCreatePr}
               disabled={
                 !canWrite ||
+                isBulkMutatingCreatePr ||
                 organization.enableSeerCoding === false ||
                 projectsWithCreatePr.length === projects.length
               }
-              onClick={() => {
-                bulkMutateCreatePr(field.state.value, {});
+              onClick={async () => {
+                setIsBulkMutatingCreatePr(true);
+                await bulkMutateCreatePr(field.state.value, {});
+                setIsBulkMutatingCreatePr(false);
               }}
             >
               {field.state.value
