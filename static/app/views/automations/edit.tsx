@@ -263,12 +263,12 @@ function AutomationEditForm({automation}: {automation: Automation}) {
               </AutomationBuilderErrorContext.Provider>
             </Layout.Main>
           </StyledBody>
-          <StickyFooter>
-            <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
-              <EditAutomationActions automation={automation} form={model} />
-            </Flex>
-          </StickyFooter>
         </Stack>
+        <StickyFooter>
+          <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
+            <EditAutomationActions automation={automation} form={model} />
+          </Flex>
+        </StickyFooter>
       </AutomationFormProvider>
     </FullHeightForm>
   );

@@ -229,18 +229,18 @@ export default function AutomationNewSettings() {
               </AutomationBuilderErrorContext.Provider>
             </Layout.Main>
           </StyledBody>
-          <StickyFooter>
-            <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
-              <Observer>
-                {() => (
-                  <Button priority="primary" type="submit" disabled={model.isSaving}>
-                    {t('Create Alert')}
-                  </Button>
-                )}
-              </Observer>
-            </Flex>
-          </StickyFooter>
         </Stack>
+        <StickyFooter>
+          <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
+            <Observer>
+              {() => (
+                <Button priority="primary" type="submit" disabled={model.isSaving}>
+                  {t('Create Alert')}
+                </Button>
+              )}
+            </Observer>
+          </Flex>
+        </StickyFooter>
       </AutomationFormProvider>
     </FullHeightForm>
   );
