@@ -28,7 +28,7 @@ from sentry.testutils.cases import TestCase
 
 
 class TestLaunchAgentsForRepos(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
@@ -410,7 +410,7 @@ class TestLaunchAgentsForRepos(TestCase):
 
 
 class TestPollGithubCopilotAgents(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
@@ -441,14 +441,14 @@ class TestPollGithubCopilotAgents(TestCase):
             coding_agents=agents,
         )
 
-    def test_poll_skips_when_no_coding_agents(self):
+    def test_poll_skips_when_no_coding_agents(self) -> None:
         """Test that polling does nothing when there are no coding agents"""
         autofix_state = self._create_autofix_state_with_agents({})
 
         # Should not raise and should not call any external services
         poll_github_copilot_agents(autofix_state, user_id=self.user.id)
 
-    def test_poll_skips_non_github_copilot_agents(self):
+    def test_poll_skips_non_github_copilot_agents(self) -> None:
         """Test that polling skips agents that are not GitHub Copilot agents"""
         agents = {
             "cursor-agent-123": CodingAgentState(
@@ -464,7 +464,7 @@ class TestPollGithubCopilotAgents(TestCase):
         # Should not raise and should not call any external services
         poll_github_copilot_agents(autofix_state, user_id=self.user.id)
 
-    def test_poll_skips_completed_agents(self):
+    def test_poll_skips_completed_agents(self) -> None:
         """Test that polling skips agents that are already completed"""
         agents = {
             "getsentry:sentry:task-123": CodingAgentState(
@@ -676,7 +676,7 @@ class TestPollGithubCopilotAgents(TestCase):
         # State should not be updated when there's an error
         mock_update_state.assert_not_called()
 
-    def test_poll_skips_invalid_agent_id(self):
+    def test_poll_skips_invalid_agent_id(self) -> None:
         """Test that polling skips agents with invalid IDs"""
         agents = {
             "invalid-agent-id": CodingAgentState(
@@ -704,41 +704,41 @@ def _make_agent_event(text: str) -> ClaudeSessionEvent:
 
 
 class TestExtractResultFromEvents(TestCase):
-    def test_extracts_pr_url(self):
+    def test_extracts_pr_url(self) -> None:
         text = "PR created: https://github.com/org/repo/pull/123"
         events = [_make_agent_event(text)]
         url, block = extract_result_from_events(events)
         assert url == "https://github.com/org/repo/pull/123"
         assert block == text
 
-    def test_extracts_branch_url(self):
+    def test_extracts_branch_url(self) -> None:
         text = "Pushed to https://github.com/org/repo/tree/my-branch"
         events = [_make_agent_event(text)]
         url, block = extract_result_from_events(events)
         assert url == "https://github.com/org/repo/tree/my-branch"
         assert block == text
 
-    def test_strips_trailing_period(self):
+    def test_strips_trailing_period(self) -> None:
         events = [_make_agent_event("See https://github.com/org/repo/tree/my-branch.")]
         url, _ = extract_result_from_events(events)
         assert url == "https://github.com/org/repo/tree/my-branch"
 
-    def test_strips_trailing_comma(self):
+    def test_strips_trailing_comma(self) -> None:
         events = [_make_agent_event("https://github.com/org/repo/tree/my-branch, ready")]
         url, _ = extract_result_from_events(events)
         assert url == "https://github.com/org/repo/tree/my-branch"
 
-    def test_branch_with_slashes(self):
+    def test_branch_with_slashes(self) -> None:
         events = [_make_agent_event("https://github.com/org/repo/tree/feat/sub/thing")]
         url, _ = extract_result_from_events(events)
         assert url == "https://github.com/org/repo/tree/feat/sub/thing"
 
-    def test_branch_with_dots_in_name(self):
+    def test_branch_with_dots_in_name(self) -> None:
         events = [_make_agent_event("https://github.com/org/repo/tree/v1.2.3-fix")]
         url, _ = extract_result_from_events(events)
         assert url == "https://github.com/org/repo/tree/v1.2.3-fix"
 
-    def test_pr_preferred_over_branch(self):
+    def test_pr_preferred_over_branch(self) -> None:
         events = [
             _make_agent_event(
                 "Branch https://github.com/org/repo/tree/my-branch "
@@ -748,18 +748,18 @@ class TestExtractResultFromEvents(TestCase):
         url, _ = extract_result_from_events(events)
         assert url == "https://github.com/org/repo/pull/42"
 
-    def test_returns_none_when_no_url(self):
+    def test_returns_none_when_no_url(self) -> None:
         events = [_make_agent_event("All done, no link.")]
         url, block = extract_result_from_events(events)
         assert url is None
         assert block is None
 
-    def test_returns_none_for_empty_events(self):
+    def test_returns_none_for_empty_events(self) -> None:
         url, block = extract_result_from_events([])
         assert url is None
         assert block is None
 
-    def test_searches_most_recent_event_first(self):
+    def test_searches_most_recent_event_first(self) -> None:
         events = [
             _make_agent_event("https://github.com/org/repo/tree/old-branch"),
             _make_agent_event("https://github.com/org/repo/tree/new-branch"),
@@ -767,7 +767,7 @@ class TestExtractResultFromEvents(TestCase):
         url, _ = extract_result_from_events(events)
         assert url == "https://github.com/org/repo/tree/new-branch"
 
-    def test_skips_non_agent_events(self):
+    def test_skips_non_agent_events(self) -> None:
         events = [
             ClaudeSessionEvent(
                 type="tool_result",
@@ -781,7 +781,7 @@ class TestExtractResultFromEvents(TestCase):
 
 
 class TestPollClaudeCodeAgents(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)

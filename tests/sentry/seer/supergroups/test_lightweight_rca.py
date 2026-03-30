@@ -5,14 +5,14 @@ from sentry.testutils.cases import TestCase
 
 
 class TestTriggerLightweightRca(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.organization)
         self.group = self.create_group(project=self.project)
 
-    def test_returns_none_when_feature_flag_off(self):
+    def test_returns_none_when_feature_flag_off(self) -> None:
         run_id = trigger_lightweight_rca(self.group)
 
         assert run_id is None
