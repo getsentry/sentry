@@ -3,6 +3,7 @@ import MockDate from 'mockdate';
 import {TransactionEventFixture} from 'sentry-fixture/event';
 import {ProjectFixture} from 'sentry-fixture/project';
 
+import {itRepeatsWhenFlaky} from 'sentry-test/flakyTestRerun';
 import {
   render,
   screen,
@@ -1451,8 +1452,7 @@ describe('trace view', () => {
       });
     });
 
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('arrowup+shift scrolls to the start of the list', async () => {
+    itRepeatsWhenFlaky('arrowup+shift scrolls to the start of the list', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
 
       let rows = getVirtualizedRows(virtualizedContainer);
@@ -1464,9 +1464,14 @@ describe('trace view', () => {
       });
 
       await userEvent.keyboard('{Shift>}{arrowdown}{/Shift}');
-      expect(
-        await within(virtualizedContainer).findByText(/transaction-op-99/i)
-      ).toBeInTheDocument();
+      await waitFor(
+        () => {
+          expect(
+            within(virtualizedContainer).getByText(/transaction-op-99/i)
+          ).toBeInTheDocument();
+        },
+        {timeout: 3000}
+      );
 
       await waitFor(() => {
         rows = getVirtualizedRows(virtualizedContainer);
@@ -1475,9 +1480,14 @@ describe('trace view', () => {
 
       await userEvent.keyboard('{Shift>}{arrowup}{/Shift}');
 
-      expect(
-        await within(virtualizedContainer).findByText(/transaction-op-0/i)
-      ).toBeInTheDocument();
+      await waitFor(
+        () => {
+          expect(
+            within(virtualizedContainer).getByText(/transaction-op-0/i)
+          ).toBeInTheDocument();
+        },
+        {timeout: 3000}
+      );
 
       await waitFor(() => {
         rows = getVirtualizedRows(virtualizedContainer);
