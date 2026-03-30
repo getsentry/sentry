@@ -76,14 +76,14 @@ class ComputeSnapshotStatusTest(SnapshotTasksTestBase):
 
     def test_images_removed_ignored_when_flag_off(self):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_removed=3)
-        assert self._status_with_changes_map(artifact, metrics) == StatusCheckStatus.SUCCESS
-
-    def test_images_removed_fails_when_flag_on(self):
-        artifact, metrics, _ = self._make_artifact_with_comparison(images_removed=3)
         assert (
-            self._status_with_changes_map(artifact, metrics, fail_on_removed=True)
-            == StatusCheckStatus.FAILURE
+            self._status_with_changes_map(artifact, metrics, fail_on_removed=False)
+            == StatusCheckStatus.SUCCESS
         )
+
+    def test_images_removed_fails_by_default(self):
+        artifact, metrics, _ = self._make_artifact_with_comparison(images_removed=3)
+        assert self._status_with_changes_map(artifact, metrics) == StatusCheckStatus.FAILURE
 
     def test_images_changed_always_fails(self):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_changed=2)
@@ -120,17 +120,17 @@ class BuildChangesMapTest(SnapshotTasksTestBase):
     def test_removed_ignored_when_flag_off(self):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_removed=3)
         changes_map = _build_changes_map(
-            [artifact], {artifact.id: metrics}, {metrics.id: _get_comparison(metrics)}
-        )
-        assert not any(changes_map.values())
-
-    def test_removed_detected_when_flag_on(self):
-        artifact, metrics, _ = self._make_artifact_with_comparison(images_removed=3)
-        changes_map = _build_changes_map(
             [artifact],
             {artifact.id: metrics},
             {metrics.id: _get_comparison(metrics)},
-            fail_on_removed=True,
+            fail_on_removed=False,
+        )
+        assert not any(changes_map.values())
+
+    def test_removed_detected_by_default(self):
+        artifact, metrics, _ = self._make_artifact_with_comparison(images_removed=3)
+        changes_map = _build_changes_map(
+            [artifact], {artifact.id: metrics}, {metrics.id: _get_comparison(metrics)}
         )
         assert changes_map[artifact.id] is True
 

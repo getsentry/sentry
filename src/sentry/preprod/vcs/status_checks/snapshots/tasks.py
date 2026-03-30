@@ -105,7 +105,7 @@ def create_preprod_snapshot_status_check_task(
         return
 
     fail_on_added = preprod_artifact.project.get_option(FAIL_ON_ADDED_OPTION_KEY, default=False)
-    fail_on_removed = preprod_artifact.project.get_option(FAIL_ON_REMOVED_OPTION_KEY, default=False)
+    fail_on_removed = preprod_artifact.project.get_option(FAIL_ON_REMOVED_OPTION_KEY, default=True)
 
     all_artifacts = list(preprod_artifact.get_sibling_artifacts_for_commit())
 
@@ -297,7 +297,7 @@ def create_preprod_snapshot_status_check_task(
 def _comparison_has_changes(
     comparison: PreprodSnapshotComparison,
     fail_on_added: bool = False,
-    fail_on_removed: bool = False,
+    fail_on_removed: bool = True,
 ) -> bool:
     return (
         comparison.images_changed > 0
@@ -312,7 +312,7 @@ def _build_changes_map(
     snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
     comparisons_map: dict[int, PreprodSnapshotComparison],
     fail_on_added: bool = False,
-    fail_on_removed: bool = False,
+    fail_on_removed: bool = True,
 ) -> dict[int, bool]:
     changes_map: dict[int, bool] = {}
     for artifact in artifacts:

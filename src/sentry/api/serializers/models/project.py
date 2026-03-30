@@ -1181,7 +1181,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "sentry:preprod_snapshot_status_checks_fail_on_added", False
             ),
             "sentry:preprod_snapshot_status_checks_fail_on_removed": options.get(
-                "sentry:preprod_snapshot_status_checks_fail_on_removed", False
+                "sentry:preprod_snapshot_status_checks_fail_on_removed", True
             ),
             "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
             "sentry:preprod_size_enabled_query": options.get("sentry:preprod_size_enabled_query"),
