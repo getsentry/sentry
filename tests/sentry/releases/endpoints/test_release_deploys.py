@@ -152,6 +152,57 @@ class ReleaseDeploysCreateTest(APITestCase):
         self.create_member(teams=[team], user=user, organization=self.org)
         self.login_as(user=user)
 
+    def test_no_access_to_all_projects(self) -> None:
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+
+        team2 = self.create_team(organization=self.org)
+        project2 = self.create_project(teams=[team2], organization=self.org)
+
+        release = Release.objects.create(organization_id=self.org.id, version="1", total_deploys=0)
+        release.add_project(self.project)
+        release.add_project(project2)
+
+        url = reverse(
+            "sentry-api-0-organization-release-deploys",
+            kwargs={
+                "organization_id_or_slug": self.org.slug,
+                "version": release.version,
+            },
+        )
+        response = self.client.post(
+            url,
+            data={"name": "foo", "environment": "production", "url": "https://www.example.com"},
+        )
+
+        assert response.status_code == 404
+        assert not Deploy.objects.filter(release=release).exists()
+
+    def test_no_access_to_all_projects_open_membership(self) -> None:
+        self.org.flags.allow_joinleave = True
+        self.org.save()
+
+        team2 = self.create_team(organization=self.org)
+        project2 = self.create_project(teams=[team2], organization=self.org)
+
+        release = Release.objects.create(organization_id=self.org.id, version="1", total_deploys=0)
+        release.add_project(self.project)
+        release.add_project(project2)
+
+        url = reverse(
+            "sentry-api-0-organization-release-deploys",
+            kwargs={
+                "organization_id_or_slug": self.org.slug,
+                "version": release.version,
+            },
+        )
+        response = self.client.post(
+            url,
+            data={"name": "foo", "environment": "production", "url": "https://www.example.com"},
+        )
+
+        assert response.status_code == 201
+
     def test_simple(self) -> None:
         release = Release.objects.create(organization_id=self.org.id, version="1", total_deploys=0)
         release.add_project(self.project)

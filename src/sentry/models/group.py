@@ -381,7 +381,7 @@ class GroupManager(BaseManager["Group"]):
             ]
         ).filter(project__organization=organization_id)
 
-        groups = list(base_group_queryset.filter(short_id_lookup))
+        groups = list(base_group_queryset.filter(short_id_lookup).select_related("project"))
         group_lookup: set[int] = {group.short_id for group in groups}
 
         # If any requested short_ids are missing after the exact slug match,

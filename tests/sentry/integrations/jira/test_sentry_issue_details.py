@@ -173,7 +173,7 @@ class JiraIssueHookTest(APITestCase):
         assert b"This Sentry issue is not linked to a Jira issue" in response.content
 
 
-@control_silo_test(regions=region_config)
+@control_silo_test(cells=region_config)
 class JiraIssueHookControlTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()

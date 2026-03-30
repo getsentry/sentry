@@ -171,9 +171,9 @@ class SeerAutofixOperator[CachePayloadT]:
     ) -> None:
         from sentry.seer.autofix.autofix_agent import (
             AutofixStep,
-            get_autofix_explorer_client,
             get_autofix_explorer_state,
             trigger_autofix_explorer,
+            trigger_push_changes,
         )
 
         event_lifecyle = SeerOperatorEventLifecycleMetric(
@@ -233,14 +233,17 @@ class SeerAutofixOperator[CachePayloadT]:
                         run_id=None,
                     )
                 elif stopping_point == AutofixStoppingPoint.OPEN_PR:
-                    client = get_autofix_explorer_client(group)
-                    client.push_changes(run_id, blocking=False)
+                    trigger_push_changes(
+                        group,
+                        run_id,
+                        referrer=AutofixReferrer.SLACK,
+                    )
                 else:
                     # NOTE: Stopping point here is really just what
                     # step to run next. Not the same as the stopping_point
                     # argument supported by `trigger_autofix_explorer` which allows one
                     # to run multiple steps at once
-                    run_id = trigger_autofix_explorer(
+                    trigger_autofix_explorer(
                         group=group,
                         step=AutofixStep.from_autofix_stopping_point(stopping_point),
                         referrer=AutofixReferrer.SLACK,
@@ -810,6 +813,9 @@ class SeerOperatorCompletionHook(ExplorerOnCompletionHook):
                     continue
 
                 if cache_payload.get("organization_id") != organization.id:
+                    # run_id is globally unique in Seer, so only one entrypoint will
+                    # have a cache entry per run. An org mismatch here is anomalous;
+                    # return rather than continue to abort the entire method.
                     lifecycle.record_failure(failure_reason="org_mismatch")
                     return
 

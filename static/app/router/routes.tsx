@@ -2525,6 +2525,10 @@ function buildRoutes(): RouteObject[] {
       ),
     },
     {
+      path: 'autofix/recent/',
+      component: make(() => import('sentry/views/issueList/pages/autofix/recentlyRun')),
+    },
+    {
       path: 'supergroups/',
       component: make(() => import('sentry/views/issueList/pages/supergroups')),
     },

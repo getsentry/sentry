@@ -405,6 +405,7 @@ register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR
 #  - retries: int | None = None,
 #  - timeout_ms: float | None = None,
 #  - connection_kwargs: Mapping[str, Any] | None = None,
+#  - token_generator: Mapping[str, Any] | None = None,
 #
 # For an always up-to-date list, see:
 # https://getsentry.github.io/objectstore/python/objectstore_client.html#objectstore_client.Client
@@ -892,6 +893,9 @@ register("aws-lambda.python.layer-version", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("aws-lambda.host-region", default="us-east-2", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # the number of threads we should use to install Lambdas
 register("aws-lambda.thread-count", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Intercom Integration
+register("intercom.sentry-api-secret", flags=FLAG_NOSTORE | FLAG_CREDENTIAL, default="")
 
 # Snuba
 register(
@@ -3334,12 +3338,6 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "spans.buffer.done-flush-conditional-zrem",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Segments consumer
 register(
     "spans.process-segments.consumer.enable",
@@ -3671,6 +3669,22 @@ register(
 # generally set to 'as high as we think we can safely handle for a handful of orgs'.
 register(
     "workflow_engine.max_more_workflows_per_org",
+    type=Int,
+    default=10000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Tuning knobs for the periodic fire-history cleanup task.
+# time_limit is a wall-clock budget checked *between* batches, so a single
+# batch that exceeds it will still run to completion. Setting it to 0
+# prevents any batches from running.
+register(
+    "workflow_engine.fire_history_cleanup.time_limit_seconds",
+    type=Float,
+    default=5.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "workflow_engine.fire_history_cleanup.batch_size",
     type=Int,
     default=10000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

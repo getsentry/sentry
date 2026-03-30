@@ -30,8 +30,7 @@ export function RangeField({
             {...props}
             value={value}
             onChange={onChange}
-            onPointerUp={e => {
-              props.onPointerUp?.(e);
+            onChangeEnd={() => {
               if (autoSaveContext) {
                 fieldProps.onBlur();
               }

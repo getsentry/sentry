@@ -39,7 +39,6 @@ DEFAULT_OPTIONS = {
     "spans.buffer.debug-traces": [],
     "spans.buffer.evalsha-cumulative-logger-enabled": True,
     "spans.process-segments.schema-validation": 1.0,
-    "spans.buffer.done-flush-conditional-zrem": False,
     "spans.buffer.write-distributed-payloads": False,
     "spans.buffer.read-distributed-payloads": False,
     "spans.buffer.write-merged-payloads": True,
@@ -1159,7 +1158,7 @@ def test_partition_routing_stable_across_rebalance() -> None:
         assert_clean(buf.client)
 
 
-@override_options({**DEFAULT_OPTIONS, "spans.buffer.done-flush-conditional-zrem": True})
+@override_options(DEFAULT_OPTIONS)
 def test_done_flush_skips_cleanup_when_new_spans_arrive(buffer: SpansBuffer) -> None:
     """
     Regression test: new spans arriving between flush_segments and
@@ -1228,7 +1227,7 @@ def test_done_flush_skips_cleanup_when_new_spans_arrive(buffer: SpansBuffer) -> 
     assert_clean(buffer.client)
 
 
-@override_options({**DEFAULT_OPTIONS, "spans.buffer.done-flush-conditional-zrem": True})
+@override_options(DEFAULT_OPTIONS)
 def test_done_flush_cleans_up_when_no_new_spans(buffer: SpansBuffer) -> None:
     """
     When no new spans arrive between flush_segments and done_flush_segments,
@@ -1266,7 +1265,7 @@ def test_done_flush_cleans_up_when_no_new_spans(buffer: SpansBuffer) -> None:
     assert_clean(buffer.client)
 
 
-@override_options({**DEFAULT_OPTIONS, "spans.buffer.done-flush-conditional-zrem": True})
+@override_options(DEFAULT_OPTIONS)
 def test_done_flush_phase2_catches_race_after_zrem(buffer: SpansBuffer) -> None:
     """
     Test Phase 2 safety: even if Phase 1 (conditional ZREM) succeeds because the

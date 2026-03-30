@@ -197,6 +197,7 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest, BaseWorkf
         )
 
     @with_feature("organizations:workflow-engine-rule-serializers")
+    @with_feature("organizations:workflow-engine-projectrulegroupstats-get")
     def test_single_written_workflow_history(self) -> None:
         """Test using WorkflowFireHistory when feature flag is enabled"""
         workflow_triggers = self.create_data_condition_group()
@@ -276,6 +277,7 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest, BaseWorkf
         )
 
     @with_feature("organizations:workflow-engine-rule-serializers")
+    @with_feature("organizations:workflow-engine-projectrulegroupstats-get")
     def test_combined_rule_and_workflow_history(self) -> None:
         """Test combining RuleFireHistory and WorkflowFireHistory when both exist"""
         rule = self.create_project_rule(project=self.event.project)
@@ -416,6 +418,7 @@ class FetchRuleHourlyStatsPaginatedTest(BasePostgresRuleHistoryBackendTest):
         assert [r.count for r in results[-5:]] == [0, 0, 1, 1, 0]
 
     @with_feature("organizations:workflow-engine-rule-serializers")
+    @with_feature("organizations:workflow-engine-projectrulegroupstats-get")
     def test_single_written_workflow_history(self) -> None:
         """Test using WorkflowFireHistory when feature flag is enabled"""
         workflow_triggers = self.create_data_condition_group()
@@ -452,6 +455,7 @@ class FetchRuleHourlyStatsPaginatedTest(BasePostgresRuleHistoryBackendTest):
         assert [r.count for r in results[-5:]] == [0, 2, 0, 1, 0]
 
     @with_feature("organizations:workflow-engine-rule-serializers")
+    @with_feature("organizations:workflow-engine-projectrulegroupstats-get")
     def test_combined_rule_and_workflow_history(self) -> None:
         """Test combining RuleFireHistory and WorkflowFireHistory when both exist"""
         rule = self.create_project_rule(project=self.event.project)
