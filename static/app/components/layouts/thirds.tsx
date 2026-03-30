@@ -87,7 +87,11 @@ export const Header = styled((props: ContainerProps<'header'>) => {
     <Container
       as="header"
       background={hasPageFrame ? undefined : 'primary'}
-      padding={hasPageFrame ? 'lg xl 0 xl' : {sm: 'xl xl 0 xl', md: 'xl 3xl 0 3xl'}}
+      padding={
+        hasPageFrame
+          ? {sm: 'md lg 0 lg', md: 'lg xl 0 xl'}
+          : {sm: 'xl xl 0 xl', md: 'xl 3xl 0 3xl'}
+      }
       {...props}
     />
   );
