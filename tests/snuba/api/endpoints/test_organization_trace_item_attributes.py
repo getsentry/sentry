@@ -2294,10 +2294,9 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
                 self.viewname,
                 kwargs={"organization_id_or_slug": self.organization.slug},
             )
-            if query_params:
-                encoded = "&".join(f"{k}={v}" for k, v in query_params.items())
-                url = f"{url}?{encoded}"
-            return self.client.post(url, payload, format="json", **kwargs)
+            return self.client.post(
+                url, payload, format="json", query_params=query_params, **kwargs
+            )
 
     def test_no_feature(self):
         response = self.do_request(
