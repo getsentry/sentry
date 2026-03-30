@@ -1,5 +1,6 @@
 import {useCallback, useMemo} from 'react';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
   bulkAutofixAutomationSettingsInfiniteOptions,
   type AutofixAutomationSettings,
@@ -18,6 +19,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {fetchDataQuery, fetchMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function useAgentOptions({
@@ -225,62 +227,73 @@ export function useBulkMutateSelectedAgent({projects}: {projects: Project[]}) {
     ) => {
       const tuning = integration === 'none' ? 'off' : 'medium';
 
-      try {
-        await Promise.all(
-          projects.map(async project => {
-            const [preferencesData] = await queryClient.fetchQuery({
-              queryKey: makeProjectSeerPreferencesQueryKey(
-                organization.slug,
-                project.slug
-              ),
-              queryFn: fetchDataQuery<SeerPreferencesResponse>,
-              staleTime: 0,
-            });
-            const preference = preferencesData?.preference;
+      const results = await Promise.allSettled(
+        projects.map(async project => {
+          const [preferencesData] = await queryClient.fetchQuery({
+            queryKey: makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
+            queryFn: fetchDataQuery<SeerPreferencesResponse>,
+            staleTime: 0,
+          });
+          const preference = preferencesData?.preference;
 
-            const handoff: ProjectSeerPreferences['automation_handoff'] =
-              integration !== 'seer' && integration !== 'none' && integration
-                ? {
-                    handoff_point: 'root_cause',
-                    target: PROVIDER_TO_HANDOFF_TARGET[integration.provider]!,
-                    integration_id: Number(integration.id),
-                    auto_create_pr:
-                      preference?.automated_run_stopping_point === 'open_pr',
-                  }
-                : undefined;
+          const handoff: ProjectSeerPreferences['automation_handoff'] =
+            integration !== 'seer' && integration !== 'none' && integration
+              ? {
+                  handoff_point: 'root_cause',
+                  target: PROVIDER_TO_HANDOFF_TARGET[integration.provider]!,
+                  integration_id: Number(integration.id),
+                  auto_create_pr: preference?.automated_run_stopping_point === 'open_pr',
+                }
+              : undefined;
 
-            return Promise.all([
-              fetchMutation({
-                method: 'PUT',
-                url: `/projects/${organization.slug}/${project.slug}/`,
-                data: {autofixAutomationTuning: tuning},
-              }),
-              fetchMutation({
-                method: 'POST',
-                url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
-                data: {
-                  repositories: preference?.repositories ?? [],
-                  automated_run_stopping_point: preference?.automated_run_stopping_point,
-                  automation_handoff: handoff,
-                },
-              }),
-            ]);
-          })
-        );
+          return Promise.all([
+            fetchMutation({
+              method: 'PUT',
+              url: `/projects/${organization.slug}/${project.slug}/`,
+              data: {autofixAutomationTuning: tuning},
+            }),
+            fetchMutation({
+              method: 'POST',
+              url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+              data: {
+                repositories: preference?.repositories ?? [],
+                automated_run_stopping_point: preference?.automated_run_stopping_point,
+                automation_handoff: handoff,
+              },
+            }),
+          ]);
+        })
+      );
 
-        projects.forEach(project => {
+      // Update store only for projects that succeeded
+      results.forEach((result, i) => {
+        if (result.status === 'fulfilled') {
           ProjectsStore.onUpdateSuccess({
-            id: project.id,
+            id: projects[i]!.id,
             autofixAutomationTuning: tuning,
           });
-        });
-        queryClient.invalidateQueries({
-          queryKey: autofixSettingsQueryOptions.queryKey,
-        });
+        }
+      });
 
+      // Always invalidate to sync cache with whatever the server actually saved
+      queryClient.invalidateQueries({
+        queryKey: autofixSettingsQueryOptions.queryKey,
+      });
+
+      const failures = results.filter(r => r.status === 'rejected');
+      if (failures.length === 0) {
         onSuccess?.();
-      } catch {
-        onError?.(new Error('Failed to update agent setting'));
+      } else {
+        const has429 = failures.some(
+          r => r.reason instanceof RequestError && r.reason.status === 429
+        );
+        if (has429) {
+          addErrorMessage(
+            t('Too many requests. Please wait a moment before trying again.')
+          );
+        } else {
+          onError?.(new Error('Failed to update agent setting'));
+        }
       }
     },
     [projects, organization, queryClient, autofixSettingsQueryOptions.queryKey]
@@ -296,56 +309,63 @@ export function useBulkMutateCreatePr({projects}: {projects: Project[]}) {
 
   return useCallback(
     async (value: boolean, {onSuccess, onError}: MutateOptions) => {
-      try {
-        await Promise.all(
-          projects.map(async project => {
-            const [preferencesData] = await queryClient.fetchQuery({
-              queryKey: makeProjectSeerPreferencesQueryKey(
-                organization.slug,
-                project.slug
-              ),
-              queryFn: fetchDataQuery<SeerPreferencesResponse>,
-              staleTime: 0,
-            });
-            const preference = preferencesData?.preference;
+      const results = await Promise.allSettled(
+        projects.map(async project => {
+          const [preferencesData] = await queryClient.fetchQuery({
+            queryKey: makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
+            queryFn: fetchDataQuery<SeerPreferencesResponse>,
+            staleTime: 0,
+          });
+          const preference = preferencesData?.preference;
 
-            if (preference?.automation_handoff?.integration_id) {
-              const updatedHandoff = {
-                ...preference.automation_handoff,
-                auto_create_pr: value,
-              };
-              return fetchMutation({
-                method: 'POST',
-                url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
-                data: {
-                  repositories: preference?.repositories ?? [],
-                  automated_run_stopping_point: preference?.automated_run_stopping_point,
-                  automation_handoff: updatedHandoff,
-                },
-              });
-            }
-
-            const stoppingPoint = value
-              ? ('open_pr' as const)
-              : ('code_changes' as const);
+          if (preference?.automation_handoff?.integration_id) {
+            const updatedHandoff = {
+              ...preference.automation_handoff,
+              auto_create_pr: value,
+            };
             return fetchMutation({
               method: 'POST',
               url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
               data: {
                 repositories: preference?.repositories ?? [],
-                automated_run_stopping_point: stoppingPoint,
-                automation_handoff: preference?.automation_handoff,
+                automated_run_stopping_point: preference?.automated_run_stopping_point,
+                automation_handoff: updatedHandoff,
               },
             });
-          })
-        );
+          }
 
-        queryClient.invalidateQueries({
-          queryKey: autofixSettingsQueryOptions.queryKey,
-        });
+          const stoppingPoint = value ? ('open_pr' as const) : ('code_changes' as const);
+          return fetchMutation({
+            method: 'POST',
+            url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+            data: {
+              repositories: preference?.repositories ?? [],
+              automated_run_stopping_point: stoppingPoint,
+              automation_handoff: preference?.automation_handoff,
+            },
+          });
+        })
+      );
+
+      // Always invalidate to sync cache with whatever the server actually saved
+      queryClient.invalidateQueries({
+        queryKey: autofixSettingsQueryOptions.queryKey,
+      });
+
+      const failures = results.filter(r => r.status === 'rejected');
+      if (failures.length === 0) {
         onSuccess?.();
-      } catch {
-        onError?.(new Error('Failed to update PR setting'));
+      } else {
+        const has429 = failures.some(
+          r => r.reason instanceof RequestError && r.reason.status === 429
+        );
+        if (has429) {
+          addErrorMessage(
+            t('Too many requests. Please wait a moment before trying again.')
+          );
+        } else {
+          onError?.(new Error('Failed to update PR setting'));
+        }
       }
     },
     [projects, organization, queryClient, autofixSettingsQueryOptions.queryKey]
