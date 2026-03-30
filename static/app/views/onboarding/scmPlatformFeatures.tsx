@@ -370,7 +370,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     (!currentPlatformKey || currentPlatformIsDetected);
 
   return (
-    <Flex direction="column" align="center" gap="2xl" flexGrow={1}>
+    <Flex direction="column" align="center" gap="4xl" flexGrow={1}>
       <ScmStepHeader
         stepNumber={2}
         heading={t('Platform & features')}
@@ -388,7 +388,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
             width="100%"
           >
             <Heading as="h3">{t('Recommended SDK')}</Heading>
-            <Stack gap="sm" align="center" width="100%">
+            <Stack gap="lg" align="center" width="100%">
               {isDetecting ? (
                 <LoadingIndicator mini />
               ) : (

@@ -84,7 +84,7 @@ export function ScmFeatureSelectionCards({
   const totalCount = availableFeatures.length;
 
   return (
-    <Flex direction="column" gap="md" width="100%" justify="center">
+    <Flex direction="column" gap="2xl" width="100%" justify="center">
       <Grid
         columns={{xs: '1fr', md: '1fr auto 1fr'}}
         align="center"
@@ -99,7 +99,7 @@ export function ScmFeatureSelectionCards({
         </Flex>
       </Grid>
       <Grid
-        gap="lg"
+        gap="xl"
         columns={
           availableFeatures.length === 1 ? '1fr' : {xs: '1fr', md: 'repeat(2, 1fr)'}
         }
