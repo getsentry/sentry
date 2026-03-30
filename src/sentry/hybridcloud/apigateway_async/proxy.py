@@ -8,7 +8,6 @@ import asyncio
 import logging
 from collections.abc import AsyncGenerator, AsyncIterator
 from urllib.parse import urljoin, urlparse
-from wsgiref.util import is_hop_by_hop
 
 import httpx
 from asgiref.sync import sync_to_async
@@ -75,8 +74,9 @@ async def _stream_response_and_close(response: httpx.Response) -> AsyncGenerator
 def _adapt_response(response: httpx.Response, remote_url: str) -> StreamingHttpResponse:
     """Convert an httpx Response into a Django response."""
 
+    if content_type := response.headers.get("Content-Type", None):
+        del response.headers["Content-Type"]
     new_headers = clean_outbound_headers(response.headers)
-    content_type = new_headers.pop("Content-Type", None)
 
     streamed_response = StreamingHttpResponse(
         streaming_content=_stream_response_and_close(response),
@@ -85,8 +85,7 @@ def _adapt_response(response: httpx.Response, remote_url: str) -> StreamingHttpR
     )
 
     for header, value in new_headers.items():
-        if not is_hop_by_hop(header):
-            streamed_response[header] = value
+        streamed_response[header] = value
 
     streamed_response[PROXY_DIRECT_LOCATION_HEADER] = remote_url
     return streamed_response
