@@ -57,6 +57,7 @@ export function OrganizationFixture(params: Partial<Organization> = {}): Organiz
     defaultCodeReviewTriggers: [],
     defaultCodingAgent: null,
     defaultCodingAgentIntegrationId: null,
+    defaultAutomatedRunStoppingPoint: 'off',
     defaultRole: '',
     enhancedPrivacy: false,
     eventsMemberAdmin: false,

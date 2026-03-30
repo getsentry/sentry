@@ -32,7 +32,6 @@ export function useAgentOptions({
           value: integration,
           label: integration.name,
         })),
-      {value: 'none' as const, label: t('No Handoff')},
     ];
   }, [integrations]);
 }

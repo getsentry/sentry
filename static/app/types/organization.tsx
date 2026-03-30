@@ -65,10 +65,10 @@ export interface Organization extends OrganizationSummary {
   dataScrubber: boolean;
   dataScrubberDefaults: boolean;
   debugFilesRole: string;
-  defaultAutomatedRunStoppingPoint: AutofixStoppingPoint;
+  defaultAutomatedRunStoppingPoint: 'off' | AutofixStoppingPoint;
   defaultCodeReviewTriggers: CodeReviewTrigger[];
   defaultCodingAgent: string | null;
-  defaultCodingAgentIntegrationId: number | null;
+  defaultCodingAgentIntegrationId: string | number | null;
   defaultRole: string;
   enhancedPrivacy: boolean;
   eventsMemberAdmin: boolean;

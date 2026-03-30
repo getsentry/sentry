@@ -35,23 +35,39 @@ import {useAgentOptions} from 'sentry/views/settings/seer/seerAgentHooks';
 export function useAutofixOverviewData() {
   const organization = useOrganization();
 
-  // Autofix Data
   const autofixSettingsResult = useInfiniteQuery({
     ...bulkAutofixAutomationSettingsInfiniteOptions({organization}),
     select: ({pages}) => {
       const autofixItems = pages.flatMap(page => page.json).filter(s => s !== null);
-
       const projectsWithRepos = autofixItems.filter(settings => settings.reposCount > 0);
-      const projectsWithAutomation = autofixItems.filter(
-        settings => settings.autofixAutomationTuning !== 'off'
-      );
-      const projectsWithCreatePr = autofixItems.filter(
-        settings => settings.automationHandoff?.auto_create_pr
-      );
+      const projectsWithPreferredAgent =
+        organization.defaultCodingAgent === 'seer'
+          ? autofixItems.filter(settings => !settings.automationHandoff)
+          : autofixItems.filter(
+              settings =>
+                String(settings.automationHandoff?.integration_id ?? '') ===
+                String(organization.defaultCodingAgentIntegrationId ?? '')
+            );
+
+      console.log({autoOpenPrs: organization.autoOpenPrs, autofixItems});
+
+      const projectsWithCreatePr = organization.autoOpenPrs
+        ? autofixItems.filter(
+            settings =>
+              (settings.automationHandoff === null &&
+                settings.automatedRunStoppingPoint === 'open_pr') ||
+              settings.automationHandoff?.auto_create_pr
+          )
+        : autofixItems.filter(
+            settings =>
+              settings.automatedRunStoppingPoint !== 'open_pr' &&
+              !settings.automationHandoff?.auto_create_pr
+          );
+      console.log({projectsWithCreatePr});
 
       return {
         projectsWithRepos,
-        projectsWithAutomation,
+        projectsWithPreferredAgent,
         projectsWithCreatePr,
       };
     },
@@ -70,13 +86,11 @@ export function AutofixOverviewSection({canWrite, data, isPending, organization}
 
   const {
     projectsWithRepos = [],
-    projectsWithAutomation = [],
+    projectsWithPreferredAgent = [],
     projectsWithCreatePr = [],
   } = data ?? {};
 
   const projectsWithReposCount = projectsWithRepos.length;
-  const projectsWithAutomationCount = projectsWithAutomation.length;
-  const projectsWithCreatePrCount = projectsWithCreatePr.length;
 
   return (
     <FieldGroup
@@ -103,8 +117,7 @@ export function AutofixOverviewSection({canWrite, data, isPending, organization}
         isPending={isPending}
         organization={organization}
         projects={projects}
-        projectsWithAutomationCount={projectsWithAutomationCount}
-        projectsWithReposCount={projectsWithReposCount}
+        projectsWithPreferredAgentCount={projectsWithPreferredAgent.length}
       />
 
       <CreatePrForm
@@ -112,8 +125,7 @@ export function AutofixOverviewSection({canWrite, data, isPending, organization}
         isPending={isPending}
         organization={organization}
         projects={projects}
-        projectsWithCreatePrCount={projectsWithCreatePrCount}
-        projectsWithReposCount={projectsWithReposCount}
+        projectsWithCreatePrCount={projectsWithCreatePr.length}
       />
 
       <StoppingPointForm organization={organization} />
@@ -171,13 +183,9 @@ function ConnectedReposForm({
                   : projects.length === 1
                     ? projectsWithReposCount === 1
                       ? t('Your existing project has repos connected')
-                      : t(
-                          'Your existing project does not have any repos connected',
-                          projectsWithReposCount,
-                          projects.length
-                        )
+                      : t('Your existing project does not have any repos connected')
                     : projects.length === projectsWithReposCount
-                      ? t('All of your existing projects have repos connected')
+                      ? t('All existing projects have repos connected')
                       : t(
                           '%s of %s existing projects have repos connected',
                           projectsWithReposCount,
@@ -197,17 +205,14 @@ function AgentNameForm({
   isPending,
   organization,
   projects,
-  projectsWithAutomationCount,
-  projectsWithReposCount,
+  projectsWithPreferredAgentCount,
 }: {
   canWrite: boolean;
   isPending: boolean;
   organization: Organization;
   projects: Project[];
-  projectsWithAutomationCount: number;
-  projectsWithReposCount: number;
+  projectsWithPreferredAgentCount: number;
 }) {
-  // Coding Agent options
   const {data: integrations} = useQuery(
     organizationIntegrationsCodingAgents(organization)
   );
@@ -215,44 +220,47 @@ function AgentNameForm({
     integrations: integrations?.integrations ?? [],
   });
   const codingAgentOptions = rawAgentOptions.map(option => ({
-    value:
-      option.value === 'seer' || option.value === 'none'
-        ? option.value
-        : option.value.id!,
+    value: option.value === 'seer' ? 'seer' : String(option.value.id),
     label: option.label,
   }));
 
-  // Default Preferred Coding Agent field
   const codingAgentMutationOpts = mutationOptions({
-    mutationFn: ({agentName}: {agentName: string}) => {
+    mutationFn: ({agentId}: {agentId: string}) => {
       return fetchMutation<Organization>({
         method: 'PUT',
         url: `/organizations/${organization.slug}/`,
         data:
-          agentName === 'seer'
-            ? {defaultCodingAgent: agentName, defaultCodingAgentIntegrationId: null}
-            : agentName === 'none'
-              ? {defaultCodingAgent: null, defaultCodingAgentIntegrationId: null}
-              : {
-                  defaultCodingAgent: agentName,
-                  defaultCodingAgentIntegrationId: Number(agentName),
-                },
+          agentId === 'seer'
+            ? {
+                defaultCodingAgent: agentId,
+                defaultCodingAgentIntegrationId: null,
+              }
+            : {
+                defaultCodingAgent: rawAgentOptions
+                  .filter(option => option.value !== 'seer')
+                  .find(option => option.value.id === agentId)?.value.provider,
+                defaultCodingAgentIntegrationId: agentId,
+              },
       });
     },
     onSuccess: updateOrganization,
   });
 
-  const preferredAgentName = organization.defaultCodingAgentIntegrationId
+  const preferredAgentValue = organization.defaultCodingAgentIntegrationId
     ? String(organization.defaultCodingAgentIntegrationId)
     : organization.defaultCodingAgent
       ? organization.defaultCodingAgent
-      : 'none';
+      : 'seer';
+
+  const preferredAgentLabel = codingAgentOptions.find(
+    option => option.value === preferredAgentValue
+  )?.label;
 
   return (
     <AutoSaveForm
-      name="agentName"
-      schema={z.object({agentName: z.string()})}
-      initialValue={preferredAgentName}
+      name="agentId"
+      schema={z.object({agentId: z.string()})}
+      initialValue={preferredAgentValue}
       mutationOptions={codingAgentMutationOpts}
     >
       {field => (
@@ -260,7 +268,7 @@ function AgentNameForm({
           <field.Layout.Row
             label={t('Default Preferred Coding Agent')}
             hintText={t(
-              'For new projects, select which coding agent to use for planning and coding fixes.'
+              'For new projects, select which coding agent to use when proposing code changes.'
             )}
           >
             <Container flexGrow={1}>
@@ -277,7 +285,7 @@ function AgentNameForm({
             <Button
               size="xs"
               busy={isPending}
-              disabled={!canWrite || projectsWithReposCount === projects.length}
+              disabled={!canWrite || projectsWithPreferredAgentCount === projects.length}
               onClick={() => {
                 // TODO
               }}
@@ -285,17 +293,24 @@ function AgentNameForm({
               {tn(
                 'Set for the existing project',
                 'Set for all existing projects',
-                projectsWithReposCount
+                projectsWithPreferredAgentCount
               )}
             </Button>
             <Text variant="secondary" size="sm">
-              {t(
-                '%s of %s existing projects use %s',
-                projectsWithAutomationCount,
-                projects.length,
-                codingAgentOptions.find(option => option.value === field.state.value)
-                  ?.label
-              )}
+              {projects.length === 0
+                ? t('No projects found')
+                : projects.length === 1
+                  ? projectsWithPreferredAgentCount === 1
+                    ? t('Your existing project uses %s', preferredAgentLabel)
+                    : t('Your existing project does not use %s', preferredAgentLabel)
+                  : projects.length === projectsWithPreferredAgentCount
+                    ? t('All existing projects use %s', preferredAgentLabel)
+                    : t(
+                        '%s of %s existing projects use %s',
+                        projectsWithPreferredAgentCount,
+                        projects.length,
+                        preferredAgentLabel
+                      )}
             </Text>
           </Flex>
         </Stack>
@@ -310,14 +325,12 @@ function CreatePrForm({
   organization,
   projects,
   projectsWithCreatePrCount,
-  projectsWithReposCount,
 }: {
   canWrite: boolean;
   isPending: boolean;
   organization: Organization;
   projects: Project[];
   projectsWithCreatePrCount: number;
-  projectsWithReposCount: number;
 }) {
   const orgMutationOpts = mutationOptions({
     mutationFn: (updateData: Partial<Organization>) =>
@@ -340,14 +353,11 @@ function CreatePrForm({
         <Stack gap="md">
           <field.Layout.Row
             label={t('Create PRs by default')}
-            hintText={tct(
-              'For new projects, when Seer suggests a code change it will also create a PR for your review.',
-              {
-                docs: (
-                  <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works" />
-                ),
-              }
-            )}
+            hintText={tct('For new projects, create a PR when proposing a code change.', {
+              docs: (
+                <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works" />
+              ),
+            })}
           >
             <Container flexGrow={1}>
               <field.Switch
@@ -371,7 +381,7 @@ function CreatePrForm({
               disabled={
                 !canWrite ||
                 organization.enableSeerCoding === false ||
-                projectsWithReposCount === projects.length
+                projectsWithCreatePrCount === projects.length
               }
               onClick={() => {
                 // TODO
@@ -381,26 +391,36 @@ function CreatePrForm({
                 ? tn(
                     'Enable for the existing project',
                     'Enable for all existing projects',
-                    projectsWithReposCount
+                    projectsWithCreatePrCount
                   )
                 : tn(
                     'Disable for the existing project',
                     'Disable for all existing projects',
-                    projectsWithReposCount
+                    projectsWithCreatePrCount
                   )}
             </Button>
             <Text variant="secondary" size="sm">
-              {field.state.value
-                ? t(
-                    '%s of %s existing repos have Create PR enabled',
-                    projectsWithCreatePrCount,
-                    projects.length
-                  )
-                : t(
-                    '%s of %s existing repos have Create PR disabled',
-                    projects.length - projectsWithCreatePrCount,
-                    projects.length
-                  )}
+              {projects.length === 0
+                ? t('No projects found')
+                : projects.length === 1
+                  ? projectsWithCreatePrCount === 1
+                    ? t('Your existing project has Create PR enabled')
+                    : t('Your existing project does not have Create PR enabled')
+                  : field.state.value
+                    ? projects.length === projectsWithCreatePrCount
+                      ? t('All existing projects have Create PR enabled')
+                      : t(
+                          '%s of %s existing projects have Create PR enabled',
+                          projectsWithCreatePrCount,
+                          projects.length
+                        )
+                    : projects.length === projectsWithCreatePrCount
+                      ? t('All existing projects have Create PR disabled')
+                      : t(
+                          '%s of %s existing projects have Create PR disabled',
+                          projectsWithCreatePrCount,
+                          projects.length
+                        )}
             </Text>
           </Flex>
 
@@ -423,11 +443,6 @@ function CreatePrForm({
 }
 
 function StoppingPointForm({organization}: {organization: Organization}) {
-  // const [mockValue, setMockValue] = useState<
-  //   | 'off'
-  //   | Organization['defaultAutomatedRunStoppingPoint'][keyof Organization['defaultAutomatedRunStoppingPoint']]
-  // >('off');
-
   const stoppingPointMutationOpts = mutationOptions({
     mutationFn: ({
       stoppingPoint,
@@ -436,7 +451,6 @@ function StoppingPointForm({organization}: {organization: Organization}) {
         | 'off'
         | Organization['defaultAutomatedRunStoppingPoint'][keyof Organization['defaultAutomatedRunStoppingPoint']];
     }) => {
-      // setMockValue(stoppingPoint);
       return fetchMutation<Organization>({
         method: 'PUT',
         url: `/organizations/${organization.slug}/`,
@@ -455,19 +469,15 @@ function StoppingPointForm({organization}: {organization: Organization}) {
     onSuccess: updateOrganization,
   });
 
-  // const initialValue = mockValue;
   const initialValue =
     organization.defaultAutofixAutomationTuning === 'off'
       ? 'off'
       : (organization.defaultAutomatedRunStoppingPoint ?? 'off');
 
-  console.log({initialValue});
-
   return (
     <AutoSaveForm
       name="stoppingPoint"
       schema={z.object({
-        // stoppingPoint: z.string(),
         stoppingPoint: z.enum([
           'off',
           'root_cause',
@@ -486,7 +496,7 @@ function StoppingPointForm({organization}: {organization: Organization}) {
             hintText={tct(
               'For new projects, pick which steps Seer should try to run as new issues are collected. Depending on how [actionable:actionable] the issue is, Seer may stop at an earlier step.',
               {
-                docs: (
+                actionable: (
                   <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works" />
                 ),
               }
@@ -521,31 +531,7 @@ function StoppingPointForm({organization}: {organization: Organization}) {
                     }
                   />
                 )}
-
-                {false && (
-                  <field.Radio.Group
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                  >
-                    <field.Layout.Stack label={t('Priority')}>
-                      <field.Radio.Item value={'off' as const}>
-                        {t('No Automation')}
-                      </field.Radio.Item>
-                      <field.Radio.Item value={'root_cause' as const}>
-                        {t('Automate Root Cause Analysis')}
-                      </field.Radio.Item>
-                      {organization.autoOpenPrs ? (
-                        <field.Radio.Item value={'open_pr' as const}>
-                          {t('Automate Code Changes and Create PR')}
-                        </field.Radio.Item>
-                      ) : (
-                        <field.Radio.Item value={'code_changes' as const}>
-                          {t('Automate Code Changes')}
-                        </field.Radio.Item>
-                      )}
-                    </field.Layout.Stack>
-                  </field.Radio.Group>
-                )} */}
+                  */}
 
               <field.Base<HTMLInputElement>>
                 {(baseProps, {indicator}) => (
@@ -560,7 +546,7 @@ function StoppingPointForm({organization}: {organization: Organization}) {
                         <Radio
                           {...baseProps}
                           value="off"
-                          checked
+                          checked={field.state.value === 'off'}
                           onChange={() => field.handleChange('off')}
                         />
                         <Text size="sm" bold={false}>
@@ -571,13 +557,14 @@ function StoppingPointForm({organization}: {organization: Organization}) {
                         <Radio
                           {...baseProps}
                           value="root_cause"
-                          checked={['off', 'root_cause'].includes(field.state.value)}
+                          checked={field.state.value === 'root_cause'}
                           onChange={() => field.handleChange('root_cause')}
                         />
                         <Text size="sm" bold={false}>
                           {t('Root Cause Analysis')}
                         </Text>
                       </StoppingPointLabel>
+
                       <StoppingPointLabel as="label" align="center" gap="xs">
                         <Radio
                           {...baseProps}
@@ -586,7 +573,7 @@ function StoppingPointForm({organization}: {organization: Organization}) {
                           onChange={() => field.handleChange('code_changes')}
                         />
                         <Text size="sm" bold={false}>
-                          {t('Code Changes')}
+                          {t('Propose Code Changes')}
                         </Text>
                       </StoppingPointLabel>
                     </StoppingPointContainer>
@@ -625,13 +612,16 @@ const StoppingPointContainer = styled(Flex, {
     position: absolute;
     /* Vertically centered through the radio buttons (24px default diameter → 12px center) */
     top: 12px;
+    transform: translateY(-50%);
+    height: 1em;
+
     /*
      * Left is fixed at the center of the first item.
      * Width expands to reach the center of whichever item is selected,
      * animating left to right. Each label has flex:1 so all three are equal
-     * width W = (100% - 2×gap) / 3. Distance from center of item 1 to:
+     * width W = (100% - 2*gap) / 3. Distance from center of item 1 to:
      *   item 2: W + gap     = (100% + gap) / 3
-     *   item 3: 2W + 2×gap = (200% + 2×gap) / 3
+     *   item 3: 2W + 2*gap = (200% + 2*gap) / 3
      */
     left: calc((100% - ${p => p.theme.space.md} * 2) / 6);
     width: ${p => {
@@ -646,8 +636,7 @@ const StoppingPointContainer = styled(Flex, {
           return '0px';
       }
     }};
-    height: 1em;
-    transform: translateY(-50%);
+
     background: ${p => p.theme.colors.blue400};
     pointer-events: none;
     z-index: -1;
