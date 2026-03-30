@@ -50,7 +50,7 @@ class NotifyEventServiceActionTest(RuleTestCase, BaseWorkflowTest):
 
 
 class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.event = self.get_event()
         self.webhook = WebHooksPlugin()
         self.webhook.set_option(
@@ -72,7 +72,7 @@ class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
         }
 
     @responses.activate
-    def test_applies_correctly_for_legacy_webhooks_aci(self):
+    def test_applies_correctly_for_legacy_webhooks_aci(self) -> None:
         responses.add(responses.POST, "http://my-fake-webhook.io")
 
         (
@@ -127,7 +127,7 @@ class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
         assert payload["triggering_rules"] == ["error_detector"]
 
     @responses.activate
-    def test_legacy_webhooks_uneven_dual_write_aci(self):
+    def test_legacy_webhooks_uneven_dual_write_aci(self) -> None:
         """
         Test that if a dual written Rule has it's Action updated to email instead that we do not fire a response to the webhook
         """

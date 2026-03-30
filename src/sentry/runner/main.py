@@ -46,6 +46,7 @@ for cmd in map(
         "sentry.runner.commands.createflag.createflag",
         "sentry.runner.commands.createflag.createissueflag",
         "sentry.runner.commands.createorg.createorg",
+        "sentry.runner.commands.createproject.createproject",
         "sentry.runner.commands.createuser.createuser",
         "sentry.runner.commands.devserver.devserver",
         "sentry.runner.commands.django.django",

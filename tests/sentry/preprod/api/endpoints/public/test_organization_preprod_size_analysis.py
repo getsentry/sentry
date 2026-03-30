@@ -14,7 +14,7 @@ from sentry.utils import json
 class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-preprod-artifact-public-size-analysis"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.organization)
@@ -67,18 +67,18 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         defaults.update(overrides)
         return defaults
 
-    def test_feature_flag_disabled(self):
+    def test_feature_flag_disabled(self) -> None:
         with self.feature({"organizations:preprod-frontend-routes": False}):
             response = self.client.get(self._get_url())
             assert response.status_code == 403
             assert response.json()["detail"] == "Feature not enabled"
 
-    def test_artifact_not_found(self):
+    def test_artifact_not_found(self) -> None:
         response = self.client.get(self._get_url(artifact_id=999999))
         assert response.status_code == 404
         assert "The requested preprod artifact does not exist" in response.json()["detail"]
 
-    def test_no_size_metrics_returns_pending(self):
+    def test_no_size_metrics_returns_pending(self) -> None:
         response = self.client.get(self._get_url())
         assert response.status_code == 200
         data = response.json()
@@ -89,7 +89,7 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         assert data["errorCode"] is None
         assert data["errorMessage"] is None
 
-    def test_pending_state(self):
+    def test_pending_state(self) -> None:
         self.create_preprod_artifact_size_metrics(
             self.preprod_artifact,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
@@ -105,7 +105,7 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         assert data["downloadSize"] is None
         assert data["installSize"] is None
 
-    def test_processing_state(self):
+    def test_processing_state(self) -> None:
         self.create_preprod_artifact_size_metrics(
             self.preprod_artifact,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
@@ -117,7 +117,7 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         data = response.json()
         assert data["state"] == "PROCESSING"
 
-    def test_failed_state(self):
+    def test_failed_state(self) -> None:
         self.create_preprod_artifact_size_metrics(
             self.preprod_artifact,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
@@ -135,7 +135,7 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         assert data["downloadSize"] is None
         assert data["installSize"] is None
 
-    def test_completed_state(self):
+    def test_completed_state(self) -> None:
         analysis_data = self._make_analysis_data(
             insights={"platform": "android", "duplicate_files": None},
             app_components=[
@@ -188,7 +188,7 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         assert "treemap" not in data
         assert "fileAnalysis" not in data
 
-    def test_completed_state_with_base_build(self):
+    def test_completed_state_with_base_build(self) -> None:
         commit_comparison = self.create_commit_comparison(
             organization=self.organization,
             head_sha="1234567890098765432112345678900987654321",
@@ -273,7 +273,7 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         assert comparison["sizeMetricDiff"] is not None
         assert comparison["sizeMetricDiff"]["metricsArtifactType"] == "MAIN_ARTIFACT"
 
-    def test_completed_state_with_explicit_base_id(self):
+    def test_completed_state_with_explicit_base_id(self) -> None:
         base_file = self.create_file(name="base_artifact.apk", type="application/octet-stream")
         base_artifact = self.create_preprod_artifact(
             project=self.project,
@@ -336,7 +336,7 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         assert data["baseBuildId"] == str(base_artifact.id)
         assert data["comparisons"] is not None
 
-    def test_invalid_base_id(self):
+    def test_invalid_base_id(self) -> None:
         analysis_file = self._create_analysis_file(self._make_analysis_data())
 
         self.create_preprod_artifact_size_metrics(
@@ -353,7 +353,7 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         assert response.status_code == 404
         assert "base preprod artifact does not exist" in response.json()["detail"]
 
-    def test_cross_org_artifact_access(self):
+    def test_cross_org_artifact_access(self) -> None:
         other_org = self.create_organization(owner=self.user)
         other_project = self.create_project(organization=other_org)
         other_file = self.create_file(name="other_artifact.apk", type="application/octet-stream")
@@ -368,7 +368,7 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         assert response.status_code == 404
         assert "The requested preprod artifact does not exist" in response.json()["detail"]
 
-    def test_base_artifact_different_org(self):
+    def test_base_artifact_different_org(self) -> None:
         other_org = self.create_organization(owner=self.user)
         other_project = self.create_project(organization=other_org)
         other_file = self.create_file(name="other_artifact.apk", type="application/octet-stream")

@@ -1200,10 +1200,12 @@ class JiraIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = JiraIntegration
 
-    # Jira is cell-restricted because the JiraSentryIssueDetailsView view does not currently
-    # contain organization-identifying information aside from the ExternalIssue. Multiple cells
-    # may contain a matching ExternalIssue and we could leak data across the organizations.
-    is_cell_restricted = True
+    @property
+    def is_cell_restricted(self) -> bool:
+        # TODO(cells): Remove this option and property once multi-cell rollout is complete.
+        from sentry import options
+
+        return not options.get("integrations.jira.multi-cell-enabled")
 
     features = frozenset(
         [
