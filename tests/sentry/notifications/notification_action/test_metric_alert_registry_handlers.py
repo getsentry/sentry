@@ -263,6 +263,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         date_closed: datetime | None,
     ):
         assert open_period_context.dict() == {
+            "model_config": {"frozen": True},
             "id": id,
             "date_started": date_started,
             "date_closed": date_closed,
