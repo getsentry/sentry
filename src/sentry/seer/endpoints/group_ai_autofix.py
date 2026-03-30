@@ -269,8 +269,8 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     run_id,
                     referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
                 )
-            except SeerPermissionError:
-                return Response(status=status.HTTP_404_NOT_FOUND)
+            except SeerPermissionError as e:
+                raise PermissionDenied(str(e)) from e
             return Response({"run_id": run_id}, status=status.HTTP_202_ACCEPTED)
 
         # Handle all built-in Seer steps

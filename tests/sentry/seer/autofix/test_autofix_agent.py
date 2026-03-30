@@ -807,6 +807,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
             trigger_coding_agent_handoff(
                 group=self.group,
                 run_id=123,
+                referrer=AutofixReferrer.UNKNOWN,
                 integration_id=456,
             )
 
