@@ -1,5 +1,3 @@
-import {z} from 'zod';
-
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -13,6 +11,7 @@ import {
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {targetSampleRateSchema} from 'sentry/views/settings/dynamicSampling/organizationSampling';
 import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {useUpdateOrganization} from 'sentry/views/settings/dynamicSampling/utils/useUpdateOrganization';
@@ -28,20 +27,6 @@ interface Props {
    */
   initialTargetRate?: number;
 }
-
-const schema = z.object({
-  targetSampleRate: z
-    .string()
-    .min(1, t('This field is required.'))
-    .refine(val => !isNaN(Number(val)), {message: t('Please enter a valid number.')})
-    .refine(
-      val => {
-        const n = Number(val);
-        return n >= 0 && n <= 100;
-      },
-      {message: t('Must be between 0% and 100%')}
-    ),
-});
 
 function SamplingModeSwitchModal({
   Header,
@@ -70,7 +55,7 @@ function SamplingModeSwitchModal({
       targetSampleRate: formatPercent(initialTargetRate || 0),
     },
     validators: {
-      onDynamic: schema,
+      onDynamic: targetSampleRateSchema,
     },
     onSubmit: ({value}) => {
       const changes: Parameters<typeof updateOrganization>[0] = {samplingMode};

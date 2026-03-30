@@ -22,20 +22,20 @@ class ProcessControlOutboxTest(TestCase):
 
     @patch("sentry.receivers.outbox.control.maybe_process_tombstone")
     def test_process_integration_updates(self, mock_maybe_process: MagicMock) -> None:
-        process_integration_updates(object_identifier=self.identifier, region_name=_TEST_CELL.name)
+        process_integration_updates(object_identifier=self.identifier, cell_name=_TEST_CELL.name)
         mock_maybe_process.assert_called_with(
             Integration, self.identifier, cell_name=_TEST_CELL.name
         )
 
     @patch("sentry.receivers.outbox.control.maybe_process_tombstone")
     def test_process_identity_updates(self, mock_maybe_process: MagicMock) -> None:
-        process_identity_updates(object_identifier=self.identifier, region_name=_TEST_CELL.name)
+        process_identity_updates(object_identifier=self.identifier, cell_name=_TEST_CELL.name)
         mock_maybe_process.assert_called_with(Identity, self.identifier, cell_name=_TEST_CELL.name)
 
     @patch("sentry.receivers.outbox.control.maybe_process_tombstone")
     def test_process_api_application_updates(self, mock_maybe_process: MagicMock) -> None:
         process_api_application_updates(
-            object_identifier=self.identifier, region_name=_TEST_CELL.name
+            object_identifier=self.identifier, cell_name=_TEST_CELL.name
         )
         mock_maybe_process.assert_called_with(
             ApiApplication, self.identifier, cell_name=_TEST_CELL.name
@@ -54,7 +54,7 @@ class ProcessControlOutboxTest(TestCase):
         )
 
         with self.tasks():
-            process_sentry_app_updates(object_identifier=sentry_app.id, region_name=_TEST_CELL.name)
+            process_sentry_app_updates(object_identifier=sentry_app.id, cell_name=_TEST_CELL.name)
         mock_caching.clear_key.assert_any_call(
             key=f"app_service.get_installation:{install.id}", cell_name=_TEST_CELL.name
         )

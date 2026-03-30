@@ -5,6 +5,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -95,6 +96,12 @@ export function TopBar() {
               {t('Ask Seer')}
             </Button>
           ) : null}
+          <FeedbackButton
+            aria-label={t('Give Feedback')}
+            feedbackOptions={{tags: {'feedback.source': 'top_navigation'}}}
+          >
+            {null}
+          </FeedbackButton>
         </Flex>
       </SizeProvider>
     </Flex>

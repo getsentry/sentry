@@ -4,7 +4,7 @@ import logging
 from typing import Any
 
 from drf_spectacular.utils import extend_schema
-from rest_framework import serializers
+from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -38,6 +38,7 @@ from sentry.seer.autofix.autofix_agent import (
     get_autofix_explorer_state,
     trigger_autofix_explorer,
     trigger_coding_agent_handoff,
+    trigger_push_changes,
 )
 from sentry.seer.autofix.coding_agent import (
     poll_claude_code_agents,
@@ -87,6 +88,7 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
             "root_cause",
             "solution",
             "code_changes",
+            "open_pr",
             "impact_assessment",
             "triage",
             "coding_agent_handoff",
@@ -166,7 +168,6 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             "organizations:seer-explorer",
             # Access to seer explorer powered autofix
             "organizations:autofix-on-explorer",
-            "organizations:autofix-on-explorer-v2",
         ]
 
         batch_features = features.batch_has(
@@ -223,15 +224,15 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         """Handle POST for Explorer-based autofix."""
         serializer = ExplorerAutofixRequestSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
         step = data.get("step", "root_cause")
         stopping_point = data.get("stopping_point")
+        run_id = data.get("run_id")
 
         # Handle third-party coding agent handoff separately
         if step == "coding_agent_handoff":
-            run_id = data.get("run_id")
             integration_id = data.get("integration_id")
             provider = data.get("provider")
             if not run_id or (not integration_id and not provider):
@@ -239,22 +240,38 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     {
                         "detail": "run_id and either integration_id or provider are required for coding_agent_handoff"
                     },
-                    status=400,
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
             if integration_id and provider:
                 return Response(
                     {"detail": "Cannot specify both integration_id and provider"},
-                    status=400,
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             result = trigger_coding_agent_handoff(
                 group=group,
                 run_id=run_id,
+                referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
                 integration_id=integration_id,
                 provider=provider,
                 user_id=request.user.id if request.user else None,
             )
-            return Response(result, status=202)
+            return Response(result, status=status.HTTP_202_ACCEPTED)
+
+        if step == "open_pr":
+            if not run_id:
+                return Response(
+                    {"detail": "run_id is required for open_pr"}, status=status.HTTP_400_BAD_REQUEST
+                )
+            try:
+                trigger_push_changes(
+                    group,
+                    run_id,
+                    referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+                )
+            except SeerPermissionError:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+            return Response({"run_id": run_id}, status=status.HTTP_202_ACCEPTED)
 
         # Handle all built-in Seer steps
         try:
@@ -263,11 +280,11 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 step=AutofixStep(step),
                 referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
                 stopping_point=AutofixStoppingPoint(stopping_point) if stopping_point else None,
-                run_id=data.get("run_id"),
+                run_id=run_id,
                 intelligence_level=data["intelligence_level"],
                 user_context=data.get("user_context"),
             )
-            return Response({"run_id": run_id}, status=202)
+            return Response({"run_id": run_id}, status=status.HTTP_202_ACCEPTED)
         except SeerPermissionError as e:
             raise PermissionDenied(str(e))
 
@@ -275,7 +292,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         """Handle POST for legacy autofix."""
         serializer = AutofixRequestSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
 

@@ -1,7 +1,7 @@
 import moment from 'moment-timezone';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {act, render, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -332,10 +332,7 @@ describe('PageFiltersContainer', () => {
 
   it('does not update local storage when disablePersistence is true', async () => {
     const spy = jest.spyOn(Storage.prototype, 'setItem');
-
-    const mockRouter = RouterFixture({
-      location: {pathname: '/organizations/org-slug/test/', query: {project: []}},
-    });
+    const navigate = jest.fn();
 
     render(<PageFiltersContainer disablePersistence />, {
       organization,
@@ -346,7 +343,15 @@ describe('PageFiltersContainer', () => {
     });
 
     await act(async () => {
-      globalActions.updateProjects([1], mockRouter, {save: true});
+      globalActions.updateProjects(
+        [1],
+        LocationFixture({
+          pathname: '/organizations/org-slug/test/',
+          query: {project: ''},
+        }),
+        navigate,
+        {save: true}
+      );
 
       // page filter values are asynchronously persisted to local storage after a tick,
       // so we need to wait before checking for commits to local storage

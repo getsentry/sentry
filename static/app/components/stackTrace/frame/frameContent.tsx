@@ -167,6 +167,7 @@ const FrameSourceRow = styled(Grid)<{isActive: boolean; lineNumberDigits: number
     calc(${p => Math.max(p.lineNumberDigits, 3) + 1}ch)
     1fr;
   align-items: start;
+  column-gap: ${p => p.theme.space.sm};
   min-width: 0;
   background: ${p => (p.isActive ? p.theme.tokens.background.secondary : 'transparent')};
 `;

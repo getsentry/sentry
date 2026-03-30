@@ -257,7 +257,10 @@ export function getMenuOptions(
     }
   }
 
-  if (widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS) {
+  if (
+    organization.features.includes('visibility-explore-view') &&
+    (widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS)
+  ) {
     menuOptions.push({
       key: 'open-in-explore',
       label: t('Open in Explore'),

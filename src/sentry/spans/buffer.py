@@ -872,107 +872,81 @@ class SpansBuffer:
     def done_flush_segments(self, segment_keys: dict[SegmentKey, FlushedSegment]):
         metrics.timing("spans.buffer.done_flush_segments.num_segments", len(segment_keys))
         with metrics.timer("spans.buffer.done_flush_segments"):
-            use_conditional_cleanup = options.get("spans.buffer.done-flush-conditional-zrem")
+            segment_key_list = list(segment_keys.items())
 
             segments_to_skip: set[SegmentKey] = set()
-            if use_conditional_cleanup:
-                segment_key_list = list(segment_keys.items())
 
-                # Phase 1: Conditional ZREM on queue slot.
-                # Only remove queue entry if score hasn't changed (no new spans
-                # updated the deadline). This is an optimization to skip early.
-                done_flush_sha = self._ensure_done_flush_script()
-                with self.client.pipeline(transaction=False) as p:
-                    for segment_key, flushed_segment in segment_key_list:
-                        p.execute_command(
-                            "EVALSHA",
-                            done_flush_sha,
-                            1,
-                            flushed_segment.queue_key,
-                            segment_key,
-                            flushed_segment.score,
-                        )
-                    zrem_results = p.execute()
-
-                for (segment_key, _), was_removed in zip(segment_key_list, zrem_results):
-                    if not was_removed:
-                        segments_to_skip.add(segment_key)
-
-                # Phase 2: Conditional data deletion on segment slot.
-                # Even if Phase 1 succeeded, new spans may have arrived between
-                # ZREM and now. The Lua script atomically checks ingested count
-                # and only deletes data if unchanged. This is atomic with
-                # add-buffer.lua on the same {project_id:trace_id} slot,
-                # so it cannot interleave with process_spans.
-                done_flush_data_sha = self._ensure_done_flush_data_script()
-                with self.client.pipeline(transaction=False) as p:
-                    # Only run Phase 2 for segments that passed Phase 1
-                    phase2_keys = [
-                        (sk, fs) for sk, fs in segment_key_list if sk not in segments_to_skip
-                    ]
-                    for segment_key, flushed_segment in phase2_keys:
-                        p.execute_command(
-                            "EVALSHA",
-                            done_flush_data_sha,
-                            1,
-                            segment_key,
-                            flushed_segment.ingested_count,
-                        )
-                    data_delete_results = p.execute()
-
-                for (segment_key, _), was_deleted in zip(phase2_keys, data_delete_results):
-                    if not was_deleted:
-                        segments_to_skip.add(segment_key)
-
-                skipped = len(segments_to_skip)
-                if skipped:
-                    metrics.incr(
-                        "spans.buffer.done_flush_segments.skipped_cleanup",
-                        amount=skipped,
+            # Phase 1: Conditional ZREM on queue slot.
+            # Only remove queue entry if score hasn't changed (no new spans
+            # updated the deadline). This is an optimization to skip early.
+            done_flush_sha = self._ensure_done_flush_script()
+            with self.client.pipeline(transaction=False) as p:
+                for segment_key, flushed_segment in segment_key_list:
+                    p.execute_command(
+                        "EVALSHA",
+                        done_flush_sha,
+                        1,
+                        flushed_segment.queue_key,
+                        segment_key,
+                        flushed_segment.score,
                     )
+                zrem_results = p.execute()
 
-            queue_removals: dict[bytes, list[SegmentKey]] = {}
+            for (segment_key, _), was_removed in zip(segment_key_list, zrem_results):
+                if not was_removed:
+                    segments_to_skip.add(segment_key)
+
+            # Phase 2: Conditional data deletion on segment slot.
+            # Even if Phase 1 succeeded, new spans may have arrived between
+            # ZREM and now. The Lua script atomically checks ingested count
+            # and only deletes data if unchanged. This is atomic with
+            # add-buffer.lua on the same {project_id:trace_id} slot,
+            # so it cannot interleave with process_spans.
+            done_flush_data_sha = self._ensure_done_flush_data_script()
+            with self.client.pipeline(transaction=False) as p:
+                # Only run Phase 2 for segments that passed Phase 1
+                phase2_keys = [
+                    (sk, fs) for sk, fs in segment_key_list if sk not in segments_to_skip
+                ]
+                for segment_key, flushed_segment in phase2_keys:
+                    p.execute_command(
+                        "EVALSHA",
+                        done_flush_data_sha,
+                        1,
+                        segment_key,
+                        flushed_segment.ingested_count,
+                    )
+                data_delete_results = p.execute()
+
+            for (segment_key, _), was_deleted in zip(phase2_keys, data_delete_results):
+                if not was_deleted:
+                    segments_to_skip.add(segment_key)
+
+            skipped = len(segments_to_skip)
+            if skipped:
+                metrics.incr(
+                    "spans.buffer.done_flush_segments.skipped_cleanup",
+                    amount=skipped,
+                )
+
             with self.client.pipeline(transaction=False) as p:
                 for segment_key, flushed_segment in segment_keys.items():
                     if segment_key in segments_to_skip:
                         continue
 
-                    if use_conditional_cleanup:
-                        # Data keys (set, hrs, ic, ibc) were already deleted
-                        # by the Phase 2 Lua script. Only clean up redirect map.
-                        project_id, trace_id, _ = parse_segment_key(segment_key)
-                        redirect_map_key = b"span-buf:ssr:{%s:%s}" % (project_id, trace_id)
+                    # Data keys (set, hrs, ic, ibc) were already deleted
+                    # by the Phase 2 Lua script. Only clean up redirect map.
+                    project_id, trace_id, _ = parse_segment_key(segment_key)
+                    redirect_map_key = b"span-buf:ssr:{%s:%s}" % (project_id, trace_id)
 
-                        for span_batch in itertools.batched(flushed_segment.spans, 100):
-                            span_ids = [
-                                output_span.payload["span_id"] for output_span in span_batch
-                            ]
-                            p.hdel(redirect_map_key, *span_ids)
-                    else:
-                        p.delete(b"span-buf:hrs:" + segment_key)
-                        p.delete(b"span-buf:ic:" + segment_key)
-                        p.delete(b"span-buf:ibc:" + segment_key)
-                        p.unlink(segment_key)
-
-                        project_id, trace_id, _ = parse_segment_key(segment_key)
-                        redirect_map_key = b"span-buf:ssr:{%s:%s}" % (project_id, trace_id)
-
-                        for span_batch in itertools.batched(flushed_segment.spans, 100):
-                            span_ids = [
-                                output_span.payload["span_id"] for output_span in span_batch
-                            ]
-                            p.hdel(redirect_map_key, *span_ids)
-
-                        queue_removals.setdefault(flushed_segment.queue_key, []).append(segment_key)
+                    for span_batch in itertools.batched(flushed_segment.spans, 100):
+                        span_ids = [output_span.payload["span_id"] for output_span in span_batch]
+                        p.hdel(redirect_map_key, *span_ids)
 
                     if flushed_segment.payload_keys:
                         mk_key = self._get_payload_key_index(segment_key)
                         p.delete(mk_key)
                         for payload_key in flushed_segment.payload_keys:
                             p.unlink(payload_key)
-
-                for queue_key, keys in queue_removals.items():
-                    for key_batch in itertools.batched(keys, 100):
-                        p.zrem(queue_key, *key_batch)
 
                 p.execute()

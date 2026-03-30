@@ -1,17 +1,14 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {
-  openCommandPalette,
-  openCommandPaletteDeprecated,
-} from 'sentry/actionCreators/modal';
+import {CommandPaletteHotkeys} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {useGlobalCommandPaletteActions} from 'sentry/components/commandPalette/useGlobalCommandPaletteActions';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {t} from 'sentry/locale';
-import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   MobileNavigation,
@@ -33,28 +30,17 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
 import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
 
 function UserAndOrganizationNavigation() {
-  const organization = useOrganization();
   const {layout} = usePrimaryNavigation();
   const {visible} = useGlobalModal();
-  const hasPageFrame = useHasPageFrameFeature();
   const {view, setView} = useSecondaryNavigation();
 
   useGlobalCommandPaletteActions();
+  const hasPageFrame = useHasPageFrameFeature();
 
   useHotkeys(
     visible
       ? []
       : [
-          {
-            match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
-            callback: () => {
-              if (organization.features.includes('cmd-k-supercharged')) {
-                openCommandPalette();
-              } else {
-                openCommandPaletteDeprecated();
-              }
-            },
-          },
           {
             match: ['command+b', 'ctrl+b'],
             callback: () => setView(view === 'expanded' ? 'collapsed' : 'expanded'),
@@ -64,6 +50,7 @@ function UserAndOrganizationNavigation() {
 
   return (
     <NavigationLayout>
+      <CommandPaletteHotkeys />
       {layout === 'mobile' ? (
         <MobileSecondaryNavigationContextProvider>
           {hasPageFrame ? <MobilePageFrameNavigation /> : <MobileNavigation />}

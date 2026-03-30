@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
+import {Text} from '@sentry/scraps/text';
 
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -9,13 +11,13 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import type {OrgRole} from 'sentry/types/organization';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 const Label = styled('label')`
   display: flex;
   flex: 1;
   align-items: center;
   margin-bottom: 0;
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 type Props = {
@@ -55,15 +57,17 @@ export function OrganizationRoleSelect({
             <PanelItem
               key={id}
               onClick={() => !isDisabled && setSelected(id)}
-              css={isDisabled ? {color: 'grey', cursor: 'default'} : {}}
+              css={isDisabled ? {cursor: 'default'} : {}}
             >
               <Label>
                 <Radio id={id} value={name} checked={id === roleSelected} readOnly />
                 <div style={{flex: 1, padding: '0 16px'}}>
-                  {name}
-                  <TextBlock noMargin>
-                    <div className="help-block">{desc}</div>
-                  </TextBlock>
+                  <Stack gap="md">
+                    <Text variant="primary" bold>
+                      {name}
+                    </Text>
+                    <Text variant="muted">{desc}</Text>
+                  </Stack>
                 </div>
               </Label>
             </PanelItem>
