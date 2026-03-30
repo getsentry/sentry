@@ -294,6 +294,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 /src/sentry/search/events/                                                  @getsentry/data-browsing
 /src/sentry/search/eap/                                                     @getsentry/data-browsing
+/src/sentry/search/exceptions.py                                            @getsentry/data-browsing
 
 /src/sentry/issue_detection/                                             @getsentry/issue-detection-backend
 /tests/sentry/issue_detection/                                           @getsentry/issue-detection-backend
@@ -778,6 +779,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 # Span buffer + process-segments are co-owned by streaming platform and vis for now.
 /src/sentry/spans/                                @getsentry/data-browsing @getsentry/streaming-platform
+/src/sentry/scripts/spans/                        @getsentry/data-browsing @getsentry/streaming-platform
 /tests/sentry/spans/                              @getsentry/data-browsing @getsentry/streaming-platform
 
 # Streaming platform
@@ -804,6 +806,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/utils/theme/                              @getsentry/design-engineering
 /static/app/components/commandPalette/                @getsentry/design-engineering
 /static/app/components/core/                          @getsentry/design-engineering
+/static/app/components/dnd/                           @getsentry/design-engineering
 /static/app/components/pageFilters/                   @getsentry/design-engineering
 /static/app/icons/                                    @getsentry/design-engineering
 /static/app/stories/                                  @getsentry/design-engineering
@@ -865,6 +868,10 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/integrations/perforce/                                    @getsentry/ecosystem @getsentry/scm
 /tests/sentry/scm/                                                      @getsentry/scm
 ## End of SCM
+
+## SCM Frontend
+/static/app/components/repositories                                   @getsentry/coding-workflows-sentry-frontend @getsentry/scm
+## End of SCM Frontend
 
 # End of Coding Workflows
 

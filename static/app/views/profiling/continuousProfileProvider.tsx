@@ -9,6 +9,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {LayoutPageWithHiddenFooter} from 'sentry/views/profiling/layoutPageWithHiddenFooter';
 
 import {ContinuousProfileProvider, ProfileTransactionContext} from './profilesProvider';
 
@@ -65,12 +66,14 @@ export default function ProfileAndTransactionProvider(): React.ReactElement {
       setProfile={setProfile}
     >
       <ProfileTransactionContext value={profileTransaction}>
-        <ContinuousProfileHeader
-          transaction={
-            profileTransaction.type === 'resolved' ? profileTransaction.data : null
-          }
-        />
-        <Outlet />
+        <LayoutPageWithHiddenFooter>
+          <ContinuousProfileHeader
+            transaction={
+              profileTransaction.type === 'resolved' ? profileTransaction.data : null
+            }
+          />
+          <Outlet />
+        </LayoutPageWithHiddenFooter>
       </ProfileTransactionContext>
     </ContinuousProfileProvider>
   );

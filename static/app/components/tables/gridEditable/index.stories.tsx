@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {InlineCode} from '@sentry/scraps/code';
 
 import type {
   GridColumnOrder,
@@ -166,8 +167,9 @@ export default Storybook.story('GridEditable', story => {
           </div>
           <div>
             <p>
-              In this example we are using <kbd>useQueryBasedColumnResize</kbd>. Notice
-              how the url updates after you drag columns.
+              In this example we are using{' '}
+              <InlineCode>useQueryBasedColumnResize</InlineCode>. Notice how the url
+              updates after you drag columns.
             </p>
             <GridEditable
               data={data}
