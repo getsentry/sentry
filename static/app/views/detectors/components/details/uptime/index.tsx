@@ -57,7 +57,7 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
   }, []);
 
   return (
-    <DetailLayout>
+    <DetailLayout flex={1}>
       <DetectorDetailsHeader detector={detector} project={project} />
       <DetailLayout.Body>
         <DetailLayout.Main>

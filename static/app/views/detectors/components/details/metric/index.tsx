@@ -41,7 +41,7 @@ export function MetricDetectorDetails({detector, project}: MetricDetectorDetails
   const intervalSeconds = dataSource.queryObj?.snubaQuery.timeWindow;
 
   return (
-    <DetailLayout>
+    <DetailLayout flex={1}>
       <DetectorDetailsHeader detector={detector} project={project} />
       <DetailLayout.Body>
         <DetailLayout.Main>

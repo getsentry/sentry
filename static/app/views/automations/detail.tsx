@@ -56,7 +56,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
 
   return (
     <SentryDocumentTitle title={automation.name}>
-      <DetailLayout>
+      <DetailLayout flex={1}>
         <DetailLayout.Header>
           <DetailLayout.HeaderContent>
             <Breadcrumbs
