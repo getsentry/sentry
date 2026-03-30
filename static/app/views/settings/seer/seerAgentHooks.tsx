@@ -287,6 +287,71 @@ export function useBulkMutateSelectedAgent({projects}: {projects: Project[]}) {
   );
 }
 
+export function useBulkMutateCreatePr({projects}: {projects: Project[]}) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+  const autofixSettingsQueryOptions = bulkAutofixAutomationSettingsInfiniteOptions({
+    organization,
+  });
+
+  return useCallback(
+    async (value: boolean, {onSuccess, onError}: MutateOptions) => {
+      try {
+        await Promise.all(
+          projects.map(async project => {
+            const [preferencesData] = await queryClient.fetchQuery({
+              queryKey: makeProjectSeerPreferencesQueryKey(
+                organization.slug,
+                project.slug
+              ),
+              queryFn: fetchDataQuery<SeerPreferencesResponse>,
+              staleTime: 0,
+            });
+            const preference = preferencesData?.preference;
+
+            if (preference?.automation_handoff?.integration_id) {
+              const updatedHandoff = {
+                ...preference.automation_handoff,
+                auto_create_pr: value,
+              };
+              return fetchMutation({
+                method: 'POST',
+                url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+                data: {
+                  repositories: preference?.repositories ?? [],
+                  automated_run_stopping_point: preference?.automated_run_stopping_point,
+                  automation_handoff: updatedHandoff,
+                },
+              });
+            }
+
+            const stoppingPoint = value
+              ? ('open_pr' as const)
+              : ('code_changes' as const);
+            return fetchMutation({
+              method: 'POST',
+              url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+              data: {
+                repositories: preference?.repositories ?? [],
+                automated_run_stopping_point: stoppingPoint,
+                automation_handoff: preference?.automation_handoff,
+              },
+            });
+          })
+        );
+
+        queryClient.invalidateQueries({
+          queryKey: autofixSettingsQueryOptions.queryKey,
+        });
+        onSuccess?.();
+      } catch {
+        onError?.(new Error('Failed to update PR setting'));
+      }
+    },
+    [projects, organization, queryClient, autofixSettingsQueryOptions.queryKey]
+  );
+}
+
 export function useMutateCreatePr({project}: {project: Project}) {
   const {mutateAsync: updateProjectSeerPreferences} =
     useUpdateProjectSeerPreferences(project);

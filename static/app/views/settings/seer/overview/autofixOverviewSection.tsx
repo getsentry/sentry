@@ -35,6 +35,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {
   useAgentOptions,
+  useBulkMutateCreatePr,
   useBulkMutateSelectedAgent,
 } from 'sentry/views/settings/seer/seerAgentHooks';
 
@@ -128,7 +129,7 @@ export function AutofixOverviewSection({canWrite, data, isPending, organization}
         isPending={isPending}
         organization={organization}
         projects={projects}
-        projectsWithCreatePrCount={projectsWithCreatePr.length}
+        projectsWithCreatePr={projectsWithCreatePr}
       />
 
       <StoppingPointForm organization={organization} />
@@ -221,7 +222,7 @@ function AgentNameForm({
   );
   const rawAgentOptions = useAgentOptions({
     integrations: integrations?.integrations ?? [],
-  });
+  }).filter(option => option.value !== 'none');
   const codingAgentOptions = rawAgentOptions.map(option => ({
     value: option.value === 'seer' ? 'seer' : String(option.value.id),
     label: option.label,
@@ -261,7 +262,7 @@ function AgentNameForm({
 
   const preferredAgentIntegration =
     preferredAgentValue === 'seer'
-      ? ('seer' as const)
+      ? 'seer'
       : (rawAgentOptions
           .filter(option => option.value !== 'seer')
           .find(option => option.value.id === preferredAgentValue)?.value ?? 'seer');
@@ -345,13 +346,13 @@ function CreatePrForm({
   isPending,
   organization,
   projects,
-  projectsWithCreatePrCount,
+  projectsWithCreatePr,
 }: {
   canWrite: boolean;
   isPending: boolean;
   organization: Organization;
   projects: Project[];
-  projectsWithCreatePrCount: number;
+  projectsWithCreatePr: AutofixAutomationSettings[];
 }) {
   const orgMutationOpts = mutationOptions({
     mutationFn: (updateData: Partial<Organization>) =>
@@ -362,6 +363,11 @@ function CreatePrForm({
       }),
     onSuccess: updateOrganization,
   });
+
+  const projectsWithCreatePrIds = new Set(projectsWithCreatePr.map(s => s.projectId));
+  const projectsToUpdate = projects.filter(p => !projectsWithCreatePrIds.has(p.id));
+
+  const bulkMutateCreatePr = useBulkMutateCreatePr({projects: projectsToUpdate});
 
   return (
     <AutoSaveForm
@@ -402,44 +408,44 @@ function CreatePrForm({
               disabled={
                 !canWrite ||
                 organization.enableSeerCoding === false ||
-                projectsWithCreatePrCount === projects.length
+                projectsWithCreatePr.length === projects.length
               }
               onClick={() => {
-                // TODO
+                bulkMutateCreatePr(field.state.value, {});
               }}
             >
               {field.state.value
                 ? tn(
                     'Enable for the existing project',
                     'Enable for all existing projects',
-                    projectsWithCreatePrCount
+                    projectsWithCreatePr.length
                   )
                 : tn(
                     'Disable for the existing project',
                     'Disable for all existing projects',
-                    projectsWithCreatePrCount
+                    projectsWithCreatePr.length
                   )}
             </Button>
             <Text variant="secondary" size="sm">
               {projects.length === 0
                 ? t('No projects found')
                 : projects.length === 1
-                  ? projectsWithCreatePrCount === 1
+                  ? projectsWithCreatePr.length === 1
                     ? t('Your existing project has Create PR enabled')
                     : t('Your existing project does not have Create PR enabled')
                   : field.state.value
-                    ? projects.length === projectsWithCreatePrCount
+                    ? projects.length === projectsWithCreatePr.length
                       ? t('All existing projects have Create PR enabled')
                       : t(
                           '%s of %s existing projects have Create PR enabled',
-                          projectsWithCreatePrCount,
+                          projectsWithCreatePr.length,
                           projects.length
                         )
-                    : projects.length === projectsWithCreatePrCount
+                    : projects.length === projectsWithCreatePr.length
                       ? t('All existing projects have Create PR disabled')
                       : t(
                           '%s of %s existing projects have Create PR disabled',
-                          projectsWithCreatePrCount,
+                          projectsWithCreatePr.length,
                           projects.length
                         )}
             </Text>
