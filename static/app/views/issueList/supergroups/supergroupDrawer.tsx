@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Badge} from '@sentry/scraps/badge';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {
@@ -15,12 +15,11 @@ import {GroupList} from 'sentry/components/issues/groupList';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {IconFocus} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {StyledMarkedText} from 'sentry/views/issueList/pages/supergroups';
+import {SupergroupFeedback} from 'sentry/views/issueList/supergroups/supergroupFeedback';
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 
 export function SupergroupDetailDrawer({supergroup}: {supergroup: SupergroupDetail}) {
-  const organization = useOrganization();
   const placeholderRows = Math.min(supergroup.group_ids.length, 10);
   const issueIdQuery = `issue.id:[${supergroup.group_ids.join(',')}]`;
 
@@ -28,29 +27,28 @@ export function SupergroupDetailDrawer({supergroup}: {supergroup: SupergroupDeta
     <Fragment>
       <DrawerHeader hideBar>
         <Flex justify="between" align="center" gap="md" flexGrow={1}>
-          <NavigationCrumbs
-            crumbs={[
-              {label: t('Supergroups')},
-              {
-                label: (
-                  <CrumbContainer>
-                    <ShortId>{`SG-${supergroup.id}`}</ShortId>
-                  </CrumbContainer>
-                ),
-              },
-            ]}
-          />
-          <Link
-            to={{
-              pathname: `/organizations/${organization.slug}/issues/`,
-              query: {query: issueIdQuery, project: ALL_ACCESS_PROJECTS},
-            }}
-          >
-            {t('View All Issues')} ({supergroup.group_ids.length})
-          </Link>
+          <Flex align="center" gap="sm">
+            <NavigationCrumbs
+              crumbs={[
+                {label: t('Supergroups')},
+                {
+                  label: (
+                    <CrumbContainer>
+                      <ShortId>{`SG-${supergroup.id}`}</ShortId>
+                    </CrumbContainer>
+                  ),
+                },
+              ]}
+            />
+            <Badge variant="experimental">{t('Experimental')}</Badge>
+          </Flex>
         </Flex>
       </DrawerHeader>
       <DrawerContentBody>
+        <FeedbackContainer>
+          {t('Help us improve this feature. Is this grouping accurate?')}
+          <SupergroupFeedback supergroupId={supergroup.id} />
+        </FeedbackContainer>
         <Container padding="2xl" borderBottom="muted">
           <Stack gap="lg">
             <Heading as="h2" size="lg">
@@ -117,4 +115,13 @@ export function SupergroupDetailDrawer({supergroup}: {supergroup: SupergroupDeta
 
 const DrawerContentBody = styled(DrawerBody)`
   padding: 0;
+`;
+
+const FeedbackContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space['2xl']};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  background: ${p => p.theme.tokens.background.transparent.promotion.muted};
 `;
