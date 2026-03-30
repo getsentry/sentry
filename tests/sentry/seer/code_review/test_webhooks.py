@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -338,23 +337,6 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     @patch("sentry.seer.code_review.webhooks.task.metrics")
-    def test_legacy_enqueued_at_str_kwarg_is_absorbed(
-        self, mock_metrics: MagicMock, mock_request: MagicMock
-    ) -> None:
-        """In-flight activations may still pass enqueued_at_str; it must be ignored."""
-        mock_request.return_value = self._mock_response(200, b"{}")
-
-        process_github_webhook_event._func(
-            seer_path="/v1/code_review/check/rerun",
-            event_payload={"original_run_id": self.original_run_id},
-            tags={},
-            enqueued_at_str=datetime.now(timezone.utc).isoformat(),
-        )
-
-        mock_metrics.timing.assert_not_called()
-
-    @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
-    @patch("sentry.seer.code_review.webhooks.task.metrics")
     def test_max_retry_attempts_each_record_error_metric(
         self, mock_metrics: MagicMock, mock_request: MagicMock
     ) -> None:
@@ -603,21 +585,6 @@ class TestProcessGitHubWebhookEventSetsTags:
         )
 
         mock_sdk.set_tags.assert_called_once_with(tags)
-
-    @patch("sentry.seer.code_review.webhooks.task.sentry_sdk")
-    @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
-    def test_no_tags_param_skips_set_tags(
-        self, mock_request: MagicMock, mock_sdk: MagicMock
-    ) -> None:
-        """When tags is not provided (e.g. legacy callers), set_tags is not called."""
-        mock_request.return_value = MagicMock(status=200, data=b"{}")
-
-        process_github_webhook_event._func(
-            seer_path="/v1/code_review/check/rerun",
-            event_payload={"original_run_id": "123"},
-        )
-
-        mock_sdk.set_tags.assert_not_called()
 
 
 class TestIsPrReviewCommand:

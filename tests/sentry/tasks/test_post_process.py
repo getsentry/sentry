@@ -3442,7 +3442,7 @@ class SeerAutomationHelperFunctionsTestMixin(BasePostProcessGroupMixin):
         """Test permission check with various failure conditions."""
         from sentry.constants import DataCategory
         from sentry.issues.grouptype import GroupCategory
-        from sentry.seer.autofix.utils import is_issue_eligible_for_seer_automation
+        from sentry.seer.autofix.trigger import is_issue_eligible_for_seer_automation
 
         self.project.update_option("sentry:seer_scanner_automation", True)
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)

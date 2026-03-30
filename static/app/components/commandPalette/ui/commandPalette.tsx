@@ -1,11 +1,12 @@
-import {Fragment, useLayoutEffect, useMemo, useEffect, useCallback} from 'react';
+import {Fragment, useCallback, useLayoutEffect, useMemo} from 'react';
 import {preload} from 'react-dom';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selection';
 import {mergeProps} from '@react-aria/utils';
-import {Item, Section} from '@react-stately/collections';
+import {Item} from '@react-stately/collections';
 import {useTreeState} from '@react-stately/tree';
-import * as Sentry from '@sentry/react';
+import {AnimatePresence, motion} from 'framer-motion';
 
 import errorIllustration from 'sentry-images/spot/computer-missing.svg';
 
@@ -27,13 +28,29 @@ import {
   useCommandPaletteDispatch,
   useCommandPaletteState,
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
+import {useCommandPaletteAnalytics} from 'sentry/components/commandPalette/useCommandPaletteAnalytics';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IconArrow, IconClose, IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {fzf} from 'sentry/utils/search/fzf';
-import {useOrganization} from 'sentry/utils/useOrganization';
+import type {Theme} from 'sentry/utils/theme';
+
+const MotionButton = motion.create(Button);
+const MotionIconSearch = motion.create(IconSearch);
+
+function makeLeadingItemAnimation(theme: Theme) {
+  return {
+    initial: {scale: 0.95, opacity: 0},
+    animate: {scale: 1, opacity: 1},
+    exit: {scale: 0.95, opacity: 0, transition: theme.motion.framer.exit.fast},
+    enter: {
+      scale: 1,
+      opacity: 1,
+      transition: theme.motion.framer.enter.slow,
+    },
+  };
+}
 
 type CommandPaletteActionMenuItem = MenuListItemProps & {
   children: CommandPaletteActionMenuItem[];
@@ -50,8 +67,9 @@ interface CommandPaletteProps {
 }
 
 export function CommandPalette(props: CommandPaletteProps) {
+  const theme = useTheme();
+
   const actions = useCommandPaletteActions();
-  const organization = useOrganization();
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
 
@@ -76,27 +94,50 @@ export function CommandPalette(props: CommandPaletteProps) {
     [state.query, displayedActions]
   );
 
+  const analytics = useCommandPaletteAnalytics(filteredActions.length);
+
   const sections = useMemo(
     () => groupActionsBySection(filteredActions),
     [filteredActions]
   );
 
+  const sectionHeaderKeys = useMemo(
+    () => new Set(sections.map(({key}) => `section-${key}`)),
+    [sections]
+  );
+
   const treeState = useTreeState({
-    children: sections.map(({key: sectionKey, label, children}) => (
-      <Section key={sectionKey} title={label}>
-        {children.map(({key: actionKey, ...action}) => (
-          <Item<CommandPaletteActionMenuItem> key={actionKey} {...action}>
-            {action.label}
-          </Item>
-        ))}
-      </Section>
-    )),
+    disabledKeys: [...sectionHeaderKeys],
+    children: sections.flatMap(({key: sectionKey, label, children}) => [
+      <Item<CommandPaletteActionMenuItem & {hideCheck: boolean; label: string}>
+        key={`section-${sectionKey}`}
+        textValue={label as string}
+        {...{
+          label: (
+            <Text size="sm" bold variant="primary">
+              {label}
+            </Text>
+          ),
+          hideCheck: true,
+          children: [],
+        }}
+      />,
+      ...children.map(({key: actionKey, ...action}) => (
+        <Item<CommandPaletteActionMenuItem> key={actionKey} {...action}>
+          {action.label}
+        </Item>
+      )),
+    ]),
   });
 
   const firstFocusableKey = useMemo(() => {
-    const firstItem = treeState.collection.at(0);
-    return firstItem?.type === 'section' ? [...firstItem.childNodes][0] : firstItem;
-  }, [treeState.collection]);
+    for (const item of treeState.collection) {
+      if (!sectionHeaderKeys.has(String(item.key))) {
+        return item;
+      }
+    }
+    return undefined;
+  }, [treeState.collection, sectionHeaderKeys]);
 
   useLayoutEffect(() => {
     if (treeState.selectionManager.focusedKey !== null) {
@@ -105,8 +146,6 @@ export function CommandPalette(props: CommandPaletteProps) {
 
     if (firstFocusableKey) {
       treeState.selectionManager.setFocusedKey(firstFocusableKey.key);
-    } else {
-      treeState.selectionManager.setFocusedKey(treeState.collection.getFirstKey());
     }
   }, [treeState.collection, treeState.selectionManager, firstFocusableKey]);
 
@@ -129,25 +168,23 @@ export function CommandPalette(props: CommandPaletteProps) {
 
   const onActionSelection = useCallback(
     (key: ReturnType<typeof treeState.collection.getFirstKey> | null) => {
-      const action = filteredActions.find(a => a.key === key);
+      const resultIndex = filteredActions.findIndex(a => a.key === key);
+      const action = resultIndex >= 0 ? filteredActions[resultIndex] : undefined;
       if (!action) {
         return;
       }
 
       if (action.type === 'group') {
-        trackAnalytics('command_palette.action_selected', {
-          organization,
-          action: action.display.label,
-          query: state.query,
-        });
+        analytics.recordGroupAction(action, resultIndex);
         dispatch({type: 'push action', action});
         return;
       }
 
+      analytics.recordAction(action, resultIndex, action.groupingKey ?? '');
       dispatch({type: 'trigger action'});
       props.onAction(action);
     },
-    [filteredActions, dispatch, props, treeState, organization, state.query]
+    [filteredActions, dispatch, props, analytics, treeState]
   );
 
   return (
@@ -158,25 +195,32 @@ export function CommandPalette(props: CommandPaletteProps) {
             return (
               <InputGroup {...p}>
                 <StyledInputLeadingItems>
-                  {state.action ? (
-                    <Container position="absolute" left="-8px">
-                      {containerProps => (
-                        <Button
-                          size="xs"
-                          priority="transparent"
-                          icon={<IconArrow direction="left" aria-hidden />}
-                          onClick={() => {
-                            dispatch({type: 'pop action'});
-                            state.input.current?.focus();
-                          }}
-                          aria-label={t('Return to previous action')}
-                          {...containerProps}
-                        />
-                      )}
-                    </Container>
-                  ) : (
-                    <IconSearch size="sm" />
-                  )}
+                  <AnimatePresence mode="popLayout">
+                    {state.action ? (
+                      <Container position="absolute" left="-8px">
+                        {containerProps => (
+                          <MotionButton
+                            size="xs"
+                            priority="transparent"
+                            icon={<IconArrow direction="left" aria-hidden />}
+                            onClick={() => {
+                              dispatch({type: 'pop action'});
+                              state.input.current?.focus();
+                            }}
+                            aria-label={t('Return to previous action')}
+                            {...makeLeadingItemAnimation(theme)}
+                            {...containerProps}
+                          />
+                        )}
+                      </Container>
+                    ) : (
+                      <MotionIconSearch
+                        size="sm"
+                        aria-hidden
+                        {...makeLeadingItemAnimation(theme)}
+                      />
+                    )}
+                  </AnimatePresence>
                 </StyledInputLeadingItems>
                 <StyledInputGroupInput
                   autoFocus
@@ -221,18 +265,23 @@ export function CommandPalette(props: CommandPaletteProps) {
                   })}
                 />
                 <InputGroup.TrailingItems>
-                  {state.query.length > 0 || state.action ? (
-                    <Button
-                      size="xs"
-                      priority="transparent"
-                      icon={<IconClose size="xs" aria-hidden />}
-                      onClick={() => {
-                        dispatch({type: 'reset'});
-                        state.input.current?.focus();
-                      }}
-                      aria-label={t('Reset')}
-                    />
-                  ) : null}
+                  <AnimatePresence mode="popLayout">
+                    {state.query.length > 0 || state.action ? (
+                      <Container position="absolute" right="-8px">
+                        <MotionButton
+                          size="xs"
+                          priority="transparent"
+                          aria-label={t('Reset')}
+                          icon={<IconClose size="xs" aria-hidden />}
+                          onClick={() => {
+                            dispatch({type: 'reset'});
+                            state.input.current?.focus();
+                          }}
+                          {...makeLeadingItemAnimation(theme)}
+                        />
+                      </Container>
+                    ) : null}
+                  </AnimatePresence>
                 </InputGroup.TrailingItems>
               </InputGroup>
             );
@@ -252,6 +301,7 @@ export function CommandPalette(props: CommandPaletteProps) {
             listState={treeState}
             keyDownHandler={() => true}
             overlayIsOpen
+            virtualized
             size="md"
             aria-label={t('Search results')}
             selectionMode="none"
@@ -382,6 +432,7 @@ function flattenActions(
       const childParentLabel = parentLabel
         ? `${parentLabel} → ${action.display.label}`
         : action.display.label;
+
       flattened.push(...flattenActions(action.actions, childParentLabel));
     }
   }
@@ -390,25 +441,6 @@ function flattenActions(
 }
 
 function CommandPaletteNoResults() {
-  const organization = useOrganization();
-  const {query, action} = useCommandPaletteState();
-
-  useEffect(() => {
-    const actionLabel =
-      typeof action?.value.action.display.label === 'string'
-        ? action.value.action.display.label
-        : undefined;
-    trackAnalytics('command_palette.no_results', {
-      organization,
-      query,
-      action: actionLabel,
-    });
-    Sentry.logger.info('Command palette returned no results', {
-      query,
-      action: actionLabel,
-    });
-  }, [organization, query, action]);
-
   return (
     <Flex
       direction="column"
@@ -451,13 +483,13 @@ const StyledInputLeadingItems = styled(InputGroup.LeadingItems)`
 
 const StyledInputGroupInput = styled(InputGroup.Input)`
   padding-left: calc(${p => p.theme.space['2xl']} + ${p => p.theme.space.md});
-  padding-right: 48px;
+  padding-right: 38px;
 `;
 
 const ResultsList = styled(Flex)`
-  ul,
-  li {
-    scroll-margin: ${p => p.theme.space['3xl']} 0;
+  ul {
+    padding: 0;
+    margin: 0;
   }
 
   ${InnerWrap} {

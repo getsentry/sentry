@@ -162,7 +162,6 @@ def has_seer_explorer_access_with_detail(
         "organizations:seer-explorer",
         # Access to seer explorer powered autofix
         "organizations:autofix-on-explorer",
-        "organizations:autofix-on-explorer-v2",
     ]
 
     batch_features = features.batch_has(

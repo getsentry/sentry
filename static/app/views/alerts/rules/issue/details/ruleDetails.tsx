@@ -41,6 +41,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {APIUsageWarningBanner} from 'sentry/views/alerts/rules/APIUsageWarningBanner';
 import {findIncompatibleRules} from 'sentry/views/alerts/rules/issue';
 import {ALERT_DEFAULT_CHART_PERIOD} from 'sentry/views/alerts/rules/metric/details/constants';
 import {UserSnoozeDeprecationBanner} from 'sentry/views/alerts/rules/userSnoozeDeprecationBanner';
@@ -382,138 +383,141 @@ export default function AlertRuleDetails() {
   const {period, start, end, utc} = getDataDatetime();
   const cursor = decodeScalar(location.query.cursor);
   return (
-    <PageFiltersContainer
-      skipInitializeUrlParams
-      skipLoadLastUsed
-      shouldForceProject
-      forceProject={project}
-    >
-      <SentryDocumentTitle
-        title={rule.name}
-        orgSlug={organization.slug}
-        projectSlug={projectSlug}
-      />
+    <Layout.Page>
+      <PageFiltersContainer
+        skipInitializeUrlParams
+        skipLoadLastUsed
+        shouldForceProject
+        forceProject={project}
+      >
+        <SentryDocumentTitle
+          title={rule.name}
+          orgSlug={organization.slug}
+          projectSlug={projectSlug}
+        />
 
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Breadcrumbs
-            crumbs={[
-              {
-                label: t('Alerts'),
-                to: makeAlertsPathname({
-                  path: `/rules/`,
-                  organization,
-                }),
-              },
-              {
-                label: t('Issue Alert'),
-              },
-            ]}
-          />
-          <Layout.Title>
-            <IdBadge
-              project={project}
-              avatarSize={28}
-              hideName
-              avatarProps={{hasTooltip: true, tooltip: project.slug}}
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumbs
+              crumbs={[
+                {
+                  label: t('Alerts'),
+                  to: makeAlertsPathname({
+                    path: `/rules/`,
+                    organization,
+                  }),
+                },
+                {
+                  label: t('Issue Alert'),
+                },
+              ]}
             />
-            {rule.name}
-          </Layout.Title>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <Grid flow="column" align="center" gap="md">
-            <Access access={['alerts:write']}>
-              {({hasAccess}) => (
-                <SnoozeAlert
-                  isSnoozed={rule.snoozeForEveryone ?? false}
-                  onSnooze={onSnooze}
-                  ruleId={rule.id}
-                  projectSlug={projectSlug}
-                  hasAccess={hasAccess}
-                  type="issue"
-                  disabled={rule.status === 'disabled'}
-                />
-              )}
-            </Access>
-            <LinkButton
-              size="sm"
-              icon={<IconCopy />}
-              to={duplicateLink}
-              disabled={rule.status === 'disabled'}
-            >
-              {t('Duplicate')}
-            </LinkButton>
-            <LinkButton
-              size="sm"
-              icon={<IconEdit />}
-              to={makeAlertsPathname({
-                path: `/rules/${projectSlug}/${ruleId}/`,
-                organization,
-              })}
-              onClick={() =>
-                trackAnalytics('issue_alert_rule_details.edit_clicked', {
+            <Layout.Title>
+              <IdBadge
+                project={project}
+                avatarSize={28}
+                hideName
+                avatarProps={{hasTooltip: true, tooltip: project.slug}}
+              />
+              {rule.name}
+            </Layout.Title>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <Grid flow="column" align="center" gap="md">
+              <Access access={['alerts:write']}>
+                {({hasAccess}) => (
+                  <SnoozeAlert
+                    isSnoozed={rule.snoozeForEveryone ?? false}
+                    onSnooze={onSnooze}
+                    ruleId={rule.id}
+                    projectSlug={projectSlug}
+                    hasAccess={hasAccess}
+                    type="issue"
+                    disabled={rule.status === 'disabled'}
+                  />
+                )}
+              </Access>
+              <LinkButton
+                size="sm"
+                icon={<IconCopy />}
+                to={duplicateLink}
+                disabled={rule.status === 'disabled'}
+              >
+                {t('Duplicate')}
+              </LinkButton>
+              <LinkButton
+                size="sm"
+                icon={<IconEdit />}
+                to={makeAlertsPathname({
+                  path: `/rules/${projectSlug}/${ruleId}/`,
                   organization,
-                  rule_id: parseInt(ruleId, 10),
-                })
-              }
-            >
-              {rule.status === 'disabled' ? t('Edit to enable') : t('Edit Rule')}
-            </LinkButton>
-          </Grid>
-        </Layout.HeaderActions>
-      </Layout.Header>
-      <Layout.Body>
-        <Layout.Main>
-          {renderIncompatibleAlert()}
-          {renderDisabledAlertBanner()}
-          {rule.snooze && (
-            <Alert.Container>
-              {rule.snoozeForEveryone ? (
-                <Alert variant="info">
-                  {tct(
-                    "[creator] muted this alert for everyone so you won't get these notifications in the future.",
-                    {
-                      creator: rule.snoozeCreatedBy,
-                    }
-                  )}
-                </Alert>
-              ) : (
-                <UserSnoozeDeprecationBanner projectId={project.id} />
-              )}
-            </Alert.Container>
-          )}
-          <StyledTimeRangeSelector
-            relative={period ?? ''}
-            start={start ?? null}
-            end={end ?? null}
-            utc={utc ?? null}
-            onChange={handleUpdateDatetime}
-          />
-          <ErrorBoundary>
-            <IssueAlertDetailsChart
+                })}
+                onClick={() =>
+                  trackAnalytics('issue_alert_rule_details.edit_clicked', {
+                    organization,
+                    rule_id: parseInt(ruleId, 10),
+                  })
+                }
+              >
+                {rule.status === 'disabled' ? t('Edit to enable') : t('Edit Rule')}
+              </LinkButton>
+            </Grid>
+          </Layout.HeaderActions>
+        </Layout.Header>
+        <Layout.Body>
+          <Layout.Main>
+            <APIUsageWarningBanner errors={rule.errors} />
+            {renderIncompatibleAlert()}
+            {renderDisabledAlertBanner()}
+            {rule.snooze && (
+              <Alert.Container>
+                {rule.snoozeForEveryone ? (
+                  <Alert variant="info">
+                    {tct(
+                      "[creator] muted this alert for everyone so you won't get these notifications in the future.",
+                      {
+                        creator: rule.snoozeCreatedBy,
+                      }
+                    )}
+                  </Alert>
+                ) : (
+                  <UserSnoozeDeprecationBanner projectId={project.id} />
+                )}
+              </Alert.Container>
+            )}
+            <StyledTimeRangeSelector
+              relative={period ?? ''}
+              start={start ?? null}
+              end={end ?? null}
+              utc={utc ?? null}
+              onChange={handleUpdateDatetime}
+            />
+            <ErrorBoundary>
+              <IssueAlertDetailsChart
+                project={project}
+                rule={rule}
+                period={period ?? ''}
+                start={start ?? null}
+                end={end ?? null}
+                utc={utc ?? null}
+              />
+            </ErrorBoundary>
+            <AlertRuleIssuesList
               project={project}
               rule={rule}
               period={period ?? ''}
               start={start ?? null}
               end={end ?? null}
               utc={utc ?? null}
+              cursor={cursor}
             />
-          </ErrorBoundary>
-          <AlertRuleIssuesList
-            project={project}
-            rule={rule}
-            period={period ?? ''}
-            start={start ?? null}
-            end={end ?? null}
-            utc={utc ?? null}
-            cursor={cursor}
-          />
-        </Layout.Main>
-        <Layout.Side>
-          <Sidebar rule={rule} projectSlug={project.slug} teams={project.teams} />
-        </Layout.Side>
-      </Layout.Body>
-    </PageFiltersContainer>
+          </Layout.Main>
+          <Layout.Side>
+            <Sidebar rule={rule} projectSlug={project.slug} teams={project.teams} />
+          </Layout.Side>
+        </Layout.Body>
+      </PageFiltersContainer>
+    </Layout.Page>
   );
 }
 

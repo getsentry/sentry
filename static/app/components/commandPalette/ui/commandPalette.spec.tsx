@@ -2,6 +2,24 @@ import {useCallback} from 'react';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+jest.mock('@tanstack/react-virtual', () => ({
+  useVirtualizer: ({count}: {count: number}) => {
+    const virtualItems = Array.from({length: count}, (_, index) => ({
+      key: index,
+      index,
+      start: index * 48,
+      size: 48,
+      lane: 0,
+    }));
+    return {
+      getVirtualItems: () => virtualItems,
+      getTotalSize: () => count * 48,
+      measureElement: jest.fn(),
+      measure: jest.fn(),
+    };
+  },
+}));
+
 import {closeModal} from 'sentry/actionCreators/modal';
 import * as modalActions from 'sentry/actionCreators/modal';
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
@@ -232,7 +250,9 @@ describe('CommandPalette', () => {
       const input = await screen.findByRole('textbox', {name: 'Search commands'});
       await userEvent.type(input, 'issues');
 
-      const options = await screen.findAllByRole('option');
+      const options = (await screen.findAllByRole('option')).filter(
+        el => !el.hasAttribute('aria-disabled')
+      );
       expect(options[0]).toHaveAccessibleName('Issues');
       expect(options[1]).toHaveAccessibleName('Something with issues buried');
     });
@@ -243,7 +263,7 @@ describe('CommandPalette', () => {
           type: 'group',
           display: {label: 'Group'},
           groupingKey: 'navigate',
-          actions: [{type: 'navigate', to: '/child/', display: {label: 'Issues'}}],
+          actions: [{type: 'navigate', to: '/child/', display: {label: 'Issues child'}}],
         },
         {
           type: 'navigate',
@@ -256,9 +276,11 @@ describe('CommandPalette', () => {
       const input = await screen.findByRole('textbox', {name: 'Search commands'});
       await userEvent.type(input, 'issues');
 
-      const options = await screen.findAllByRole('option');
+      const options = (await screen.findAllByRole('option')).filter(
+        el => !el.hasAttribute('aria-disabled')
+      );
       expect(options[0]).toHaveAccessibleName('Issues');
-      expect(options[1]).toHaveAccessibleName('Group → Issues');
+      expect(options[1]).toHaveAccessibleName('Group → Issues child');
     });
 
     it('actions with matching keywords are included in results', async () => {
