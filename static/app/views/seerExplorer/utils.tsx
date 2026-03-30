@@ -622,6 +622,13 @@ export function buildToolLinkUrl(
       }
 
       if (dataset === 'metrics' || dataset === 'tracemetrics') {
+        // TODO: The metrics explore page reads metric-specific state (metric name,
+        // type, aggregations, group bys) from a JSON-encoded `metric` URL param.
+        // Currently we only pass page filter params (project, statsPeriod, etc.)
+        // which means the search query context is lost on navigation. To fully
+        // preserve context, the Seer backend should include structured metric
+        // metadata (name, type, unit) in tool_link params so we can build the
+        // `metric` param here via encodeMetricsQueryParams().
         return {
           pathname: `/organizations/${orgSlug}/explore/metrics/`,
           query: queryParams,
