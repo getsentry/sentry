@@ -876,7 +876,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
 
         assert response.status_code == 400
 
-    @mock.patch("sentry.workflow_engine.endpoints.validators.detector_workflow.create_audit_entry")
+    @mock.patch("sentry.workflow_engine.endpoints.validators.utils.create_audit_entry")
     def test_create_workflow_with_detector_ids(self, mock_audit: mock.MagicMock) -> None:
         detector_1 = self.create_detector()
         detector_2 = self.create_detector()
@@ -906,7 +906,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         ]
         assert len(detector_workflow_audit_calls) == 2
 
-    @mock.patch("sentry.workflow_engine.endpoints.validators.detector_workflow.create_audit_entry")
+    @mock.patch("sentry.workflow_engine.endpoints.validators.utils.create_audit_entry")
     def test_create_workflow_connected_to_error_detector(self, mock_audit: mock.MagicMock) -> None:
         """
         Tests that a member can create workflows with connections to a system-created detector
