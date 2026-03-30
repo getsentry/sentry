@@ -3,6 +3,7 @@ from sentry.incidents.endpoints.serializers.workflow_engine_action import (
     WorkflowEngineActionSerializer,
 )
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.models.organizationmember import OrganizationMember
 from sentry.notifications.notification_action.group_type_notification_registry.handlers.metric_alert_registry_handler import (
     MetricAlertRegistryHandler,
 )
@@ -19,7 +20,7 @@ class TestGetTargets(TestWorkflowEngineSerializer):
     def test_batch_user_targets(self) -> None:
         targets = MetricAlertRegistryHandler.get_targets([self.critical_action])
         target = targets[self.critical_action.id]
-        assert target is not None
+        assert isinstance(target, OrganizationMember)
         assert target.user_id == self.user.id
 
     def test_batch_team_targets(self) -> None:
@@ -76,7 +77,9 @@ class TestGetTargets(TestWorkflowEngineSerializer):
             [self.critical_action, team_action, specific_action]
         )
 
-        assert targets[self.critical_action.id].user_id == self.user.id
+        user_target = targets[self.critical_action.id]
+        assert isinstance(user_target, OrganizationMember)
+        assert user_target.user_id == self.user.id
         assert targets[team_action.id] == team
         assert targets[specific_action.id] == "chan-id"
 
