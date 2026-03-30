@@ -19,10 +19,10 @@ from sentry.types.cell import Cell, RegionCategory
 class BitbucketServerRequestParserTest(TestCase):
     get_response = MagicMock(return_value=HttpResponse(content=b"no-error", status=200))
     factory = RequestFactory()
-    region = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
-    region_config = (region,)
+    cell = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
+    cell_config = (cell,)
 
-    @override_cells(region_config)
+    @override_cells(cell_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_routing_webhook(self) -> None:
         region_route = reverse(
@@ -51,5 +51,5 @@ class BitbucketServerRequestParserTest(TestCase):
         assert_webhook_payloads_for_mailbox(
             request=request,
             mailbox_name=f"bitbucket_server:{self.organization.id}",
-            region_names=[self.region.name],
+            cell_names=[self.cell.name],
         )
