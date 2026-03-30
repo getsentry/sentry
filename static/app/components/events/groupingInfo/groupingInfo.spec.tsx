@@ -1,12 +1,12 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {EventGroupVariantType} from 'sentry/types/event';
 import {IssueCategory} from 'sentry/types/group';
 
-import {EventGroupingInfoSection} from './groupingInfoSection';
+import GroupingInfo from './groupingInfo';
 
 describe('EventGroupingInfo', () => {
   const group = GroupFixture();
@@ -45,15 +45,6 @@ describe('EventGroupingInfo', () => {
     });
   });
 
-  it('fetches and renders grouping info for errors', async () => {
-    render(<EventGroupingInfoSection {...defaultProps} />);
-    await userEvent.click(
-      screen.getByRole('button', {name: 'View Event Grouping Information Section'})
-    );
-    expect(await screen.findByText('variant description')).toBeInTheDocument();
-    expect(screen.getByText('123')).toBeInTheDocument();
-  });
-
   it('gets performance grouping info from group/event data', async () => {
     const perfEvent = EventFixture({
       type: 'transaction',
@@ -61,9 +52,7 @@ describe('EventGroupingInfo', () => {
     });
     const perfGroup = GroupFixture({issueCategory: IssueCategory.PERFORMANCE});
 
-    render(
-      <EventGroupingInfoSection {...defaultProps} event={perfEvent} group={perfGroup} />
-    );
+    render(<GroupingInfo {...defaultProps} event={perfEvent} group={perfGroup} />);
 
     expect(await screen.findByText('performance problem')).toBeInTheDocument();
     expect(screen.getByText('123')).toBeInTheDocument();
@@ -88,7 +77,7 @@ describe('EventGroupingInfo', () => {
         },
       },
     });
-    render(<EventGroupingInfoSection {...defaultProps} />);
+    render(<GroupingInfo {...defaultProps} />);
 
     expect(await screen.findByText('variant description')).toBeInTheDocument();
     expect(screen.getByText('123')).toBeInTheDocument();
@@ -116,9 +105,7 @@ describe('EventGroupingInfo', () => {
     });
     const perfGroup = GroupFixture({issueCategory: IssueCategory.PERFORMANCE});
 
-    render(
-      <EventGroupingInfoSection {...defaultProps} event={perfEvent} group={perfGroup} />
-    );
+    render(<GroupingInfo {...defaultProps} event={perfEvent} group={perfGroup} />);
 
     expect(await screen.findByText('performance problem')).toBeInTheDocument();
     expect(screen.getByText('123')).toBeInTheDocument();
