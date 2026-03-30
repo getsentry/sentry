@@ -54,8 +54,6 @@ class BuiltinSymbolSourcesEndpoint(OrganizationEndpoint):
                     platform not in source_platforms and platform not in GAME_ENGINE_PLATFORMS
                 ):
                     continue
-                if not organization:
-                    continue
                 has_access = any(
                     organization_has_console_platform_access(organization, p)
                     for p in source_platforms
