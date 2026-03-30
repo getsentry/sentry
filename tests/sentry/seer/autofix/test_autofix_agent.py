@@ -442,6 +442,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
         result = trigger_coding_agent_handoff(
             group=self.group,
             run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
             integration_id=456,
         )
 
@@ -467,6 +468,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
         result = trigger_coding_agent_handoff(
             group=self.group,
             run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
             integration_id=456,
         )
 
@@ -507,6 +509,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
         trigger_coding_agent_handoff(
             group=self.group,
             run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
             integration_id=456,
         )
 
@@ -540,6 +543,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
         trigger_coding_agent_handoff(
             group=self.group,
             run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
             integration_id=456,
         )
 
@@ -568,6 +572,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
         trigger_coding_agent_handoff(
             group=self.group,
             run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
             integration_id=456,
         )
 
@@ -595,6 +600,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
         trigger_coding_agent_handoff(
             group=self.group,
             run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
             integration_id=456,
         )
 
@@ -614,6 +620,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
         result = trigger_coding_agent_handoff(
             group=self.group,
             run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
             integration_id=456,
         )
 
@@ -654,7 +661,12 @@ class TestTriggerCodingAgentHandoff(TestCase):
         )
         mock_get_autofix_state.return_value = None
 
-        trigger_coding_agent_handoff(group=self.group, run_id=123, integration_id=456)
+        trigger_coding_agent_handoff(
+            group=self.group,
+            run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
+            integration_id=456,
+        )
 
         repos = mock_client.launch_coding_agents.call_args.kwargs["repos"]
         assert len(repos) == 1
@@ -688,7 +700,12 @@ class TestTriggerCodingAgentHandoff(TestCase):
         )
         mock_get_autofix_state.return_value = None
 
-        trigger_coding_agent_handoff(group=self.group, run_id=123, integration_id=456)
+        trigger_coding_agent_handoff(
+            group=self.group,
+            run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
+            integration_id=456,
+        )
 
         repos = mock_client.launch_coding_agents.call_args.kwargs["repos"]
         assert len(repos) == 1
@@ -736,7 +753,12 @@ class TestTriggerCodingAgentHandoff(TestCase):
         )
         mock_get_autofix_state.return_value = None
 
-        trigger_coding_agent_handoff(group=self.group, run_id=123, integration_id=456)
+        trigger_coding_agent_handoff(
+            group=self.group,
+            run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
+            integration_id=456,
+        )
 
         repos = mock_client.launch_coding_agents.call_args.kwargs["repos"]
         assert len(repos) == 1
@@ -798,7 +820,12 @@ class TestTriggerCodingAgentHandoff(TestCase):
             status=AutofixStatus.COMPLETED,
         )
 
-        trigger_coding_agent_handoff(group=self.group, run_id=123, integration_id=456)
+        trigger_coding_agent_handoff(
+            group=self.group,
+            run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
+            integration_id=456,
+        )
 
         repos = mock_client.launch_coding_agents.call_args.kwargs["repos"]
         assert repos[0].branch_name == "main"
@@ -828,7 +855,12 @@ class TestTriggerCodingAgentHandoff(TestCase):
             ]
         )
 
-        trigger_coding_agent_handoff(group=self.group, run_id=123, integration_id=456)
+        trigger_coding_agent_handoff(
+            group=self.group,
+            run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
+            integration_id=456,
+        )
 
         mock_get_autofix_state.assert_not_called()
         repos = mock_client.launch_coding_agents.call_args.kwargs["repos"]

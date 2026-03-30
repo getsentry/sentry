@@ -312,7 +312,7 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
         """
         raise NotImplementedError
 
-    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline] | None:
         """
         Return API step objects for this provider's pipeline, or None if API
         mode is not supported. Override to enable the pipeline API for this

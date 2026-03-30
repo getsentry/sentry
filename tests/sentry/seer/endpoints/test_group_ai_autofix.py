@@ -840,7 +840,6 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 EXPLORER_FLAGS = [
     "organizations:seer-explorer",
     "organizations:autofix-on-explorer",
-    "organizations:autofix-on-explorer-v2",
 ]
 
 

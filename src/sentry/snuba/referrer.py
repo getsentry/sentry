@@ -575,6 +575,7 @@ class Referrer(StrEnum):
     API_PREPROD_TAG_VALUES_RPC = "api.preprod.tags-values.rpc"
     API_PROCESSING_ERRORS_TAG_KEYS_RPC = "api.processing-errors.tags-keys.rpc"
     API_PROCESSING_ERRORS_TAG_VALUES_RPC = "api.processing-errors.tags-values.rpc"
+    API_TRACE_ITEM_ATTRIBUTE_VALIDATE = "api.trace-item.attribute-validate"
     API_SPANS_TAG_KEYS = "api.spans.tags-keys"
     API_SPANS_TAG_KEYS_RPC = "api.spans.tags-keys.rpc"
     API_SPANS_TAG_VALUES = "api.spans.tags-values"
