@@ -586,7 +586,7 @@ def set_default_project_auto_open_prs(organization: Organization, project: Proje
         "sentry:seer_default_coding_agent_integration_id"
     )
     automation_handoff: SeerAutomationHandoffConfiguration | None = None
-    if coding_agent and coding_agent_integration_id is not None:
+    if coding_agent and coding_agent != "seer" and coding_agent_integration_id is not None:
         automation_handoff = SeerAutomationHandoffConfiguration(
             handoff_point=AutofixHandoffPoint.ROOT_CAUSE,
             target=coding_agent,

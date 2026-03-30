@@ -248,7 +248,7 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
         "sentry:seer_default_coding_agent_integration_id"
     )
     default_handoff: dict[str, Any] | None = None
-    if coding_agent and coding_agent_integration_id is not None:
+    if coding_agent and coding_agent != "seer" and coding_agent_integration_id is not None:
         default_handoff = {
             "handoff_point": "root_cause",
             "target": coding_agent,

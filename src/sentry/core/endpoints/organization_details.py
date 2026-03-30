@@ -69,6 +69,7 @@ from sentry.constants import (
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
     SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+    SEER_DEFAULT_CODING_AGENT_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
     ObjectStatus,
 )
@@ -410,9 +411,9 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         organization = self.context["organization"]
         return validate_pii_config_update(organization, value)
 
-    def validate_defaultCodingAgent(self, value: str | None) -> str | None:
-        if value == "seer" or value is None:
-            return None
+    def validate_defaultCodingAgent(self, value: str | None) -> str:
+        if value is None:
+            return SEER_DEFAULT_CODING_AGENT_DEFAULT
         coding_agent_aliases: dict[str, str] = {
             "cursor": "cursor_background_agent",
             "claude_code": "claude_code_agent",
