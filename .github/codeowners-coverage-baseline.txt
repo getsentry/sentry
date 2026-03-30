@@ -552,6 +552,7 @@ static/app/components/discover/transactionsList.spec.tsx
 static/app/components/discover/transactionsList.tsx
 static/app/components/discover/transactionsTable.tsx
 static/app/components/discoverButton.tsx
+static/app/components/dnd/dragReorderButton.tsx
 static/app/components/dropdownButton.tsx
 static/app/components/dropdownMenu/footer.tsx
 static/app/components/dropdownMenu/index.spec.tsx
