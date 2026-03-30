@@ -13,6 +13,7 @@ import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 import {FeatureFilter} from './featureFilter';
 import {PrCommentsToggle} from './prCommentsToggle';
+import {SnapshotStatusChecks} from './snapshotStatusChecks';
 import {StatusCheckRules} from './statusCheckRules';
 
 const SIZE_ENABLED_READ_KEY = 'sentry:preprod_size_enabled_by_customer';
@@ -55,6 +56,9 @@ export default function PreprodSettings() {
             docsUrl="https://docs.sentry.io/product/size-analysis/#configuring-size-analysis-uploads"
           />
           <StatusCheckRules />
+          <Feature features="organizations:preprod-snapshots">
+            <SnapshotStatusChecks />
+          </Feature>
           <FeatureFilter
             enabledReadKey={DISTRIBUTION_ENABLED_READ_KEY}
             enabledWriteKey={DISTRIBUTION_ENABLED_WRITE_KEY}

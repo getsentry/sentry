@@ -18,7 +18,7 @@ from sentry.testutils.requests import make_request
 
 
 class TestSeerExplorerClient(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
@@ -388,7 +388,7 @@ class TestSeerExplorerClient(TestCase):
 class TestSeerExplorerClientArtifacts(TestCase):
     """Test artifact schema passing and retrieval"""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
@@ -694,7 +694,7 @@ class TestSeerExplorerClientArtifacts(TestCase):
 class TestSeerExplorerClientPushChanges(TestCase):
     """Test push_changes method"""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
@@ -800,7 +800,7 @@ class TestSeerExplorerClientPushChanges(TestCase):
 class TestSeerRunStateCodeChanges(TestCase):
     """Test SeerRunState helper methods for code changes"""
 
-    def test_has_code_changes_no_patches(self):
+    def test_has_code_changes_no_patches(self) -> None:
         """Test has_code_changes with no patches returns (False, True)"""
         state = SeerRunState(
             run_id=123,
@@ -819,7 +819,7 @@ class TestSeerRunStateCodeChanges(TestCase):
         assert has_changes is False
         assert is_synced is True
 
-    def test_has_code_changes_unsynced(self):
+    def test_has_code_changes_unsynced(self) -> None:
         """Test has_code_changes with patches but no PR"""
         state = SeerRunState(
             run_id=123,
@@ -844,7 +844,7 @@ class TestSeerRunStateCodeChanges(TestCase):
         assert has_changes is True
         assert is_synced is False
 
-    def test_has_code_changes_synced(self):
+    def test_has_code_changes_synced(self) -> None:
         """Test has_code_changes when changes are synced to PR"""
         state = SeerRunState(
             run_id=123,
@@ -877,7 +877,7 @@ class TestSeerRunStateCodeChanges(TestCase):
         assert has_changes is True
         assert is_synced is True
 
-    def test_get_diffs_by_repo(self):
+    def test_get_diffs_by_repo(self) -> None:
         """Test get_diffs_by_repo groups merged patches correctly"""
         state = SeerRunState(
             run_id=123,
@@ -911,7 +911,7 @@ class TestSeerRunStateCodeChanges(TestCase):
         assert len(result["owner/repo1"]) == 2
         assert len(result["owner/repo2"]) == 1
 
-    def test_get_diffs_by_repo_latest_patch_wins(self):
+    def test_get_diffs_by_repo_latest_patch_wins(self) -> None:
         """Test get_diffs_by_repo returns latest merged patch per file"""
         state = SeerRunState(
             run_id=123,

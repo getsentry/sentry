@@ -11,7 +11,7 @@ from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 class LatestBuildTestBase(APITestCase):
     endpoint = "sentry-api-0-project-preprod-public-builds"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.organization)
@@ -61,7 +61,7 @@ class LatestBuildTestBase(APITestCase):
 
 
 class LatestBuildValidationTest(LatestBuildTestBase):
-    def test_validation(self):
+    def test_validation(self) -> None:
         # Missing all required params
         assert self._get(self._get_url()).status_code == 400
 
@@ -84,7 +84,7 @@ class LatestBuildValidationTest(LatestBuildTestBase):
 class LatestBuildModeTest(LatestBuildTestBase):
     """Tests for latest-only mode (no buildVersion parameter)."""
 
-    def test_response_fields(self):
+    def test_response_fields(self) -> None:
         commit_comparison = self.create_commit_comparison(
             organization=self.organization,
             head_ref="feature/test",
@@ -125,7 +125,7 @@ class LatestBuildModeTest(LatestBuildTestBase):
         assert build["profileName"] is None
         assert build["codesigningType"] is None
 
-    def test_no_matching_build(self):
+    def test_no_matching_build(self) -> None:
         response = self._get(
             self._get_url(), {"appId": "com.nonexistent.app", "platform": "android"}
         )
@@ -134,7 +134,7 @@ class LatestBuildModeTest(LatestBuildTestBase):
         assert data["latestArtifact"] is None
         assert data["currentArtifact"] is None
 
-    def test_version_ordering_and_build_number_tiebreaker(self):
+    def test_version_ordering_and_build_number_tiebreaker(self) -> None:
         # Semver comparison picks highest version
         self._create_installable_artifact(build_version="1.0.0", build_number=1)
         self._create_installable_artifact(build_version="2.0.0", build_number=1)
@@ -148,7 +148,7 @@ class LatestBuildModeTest(LatestBuildTestBase):
         response = self._get(self._get_url(), {"appId": "com.example.app", "platform": "android"})
         assert response.json()["latestArtifact"]["buildId"] == str(highest.id)
 
-    def test_excludes_non_installable_builds(self):
+    def test_excludes_non_installable_builds(self) -> None:
         # No installable file
         self.create_preprod_artifact(
             project=self.project,
@@ -170,7 +170,7 @@ class LatestBuildModeTest(LatestBuildTestBase):
         response = self._get(self._get_url(), {"appId": "com.example.app", "platform": "android"})
         assert response.json()["latestArtifact"]["buildId"] == str(installable.id)
 
-    def test_only_returns_builds_for_this_project(self):
+    def test_only_returns_builds_for_this_project(self) -> None:
         other_project = self.create_project(organization=self.organization)
         self._create_installable_artifact(
             project=other_project, build_version="99.0.0", build_number=1
@@ -184,7 +184,7 @@ class LatestBuildModeTest(LatestBuildTestBase):
 class LatestBuildFilteringTest(LatestBuildTestBase):
     """Tests for explicit filter parameters (platform, buildConfiguration, etc.)."""
 
-    def test_platform_filter_apple(self):
+    def test_platform_filter_apple(self) -> None:
         ios_file = self.create_file(name="test.xcarchive", type="application/octet-stream")
         ios_artifact = self._create_installable_artifact(
             file_id=ios_file.id,
@@ -211,7 +211,7 @@ class LatestBuildFilteringTest(LatestBuildTestBase):
         assert data["latestArtifact"]["buildId"] == str(ios_artifact.id)
         assert data["latestArtifact"]["platform"] == "APPLE"
 
-    def test_platform_filter_android_includes_aab(self):
+    def test_platform_filter_android_includes_aab(self) -> None:
         self._create_installable_artifact(
             artifact_type=PreprodArtifact.ArtifactType.AAB,
             build_version="2.0.0",
@@ -226,7 +226,7 @@ class LatestBuildFilteringTest(LatestBuildTestBase):
         response = self._get(self._get_url(), {"appId": "com.example.app", "platform": "android"})
         assert response.json()["latestArtifact"]["buildId"] == str(apk_artifact.id)
 
-    def test_explicit_filters(self):
+    def test_explicit_filters(self) -> None:
         debug_config = self.create_preprod_build_configuration(project=self.project, name="debug")
 
         self._create_installable_artifact(
@@ -285,7 +285,7 @@ class LatestBuildFilteringTest(LatestBuildTestBase):
         )
         assert response.json()["latestArtifact"]["buildId"] == str(combo.id)
 
-    def test_filter_no_match(self):
+    def test_filter_no_match(self) -> None:
         self._create_installable_artifact(
             build_version="1.0.0",
             build_number=1,
@@ -298,7 +298,7 @@ class LatestBuildFilteringTest(LatestBuildTestBase):
         )
         assert response.json()["latestArtifact"] is None
 
-    def test_install_groups_multiple_and_query_param_array(self):
+    def test_install_groups_multiple_and_query_param_array(self) -> None:
         self._create_installable_artifact(
             build_version="1.0.0",
             build_number=1,
@@ -321,7 +321,7 @@ class LatestBuildFilteringTest(LatestBuildTestBase):
 class CheckForUpdatesTest(LatestBuildTestBase):
     """Tests for check-for-updates mode (buildVersion parameter provided)."""
 
-    def test_update_available(self):
+    def test_update_available(self) -> None:
         current = self._create_installable_artifact(build_version="1.0.0", build_number=1)
         newer = self._create_installable_artifact(build_version="2.0.0", build_number=1)
 
@@ -340,7 +340,7 @@ class CheckForUpdatesTest(LatestBuildTestBase):
         assert data["currentArtifact"]["buildId"] == str(current.id)
         assert data["currentArtifact"]["appInfo"]["version"] == "1.0.0"
 
-    def test_already_on_latest(self):
+    def test_already_on_latest(self) -> None:
         artifact = self._create_installable_artifact(build_version="2.0.0", build_number=1)
 
         response = self._get(
@@ -357,7 +357,7 @@ class CheckForUpdatesTest(LatestBuildTestBase):
         assert data["latestArtifact"]["buildId"] == str(artifact.id)
         assert data["currentArtifact"]["buildId"] == str(artifact.id)
 
-    def test_current_not_found(self):
+    def test_current_not_found(self) -> None:
         latest = self._create_installable_artifact(build_version="2.0.0", build_number=1)
 
         response = self._get(
@@ -374,7 +374,7 @@ class CheckForUpdatesTest(LatestBuildTestBase):
         assert data["latestArtifact"]["buildId"] == str(latest.id)
         assert data["currentArtifact"] is None
 
-    def test_no_builds_exist(self):
+    def test_no_builds_exist(self) -> None:
         response = self._get(
             self._get_url(),
             {
@@ -388,7 +388,7 @@ class CheckForUpdatesTest(LatestBuildTestBase):
         assert data["latestArtifact"] is None
         assert data["currentArtifact"] is None
 
-    def test_main_binary_identifier_matching(self):
+    def test_main_binary_identifier_matching(self) -> None:
         current = self._create_installable_artifact(
             build_version="1.0.0",
             build_number=1,
@@ -409,7 +409,7 @@ class CheckForUpdatesTest(LatestBuildTestBase):
         assert data["currentArtifact"]["buildId"] == str(current.id)
         assert data["latestArtifact"]["buildId"] == str(newer.id)
 
-    def test_filter_inheritance_build_configuration(self):
+    def test_filter_inheritance_build_configuration(self) -> None:
         debug_config = self.create_preprod_build_configuration(project=self.project, name="debug")
 
         current = self._create_installable_artifact(
@@ -443,7 +443,7 @@ class CheckForUpdatesTest(LatestBuildTestBase):
         assert data["latestArtifact"]["buildId"] == str(newer_release.id)
         assert data["currentArtifact"]["buildId"] == str(current.id)
 
-    def test_filter_inheritance_codesigning_type(self):
+    def test_filter_inheritance_codesigning_type(self) -> None:
         current = self._create_installable_artifact(
             build_version="1.0.0",
             build_number=1,
@@ -474,7 +474,7 @@ class CheckForUpdatesTest(LatestBuildTestBase):
         assert data["latestArtifact"]["buildId"] == str(newer_dev.id)
         assert data["currentArtifact"]["buildId"] == str(current.id)
 
-    def test_filter_inheritance_install_groups(self):
+    def test_filter_inheritance_install_groups(self) -> None:
         current = self._create_installable_artifact(
             build_version="1.0.0",
             build_number=1,
@@ -505,7 +505,7 @@ class CheckForUpdatesTest(LatestBuildTestBase):
         assert data["latestArtifact"]["buildId"] == str(newer.id)
         assert data["currentArtifact"]["buildId"] == str(current.id)
 
-    def test_combined_filter_inheritance(self):
+    def test_combined_filter_inheritance(self) -> None:
         current = self._create_installable_artifact(
             build_version="1.0.0",
             build_number=1,

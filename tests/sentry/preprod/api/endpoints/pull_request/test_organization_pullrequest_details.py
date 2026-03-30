@@ -12,7 +12,7 @@ from sentry.testutils.helpers.features import with_feature
 
 
 class OrganizationPullRequestDetailsEndpointTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.factory = APIRequestFactory()
 
@@ -169,7 +169,7 @@ class OrganizationPullRequestDetailsEndpointTest(TestCase):
         assert renamed_file["previous_filename"] == "old-component.tsx"
 
     @with_feature("organizations:pr-page")
-    def test_no_github_client(self):
+    def test_no_github_client(self) -> None:
         """Test when no GitHub client is available (no integration set up)."""
         Repository.objects.create(
             organization_id=self.organization.id,
@@ -212,7 +212,7 @@ class OrganizationPullRequestDetailsEndpointTest(TestCase):
         assert response.data["pull_request"]["changed_files_count"] == 0
 
     @with_feature("organizations:pr-page")
-    def test_repository_not_found(self):
+    def test_repository_not_found(self) -> None:
         """Test when repository doesn't exist in the database."""
         response = self._make_request(repo_name="does-not/exist")
 

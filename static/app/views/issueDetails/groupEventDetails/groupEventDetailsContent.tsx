@@ -7,7 +7,6 @@ import {Button} from '@sentry/scraps/button';
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import Feature from 'sentry/components/acl/feature';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
-import {CommitRow} from 'sentry/components/commitRow';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {BreadcrumbsDataSection} from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import {EventContexts} from 'sentry/components/events/contexts';
@@ -178,12 +177,7 @@ export function EventDetailsContent({
       <StyledDataSection>
         {!hasStreamlinedUI && <TraceDataSection event={event} />}
         {!hasStreamlinedUI && (
-          <SuspectCommits
-            projectSlug={project.slug}
-            eventId={event.id}
-            group={group}
-            commitRow={CommitRow}
-          />
+          <SuspectCommits projectSlug={project.slug} eventId={event.id} group={group} />
         )}
       </StyledDataSection>
       {event.userReport && (

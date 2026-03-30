@@ -903,7 +903,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     @override_options({"alerts.issue_summary_timeout": 5})
     @with_feature({"organizations:gen-ai-features"})
-    def test_build_group_block_with_ai_summary(self):
+    def test_build_group_block_with_ai_summary(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -962,7 +962,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     @override_options({"alerts.issue_summary_timeout": 5})
     @with_feature({"organizations:gen-ai-features"})
-    def test_build_group_block_with_ai_summary_text_truncation(self):
+    def test_build_group_block_with_ai_summary_text_truncation(self) -> None:
         # Test case for multi-line exception text
         multiline_text = "First line of text\nSecond line of text\nThird line of text"
         event1 = self.store_event(

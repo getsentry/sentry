@@ -440,7 +440,7 @@ def test_ops_breakdown_excludes_segment_span() -> None:
     assert result["span_ops.ops.http"]["value"] == 3600000.0  # 1 hour (child only)
 
 
-def test_write_tags_for_performance_issue_detection():
+def test_write_tags_for_performance_issue_detection() -> None:
     segment_span = _mock_performance_issue_span(
         is_segment=True,
         span_id="ffffffffffffffff",

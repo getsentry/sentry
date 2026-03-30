@@ -26,18 +26,20 @@ const UNSAVED_CHANGES_MESSAGE = t(
   'You have unsaved changes, are you sure you want to leave?'
 );
 
+export const sampleRateField = z
+  .string()
+  .min(1, t('Please enter a valid number'))
+  .refine(val => !isNaN(Number(val)), {message: t('Please enter a valid number')})
+  .refine(
+    val => {
+      const n = Number(val);
+      return n >= 0 && n <= 100;
+    },
+    {message: t('Must be between 0% and 100%')}
+  );
+
 export const targetSampleRateSchema = z.object({
-  targetSampleRate: z
-    .string()
-    .min(1, t('Please enter a valid number'))
-    .refine(val => !isNaN(Number(val)), {message: t('Please enter a valid number')})
-    .refine(
-      val => {
-        const n = Number(val);
-        return n >= 0 && n <= 100;
-      },
-      {message: t('Must be between 0% and 100%')}
-    ),
+  targetSampleRate: sampleRateField,
 });
 
 export function OrganizationSampling() {
@@ -80,8 +82,8 @@ export function OrganizationSampling() {
 
   return (
     <form.AppForm form={form}>
-      <form.Subscribe selector={s => ({isDirty: s.isDirty, canSubmit: s.canSubmit})}>
-        {({isDirty, canSubmit}) => (
+      <form.Subscribe selector={s => ({isDirty: s.isDirty})}>
+        {({isDirty}) => (
           <Fragment>
             <OnRouteLeave
               message={UNSAVED_CHANGES_MESSAGE}
@@ -121,10 +123,7 @@ export function OrganizationSampling() {
                             'You do not have permission to update these settings.'
                           )}
                         >
-                          <form.SubmitButton
-                            disabled={!hasAccess || !canSubmit}
-                            formNoValidate
-                          >
+                          <form.SubmitButton disabled={!hasAccess} formNoValidate>
                             {t('Apply Changes')}
                           </form.SubmitButton>
                         </Tooltip>

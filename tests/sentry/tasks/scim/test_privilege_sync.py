@@ -18,11 +18,11 @@ from sentry.users.services.user.service import user_service
 
 @cell_silo_test
 class UpdatePrivilegeGrantTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(email="test@example.com")
 
-    def test_grant_staff(self):
+    def test_grant_staff(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert not User.objects.get(id=self.user.id).is_staff
 
@@ -33,7 +33,7 @@ class UpdatePrivilegeGrantTest(TestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert User.objects.get(id=self.user.id).is_staff
 
-    def test_grant_superuser(self):
+    def test_grant_superuser(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert not User.objects.get(id=self.user.id).is_superuser
 
@@ -44,7 +44,7 @@ class UpdatePrivilegeGrantTest(TestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert User.objects.get(id=self.user.id).is_superuser
 
-    def test_grant_superuser_write_sets_superuser_and_permission(self):
+    def test_grant_superuser_write_sets_superuser_and_permission(self) -> None:
         from sentry.users.models.userpermission import UserPermission
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -65,7 +65,7 @@ class UpdatePrivilegeGrantTest(TestCase):
                 user_id=self.user.id, permission="superuser.write"
             ).exists()
 
-    def test_grant_superuser_write_rolls_back_permission_on_failure(self):
+    def test_grant_superuser_write_rolls_back_permission_on_failure(self) -> None:
         from sentry.users.models.userpermission import UserPermission
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -89,7 +89,7 @@ class UpdatePrivilegeGrantTest(TestCase):
                 user_id=self.user.id, permission="superuser.write"
             ).exists()
 
-    def test_grant_superuser_write_integrity_error_removes_permission_without_raising(self):
+    def test_grant_superuser_write_integrity_error_removes_permission_without_raising(self) -> None:
         from sentry.users.models.userpermission import UserPermission
 
         with patch("sentry.tasks.scim.privilege_sync.user_service.update_user") as mock_update:
@@ -110,11 +110,11 @@ class UpdatePrivilegeGrantTest(TestCase):
 
 @cell_silo_test
 class UpdatePrivilegeRevokeTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(email="test@example.com")
 
-    def test_revoke_staff(self):
+    def test_revoke_staff(self) -> None:
         user_service.update_user(user_id=self.user.id, attrs={"is_staff": True})
 
         update_privilege(
@@ -125,7 +125,7 @@ class UpdatePrivilegeRevokeTest(TestCase):
         assert user is not None
         assert not user.is_staff
 
-    def test_revoke_superuser(self):
+    def test_revoke_superuser(self) -> None:
         user_service.update_user(user_id=self.user.id, attrs={"is_superuser": True})
 
         update_privilege(
@@ -136,7 +136,7 @@ class UpdatePrivilegeRevokeTest(TestCase):
         assert user is not None
         assert not user.is_superuser
 
-    def test_revoke_superuser_write_removes_permission_and_superuser(self):
+    def test_revoke_superuser_write_removes_permission_and_superuser(self) -> None:
         from sentry.users.models.userpermission import UserPermission
 
         user_service.update_user(user_id=self.user.id, attrs={"is_superuser": True})
@@ -156,7 +156,7 @@ class UpdatePrivilegeRevokeTest(TestCase):
                 user_id=self.user.id, permission="superuser.write"
             ).exists()
 
-    def test_revoke_superuser_write_failure_keeps_permission_removed(self):
+    def test_revoke_superuser_write_failure_keeps_permission_removed(self) -> None:
         from sentry.users.models.userpermission import UserPermission
 
         user_service.update_user(
@@ -191,13 +191,13 @@ PRIVILEGE_SETTINGS = {
 
 @cell_silo_test
 class SyncScimTeamPrivilegesTaskTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user_one = self.create_user(email="user1@example.com")
         self.user_two = self.create_user(email="user2@example.com")
         self.organization = self.create_organization(name="Test Org")
 
-    def test_non_saas_mode_is_noop(self):
+    def test_non_saas_mode_is_noop(self) -> None:
         with override_settings(
             SENTRY_MODE=SentryMode.SELF_HOSTED,
             SUPERUSER_ORG_ID=self.organization.id,
@@ -214,7 +214,7 @@ class SyncScimTeamPrivilegesTaskTest(TestCase):
             assert user is not None
             assert not user.is_staff
 
-    def test_wrong_org_is_noop(self):
+    def test_wrong_org_is_noop(self) -> None:
         other_org = self.create_organization(name="Other Org")
         with override_settings(
             SENTRY_MODE=SentryMode.SAAS,
@@ -232,7 +232,7 @@ class SyncScimTeamPrivilegesTaskTest(TestCase):
             assert user is not None
             assert not user.is_staff
 
-    def test_batch_grant_and_revoke(self):
+    def test_batch_grant_and_revoke(self) -> None:
         user_service.update_user(user_id=self.user_two.id, attrs={"is_staff": True})
 
         with override_settings(
@@ -255,7 +255,7 @@ class SyncScimTeamPrivilegesTaskTest(TestCase):
             assert user_two is not None
             assert not user_two.is_staff
 
-    def test_grant_failure_raises(self):
+    def test_grant_failure_raises(self) -> None:
         with override_settings(
             SENTRY_MODE=SentryMode.SAAS,
             SUPERUSER_ORG_ID=self.organization.id,
@@ -272,7 +272,7 @@ class SyncScimTeamPrivilegesTaskTest(TestCase):
                         user_ids_to_revoke=[],
                     )
 
-    def test_revoke_failure_raises(self):
+    def test_revoke_failure_raises(self) -> None:
         with override_settings(
             SENTRY_MODE=SentryMode.SAAS,
             SUPERUSER_ORG_ID=self.organization.id,
@@ -289,7 +289,7 @@ class SyncScimTeamPrivilegesTaskTest(TestCase):
                         user_ids_to_revoke=[self.user_one.id],
                     )
 
-    def test_unknown_team_slug_is_noop(self):
+    def test_unknown_team_slug_is_noop(self) -> None:
         with override_settings(
             SENTRY_MODE=SentryMode.SAAS,
             SUPERUSER_ORG_ID=self.organization.id,
@@ -307,7 +307,7 @@ class SyncScimTeamPrivilegesTaskTest(TestCase):
             assert not user.is_staff
             assert not user.is_superuser
 
-    def test_empty_lists_is_noop(self):
+    def test_empty_lists_is_noop(self) -> None:
         with override_settings(
             SENTRY_MODE=SentryMode.SAAS,
             SUPERUSER_ORG_ID=self.organization.id,

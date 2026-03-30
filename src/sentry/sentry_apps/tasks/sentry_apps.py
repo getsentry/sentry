@@ -493,18 +493,6 @@ def installation_webhook(installation_id: int, user_id: int, *args: Any, **kwarg
     ).run()
 
 
-# TODO(cells): remove once in-flight tasks with old name have drained
-@instrumented_task(
-    name="sentry.sentry_apps.tasks.sentry_apps.clear_region_cache",
-    namespace=sentryapp_control_tasks,
-    retry=Retry(times=3, delay=60 * 5),
-    processing_deadline_duration=30,
-    silo_mode=SiloMode.CONTROL,
-)
-def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
-    clear_cell_cache(sentry_app_id=sentry_app_id, cell_name=region_name)
-
-
 @instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.clear_cell_cache",
     namespace=sentryapp_control_tasks,

@@ -23,7 +23,7 @@ def _repo(owner: str, name: str) -> SeerRepoDefinition:
 class TestLaunchCodingAgents(TestCase):
     """Tests for launch_coding_agents function."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.run_id = 12345
@@ -209,7 +209,7 @@ MOCK_HANDOFF_PATH = "sentry.seer.explorer.coding_agent_handoff"
 
 
 class TestResolveClient(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
 
@@ -281,6 +281,6 @@ class TestResolveClient(TestCase):
                 self.organization, integration_id=None, provider="github_copilot", user_id=None
             )
 
-    def test_raises_validation_error_when_no_integration_or_provider(self):
+    def test_raises_validation_error_when_no_integration_or_provider(self) -> None:
         with pytest.raises(ValidationError):
             _resolve_client(self.organization, integration_id=None, provider=None, user_id=None)

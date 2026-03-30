@@ -13,6 +13,8 @@ from sentry.users.api.bases.user import RegionSiloUserEndpoint
 from sentry.users.services.user import RpcUser
 
 
+# TODO(cells): Non-routable by Synapse (no org slug in URL). Fix by moving to
+# @control_silo_endpoint and querying OrganizationMemberMapping + OrganizationMapping.
 @cell_silo_endpoint
 class UserOrganizationsEndpoint(RegionSiloUserEndpoint):
     publish_status = {
