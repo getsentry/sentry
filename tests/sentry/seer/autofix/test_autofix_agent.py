@@ -745,3 +745,96 @@ class TestTriggerCodingAgentHandoff(TestCase):
                 run_id=123,
                 integration_id=456,
             )
+
+    @patch("sentry.seer.autofix.autofix_agent.get_autofix_state")
+    @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")
+    @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
+    def test_trigger_coding_agent_handoff_enriches_branch_name_from_autofix_state(
+        self, mock_client_class, mock_get_prefs, mock_get_autofix_state
+    ):
+        """Test that branch_name is resolved from autofix state when unset in preferences."""
+        from datetime import datetime, timezone
+
+        from sentry.seer.autofix.constants import AutofixStatus
+        from sentry.seer.autofix.utils import AutofixRequest, AutofixState
+        from sentry.seer.models import SeerRepoDefinition
+
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.get_run.return_value = self._make_run_state()
+        mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
+        mock_get_prefs.return_value = self._make_preference_response(
+            repos=[
+                SeerRepoDefinition(provider="github", owner="owner", name="repo", external_id="1")
+            ]
+        )
+        mock_get_autofix_state.return_value = AutofixState(
+            run_id=123,
+            request=AutofixRequest(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                issue={
+                    "id": 1,
+                    "title": "Bug",
+                    "short_id": "PROJ-1",
+                    "first_seen": "2024-01-01T00:00:00Z",
+                },
+                repos=[
+                    SeerRepoDefinition(
+                        provider="github",
+                        owner="owner",
+                        name="repo",
+                        external_id="1",
+                        branch_name="main",
+                    )
+                ],
+            ),
+            updated_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
+            status=AutofixStatus.COMPLETED,
+        )
+
+        trigger_coding_agent_handoff(
+            group=self.group,
+            run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
+            integration_id=456,
+        )
+
+        repos = mock_client.launch_coding_agents.call_args.kwargs["repos"]
+        assert repos[0].branch_name == "main"
+
+    @patch("sentry.seer.autofix.autofix_agent.get_autofix_state")
+    @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")
+    @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
+    def test_trigger_coding_agent_handoff_keeps_branch_name_from_preferences_when_set(
+        self, mock_client_class, mock_get_prefs, mock_get_autofix_state
+    ):
+        """Test that branch_name from preferences is used as-is when already set."""
+        from sentry.seer.models import SeerRepoDefinition
+
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.get_run.return_value = self._make_run_state()
+        mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
+        mock_get_prefs.return_value = self._make_preference_response(
+            repos=[
+                SeerRepoDefinition(
+                    provider="github",
+                    owner="owner",
+                    name="repo",
+                    external_id="1",
+                    branch_name="release/v2",
+                )
+            ]
+        )
+
+        trigger_coding_agent_handoff(
+            group=self.group,
+            run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
+            integration_id=456,
+        )
+
+        mock_get_autofix_state.assert_not_called()
+        repos = mock_client.launch_coding_agents.call_args.kwargs["repos"]
+        assert repos[0].branch_name == "release/v2"
