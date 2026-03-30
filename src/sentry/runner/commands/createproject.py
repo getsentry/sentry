@@ -24,7 +24,6 @@ def _resolve_organization(org_value: str) -> Organization:
 @click.option("--name", required=True, help="The name of the project.")
 @click.option(
     "--platform",
-    required=True,
     help="The platform for the project (e.g., 'python', 'javascript-react').",
 )
 @click.option("--organization", "org", required=True, help="Organization ID or slug.")
@@ -37,9 +36,11 @@ def createproject(
     team: str | None,
 ) -> None:
     """Create a new project."""
+    from django.contrib.auth.models import AnonymousUser
     from django.db import router, transaction
 
     from sentry.api.helpers.default_symbol_sources import set_default_symbol_sources
+    from sentry.core.endpoints.team_projects import apply_default_project_settings
     from sentry.models.project import Project
     from sentry.models.projectkey import ProjectKey
     from sentry.models.team import Team, TeamStatus
@@ -71,10 +72,12 @@ def createproject(
             project.add_team(team_instance)
 
         set_default_symbol_sources(project)
+        apply_default_project_settings(organization, project)
 
         project_created.send_robust(
             project=project,
             default_rules=True,
+            user=AnonymousUser(),
             sender=createproject,
         )
 
