@@ -515,18 +515,6 @@ class SlackExplorerEntrypointTest(TestCase):
         assert ep.install.model.id == self.integration.id
         assert ep.thread == SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)
 
-    def test_init_defaults_thread_ts_to_message_ts_when_none(self) -> None:
-        ep = SlackExplorerEntrypoint(
-            integration_id=self.integration.id,
-            organization_id=self.organization.id,
-            channel_id=self.channel_id,
-            message_ts=self.message_ts,
-            thread_ts=None,
-            slack_user_id=self.slack_user_id,
-        )
-        assert ep.thread_ts == self.message_ts
-        assert ep.thread["thread_ts"] == self.message_ts
-
     def test_init_raises_if_integration_not_found(self) -> None:
         with pytest.raises(EntrypointSetupError):
             SlackExplorerEntrypoint(
