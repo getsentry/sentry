@@ -1,7 +1,7 @@
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import Feature from 'sentry/components/acl/feature';
@@ -162,7 +162,7 @@ export default function AlertWizard() {
   );
   const panelContent = getAlertWizardPanelContent({hasMetricIssues})[alertOption];
   return (
-    <Fragment>
+    <Stack flex={1}>
       <SentryDocumentTitle title={t('Alert Creation Wizard')} projectSlug={projectSlug} />
 
       <Layout.Header>
@@ -237,7 +237,7 @@ export default function AlertWizard() {
           </Flex>
         </Layout.Main>
       </Layout.Body>
-    </Fragment>
+    </Stack>
   );
 }
 

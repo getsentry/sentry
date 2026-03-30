@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import Feature from 'sentry/components/acl/feature';
@@ -157,6 +158,7 @@ export default function ProfilingContent() {
             : undefined
         }
       >
+        <Stack flex={1}>
           <ProfilingBetaAlertBanner organization={organization} />
           <Feature features="continuous-profiling-beta-ui">
             <ContinuousProfilingBetaAlertBanner organization={organization} />
@@ -242,6 +244,7 @@ export default function ProfilingContent() {
               )}
             </LayoutMain>
           </LayoutBody>
+        </Stack>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );

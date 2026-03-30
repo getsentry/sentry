@@ -1,4 +1,6 @@
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
+
+import {Stack} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -61,7 +63,7 @@ export default function ProjectAlertsEditor() {
   const {teams, isLoading: teamsLoading} = useUserTeams();
 
   return (
-    <Fragment>
+    <Stack flex={1}>
       <SentryDocumentTitle
         title={title}
         orgSlug={organization.slug}
@@ -133,6 +135,6 @@ export default function ProjectAlertsEditor() {
           </Fragment>
         )}
       </Layout.Body>
-    </Fragment>
+    </Stack>
   );
 }

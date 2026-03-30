@@ -1,8 +1,8 @@
-import {Fragment, useCallback, useState} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {updateMonitor} from 'sentry/actionCreators/monitors';
 import {SectionHeading} from 'sentry/components/charts/styles';
@@ -114,7 +114,7 @@ export default function MonitorDetails() {
   }
 
   return (
-    <Fragment>
+    <Stack flex={1}>
       <SentryDocumentTitle title={`${monitor.name} — Alerts`} />
       <MonitorHeader monitor={monitor} orgSlug={organization.slug} onUpdate={onUpdate} />
       <Layout.Body>
@@ -185,7 +185,7 @@ export default function MonitorDetails() {
           </Layout.Side>
         </TimezoneProvider>
       </Layout.Body>
-    </Fragment>
+    </Stack>
   );
 }
 

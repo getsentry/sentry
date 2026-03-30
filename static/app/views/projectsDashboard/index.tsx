@@ -6,7 +6,7 @@ import debounce from 'lodash/debounce';
 import uniqBy from 'lodash/uniqBy';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -307,11 +307,13 @@ function Dashboard() {
 function OrganizationDashboard() {
   const organization = useOrganization();
   return (
+    <Stack flex={1}>
       <NoProjectMessage organization={organization}>
         <PageAlertProvider>
           <Dashboard />
         </PageAlertProvider>
       </NoProjectMessage>
+    </Stack>
   );
 }
 

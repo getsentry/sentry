@@ -1,4 +1,6 @@
 import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
+
+import {Stack} from '@sentry/scraps/layout';
 import isEqual from 'lodash/isEqual';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -251,7 +253,9 @@ export function PageFiltersContainer({
   // would speed up orgs with tons of projects
   if (!isReady || !hasInitialized) {
     return (
+      <Stack flex={1} padding="2xl 3xl">
         <LoadingIndicator />
+      </Stack>
     );
   }
 

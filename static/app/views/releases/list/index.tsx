@@ -408,6 +408,7 @@ export default function ReleasesList() {
   return (
     <PageFiltersContainer showAbsolute={false} defaultSelection={selection}>
       <SentryDocumentTitle title={t('Releases')} orgSlug={organization.slug} />
+      <Stack flex={1}>
         <NoProjectMessage organization={organization}>
           <Layout.Header noActionWrap>
             <Stack gap="md">
@@ -570,6 +571,7 @@ export default function ReleasesList() {
             </Layout.Main>
           </Layout.Body>
         </NoProjectMessage>
+      </Stack>
     </PageFiltersContainer>
   );
 }

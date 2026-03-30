@@ -1,5 +1,7 @@
 import {Outlet} from 'react-router-dom';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {Redirect} from 'sentry/components/redirect';
@@ -20,9 +22,11 @@ export default function FeedbackContainer() {
 
   return (
     <AnalyticsArea name="feedback">
+      <Stack flex={1}>
         <NoProjectMessage organization={organization}>
           <Outlet />
         </NoProjectMessage>
+      </Stack>
     </AnalyticsArea>
   );
 }

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Feature from 'sentry/components/acl/feature';
@@ -358,6 +358,7 @@ export default function IssueViewsList() {
 
   return (
     <SentryDocumentTitle title={t('All Views')} orgSlug={organization.slug}>
+      <Stack flex={1}>
         <Layout.Header unified>
           <Layout.HeaderContent>
             <Layout.Title>{t('All Views')}</Layout.Title>
@@ -459,6 +460,7 @@ export default function IssueViewsList() {
             />
           </MainTableLayout>
         </Layout.Body>
+      </Stack>
     </SentryDocumentTitle>
   );
 }

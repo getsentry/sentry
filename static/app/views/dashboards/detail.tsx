@@ -22,6 +22,8 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
+import {Stack} from '@sentry/scraps/layout';
+
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -986,6 +988,7 @@ class DashboardDetail extends Component<Props, State> {
           },
         }}
       >
+        <Stack flex={1} padding="2xl 3xl">
           <OnDemandControlProvider location={location}>
             <MetricsResultsMetaProvider>
               <NoProjectMessage organization={organization}>
@@ -1060,6 +1063,7 @@ class DashboardDetail extends Component<Props, State> {
               </NoProjectMessage>
             </MetricsResultsMetaProvider>
           </OnDemandControlProvider>
+        </Stack>
       </PageFiltersContainer>
     );
   }
@@ -1106,6 +1110,7 @@ class DashboardDetail extends Component<Props, State> {
     );
 
     const pageContent = (
+      <Stack flex={1}>
         <OnDemandControlProvider location={location}>
           <MetricsResultsMetaProvider>
             <NoProjectMessage organization={organization}>
@@ -1314,6 +1319,7 @@ class DashboardDetail extends Component<Props, State> {
             </NoProjectMessage>
           </MetricsResultsMetaProvider>
         </OnDemandControlProvider>
+      </Stack>
     );
 
     return (

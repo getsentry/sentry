@@ -1,4 +1,4 @@
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {NotFound} from 'sentry/components/errors/notFound';
 import {ArchivedReplayAlert} from 'sentry/components/replays/alerts/archivedReplayAlert';
@@ -17,24 +17,34 @@ export function ReplayDetailsPage({readerResult}: Props) {
     <ReplayLoadingState
       readerResult={readerResult}
       renderArchived={() => (
+        <Stack flex={1} padding="2xl 3xl">
           <ArchivedReplayAlert />
+        </Stack>
       )}
       renderError={({fetchError, onRetry}) => (
+        <Stack flex={1} padding="2xl 3xl">
           <ReplayDetailsError fetchError={fetchError} onRetry={onRetry} />
+        </Stack>
       )}
       renderThrottled={({fetchError, onRetry}) => (
+        <Stack flex={1} padding="2xl 3xl">
           <ReplayDetailsError fetchError={fetchError} onRetry={onRetry} />
+        </Stack>
       )}
       renderLoading={({replayRecord}) => (
         <ReplayLayout isVideoReplay={false} replayRecord={replayRecord} isLoading />
       )}
       renderMissing={() => (
+        <Stack flex={1} padding="2xl 3xl">
           <NotFound />
+        </Stack>
       )}
       renderProcessingError={() => (
+        <Stack flex={1} padding="2xl 3xl">
           <Flex direction="column">
             <ReplayProcessingError />
           </Flex>
+        </Stack>
       )}
     >
       {({replay}) => (

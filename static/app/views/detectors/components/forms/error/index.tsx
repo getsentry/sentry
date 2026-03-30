@@ -102,11 +102,13 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
 
 export function NewErrorDetectorForm() {
   return (
+    <Stack flex={1}>
       <Layout.Body>
         <Layout.Main width="full">
           <LoadingError message={t('Error detectors cannot be created')} />
         </Layout.Main>
       </Layout.Body>
+    </Stack>
   );
 }
 

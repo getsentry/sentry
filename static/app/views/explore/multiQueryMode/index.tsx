@@ -1,4 +1,4 @@
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -33,6 +33,7 @@ export default function MultiQueryMode() {
       renderDisabled={NoAccess}
     >
       <SentryDocumentTitle title={t('Compare Queries')} orgSlug={organization.slug}>
+        <Stack flex={1}>
         <Layout.Header unified>
           <Layout.HeaderContent>
             <Breadcrumbs
@@ -63,6 +64,7 @@ export default function MultiQueryMode() {
           </Layout.HeaderActions>
         </Layout.Header>
           <MultiQueryModeContent />
+        </Stack>
       </SentryDocumentTitle>
     </Feature>
   );

@@ -1,6 +1,8 @@
 import {useLayoutEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {NotFound} from 'sentry/components/errors/notFound';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -36,7 +38,9 @@ export function RouteNotFound() {
 
   return (
     <SentryDocumentTitle title={t('Page Not Found')}>
+      <Stack flex={1} padding="2xl 3xl">
         <NotFound />
+      </Stack>
     </SentryDocumentTitle>
   );
 }

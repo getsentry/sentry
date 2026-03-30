@@ -6,6 +6,7 @@ import {isString} from '@sentry/core';
 import type {Location} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Stack} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -295,6 +296,7 @@ export function PageLayout(props: Props) {
               }
             >
               <Tabs value={tab} onChange={onTabChange}>
+                <Stack flex={1}>
                   <TransactionHeader
                     eventView={eventView}
                     location={location}
@@ -328,6 +330,7 @@ export function PageLayout(props: Props) {
                       <Outlet />
                     </TransactionSummaryContext>
                   </StyledBody>
+                </Stack>
               </Tabs>
             </PageFiltersContainer>
           </PerformanceEventViewProvider>

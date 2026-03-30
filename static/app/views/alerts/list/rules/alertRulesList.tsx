@@ -1,8 +1,8 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {
@@ -207,7 +207,7 @@ export default function AlertRulesList() {
   );
 
   return (
-    <Fragment>
+    <Stack flex={1}>
       <SentryDocumentTitle title={t('Alerts')} orgSlug={organization.slug} />
 
         <PageFiltersContainer>
@@ -336,7 +336,7 @@ export default function AlertRulesList() {
             </Layout.Main>
           </Layout.Body>
         </PageFiltersContainer>
-    </Fragment>
+    </Stack>
   );
 }
 

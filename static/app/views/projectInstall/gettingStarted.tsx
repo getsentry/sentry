@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Redirect} from 'sentry/components/redirect';
 import {allPlatforms} from 'sentry/data/platforms';
@@ -46,7 +48,7 @@ export default function GettingStarted() {
   );
 }
 
-const GettingStartedLayout = styled('div')`
+const GettingStartedLayout = styled(Stack)`
   background: ${p => p.theme.tokens.background.primary};
   padding-top: ${p => p.theme.space['2xl']};
 `;

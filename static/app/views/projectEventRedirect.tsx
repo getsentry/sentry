@@ -1,5 +1,7 @@
 import {useEffect} from 'react';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {DetailedError} from 'sentry/components/errors/detailedError';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
@@ -121,7 +123,9 @@ export function ProjectEventRedirect() {
     (!isPending && event) // Prevents flash of loading error below once event is loaded successfully
   ) {
     return (
+      <Stack flex={1} padding="2xl 3xl">
         <LoadingIndicator />
+      </Stack>
     );
   }
 

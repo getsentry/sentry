@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import invariant from 'invariant';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FullViewport} from 'sentry/components/layouts/fullViewport';
@@ -102,6 +102,7 @@ function ReplayDetailsContent() {
 
   return (
     <SentryDocumentTitle title={title}>
+      <Stack flex={1}>
         <FullViewport>
           {replay ? (
             <ReplayDetailsProviders
@@ -114,6 +115,7 @@ function ReplayDetailsContent() {
             content
           )}
         </FullViewport>
+      </Stack>
     </SentryDocumentTitle>
   );
 }

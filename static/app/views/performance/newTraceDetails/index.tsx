@@ -2,7 +2,7 @@ import {useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -222,10 +222,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
 
 // @TODO(JonasBadalic): Remove this component once the page-frame feature is GA'd
 // When that feature is enabled, the footer is no longer rendered at the bottom of the page.
-const LayoutPageWithHiddenFooter = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
+const LayoutPageWithHiddenFooter = styled(Stack)`
   ~ footer {
     display: none;
   }

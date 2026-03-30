@@ -1,3 +1,5 @@
+import {Stack} from '@sentry/scraps/layout';
+
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -53,9 +55,11 @@ export function ModulePageProviders({
       storageNamespace={view}
     >
       <SentryDocumentTitle title={fullPageTitle} orgSlug={organization.slug}>
+        <Stack flex={1}>
           <NoProjectMessage organization={organization}>
             <WidgetSyncContextProvider>{children}</WidgetSyncContextProvider>
           </NoProjectMessage>
+        </Stack>
       </SentryDocumentTitle>
     </PageFiltersContainer>
   );

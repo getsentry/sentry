@@ -1,4 +1,5 @@
 import {Alert} from '@sentry/scraps/alert';
+import {Stack} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -29,11 +30,13 @@ import {
 
 function PlaceholderForm() {
   return (
+    <Stack flex={1}>
       <Layout.Body>
         <Layout.Main width="full">
           <LoadingError message={t('This monitor type can not be created')} />
         </Layout.Main>
       </Layout.Body>
+    </Stack>
   );
 }
 

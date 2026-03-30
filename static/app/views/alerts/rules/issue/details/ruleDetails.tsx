@@ -4,7 +4,7 @@ import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -383,6 +383,7 @@ export default function AlertRuleDetails() {
   const {period, start, end, utc} = getDataDatetime();
   const cursor = decodeScalar(location.query.cursor);
   return (
+    <Stack flex={1}>
       <PageFiltersContainer
         skipInitializeUrlParams
         skipLoadLastUsed
@@ -516,6 +517,7 @@ export default function AlertRuleDetails() {
           </Layout.Side>
         </Layout.Body>
       </PageFiltersContainer>
+    </Stack>
   );
 }
 

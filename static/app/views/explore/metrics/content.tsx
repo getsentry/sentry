@@ -1,4 +1,5 @@
 import {FeatureBadge} from '@sentry/scraps/badge';
+import {Stack} from '@sentry/scraps/layout';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -48,6 +49,7 @@ export default function MetricsContent() {
             : undefined
         }
       >
+        <Stack flex={1}>
           <MetricsHeader />
           {defined(onboardingProject) ? (
             <MetricsTabOnboarding
@@ -58,6 +60,7 @@ export default function MetricsContent() {
           ) : (
             <MetricsTabContent datePageFilterProps={datePageFilterProps} />
           )}
+        </Stack>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );

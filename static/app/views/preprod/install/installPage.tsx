@@ -1,4 +1,4 @@
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -37,6 +37,7 @@ export default function InstallPage() {
   );
   return (
     <SentryDocumentTitle title="Install">
+      <Stack flex={1}>
         <Layout.Header>
           <BuildInstallHeader
             buildDetailsQuery={buildDetailsQuery}
@@ -65,6 +66,7 @@ export default function InstallPage() {
             </Layout.Main>
           </UrlParamBatchProvider>
         </Layout.Body>
+      </Stack>
     </SentryDocumentTitle>
   );
 }

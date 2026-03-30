@@ -1,4 +1,4 @@
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
@@ -28,6 +28,7 @@ export function WorkflowEngineListLayout({
   const organization = useOrganization();
 
   return (
+    <Stack flex={1}>
       <NoProjectMessage organization={organization}>
         <Layout.Header unified>
           <Layout.HeaderContent>
@@ -46,5 +47,6 @@ export function WorkflowEngineListLayout({
           </Layout.Main>
         </Layout.Body>
       </NoProjectMessage>
+    </Stack>
   );
 }

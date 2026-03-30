@@ -1,7 +1,7 @@
 import {useNavigate} from 'react-router-dom';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -41,6 +41,7 @@ export default function SavedQueriesView() {
 
   return (
     <SentryDocumentTitle title={t('All Queries')} orgSlug={organization?.slug}>
+      <Stack flex={1}>
         <Layout.Header unified>
           <Layout.HeaderContent>
             <Layout.Title>{t('All Queries')}</Layout.Title>
@@ -87,6 +88,7 @@ export default function SavedQueriesView() {
             <SavedQueriesLandingContent />
           </Layout.Main>
         </Layout.Body>
+      </Stack>
     </SentryDocumentTitle>
   );
 }

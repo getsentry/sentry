@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {TabList} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -51,7 +49,7 @@ export default function PullRequestDetails() {
 
   if (isLoading) {
     return (
-      <Fragment>
+      <Stack flex={1}>
         <Layout.Header>
           <Layout.Title>Pull Request Details</Layout.Title>
         </Layout.Header>
@@ -62,14 +60,14 @@ export default function PullRequestDetails() {
             </Flex>
           </Layout.Main>
         </Layout.Body>
-      </Fragment>
+      </Stack>
     );
   }
 
   const errorData = error?.responseJSON as PullRequestDetailsErrorResponse | undefined;
   if (error || !data) {
     return (
-      <Fragment>
+      <Stack flex={1}>
         <Layout.Header>
           <Layout.Title>Pull Request Details</Layout.Title>
         </Layout.Header>
@@ -92,7 +90,7 @@ export default function PullRequestDetails() {
             </Container>
           </Layout.Main>
         </Layout.Body>
-      </Fragment>
+      </Stack>
     );
   }
 
@@ -107,7 +105,7 @@ export default function PullRequestDetails() {
   }
 
   return (
-    <Fragment>
+    <Stack flex={1}>
       <Layout.Header>
         <PullRequestDetailsHeaderContent pullRequest={prSuccessData} />
         <Layout.HeaderTabs value={selectedTab || 'files'} onChange={setSelectedTab}>
@@ -123,6 +121,6 @@ export default function PullRequestDetails() {
       <Layout.Body>
         <Layout.Main width="full">{mainContent}</Layout.Main>
       </Layout.Body>
-    </Fragment>
+    </Stack>
   );
 }

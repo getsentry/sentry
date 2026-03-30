@@ -1,4 +1,6 @@
-import {Fragment, useEffect, useRef} from 'react';
+import {useEffect, useRef} from 'react';
+
+import {Stack} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -137,7 +139,7 @@ export default function Create() {
   const title = t('New Alert Rule');
 
   return (
-    <Fragment>
+    <Stack flex={1}>
       <SentryDocumentTitle title={title} projectSlug={project.slug} />
       <Layout.Header>
         <Layout.HeaderContent>
@@ -228,6 +230,6 @@ export default function Create() {
           </Fragment>
         )}
       </Layout.Body>
-    </Fragment>
+    </Stack>
   );
 }

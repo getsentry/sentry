@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
@@ -115,6 +115,7 @@ export default function ReplaysListContainer() {
       <SentryDocumentTitle title="Session Replay" orgSlug={organization.slug}>
         <ReplayPreferencesContextProvider prefsStrategy={LocalStorageReplayPreferences}>
           <ReplayQueryParamsProvider>
+            <Stack flex={1}>
               <ReplaysHeader />
               <PageFiltersContainer>
                 <Layout.Body>
@@ -139,6 +140,7 @@ export default function ReplaysListContainer() {
                   </Layout.Main>
                 </Layout.Body>
               </PageFiltersContainer>
+            </Stack>
           </ReplayQueryParamsProvider>
         </ReplayPreferencesContextProvider>
       </SentryDocumentTitle>

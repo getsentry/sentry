@@ -324,7 +324,7 @@ function ReplayOverlay({
   );
 }
 
-const StyledLayoutPage = styled('div')`
+const StyledLayoutPage = styled(Stack)`
   background-color: ${p => p.theme.tokens.background.primary};
   gap: ${p => p.theme.space.lg};
   border: 1px solid ${p => p.theme.tokens.border.primary};

@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Stack} from '@sentry/scraps/layout';
 import type {ReactNode} from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
@@ -869,7 +869,7 @@ function IssueListOverview({
   const {numPreviousIssues, numIssuesOnPage} = getPageCounts();
 
   return (
-    <Fragment>
+    <Stack flex={1}>
       <IssueViewsHeader
         selectedProjectIds={selection.projects}
         title={title}
@@ -928,7 +928,7 @@ function IssueListOverview({
           />
         </StyledMain>
       </StyledBody>
-    </Fragment>
+    </Stack>
   );
 }
 

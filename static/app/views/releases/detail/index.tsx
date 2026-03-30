@@ -4,6 +4,7 @@ import type {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Stack} from '@sentry/scraps/layout';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -159,6 +160,7 @@ function ReleasesDetail({
       );
       return (
         <SentryDocumentTitle title={pageTitle}>
+          <Stack flex={1}>
             <Alert.Container>
               <Alert variant="danger">
                 {possiblyWrongProject
@@ -166,6 +168,7 @@ function ReleasesDetail({
                   : t('There was an error loading the release details')}
               </Alert>
             </Alert.Container>
+          </Stack>
         </SentryDocumentTitle>
       );
     },
@@ -186,7 +189,9 @@ function ReleasesDetail({
   if (isPending) {
     return (
       <SentryDocumentTitle title={pageTitle}>
+        <Stack flex={1}>
           <LoadingIndicator />
+        </Stack>
       </SentryDocumentTitle>
     );
   }
@@ -200,6 +205,7 @@ function ReleasesDetail({
 
   return (
     <SentryDocumentTitle title={pageTitle}>
+      <Stack flex={1}>
         <NoProjectMessage organization={organization}>
           <ReleaseHeader
             location={location}
@@ -224,6 +230,7 @@ function ReleasesDetail({
             {children}
           </ReleaseContext>
         </NoProjectMessage>
+      </Stack>
     </SentryDocumentTitle>
   );
 }
@@ -260,16 +267,20 @@ function ReleasesDetailContainer() {
 
   if (isPending) {
     return (
+      <Stack flex={1}>
         <LoadingIndicator />
+      </Stack>
     );
   }
 
   if (isError && error.status === 404) {
     // This catches a 404 coming from the release endpoint and displays a custom error message.
     return (
+      <Stack flex={1} padding="2xl 3xl">
         <Alert.Container>
           <Alert variant="danger">{t('This release could not be found.')}</Alert>
         </Alert.Container>
+      </Stack>
     );
   }
 

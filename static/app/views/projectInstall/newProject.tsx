@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 
 import {CreateProject} from './createProject';
@@ -7,6 +9,7 @@ import {CreateProject} from './createProject';
 function NewProject() {
   return (
     <SentryDocumentTitle>
+      <Stack flex={1}>
         <Container>
           <div className="container">
             <Content>
@@ -14,6 +17,7 @@ function NewProject() {
             </Content>
           </div>
         </Container>
+      </Stack>
     </SentryDocumentTitle>
   );
 }
