@@ -130,6 +130,7 @@ export default function SnapshotsPage() {
         for (const [groupKey, groupedPairs] of groups) {
           const label =
             groupedPairs[0]!.head_image.group ??
+            groupedPairs[0]!.head_image.display_name ??
             groupedPairs[0]!.head_image.image_file_name;
           items.push({
             type,
@@ -156,7 +157,8 @@ export default function SnapshotsPage() {
           }
         }
         for (const [groupKey, images] of groups) {
-          const label = images[0]!.group ?? images[0]!.image_file_name;
+          const label =
+            images[0]!.group ?? images[0]!.display_name ?? images[0]!.image_file_name;
           items.push({
             type,
             key: `${type}:${groupKey}`,
@@ -195,7 +197,8 @@ export default function SnapshotsPage() {
     return [...groups.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([groupKey, images]) => {
-        const label = images[0]!.group ?? images[0]!.image_file_name;
+        const label =
+          images[0]!.group ?? images[0]!.display_name ?? images[0]!.image_file_name;
         return {
           type: 'solo' as const,
           key: `solo:${groupKey}`,

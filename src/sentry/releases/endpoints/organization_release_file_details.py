@@ -76,7 +76,9 @@ class OrganizationReleaseFileDetailsEndpoint(
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if not self.has_release_permission(request, organization, release):
+        if not self.has_release_permission(
+            request, organization, release, require_all_projects=True
+        ):
             raise ResourceDoesNotExist
 
         return self.update_releasefile(request, release, file_id)
@@ -101,7 +103,9 @@ class OrganizationReleaseFileDetailsEndpoint(
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if not self.has_release_permission(request, organization, release):
+        if not self.has_release_permission(
+            request, organization, release, require_all_projects=True
+        ):
             raise ResourceDoesNotExist
 
         return self.delete_releasefile(release, file_id)
