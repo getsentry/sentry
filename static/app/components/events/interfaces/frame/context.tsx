@@ -168,7 +168,7 @@ export function Context({
       : {}
   );
 
-  const fileExtension = getFileExtension(frame.filename || '') ?? '';
+  const fileExtension = getFileExtension(frame.filename || frame.absPath || '') ?? '';
   const lines = usePrismTokensSourceContext({
     contextLines,
     lineNo: frame.lineNo,
