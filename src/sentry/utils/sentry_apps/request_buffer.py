@@ -147,7 +147,7 @@ class SentryAppWebhookRequestsBuffer:
         event: str,
         url: str,
         error_id: str | None = None,
-        project_id: int | None = None,
+        project_id: str | None = None,
         response: Response | None = None,
         headers: Mapping[str, str] | None = None,
     ) -> None:

@@ -89,6 +89,7 @@ def _create_circuit_breaker(
         return None
     config = options.get("sentry-apps.webhook.circuit-breaker.config")
     return CircuitBreaker(
+        metrics_key="sentry-app.webhook",
         key=f"sentry-app.webhook.{sentry_app.slug}",
         config=config,
         trip_strategy=RateBasedTripStrategy.from_config(config),
@@ -248,14 +249,13 @@ def send_and_save_webhook_request(
             raise
 
         track_response_code(response.status_code, slug, event)
-        project_id = int(p) if (p := response.headers.get("Sentry-Hook-Project")) else None
         buffer.add_request(
             response_code=response.status_code,
             org_id=org_id,
             event=event,
             url=url,
             error_id=response.headers.get("Sentry-Hook-Error"),
-            project_id=project_id,
+            project_id=response.headers.get("Sentry-Hook-Project"),
             response=response,
             headers=app_platform_event.headers,
         )
