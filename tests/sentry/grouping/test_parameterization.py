@@ -43,6 +43,8 @@ standard_cases = [
         "traceparent: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01",
         "traceparent: <traceparent>",
     ),
+    ("ip - too many initial characters", "12345:6:789", "<int>:<int>:<int>"),
+    ("ip - too many final characters", "123:4:56789", "<int>:<int>:<int>"),
     ("traceparent - aws", "1-67891233-abcdef012345678912345678", "<traceparent>"),
     (
         "traceparent - aws, but not word boundary",
@@ -98,8 +100,15 @@ standard_cases = [
     ("date - kitchen lowercase with space", "12:31 pm", "<date>"),
     ("date - kitchen 24-hour", "23:21", "<date>"),
     ("date - kitchen 24-hour with seconds", "23:21:12", "<date>"),
+    ("date - kitchen 24-hour with leading zero", "09:08", "<date>"),
     ("date - kitchen 24-hour no leading zero", "9:08", "<date>"),
+    ("date - kitchen 24-hour midnight with leading zero", "00:31", "<date>"),
+    ("date - kitchen 24-hour midnight no leading zero", "0:12", "<date>"),
     ("date - kitchen too many initial digits", "908:31", "<int>:<int>"),
+    ("date - kitchen too many final digits", "11:2112", "<int>:<int>"),
+    ("date - kitchen hour too big", "31:21", "<int>:<int>"),
+    ("date - kitchen minute too big", "12:99", "<int>:<int>"),
+    ("date - kitchen second too big", "12:31:99", "<int>:<int>:<int>"),
     ("date - time", "15:04:05", "<date>"),
     ("date - basic", "Mon Jan 02, 1999", "<date>"),
     ("date - datetime compressed date", "20240220 11:55:33.546593", "<date>"),
@@ -233,48 +242,6 @@ def test_experimental_parameterization(name: str, input: str, expected: str) -> 
 incorrect_cases = [
     # ("name", "input", "desired", "actual")
     (
-        "date - kitchen 24-hour with leading zero",
-        "09:08",
-        "<date>",
-        "<int>:<int>",
-    ),
-    (
-        "date - kitchen 24-hour midnight with leading zero",
-        "00:31",
-        "<date>",
-        "<int>:<int>",
-    ),
-    (
-        "date - kitchen 24-hour midnight no leading zero",
-        "0:12",
-        "<date>",
-        "<int>:<int>",
-    ),
-    (
-        "date - kitchen hour too big",
-        "31:21",
-        "<int>:<int>",
-        "<date>",
-    ),
-    (
-        "date - kitchen minute too big",
-        "12:99",
-        "<int>:<int>",
-        "<date>",
-    ),
-    (
-        "date - kitchen second too big",
-        "12:31:99",
-        "<int>:<int>:<int>",
-        "<date>",
-    ),
-    (
-        "date - kitchen too many final digits",
-        "11:2112",
-        "<int>:<int>",
-        "<date>12",
-    ),
-    (
         "hex without prefix - no letters, 8+ digits, negative",
         "-12345678",
         "<hex>",
@@ -309,18 +276,6 @@ incorrect_cases = [
         "Fee::add() called too early",
         "Fee::add() called too early",
         "<ip>() called too early",
-    ),
-    (
-        "ip - too many initial characters",
-        "12345:6:789",
-        "<int>:<int>:<int>",
-        "<int>:<date>9",
-    ),
-    (
-        "ip - too many final characters",
-        "123:4:56789",
-        "<int>:<int>:<int>",
-        "<int>:<date>789",
     ),
     (
         "ip - v4 mapped to v6",
