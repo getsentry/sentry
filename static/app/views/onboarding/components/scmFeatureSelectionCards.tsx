@@ -103,7 +103,7 @@ export function ScmFeatureSelectionCards({
         columns={
           availableFeatures.length === 1 ? '1fr' : {xs: '1fr', md: 'repeat(2, 1fr)'}
         }
-        maxWidth={availableFeatures.length === 1 ? '50%' : undefined}
+        maxWidth={availableFeatures.length === 1 ? {xs: '100%', md: '50%'} : undefined}
         margin={availableFeatures.length === 1 ? '0 auto' : undefined}
       >
         {availableFeatures.map(feature => {
