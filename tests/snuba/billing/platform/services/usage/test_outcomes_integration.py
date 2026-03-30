@@ -241,6 +241,41 @@ class TestOutcomesIntegration(OutcomesSnubaTest, TestCase):
 
         assert len(response.days) == 0
 
+    def test_end_date_inclusive(self):
+        """Data on the last included day (end date) must be returned.
+
+        The proto end field is inclusive — midnight of the last day to include.
+        Without the +1 day conversion in the CH backend, this day would be
+        excluded because Snuba uses half-open intervals.
+        """
+        # Store data at 6am on _now's date
+        data_time = _now.replace(hour=6, minute=0, second=0, microsecond=0)
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "timestamp": data_time,
+                "outcome": Outcome.ACCEPTED,
+                "reason": "none",
+                "category": DataCategory.ERROR,
+                "quantity": 77,
+            },
+        )
+
+        # Pass end = midnight of the SAME day as the data.
+        # This is how getsentry callers construct the request (inclusive end).
+        day_midnight = data_time.replace(hour=0, minute=0, second=0, microsecond=0)
+        request = _make_request(
+            org_id=self.organization.id,
+            start=day_midnight - timedelta(days=1),
+            end=day_midnight,  # inclusive: midnight of the data day
+        )
+        response = query_outcomes_usage(request)
+
+        # The data on this day MUST be included
+        assert len(response.days) == 1
+        assert response.days[0].usage[0].data.accepted == 77
+
     def test_category_filter(self):
         self.store_outcomes(
             {
