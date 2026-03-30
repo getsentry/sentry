@@ -3,7 +3,7 @@ import {
   ProblemSpan,
   TransactionEventBuilder,
 } from 'sentry-test/performance/utils';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {SpanEvidencePreview} from './spanEvidencePreview';
 
@@ -39,7 +39,12 @@ describe('SpanEvidencePreview', () => {
 
     await userEvent.hover(screen.getByText('Hover me'), {delay: null});
 
-    await screen.findByText('Failed to load preview');
+    await waitFor(
+      () => {
+        expect(screen.getByText('Failed to load preview')).toBeInTheDocument();
+      },
+      {timeout: 3000}
+    );
   });
 
   it('renders the span evidence correctly when request succeeds', async () => {
