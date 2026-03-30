@@ -12,12 +12,14 @@ import {SharedEventContent} from './sharedEventContent';
 describe('SharedEventContent', () => {
   const organization: SharedViewOrganization = {slug: 'test-org', features: []};
   const project = ProjectFixture();
+  const group = GroupFixture();
 
   it('renders event entries', () => {
     render(
       <SharedEventContent
         organization={organization}
         project={project}
+        group={group}
         event={EventFixture({
           entries: [EventEntryFixture()],
         })}
@@ -28,13 +30,19 @@ describe('SharedEventContent', () => {
   });
 
   it('renders latest event not available when no event', () => {
-    render(<SharedEventContent organization={organization} project={project} />);
+    render(
+      <SharedEventContent
+        organization={organization}
+        project={project}
+        group={group}
+        event={undefined}
+      />
+    );
 
     expect(screen.getByText('Latest Event Not Available')).toBeInTheDocument();
   });
 
   it('renders user feedback when present', () => {
-    const group = GroupFixture();
     render(
       <SharedEventContent
         organization={organization}
