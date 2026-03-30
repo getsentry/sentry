@@ -144,7 +144,7 @@ function GroupReplaysContent({group}: Props) {
 
   return (
     <SelectedReplayIndexProvider>
-      <StyledLayoutPage padding="2xl 3xl">
+      <StyledLayoutPage flex={1} padding="2xl 3xl">
         <Stack>
           <ReplayFilterMessage />
           <Flex align="center" gap="md">

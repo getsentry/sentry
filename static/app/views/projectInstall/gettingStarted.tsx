@@ -31,7 +31,7 @@ export default function GettingStarted() {
   const currentPlatform = allPlatforms.find(p => p.id === currentPlatformKey);
 
   return (
-    <GettingStartedLayout padding="2xl 3xl">
+    <GettingStartedLayout flex={1} padding="2xl 3xl">
       {loadingProjects ? (
         <LoadingIndicator />
       ) : project ? (
