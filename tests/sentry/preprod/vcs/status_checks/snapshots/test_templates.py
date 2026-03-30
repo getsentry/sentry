@@ -77,7 +77,7 @@ class SnapshotStatusCheckTestBase(TestCase):
 class SnapshotEmptyArtifactsTest(SnapshotStatusCheckTestBase):
     def test_empty_artifacts_raises_error(self) -> None:
         with pytest.raises(ValueError, match="Cannot format messages for empty artifact list"):
-            format_snapshot_status_check_messages([], {}, {}, StatusCheckStatus.SUCCESS, {})
+            format_snapshot_status_check_messages([], {}, {}, StatusCheckStatus.SUCCESS, {}, {})
 
 
 @cell_silo_test
@@ -92,7 +92,7 @@ class SnapshotProcessingStateFormattingTest(SnapshotStatusCheckTestBase):
         )
 
         title, subtitle, summary = format_snapshot_status_check_messages(
-            [artifact], {}, {}, StatusCheckStatus.IN_PROGRESS, {}
+            [artifact], {}, {}, StatusCheckStatus.IN_PROGRESS, {}, {}
         )
 
         assert title == "Snapshot Testing"
@@ -106,7 +106,7 @@ class SnapshotProcessingStateFormattingTest(SnapshotStatusCheckTestBase):
         snapshot_metrics_map = {artifact.id: metrics}
 
         title, subtitle, summary = format_snapshot_status_check_messages(
-            [artifact], snapshot_metrics_map, {}, StatusCheckStatus.IN_PROGRESS, {}
+            [artifact], snapshot_metrics_map, {}, StatusCheckStatus.IN_PROGRESS, {}, {}
         )
 
         assert title == "Snapshot Testing"
@@ -130,6 +130,7 @@ class SnapshotProcessingStateFormattingTest(SnapshotStatusCheckTestBase):
             comparisons_map,
             StatusCheckStatus.IN_PROGRESS,
             {},
+            {},
         )
 
         assert title == "Snapshot Testing"
@@ -152,6 +153,7 @@ class SnapshotProcessingStateFormattingTest(SnapshotStatusCheckTestBase):
             snapshot_metrics_map,
             comparisons_map,
             StatusCheckStatus.IN_PROGRESS,
+            {},
             {},
         )
 
@@ -184,6 +186,7 @@ class SnapshotSuccessStateFormattingTest(SnapshotStatusCheckTestBase):
             comparisons_map,
             StatusCheckStatus.SUCCESS,
             {},
+            {},
         )
 
         assert title == "Snapshot Testing"
@@ -207,6 +210,7 @@ class SnapshotSuccessStateFormattingTest(SnapshotStatusCheckTestBase):
             snapshot_metrics_map,
             comparisons_map,
             StatusCheckStatus.SUCCESS,
+            {},
             {},
         )
 
@@ -235,6 +239,7 @@ class SnapshotSuccessStateFormattingTest(SnapshotStatusCheckTestBase):
             snapshot_metrics_map,
             comparisons_map,
             StatusCheckStatus.SUCCESS,
+            {},
             {},
         )
 
@@ -268,6 +273,7 @@ class SnapshotChangesFormattingTest(SnapshotStatusCheckTestBase):
             comparisons_map,
             StatusCheckStatus.FAILURE,
             {},
+            {head_artifact.id: True},
         )
 
         assert title == "Snapshot Testing"
@@ -294,6 +300,7 @@ class SnapshotChangesFormattingTest(SnapshotStatusCheckTestBase):
             comparisons_map,
             StatusCheckStatus.FAILURE,
             {},
+            {head_artifact.id: True},
         )
 
         assert subtitle == "1 modified, 9 unchanged"
@@ -320,6 +327,7 @@ class SnapshotChangesFormattingTest(SnapshotStatusCheckTestBase):
             comparisons_map,
             StatusCheckStatus.FAILURE,
             {},
+            {},
         )
 
         assert subtitle == "2 added, 1 removed, 8 unchanged"
@@ -344,6 +352,7 @@ class SnapshotChangesFormattingTest(SnapshotStatusCheckTestBase):
             comparisons_map,
             StatusCheckStatus.FAILURE,
             {},
+            {head_artifact.id: True},
         )
 
         assert subtitle == "4 renamed, 6 unchanged"
@@ -371,6 +380,7 @@ class SnapshotChangesFormattingTest(SnapshotStatusCheckTestBase):
             comparisons_map,
             StatusCheckStatus.FAILURE,
             {},
+            {head_artifact.id: True},
         )
 
         assert subtitle == "3 modified, 1 added, 2 removed, 1 renamed, 5 unchanged"
@@ -397,6 +407,7 @@ class SnapshotFailureStateFormattingTest(SnapshotStatusCheckTestBase):
             snapshot_metrics_map,
             comparisons_map,
             StatusCheckStatus.FAILURE,
+            {},
             {},
         )
 
@@ -442,6 +453,7 @@ class SnapshotFailureStateFormattingTest(SnapshotStatusCheckTestBase):
             comparisons_map,
             StatusCheckStatus.FAILURE,
             {},
+            {},
         )
 
         assert subtitle == "We had trouble comparing snapshots, our team is investigating."
@@ -485,6 +497,7 @@ class SnapshotMixedStateFormattingTest(SnapshotStatusCheckTestBase):
             comparisons_map,
             StatusCheckStatus.IN_PROGRESS,
             {},
+            {},
         )
 
         assert subtitle == "Comparing snapshots..."
@@ -508,6 +521,7 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
             comparisons_map,
             StatusCheckStatus.SUCCESS,
             {},
+            {},
         )
 
         assert "| Name | Added | Removed | Modified | Renamed | Unchanged | Status |" in summary
@@ -526,6 +540,7 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
             snapshot_metrics_map,
             comparisons_map,
             StatusCheckStatus.SUCCESS,
+            {},
             {},
         )
 
@@ -559,6 +574,7 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
             comparisons_map,
             StatusCheckStatus.SUCCESS,
             base_artifact_map,
+            {},
         )
 
         expected_url = f"http://testserver/organizations/{self.organization.slug}/preprod/snapshots/{head_artifact.id}"
@@ -577,6 +593,7 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
             snapshot_metrics_map,
             comparisons_map,
             StatusCheckStatus.SUCCESS,
+            {},
             {},
         )
 
@@ -608,6 +625,7 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
             snapshot_metrics_map,
             comparisons_map,
             StatusCheckStatus.SUCCESS,
+            {},
             {},
         )
 
@@ -650,6 +668,7 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
             comparisons_map,
             StatusCheckStatus.FAILURE,
             {},
+            {head_artifact.id: True},
         )
 
         assert title == "Snapshot Testing"
