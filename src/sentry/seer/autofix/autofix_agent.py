@@ -524,7 +524,7 @@ def trigger_push_changes(
     client.push_changes(
         run_id,
         repo_name=repo_name,
-        pr_description_suffix=f"FIXES ${group.qualified_short_id}",
+        pr_description_suffix=f"FIXES {group.qualified_short_id}",
         blocking=False,
     )
 
