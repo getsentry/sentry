@@ -1,7 +1,7 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {EventGroupVariantType} from 'sentry/types/event';
 import {IssueCategory} from 'sentry/types/group';
@@ -50,6 +50,8 @@ describe('EventGroupingInfo', () => {
     await userEvent.click(
       screen.getByRole('button', {name: 'View Event Grouping Information Section'})
     );
+    // Lazy-loaded component must resolve before the API query fires
+    await waitFor(() => expect(groupingInfoRequest).toHaveBeenCalled());
     expect(await screen.findByText('variant description')).toBeInTheDocument();
     expect(screen.getByText('123')).toBeInTheDocument();
   });
