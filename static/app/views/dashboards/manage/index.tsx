@@ -494,7 +494,6 @@ function ManageDashboards() {
         api={api}
         dashboards={dashboards}
         organization={organization}
-        location={location}
         onDashboardsChange={() => refetchDashboards()}
         isLoading={isLoading}
         rowCount={rowCount}
@@ -543,19 +542,12 @@ function ManageDashboards() {
     );
   }
 
-  const {query: _query, ...queryWithoutSearch} = location.query;
-
   function onCreate() {
     trackAnalytics('dashboards_manage.create.start', {
       organization,
     });
 
-    navigate(
-      normalizeUrl({
-        pathname: `/organizations/${organization.slug}/dashboards/new/`,
-        query: queryWithoutSearch,
-      })
-    );
+    navigate(normalizeUrl(`/organizations/${organization.slug}/dashboards/new/`));
   }
 
   async function onAdd(dashboard: DashboardDetails) {
@@ -578,10 +570,7 @@ function ManageDashboards() {
 
   function loadDashboard(dashboardId: string) {
     navigate(
-      normalizeUrl({
-        pathname: `/organizations/${organization.slug}/dashboards/${dashboardId}/`,
-        query: queryWithoutSearch,
-      })
+      normalizeUrl(`/organizations/${organization.slug}/dashboards/${dashboardId}/`)
     );
   }
 
@@ -592,10 +581,7 @@ function ManageDashboards() {
     });
 
     navigate(
-      normalizeUrl({
-        pathname: `/organizations/${organization.slug}/dashboards/new/${dashboardId}/`,
-        query: queryWithoutSearch,
-      })
+      normalizeUrl(`/organizations/${organization.slug}/dashboards/new/${dashboardId}/`)
     );
   }
 
