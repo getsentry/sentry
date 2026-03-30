@@ -1,7 +1,5 @@
 from unittest.mock import MagicMock, patch
 
-import responses
-
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.github.tasks.sync_repos_on_install_change import (
@@ -56,7 +54,6 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
     def test_repos_removed(self, mock_features: MagicMock, _: MagicMock) -> None:
         mock_features.has.return_value = True
 
-        # Create a repo that will be removed
         with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
@@ -83,7 +80,6 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
     def test_mixed_add_and_remove(self, mock_features: MagicMock, _: MagicMock) -> None:
         mock_features.has.return_value = True
 
-        # Create a repo that will be removed
         with assume_test_silo_mode(SiloMode.CELL):
             old_repo = Repository.objects.create(
                 organization_id=self.organization.id,
@@ -118,7 +114,6 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
     def test_multi_org(self, mock_features: MagicMock, _: MagicMock) -> None:
         mock_features.has.return_value = True
 
-        # Create a second org linked to the same integration
         other_org = self.create_organization(owner=self.user)
         self.create_organization_integration(
             organization_id=other_org.id,
@@ -139,39 +134,6 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
 
         assert len(repos_org1) == 2
         assert len(repos_org2) == 2
-
-    @patch("sentry.integrations.github.tasks.sync_repos_on_install_change.features")
-    @responses.activate
-    def test_repository_selection_all(self, mock_features: MagicMock, _: MagicMock) -> None:
-        mock_features.has.return_value = True
-
-        responses.add(
-            responses.GET,
-            self.base_url + "/installation/repositories?per_page=100",
-            status=200,
-            json={
-                "total_count": 3,
-                "repositories": [
-                    {"id": 1, "full_name": "getsentry/sentry"},
-                    {"id": 2, "full_name": "getsentry/snuba"},
-                    {"id": 3, "full_name": "getsentry/relay"},
-                ],
-            },
-        )
-
-        sync_repos_on_install_change(
-            integration_id=self.integration.id,
-            action="added",
-            repos_added=[{"id": 1, "full_name": "getsentry/sentry"}],
-            repos_removed=[],
-            repository_selection="all",
-        )
-
-        with assume_test_silo_mode(SiloMode.CELL):
-            repos = Repository.objects.filter(organization_id=self.organization.id).order_by("name")
-
-        # Should have all 3 repos from the full API call, not just the 1 in repos_added
-        assert len(repos) == 3
 
     def test_missing_integration(self, _: MagicMock) -> None:
         sync_repos_on_install_change(
@@ -255,5 +217,4 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
 
         with assume_test_silo_mode(SiloMode.CELL):
             repo.refresh_from_db()
-            # Should still be disabled, not changed
             assert repo.status == ObjectStatus.DISABLED

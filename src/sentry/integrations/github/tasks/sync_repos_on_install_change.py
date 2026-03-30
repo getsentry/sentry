@@ -13,13 +13,11 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionType,
 )
 from sentry.organizations.services.organization import organization_service
-from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
     RepositoryInputConfig,
     get_integration_repository_provider,
 )
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import integrations_control_tasks
@@ -99,7 +97,6 @@ def sync_repos_on_install_change(
                 provider=provider,
                 repos_added=repos_added,
                 repos_removed=repos_removed,
-                repository_selection=repository_selection,
             )
 
 
@@ -110,7 +107,6 @@ def _sync_repos_for_org(
     provider: str,
     repos_added: list[GitHubRepo],
     repos_removed: list[GitHubRepo],
-    repository_selection: Literal["all", "selected"],
 ) -> None:
     rpc_org = organization_service.get(id=organization_id)
     if rpc_org is None:
@@ -120,17 +116,6 @@ def _sync_repos_for_org(
         )
         return
 
-    # If the user switched to "all repos" access, GitHub may not list every
-    # repo in repos_added (capped). Fetch the full list from the API instead.
-    if repository_selection == "all" and not repos_removed:
-        _full_sync_for_org(
-            integration=integration,
-            organization_id=organization_id,
-            rpc_org=rpc_org,
-        )
-        return
-
-    # Handle added repos
     if repos_added:
         integration_repo_provider = get_integration_repository_provider(integration)
         repo_configs: list[RepositoryInputConfig] = []
@@ -138,6 +123,7 @@ def _sync_repos_for_org(
             try:
                 repo_configs.append(get_repo_config(repo, integration.id))
             except KeyError:
+                logger.exception("Failed to translate repository config")
                 continue
 
         if repo_configs:
@@ -148,7 +134,6 @@ def _sync_repos_for_org(
             except RepoExistsError:
                 pass
 
-    # Handle removed repos
     if repos_removed:
         external_ids = [str(repo["id"]) for repo in repos_removed]
         repository_service.disable_repositories_by_external_ids(
@@ -157,45 +142,3 @@ def _sync_repos_for_org(
             provider=provider,
             external_ids=external_ids,
         )
-
-
-def _full_sync_for_org(
-    *, integration: RpcIntegration, organization_id: int, rpc_org: RpcOrganization
-) -> None:
-    """
-    When repository_selection switches to "all", do a full re-link
-    similar to link_all_repos.
-    """
-    installation = integration.get_installation(organization_id=organization_id)
-    client = installation.get_client()
-
-    try:
-        repositories = client.get_repos()
-    except ApiError as e:
-        if installation.is_rate_limited_error(e):
-            logger.info(
-                "sync_repos_on_install_change.rate_limited",
-                extra={
-                    "integration_id": integration.id,
-                    "organization_id": organization_id,
-                },
-            )
-        # Re-raise to trigger task retry for both rate limits and other API errors
-        raise
-
-    integration_repo_provider = get_integration_repository_provider(integration)
-
-    repo_configs: list[RepositoryInputConfig] = []
-    for repo in repositories:
-        try:
-            repo_configs.append(get_repo_config(repo, integration.id))
-        except KeyError:
-            continue
-
-    if repo_configs:
-        try:
-            integration_repo_provider.create_repositories(
-                configs=repo_configs, organization=rpc_org
-            )
-        except RepoExistsError:
-            pass

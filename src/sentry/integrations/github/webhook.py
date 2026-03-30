@@ -441,7 +441,7 @@ class InstallationRepositoriesEventWebhook(GitHubWebhook):
     https://docs.github.com/en/webhooks/webhook-events-and-payloads#installation_repositories
     """
 
-    EVENT_TYPE = IntegrationWebhookEventType.INSTALLATION
+    EVENT_TYPE = IntegrationWebhookEventType.INSTALLATION_REPOSITORIES
 
     def __call__(  # type: ignore[override]
         self, event: InstallationRepositoriesEvent, host: str | None = None, **kwargs: Any
