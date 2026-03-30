@@ -9,7 +9,7 @@ from sentry.testutils.cases import TestCase
 
 
 class SplunkDataForwarderTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.data_forwarder = DataForwarder.objects.create(
             organization=self.organization,
@@ -30,7 +30,7 @@ class SplunkDataForwarderTest(TestCase):
         self.forwarder = SplunkForwarder()
 
     @responses.activate
-    def test_simple_notification(self):
+    def test_simple_notification(self) -> None:
         responses.add(responses.POST, "https://splunk.example.com:8088/services/collector")
 
         event = self.store_event(
@@ -50,7 +50,7 @@ class SplunkDataForwarderTest(TestCase):
         assert request.headers["Authorization"] == "Splunk 12345678-1234-1234-1234-1234567890AB"
 
     @responses.activate
-    def test_dont_reraise_error(self):
+    def test_dont_reraise_error(self) -> None:
         responses.add(
             responses.POST, "https://splunk.example.com:8088/services/collector", status=404
         )
@@ -61,7 +61,7 @@ class SplunkDataForwarderTest(TestCase):
 
         self.forwarder.post_process(event, self.data_forwarder_project)
 
-    def test_http_payload(self):
+    def test_http_payload(self) -> None:
         event = self.store_event(
             data={
                 "request": {
@@ -79,7 +79,7 @@ class SplunkDataForwarderTest(TestCase):
         assert result["event"]["request_method"] == "POST"
         assert result["event"]["request_referer"] == "http://example.com/foo"
 
-    def test_error_payload(self):
+    def test_error_payload(self) -> None:
         event = self.store_event(
             data={
                 "exception": {"values": [{"type": "ValueError", "value": "foo bar"}]},
@@ -94,7 +94,7 @@ class SplunkDataForwarderTest(TestCase):
         assert result["event"]["exception_type"] == "ValueError"
         assert result["event"]["exception_value"] == "foo bar"
 
-    def test_csp_payload(self):
+    def test_csp_payload(self) -> None:
         event = self.store_event(
             data={
                 "csp": {
@@ -116,7 +116,7 @@ class SplunkDataForwarderTest(TestCase):
         assert result["event"]["csp_blocked_uri"] == "http://example.com/style.css"
         assert result["event"]["csp_effective_directive"] == "style-src"
 
-    def test_user_payload(self):
+    def test_user_payload(self) -> None:
         event = self.store_event(
             data={"user": {"id": "1", "email": "foo@example.com", "ip_address": "127.0.0.1"}},
             project_id=self.project.id,

@@ -33,7 +33,7 @@ from sentry.testutils.cases import TestCase
 
 
 class CompareSizeAnalysisTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.organization)
@@ -86,7 +86,7 @@ class CompareSizeAnalysisTest(TestCase):
             analysis_version=analysis_version,
         )
 
-    def test_compare_size_analysis_no_treemaps(self):
+    def test_compare_size_analysis_no_treemaps(self) -> None:
         """Test compare_size_analysis with no treemap data."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -116,7 +116,7 @@ class CompareSizeAnalysisTest(TestCase):
         assert result.size_metric_diff_item.base_install_size == 1500
         assert result.size_metric_diff_item.base_download_size == 800
 
-    def test_compare_size_analysis_file_added(self):
+    def test_compare_size_analysis_file_added(self) -> None:
         """Test compare_size_analysis with a file added."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -148,7 +148,7 @@ class CompareSizeAnalysisTest(TestCase):
         assert diff_item.base_size is None
         assert diff_item.type == DiffType.ADDED
 
-    def test_compare_size_analysis_file_removed(self):
+    def test_compare_size_analysis_file_removed(self) -> None:
         """Test compare_size_analysis with a file removed."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -180,7 +180,7 @@ class CompareSizeAnalysisTest(TestCase):
         assert diff_item.base_size == 100
         assert diff_item.type == DiffType.REMOVED
 
-    def test_compare_size_analysis_file_increased(self):
+    def test_compare_size_analysis_file_increased(self) -> None:
         """Test compare_size_analysis with a file size increased."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -213,7 +213,7 @@ class CompareSizeAnalysisTest(TestCase):
         assert diff_item.base_size == 100
         assert diff_item.type == DiffType.INCREASED
 
-    def test_compare_size_analysis_file_decreased(self):
+    def test_compare_size_analysis_file_decreased(self) -> None:
         """Test compare_size_analysis with a file size decreased."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -246,7 +246,7 @@ class CompareSizeAnalysisTest(TestCase):
         assert diff_item.base_size == 100
         assert diff_item.type == DiffType.DECREASED
 
-    def test_compare_size_analysis_file_unchanged(self):
+    def test_compare_size_analysis_file_unchanged(self) -> None:
         """Test compare_size_analysis with a file size unchanged (should be skipped)."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -274,7 +274,7 @@ class CompareSizeAnalysisTest(TestCase):
         # Should skip files with no size difference
         assert len(result.diff_items) == 0
 
-    def test_compare_size_analysis_multiple_files(self):
+    def test_compare_size_analysis_multiple_files(self) -> None:
         """Test compare_size_analysis with multiple files."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -334,7 +334,7 @@ class CompareSizeAnalysisTest(TestCase):
         assert diff_items[2].size_diff == -300
         assert diff_items[2].type == DiffType.REMOVED
 
-    def test_compare_size_analysis_zero_size_diffs_skipped(self):
+    def test_compare_size_analysis_zero_size_diffs_skipped(self) -> None:
         """Test that zero size diffs are skipped for all diff types."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -367,7 +367,7 @@ class CompareSizeAnalysisTest(TestCase):
         result = compare_size_analysis(head_metrics, head_results, base_metrics, base_results)
         assert len(result.diff_items) == 0
 
-    def test_compare_size_analysis_different_artifact_types(self):
+    def test_compare_size_analysis_different_artifact_types(self) -> None:
         """Test compare_size_analysis with different artifact types."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -395,7 +395,7 @@ class CompareSizeAnalysisTest(TestCase):
         )
         assert result.size_metric_diff_item.identifier == "watch"
 
-    def test_compare_size_analysis_complex_nested_structure(self):
+    def test_compare_size_analysis_complex_nested_structure(self) -> None:
         """Test compare_size_analysis with complex nested directory structure."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -475,7 +475,7 @@ class CompareSizeAnalysisTest(TestCase):
         assert diff_items[2].size_diff == 200
         assert diff_items[2].type == DiffType.ADDED
 
-    def test_compare_size_analysis_duplicate_paths(self):
+    def test_compare_size_analysis_duplicate_paths(self) -> None:
         """Test compare_size_analysis with duplicate paths (e.g., Assets.car with multiple entries)."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -579,7 +579,7 @@ class ShouldSkipDiffItemComparisonTest(TestCase):
             analysis_version=analysis_version,
         )
 
-    def test_skip_on_major_version_mismatch(self):
+    def test_skip_on_major_version_mismatch(self) -> None:
         """Should skip diff comparison when major versions differ."""
         head_results = self._create_size_analysis_results(analysis_version="2.0.0")
         base_results = self._create_size_analysis_results(analysis_version="1.0.0")
@@ -588,7 +588,7 @@ class ShouldSkipDiffItemComparisonTest(TestCase):
 
         assert result is True
 
-    def test_skip_on_minor_version_mismatch(self):
+    def test_skip_on_minor_version_mismatch(self) -> None:
         """Should skip diff comparison when minor versions differ."""
         head_results = self._create_size_analysis_results(analysis_version="1.2.0")
         base_results = self._create_size_analysis_results(analysis_version="1.1.0")
@@ -597,7 +597,7 @@ class ShouldSkipDiffItemComparisonTest(TestCase):
 
         assert result is True
 
-    def test_no_skip_on_patch_version_mismatch(self):
+    def test_no_skip_on_patch_version_mismatch(self) -> None:
         """Should NOT skip diff comparison when only patch versions differ."""
         head_results = self._create_size_analysis_results(analysis_version="1.0.1")
         base_results = self._create_size_analysis_results(analysis_version="1.0.0")
@@ -606,7 +606,7 @@ class ShouldSkipDiffItemComparisonTest(TestCase):
 
         assert result is False
 
-    def test_no_skip_on_same_versions(self):
+    def test_no_skip_on_same_versions(self) -> None:
         """Should NOT skip diff comparison when versions are identical."""
         head_results = self._create_size_analysis_results(analysis_version="1.2.3")
         base_results = self._create_size_analysis_results(analysis_version="1.2.3")
@@ -615,7 +615,7 @@ class ShouldSkipDiffItemComparisonTest(TestCase):
 
         assert result is False
 
-    def test_no_skip_when_head_version_missing(self):
+    def test_no_skip_when_head_version_missing(self) -> None:
         """Should NOT skip diff comparison when head version is None."""
         head_results = self._create_size_analysis_results(analysis_version=None)
         base_results = self._create_size_analysis_results(analysis_version="1.0.0")
@@ -624,7 +624,7 @@ class ShouldSkipDiffItemComparisonTest(TestCase):
 
         assert result is False
 
-    def test_no_skip_when_base_version_missing(self):
+    def test_no_skip_when_base_version_missing(self) -> None:
         """Should NOT skip diff comparison when base version is None."""
         head_results = self._create_size_analysis_results(analysis_version="1.0.0")
         base_results = self._create_size_analysis_results(analysis_version=None)
@@ -633,7 +633,7 @@ class ShouldSkipDiffItemComparisonTest(TestCase):
 
         assert result is False
 
-    def test_no_skip_when_both_versions_missing(self):
+    def test_no_skip_when_both_versions_missing(self) -> None:
         """Should NOT skip diff comparison when both versions are None."""
         head_results = self._create_size_analysis_results(analysis_version=None)
         base_results = self._create_size_analysis_results(analysis_version=None)
@@ -642,7 +642,7 @@ class ShouldSkipDiffItemComparisonTest(TestCase):
 
         assert result is False
 
-    def test_no_skip_on_invalid_head_version(self):
+    def test_no_skip_on_invalid_head_version(self) -> None:
         """Should NOT skip diff comparison when head version is invalid."""
         head_results = self._create_size_analysis_results(analysis_version="invalid-version")
         base_results = self._create_size_analysis_results(analysis_version="1.0.0")
@@ -651,7 +651,7 @@ class ShouldSkipDiffItemComparisonTest(TestCase):
 
         assert result is False
 
-    def test_no_skip_on_invalid_base_version(self):
+    def test_no_skip_on_invalid_base_version(self) -> None:
         """Should NOT skip diff comparison when base version is invalid."""
         head_results = self._create_size_analysis_results(analysis_version="1.0.0")
         base_results = self._create_size_analysis_results(analysis_version="not-a-version")
@@ -660,7 +660,7 @@ class ShouldSkipDiffItemComparisonTest(TestCase):
 
         assert result is False
 
-    def test_no_skip_when_both_versions_invalid(self):
+    def test_no_skip_when_both_versions_invalid(self) -> None:
         """Should NOT skip diff comparison when both versions are invalid."""
         head_results = self._create_size_analysis_results(analysis_version="bad-version")
         base_results = self._create_size_analysis_results(analysis_version="also-bad")
@@ -669,7 +669,7 @@ class ShouldSkipDiffItemComparisonTest(TestCase):
 
         assert result is False
 
-    def test_skip_with_prerelease_versions(self):
+    def test_skip_with_prerelease_versions(self) -> None:
         """Should skip when major/minor differ even with pre-release tags."""
         head_results = self._create_size_analysis_results(analysis_version="2.0.0-alpha")
         base_results = self._create_size_analysis_results(analysis_version="1.0.0-beta")
@@ -678,7 +678,7 @@ class ShouldSkipDiffItemComparisonTest(TestCase):
 
         assert result is True
 
-    def test_no_skip_with_same_major_minor_prerelease(self):
+    def test_no_skip_with_same_major_minor_prerelease(self) -> None:
         """Should NOT skip when major/minor match despite different pre-release tags."""
         head_results = self._create_size_analysis_results(analysis_version="1.2.0-alpha")
         base_results = self._create_size_analysis_results(analysis_version="1.2.0-beta")
@@ -689,7 +689,7 @@ class ShouldSkipDiffItemComparisonTest(TestCase):
 
 
 class CompareWithVersionSkippingTest(CompareSizeAnalysisTest):
-    def test_compare_skips_diff_items_on_major_version_mismatch(self):
+    def test_compare_skips_diff_items_on_major_version_mismatch(self) -> None:
         """Integration test: diff items should be skipped when major versions differ."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -728,7 +728,7 @@ class CompareWithVersionSkippingTest(CompareSizeAnalysisTest):
         assert result.size_metric_diff_item.head_install_size == 2000
         assert result.size_metric_diff_item.base_install_size == 1500
 
-    def test_compare_skips_diff_items_on_minor_version_mismatch(self):
+    def test_compare_skips_diff_items_on_minor_version_mismatch(self) -> None:
         """Integration test: diff items should be skipped when minor versions differ."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -762,7 +762,7 @@ class CompareWithVersionSkippingTest(CompareSizeAnalysisTest):
         assert result.head_analysis_version == "1.2.0"
         assert result.base_analysis_version == "1.1.0"
 
-    def test_compare_includes_diff_items_on_patch_version_mismatch(self):
+    def test_compare_includes_diff_items_on_patch_version_mismatch(self) -> None:
         """Integration test: diff items should be included when only patch versions differ."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -799,7 +799,7 @@ class CompareWithVersionSkippingTest(CompareSizeAnalysisTest):
 
 
 class CompareWithRenameDetectionTest(CompareSizeAnalysisTest):
-    def test_renamed_file_excluded_from_diff(self):
+    def test_renamed_file_excluded_from_diff(self) -> None:
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
@@ -840,7 +840,7 @@ class CompareWithRenameDetectionTest(CompareSizeAnalysisTest):
 
         assert len(result.diff_items) == 0
 
-    def test_mixed_renames_and_real_changes(self):
+    def test_mixed_renames_and_real_changes(self) -> None:
         """Test rename detection with mix of renamed and actually changed files."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -925,7 +925,7 @@ class CompareWithRenameDetectionTest(CompareSizeAnalysisTest):
         assert diff_items[1].type == DiffType.REMOVED
         assert diff_items[1].size_diff == -300
 
-    def test_no_file_analysis_falls_back_to_default_behavior(self):
+    def test_no_file_analysis_falls_back_to_default_behavior(self) -> None:
         """Test that when file_analysis is None, default behavior is used."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -964,7 +964,7 @@ class CompareWithRenameDetectionTest(CompareSizeAnalysisTest):
         types = {item.type for item in result.diff_items}
         assert types == {DiffType.ADDED, DiffType.REMOVED}
 
-    def test_rename_with_duplication_shows_additions(self):
+    def test_rename_with_duplication_shows_additions(self) -> None:
         """Test that when a file is renamed AND duplicated, only one rename is detected.
 
         Scenario: Base has 1 file, head has 3 files with same hash at different paths.
@@ -1045,7 +1045,7 @@ class CompareWithRenameDetectionTest(CompareSizeAnalysisTest):
             assert item.type == DiffType.ADDED
             assert item.size_diff == 100
 
-    def test_rename_selection_is_deterministic(self):
+    def test_rename_selection_is_deterministic(self) -> None:
         """Test that rename selection is deterministic when multiple paths share the same hash.
 
         When multiple files on each side share the same hash, we need to deterministically
@@ -1123,7 +1123,7 @@ class CompareWithRenameDetectionTest(CompareSizeAnalysisTest):
         assert result.diff_items[0].path == "z.txt"
         assert result.diff_items[0].type == DiffType.ADDED
 
-    def test_duplicate_treemap_elements_at_renamed_path_all_skipped(self):
+    def test_duplicate_treemap_elements_at_renamed_path_all_skipped(self) -> None:
         """Test that duplicate treemap elements at a renamed path are all skipped.
 
         iOS Assets.car files can have duplicate treemap entries for the same image at the
@@ -1235,7 +1235,7 @@ class CompareWithRenameDetectionTest(CompareSizeAnalysisTest):
             "Bug: not all duplicate treemap elements are being skipped for renamed files."
         )
 
-    def test_rename_detection_with_nested_children(self):
+    def test_rename_detection_with_nested_children(self) -> None:
         """Test rename detection works with nested file_analysis children (e.g., Assets.car).
 
         Assets.car files contain nested images as children in file_analysis.
@@ -1311,7 +1311,7 @@ class CompareWithRenameDetectionTest(CompareSizeAnalysisTest):
 
 
 class CompareInsightsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.organization)
@@ -1334,7 +1334,7 @@ class CompareInsightsTest(TestCase):
             app_components=None,
         )
 
-    def test_compare_insights_new_insight_in_head(self):
+    def test_compare_insights_new_insight_in_head(self) -> None:
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
@@ -1395,7 +1395,7 @@ class CompareInsightsTest(TestCase):
         assert file_diff.type.value == "added"
         assert file_diff.size_diff == 500
 
-    def test_compare_insights_resolved_insight_in_base(self):
+    def test_compare_insights_resolved_insight_in_base(self) -> None:
         """Test that insights only in base are marked as 'resolved'."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -1443,7 +1443,7 @@ class CompareInsightsTest(TestCase):
         assert file_diff.size_diff == -2000
         assert insight_diff.group_diffs == []
 
-    def test_compare_insights_unresolved_insight_in_both(self):
+    def test_compare_insights_unresolved_insight_in_both(self) -> None:
         """Test that insights in both head and base are marked as 'unresolved'."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -1503,7 +1503,7 @@ class CompareInsightsTest(TestCase):
         assert file_diff.size_diff == 500
         assert insight_diff.group_diffs == []
 
-    def test_compare_insights_multiple_insights(self):
+    def test_compare_insights_multiple_insights(self) -> None:
         """Test comparison with multiple insights in different states."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -1581,7 +1581,7 @@ class CompareInsightsTest(TestCase):
         assert insight_diffs[2].insight_type == "webp_optimization"
         assert insight_diffs[2].status == "unresolved"
 
-    def test_compare_insights_zero_savings_excluded(self):
+    def test_compare_insights_zero_savings_excluded(self) -> None:
         """Test that insights with zero total_savings are excluded."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -1626,7 +1626,7 @@ class CompareInsightsTest(TestCase):
         # Should have no insight diff items since all have zero savings
         assert len(result.insight_diff_items) == 0
 
-    def test_compare_insights_version_mismatch_skips_comparison(self):
+    def test_compare_insights_version_mismatch_skips_comparison(self) -> None:
         """Test that insight comparison is skipped when analysis versions mismatch."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -1675,7 +1675,7 @@ class CompareInsightsTest(TestCase):
         assert len(result.insight_diff_items) == 0
         assert result.skipped_diff_item_comparison is True
 
-    def test_compare_insights_apple_platform(self):
+    def test_compare_insights_apple_platform(self) -> None:
         """Test insight comparison works with Apple platform insights."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -1758,7 +1758,7 @@ class CompareInsightsTest(TestCase):
         assert insight_diffs[1].insight_type == "large_images"
         assert insight_diffs[1].status == "resolved"
 
-    def test_compare_insights_files_insight_with_diffs(self):
+    def test_compare_insights_files_insight_with_diffs(self) -> None:
         """Test FilesInsightResult with file-level differences."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -1837,7 +1837,7 @@ class CompareInsightsTest(TestCase):
         assert file_diffs_by_path["/path/image4.png"].type.value == "added"
         assert file_diffs_by_path["/path/image4.png"].size_diff == 1500
 
-    def test_compare_insights_groups_insight_with_diffs(self):
+    def test_compare_insights_groups_insight_with_diffs(self) -> None:
         """Test GroupsInsightResult with group-level differences."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -1945,7 +1945,7 @@ class CompareInsightsTest(TestCase):
         assert group_diffs_by_path["logo.png"].diff_items is not None
         assert len(group_diffs_by_path["logo.png"].diff_items) == 1
 
-    def test_compare_insights_groups_with_within_group_file_differences(self):
+    def test_compare_insights_groups_with_within_group_file_differences(self) -> None:
         """Test GroupsInsightResult with file-level differences within the same group."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -2040,7 +2040,7 @@ class CompareInsightsTest(TestCase):
         assert file_diff.type.value == "added"
         assert file_diff.size_diff == 1000
 
-    def test_compare_insights_groups_with_identical_groups(self):
+    def test_compare_insights_groups_with_identical_groups(self) -> None:
         """Test GroupsInsightResult with identical groups between head and base."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -2120,7 +2120,7 @@ class CompareInsightsTest(TestCase):
         # No insight diff items should be returned
         assert len(result.insight_diff_items) == 0
 
-    def test_compare_insights_image_optimization_with_diffs(self):
+    def test_compare_insights_image_optimization_with_diffs(self) -> None:
         """Test ImageOptimizationInsightResult with file-level differences."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -2233,7 +2233,7 @@ class CompareInsightsTest(TestCase):
         assert file_diffs_by_path["/path/logo.png"].type.value == "removed"
         assert file_diffs_by_path["/path/logo.png"].size_diff == -3000
 
-    def test_compare_insights_strip_binary_with_diffs(self):
+    def test_compare_insights_strip_binary_with_diffs(self) -> None:
         """Test StripBinaryInsightResult with file-level differences."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,
@@ -2350,7 +2350,7 @@ class CompareInsightsTest(TestCase):
         assert file_diffs_by_path["/path/OldFramework"].type.value == "removed"
         assert file_diffs_by_path["/path/OldFramework"].size_diff == -5000
 
-    def test_compare_insights_video_compression_with_diffs(self):
+    def test_compare_insights_video_compression_with_diffs(self) -> None:
         """Test VideoCompressionInsightResult with file-level differences."""
         head_metrics = PreprodArtifactSizeMetrics(
             preprod_artifact_id=1,

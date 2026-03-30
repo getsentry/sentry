@@ -26,7 +26,7 @@ export function useSnapshotStatusChecks(project: Project) {
 
   const failOnRemoved =
     project.preprodSnapshotStatusChecksFailOnRemoved ??
-    project.options?.[FAIL_ON_REMOVED_KEY] === true;
+    project.options?.[FAIL_ON_REMOVED_KEY] !== false;
 
   const setEnabled = useCallback(
     (value: boolean) => {

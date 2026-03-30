@@ -9,11 +9,11 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class TestGetEventFilterKeys(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
 
-    def test_get_event_filter_keys_with_feature_flags(self):
+    def test_get_event_filter_keys_with_feature_flags(self) -> None:
         """Test that get_event_filter_keys returns tags, feature flags, and static fields"""
         # Create an error event with custom tags
         self.store_event(
@@ -66,7 +66,7 @@ class TestGetEventFilterKeys(APITestCase, SnubaTestCase):
             expected_type = _SPECIAL_FIELD_VALUE_TYPES.get(k, "tag")
             assert result[k]["type"] == expected_type
 
-    def test_get_event_filter_keys_exclude_feature_flags(self):
+    def test_get_event_filter_keys_exclude_feature_flags(self) -> None:
         """Test that get_event_filter_keys excludes feature flags when include_feature_flags is False"""
         # Create an error event with custom tags
         self.store_event(
@@ -118,7 +118,7 @@ class TestGetEventFilterKeys(APITestCase, SnubaTestCase):
             expected_type = _SPECIAL_FIELD_VALUE_TYPES.get(k, "tag")
             assert result[k]["type"] == expected_type
 
-    def test_get_event_filter_keys_multiple_projects(self):
+    def test_get_event_filter_keys_multiple_projects(self) -> None:
         """Test with multiple projects"""
         project2 = self.create_project(organization=self.organization)
 
@@ -155,11 +155,11 @@ class TestGetEventFilterKeys(APITestCase, SnubaTestCase):
 
 
 class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
 
-    def test_get_event_filter_key_values_tag_key(self):
+    def test_get_event_filter_key_values_tag_key(self) -> None:
         """Test getting values for a tag key"""
         # Create events with the same tag key but different values
         self.store_event(
@@ -214,7 +214,7 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
         assert value_counts["production"] == 2
         assert value_counts["staging"] == 1
 
-    def test_get_event_filter_key_values_feature_flag(self):
+    def test_get_event_filter_key_values_feature_flag(self) -> None:
         """Test getting values for a feature flag"""
         # Create events with feature flags
         self.store_event(
@@ -265,7 +265,7 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
         assert "true" in values
         assert "false" in values
 
-    def test_get_event_filter_key_values_has_key(self):
+    def test_get_event_filter_key_values_has_key(self) -> None:
         """Test that 'has' key returns all available tag keys"""
         # Create event with custom tag
         self.store_event(
@@ -291,7 +291,7 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
         assert "custom_tag" in values
         assert "custom2" in values
 
-    def test_get_event_filter_key_values_aggregate_function_returns_empty(self):
+    def test_get_event_filter_key_values_aggregate_function_returns_empty(self) -> None:
         """Test that aggregate functions return empty list"""
         result = get_event_filter_key_values(
             org_id=self.organization.id,
@@ -302,7 +302,7 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
 
         assert result == []
 
-    def test_get_event_filter_key_values_with_substring_filter(self):
+    def test_get_event_filter_key_values_with_substring_filter(self) -> None:
         """Test substring filtering of filter key values"""
         # Create events with different environment values
         self.store_event(
@@ -358,7 +358,7 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
         assert "staging" not in values
         assert "development" not in values
 
-    def test_get_event_filter_key_values_nonexistent_tag(self):
+    def test_get_event_filter_key_values_nonexistent_tag(self) -> None:
         """Test that nonexistent filter key returns empty list"""
         result = get_event_filter_key_values(
             org_id=self.organization.id,
@@ -369,7 +369,7 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
         # Should return empty list, not None
         assert result == []
 
-    def test_get_event_filter_key_values_multiple_projects(self):
+    def test_get_event_filter_key_values_multiple_projects(self) -> None:
         """Test getting filter key values across multiple projects"""
         project2 = self.create_project(organization=self.organization)
 
@@ -409,7 +409,7 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
             assert "us-east" in values
             assert "us-west" in values
 
-    def test_get_event_filter_key_values_different_stats_periods(self):
+    def test_get_event_filter_key_values_different_stats_periods(self) -> None:
         """Test that different stats periods affect results"""
         # Create an event 2 days ago
         two_days_ago = before_now(days=2)

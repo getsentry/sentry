@@ -14,7 +14,7 @@ from sentry.testutils.cases import TestCase
 
 
 class InvalidIssueSearchQueryTest(TestCase):
-    def test_exception_stores_and_renders_invalid_ids(self):
+    def test_exception_stores_and_renders_invalid_ids(self) -> None:
         invalid_ids = ["PROJECT-123", "PROJECT-456"]
         exc = InvalidIssueSearchQuery(invalid_ids)
 
@@ -25,7 +25,7 @@ class InvalidIssueSearchQueryTest(TestCase):
 
 
 class GetAggregationValueTest(TestCase):
-    def test_missing_issue_ids_returns_none_gracefully(self):
+    def test_missing_issue_ids_returns_none_gracefully(self) -> None:
         now = timezone.now()
         start = now - timedelta(minutes=5)
         end = now

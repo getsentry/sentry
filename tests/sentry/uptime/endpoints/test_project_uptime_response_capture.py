@@ -8,7 +8,7 @@ from sentry.uptime.models import UptimeResponseCapture
 class ProjectUptimeResponseCaptureEndpointTest(APITestCase, UptimeTestCase):
     endpoint = "sentry-api-0-project-uptime-response-capture"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.uptime_subscription = self.create_uptime_subscription(url="https://example.com")
@@ -17,7 +17,7 @@ class ProjectUptimeResponseCaptureEndpointTest(APITestCase, UptimeTestCase):
             project=self.project,
         )
 
-    def test_get_response_capture(self):
+    def test_get_response_capture(self) -> None:
         response_content = b"Content-Type: text/html\r\nX-Custom: value\r\n\r\n---BODY---\r\n\r\n<html>Error</html>"
         file = File.objects.create(name="test-response", type="uptime.response")
         file.putfile(BytesIO(response_content))
@@ -43,7 +43,7 @@ class ProjectUptimeResponseCaptureEndpointTest(APITestCase, UptimeTestCase):
         assert response.data["body"] == "<html>Error</html>"
         assert response.data["bodySize"] == len(b"<html>Error</html>")
 
-    def test_get_response_capture_not_found(self):
+    def test_get_response_capture_not_found(self) -> None:
         self.get_error_response(
             self.organization.slug,
             self.project.slug,
@@ -52,7 +52,7 @@ class ProjectUptimeResponseCaptureEndpointTest(APITestCase, UptimeTestCase):
             status_code=404,
         )
 
-    def test_get_response_capture_wrong_detector(self):
+    def test_get_response_capture_wrong_detector(self) -> None:
         """Capture belongs to a different detector's subscription."""
         other_subscription = self.create_uptime_subscription(url="https://other.com")
         other_detector = self.create_uptime_detector(
@@ -86,7 +86,7 @@ class ProjectUptimeResponseCaptureEndpointTest(APITestCase, UptimeTestCase):
             capture.id,
         )
 
-    def test_get_response_capture_no_body(self):
+    def test_get_response_capture_no_body(self) -> None:
         response_content = b"Content-Type: text/html\r\nX-Custom: value"
         file = File.objects.create(name="test-response", type="uptime.response")
         file.putfile(BytesIO(response_content))
@@ -111,7 +111,7 @@ class ProjectUptimeResponseCaptureEndpointTest(APITestCase, UptimeTestCase):
         assert response.data["body"] == ""
         assert response.data["bodySize"] == 0
 
-    def test_delete_response_capture(self):
+    def test_delete_response_capture(self) -> None:
         file = File.objects.create(name="test-response", type="uptime.response")
         file.putfile(BytesIO(b"test content"))
         capture = UptimeResponseCapture.objects.create(
@@ -132,7 +132,7 @@ class ProjectUptimeResponseCaptureEndpointTest(APITestCase, UptimeTestCase):
         assert not UptimeResponseCapture.objects.filter(id=capture_id).exists()
         assert not File.objects.filter(id=file_id).exists()
 
-    def test_delete_response_capture_not_found(self):
+    def test_delete_response_capture_not_found(self) -> None:
         self.get_error_response(
             self.organization.slug,
             self.project.slug,
@@ -142,7 +142,7 @@ class ProjectUptimeResponseCaptureEndpointTest(APITestCase, UptimeTestCase):
             status_code=404,
         )
 
-    def test_delete_response_capture_wrong_detector(self):
+    def test_delete_response_capture_wrong_detector(self) -> None:
         """Cannot delete capture belonging to a different detector."""
         other_subscription = self.create_uptime_subscription(url="https://other.com")
         file = File.objects.create(name="test-response", type="uptime.response")
