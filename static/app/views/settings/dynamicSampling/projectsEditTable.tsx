@@ -152,6 +152,9 @@ export function ProjectsEditTable({
       (acc, item) => acc + item.count * parsePercent(projectRates[item.project.id], 1),
       0
     );
+    if (totalSpanCount === 0) {
+      return formatPercent(0);
+    }
     return formatPercent(totalSampledSpans / totalSpanCount);
   }, [editMode, items, orgRate, totalSpanCount, projectRates]);
 
@@ -161,6 +164,9 @@ export function ProjectsEditTable({
         acc + item.count * parsePercent(savedProjectRates[item.project.id], 1),
       0
     );
+    if (totalSpanCount === 0) {
+      return formatPercent(0);
+    }
     return formatPercent(totalSampledSpans / totalSpanCount);
   }, [savedProjectRates, items, totalSpanCount]);
 
