@@ -197,10 +197,10 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
 
     @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
     @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
-    def test_skips_projects_with_existing_stopping_point(
+    def test_preserves_existing_stopping_point(
         self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
     ) -> None:
-        """Test that projects with open_pr or code_changes stopping point are skipped."""
+        """Test that projects with existing stopping points keep them rather than getting the org default."""
         project1 = self.create_project(organization=self.organization)
         project2 = self.create_project(organization=self.organization)
 
@@ -211,8 +211,84 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
 
         configure_seer_for_existing_org(organization_id=self.organization.id)
 
-        # bulk_set should not be called since both projects are skipped
-        mock_bulk_set.assert_not_called()
+        mock_bulk_set.assert_called_once()
+        preferences = mock_bulk_set.call_args[0][1]
+        prefs_by_project = {p["project_id"]: p for p in preferences}
+        assert prefs_by_project[project1.id]["automated_run_stopping_point"] == "open_pr"
+        assert prefs_by_project[project2.id]["automated_run_stopping_point"] == "code_changes"
+
+    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
+    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
+    def test_applies_org_default_handoff_to_projects_without_handoff(
+        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
+    ) -> None:
+        """Test that org-level external agent config is applied to projects that lack handoff."""
+        project = self.create_project(organization=self.organization)
+        self.organization.update_option(
+            "sentry:seer_default_coding_agent", "cursor_background_agent"
+        )
+        self.organization.update_option("sentry:seer_default_coding_agent_integration_id", 42)
+        self.organization.update_option("sentry:auto_open_prs", True)
+
+        mock_bulk_get.return_value = {
+            str(project.id): {"automated_run_stopping_point": "code_changes"},
+        }
+
+        configure_seer_for_existing_org(organization_id=self.organization.id)
+
+        mock_bulk_set.assert_called_once()
+        prefs = mock_bulk_set.call_args[0][1][0]
+        assert prefs["automation_handoff"] == {
+            "handoff_point": "root_cause",
+            "target": "cursor_background_agent",
+            "integration_id": 42,
+            "auto_create_pr": True,
+        }
+
+    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
+    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
+    def test_preserves_existing_handoff(
+        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
+    ) -> None:
+        """Test that existing project-level handoff is preserved over org default."""
+        project = self.create_project(organization=self.organization)
+        self.organization.update_option(
+            "sentry:seer_default_coding_agent", "cursor_background_agent"
+        )
+        self.organization.update_option("sentry:seer_default_coding_agent_integration_id", 42)
+
+        existing_handoff = {
+            "handoff_point": "root_cause",
+            "target": "claude_code_agent",
+            "integration_id": 99,
+            "auto_create_pr": False,
+        }
+        mock_bulk_get.return_value = {
+            str(project.id): {"automation_handoff": existing_handoff},
+        }
+
+        configure_seer_for_existing_org(organization_id=self.organization.id)
+
+        mock_bulk_set.assert_called_once()
+        prefs = mock_bulk_set.call_args[0][1][0]
+        assert prefs["automation_handoff"] == existing_handoff
+
+    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
+    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
+    def test_no_handoff_for_seer_agent(
+        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
+    ) -> None:
+        """Test that no handoff is created when the default coding agent is seer."""
+        self.create_project(organization=self.organization)
+        self.organization.update_option("sentry:seer_default_coding_agent", "seer")
+
+        mock_bulk_get.return_value = {}
+
+        configure_seer_for_existing_org(organization_id=self.organization.id)
+
+        mock_bulk_set.assert_called_once()
+        prefs = mock_bulk_set.call_args[0][1][0]
+        assert prefs["automation_handoff"] is None
 
     @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
     def test_raises_on_bulk_get_api_failure(self, mock_bulk_get: MagicMock) -> None:
