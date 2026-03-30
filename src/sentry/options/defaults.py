@@ -3228,6 +3228,12 @@ register(
     default=10 * 1024 * 1024,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# When enabled, oversized segments are split into chunks instead of being dropped.
+register(
+    "spans.buffer.flush-oversized-segments",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # TTL for keys in Redis. This is a downside protection in case of bugs.
 register(
     "spans.buffer.redis-ttl",

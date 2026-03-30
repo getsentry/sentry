@@ -6,6 +6,7 @@ import time
 from collections.abc import Callable, Mapping
 from concurrent.futures import Future
 from functools import partial
+from typing import Any
 
 import orjson
 import sentry_sdk
@@ -33,6 +34,42 @@ logger = logging.getLogger(__name__)
 
 
 type ProduceToPipe = Callable[[int, KafkaPayload, int], None]
+
+
+type SpanPayload = dict[str, Any]
+
+
+def _chunk_segment(span_payloads: list[SpanPayload]) -> list[list[SpanPayload]]:
+    """
+    Split a segment into chunks of spans payloads that fit under max_segment_bytes.
+    If all spans of the segment fit in one chunk, returns a single-element list.
+    """
+    max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
+
+    sizes = [len(orjson.dumps(s)) for s in span_payloads]
+    total_size = sum(sizes)
+    if total_size <= max_segment_bytes:
+        return [span_payloads]
+
+    chunks: list[list[SpanPayload]] = []
+    current_chunk: list[SpanPayload] = []
+    current_size = 0
+
+    for payload, payload_size in zip(span_payloads, sizes):
+        if current_chunk and current_size + payload_size > max_segment_bytes:
+            chunks.append(current_chunk)
+            current_chunk = []
+            current_size = 0
+        current_chunk.append(payload)
+        current_size += payload_size
+
+    if current_chunk:
+        chunks.append(current_chunk)
+
+    if len(chunks) > 1:
+        metrics.incr("spans.buffer.flusher.oversized_segments_chunked")
+
+    return chunks
 
 
 class MultiProducer:
@@ -268,6 +305,8 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         healthy_since,
         produce_to_pipe: ProduceToPipe | None,
     ) -> None:
+        flush_oversized_segments = options.get("spans.buffer.flush-oversized-segments")
+
         logger.info("Flusher process main started for shards %s", shards)
 
         shard_tag = ",".join(map(str, shards))
@@ -334,13 +373,20 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                             continue
 
                         spans = [span.payload for span in flushed_segment.spans]
-                        kafka_payload = KafkaPayload(None, orjson.dumps({"spans": spans}), [])
-                        metrics.timing(
-                            "spans.buffer.segment_size_bytes",
-                            len(kafka_payload.value),
-                            tags={"shard": shard_tag},
-                        )
-                        produce(flushed_segment.project_id, kafka_payload, len(spans))
+
+                        if flush_oversized_segments:
+                            chunks = _chunk_segment(spans)
+                        else:
+                            chunks = [spans]
+
+                        for chunk in chunks:
+                            kafka_payload = KafkaPayload(None, orjson.dumps({"spans": chunk}), [])
+                            metrics.timing(
+                                "spans.buffer.segment_size_bytes",
+                                len(kafka_payload.value),
+                                tags={"shard": shard_tag},
+                            )
+                            produce(flushed_segment.project_id, kafka_payload, len(chunk))
 
                 with metrics.timer("spans.buffer.flusher.wait_produce", tags={"shards": shard_tag}):
                     for project_id, future, dropped in producer_futures:

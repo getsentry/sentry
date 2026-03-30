@@ -39,6 +39,7 @@ DEFAULT_OPTIONS = {
     "spans.buffer.debug-traces": [],
     "spans.buffer.evalsha-cumulative-logger-enabled": True,
     "spans.process-segments.schema-validation": 1.0,
+    "spans.buffer.flush-oversized-segments": False,
 }
 
 
@@ -965,6 +966,88 @@ def test_dropped_spans_emit_outcomes(
     ]
     assert len(ingested_bytes_timing_calls) == 1, "Should emit ingested_bytes_per_segment metric"
     assert ingested_bytes_timing_calls[0].args[1] == expected_bytes
+
+
+@mock.patch("sentry.spans.buffer.Project")
+def test_flush_oversized_segments(mock_project_model, buffer: SpansBuffer) -> None:
+    """When flush-oversized-segments is enabled, oversized segments are kept instead of dropped."""
+    mock_project = mock.Mock()
+    mock_project.id = 1
+    mock_project.organization_id = 100
+    mock_project_model.objects.get_from_cache.return_value = mock_project
+
+    batch1 = [
+        Span(
+            payload=_payload("c" * 16),
+            trace_id="a" * 32,
+            span_id="c" * 16,
+            parent_span_id="b" * 16,
+            segment_id=None,
+            project_id=1,
+        ),
+        Span(
+            payload=_payload("b" * 16),
+            trace_id="a" * 32,
+            span_id="b" * 16,
+            parent_span_id="a" * 16,
+            segment_id=None,
+            project_id=1,
+        ),
+    ]
+    batch2 = [
+        Span(
+            payload=_payload("d" * 16),
+            trace_id="a" * 32,
+            span_id="d" * 16,
+            parent_span_id="a" * 16,
+            segment_id=None,
+            project_id=1,
+        ),
+        Span(
+            payload=_payload("e" * 16),
+            trace_id="a" * 32,
+            span_id="e" * 16,
+            parent_span_id="a" * 16,
+            segment_id=None,
+            project_id=1,
+        ),
+        Span(
+            payload=_payload("a" * 16),
+            trace_id="a" * 32,
+            span_id="a" * 16,
+            parent_span_id=None,
+            project_id=1,
+            segment_id=None,
+            is_segment_span=True,
+        ),
+    ]
+
+    with override_options(
+        {"spans.buffer.max-segment-bytes": 100, "spans.buffer.flush-oversized-segments": True}
+    ):
+        buffer.process_spans(batch1, now=0)
+        buffer.process_spans(batch2, now=0)
+        rv = buffer.flush_segments(now=11)
+
+    segment = rv[_segment_id(1, "a" * 32, "a" * 16)]
+    assert len(segment.spans) == 5
+    _normalize_output(rv)
+    assert rv == {
+        _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
+            queue_key=mock.ANY,
+            score=mock.ANY,
+            ingested_count=mock.ANY,
+            payload_keys=mock.ANY,
+            project_id=1,
+            spans=[
+                _output_segment(b"a" * 16, b"a" * 16, True),
+                _output_segment(b"b" * 16, b"a" * 16, False),
+                _output_segment(b"c" * 16, b"a" * 16, False),
+                _output_segment(b"d" * 16, b"a" * 16, False),
+                _output_segment(b"e" * 16, b"a" * 16, False),
+            ],
+        )
+    }
 
 
 def test_kafka_slice_id(buffer: SpansBuffer) -> None:

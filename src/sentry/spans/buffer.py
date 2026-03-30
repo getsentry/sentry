@@ -710,6 +710,7 @@ class SpansBuffer:
                 cursors[payload_key] = 0
             payload_keys_map[key] = segment_payload_keys
 
+        flush_oversized_segments = options.get("spans.buffer.flush-oversized-segments")
         dropped_segments: set[SegmentKey] = set()
 
         def _add_spans(key: SegmentKey, raw_data: bytes) -> bool:
@@ -726,11 +727,12 @@ class SpansBuffer:
             sizes[key] = sizes.get(key, 0) + sum(len(span) for span in decompressed)
             if sizes[key] > max_segment_bytes:
                 metrics.incr("spans.buffer.flush_segments.segment_size_exceeded")
-                logger.warning("Skipping too large segment, byte size %s", sizes[key])
-                payloads.pop(key, None)
-                sizes.pop(key, None)
-                dropped_segments.add(key)
-                return False
+                if not flush_oversized_segments:
+                    logger.warning("Skipping too large segment, byte size %s", sizes[key])
+                    payloads.pop(key, None)
+                    sizes.pop(key, None)
+                    dropped_segments.add(key)
+                    return False
 
             payloads[key].extend(decompressed)
             return True
