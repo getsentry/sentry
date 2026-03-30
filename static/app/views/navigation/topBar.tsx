@@ -15,6 +15,7 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
 import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
+import {NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME} from './constants';
 import {PRIMARY_HEADER_HEIGHT} from './constants';
 
 export function TopBar() {
@@ -72,11 +73,14 @@ export function TopBar() {
   return (
     <Flex
       ref={flexRef}
-      height={`${PRIMARY_HEADER_HEIGHT}px`}
+      height={{
+        sm: `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`,
+        md: `${PRIMARY_HEADER_HEIGHT}px`,
+      }}
       justify="between"
       background="secondary"
       align="center"
-      padding="md lg"
+      padding={{sm: 'sm lg', md: 'md xl'}}
       position="sticky"
       borderBottom={primaryNavigation.layout === 'mobile' ? undefined : 'primary'}
       top={0}
