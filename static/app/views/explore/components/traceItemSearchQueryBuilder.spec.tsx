@@ -22,7 +22,7 @@ const defaultInitialProps: TraceItemSearchQueryBuilderProps = {
   searchSource: 'test',
 };
 const organization = OrganizationFixture({
-  features: [],
+  features: ['search-query-attribute-validation'],
 });
 
 describe('useTraceItemSearchQueryBuilderProps', () => {

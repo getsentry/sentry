@@ -108,7 +108,7 @@ export function useAttributeValidation(
       organizationSlug: organization.slug,
       ...selection,
     }),
-    enabled: hasValidation,
+    enabled: hasValidation && filterKeys.length > 0,
   });
 
   const invalidFilterKeys = useMemo(() => {
