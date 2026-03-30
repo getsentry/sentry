@@ -1,7 +1,7 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import EmailField from 'sentry/components/deprecatedforms/emailField';
-import Form from 'sentry/components/deprecatedforms/form';
+import {Form} from 'sentry/components/deprecatedforms/form';
 
 describe('EmailField', () => {
   describe('render()', () => {

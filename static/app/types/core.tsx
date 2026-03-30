@@ -98,6 +98,7 @@ export enum DataCategory {
   SEER_USER = 'seerUsers',
   USER_REPORT_V2 = 'feedback',
   TRACE_METRICS = 'traceMetrics',
+  TRACE_METRIC_BYTE = 'traceMetricBytes',
   SIZE_ANALYSIS = 'sizeAnalyses',
   INSTALLABLE_BUILD = 'installableBuilds',
 }
@@ -132,6 +133,7 @@ export enum DataCategoryExact {
   SEER_USER = 'seer_user',
   USER_REPORT_V2 = 'feedback',
   TRACE_METRIC = 'trace_metric',
+  TRACE_METRIC_BYTE = 'trace_metric_byte',
   SIZE_ANALYSIS = 'size_analysis',
   INSTALLABLE_BUILD = 'installable_build',
 }

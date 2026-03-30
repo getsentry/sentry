@@ -1,16 +1,14 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
   AVERAGE_DURATION_TEXT,
   QUERIES_PER_MINUTE_TEXT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/constants';
-import {BASE_FILTERS} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/queries';
+import {BASE_FILTER_STRING} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/settings';
+import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
-
-const FILTER_STRING = MutableSearch.fromQueryObject(BASE_FILTERS).formatString();
 
 export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
@@ -43,7 +41,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           fields: ['epm()'],
           aggregates: ['epm()'],
           columns: [],
-          conditions: FILTER_STRING,
+          conditions: BASE_FILTER_STRING,
           orderby: '',
           isHidden: false,
         },
@@ -64,7 +62,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           fields: [`avg(${SpanFields.SPAN_DURATION})`],
           aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
           columns: [],
-          conditions: FILTER_STRING,
+          conditions: BASE_FILTER_STRING,
           orderby: '',
           isHidden: false,
         },
@@ -74,7 +72,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
     },
     {
       id: 'metrics-time-spent',
-      title: 'Time Spent',
+      title: t('Time Spent'),
       description: '',
       displayType: DisplayType.BIG_NUMBER,
       thresholds: null,
@@ -85,7 +83,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           fields: [`sum(${SpanFields.SPAN_DURATION})`],
           aggregates: [`sum(${SpanFields.SPAN_DURATION})`],
           columns: [],
-          conditions: FILTER_STRING,
+          conditions: BASE_FILTER_STRING,
           orderby: '',
           isHidden: false,
         },
@@ -95,7 +93,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
     },
     {
       id: 'example-query',
-      title: 'Example Query',
+      title: t('Example Query'),
       description: '',
       displayType: DisplayType.DETAILS,
       thresholds: null,
@@ -107,7 +105,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           aggregates: [],
           columns: ['id', 'span.op', 'span.group', 'span.description', 'span.category'],
           fieldAliases: [],
-          conditions: FILTER_STRING,
+          conditions: BASE_FILTER_STRING,
           orderby: 'id',
           onDemand: [],
           linkedDashboards: [],
@@ -119,7 +117,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
     },
     {
       id: 'transactions-with-query',
-      title: 'Transactions with query',
+      title: t('Transactions with Query'),
       description: '',
       displayType: DisplayType.TABLE,
       thresholds: null,
@@ -130,8 +128,12 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           fields: ['transaction', 'epm()', `sum(${SpanFields.SPAN_DURATION})`],
           aggregates: ['epm()', `sum(${SpanFields.SPAN_DURATION})`],
           columns: [SpanFields.TRANSACTION],
-          fieldAliases: [t('Found In'), t('Queries Per Minute'), t('Time Spent')],
-          conditions: FILTER_STRING,
+          fieldAliases: [
+            t('Found In'),
+            t('Queries Per Minute'),
+            WIDGET_COLUMN_LABELS.timeSpent,
+          ],
+          conditions: BASE_FILTER_STRING,
           orderby: `-sum(${SpanFields.SPAN_DURATION})`,
           onDemand: [],
           isHidden: false,
@@ -143,7 +145,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
     },
     {
       id: 'metrics-throughput-line',
-      title: 'Queries Per Minute',
+      title: t('Queries Per Minute'),
       description: '',
       displayType: DisplayType.LINE,
       thresholds: null,
@@ -155,7 +157,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           aggregates: ['epm()'],
           columns: [],
           fieldAliases: [],
-          conditions: FILTER_STRING,
+          conditions: BASE_FILTER_STRING,
           orderby: 'epm()',
           onDemand: [],
           isHidden: false,
@@ -167,7 +169,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
     },
     {
       id: 'metrics-duration-line',
-      title: 'Average Duration',
+      title: t('Average Duration'),
       description: '',
       displayType: DisplayType.LINE,
       widgetType: WidgetType.SPANS,
@@ -180,7 +182,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
           aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
           columns: [],
           fieldAliases: [],
-          conditions: FILTER_STRING,
+          conditions: BASE_FILTER_STRING,
           orderby: `avg(${SpanFields.SPAN_DURATION})`,
           onDemand: [],
           isHidden: false,

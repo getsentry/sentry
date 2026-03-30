@@ -18,7 +18,7 @@ type State = {
   prevReloading: boolean;
 };
 
-class TransitionChart extends Component<Props, State> {
+export class TransitionChart extends Component<Props, State> {
   static defaultProps = defaultProps;
 
   state: State = {
@@ -99,5 +99,3 @@ class TransitionChart extends Component<Props, State> {
     return <Fragment key={String(this.state.key)}>{this.props.children}</Fragment>;
   }
 }
-
-export default TransitionChart;

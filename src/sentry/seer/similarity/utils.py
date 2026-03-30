@@ -8,7 +8,7 @@ from typing import Any, TypedDict, TypeVar
 import sentry_sdk
 from tokenizers import Tokenizer
 
-from sentry import options
+from sentry import features, options
 from sentry.constants import DATA_ROOT
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
@@ -21,6 +21,7 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     is_seer_seat_based_tier_enabled,
     set_project_seer_preference,
+    write_preference_to_sentry_db,
 )
 from sentry.seer.models import SeerProjectPreference
 from sentry.seer.similarity.types import GroupingVersion
@@ -582,6 +583,16 @@ def set_default_project_auto_open_prs(organization: Organization, project: Proje
         set_project_seer_preference(preference)
     except Exception as e:
         sentry_sdk.capture_exception(e)
+        return
+
+    if features.has("organizations:seer-project-settings-dual-write", organization):
+        try:
+            write_preference_to_sentry_db(project, preference)
+        except Exception:
+            logger.exception(
+                "seer.write_preferences.failed",
+                extra={"project_id": project.id, "organization_id": organization.id},
+            )
 
 
 def report_token_count_metric(

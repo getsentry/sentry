@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {LazyRender} from 'sentry/components/lazyRender';
-import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -15,7 +14,6 @@ import {useWidgetSlideout} from 'sentry/views/dashboards/utils/useWidgetSlideout
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 
-import {useWidgetErrorCallback} from './contexts/widgetErrorContext';
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {DashboardsMEPProvider} from './widgetCard/dashboardsMEPContext';
 import {Toolbar} from './widgetCard/toolbar';
@@ -27,7 +25,7 @@ import {
   type Widget,
   type WidgetQuery,
 } from './types';
-import type WidgetLegendSelectionState from './widgetLegendSelectionState';
+import type {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
 const TABLE_ITEM_LIMIT = 20;
 
@@ -45,6 +43,7 @@ type Props = {
   dashboardFilters?: DashboardFilters;
   dashboardPermissions?: DashboardPermissions;
   isEmbedded?: boolean;
+  isGeneratedDashboard?: boolean;
   isMobile?: boolean;
   isPrebuiltDashboard?: boolean;
   isPreview?: boolean;
@@ -85,7 +84,6 @@ export function SortableWidget(props: Props) {
   const organization = useOrganization();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
-  const onWidgetError = useWidgetErrorCallback();
   const hasEditAccess =
     checkUserHasEditAccess(
       currentUser,
@@ -140,20 +138,6 @@ export function SortableWidget(props: Props) {
     index,
     dashboardFilters,
     widgetLegendState,
-    renderErrorMessage: errorMessage => {
-      if (
-        typeof errorMessage === 'string' &&
-        errorMessage !== t('No data found') &&
-        onWidgetError
-      ) {
-        onWidgetError(widget, errorMessage);
-      }
-      return (
-        typeof errorMessage === 'string' && (
-          <PanelAlert variant="danger">{errorMessage}</PanelAlert>
-        )
-      );
-    },
     isMobile,
     windowWidth,
     tableItemLimit:
@@ -173,7 +157,11 @@ export function SortableWidget(props: Props) {
       data-test-id="sortable-widget"
     >
       <DashboardsMEPProvider>
-        <LazyRender containerHeight={200} withoutContainer>
+        <LazyRender
+          containerHeight={200}
+          withoutContainer
+          disabled={props.isGeneratedDashboard}
+        >
           <WidgetCard {...widgetProps} />
           {props.isEditingDashboard && (
             <Toolbar

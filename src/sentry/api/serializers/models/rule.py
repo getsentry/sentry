@@ -629,6 +629,13 @@ class WorkflowEngineRuleSerializer(Serializer):
             )
             serialized_actions = []
             errors = []
+
+            if len(prefetched_wdcgs) > 1:
+                errors.append(
+                    {
+                        "detail": "Multiple if/then blocks are not supported in this view. Only the first if/then block is displayed."
+                    }
+                )
             for action in actions_with_handlers:
                 action_data = action_to_action_data[action]
                 action_data["name"] = action_to_handler[action].render_label(
@@ -734,8 +741,8 @@ class WorkflowEngineRuleSerializer(Serializer):
             if len(errors):
                 result[workflow]["errors"] = errors
 
-            if workflow.id in last_triggered_lookup:
-                result[workflow]["last_triggered"] = last_triggered_lookup[workflow.id]
+            if "lastTriggered" in self.expand:
+                result[workflow]["last_triggered"] = last_triggered_lookup.get(workflow.id, None)
 
             result[workflow]["actions"] = serialized_actions
 

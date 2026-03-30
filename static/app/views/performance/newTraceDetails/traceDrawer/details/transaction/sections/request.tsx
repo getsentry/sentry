@@ -5,7 +5,7 @@ import {CodeBlock} from '@sentry/scraps/code';
 import {ExternalLink} from '@sentry/scraps/link';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {getTransformedData} from 'sentry/components/events/interfaces/request/getTransformedData';
 import {GraphQlRequestBody} from 'sentry/components/events/interfaces/request/graphQlRequestBody';

@@ -8,7 +8,6 @@ from django.http.response import HttpResponseBase
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 
-from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
@@ -32,7 +31,6 @@ logger = logging.getLogger()
 @cell_silo_endpoint
 @extend_schema(tags=["Replays"])
 class ProjectReplayVideoDetailsEndpoint(ProjectReplayEndpoint):
-    owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }

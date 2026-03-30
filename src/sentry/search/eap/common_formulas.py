@@ -16,7 +16,7 @@ from sentry.search.eap.columns import ResolvedArguments, ResolverSettings
 def make_eps(
     count_key: AttributeKey,
 ) -> Callable[[ResolvedArguments, ResolverSettings], Column.BinaryFormula]:
-    """Return an eps formula resolver that counts *count_key* rows per second."""
+    """Return an eps formula resolver that counts 'count_key' rows per second."""
 
     def eps(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
         extrapolation_mode = settings["extrapolation_mode"]
@@ -48,7 +48,7 @@ def make_eps(
 def make_epm(
     count_key: AttributeKey,
 ) -> Callable[[ResolvedArguments, ResolverSettings], Column.BinaryFormula]:
-    """Return an epm formula resolver that counts *count_key* rows per minute."""
+    """Return an epm formula resolver that counts 'count_key' rows per minute."""
 
     def epm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
         extrapolation_mode = settings["extrapolation_mode"]

@@ -13,7 +13,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Duration} from 'sentry/components/duration/duration';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import {useReplayBulkDeleteAuditLogQueryKey} from 'sentry/components/replays/bulkDelete/useReplayBulkDeleteAuditLog';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';

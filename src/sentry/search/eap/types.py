@@ -91,3 +91,4 @@ class AdditionalQueries:
     span: list[str] | None
     log: list[str] | None
     metric: list[str] | None
+    occurrences: list[str] | None

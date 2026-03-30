@@ -1,16 +1,19 @@
 from unittest.mock import patch
 
-from sentry.processing_errors.grouptype import SourcemapCheckStatus, SourcemapConfigurationType
-from sentry.processing_errors.provisioning import ensure_sourcemap_detector
+from sentry.processing_errors.grouptype import (
+    ProcessingErrorCheckStatus,
+    SourcemapConfigurationType,
+)
+from sentry.processing_errors.provisioning import ensure_detector
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models import DataConditionGroup, Detector, DetectorState
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
-class TestEnsureSourcemapDetector(TestCase):
+class TestEnsureDetector(TestCase):
     def test_creates_detector_with_conditions(self) -> None:
-        detector = ensure_sourcemap_detector(self.project)
+        detector = ensure_detector(self.project, SourcemapConfigurationType)
 
         assert detector.type == SourcemapConfigurationType.slug
         assert detector.project == self.project
@@ -25,12 +28,12 @@ class TestEnsureSourcemapDetector(TestCase):
         assert len(conditions) == 2
 
         success_condition = conditions[0]
-        assert success_condition.comparison == SourcemapCheckStatus.SUCCESS
+        assert success_condition.comparison == ProcessingErrorCheckStatus.SUCCESS
         assert success_condition.type == Condition.EQUAL
         assert success_condition.condition_result == DetectorPriorityLevel.OK
 
         failure_condition = conditions[1]
-        assert failure_condition.comparison == SourcemapCheckStatus.FAILURE
+        assert failure_condition.comparison == ProcessingErrorCheckStatus.FAILURE
         assert failure_condition.type == Condition.EQUAL
         assert failure_condition.condition_result == DetectorPriorityLevel.HIGH
 
@@ -39,8 +42,8 @@ class TestEnsureSourcemapDetector(TestCase):
         assert state.state == str(DetectorPriorityLevel.OK)
 
     def test_returns_existing_detector(self) -> None:
-        first = ensure_sourcemap_detector(self.project)
-        second = ensure_sourcemap_detector(self.project)
+        first = ensure_detector(self.project, SourcemapConfigurationType)
+        second = ensure_detector(self.project, SourcemapConfigurationType)
 
         assert first.id == second.id
         assert (
@@ -51,18 +54,22 @@ class TestEnsureSourcemapDetector(TestCase):
         )
 
     def test_uses_cache_on_second_call(self) -> None:
-        ensure_sourcemap_detector(self.project)
+        ensure_detector(self.project, SourcemapConfigurationType)
 
         with patch.object(Detector.objects, "get", wraps=Detector.objects.get) as mock_get:
-            ensure_sourcemap_detector(self.project)
+            ensure_detector(self.project, SourcemapConfigurationType)
             mock_get.assert_not_called()
 
     def test_separate_detectors_per_project(self) -> None:
         other_project = self.create_project()
 
-        detector_a = ensure_sourcemap_detector(self.project)
-        detector_b = ensure_sourcemap_detector(other_project)
+        detector_a = ensure_detector(self.project, SourcemapConfigurationType)
+        detector_b = ensure_detector(other_project, SourcemapConfigurationType)
 
         assert detector_a.id != detector_b.id
         assert detector_a.project == self.project
         assert detector_b.project == other_project
+
+    def test_uses_description_as_name(self) -> None:
+        detector = ensure_detector(self.project, SourcemapConfigurationType)
+        assert detector.name == SourcemapConfigurationType.description

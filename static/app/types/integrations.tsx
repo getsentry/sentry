@@ -571,7 +571,7 @@ export type AppOrProviderOrPlugin =
 /**
  * Webhooks and servicehooks
  */
-export type WebhookEvent = 'issue' | 'error' | 'comment' | 'seer';
+export type WebhookEvent = 'issue' | 'error' | 'comment' | 'seer' | 'preprod_artifact';
 
 export type ServiceHook = {
   dateCreated: string;

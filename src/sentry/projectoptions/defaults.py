@@ -1,5 +1,8 @@
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
-from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT
+from sentry.constants import (
+    SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+    TARGET_SAMPLE_RATE_DEFAULT,
+)
 from sentry.projectoptions import register
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 
@@ -184,7 +187,10 @@ register(key="sentry:autofix_automation_tuning", default=AutofixAutomationTuning
 register(key="sentry:seer_scanner_automation", default=True)
 
 # Seer project preferences
-register(key="sentry:seer_automated_run_stopping_point", default="code_changes")
+register(
+    key="sentry:seer_automated_run_stopping_point",
+    default=SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+)
 register(key="sentry:seer_automation_handoff_point", default=None)
 register(key="sentry:seer_automation_handoff_target", default=None)
 register(key="sentry:seer_automation_handoff_integration_id", default=None)

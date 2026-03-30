@@ -252,9 +252,9 @@ def update_group_resolutions(release, commit_author_by_commit):
                 router.db_for_write(Activity),
             )
         ):
-            GroupResolution.objects.create_or_update(
+            GroupResolution.objects.update_or_create(
                 group_id=group_id,
-                values={
+                defaults={
                     "release": release,
                     "type": GroupResolution.Type.in_release,
                     "status": GroupResolution.Status.resolved,

@@ -2,7 +2,7 @@ import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';

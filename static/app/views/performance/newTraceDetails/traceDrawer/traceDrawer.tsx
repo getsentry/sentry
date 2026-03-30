@@ -6,7 +6,7 @@ import {Button} from '@sentry/scraps/button';
 
 import {IconCircleFill, IconClose, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {
   cancelAnimationTimeout,
   requestAnimationTimeout,

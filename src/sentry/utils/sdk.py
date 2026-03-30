@@ -79,6 +79,7 @@ SAMPLED_TASKS = {
     "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.tasks.autofix.configure_seer_for_existing_org": 1.0,
+    "sentry.tasks.seer.context_engine_index.schedule_context_engine_indexing_tasks": 1.0,
 }
 
 SAMPLED_ROUTES = {

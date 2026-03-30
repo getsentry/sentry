@@ -23,7 +23,11 @@ export interface DetectorDetails {
   detectorId?: string;
   detectorPath?: string;
   detectorSlug?: string;
-  detectorType?: 'metric_alert' | 'cron_monitor' | 'uptime_monitor';
+  detectorType?:
+    | 'metric_alert'
+    | 'cron_monitor'
+    | 'uptime_monitor'
+    | 'mobile_build_monitor';
 }
 
 export function getDetectorDetails({
@@ -69,6 +73,24 @@ export function getDetectorDetails({
         'This issue was created by a cron monitor. View the monitor details to learn more.'
       ),
     };
+  }
+
+  const isPreprodSizeAnalysis = event?.occurrence?.type === 11003;
+  if (isPreprodSizeAnalysis) {
+    const preprodDetectorId = event.occurrence?.evidenceData.detectorId;
+    if (preprodDetectorId) {
+      return {
+        detectorType: 'mobile_build_monitor',
+        detectorId: String(preprodDetectorId),
+        detectorPath: makeMonitorDetailsPathname(
+          organization.slug,
+          String(preprodDetectorId)
+        ),
+        description: t(
+          'This issue was created by a mobile build monitor. View the monitor details to learn more.'
+        ),
+      };
+    }
   }
 
   const detectorId: number | undefined = event.occurrence?.evidenceData.detectorId;

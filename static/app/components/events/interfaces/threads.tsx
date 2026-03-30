@@ -5,7 +5,7 @@ import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {CommitRow} from 'sentry/components/commitRow';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
   StacktraceContext,
   useStacktraceContext,

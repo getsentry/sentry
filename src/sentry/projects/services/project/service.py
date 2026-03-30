@@ -35,8 +35,7 @@ class ProjectService(RpcService):
     def get_many_by_organizations(
         self,
         *,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        cell_name: str,
         organization_ids: list[int],
     ) -> list[RpcProject]:
         pass

@@ -9,6 +9,10 @@ from sentry.notifications.notification_action.registry import (
     metric_alert_handler_registry,
 )
 from sentry.notifications.notification_action.types import BaseMetricAlertHandler
+from sentry.notifications.platform.templates.issue import (
+    IssueNotificationData,
+    SerializableRuleProxy,
+)
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.types import ActionInvocation
 
@@ -106,3 +110,33 @@ def execute_via_metric_alert_handler(invocation: ActionInvocation) -> None:
             extra={"action_id": invocation.action.id, "detector_id": invocation.detector.id},
         )
         raise
+
+
+def issue_notification_data_factory(invocation: ActionInvocation) -> IssueNotificationData:
+    from sentry.notifications.notification_action.types import BaseIssueAlertHandler
+    from sentry.workflow_engine.typings.notification_action import SlackDataBlob
+
+    action = invocation.action
+    detector = invocation.detector
+    event_data = invocation.event_data
+
+    blob = SlackDataBlob(**action.data)
+    tags_set = {t.strip() for t in blob.tags.split(",") if t.strip()} if blob.tags else set()
+
+    rule_instance = BaseIssueAlertHandler.create_rule_instance_from_action(
+        action=action,
+        detector=detector,
+        event_data=event_data,
+    )
+    rule = SerializableRuleProxy.from_rule(rule_instance)
+
+    event_id = getattr(event_data.event, "event_id", None) if event_data.event else None
+
+    return IssueNotificationData(
+        event_id=event_id,
+        group_id=event_data.group.id,
+        tags=tags_set,
+        notes=blob.notes,
+        notification_uuid=invocation.notification_uuid,
+        rule=rule,
+    )

@@ -1,7 +1,7 @@
 import type {Query} from 'history';
 
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReplayListQueryReferrer} from 'sentry/views/replays/types';
 

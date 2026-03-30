@@ -132,6 +132,9 @@ class Referrer(StrEnum):
     API_EXPLORE_LOGS_RAW_COUNT_NORMAL = "api.explore.logs.raw-count.normal"
     API_EXPLORE_LOGS_RAW_COUNT_HIGH_ACCURACY = "api.explore.logs.raw-count.high-accuracy"
     API_EXPLORE_TRACEMETRICS_RAW_COUNT_NORMAL = "api.explore.tracemetrics.raw-count.normal"
+    API_EXPLORE_TRACEMETRICS_RAW_COUNT_NORMAL_EXTRAPOLATED_TOTAL = (
+        "api.explore.tracemetrics.raw-count.normal-extrapolated-total"
+    )
     API_EXPLORE_TRACEMETRICS_RAW_COUNT_HIGH_ACCURACY = (
         "api.explore.tracemetrics.raw-count.high-accuracy"
     )
@@ -572,6 +575,7 @@ class Referrer(StrEnum):
     API_PREPROD_TAG_VALUES_RPC = "api.preprod.tags-values.rpc"
     API_PROCESSING_ERRORS_TAG_KEYS_RPC = "api.processing-errors.tags-keys.rpc"
     API_PROCESSING_ERRORS_TAG_VALUES_RPC = "api.processing-errors.tags-values.rpc"
+    API_TRACE_ITEM_ATTRIBUTE_VALIDATE = "api.trace-item.attribute-validate"
     API_SPANS_TAG_KEYS = "api.spans.tags-keys"
     API_SPANS_TAG_KEYS_RPC = "api.spans.tags-keys.rpc"
     API_SPANS_TAG_VALUES = "api.spans.tags-values"

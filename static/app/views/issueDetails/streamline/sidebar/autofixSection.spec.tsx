@@ -90,7 +90,10 @@ describe('AutofixSection', () => {
       platform: 'javascript',
     };
 
-    const javascriptProject: Project = {...mockProject, platform: 'javascript'};
+    const javascriptProject: Project = {
+      ...mockProject,
+      platform: 'javascript',
+    };
 
     render(
       <AutofixSection
@@ -198,7 +201,7 @@ describe('AutofixSection', () => {
       organization,
     });
 
-    expect(await screen.findByText('Implementation Plan')).toBeInTheDocument();
+    expect(await screen.findByText('Plan')).toBeInTheDocument();
     expect(screen.getByText('Add null check before accessing user')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
   });
@@ -480,7 +483,7 @@ describe('AutofixSection', () => {
     });
 
     expect(await screen.findByText('Root Cause')).toBeInTheDocument();
-    expect(screen.getByText('Implementation Plan')).toBeInTheDocument();
+    expect(screen.getByText('Plan')).toBeInTheDocument();
     expect(screen.getByText('Code Changes')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
   });
@@ -535,7 +538,9 @@ describe('AutofixSection', () => {
     });
 
     expect(await screen.findByText('Finish Configuring Seer')).toBeInTheDocument();
-    const link = screen.getByRole('button', {name: 'Set Up Seer for This Project'});
+    const link = screen.getByRole('button', {
+      name: 'Set Up Seer for This Project',
+    });
     expect(link).toHaveAttribute(
       'href',
       `/settings/${organization.slug}/projects/${mockProject.slug}/seer/`
@@ -563,7 +568,9 @@ describe('AutofixSection', () => {
     });
 
     expect(await screen.findByText('Finish Configuring Seer')).toBeInTheDocument();
-    const link = screen.getByRole('button', {name: 'Set Up Seer for This Project'});
+    const link = screen.getByRole('button', {
+      name: 'Set Up Seer for This Project',
+    });
     expect(link).toHaveAttribute(
       'href',
       `/settings/${organization.slug}/projects/${mockProject.slug}/seer/`
@@ -588,6 +595,6 @@ describe('AutofixSection', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Outline a plan')).toBeInTheDocument();
     expect(screen.getByText('Create a code fix')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Fix the Issue'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Start Analysis'})).toBeInTheDocument();
   });
 });

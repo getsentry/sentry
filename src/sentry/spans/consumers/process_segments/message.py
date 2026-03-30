@@ -223,7 +223,8 @@ def _compute_breakdowns(
     segment: CompatibleSpan, spans: Sequence[CompatibleSpan], project: Project
 ) -> None:
     config = project.get_option("sentry:breakdowns")
-    breakdowns = compute_breakdowns(spans, config)
+    child_spans = [s for s in spans if not s.get("is_segment")]
+    breakdowns = compute_breakdowns(child_spans, config)
     segment["attributes"] = segment.get("attributes") or {}
     segment["attributes"].update(breakdowns)  # type: ignore[union-attr]
 

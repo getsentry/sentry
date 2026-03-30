@@ -10,7 +10,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface UseGroupEventAttachmentsOptions {
   activeAttachmentsTab: 'all' | 'onlyCrash' | 'screenshot';
@@ -108,7 +107,6 @@ export function useGroupEventAttachments({
   activeAttachmentsTab,
   options,
 }: UseGroupEventAttachmentsOptions) {
-  const hasStreamlinedUI = useHasStreamlinedUI();
   const location = useLocation();
   const organization = useOrganization();
   const eventQuery = useEventQuery();
@@ -116,7 +114,7 @@ export function useGroupEventAttachments({
 
   const hasSetStatsPeriod =
     location.query.statsPeriod || location.query.start || location.query.end;
-  const fetchAllAvailable = hasStreamlinedUI ? options?.fetchAllAvailable : true;
+  const fetchAllAvailable = options?.fetchAllAvailable;
   const {
     data: attachments = [],
     isPending,

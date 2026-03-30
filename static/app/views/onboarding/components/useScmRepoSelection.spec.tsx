@@ -84,12 +84,11 @@ describe('useScmRepoSelection', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () => useScmRepoSelection({onSelect, reposByIdentifier}),
+      () =>
+        useScmRepoSelection({integration: mockIntegration, onSelect, reposByIdentifier}),
       {
         organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedIntegration: mockIntegration,
-        }),
+        additionalWrapper: makeOnboardingWrapper({}),
       }
     );
 
@@ -132,12 +131,11 @@ describe('useScmRepoSelection', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () => useScmRepoSelection({onSelect, reposByIdentifier}),
+      () =>
+        useScmRepoSelection({integration: mockIntegration, onSelect, reposByIdentifier}),
       {
         organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedIntegration: mockIntegration,
-        }),
+        additionalWrapper: makeOnboardingWrapper({}),
       }
     );
 
@@ -163,12 +161,11 @@ describe('useScmRepoSelection', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () => useScmRepoSelection({onSelect, reposByIdentifier}),
+      () =>
+        useScmRepoSelection({integration: mockIntegration, onSelect, reposByIdentifier}),
       {
         organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedIntegration: mockIntegration,
-        }),
+        additionalWrapper: makeOnboardingWrapper({}),
       }
     );
 
@@ -202,12 +199,11 @@ describe('useScmRepoSelection', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () => useScmRepoSelection({onSelect, reposByIdentifier}),
+      () =>
+        useScmRepoSelection({integration: mockIntegration, onSelect, reposByIdentifier}),
       {
         organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedIntegration: mockIntegration,
-        }),
+        additionalWrapper: makeOnboardingWrapper({}),
       }
     );
 
@@ -251,11 +247,11 @@ describe('useScmRepoSelection', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () => useScmRepoSelection({onSelect, reposByIdentifier}),
+      () =>
+        useScmRepoSelection({integration: mockIntegration, onSelect, reposByIdentifier}),
       {
         organization,
         additionalWrapper: makeOnboardingWrapper({
-          selectedIntegration: mockIntegration,
           selectedRepository: {
             id: '99',
             name: 'sentry',

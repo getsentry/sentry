@@ -4,7 +4,6 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {MEPTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import type {
@@ -16,7 +15,7 @@ import type {
 export function WidgetHeader<T extends WidgetDataConstraint>(
   props: GenericPerformanceWidgetProps<T> & WidgetDataProps<T>
 ) {
-  const {title, titleTooltip, Subtitle, HeaderActions, InteractiveTitle} = props;
+  const {title, Subtitle, HeaderActions, InteractiveTitle} = props;
 
   return (
     <Flex justify="between" align="start" gap="md">
@@ -28,9 +27,6 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
             <TextOverflow>{title}</TextOverflow>
           )}
           <MEPTag />
-          {titleTooltip && (
-            <QuestionTooltip position="top" size="sm" title={titleTooltip} />
-          )}
         </StyledHeaderTitleLegend>
         {Subtitle ? <Subtitle {...props} /> : null}
       </Stack>

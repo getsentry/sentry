@@ -156,13 +156,4 @@ const FlamegraphContainer = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1 1 100%;
-
-  /*
-   * The footer component is a sibling of this div.
-   * Remove it so the flamegraph can take up the
-   * entire screen.
-   */
-  ~ footer {
-    display: none;
-  }
 `;

@@ -30,6 +30,7 @@ from sentry.scm.actions import (
     delete_pull_request_comment_reaction,
     delete_pull_request_reaction,
     get_branch,
+    get_capabilities,
     get_check_run,
     get_commit,
     get_commits,
@@ -59,8 +60,14 @@ from sentry.scm.errors import (
     SCMProviderException,
     SCMUnhandledException,
 )
-from sentry.scm.private.provider import GetBranchProtocol, GetIssueReactionsProtocol
-from sentry.scm.types import PaginatedActionResult, ReactionResult, Referrer, Repository
+from sentry.scm.types import (
+    GetBranchProtocol,
+    GetIssueReactionsProtocol,
+    PaginatedActionResult,
+    ReactionResult,
+    Referrer,
+    Repository,
+)
 from tests.sentry.scm.test_fixtures import BaseTestProvider
 
 
@@ -188,6 +195,15 @@ def test_rate_limited_action(action: Callable[..., Any], kwargs: dict[str, Any])
 
     with raises_with_code(SCMCodedError, "rate_limit_exceeded"):
         action(scm, **kwargs)
+
+
+def test_scm_is_instance_of_scm():
+    # This weird test is justified by the creation of the dynamic Facade subclass in SourceCodeManager.__new__.
+    # In a previous version, it was returning a subclass of Facade, but not of SourceCodeManager.
+    provider = BaseTestProvider()
+    scm = SourceCodeManager(provider)
+    assert isinstance(scm, SourceCodeManager)
+    assert scm.provider is provider
 
 
 def test_repository_not_found():
@@ -735,7 +751,10 @@ def test_exec_records_failure_metric_on_unhandled_exception():
         assert isinstance(scm, GetBranchProtocol)
         scm.get_branch(branch="main")
 
-    assert metrics == [("sentry.scm.actions.failed", 1, {})]
+    assert metrics == [
+        ("sentry.scm.actions.failed_by_provider", 1, {"provider": ExplodingProvider.__name__}),
+        ("sentry.scm.actions.failed_by_referrer", 1, {"referrer": "shared"}),
+    ]
 
 
 def test_exec_passes_custom_referrer():
@@ -774,3 +793,64 @@ def test_exec_passes_custom_record_count():
         {"provider": "BaseTestProvider"},
     )
     assert calls[1] == ("sentry.scm.actions.success_by_referrer", 1, {"referrer": "shared"})
+
+
+def test_get_capabilities():
+    assert list(get_capabilities(SourceCodeManager(BaseTestProvider()))) == [
+        "CompareCommitsProtocol",
+        "CreateBranchProtocol",
+        "CreateCheckRunProtocol",
+        "CreateGitBlobProtocol",
+        "CreateGitCommitProtocol",
+        "CreateGitTreeProtocol",
+        "CreateIssueCommentProtocol",
+        "CreateIssueCommentReactionProtocol",
+        "CreateIssueReactionProtocol",
+        "CreatePullRequestCommentProtocol",
+        "CreatePullRequestCommentReactionProtocol",
+        "CreatePullRequestDraftProtocol",
+        "CreatePullRequestProtocol",
+        "CreatePullRequestReactionProtocol",
+        "CreateReviewCommentFileProtocol",
+        "CreateReviewCommentReplyProtocol",
+        "CreateReviewProtocol",
+        "DeleteIssueCommentProtocol",
+        "DeleteIssueCommentReactionProtocol",
+        "DeleteIssueReactionProtocol",
+        "DeletePullRequestCommentProtocol",
+        "DeletePullRequestCommentReactionProtocol",
+        "DeletePullRequestReactionProtocol",
+        "GetBranchProtocol",
+        "GetCheckRunProtocol",
+        "GetCommitProtocol",
+        "GetCommitsByPathProtocol",
+        "GetCommitsProtocol",
+        "GetFileContentProtocol",
+        "GetGitCommitProtocol",
+        "GetIssueCommentReactionsProtocol",
+        "GetIssueCommentsProtocol",
+        "GetIssueReactionsProtocol",
+        "GetPullRequestCommentReactionsProtocol",
+        "GetPullRequestCommentsProtocol",
+        "GetPullRequestCommitsProtocol",
+        "GetPullRequestDiffProtocol",
+        "GetPullRequestFilesProtocol",
+        "GetPullRequestProtocol",
+        "GetPullRequestReactionsProtocol",
+        "GetPullRequestsProtocol",
+        "GetTreeProtocol",
+        "MinimizeCommentProtocol",
+        "RequestReviewProtocol",
+        "UpdateBranchProtocol",
+        "UpdateCheckRunProtocol",
+        "UpdatePullRequestProtocol",
+    ]
+
+    class IncapableProvider:
+        organization_id: int
+        repository: Repository
+
+        def is_rate_limited(self, referrer: Referrer) -> bool:
+            return False
+
+    assert list(get_capabilities(SourceCodeManager(IncapableProvider()))) == []
