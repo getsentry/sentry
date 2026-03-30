@@ -624,7 +624,7 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         AutofixOnCompletionHook._trigger_coding_agent_handoff(
             organization=self.organization,
             run_id=123,
-            group_id=self.group.id,
+            group=self.group,
             handoff_config=handoff_config,
         )
 
@@ -651,7 +651,7 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         AutofixOnCompletionHook._trigger_coding_agent_handoff(
             organization=self.organization,
             run_id=123,
-            group_id=self.group.id,
+            group=self.group,
             handoff_config=handoff_config,
         )
 
