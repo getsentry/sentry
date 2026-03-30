@@ -191,9 +191,9 @@ export default function AutomationNewSettings() {
       onSubmit={handleSubmit}
       model={model}
     >
-      <Stack flex={1}>
-        <AutomationFormProvider>
-          <AutomationDocumentTitle />
+      <AutomationFormProvider>
+        <AutomationDocumentTitle />
+        <Stack flex={1}>
           <StyledLayoutHeader>
             <HeaderInner maxWidth={maxWidth}>
               <Layout.HeaderContent>
@@ -229,19 +229,19 @@ export default function AutomationNewSettings() {
               </AutomationBuilderErrorContext.Provider>
             </Layout.Main>
           </StyledBody>
-        <StickyFooter>
-          <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
-            <Observer>
-              {() => (
-                <Button priority="primary" type="submit" disabled={model.isSaving}>
-                  {t('Create Alert')}
-                </Button>
-              )}
-            </Observer>
-          </Flex>
-        </StickyFooter>
-        </AutomationFormProvider>
-      </Stack>
+          <StickyFooter>
+            <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
+              <Observer>
+                {() => (
+                  <Button priority="primary" type="submit" disabled={model.isSaving}>
+                    {t('Create Alert')}
+                  </Button>
+                )}
+              </Observer>
+            </Flex>
+          </StickyFooter>
+        </Stack>
+      </AutomationFormProvider>
     </FullHeightForm>
   );
 }
