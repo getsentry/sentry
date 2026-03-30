@@ -100,8 +100,11 @@ class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
             notification_uuid=data.notification_uuid,
         ).build()
 
-        return SlackRenderable(
+        renderable = SlackRenderable(
             blocks=slack_body.get("blocks", []),
             text=slack_body.get("text", ""),
-            color=slack_body.get("color", ""),
         )
+        if slack_body.get("color"):
+            renderable["color"] = slack_body.get("color")
+
+        return renderable
