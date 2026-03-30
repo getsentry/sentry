@@ -570,7 +570,7 @@ def set_default_project_seer_scanner_automation(
             project.update_option("sentry:seer_scanner_automation", org_default)
 
 
-def set_default_project_auto_open_prs(organization: Organization, project: Project) -> None:
+def set_default_project_seer_preferences(organization: Organization, project: Project) -> None:
     """Called once at project creation time to set the initial automated run stopping
     point and automation handoff.
     """

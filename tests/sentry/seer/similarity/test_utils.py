@@ -15,7 +15,7 @@ from sentry.seer.similarity.utils import (
     filter_null_from_string,
     get_stacktrace_string,
     get_token_count,
-    set_default_project_auto_open_prs,
+    set_default_project_seer_preferences,
     stacktrace_exceeds_limits,
 )
 from sentry.services.eventstore.models import Event
@@ -1223,8 +1223,8 @@ class GetTokenCountTest(TestCase):
         assert token_count == 33
 
 
-class TestSetDefaultProjectAutoOpenPrs(TestCase):
-    """Tests for set_default_project_auto_open_prs which wires org-level Seer
+class TestSetDefaultProjectSeerPreferences(TestCase):
+    """Tests for set_default_project_seer_preferences which wires org-level Seer
     defaults (stopping point, coding agent, auto_open_prs) into project-level
     preferences at project creation time.
     """
@@ -1239,7 +1239,7 @@ class TestSetDefaultProjectAutoOpenPrs(TestCase):
     def test_skips_when_tier_not_enabled(
         self, mock_tier: MagicMock, mock_set_pref: MagicMock, mock_dual_write: MagicMock
     ):
-        set_default_project_auto_open_prs(self.organization, self.project)
+        set_default_project_seer_preferences(self.organization, self.project)
         mock_set_pref.assert_not_called()
         mock_dual_write.assert_not_called()
 
@@ -1250,7 +1250,7 @@ class TestSetDefaultProjectAutoOpenPrs(TestCase):
         self, mock_tier: MagicMock, mock_set_pref: MagicMock, mock_dual_write: MagicMock
     ):
         """Seer agent, no auto_open_prs, default stopping point (code_changes)."""
-        set_default_project_auto_open_prs(self.organization, self.project)
+        set_default_project_seer_preferences(self.organization, self.project)
 
         pref = mock_set_pref.call_args[0][0]
         assert pref.automated_run_stopping_point == "code_changes"
@@ -1262,29 +1262,31 @@ class TestSetDefaultProjectAutoOpenPrs(TestCase):
     def test_seer_agent_with_custom_stopping_point(
         self, mock_tier: MagicMock, mock_set_pref: MagicMock, mock_dual_write: MagicMock
     ):
-        """Seer agent, no auto_open_prs, custom stopping point (root_cause)."""
-        self.organization.update_option("sentry:default_automated_run_stopping_point", "root_cause")
+        """Seer agent, no auto_open_prs, non-default stopping point."""
+        self.organization.update_option("sentry:default_automated_run_stopping_point", "open_pr")
 
-        set_default_project_auto_open_prs(self.organization, self.project)
+        set_default_project_seer_preferences(self.organization, self.project)
 
         pref = mock_set_pref.call_args[0][0]
-        assert pref.automated_run_stopping_point == "root_cause"
+        assert pref.automated_run_stopping_point == "open_pr"
         assert pref.automation_handoff is None
 
     @patch("sentry.seer.similarity.utils.write_preference_to_sentry_db")
     @patch("sentry.seer.similarity.utils.set_project_seer_preference")
     @patch("sentry.seer.similarity.utils.is_seer_seat_based_tier_enabled", return_value=True)
-    def test_seer_agent_with_auto_open_prs(
+    def test_seer_agent_with_auto_open_prs_preserves_stopping_point(
         self, mock_tier: MagicMock, mock_set_pref: MagicMock, mock_dual_write: MagicMock
     ):
-        """auto_open_prs does not override contradictory stopping point."""
+        """auto_open_prs does not override the configured stopping point."""
         self.organization.update_option("sentry:auto_open_prs", True)
-        self.organization.update_option("sentry:default_automated_run_stopping_point", "root_cause")
+        self.organization.update_option(
+            "sentry:default_automated_run_stopping_point", "code_changes"
+        )
 
-        set_default_project_auto_open_prs(self.organization, self.project)
+        set_default_project_seer_preferences(self.organization, self.project)
 
         pref = mock_set_pref.call_args[0][0]
-        assert pref.automated_run_stopping_point == "root_cause"
+        assert pref.automated_run_stopping_point == "code_changes"
         assert pref.automation_handoff is None
 
     @patch("sentry.seer.similarity.utils.write_preference_to_sentry_db")
@@ -1306,7 +1308,7 @@ class TestSetDefaultProjectAutoOpenPrs(TestCase):
                     "sentry:seer_default_coding_agent_integration_id", integration_id
                 )
 
-                set_default_project_auto_open_prs(self.organization, self.project)
+                set_default_project_seer_preferences(self.organization, self.project)
 
                 pref = mock_set_pref.call_args[0][0]
                 assert pref.automated_run_stopping_point == "code_changes"
@@ -1324,7 +1326,9 @@ class TestSetDefaultProjectAutoOpenPrs(TestCase):
     ):
         """auto_open_prs sets auto_create_pr on handoff but does not override stopping point."""
         self.organization.update_option("sentry:auto_open_prs", True)
-        self.organization.update_option("sentry:default_automated_run_stopping_point", "root_cause")
+        self.organization.update_option(
+            "sentry:default_automated_run_stopping_point", "code_changes"
+        )
         agents = [
             ("cursor_background_agent", 1234),
             ("claude_code_agent", 5678),
@@ -1337,10 +1341,10 @@ class TestSetDefaultProjectAutoOpenPrs(TestCase):
                     "sentry:seer_default_coding_agent_integration_id", integration_id
                 )
 
-                set_default_project_auto_open_prs(self.organization, self.project)
+                set_default_project_seer_preferences(self.organization, self.project)
 
                 pref = mock_set_pref.call_args[0][0]
-                assert pref.automated_run_stopping_point == "root_cause"
+                assert pref.automated_run_stopping_point == "code_changes"
                 assert pref.automation_handoff is not None
                 assert pref.automation_handoff.target == agent
                 assert pref.automation_handoff.integration_id == integration_id
@@ -1356,7 +1360,7 @@ class TestSetDefaultProjectAutoOpenPrs(TestCase):
             "sentry:seer_default_coding_agent", "cursor_background_agent"
         )
 
-        set_default_project_auto_open_prs(self.organization, self.project)
+        set_default_project_seer_preferences(self.organization, self.project)
 
         pref = mock_set_pref.call_args[0][0]
         assert pref.automation_handoff is None

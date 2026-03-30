@@ -306,7 +306,7 @@ class OrganizationExamples:
                 "autoOpenPrs": False,
                 "defaultCodingAgent": "seer",
                 "defaultCodingAgentIntegrationId": None,
-                "defaultAutomatedRunStoppingPoint": "open_pr",
+                "defaultAutomatedRunStoppingPoint": "code_changes",
                 "issueAlertsThreadFlag": True,
                 "metricAlertsThreadFlag": True,
                 "trustedRelays": [],
