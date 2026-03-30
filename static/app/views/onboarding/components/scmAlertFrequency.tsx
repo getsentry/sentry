@@ -69,12 +69,14 @@ export function ScmAlertFrequency({
                   placeholder="10"
                   value={threshold}
                   onChange={e => onFieldChange('threshold', e.target.value)}
+                  disabled={!isCustomSelected}
                 />
                 <Select
                   size="sm"
                   value={metric}
                   options={METRIC_CHOICES}
                   onChange={option => onFieldChange('metric', option.value)}
+                  disabled={!isCustomSelected}
                 />
               </Grid>
             </Stack>
@@ -89,6 +91,7 @@ export function ScmAlertFrequency({
                 value={interval}
                 options={INTERVAL_CHOICES}
                 onChange={option => onFieldChange('interval', option.value)}
+                disabled={!isCustomSelected}
               />
             </Stack>
           </Stack>

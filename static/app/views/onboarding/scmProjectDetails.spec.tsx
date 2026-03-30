@@ -60,6 +60,7 @@ describe('ScmProjectDetails', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+    jest.restoreAllMocks();
   });
 
   it('renders step header with step counter and heading', async () => {
