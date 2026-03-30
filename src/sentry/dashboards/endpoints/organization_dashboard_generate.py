@@ -18,7 +18,7 @@ from sentry.dashboards.on_completion_hook import DashboardOnCompletionHook
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.explorer.client import SeerExplorerClient
-from sentry.seer.explorer.client_utils import has_seer_explorer_access_with_detail
+from sentry.seer.explorer.client_utils import has_seer_access_with_detail
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -63,7 +63,7 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
         ):
             return Response({"detail": "Feature not enabled"}, status=403)
 
-        has_access, error = has_seer_explorer_access_with_detail(organization, request.user)
+        has_access, error = has_seer_access_with_detail(organization, request.user)
         if not has_access:
             raise PermissionDenied(error)
 
