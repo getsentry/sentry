@@ -883,7 +883,10 @@ function IssueListOverview({
         headerActions={headerActions}
       />
       <StyledBody>
-        <Grid area="content" padding={hasPageFrame ? 'md xl' : {sm: 'xl', md: '2xl 3xl'}}>
+        <Grid
+          area="content"
+          padding={hasPageFrame ? {sm: 'md lg', md: 'md xl'} : {sm: 'xl', md: '2xl 3xl'}}
+        >
           <IssuesDataConsentBanner source="issues" />
           <IssueListFilters
             query={query}
