@@ -1,19 +1,22 @@
 import logging
-from typing import Any
+from typing import TypedDict
 
 from taskbroker_client.retry import Retry
 
 from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
 from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
+    RepositoryInputConfig,
     get_integration_repository_provider,
 )
 from sentry.shared_integrations.exceptions import ApiError
@@ -22,6 +25,13 @@ from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import integrations_control_tasks
 
 from .link_all_repos import get_repo_config
+
+
+class GitHubRepo(TypedDict, total=False):
+    id: int
+    full_name: str
+    private: bool
+
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +47,8 @@ logger = logging.getLogger(__name__)
 def sync_repos_on_install_change(
     integration_id: int,
     action: str,
-    repos_added: list[dict[str, Any]],
-    repos_removed: list[dict[str, Any]],
+    repos_added: list[GitHubRepo],
+    repos_removed: list[GitHubRepo],
     repository_selection: str,
 ) -> None:
     """
@@ -95,11 +105,11 @@ def sync_repos_on_install_change(
 
 def _sync_repos_for_org(
     *,
-    integration,
+    integration: RpcIntegration,
     organization_id: int,
     provider: str,
-    repos_added: list[dict[str, Any]],
-    repos_removed: list[dict[str, Any]],
+    repos_added: list[GitHubRepo],
+    repos_removed: list[GitHubRepo],
     repository_selection: str,
 ) -> None:
     rpc_org = organization_service.get(id=organization_id)
@@ -123,7 +133,7 @@ def _sync_repos_for_org(
     # Handle added repos
     if repos_added:
         integration_repo_provider = get_integration_repository_provider(integration)
-        repo_configs: list[dict[str, Any]] = []
+        repo_configs: list[RepositoryInputConfig] = []
         for repo in repos_added:
             try:
                 repo_configs.append(get_repo_config(repo, integration.id))
@@ -149,7 +159,9 @@ def _sync_repos_for_org(
         )
 
 
-def _full_sync_for_org(*, integration, organization_id, rpc_org) -> None:
+def _full_sync_for_org(
+    *, integration: RpcIntegration, organization_id: int, rpc_org: RpcOrganization
+) -> None:
     """
     When repository_selection switches to "all", do a full re-link
     similar to link_all_repos.
@@ -173,7 +185,7 @@ def _full_sync_for_org(*, integration, organization_id, rpc_org) -> None:
 
     integration_repo_provider = get_integration_repository_provider(integration)
 
-    repo_configs: list[dict[str, Any]] = []
+    repo_configs: list[RepositoryInputConfig] = []
     for repo in repositories:
         try:
             repo_configs.append(get_repo_config(repo, integration.id))

@@ -7,7 +7,7 @@ from sentry.testutils.silo import cell_silo_test
 
 @cell_silo_test
 class DisableRepositoriesByExternalIdsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.integration = self.create_integration(
             organization=self.organization,
             external_id="1",
@@ -15,7 +15,7 @@ class DisableRepositoriesByExternalIdsTest(TestCase):
         )
         self.provider = "integrations:github"
 
-    def test_disables_matching_active_repos(self):
+    def test_disables_matching_active_repos(self) -> None:
         repo1 = Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/sentry",
@@ -45,7 +45,7 @@ class DisableRepositoriesByExternalIdsTest(TestCase):
         assert repo1.status == ObjectStatus.DISABLED
         assert repo2.status == ObjectStatus.DISABLED
 
-    def test_does_not_disable_already_disabled_repos(self):
+    def test_does_not_disable_already_disabled_repos(self) -> None:
         repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/sentry",
@@ -65,7 +65,7 @@ class DisableRepositoriesByExternalIdsTest(TestCase):
         repo.refresh_from_db()
         assert repo.status == ObjectStatus.DISABLED
 
-    def test_does_not_affect_repos_from_other_integrations(self):
+    def test_does_not_affect_repos_from_other_integrations(self) -> None:
         other_integration = self.create_integration(
             organization=self.organization,
             external_id="2",
@@ -90,7 +90,7 @@ class DisableRepositoriesByExternalIdsTest(TestCase):
         repo.refresh_from_db()
         assert repo.status == ObjectStatus.ACTIVE
 
-    def test_does_not_affect_repos_from_other_orgs(self):
+    def test_does_not_affect_repos_from_other_orgs(self) -> None:
         other_org = self.create_organization()
         repo = Repository.objects.create(
             organization_id=other_org.id,
@@ -111,7 +111,7 @@ class DisableRepositoriesByExternalIdsTest(TestCase):
         repo.refresh_from_db()
         assert repo.status == ObjectStatus.ACTIVE
 
-    def test_only_disables_specified_external_ids(self):
+    def test_only_disables_specified_external_ids(self) -> None:
         repo_to_disable = Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/sentry",
@@ -141,7 +141,7 @@ class DisableRepositoriesByExternalIdsTest(TestCase):
         assert repo_to_disable.status == ObjectStatus.DISABLED
         assert repo_to_keep.status == ObjectStatus.ACTIVE
 
-    def test_empty_external_ids_is_noop(self):
+    def test_empty_external_ids_is_noop(self) -> None:
         repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/sentry",
