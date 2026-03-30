@@ -70,6 +70,9 @@ def _build_query(
     end: datetime,
     categories: list[int],
 ) -> Request:
+    # Half-open interval [start, end) — matches sentry.snuba.outcomes convention.
+    # Callers pass end as the exclusive boundary (start of the next period) so
+    # adjacent periods never overlap and rows are never double-counted.
     where = [
         Condition(Column("org_id"), Op.EQ, org_id),
         Condition(Column("timestamp"), Op.GTE, start),
@@ -107,7 +110,11 @@ def _build_query(
 
 
 def _build_response(rows: list[dict]) -> GetUsageResponse:
-    # day_str -> category -> usage fields
+    # Two-level accumulator: days_map[day_str][category_id] -> usage counters.
+    #   str  = day timestamp from Snuba (e.g. "2026-03-30T00:00:00+00:00")
+    #   int  = outcome category ID (e.g. 1=errors, 2=transactions)
+    #   dict = zeroed usage counters from _empty_fields()
+    #          (total, accepted, dropped, filtered, over_quota, spike_protection, dynamic_sampling)
     days_map: defaultdict[str, defaultdict[int, dict[str, int]]] = defaultdict(
         lambda: defaultdict(_empty_fields)
     )
