@@ -521,7 +521,12 @@ def trigger_push_changes(
     if group_id != group.id:
         raise SeerPermissionError("Unknown run id for group")
 
-    client.push_changes(run_id, repo_name=repo_name, blocking=False)
+    client.push_changes(
+        run_id,
+        repo_name=repo_name,
+        pr_description_suffix=f"FIXES ${group.qualified_short_id}",
+        blocking=False,
+    )
 
     metrics.incr(
         "autofix.explorer.trigger",
