@@ -365,7 +365,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     ) -> TableQuery:
         return TableQuery(
             name="enrichment",
-            query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}]",
+            query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}] has:gen_ai.operation.type",
             selected_columns=[
                 "gen_ai.conversation.id",
                 "gen_ai.operation.type",

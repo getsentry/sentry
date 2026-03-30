@@ -233,7 +233,17 @@ export function SnapshotSidebarContent({
                       </Text>
                     </Flex>
                     <Flex align="center" gap="xs">
-                      <Text size="sm">{sectionItems.length}</Text>
+                      <Text size="sm">
+                        {/* changed/renamed store images as pairs; added/removed/unchanged use images */}
+                        {sectionItems.reduce(
+                          (sum, item) =>
+                            sum +
+                            (item.type === 'changed' || item.type === 'renamed'
+                              ? item.pairs.length
+                              : item.images.length),
+                          0
+                        )}
+                      </Text>
                       {section.icon}
                     </Flex>
                   </Flex>

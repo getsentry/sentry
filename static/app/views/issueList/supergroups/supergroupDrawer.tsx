@@ -22,10 +22,7 @@ import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 export function SupergroupDetailDrawer({supergroup}: {supergroup: SupergroupDetail}) {
   const organization = useOrganization();
   const placeholderRows = Math.min(supergroup.group_ids.length, 10);
-  const issueIdQuery =
-    supergroup.group_ids.length === 1
-      ? `issue.id:${supergroup.group_ids[0]}`
-      : `issue.id:[${supergroup.group_ids.join(',')}]`;
+  const issueIdQuery = `issue.id:[${supergroup.group_ids.join(',')}]`;
 
   return (
     <Fragment>

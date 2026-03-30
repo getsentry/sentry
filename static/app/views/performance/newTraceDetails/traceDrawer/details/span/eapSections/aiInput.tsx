@@ -22,7 +22,7 @@ import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceD
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
   parseJsonWithFix,
-  tryParseJson,
+  tryParseJsonRecursive,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
@@ -106,7 +106,7 @@ function parseAIMessages(messages: string): AIMessage[] | string {
         if (!message.role || !message.content) {
           return null;
         }
-        const parsedContent = tryParseJson(message.content);
+        const parsedContent = tryParseJsonRecursive(message.content);
         return {
           role: message.role,
           content:

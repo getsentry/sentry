@@ -1,3 +1,5 @@
+import {useCallback} from 'react';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
 import {
@@ -5,9 +7,14 @@ import {
   makeCommandPaletteGroup,
   makeCommandPaletteLink,
 } from 'sentry/components/commandPalette/makeCommandPaletteAction';
-import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
-import {CommandPaletteContent} from 'sentry/components/commandPalette/ui/content';
+import type {
+  CommandPaletteAction,
+  CommandPaletteActionWithKey,
+} from 'sentry/components/commandPalette/types';
+import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
 import {useCommandPaletteActions} from 'sentry/components/commandPalette/useCommandPaletteActions';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 export function RegisterActions({actions}: {actions: CommandPaletteAction[]}) {
   useCommandPaletteActions(actions);
@@ -15,6 +22,19 @@ export function RegisterActions({actions}: {actions: CommandPaletteAction[]}) {
 }
 
 export function CommandPaletteDemo() {
+  const navigate = useNavigate();
+
+  const handleAction = useCallback(
+    (action: Exclude<CommandPaletteActionWithKey, {type: 'group'}>) => {
+      if (action.type === 'navigate') {
+        navigate(normalizeUrl(action.to));
+      } else {
+        action.onAction();
+      }
+    },
+    [navigate]
+  );
+
   const demoActions = [
     makeCommandPaletteLink({
       display: {label: 'Go to Flex story'},
@@ -45,7 +65,7 @@ export function CommandPaletteDemo() {
   return (
     <CommandPaletteProvider>
       <RegisterActions actions={demoActions} />
-      <CommandPaletteContent onClose={() => {}} />
+      <CommandPalette onAction={handleAction} />
     </CommandPaletteProvider>
   );
 }

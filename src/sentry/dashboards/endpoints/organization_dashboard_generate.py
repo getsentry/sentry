@@ -18,8 +18,8 @@ from sentry.dashboards.on_completion_hook import DashboardOnCompletionHook
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.explorer.client import SeerExplorerClient
-from sentry.seer.explorer.client_utils import has_seer_explorer_access_with_detail
 from sentry.seer.models import SeerApiError, SeerPermissionError
+from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
@@ -63,7 +63,7 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
         ):
             return Response({"detail": "Feature not enabled"}, status=403)
 
-        has_access, error = has_seer_explorer_access_with_detail(organization, request.user)
+        has_access, error = has_seer_access_with_detail(organization, request.user)
         if not has_access:
             raise PermissionDenied(error)
 
@@ -83,7 +83,7 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
             )
             run_id = client.start_run(
                 prompt=prompt,
-                on_page_context="The user is on the dashboard generation page. This session must ONLY generate a dashboard artifact. Do not perform code inspection, code changes, or any tasks unrelated to dashboard generation.",
+                on_page_context="The user is on the dashboard generation page. This session must ONLY generate a dashboard artifact. Do not perform code changes or any tasks unrelated to dashboard generation.",
                 artifact_key="dashboard",
                 artifact_schema=GeneratedDashboard,
                 request=request,

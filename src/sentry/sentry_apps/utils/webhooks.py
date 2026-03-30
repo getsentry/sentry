@@ -54,6 +54,11 @@ class SeerActionType(SentryAppActionType):
     PR_CREATED = "pr_created"
 
 
+class PreprodArtifactActionType(SentryAppActionType):
+    SIZE_ANALYSIS_COMPLETED = "size_analysis_completed"
+    BUILD_DISTRIBUTION_COMPLETED = "build_distribution_completed"
+
+
 class SentryAppResourceType(StrEnum):
     @staticmethod
     def map_sentry_app_webhook_events(
@@ -71,6 +76,7 @@ class SentryAppResourceType(StrEnum):
     INSTALLATION = "installation"
     METRIC_ALERT = "metric_alert"
     SEER = "seer"
+    PREPROD_ARTIFACT = "preprod_artifact"
 
     # Represents an issue alert resource
     EVENT_ALERT = "event_alert"
@@ -91,6 +97,9 @@ EVENT_EXPANSION: Final[dict[SentryAppResourceType, list[str]]] = {
     ),
     SentryAppResourceType.SEER: SentryAppResourceType.map_sentry_app_webhook_events(
         SentryAppResourceType.SEER.value, SeerActionType
+    ),
+    SentryAppResourceType.PREPROD_ARTIFACT: SentryAppResourceType.map_sentry_app_webhook_events(
+        SentryAppResourceType.PREPROD_ARTIFACT.value, PreprodArtifactActionType
     ),
 }
 # We present Webhook Subscriptions per-resource (Issue, Project, etc.), not

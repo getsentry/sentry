@@ -405,6 +405,7 @@ register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR
 #  - retries: int | None = None,
 #  - timeout_ms: float | None = None,
 #  - connection_kwargs: Mapping[str, Any] | None = None,
+#  - token_generator: Mapping[str, Any] | None = None,
 #
 # For an always up-to-date list, see:
 # https://getsentry.github.io/objectstore/python/objectstore_client.html#objectstore_client.Client
@@ -892,6 +893,9 @@ register("aws-lambda.python.layer-version", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("aws-lambda.host-region", default="us-east-2", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # the number of threads we should use to install Lambdas
 register("aws-lambda.thread-count", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Intercom Integration
+register("intercom.sentry-api-secret", flags=FLAG_NOSTORE | FLAG_CREDENTIAL, default="")
 
 # Snuba
 register(
@@ -3334,12 +3338,6 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "spans.buffer.done-flush-conditional-zrem",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Segments consumer
 register(
     "spans.process-segments.consumer.enable",
@@ -4190,6 +4188,13 @@ register(
 # TODO(telkins): Remove once we no longer need integration_id on SLO metrics
 register(
     "integrations.slo.integration-id-tag-enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "integrations.jira.multi-cell-enabled",
     default=False,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
