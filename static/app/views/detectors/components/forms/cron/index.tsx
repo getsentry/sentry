@@ -44,12 +44,12 @@ function CronDetectorForm({detector}: {detector?: CronDetector}) {
         </Alert>
       )}
       <PreviewSection />
-      <ProjectSection />
-      <CronDetectorFormDetectSection />
-      <CronDetectorFormResolveSection />
-      <AssignSection />
-      <DescribeSection />
-      <AutomateSection />
+      <ProjectSection step={1} />
+      <CronDetectorFormDetectSection step={2} />
+      <CronDetectorFormResolveSection step={3} />
+      <AssignSection step={4} />
+      <DescribeSection step={5} />
+      <AutomateSection step={6} />
     </Fragment>
   );
 

@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Stack} from '@sentry/scraps/layout';
@@ -36,8 +37,26 @@ const ENVIRONMENT_CONFIG: EnvironmentConfig = {
   fieldProps: {required: true},
 };
 
+// hasRuntimeAssertions will change the step ordering, so we need to calculate the step numbers dynamically.
+function useUptimeStepNumbers() {
+  const {hasRuntimeAssertions} = useUptimeAssertionFeatures();
+  return useMemo(() => {
+    let s = 1;
+    return {
+      projectEnvironment: s++,
+      detect: s++,
+      verification: hasRuntimeAssertions ? s++ : undefined,
+      resolve: s++,
+      assign: s++,
+      describe: s++,
+      automate: s++,
+    };
+  }, [hasRuntimeAssertions]);
+}
+
 function UptimeDetectorForm() {
   const theme = useTheme();
+  const steps = useUptimeStepNumbers();
 
   useSetAutomaticName(form => {
     const url = form.getValue('url');
@@ -61,13 +80,16 @@ function UptimeDetectorForm() {
     <Stack gap="2xl" maxWidth={theme.breakpoints.lg}>
       <UptimeRegionWarning />
       <PreviewSection />
-      <ProjectEnvironmentSection environment={ENVIRONMENT_CONFIG} />
-      <UptimeDetectorFormDetectSection />
-      <UptimeDetectorVerificationSection />
-      <UptimeDetectorResolveSection />
-      <AssignSection />
-      <DescribeSection />
-      <AutomateSection />
+      <ProjectEnvironmentSection
+        step={steps.projectEnvironment}
+        environment={ENVIRONMENT_CONFIG}
+      />
+      <UptimeDetectorFormDetectSection step={steps.detect} />
+      <UptimeDetectorVerificationSection step={steps.verification} />
+      <UptimeDetectorResolveSection step={steps.resolve} />
+      <AssignSection step={steps.assign} />
+      <DescribeSection step={steps.describe} />
+      <AutomateSection step={steps.automate} />
     </Stack>
   );
 }

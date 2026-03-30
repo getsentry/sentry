@@ -7,10 +7,10 @@ import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
 import {CRON_DEFAULT_RECOVERY_THRESHOLD} from 'sentry/views/detectors/components/forms/cron/fields';
 
-export function CronDetectorFormResolveSection() {
+export function CronDetectorFormResolveSection({step}: {step?: number}) {
   return (
     <Container>
-      <Section title={t('Resolve')}>
+      <Section step={step} title={t('Resolve')}>
         <RemoveFieldPadding>
           <NumberField
             name="recoveryThreshold"

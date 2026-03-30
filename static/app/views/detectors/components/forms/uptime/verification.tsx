@@ -6,7 +6,7 @@ import {useUptimeAssertionFeatures} from 'sentry/views/alerts/rules/uptime/useUp
 import {ConnectedAssertionSuggestionsButton} from 'sentry/views/detectors/components/forms/uptime/connectedAssertionSuggestionsButton';
 import {UptimeSectionGrid} from 'sentry/views/detectors/components/forms/uptime/styles';
 
-export function UptimeDetectorVerificationSection() {
+export function UptimeDetectorVerificationSection({step}: {step?: number}) {
   const {hasRuntimeAssertions, hasAiAssertionSuggestions} = useUptimeAssertionFeatures();
 
   if (!hasRuntimeAssertions) {
@@ -16,6 +16,7 @@ export function UptimeDetectorVerificationSection() {
   return (
     <Container>
       <Section
+        step={step}
         title={t('Verification')}
         trailingItems={
           hasAiAssertionSuggestions ? (

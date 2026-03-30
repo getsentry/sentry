@@ -5,10 +5,11 @@ import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
 
-export function DescribeSection() {
+export function DescribeSection({step}: {step?: number}) {
   return (
     <Container>
       <Section
+        step={step}
         title={t('Description')}
         description={t('Additional context about this monitor for other team members.')}
       >
