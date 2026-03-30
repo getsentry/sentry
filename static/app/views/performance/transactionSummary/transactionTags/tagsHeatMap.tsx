@@ -14,7 +14,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {HeatMapChart} from 'sentry/components/charts/heatMapChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
-import TransitionChart from 'sentry/components/charts/transitionChart';
+import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {MenuItem} from 'sentry/components/menuItem';
@@ -29,7 +29,7 @@ import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
@@ -41,7 +41,7 @@ import {TagTransactionsQuery} from 'sentry/utils/performance/segmentExplorer/tag
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import Tab from 'sentry/views/performance/transactionSummary/tabs';
+import {Tab} from 'sentry/views/performance/transactionSummary/tabs';
 import {eventsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 

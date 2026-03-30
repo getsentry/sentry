@@ -11,14 +11,14 @@ import {Flex} from '@sentry/scraps/layout';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import SessionsRequest from 'sentry/components/charts/sessionsRequest';
+import {SessionsRequest} from 'sentry/components/charts/sessionsRequest';
 import {
   HeaderTitleLegend,
   InlineContainer,
   SectionHeading,
   SectionValue,
 } from 'sentry/components/charts/styles';
-import TransitionChart from 'sentry/components/charts/transitionChart';
+import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {
   getDiffInMinutes,

@@ -19,7 +19,7 @@ class CategorizedComparison(BaseModel):
     added: list[SnapshotImageResponse] = []
     removed: list[SnapshotImageResponse] = []
     unchanged: list[SnapshotImageResponse] = []
-    renamed: list[SnapshotImageResponse] = []
+    renamed: list[SnapshotDiffPair] = []
     errored: list[SnapshotDiffPair] = []
 
 
@@ -39,11 +39,13 @@ def _build_base_images(
     first_class = SnapshotImageResponse.__fields__
     result: dict[str, SnapshotImageResponse] = {}
     for key, meta in base_images.items():
-        result[meta.image_file_name] = SnapshotImageResponse(
+        result[key] = SnapshotImageResponse(
             **{k: v for k, v in meta.dict().items() if k not in first_class},
-            key=key,
+            key=meta.content_hash
+            or key,  # TODO(EME-977): Remove backwards fallback for hash-keyed manifests once near EA/GA
             display_name=meta.display_name,
-            image_file_name=meta.image_file_name,
+            image_file_name=key,
+            group=meta.group,
             width=meta.width,
             height=meta.height,
         )
@@ -82,8 +84,14 @@ def categorize_comparison_images(
             result.removed.append(base_img or _base_image_from_comparison(name, img))
         elif img.status == "renamed":
             if head_img:
-                head_img.previous_image_file_name = img.previous_image_file_name
-                result.renamed.append(head_img)
+                old_name = img.previous_image_file_name
+                base = base_images_by_file_name.get(old_name) if old_name else None
+                result.renamed.append(
+                    SnapshotDiffPair(
+                        base_image=base or _base_image_from_comparison(old_name or name, img),
+                        head_image=head_img,
+                    )
+                )
         elif img.status == "unchanged":
             if head_img:
                 result.unchanged.append(head_img)

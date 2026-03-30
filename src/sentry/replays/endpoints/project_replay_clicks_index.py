@@ -24,7 +24,6 @@ from snuba_sdk import (
 )
 from snuba_sdk.orderby import Direction
 
-from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.event_search import ParenExpression, QueryToken, SearchFilter, parse_search_query
@@ -58,7 +57,6 @@ class ReplayClickResponse(TypedDict):
 @cell_silo_endpoint
 @extend_schema(tags=["Replays"])
 class ProjectReplayClicksIndexEndpoint(ProjectReplayEndpoint):
-    owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }

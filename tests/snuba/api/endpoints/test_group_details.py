@@ -276,31 +276,20 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             ]
         }
 
-    def test_collapse_stats_does_not_work(self) -> None:
-        """
-        'collapse' param should hide the stats data and not return anything in the response, but the impl
-        doesn't seem to respect this param.
-
-        include this test here in-case the endpoint behavior changes in the future.
-        """
+    def test_collapse_stats(self) -> None:
         self.login_as(user=self.user)
-
         event = self.store_event(
             data={"timestamp": before_now(minutes=3).isoformat()},
             project_id=self.project.id,
         )
-        group = event.group
-
-        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
+        url = f"/api/0/organizations/{event.group.organization.slug}/issues/{event.group.id}/"
 
         response = self.client.get(url, {"collapse": ["stats"]}, format="json")
         assert response.status_code == 200
-        assert int(response.data["id"]) == event.group.id
-        assert response.data["stats"]  # key shouldn't be present
-        assert response.data["count"] is not None  # key shouldn't be present
-        assert response.data["userCount"] is not None  # key shouldn't be present
-        assert response.data["firstSeen"] is not None  # key shouldn't be present
-        assert response.data["lastSeen"] is not None  # key shouldn't be present
+        assert "stats" not in response.data
+        # Seen stats from the serializer should still be present
+        assert response.data["firstSeen"] is not None
+        assert response.data["lastSeen"] is not None
 
     def test_issue_type_category(self) -> None:
         """Test that the issue's type and category is returned in the results"""

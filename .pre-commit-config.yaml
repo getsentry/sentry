@@ -97,28 +97,11 @@ repos:
         files: \.[jt]sx?$
         entry: ./node_modules/.bin/stylelint --quiet
 
-      - id: prettier
-        name: prettier
+      - id: format
+        name: format
         language: system
         types_or: [yaml, ts, tsx, javascript, jsx, css, mdx, markdown]
-        entry: ./node_modules/.bin/prettier --log-level=error --write --experimental-cli --no-cache
-        # https://pre-commit.com/#regular-expressions
-        exclude: |
-          (?x)^($^
-            # prettier crashes on some of these, by intent:
-            |fixtures/.*
-            # these have enormous diffs when formatted:
-            |api-docs/paths/events/issue-hashes\.json
-            |api-docs/paths/events/latest-event\.json
-            |api-docs/paths/events/oldest-event\.json
-            |api-docs/paths/events/project-event-details\.json
-            |src/sentry/issues/event\.schema\.json
-            |static/app/data/world\.json
-            |static/app/utils/profiling/profile/formats/android/trace\.json
-            |static/app/utils/profiling/profile/formats/ios/trace\.json
-            |static/app/utils/profiling/profile/formats/node/trace\.json
-            |static/app/utils/profiling/profile/formats/typescript/trace\.json
-          )$
+        entry: ./node_modules/.bin/oxfmt
 
       - id: knip
         name: knip

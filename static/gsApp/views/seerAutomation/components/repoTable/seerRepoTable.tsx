@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
@@ -12,15 +12,21 @@ import {Text} from '@sentry/scraps/text';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {organizationRepositoriesInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
-import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
+import {
+  isSeerSupportedProvider,
+  useSeerSupportedProviderIds,
+} from 'sentry/components/events/autofix/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {ScmRepoTreeModal} from 'sentry/components/repositories/scmRepoTreeModal';
+import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
+import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
 import {IconAdd} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {
   ListItemCheckboxProvider,
   useListItemCheckboxContext,
@@ -31,8 +37,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {SeerRepoTableHeader} from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTableHeader';
 import {SeerRepoTableRow} from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTableRow';
-import {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useBulkUpdateRepositorySettings';
-import {getRepositoryWithSettingsQueryKey} from 'getsentry/views/seerAutomation/onboarding/hooks/useRepositoryWithSettings';
 
 const GRID_COLUMNS = '40px 1fr 118px 150px';
 const SELECTED_ROW_HEIGHT = 44;
@@ -54,18 +58,13 @@ export function SeerRepoTable() {
     parseAsSort.withDefault({field: 'name', kind: 'asc'})
   );
 
+  const supportedProviderIds = useSeerSupportedProviderIds();
+
   const queryOptions = organizationRepositoriesInfiniteOptions({
     organization,
     query: {per_page: 100, query: searchTerm, sort},
   });
-  const {
-    data: repositories,
-    hasNextPage,
-    isError,
-    isPending,
-    fetchNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
+  const result = useInfiniteQuery({
     ...queryOptions,
     select: ({pages}) =>
       uniqBy(
@@ -74,7 +73,8 @@ export function SeerRepoTable() {
       )
         .filter(
           repository =>
-            repository.externalId && isSupportedAutofixProvider(repository.provider)
+            repository.externalId &&
+            isSeerSupportedProvider(repository.provider, supportedProviderIds)
         )
         .sort((a, b) => {
           if (sort.field === 'name') {
@@ -97,11 +97,15 @@ export function SeerRepoTable() {
   });
 
   // Auto-fetch each page, one at a time
-  useEffect(() => {
-    if (!isError && !isFetchingNextPage && hasNextPage) {
-      fetchNextPage();
-    }
-  }, [hasNextPage, fetchNextPage, isError, isFetchingNextPage]);
+  useFetchAllPages({result});
+
+  const {
+    data: repositories,
+    hasNextPage,
+    isError,
+    isPending,
+    isFetchingNextPage,
+  } = result;
 
   const [mutationData, setMutations] = useState<Record<string, RepositoryWithSettings>>(
     {}
@@ -158,14 +162,17 @@ export function SeerRepoTable() {
           priority="primary"
           icon={<IconAdd />}
           onClick={() => {
-            openModal(deps => <ScmRepoTreeModal {...deps} />, {
-              modalCss: css`
-                width: 700px;
-              `,
-              onClose: () => {
-                queryClient.invalidateQueries({queryKey: queryOptions.queryKey});
-              },
-            });
+            openModal(
+              deps => <ScmRepoTreeModal {...deps} title={t('Add Repository')} />,
+              {
+                modalCss: css`
+                  width: 700px;
+                `,
+                onClose: () => {
+                  queryClient.invalidateQueries({queryKey: queryOptions.queryKey});
+                },
+              }
+            );
           }}
         >
           {t('Add Repository')}

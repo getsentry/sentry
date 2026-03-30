@@ -12,12 +12,13 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
-import EventsRequest, {
+import {
+  EventsRequest,
   type EventsRequestProps,
 } from 'sentry/components/charts/eventsRequest';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {OnDemandMetricRequest} from 'sentry/components/charts/onDemandMetricRequest';
-import SessionsRequest from 'sentry/components/charts/sessionsRequest';
+import {SessionsRequest} from 'sentry/components/charts/sessionsRequest';
 import {
   ChartControls,
   InlineContainer,

@@ -273,7 +273,20 @@ release:foo                                     -> release-foo
 def test_variable_resolution() -> None:
     # TODO: This should be fleshed out to test way more cases, at which point we'll need to add some
     # actual data here
-    event = Event(project_id=908415, event_id="11211231", data={})
+    event = Event(
+        project_id=908415,
+        event_id="11211231",
+        data={
+            "exception": {
+                "values": [
+                    {
+                        "type": "FailedToFetchError",
+                        "value": "That's ball number 6 that Charlie hasn't brought back!",
+                    }
+                ]
+            },
+        },
+    )
     context = GroupingContext(StrategyConfiguration(), event)
 
     for fingerprint_entry, expected_resolved_value in [
@@ -281,6 +294,8 @@ def test_variable_resolution() -> None:
         ("{{default}}", "{{ default }}"),
         ("{{  default }}", "{{ default }}"),
         ("{{ dog }}", "<unrecognized-variable-dog>"),
+        ("{{ message }}", "That's ball number <int> that Charlie hasn't brought back!"),
+        ("{{ raw_message }}", "That's ball number 6 that Charlie hasn't brought back!"),
     ]:
         assert resolve_fingerprint_values([fingerprint_entry], event, context) == [
             expected_resolved_value

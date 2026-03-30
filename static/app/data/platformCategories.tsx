@@ -394,6 +394,7 @@ export const withLoggingOnboarding = new Set<PlatformKey>([
   'python-tornado',
   'python-tryton',
   'python-wsgi',
+  'elixir',
   'react-native',
   'ruby',
   'ruby-rack',
@@ -404,7 +405,7 @@ export const withLoggingOnboarding = new Set<PlatformKey>([
 ]);
 
 // List of platforms that do not have logging support. We make use of this list in the product to not provide any Logging
-export const withoutLoggingSupport = new Set<PlatformKey>(['elixir', 'dotnet-xamarin']);
+export const withoutLoggingSupport = new Set<PlatformKey>(['dotnet-xamarin']);
 
 // List of platforms that have metrics onboarding checklist content
 export const withMetricsOnboarding = new Set<PlatformKey>([
@@ -505,14 +506,21 @@ export const limitedMetricsSupportPrefixes = new Set<string>([
   'dotnet',
   'electron',
   'go',
+  'godot',
   'java',
   'javascript',
+  'native',
+  'nintendo-switch',
   'node',
+  'playstation',
   'python',
   'php',
   'react-native',
   'ruby',
   'flutter',
+  'unity',
+  'unreal',
+  'xbox',
 ]);
 
 export const profiling: PlatformKey[] = [
@@ -842,6 +850,8 @@ export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
   ...platformKeys.filter(id => id.startsWith('javascript')),
   ...platformKeys.filter(id => id.startsWith('node')),
   ...platformKeys.filter(id => id.startsWith('python')),
+  'deno',
+  'bun',
 ]);
 
 export const javascriptMetaFrameworks: readonly PlatformKey[] = [

@@ -5,6 +5,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any, TypedDict
 
+import pydantic
 from django.db import router, transaction
 
 from sentry.notifications.models.notificationrecord import NotificationRecord
@@ -15,8 +16,7 @@ from sentry.utils import json
 logger = logging.getLogger(__name__)
 
 
-@dataclass(frozen=True)
-class ThreadKey:
+class ThreadKey(pydantic.BaseModel):
     """Identifies a specific thread — the notification source and the associations to look up."""
 
     key_type: NotificationSource
@@ -28,6 +28,10 @@ class ThreadKey:
     e.g. for metric alerts: {"alert_rule_id": ..., "incident_id": ..., "trigger_action_id": ...}
     e.g. for NOA: {"action_id": ..., "group_id": ..., "open_period_start": ...}
     """
+
+    class Config:
+        frozen = True
+        use_enum_values = True
 
 
 @dataclass(frozen=True)
@@ -45,6 +49,23 @@ class ThreadContext:
 
     reply_broadcast: bool = False
     """If True, the threaded reply is also posted to the channel."""
+
+
+class ThreadingOptions(pydantic.BaseModel):
+    """
+    Given from the caller to the platform to say "I want to thread this notification."
+    Broad enough to support the current three registries (issue alerts, metric alerts, NOA).
+    """
+
+    thread_key: ThreadKey
+    """The key identifying which thread this notification belongs to."""
+
+    reply_broadcast: bool = False
+    """Should this message be broadcasted to the channel when sent as a threaded reply."""
+
+    class Config:
+        frozen = True
+        use_enum_values = True
 
 
 # Info needed to lookup a thread
@@ -203,3 +224,31 @@ class ThreadingService:
             )
 
             return thread, record
+
+    @staticmethod
+    def store_error(
+        *,
+        thread: NotificationThread,
+        provider_key: NotificationProviderKey,
+        target_id: str,
+        error_details: dict[str, Any],
+    ) -> NotificationRecord:
+        """
+        Record a failed send attempt for a given thread.
+
+        Args:
+            thread: The thread to link the error to
+            provider_key: The notification provider key
+            target_id: The target identifier (e.g., channel_id)
+            error_details: Error details from the send failure
+
+        Returns:
+            The created NotificationRecord
+        """
+        return NotificationRecord.objects.create(
+            thread=thread,
+            provider_key=provider_key,
+            target_id=target_id,
+            message_id="",
+            error_details=error_details,
+        )

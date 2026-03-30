@@ -204,7 +204,7 @@ export function KeyRateLimitsForm({
                         onChange={(rangeValue, event) =>
                           onChange({...value, window: Number(rangeValue)}, event)
                         }
-                        onBlur={() => {
+                        onChangeEnd={() => {
                           if (hasRateLimitChanged(value)) {
                             formModel.saveField('rateLimit', value);
                           }

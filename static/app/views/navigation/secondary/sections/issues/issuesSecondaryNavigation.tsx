@@ -30,17 +30,17 @@ export function IssuesSecondaryNavigation() {
                 {t('Feed')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
+            {hasTopIssuesUI && (
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={`${baseUrl}/supergroups/`}
+                  analyticsItemName="issues_supergroups"
+                >
+                  {t('Supergroups')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
+            )}
           </SecondaryNavigation.List>
-          {hasTopIssuesUI && (
-            <SecondaryNavigation.ListItem>
-              <SecondaryNavigation.Link
-                to={`${baseUrl}/supergroups/`}
-                analyticsItemName="issues_supergroups"
-              >
-                {t('Supergroups')}
-              </SecondaryNavigation.Link>
-            </SecondaryNavigation.ListItem>
-          )}
         </SecondaryNavigation.Section>
         <SecondaryNavigation.Separator />
         <SecondaryNavigation.Section id="issues-types">
@@ -76,6 +76,24 @@ export function IssuesSecondaryNavigation() {
             )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
+        {organization.features.includes('seer-issue-view') && (
+          <Fragment>
+            <SecondaryNavigation.Separator />
+            <SecondaryNavigation.Section id="issues-autofix" title={t('Autofix')}>
+              <SecondaryNavigation.List>
+                <SecondaryNavigation.ListItem>
+                  <SecondaryNavigation.Link
+                    to={`${baseUrl}/autofix/recent/`}
+                    analyticsItemName="issues_autofix"
+                    end
+                  >
+                    {t('Recently Run')}
+                  </SecondaryNavigation.Link>
+                </SecondaryNavigation.ListItem>
+              </SecondaryNavigation.List>
+            </SecondaryNavigation.Section>
+          </Fragment>
+        )}
         <SecondaryNavigation.Separator />
         <SecondaryNavigation.Section id="issues-views-all">
           <SecondaryNavigation.List>

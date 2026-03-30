@@ -176,12 +176,12 @@ const Detail = styled('div')`
 `;
 
 const CardBody = styled('div')`
-  background: ${p => p.theme.colors.gray100};
+  background: ${p => p.theme.tokens.background.secondary};
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   max-height: 100px;
   min-height: 100px;
   overflow: hidden;
-  border-bottom: 1px solid ${p => p.theme.colors.gray100};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const DateSelected = styled('div')`

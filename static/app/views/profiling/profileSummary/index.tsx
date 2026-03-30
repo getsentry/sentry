@@ -11,7 +11,7 @@ import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {Count} from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -37,7 +37,7 @@ import {DataCategory} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import type {DeepPartial} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import type {CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {
@@ -67,6 +67,7 @@ import {
   useFlamegraph,
 } from 'sentry/views/profiling/flamegraphProvider';
 import {ProfilesSummaryChart} from 'sentry/views/profiling/landing/profilesSummaryChart';
+import {LayoutPageWithHiddenFooter} from 'sentry/views/profiling/layoutPageWithHiddenFooter';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfilesTable} from 'sentry/views/profiling/profileSummary/profilesTable';
 
@@ -636,15 +637,6 @@ const ProfileSummaryContainer = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1 1 100%;
-
-  /*
-   * The footer component is a sibling of this div.
-   * Remove it so the flamegraph can take up the
-   * entire screen.
-   */
-  ~ footer {
-    display: none;
-  }
 `;
 
 const PROFILE_DIGEST_FIELDS = [
@@ -781,10 +773,12 @@ const ProfileDigestLabel = styled('span')`
 
 export default function ProfileSummaryPageToggle() {
   return (
-    <ProfileSummaryContainer data-test-id="profile-summary-redesign">
-      <ErrorBoundary>
-        <ProfileSummaryPage />
-      </ErrorBoundary>
-    </ProfileSummaryContainer>
+    <LayoutPageWithHiddenFooter>
+      <ProfileSummaryContainer data-test-id="profile-summary-redesign">
+        <ErrorBoundary>
+          <ProfileSummaryPage />
+        </ErrorBoundary>
+      </ProfileSummaryContainer>
+    </LayoutPageWithHiddenFooter>
   );
 }

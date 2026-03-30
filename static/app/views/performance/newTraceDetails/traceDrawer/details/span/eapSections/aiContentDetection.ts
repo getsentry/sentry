@@ -56,7 +56,7 @@ export function tryParsePythonDict(text: string): Record<PropertyKey, unknown> |
  */
 export function parseXmlTagSegments(text: string): ContentSegment[] {
   const segments: ContentSegment[] = [];
-  const xmlTagRegex = /<([a-zA-Z][\w-]*?)>([\s\S]*?)<\/\1>/g;
+  const xmlTagRegex = /<([a-zA-Z][\w-]*)>([\s\S]*?)<\/\1>/g;
   let lastIndex = 0;
 
   for (const match of text.matchAll(xmlTagRegex)) {
@@ -78,7 +78,7 @@ export function parseXmlTagSegments(text: string): ContentSegment[] {
   return segments;
 }
 
-const XML_TAG_REGEX = /<([a-zA-Z][\w-]*?)>[\s\S]*?<\/\1>/;
+const XML_TAG_REGEX = /<([a-zA-Z][\w-]*)>[\s\S]*?<\/\1>/;
 
 const MARKDOWN_INDICATORS = [
   /^#{1,6}\s/m, // headings

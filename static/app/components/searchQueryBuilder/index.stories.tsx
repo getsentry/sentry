@@ -779,7 +779,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
           filterKeys={FILTER_KEYS}
           getTagValues={getTagValues}
           searchSource="storybook"
-          matchKeySuggestions={[{key: 'id', valuePattern: /^[0-9]{3}$/}]}
+          matchKeySuggestions={[{key: 'id', valuePattern: /^\d{3}$/}]}
         />
         <p>
           You can also pass multiple values in the prop to show suggestions for multiple
@@ -792,8 +792,8 @@ export default Storybook.story('SearchQueryBuilder', story => {
           getTagValues={getTagValues}
           searchSource="storybook"
           matchKeySuggestions={[
-            {key: 'test-1.id', valuePattern: /^[0-9]{3}$/},
-            {key: 'test-2.id', valuePattern: /^[0-9]{3}$/},
+            {key: 'test-1.id', valuePattern: /^\d{3}$/},
+            {key: 'test-2.id', valuePattern: /^\d{3}$/},
           ]}
         />
       </Fragment>

@@ -124,10 +124,10 @@ export function getMetricLabelForPlatform(
   platform: Platform | undefined
 ): string {
   if (platform === 'android' && metric === 'install_size') {
-    return 'Uncompressed size';
+    return 'Uncompressed Size';
   }
   if (platform === 'apple' && metric === 'install_size') {
-    return 'Install size';
+    return 'Install Size';
   }
   return getMetricLabel(metric);
 }

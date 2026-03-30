@@ -5,7 +5,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
+import {ORDER} from 'sentry/views/insights/browser/webVitals/types';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 
 const DEFAULT_ISSUE_TYPES = [IssueType.WEB_VITALS];

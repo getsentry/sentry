@@ -79,7 +79,7 @@ class OrganizationPluginDeprecationInfoEndpointTest(APITestCase):
         # Should return the rule URL in affected_rules
         affected_rules = response.data["affected_rules"]
         assert len(affected_rules) == 1
-        expected_rule_url = f"/organizations/{self.organization.slug}/alerts/rules/{self.project_with_plugin.slug}/{rule.id}/details/"
+        expected_rule_url = f"/organizations/{self.organization.slug}/issues/alerts/rules/{self.project_with_plugin.slug}/{rule.id}/details/"
         assert expected_rule_url in affected_rules[0]
 
     def test_permission_denied_for_non_member(self):

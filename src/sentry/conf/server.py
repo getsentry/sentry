@@ -198,6 +198,7 @@ SENTRY_HYBRIDCLOUD_DELETIONS_REDIS_CLUSTER = "default"
 SENTRY_SESSION_STORE_REDIS_CLUSTER = "default"
 SENTRY_AUTH_IDPMIGRATION_REDIS_CLUSTER = "default"
 SENTRY_SNOWFLAKE_REDIS_CLUSTER = "default"
+SENTRY_SCM_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -539,6 +540,9 @@ CSP_CONNECT_SRC = [
 CSP_FRAME_ANCESTORS = [
     "'none'",
 ]
+CSP_FRAME_SRC = [
+    "demo.arcade.software",
+]
 CSP_OBJECT_SRC = [
     "'none'",
 ]
@@ -748,17 +752,21 @@ SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
 # An enum is better because there shouldn't be multiple "modes".
 SENTRY_MODE = SentryMode.SELF_HOSTED
 
-# If this instance is a region silo, which region is it running in?
-SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
+# If this instance is a cell silo, which cell is it running in?
+SENTRY_LOCAL_CELL = os.environ.get("SENTRY_REGION", None)
 
 # Returns the customer single tenant ID.
 CUSTOMER_ID = os.environ.get("CUSTOMER_ID", None)
 
 # List of the available cells (e.g. "us1", "us2", "de1")
-SENTRY_REGION_CONFIG: list[CellConfig] = []
+SENTRY_CELLS: list[CellConfig] = []
 
 # Mapping of localities (e.g. "us", "de") to their constituent cells (e.g. "us1", "us2")
 SENTRY_LOCALITIES: list[LocalityConfig] = []
+
+# TODO(cells): Superceded by SENTRY_LOCAL_CELL and SENTRY_CELLS. Remove once migration is complete.
+SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
+SENTRY_REGION_CONFIG: list[CellConfig] = []
 
 # Shared secret used to sign cross-region RPC requests.
 RPC_SHARED_SECRET: list[str] | None = None
@@ -867,6 +875,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.github.tasks.codecov_account_unlink",
     "sentry.integrations.github.tasks.link_all_repos",
     "sentry.integrations.github.tasks.pr_comment",
+    "sentry.integrations.gitlab.tasks",
     "sentry.integrations.jira.tasks",
     "sentry.integrations.opsgenie.tasks",
     "sentry.integrations.slack.tasks.find_channel_id_for_alert_rule",
@@ -897,6 +906,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.preprod.vcs.pr_comments.tasks",
     "sentry.preprod.vcs.status_checks.size.tasks",
     "sentry.preprod.vcs.status_checks.snapshots.tasks",
+    "sentry.processing_errors.tasks",
     "sentry.profiles.task",
     "sentry.release_health.tasks",
     "sentry.relocation.tasks.process",
@@ -910,6 +920,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.seer.code_review.webhooks.task",
     "sentry.seer.entrypoints.operator",
     "sentry.seer.entrypoints.slack.messaging",
+    "sentry.seer.entrypoints.slack.tasks",
     "sentry.snuba.tasks",
     "sentry.tasks.activity",
     "sentry.tasks.assemble",
@@ -920,7 +931,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.auto_source_code_config",
-    "sentry.tasks.autofix",
+    "sentry.tasks.seer.autofix",
     "sentry.tasks.beacon",
     "sentry.tasks.check_am2_compatibility",
     "sentry.tasks.clear_expired_resolutions",
@@ -932,7 +943,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.commit_context",
     "sentry.tasks.commits",
     "sentry.tasks.delete_pending_groups",
-    "sentry.tasks.delete_seer_grouping_records",
+    "sentry.tasks.seer.delete_seer_grouping_records",
     "sentry.tasks.digests",
     "sentry.tasks.email",
     "sentry.tasks.files",
@@ -952,7 +963,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.repository",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.scim.privilege_sync",
-    "sentry.tasks.seer",
+    "sentry.tasks.seer.cleanup",
     "sentry.tasks.statistical_detectors",
     "sentry.tasks.store",
     "sentry.tasks.summaries.weekly_reports",
@@ -970,8 +981,9 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.workflow_engine.tasks.delayed_workflows",
     "sentry.workflow_engine.tasks.workflows",
     "sentry.workflow_engine.tasks.actions",
-    "sentry.tasks.seer_explorer_index",
-    "sentry.tasks.context_engine_index",
+    "sentry.workflow_engine.tasks.cleanup",
+    "sentry.tasks.seer.explorer_index",
+    "sentry.tasks.seer.context_engine_index",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
@@ -994,6 +1006,14 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "flush-delayed-workflows": {
         "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
         "schedule": timedelta(seconds=15),
+    },
+    "prune-old-fire-history": {
+        "task": "workflow_engine:sentry.workflow_engine.tasks.cleanup.prune_old_fire_history",
+        "schedule": timedelta(minutes=2),
+    },
+    "resolve-stale-sourcemap-detectors": {
+        "task": "workflow_engine:sentry.processing_errors.tasks.resolve_stale_sourcemap_detectors",
+        "schedule": crontab("*/5", "*", "*", "*", "*"),
     },
     "sync-options": {
         "task": "options:sentry.tasks.options.sync_options",
@@ -1137,9 +1157,14 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "schedule": crontab("0", "*/1", "*", "*", "*"),
     },
     "context-engine-index": {
-        "task": "seer:sentry.tasks.context_engine_index.schedule_context_engine_indexing_tasks",
+        "task": "seer:sentry.tasks.seer.context_engine_index.schedule_context_engine_indexing_tasks",
         # Offset by 30 minutes from seer-explorer-index to spread load
         "schedule": crontab("30", "*/1", "*", "*", "*"),
+    },
+    "index-sentry-knowledge": {
+        "task": "seer:sentry.tasks.seer.context_engine_index.index_sentry_knowledge",
+        # Run once a month at midnight
+        "schedule": crontab("0", "0", "*", "1", "*"),
     },
     "refresh-artifact-bundles-in-use": {
         "task": "attachments:sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
@@ -1401,8 +1426,6 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 # Sentry and internal client configuration
 
 SENTRY_EARLY_FEATURES = {
-    "organizations:performance-new-trends": "Enable new trends",
-    "organizations:performance-new-widget-designs": "Enable updated landing page widget designs",
     "organizations:profiling-global-suspect-functions": "Enable global suspect functions in profiling",
 }
 
@@ -2681,6 +2704,8 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "taskworker-internal-dlq": "default",
     "taskworker-limited": "default",
     "taskworker-limited-dlq": "default",
+    "taskworker-launchpad": "default",
+    "taskworker-launchpad-dlq": "default",
     "taskworker-long": "default",
     "taskworker-long-dlq": "default",
     "taskworker-products": "default",
@@ -3164,13 +3189,6 @@ COGS_EVENT_STORE_LABEL = "bigtable_nodestore"
 SEER_SIMILARITY_MODEL_VERSION = "v0"
 SEER_SIMILAR_ISSUES_URL = f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues"
 SEER_MAX_GROUPING_DISTANCE = 0.01
-SEER_MAX_SIMILARITY_DISTANCE = 0.15  # Not yet in use - Seer doesn't obey this right now
-SEER_GROUPING_RECORDS_URL = (
-    f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record"
-)
-SEER_PROJECT_GROUPING_RECORDS_DELETE_URL = (
-    f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete"
-)
 SEER_HASH_GROUPING_RECORDS_DELETE_URL = (
     f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete-by-hash"
 )

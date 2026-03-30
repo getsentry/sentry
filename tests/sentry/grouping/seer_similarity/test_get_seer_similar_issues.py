@@ -110,6 +110,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "use_reranking": True,
                 "model": GroupingVersion.V1,
                 "training_mode": False,
+                "platform": "python",
             },
             {
                 "platform": "python",
@@ -164,6 +165,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "exception_type": "FailedToFetchError",
                 "model": GroupingVersion.V1,
                 "training_mode": False,
+                "platform": "python",
             }
 
             viewer_ctx = {"organization_id": self.project.organization_id}

@@ -50,6 +50,15 @@ def add_raise_scm_error(error: SCMError):
         yield
 
 
+@contextlib.contextmanager
+def add_call_missing_provider_method():
+    def call_missing_provider_method(scm: SourceCodeManager) -> None:
+        scm.this_method_does_not_exist()  # type: ignore[attr-defined]
+
+    with add_method("call_missing_provider_method", call_missing_provider_method):
+        yield
+
+
 @override_settings(SCM_RPC_SHARED_SECRET=["a-long-value-that-is-hard-to-guess"])
 class TestScmRpc(APITestCase):
     def setUp(self) -> None:
@@ -139,7 +148,14 @@ class TestScmRpc(APITestCase):
         response = self.client.post(path, data=data, HTTP_AUTHORIZATION="rpcsignature rpc42:foobar")
         assert response.status_code == 401
         assert response.json() == {
-            "errors": [{"detail": "SCM RPC signature validation failed: invalid signature prefix"}]
+            "errors": [
+                {
+                    "status": "401",
+                    "title": "SCM RPC signature validation failed.",
+                    "detail": "invalid signature prefix",
+                    "meta": {"exception_type": "AuthenticationFailure"},
+                }
+            ]
         }
 
     def test_wrong_signature_in_authorization_header(self) -> None:
@@ -156,7 +172,14 @@ class TestScmRpc(APITestCase):
         )
         assert response.status_code == 401
         assert response.json() == {
-            "errors": [{"detail": "SCM RPC signature validation failed: wrong secret"}]
+            "errors": [
+                {
+                    "status": "401",
+                    "title": "SCM RPC signature validation failed.",
+                    "detail": "wrong secret",
+                    "meta": {"exception_type": "AuthenticationFailure"},
+                }
+            ]
         }
 
     def test_signature_with_more_colons_in_authorization_header(self) -> None:
@@ -173,7 +196,14 @@ class TestScmRpc(APITestCase):
         )
         assert response.status_code == 401
         assert response.json() == {
-            "errors": [{"detail": "SCM RPC signature validation failed: wrong secret"}]
+            "errors": [
+                {
+                    "status": "401",
+                    "title": "SCM RPC signature validation failed.",
+                    "detail": "wrong secret",
+                    "meta": {"exception_type": "AuthenticationFailure"},
+                }
+            ]
         }
 
     def test_signature_without_prefix_in_authorization_header(self) -> None:
@@ -190,7 +220,14 @@ class TestScmRpc(APITestCase):
         )
         assert response.status_code == 401
         assert response.json() == {
-            "errors": [{"detail": "SCM RPC signature validation failed: invalid signature format"}]
+            "errors": [
+                {
+                    "status": "401",
+                    "title": "SCM RPC signature validation failed.",
+                    "detail": "invalid signature format",
+                    "meta": {"exception_type": "AuthenticationFailure"},
+                }
+            ]
         }
 
     def test_invalid_endpoint(self) -> None:
@@ -199,6 +236,10 @@ class TestScmRpc(APITestCase):
         assert response.json() == {
             "errors": [
                 {
+                    "meta": {
+                        "exception_type": "SCMRpcActionNotFound",
+                        "action_name": "not_a_method",
+                    },
                     "status": "404",
                     "title": "Not found",
                     "detail": "Could not find action not_a_method",
@@ -215,6 +256,7 @@ class TestScmRpc(APITestCase):
                     "status": "400",
                     "title": "The request could not be deserialized.",
                     "meta": {
+                        "exception_type": "SCMRpcCouldNotDeserializeRequest",
                         "loc": ["args", "organization_id"],
                         "msg": "field required",
                         "type": "value_error.missing",
@@ -238,6 +280,7 @@ class TestScmRpc(APITestCase):
                         "loc": ["args", "organization_id"],
                         "msg": "value is not a valid integer",
                         "type": "type_error.integer",
+                        "exception_type": "SCMRpcCouldNotDeserializeRequest",
                     },
                 }
             ]
@@ -255,6 +298,7 @@ class TestScmRpc(APITestCase):
                         "loc": ["args", "repository_id"],
                         "msg": "field required",
                         "type": "value_error.missing",
+                        "exception_type": "SCMRpcCouldNotDeserializeRequest",
                     },
                 }
             ]
@@ -275,6 +319,7 @@ class TestScmRpc(APITestCase):
                         "loc": ["args", "repository_id"],
                         "msg": "value is not a valid integer",
                         "type": "type_error.integer",
+                        "exception_type": "SCMRpcCouldNotDeserializeRequest",
                     },
                 },
                 {
@@ -284,6 +329,7 @@ class TestScmRpc(APITestCase):
                         "loc": ["args", "repository_id"],
                         "msg": "value is not a valid dict",
                         "type": "type_error.dict",
+                        "exception_type": "SCMRpcCouldNotDeserializeRequest",
                     },
                 },
             ]
@@ -307,6 +353,7 @@ class TestScmRpc(APITestCase):
                         "loc": ["args", "repository_id"],
                         "msg": "value is not a valid integer",
                         "type": "type_error.integer",
+                        "exception_type": "SCMRpcCouldNotDeserializeRequest",
                     },
                 },
                 {
@@ -316,6 +363,7 @@ class TestScmRpc(APITestCase):
                         "loc": ["args", "repository_id", "provider"],
                         "msg": "field required",
                         "type": "value_error.missing",
+                        "exception_type": "SCMRpcCouldNotDeserializeRequest",
                     },
                 },
             ]
@@ -336,6 +384,7 @@ class TestScmRpc(APITestCase):
                         "loc": ["args", "repository_id"],
                         "msg": "value is not a valid integer",
                         "type": "type_error.integer",
+                        "exception_type": "SCMRpcCouldNotDeserializeRequest",
                     },
                 },
                 {
@@ -345,6 +394,7 @@ class TestScmRpc(APITestCase):
                         "loc": ["args", "repository_id", "external_id"],
                         "msg": "field required",
                         "type": "value_error.missing",
+                        "exception_type": "SCMRpcCouldNotDeserializeRequest",
                     },
                 },
             ]
@@ -375,6 +425,7 @@ class TestScmRpc(APITestCase):
                         "loc": ["args", "repository_id"],
                         "msg": "value is not a valid integer",
                         "type": "type_error.integer",
+                        "exception_type": "SCMRpcCouldNotDeserializeRequest",
                     },
                 },
                 {
@@ -384,6 +435,7 @@ class TestScmRpc(APITestCase):
                         "loc": ["args", "repository_id", "extra"],
                         "msg": "extra fields not permitted",
                         "type": "value_error.extra",
+                        "exception_type": "SCMRpcCouldNotDeserializeRequest",
                     },
                 },
             ]
@@ -428,6 +480,11 @@ class TestScmRpc(APITestCase):
                         "status": "500",
                         "title": "An unexpected error occurred.",
                         "detail": "Error calling method say_hello: add_say_hello.<locals>.say_hello() missing 1 required keyword-only argument: 'name'",
+                        "meta": {
+                            "exception_type": "SCMRpcActionCallError",
+                            "action_name": "say_hello",
+                            "message": "Error calling method say_hello: add_say_hello.<locals>.say_hello() missing 1 required keyword-only argument: 'name'",
+                        },
                     }
                 ]
             }
@@ -453,6 +510,11 @@ class TestScmRpc(APITestCase):
                         "status": "500",
                         "title": "An unexpected error occurred.",
                         "detail": "Error calling method say_hello: add_say_hello.<locals>.say_hello() got an unexpected keyword argument 'login'",
+                        "meta": {
+                            "exception_type": "SCMRpcActionCallError",
+                            "action_name": "say_hello",
+                            "message": "Error calling method say_hello: add_say_hello.<locals>.say_hello() got an unexpected keyword argument 'login'",
+                        },
                     }
                 ]
             }
@@ -477,6 +539,11 @@ class TestScmRpc(APITestCase):
                         "status": "500",
                         "title": "An unexpected error occurred.",
                         "detail": "Error calling method say_hello: add_say_hello.<locals>.say_hello() got an unexpected keyword argument 'fame'. Did you mean 'name'?",
+                        "meta": {
+                            "exception_type": "SCMRpcActionCallError",
+                            "action_name": "say_hello",
+                            "message": "Error calling method say_hello: add_say_hello.<locals>.say_hello() got an unexpected keyword argument 'fame'. Did you mean 'name'?",
+                        },
                     }
                 ]
             }
@@ -491,6 +558,7 @@ class TestScmRpc(APITestCase):
                         "status": "400",
                         "title": "The request could not be deserialized.",
                         "meta": {
+                            "exception_type": "SCMRpcCouldNotDeserializeRequest",
                             "loc": ["args"],
                             "msg": "field required",
                             "type": "value_error.missing",
@@ -509,6 +577,7 @@ class TestScmRpc(APITestCase):
                         "status": "400",
                         "title": "The request could not be deserialized.",
                         "meta": {
+                            "exception_type": "SCMRpcCouldNotDeserializeRequest",
                             "loc": ["args"],
                             "msg": "field required",
                             "type": "value_error.missing",
@@ -527,6 +596,7 @@ class TestScmRpc(APITestCase):
                         "status": "400",
                         "title": "The request could not be deserialized.",
                         "meta": {
+                            "exception_type": "SCMRpcCouldNotDeserializeRequest",
                             "loc": ["args", "organization_id"],
                             "msg": "field required",
                             "type": "value_error.missing",
@@ -536,6 +606,7 @@ class TestScmRpc(APITestCase):
                         "status": "400",
                         "title": "The request could not be deserialized.",
                         "meta": {
+                            "exception_type": "SCMRpcCouldNotDeserializeRequest",
                             "loc": ["args", "repository_id"],
                             "msg": "field required",
                             "type": "value_error.missing",
@@ -544,7 +615,7 @@ class TestScmRpc(APITestCase):
                 ]
             }
 
-    def test_scm_error_in_provider_method(self) -> None:
+    def test_scm_unhandled_exception_in_provider_method(self) -> None:
         with add_raise_scm_error(SCMUnhandledException("Blah", 68)):
             response = self.call(
                 "raise_scm_error",
@@ -556,7 +627,8 @@ class TestScmRpc(APITestCase):
                     {
                         "status": "500",
                         "title": "An unexpected error occurred.",
-                        "detail": ["Blah", 68],
+                        "detail": "Blah, 68",
+                        "meta": {"exception_type": "SCMUnhandledException"},
                     }
                 ]
             }
@@ -572,16 +644,49 @@ class TestScmRpc(APITestCase):
                 "errors": [
                     {
                         "status": "500",
-                        "title": "An unexpected error occurred.",
-                        "detail": [
-                            "repository_not_found",
-                            "A repository could not be found.",
-                            "Blah",
-                            68,
-                        ],
+                        "title": "An error occurred.",
+                        "detail": "repository_not_found, A repository could not be found., Blah, 68",
+                        "meta": {"exception_type": "SCMCodedError", "code": "repository_not_found"},
                     }
                 ]
             }
+
+    def test_scm_error_in_provider_method(self) -> None:
+        with add_raise_scm_error(SCMError("Blah", 42)):
+            response = self.call(
+                "raise_scm_error",
+                {"args": {"organization_id": self.organization.id, "repository_id": self.repo.id}},
+            )
+            assert response.status_code == 500
+            assert response.json() == {
+                "errors": [
+                    {
+                        "status": "500",
+                        "title": "An unexpected error occurred.",
+                        "detail": "Blah, 42",
+                        "meta": {"exception_type": "SCMError"},
+                    }
+                ]
+            }
+
+    def test_attribute_error_in_provider_method_is_treated_as_provider_not_supported(self) -> None:
+        with add_call_missing_provider_method():
+            response = self.call(
+                "call_missing_provider_method",
+                {"args": {"organization_id": self.organization.id, "repository_id": self.repo.id}},
+            )
+
+        assert response.status_code == 400
+        assert response.json() == {
+            "errors": [
+                {
+                    "status": "400",
+                    "title": "Provider not supported.",
+                    "detail": "call_missing_provider_method is not supported by service-provider GitHubProvider",
+                    "meta": {"exception_type": "SCMProviderNotSupported"},
+                }
+            ]
+        }
 
     def test_scm_provider_exception_in_provider_method(self) -> None:
         with add_raise_scm_error(SCMProviderException("Blah", 68)):
@@ -595,7 +700,8 @@ class TestScmRpc(APITestCase):
                     {
                         "status": "503",
                         "title": "The service provider raised an error.",
-                        "detail": ["Blah", 68],
+                        "detail": "Blah, 68",
+                        "meta": {"exception_type": "SCMProviderException"},
                     }
                 ]
             }

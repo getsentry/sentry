@@ -49,7 +49,7 @@ type State = {
   searchTerm: string;
 };
 
-class Candidates extends Component<Props, State> {
+export class Candidates extends Component<Props, State> {
   state: State = {
     searchTerm: '',
     filterOptions: [],
@@ -369,8 +369,6 @@ class Candidates extends Component<Props, State> {
     );
   }
 }
-
-export default Candidates;
 
 const Wrapper = styled('div')`
   display: grid;

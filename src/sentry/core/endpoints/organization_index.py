@@ -30,6 +30,7 @@ from sentry.apidocs.parameters import CursorQueryParam, OrganizationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.query import in_iexact
+from sentry.demo_mode.utils import is_demo_user
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
@@ -226,6 +227,11 @@ class OrganizationIndexEndpoint(Endpoint):
         """
         if not request.user.is_authenticated:
             return Response({"detail": "This endpoint requires user info"}, status=401)
+
+        if is_demo_user(request.user):
+            return Response(
+                {"detail": "Demo users are not allowed to create organizations."}, status=403
+            )
 
         if not features.has("organizations:create", actor=request.user):
             return Response(

@@ -18,6 +18,7 @@ import type {
 } from 'sentry/types/workflowEngine/detectors';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {isSessionPercentageOperation} from 'sentry/views/detectors/utils/metricDetectorSuffix';
+import {percentThresholdAbsoluteToDelta} from 'sentry/views/detectors/utils/percentThreshold';
 
 function createThresholdMarkLine(lineColor: string, threshold: number) {
   return MarkLine({
@@ -104,7 +105,8 @@ function normalizePercentageThreshold(aggregate: string, value: number): number 
 
 function extractThresholdsFromConditions(
   conditions: Array<Omit<MetricCondition, 'id'>>,
-  aggregate: string
+  aggregate: string,
+  detectionType: MetricDetectorConfig['detectionType']
 ): {
   thresholds: Array<{
     priority: DetectorPriorityLevel;
@@ -119,11 +121,19 @@ function extractThresholdsFromConditions(
         condition.conditionResult !== DetectorPriorityLevel.OK &&
         typeof condition.comparison === 'number'
     )
-    .map(condition => ({
-      value: normalizePercentageThreshold(aggregate, Number(condition.comparison)),
-      priority: condition.conditionResult || DetectorPriorityLevel.MEDIUM,
-      type: condition.type,
-    }))
+    .map(condition => {
+      let value = Number(condition.comparison);
+      if (detectionType === 'percent') {
+        value = percentThresholdAbsoluteToDelta(value);
+      } else {
+        value = normalizePercentageThreshold(aggregate, value);
+      }
+      return {
+        value,
+        priority: condition.conditionResult || DetectorPriorityLevel.MEDIUM,
+        type: condition.type,
+      };
+    })
     .sort((a, b) => a.value - b.value);
 
   const resolutionCondition = conditions.find(
@@ -134,10 +144,13 @@ function extractThresholdsFromConditions(
     resolutionCondition && typeof resolutionCondition.comparison === 'number'
       ? {
           type: resolutionCondition.type,
-          value: normalizePercentageThreshold(
-            aggregate,
-            Number(resolutionCondition.comparison)
-          ),
+          value:
+            detectionType === 'percent'
+              ? percentThresholdAbsoluteToDelta(Number(resolutionCondition.comparison))
+              : normalizePercentageThreshold(
+                  aggregate,
+                  Number(resolutionCondition.comparison)
+                ),
         }
       : undefined;
 
@@ -180,7 +193,8 @@ export function useMetricDetectorThresholdSeries({
 
     const {thresholds, resolution} = extractThresholdsFromConditions(
       conditions,
-      aggregate
+      aggregate,
+      detectionType
     );
     const additional: LineSeriesOption[] = [];
 

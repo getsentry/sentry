@@ -122,9 +122,9 @@ def handle_ignored(
                 state["users_seen"] = group.count_users_seen(
                     referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_IGNORED.value
                 )
-            GroupSnooze.objects.create_or_update(
+            GroupSnooze.objects.update_or_create(
                 group=group,
-                values={
+                defaults={
                     "until": ignore_until,
                     "count": ignore_count,
                     "window": ignore_window,

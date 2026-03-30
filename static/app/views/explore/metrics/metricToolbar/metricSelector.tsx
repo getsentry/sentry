@@ -32,7 +32,10 @@ import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
 import {useHasMetricUnitsUI} from 'sentry/views/explore/metrics/hooks/useHasMetricUnitsUI';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {canUseMetricsSidePanelUI} from 'sentry/views/explore/metrics/metricsFlags';
+import {
+  canUseMetricsSidePanelUI,
+  canUseMetricsUIRefresh,
+} from 'sentry/views/explore/metrics/metricsFlags';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import {
   TraceMetricKnownFieldKey,
@@ -113,6 +116,7 @@ export function MetricSelector({
   const {data: metricOptionsData, isFetching} = useMetricOptions({
     search: debouncedSearch,
   });
+  const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
 
   const {
     isOpen,
@@ -197,26 +201,20 @@ export function MetricSelector({
     ]
   );
 
-  // Merge API results with the currently selected metric. If the selected
-  // metric isn't present in the API response (e.g. filtered by search),
-  // prepend it so the user always sees their current selection.
+  // Always show the selected metric at the top of the list so it's easy to
+  // find when the dropdown is reopened. Filter it out of the API results to
+  // avoid duplication.
   const metricOptions = useMemo((): MetricSelectOption[] => {
-    const shouldIncludeOptionFromTraceMetric =
-      traceMetric.name &&
-      !metricOptionsData?.data?.some(
-        option =>
-          makeMetricSelectValue({
-            name: option[TraceMetricKnownFieldKey.METRIC_NAME],
-            type: option[TraceMetricKnownFieldKey.METRIC_TYPE],
-            unit: hasMetricUnitsUI
-              ? (option[TraceMetricKnownFieldKey.METRIC_UNIT] ?? NONE_UNIT)
-              : undefined,
-          }) === makeMetricSelectValue(traceMetric)
-      );
+    const selectedMetricValue = traceMetric.name
+      ? makeMetricSelectValue(
+          hasMetricUnitsUI
+            ? traceMetric
+            : {name: traceMetric.name, type: traceMetric.type}
+        )
+      : null;
 
-    return [
-      ...(shouldIncludeOptionFromTraceMetric ? [optionFromTraceMetric] : []),
-      ...(metricOptionsData?.data?.map(option => ({
+    const apiOptions =
+      metricOptionsData?.data?.map(option => ({
         label: option[TraceMetricKnownFieldKey.METRIC_NAME],
         value: makeMetricSelectValue({
           name: option[TraceMetricKnownFieldKey.METRIC_NAME],
@@ -243,7 +241,18 @@ export function MetricSelector({
             metricUnit={option[TraceMetricKnownFieldKey.METRIC_UNIT] ?? NONE_UNIT}
           />
         ),
-      })) ?? []),
+      })) ?? [];
+
+    // Prefer the API version of the selected metric (it has count/lastSeen),
+    // falling back to the bare optionFromTraceMetric when the API hasn't
+    // returned it (e.g. filtered by search or still loading).
+    const selectedOption = selectedMetricValue
+      ? (apiOptions.find(o => o.value === selectedMetricValue) ?? optionFromTraceMetric)
+      : null;
+
+    return [
+      ...(selectedOption ? [selectedOption] : []),
+      ...apiOptions.filter(o => o.value !== selectedMetricValue),
     ];
   }, [metricOptionsData, optionFromTraceMetric, traceMetric, hasMetricUnitsUI]);
 
@@ -346,17 +355,6 @@ export function MetricSelector({
     overscan: 20,
   });
 
-  const focusedIndex = useMemo(
-    () => collectionItems.findIndex(item => item.key === focusedKey),
-    [collectionItems, focusedKey]
-  );
-
-  useEffect(() => {
-    if (focusedIndex >= 0 && isOpen) {
-      virtualizer.scrollToIndex(focusedIndex, {align: 'auto'});
-    }
-  }, [focusedIndex, isOpen, virtualizer]);
-
   const highlightedOption = focusedKey
     ? (displayedOptionsMap.get(String(focusedKey)) ?? null)
     : null;
@@ -425,6 +423,9 @@ export function MetricSelector({
         {...mergedTriggerProps}
         style={{width: '100%', fontWeight: 'bold', textAlign: 'left'}}
         disabled={isFetching && !traceMetric.name}
+        tooltipProps={
+          hasMetricsUIRefresh ? {title: traceMetric.name || t('None')} : undefined
+        }
       >
         <Text ellipsis>{traceMetric.name || t('None')}</Text>
       </OverlayTrigger.Button>

@@ -6,6 +6,7 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.repository import Repository
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
@@ -886,3 +887,114 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         assert response.status_code == 400
         assert response.data["detail"] == "Invalid repository"
         mock_bulk_set_preferences.assert_not_called()
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
+    )
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
+    def test_post_creates_seer_project_repository(
+        self, mock_bulk_get_preferences, mock_bulk_set_preferences
+    ):
+        """Test that POST creates SeerProjectRepository when feature flag is enabled."""
+        project = self.create_project(organization=self.organization)
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="test-org/test-repo",
+            provider="github",
+            external_id="12345",
+        )
+
+        mock_bulk_get_preferences.return_value = {}
+
+        repo_data = {
+            "provider": "github",
+            "owner": "test-org",
+            "name": "test-repo",
+            "externalId": "12345",
+            "organizationId": self.organization.id,
+        }
+
+        with self.feature("organizations:seer-project-settings-dual-write"):
+            response = self.client.post(
+                self.url,
+                {
+                    "projectIds": [project.id],
+                    "automatedRunStoppingPoint": AutofixStoppingPoint.OPEN_PR.value,
+                    "projectRepoMappings": {
+                        str(project.id): [repo_data],
+                    },
+                },
+            )
+
+        assert response.status_code == 204
+
+        seer_repo = SeerProjectRepository.objects.get(project=project)
+        assert seer_repo.repository_id == repo.id
+        assert project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
+    )
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
+    def test_post_append_resolves_repo_id_for_existing_repos(
+        self, mock_bulk_get_preferences, mock_bulk_set_preferences
+    ):
+        """Test that appending repos resolves repository_id for existing Seer API repos during write to SeerProjectRepository."""
+        project = self.create_project(organization=self.organization)
+        existing_repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="test-org/existing-repo",
+            provider="github",
+            external_id="11111",
+        )
+        new_repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="test-org/new-repo",
+            provider="github",
+            external_id="22222",
+        )
+
+        mock_bulk_get_preferences.return_value = {
+            str(project.id): {
+                "repositories": [
+                    {
+                        "provider": "github",
+                        "owner": "test-org",
+                        "name": "existing-repo",
+                        "external_id": "11111",
+                        "organization_id": self.organization.id,
+                    }
+                ],
+            }
+        }
+
+        with self.feature("organizations:seer-project-settings-dual-write"):
+            response = self.client.post(
+                self.url,
+                {
+                    "projectIds": [project.id],
+                    "appendRepositories": True,
+                    "projectRepoMappings": {
+                        str(project.id): [
+                            {
+                                "provider": "github",
+                                "owner": "test-org",
+                                "name": "new-repo",
+                                "externalId": "22222",
+                                "organizationId": self.organization.id,
+                            }
+                        ],
+                    },
+                },
+            )
+
+        assert response.status_code == 204
+
+        seer_repos = SeerProjectRepository.objects.filter(project=project).order_by("repository_id")
+        assert len(seer_repos) == 2
+        assert seer_repos[0].repository_id == existing_repo.id
+        assert seer_repos[1].repository_id == new_repo.id

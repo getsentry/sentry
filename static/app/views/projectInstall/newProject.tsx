@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import * as Layout from 'sentry/components/layouts/thirds';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 
 import {CreateProject} from './createProject';
@@ -7,13 +8,15 @@ import {CreateProject} from './createProject';
 function NewProject() {
   return (
     <SentryDocumentTitle>
-      <Container>
-        <div className="container">
-          <Content>
-            <CreateProject />
-          </Content>
-        </div>
-      </Container>
+      <Layout.Page>
+        <Container>
+          <div className="container">
+            <Content>
+              <CreateProject />
+            </Content>
+          </div>
+        </Container>
+      </Layout.Page>
     </SentryDocumentTitle>
   );
 }

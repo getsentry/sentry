@@ -140,6 +140,32 @@ def format_first_snapshot_status_check_messages(
     return str(title), str(subtitle), str(summary)
 
 
+def format_generated_snapshot_status_check_messages(
+    artifacts: list[PreprodArtifact],
+    snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
+) -> tuple[str, str, str]:
+    if not artifacts:
+        raise ValueError("Cannot format messages for empty artifact list")
+
+    title = _SNAPSHOT_TITLE_BASE
+
+    total_images = 0
+    for artifact in artifacts:
+        metrics = snapshot_metrics_map.get(artifact.id)
+        if metrics:
+            total_images += metrics.image_count
+
+    subtitle = ngettext(
+        "Generated %(count)d snapshot",
+        "Generated %(count)d snapshots",
+        total_images,
+    ) % {"count": total_images}
+
+    summary = _format_solo_snapshot_summary(artifacts, snapshot_metrics_map)
+
+    return str(title), str(subtitle), str(summary)
+
+
 def format_missing_base_snapshot_status_check_messages(
     artifacts: list[PreprodArtifact],
     snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],

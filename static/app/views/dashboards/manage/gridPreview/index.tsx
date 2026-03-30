@@ -1,6 +1,7 @@
 import 'react-grid-layout/css/styles.css';
 
 import GridLayout, {WidthProvider} from 'react-grid-layout';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {defined} from 'sentry/utils';
@@ -12,26 +13,26 @@ import {
 import type {WidgetLayout, WidgetPreview} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
-import {AreaPreview as WidgetArea} from './chartPreviews/area';
-import {BarPreview as WidgetBar} from './chartPreviews/bar';
-import {LinePreview as WidgetLine} from './chartPreviews/line';
-import {NumberPreview as WidgetBigNumber} from './chartPreviews/number';
-import {TablePreview as WidgetTable} from './chartPreviews/table';
+import {AreaPreview} from './chartPreviews/area';
+import {BarPreview} from './chartPreviews/bar';
+import {LinePreview} from './chartPreviews/line';
+import {NumberPreview} from './chartPreviews/number';
+import {TablePreview} from './chartPreviews/table';
 
-function miniWidget(displayType: DisplayType): () => React.JSX.Element {
+function MiniWidget({displayType, color}: {color: string; displayType: DisplayType}) {
   switch (displayType) {
     case DisplayType.BAR:
-      return WidgetBar;
+      return <BarPreview color={color} />;
     case DisplayType.AREA:
     case DisplayType.TOP_N:
-      return WidgetArea;
+      return <AreaPreview color={color} />;
     case DisplayType.BIG_NUMBER:
-      return WidgetBigNumber;
+      return <NumberPreview color={color} />;
     case DisplayType.TABLE:
-      return WidgetTable;
+      return <TablePreview />;
     case DisplayType.LINE:
     default:
-      return WidgetLine;
+      return <LinePreview color={color} />;
   }
 }
 
@@ -40,6 +41,9 @@ type Props = {
 };
 
 export function GridPreview({widgetPreview}: Props) {
+  const theme = useTheme();
+  const chartPalette = theme.chart.getColorPalette(3);
+
   const definedLayouts = widgetPreview
     .map(({layout}) => layout)
     .filter((layout): layout is WidgetLayout => defined(layout));
@@ -56,12 +60,12 @@ export function GridPreview({widgetPreview}: Props) {
       useCSSTransforms={false}
       measureBeforeMount
     >
-      {renderPreview.map(({displayType, layout}) => {
-        const Preview = miniWidget(displayType);
+      {renderPreview.map(({displayType, layout}, index) => {
+        const color = chartPalette[index % chartPalette.length]!;
         return (
           <Chart key={uniqueId()} data-grid={{...layout}}>
             <PreviewWrapper>
-              <Preview />
+              <MiniWidget displayType={displayType} color={color} />
             </PreviewWrapper>
           </Chart>
         );
@@ -77,10 +81,13 @@ const PreviewWrapper = styled('div')`
   overflow: hidden;
 `;
 
-// ::before is the widget title and ::after is the border
+// ::before is the widget title placeholder
 const Chart = styled('div')`
-  background: white;
+  background: ${p => p.theme.tokens.background.primary};
   position: relative;
+  border: 1px solid ${p => p.theme.tokens.border.secondary};
+  border-radius: ${p => p.theme.radius.sm};
+  overflow: hidden;
 
   &::before {
     content: '';
@@ -89,18 +96,8 @@ const Chart = styled('div')`
     top: 10px;
     width: max(30px, 30%);
     height: 4px;
-    background-color: #d4d1ec;
-    border-radius: 8px;
-  }
-
-  &::after {
-    content: '';
-    position: absolute;
-    left: 2px;
-    top: 2px;
-    width: 100%;
-    height: 100%;
-    border: 2px solid #444674;
+    background-color: ${p => p.theme.tokens.background.tertiary};
+    border-radius: ${p => p.theme.radius.lg};
   }
 `;
 

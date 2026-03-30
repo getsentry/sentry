@@ -120,6 +120,41 @@ describe('DetectorSection', () => {
     ).toBeInTheDocument();
   });
 
+  it('displays the detector details for a mobile build monitor', () => {
+    const event = EventFixture({
+      occurrence: {
+        evidenceData: {
+          detectorId,
+        },
+        type: 11003,
+      },
+    });
+    const group = GroupFixture({
+      issueCategory: IssueCategory.PREPROD,
+      issueType: IssueType.PREPROD_SIZE_ANALYSIS,
+    });
+    const detectorDetails = getDetectorDetails({event, organization, project});
+
+    render(
+      <IssueDetailsContext value={{...issueDetailsContext, detectorDetails}}>
+        <DetectorSection group={group} project={project} />
+      </IssueDetailsContext>,
+      {organization}
+    );
+
+    expect(screen.getByText('Mobile Build Monitor')).toBeInTheDocument();
+    const link = screen.getByRole('button', {name: 'View monitor details'});
+    expect(link).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/monitors/${detectorId}/`
+    );
+    expect(
+      screen.getByText(
+        'This issue was created by a mobile build monitor. View the monitor details to learn more.'
+      )
+    ).toBeInTheDocument();
+  });
+
   it('displays the detector details for an uptime monitor', () => {
     const event = EventFixture({
       occurrence: {

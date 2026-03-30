@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -28,6 +28,7 @@ from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.cursors import Cursor, CursorResult
 
 logger = logging.getLogger(__name__)
@@ -210,7 +211,7 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                 )
 
             stats_results: dict[str, dict[str, dict]] = defaultdict(lambda: {"data": {}})
-            with ThreadPoolExecutor(
+            with ContextPropagatingThreadPoolExecutor(
                 thread_name_prefix=__name__,
                 max_workers=MAX_THREADS,
             ) as query_thread_pool:

@@ -22,7 +22,7 @@ export function makeFetchGroupQueryKey({
   const query: Record<string, string | string[]> = {
     ...(environments.length > 0 ? {environment: environments} : {}),
     expand: ['inbox', 'owners'],
-    collapse: ['release', 'tags'],
+    collapse: ['release', 'tags', 'stats'],
   };
 
   return [

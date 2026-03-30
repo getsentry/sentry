@@ -1,7 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   render,
@@ -10,25 +8,23 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {useLocation} from 'sentry/utils/useLocation';
 import {PagePerformanceTable} from 'sentry/views/insights/browser/webVitals/components/tables/pagePerformanceTable';
-
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('PagePerformanceTable', () => {
   const organization = OrganizationFixture();
-  const router = RouterFixture();
+
+  const baseRouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/insights/frontend/pageloads/overview/`,
+      query: {},
+    },
+    route: `/organizations/:orgId/insights/frontend/pageloads/overview/`,
+  };
 
   let eventsMock: jest.Mock;
 
   beforeEach(() => {
-    jest.mocked(useLocation).mockReturnValue(router.location);
-
-    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
-
     ProjectsStore.loadInitialData([
       ProjectFixture({
         id: '11276',
@@ -83,12 +79,15 @@ describe('PagePerformanceTable', () => {
   });
 
   it('escapes user input search filter', async () => {
-    jest.mocked(useLocation).mockReturnValue({
-      ...router.location,
-      query: {query: '/issues/*'},
-    });
     render(<PagePerformanceTable />, {
       organization,
+      initialRouterConfig: {
+        ...baseRouterConfig,
+        location: {
+          ...baseRouterConfig.location,
+          query: {query: '/issues/*'},
+        },
+      },
     });
     await waitFor(() => {
       expect(eventsMock).toHaveBeenCalledTimes(1);

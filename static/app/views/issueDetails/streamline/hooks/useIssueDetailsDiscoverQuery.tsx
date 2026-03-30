@@ -2,7 +2,7 @@ import {getInterval} from 'sentry/components/charts/utils';
 import type {PageFilters} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import type {NewQuery, SavedQuery} from 'sentry/types/organization';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {
   useGenericDiscoverQuery,
   type DiscoverQueryProps,

@@ -125,4 +125,52 @@ describe('TypeSelector', () => {
       expect.anything()
     );
   });
+
+  it('resets the widget builder state to dataset defaults when display type is changed from text widget', async () => {
+    const mockNavigate = jest.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
+
+    render(
+      <WidgetBuilderProvider>
+        <TypeSelector />
+      </WidgetBuilderProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
+            query: {displayType: 'text'},
+          },
+        },
+        organization: OrganizationFixture({features: ['dashboards-text-widgets']}),
+      }
+    );
+
+    await userEvent.click(await screen.findByText('Text (Markdown)'));
+    await userEvent.click(await screen.findByText('Table'));
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          displayType: 'table',
+        }),
+      }),
+      expect.anything()
+    );
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: WidgetType.ERRORS,
+        }),
+      }),
+      expect.anything()
+    );
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          field: ['count_unique(user)'],
+        }),
+      }),
+      expect.anything()
+    );
+  });
 });

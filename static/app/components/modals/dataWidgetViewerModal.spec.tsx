@@ -24,7 +24,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {performanceScoreTooltip} from 'sentry/views/dashboards/utils';
-import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 
 jest.mock('echarts-for-react/lib/core', () => {
   return jest.fn(({style}) => {
@@ -1340,6 +1340,14 @@ describe('Modals -> DataWidgetViewerModal', () => {
           location: {...defaultInitialRouterConfig.location},
         },
       };
+      initialDataWithFlag = {
+        organization: OrganizationFixture({features: ['visibility-explore-view']}),
+        projects,
+        initialRouterConfig: {
+          ...defaultInitialRouterConfig,
+          location: {...defaultInitialRouterConfig.location},
+        },
+      };
     });
 
     it('renders the Open in Explore button', async () => {
@@ -1422,7 +1430,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
       });
 
       const {router} = await renderModal({
-        initialData,
+        initialData: initialDataWithFlag,
         widget: mockSpanWidget,
       });
 
@@ -1441,6 +1449,40 @@ describe('Modals -> DataWidgetViewerModal', () => {
           '/organizations/org-slug/explore/traces/'
         )
       );
+    });
+
+    it('does not show "View span samples" without visibility-explore-view', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        body: {
+          data: [{transaction: 'test-transaction', 'count()': 10}],
+          meta: {
+            fields: {transaction: 'string', 'count()': 'integer'},
+          },
+        },
+      });
+      const mockSpanWidget = WidgetFixture({
+        widgetType: WidgetType.SPANS,
+        title: 'Span Transactions Widget',
+        displayType: DisplayType.TABLE,
+        queries: [
+          {
+            fields: ['transaction', 'count()'],
+            aggregates: ['count()'],
+            columns: ['transaction'],
+            name: '',
+            conditions: '',
+            orderby: '',
+          },
+        ],
+      });
+
+      await renderModal({initialData, widget: mockSpanWidget});
+
+      const transactionCell = await screen.findByText('test-transaction');
+      await userEvent.click(transactionCell);
+
+      expect(screen.queryByText('View span samples')).not.toBeInTheDocument();
     });
   });
 });

@@ -64,7 +64,7 @@
       "sentry-fonts/*": ["./static/fonts/*"],
       "getsentry/*": ["./static/gsApp/*"],
       "getsentry-images/*": ["./static/images/*"],
-      "admin/*": ["./static/gsAdmin/*"],
+      "admin/*": ["./static/gsAdmin/*"]
     },
 
     "plugins": [

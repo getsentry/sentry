@@ -30,6 +30,7 @@ class SummarizeIssueResponse(BaseModel):
 
 
 class SeerRepoDefinition(BaseModel):
+    repository_id: int | None = None
     organization_id: int | None = None
     integration_id: str | None = None
     provider: str

@@ -20,14 +20,14 @@ import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
-import {CodingAgentSettings} from 'getsentry/views/seerAutomation/components/projectDetails/agentSettings/codingAgentSettings';
-import {SeerAgentSettings} from 'getsentry/views/seerAutomation/components/projectDetails/agentSettings/seerAgentSettings';
 import {
   useAgentOptions,
   useMutateSelectedAgent,
   useSelectedAgentFromProjectSettings,
-} from 'getsentry/views/seerAutomation/components/seerAgentHooks';
+} from 'sentry/views/settings/seer/seerAgentHooks';
+
+import {CodingAgentSettings} from 'getsentry/views/seerAutomation/components/projectDetails/agentSettings/codingAgentSettings';
+import {SeerAgentSettings} from 'getsentry/views/seerAutomation/components/projectDetails/agentSettings/seerAgentSettings';
 
 interface Props {
   canWrite: boolean;

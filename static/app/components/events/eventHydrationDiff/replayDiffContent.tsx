@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ArchivedReplayAlert} from 'sentry/components/replays/alerts/archivedReplayAlert';
