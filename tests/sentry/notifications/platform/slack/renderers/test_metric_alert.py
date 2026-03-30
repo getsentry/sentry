@@ -117,7 +117,7 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
         return_value=None,
     )
     @patch(
-        "sentry.notifications.platform.templates.metric_alert.eventstore.backend.get_event_by_id"
+        "sentry.notifications.platform.slack.renderers.metric_alert.eventstore.backend.get_event_by_id"
     )
     def test_render_produces_blocks(self, mock_get_event: MagicMock, mock_chart: MagicMock) -> None:
         mock_get_event.return_value = self.group_event
@@ -142,7 +142,7 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
         return_value=MOCK_CHART_URL,
     )
     @patch(
-        "sentry.notifications.platform.templates.metric_alert.eventstore.backend.get_event_by_id"
+        "sentry.notifications.platform.slack.renderers.metric_alert.eventstore.backend.get_event_by_id"
     )
     @with_feature({"organizations:metric-alert-chartcuterie": True})
     def test_render_includes_image_block_when_chart_enabled(
@@ -171,7 +171,7 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
         side_effect=Exception("chart service unavailable"),
     )
     @patch(
-        "sentry.notifications.platform.templates.metric_alert.eventstore.backend.get_event_by_id"
+        "sentry.notifications.platform.slack.renderers.metric_alert.eventstore.backend.get_event_by_id"
     )
     def test_render_continues_when_chart_fails(
         self, mock_get_event: MagicMock, mock_chart: MagicMock, mock_sdk: MagicMock

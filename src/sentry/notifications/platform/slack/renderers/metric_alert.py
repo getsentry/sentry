@@ -70,6 +70,8 @@ class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
             metric_issue_context = _build_metric_issue_context_from_group_event(data)
         elif isinstance(data, ActivityMetricAlertNotificationData):
             metric_issue_context = _build_metric_issue_context_from_activity(data)
+        else:
+            raise ValueError(f"Cannot build MetricIssueContext from {data.__class__.__name__}")
 
         organization = Organization.objects.get_from_cache(id=data.organization_id)
         detector = Detector.objects.get(id=data.detector_id)
