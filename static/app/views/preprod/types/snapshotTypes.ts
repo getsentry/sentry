@@ -42,7 +42,7 @@ export interface SnapshotDetailsApiResponse {
   changed_count: number;
   removed: SnapshotImage[];
   removed_count: number;
-  renamed?: SnapshotImage[];
+  renamed?: SnapshotDiffPair[];
   renamed_count?: number;
   unchanged: SnapshotImage[];
   unchanged_count: number;
@@ -80,7 +80,8 @@ interface SidebarItemBase {
 export type SidebarItem =
   | (SidebarItemBase & {type: 'solo'; images: SnapshotImage[]})
   | (SidebarItemBase & {type: 'changed'; pairs: SnapshotDiffPair[]})
+  | (SidebarItemBase & {type: 'renamed'; pairs: SnapshotDiffPair[]})
   | (SidebarItemBase & {
-      type: 'added' | 'removed' | 'renamed' | 'unchanged';
+      type: 'added' | 'removed' | 'unchanged';
       images: SnapshotImage[];
     });

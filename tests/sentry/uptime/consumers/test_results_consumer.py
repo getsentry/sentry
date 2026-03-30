@@ -1413,7 +1413,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             current_minute=5,
         )
 
-    def test_out_of_order_result_queued(self):
+    def test_out_of_order_result_queued(self) -> None:
         """Out-of-order results should be queued when feature flag is enabled."""
         cluster = get_cluster()
         base_time = datetime.now()
@@ -1446,7 +1446,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             assert call_kwargs["countdown"] == 10
             assert call_kwargs["kwargs"]["attempt"] == 1
 
-    def test_feature_flag_disabled_processes_normally(self):
+    def test_feature_flag_disabled_processes_normally(self) -> None:
         """When feature flag is disabled, results should process normally without queueing."""
         cluster = get_cluster()
         base_time = datetime.now()
@@ -1467,7 +1467,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         backlog_key = build_backlog_key(str(self.subscription.id))
         assert cluster.zcard(backlog_key) == 0
 
-    def test_task_scheduling_deduplication(self):
+    def test_task_scheduling_deduplication(self) -> None:
         """Multiple out-of-order results shouldn't schedule duplicate tasks."""
         cluster = get_cluster()
         base_time = datetime.now()

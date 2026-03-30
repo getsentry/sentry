@@ -262,7 +262,7 @@ class ProjectDetailsTest(APITestCase):
             resp = self.get_success_response(self.project.organization.slug, self.project.slug)
             assert resp.data["isDynamicallySampled"]
 
-    def test_filter_options(self):
+    def test_filter_options(self) -> None:
         self.project.update_option("sentry:releases", ["1.*", "2.1.*"])
         self.project.update_option(
             "sentry:error_messages", ["TypeError*", "*: integer division by modulo or zero"]
@@ -1631,7 +1631,7 @@ class ProjectDeleteTest(APITestCase):
         ).exists()
 
     @mock.patch(
-        "sentry.tasks.delete_seer_grouping_records.call_seer_delete_project_grouping_records.apply_async"
+        "sentry.tasks.seer.delete_seer_grouping_records.call_seer_delete_project_grouping_records.apply_async"
     )
     def test_delete_project_and_delete_grouping_records(
         self, mock_call_seer_delete_project_grouping_records

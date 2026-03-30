@@ -5,7 +5,6 @@ from collections.abc import Callable
 from enum import StrEnum
 from typing import TYPE_CHECKING, Literal
 
-from django.utils import timezone
 from pydantic import BaseModel
 
 from sentry.seer.autofix.artifact_schemas import (
@@ -22,14 +21,20 @@ from sentry.seer.autofix.prompts import (
     solution_prompt,
     triage_prompt,
 )
-from sentry.seer.autofix.utils import AutofixStoppingPoint, get_project_seer_preferences
+from sentry.seer.autofix.utils import (
+    AutofixStoppingPoint,
+    get_autofix_state,
+    get_project_seer_preferences,
+)
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.client_models import SeerRunState
 from sentry.seer.models import SeerRepoDefinition
+from sentry.seer.models.seer_api_models import SeerPermissionError
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
+from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -242,8 +247,6 @@ def trigger_autofix_explorer(
             artifact_schema=artifact_schema,
         )
 
-    group.update(seer_autofix_last_triggered=timezone.now())
-
     payload = {
         "run_id": run_id,
         "group_id": group.id,
@@ -288,6 +291,8 @@ def trigger_autofix_explorer(
                 "group_id": group.id,
             },
         )
+
+    metrics.incr("autofix.explorer.trigger", tags={"step": step.value, "referrer": referrer.value})
 
     return run_id
 
@@ -402,6 +407,7 @@ def _get_relevant_repo(
 def trigger_coding_agent_handoff(
     group: Group,
     run_id: int,
+    referrer: AutofixReferrer,
     integration_id: int | None = None,
     provider: str | None = None,
     user_id: int | None = None,
@@ -447,21 +453,37 @@ def trigger_coding_agent_handoff(
             "failures": [{"error_message": "No repositories configured in project preferences"}],
         }
 
-    client = SeerExplorerClient(
-        organization=group.organization,
-        user=None,
-        category_key="autofix",
-        category_value=str(group.id),
-    )
+    client = get_autofix_explorer_client(group)
     state = client.get_run(run_id)
 
     repo = _get_relevant_repo(state, repo_definitions, run_id, group)
+
+    # If branch_name is unset in preferences, resolve it from the autofix run state
+    if not repo.branch_name:
+        try:
+            autofix_state = get_autofix_state(run_id=run_id, organization_id=group.organization.id)
+            if autofix_state:
+                state_repo = next(
+                    (
+                        r
+                        for r in autofix_state.request.repos
+                        if r.owner == repo.owner and r.name == repo.name
+                    ),
+                    None,
+                )
+                if state_repo and state_repo.branch_name:
+                    repo = repo.copy(update={"branch_name": state_repo.branch_name})
+        except Exception:
+            logger.exception(
+                "autofix.coding_agent_handoff.get_branch_name_error",
+                extra={"owner": repo.owner, "repo": repo.name, "run_id": run_id},
+            )
 
     short_id = group.qualified_short_id
 
     prompt = generate_autofix_handoff_prompt(state, short_id=short_id)
 
-    return client.launch_coding_agents(
+    coding_agents = client.launch_coding_agents(
         run_id=run_id,
         integration_id=integration_id,
         provider=provider,
@@ -470,4 +492,45 @@ def trigger_coding_agent_handoff(
         repos=[repo],
         branch_name_base=group.title or "seer",
         auto_create_pr=auto_create_pr,
+    )
+
+    metrics.incr(
+        "autofix.explorer.trigger",
+        tags={"step": "coding_agent_handoff", "referrer": referrer.value},
+    )
+
+    return coding_agents
+
+
+def trigger_push_changes(
+    group: Group,
+    run_id: int,
+    referrer: AutofixReferrer,
+    state: SeerRunState | None = None,
+    repo_name: str | None = None,
+):
+    client = get_autofix_explorer_client(group)
+
+    if state is None:
+        try:
+            state = client.get_run(run_id)
+        except ValueError:
+            raise SeerPermissionError("Unknown run id for group")
+
+    group_id = state.metadata.get("group_id") if state.metadata else None
+    if group_id != group.id:
+        raise SeerPermissionError("Unknown run id for group")
+
+    client.push_changes(
+        run_id,
+        repo_name=repo_name,
+        pr_description_suffix=(
+            f"Fixes {group.qualified_short_id}" if group.qualified_short_id else None
+        ),
+        blocking=False,
+    )
+
+    metrics.incr(
+        "autofix.explorer.trigger",
+        tags={"step": "open_pr", "referrer": referrer.value},
     )

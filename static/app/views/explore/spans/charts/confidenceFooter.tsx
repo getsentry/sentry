@@ -46,6 +46,11 @@ function confidenceMessage({
 
   const isTopN = defined(topEvents) && topEvents > 1;
   const noSampling = defined(isSampled) && !isSampled;
+  const usePluralSampleCount = sampleCount !== 1;
+  const usePluralNormalSpansCount =
+    defined(rawSpanCounts?.normal.count) && rawSpanCounts.normal.count !== 1;
+  const usePluralTotalSpansCount =
+    defined(rawSpanCounts?.total.count) && rawSpanCounts.total.count !== 1;
 
   const maybeWarning =
     confidence === 'low' ? tct('[warning] ', {warning: <WarningIcon />}) : null;
@@ -61,10 +66,9 @@ function confidenceMessage({
   // The multi query mode does not fetch the raw span counts
   // so make sure to have a backup when this happens.
   if (!defined(rawSpanCounts)) {
-    const matchingSpansCount =
-      sampleCount === 1
-        ? t('%s span', <Count value={sampleCount} />)
-        : t('%s spans', <Count value={sampleCount} />);
+    const matchingSpansCount = usePluralSampleCount
+      ? t('%s spans', <Count value={sampleCount} />)
+      : t('%s span', <Count value={sampleCount} />);
 
     if (isTopN) {
       return tct(
@@ -92,10 +96,9 @@ function confidenceMessage({
     noSampling
   ) {
     if (!userQuery) {
-      const matchingSpansCount =
-        sampleCount > 1
-          ? t('%s spans', <Count value={sampleCount} />)
-          : t('%s span', <Count value={sampleCount} />);
+      const matchingSpansCount = usePluralSampleCount
+        ? t('%s spans', <Count value={sampleCount} />)
+        : t('%s span', <Count value={sampleCount} />);
 
       if (isTopN) {
         return tct('[matchingSpansCount] for top [topEvents] groups', {
@@ -107,16 +110,15 @@ function confidenceMessage({
       return matchingSpansCount;
     }
 
-    const matchingSpansCount =
-      sampleCount > 1
-        ? t('%s matches', <Count value={sampleCount} />)
-        : t('%s match', <Count value={sampleCount} />);
+    const matchingSpansCount = usePluralSampleCount
+      ? t('%s matches', <Count value={sampleCount} />)
+      : t('%s match', <Count value={sampleCount} />);
 
-    const totalSpansCount = defined(rawSpanCounts.highAccuracy.count) ? (
-      rawSpanCounts.highAccuracy.count > 1 ? (
-        t('%s spans', <Count value={rawSpanCounts.highAccuracy.count} />)
+    const totalSpansCount = defined(rawSpanCounts.total.count) ? (
+      usePluralTotalSpansCount ? (
+        t('%s spans', <Count value={rawSpanCounts.total.count} />)
       ) : (
-        t('%s span', <Count value={rawSpanCounts.highAccuracy.count} />)
+        t('%s span', <Count value={rawSpanCounts.total.count} />)
       )
     ) : (
       <Placeholder width={40} />
@@ -142,16 +144,15 @@ function confidenceMessage({
     // partial scans means that we didnt scan all the data so it's useful
     // to mention the total number of spans available
     if (dataScanned === 'partial') {
-      const matchingSpansCount =
-        sampleCount > 1
-          ? t('%s samples', <Count value={sampleCount} />)
-          : t('%s sample', <Count value={sampleCount} />);
+      const matchingSpansCount = usePluralSampleCount
+        ? t('%s samples', <Count value={sampleCount} />)
+        : t('%s sample', <Count value={sampleCount} />);
 
-      const totalSpansCount = defined(rawSpanCounts.highAccuracy.count) ? (
-        rawSpanCounts.highAccuracy.count > 1 ? (
-          t('%s spans', <Count value={rawSpanCounts.highAccuracy.count} />)
+      const totalSpansCount = defined(rawSpanCounts.total.count) ? (
+        usePluralTotalSpansCount ? (
+          t('%s spans', <Count value={rawSpanCounts.total.count} />)
         ) : (
-          t('%s span', <Count value={rawSpanCounts.highAccuracy.count} />)
+          t('%s span', <Count value={rawSpanCounts.total.count} />)
         )
       ) : (
         <Placeholder width={40} />
@@ -184,10 +185,9 @@ function confidenceMessage({
     // otherwise, a full scan was done
     // full scan means we scanned all the data available so no need to repeat that information twice
 
-    const matchingSpansCount =
-      sampleCount > 1
-        ? t('%s spans', <Count value={sampleCount} />)
-        : t('%s span', <Count value={sampleCount} />);
+    const matchingSpansCount = usePluralSampleCount
+      ? t('%s spans', <Count value={sampleCount} />)
+      : t('%s span', <Count value={sampleCount} />);
 
     if (isTopN) {
       return tct(
@@ -215,13 +215,12 @@ function confidenceMessage({
   // partial scans means that we didnt scan all the data so it's useful
   // to mention the total number of spans available
   if (dataScanned === 'partial') {
-    const matchingSpansCount =
-      sampleCount > 1
-        ? t('%s matches', <Count value={sampleCount} />)
-        : t('%s match', <Count value={sampleCount} />);
+    const matchingSpansCount = usePluralSampleCount
+      ? t('%s matches', <Count value={sampleCount} />)
+      : t('%s match', <Count value={sampleCount} />);
 
     const scannedSpansCount = defined(rawSpanCounts.normal.count) ? (
-      rawSpanCounts.normal.count > 1 ? (
+      usePluralNormalSpansCount ? (
         t('%s samples', <Count value={rawSpanCounts.normal.count} />)
       ) : (
         t('%s sample', <Count value={rawSpanCounts.normal.count} />)
@@ -230,11 +229,11 @@ function confidenceMessage({
       <Placeholder width={40} />
     );
 
-    const totalSpansCount = defined(rawSpanCounts.highAccuracy.count) ? (
-      rawSpanCounts.highAccuracy.count > 1 ? (
-        t('%s spans', <Count value={rawSpanCounts.highAccuracy.count} />)
+    const totalSpansCount = defined(rawSpanCounts.total.count) ? (
+      usePluralTotalSpansCount ? (
+        t('%s spans', <Count value={rawSpanCounts.total.count} />)
       ) : (
-        t('%s span', <Count value={rawSpanCounts.highAccuracy.count} />)
+        t('%s span', <Count value={rawSpanCounts.total.count} />)
       )
     ) : (
       <Placeholder width={40} />
@@ -269,16 +268,15 @@ function confidenceMessage({
   // otherwise, a full scan was done
   // full scan means we scanned all the data available so no need to repeat that information twice
 
-  const matchingSpansCount =
-    sampleCount > 1
-      ? t('%s matches', <Count value={sampleCount} />)
-      : t('%s match', <Count value={sampleCount} />);
+  const matchingSpansCount = usePluralSampleCount
+    ? t('%s matches', <Count value={sampleCount} />)
+    : t('%s match', <Count value={sampleCount} />);
 
-  const totalSpansCount = defined(rawSpanCounts.highAccuracy.count) ? (
-    rawSpanCounts.highAccuracy.count > 1 ? (
-      t('%s spans', <Count value={rawSpanCounts.highAccuracy.count} />)
+  const totalSpansCount = defined(rawSpanCounts.total.count) ? (
+    usePluralTotalSpansCount ? (
+      t('%s spans', <Count value={rawSpanCounts.total.count} />)
     ) : (
-      t('%s span', <Count value={rawSpanCounts.highAccuracy.count} />)
+      t('%s span', <Count value={rawSpanCounts.total.count} />)
     )
   ) : (
     <Placeholder width={40} />

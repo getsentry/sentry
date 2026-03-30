@@ -36,6 +36,7 @@ import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/deta
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
 import {DescribeSection} from 'sentry/views/detectors/components/forms/common/describeSection';
+import {ProjectEnvironmentSection} from 'sentry/views/detectors/components/forms/common/projectEnvironmentSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
@@ -44,6 +45,7 @@ import {
   metricSavedDetectorToFormData,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {MetricIssuePreview} from 'sentry/views/detectors/components/forms/metric/metricIssuePreview';
 import {MetricDetectorPreviewChart} from 'sentry/views/detectors/components/forms/metric/previewChart';
 import {DetectorQueryFilterBuilder} from 'sentry/views/detectors/components/forms/metric/queryFilterBuilder';
 import {ResolveSection} from 'sentry/views/detectors/components/forms/metric/resolveSection';
@@ -72,11 +74,13 @@ function MetricDetectorForm() {
     <Stack gap="2xl" maxWidth={theme.breakpoints.xl}>
       <TransactionsDatasetWarningListener />
       <MigratedAlertWarningListener />
+      <ProjectEnvironmentSection />
       <TemplateSection />
       <CustomizeMetricSection />
       <DetectSection />
       <AssignSection />
       <DescribeSection />
+      <MetricIssuePreview />
       <AutomateSection />
     </Stack>
   );

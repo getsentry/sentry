@@ -45,6 +45,7 @@ from sentry.rules.filters.tagged_event import TaggedEventFilter
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack, with_feature
+from sentry.testutils.helpers.serializer_parity import assert_serializer_parity
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.user import User
 from sentry.workflow_engine.models import (
@@ -209,17 +210,13 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
             comparison=True,
             condition_result=True,
         )
-        workflow_filters = self.create_data_condition_group()
-        self.create_workflow_data_condition_group(
-            workflow=workflow, condition_group=workflow_filters
-        )
+        action_group, _ = self.create_workflow_action(workflow)
         self.create_data_condition(  # filter condition
-            condition_group=workflow_filters,
+            condition_group=action_group,
             type=Condition.EVENT_ATTRIBUTE,
             comparison={"attribute": "platform", "match": "eq", "value": "python"},
             condition_result=True,
         )
-        self.create_workflow_action(workflow)
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
@@ -246,6 +243,89 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
         assert (
             issue_resolved_trigger_resp["errors"][0]["detail"]
             == f"Condition not supported: {Condition.ISSUE_RESOLVED_TRIGGER}"
+        )
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    def test_multiple_action_filters(self) -> None:
+        """
+        Test that if a workflow has multiple action filters (uses an if/then block) we only render 1 in the old UI and add to the error response
+        """
+
+        detector = self.create_detector(project=self.project)
+        workflow_triggers = self.create_data_condition_group()
+        workflow = self.create_workflow(
+            when_condition_group=workflow_triggers,
+            organization=detector.project.organization,
+            name="Issue resolved trigger workflow",
+        )
+        self.create_detector_workflow(detector=detector, workflow=workflow)
+        self.create_data_condition(  # trigger condition
+            condition_group=workflow_triggers,
+            type=Condition.ISSUE_RESOLVED_TRIGGER,
+            comparison=True,
+            condition_result=True,
+        )
+        self.create_data_condition(  # trigger condition
+            condition_group=workflow_triggers,
+            type=Condition.EXISTING_HIGH_PRIORITY_ISSUE,
+            comparison=True,
+            condition_result=True,
+        )
+        # First if/then block: action DCG with filter condition + action
+        action_group1, _ = self.create_workflow_action(workflow)
+        self.create_data_condition(
+            condition_group=action_group1,
+            type=Condition.EVENT_ATTRIBUTE,
+            comparison={"attribute": "platform", "match": "eq", "value": "python"},
+            condition_result=True,
+        )
+        # Second if/then block: action DCG with filter condition + action
+        action_group2, _ = self.create_workflow_action(workflow)
+        dc2 = self.create_data_condition(
+            condition_group=action_group2,
+            type=Condition.EVENT_ATTRIBUTE,
+            comparison={"attribute": "platform", "match": "eq", "value": "java"},
+            condition_result=True,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
+        )
+
+        multiple_action_filter_resp = None
+        for resp in response.data:
+            if resp["name"] == workflow.name:
+                multiple_action_filter_resp = resp
+
+        assert multiple_action_filter_resp
+        # only the first if/then block's filter is rendered
+        assert len(multiple_action_filter_resp["filters"]) == 1
+        assert (
+            multiple_action_filter_resp["errors"][0]["detail"]
+            == "Multiple if/then blocks are not supported in this view. Only the first if/then block is displayed."
+        )
+
+        # remove the 2nd data condition so the if/then is just an action - this should still show the error
+        dc2.delete()
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
+        )
+
+        multiple_action_filter_resp = None
+        for resp in response.data:
+            if resp["name"] == workflow.name:
+                multiple_action_filter_resp = resp
+
+        assert multiple_action_filter_resp
+        # only the first if/then block's filter is rendered
+        assert len(multiple_action_filter_resp["filters"]) == 1
+        assert (
+            multiple_action_filter_resp["errors"][0]["detail"]
+            == "Multiple if/then blocks are not supported in this view. Only the first if/then block is displayed."
         )
 
     @with_feature("organizations:workflow-engine-rule-serializers")
@@ -1592,19 +1672,4 @@ class GetProjectRulesDeltaTest(APITestCase):
         we_rule = we_response.data[0]
         assert legacy_rule["id"] == str(rule.id)
 
-        known_differences: set[str] = set()
-
-        mismatches: list[str] = []
-        for field in set(list(legacy_rule.keys()) + list(we_rule.keys())):
-            if field in known_differences:
-                continue
-            if field not in we_rule:
-                mismatches.append(f"Missing from workflow engine: {field}")
-            elif field not in legacy_rule:
-                mismatches.append(f"Extra in workflow engine: {field}")
-            elif legacy_rule[field] != we_rule[field]:
-                mismatches.append(f"{field}: legacy={legacy_rule[field]!r}, we={we_rule[field]!r}")
-
-        assert not mismatches, "Legacy vs workflow engine serializer differences:\n" + "\n".join(
-            mismatches
-        )
+        assert_serializer_parity(old=legacy_rule, new=we_rule)

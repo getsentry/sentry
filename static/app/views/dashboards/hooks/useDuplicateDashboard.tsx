@@ -27,13 +27,28 @@ export function useDuplicateDashboard({onSuccess}: UseDuplicateDashboardProps) {
   const duplicateDashboard = useCallback(
     async (dashboard: DashboardListItem, viewType: 'table' | 'grid') => {
       try {
-        const dashboardDetail = dashboard.prebuiltId
-          ? await resolveLinkedDashboardIds({
+        let dashboardDetail: DashboardDetails;
+        if (dashboard.prebuiltId) {
+          // Widgets come from static config. If the dashboard has been saved
+          // (has a real ID), also fetch the saved instance to copy its filters.
+          const hasSavedInstance = dashboard.id && dashboard.id !== '-1';
+          const [resolved, saved] = await Promise.all([
+            resolveLinkedDashboardIds({
               queryClient,
               orgSlug: organization.slug,
               dashboard: toPrebuiltDashboardDetails(dashboard.prebuiltId),
-            })
-          : await fetchDashboard(api, organization.slug, dashboard.id);
+            }),
+            hasSavedInstance
+              ? fetchDashboard(api, organization.slug, dashboard.id)
+              : Promise.resolve(undefined),
+          ]);
+          dashboardDetail = resolved;
+          if (saved) {
+            copySavedFilters(dashboardDetail, saved);
+          }
+        } else {
+          dashboardDetail = await fetchDashboard(api, organization.slug, dashboard.id);
+        }
 
         const newDashboard = cloneDashboard(dashboardDetail);
         newDashboard.title = `${newDashboard.title} copy`;
@@ -93,9 +108,7 @@ export function useDuplicatePrebuiltDashboard({onSuccess}: UseDuplicateDashboard
         delete newDashboard.prebuiltId;
         newDashboard.title = `${newDashboard.title} copy`;
         newDashboard.widgets.map(widget => (widget.id = undefined));
-        if (savedDashboard.filters !== undefined) {
-          newDashboard.filters = savedDashboard.filters;
-        }
+        copySavedFilters(newDashboard, savedDashboard);
         const copiedDashboard = await createDashboard(
           api,
           organization.slug,
@@ -113,6 +126,22 @@ export function useDuplicatePrebuiltDashboard({onSuccess}: UseDuplicateDashboard
   );
 
   return {duplicatePrebuiltDashboard, isLoading};
+}
+
+/**
+ * Copies saved filter state from a persisted dashboard onto a target.
+ * This includes both the DashboardFilters object (globalFilter, release) and
+ * the page-level filters (projects, environment, date range) which are stored
+ * as top-level fields.
+ */
+function copySavedFilters(target: DashboardDetails, source: DashboardDetails): void {
+  target.filters = source.filters;
+  target.projects = source.projects;
+  target.environment = source.environment;
+  target.period = source.period;
+  target.start = source.start;
+  target.end = source.end;
+  target.utc = source.utc;
 }
 
 /**

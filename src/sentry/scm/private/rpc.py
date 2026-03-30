@@ -29,6 +29,7 @@ from sentry.scm.actions import (
     delete_pull_request_reaction,
     get_archive_link,
     get_branch,
+    get_capabilities,
     get_check_run,
     get_commit,
     get_commits,
@@ -133,6 +134,7 @@ scm_action_registry: dict[str, Callable] = {
     # If a method of SourceCodeManager accepts only JSON-serializable arguments, by names, and
     # returns a JSON-serializable type, then it can be listed here directly.
     # Else, an adapter function must be used.
+    "get_capabilities_v1": lambda scm: sorted(get_capabilities(scm)),
     "compare_commits_v1": compare_commits,
     "create_branch_v1": create_branch,
     "create_check_run_v1": create_check_run,

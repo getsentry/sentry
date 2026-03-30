@@ -97,8 +97,8 @@ describe('MetricPanel', () => {
     fields: ['id', 'timestamp'],
     sortBys: [{field: 'timestamp', kind: 'desc'}],
     aggregateCursor: '',
-    aggregateFields: [new VisualizeFunction('per_second(value)')],
-    aggregateSortBys: [{field: 'per_second(value)', kind: 'desc'}],
+    aggregateFields: [new VisualizeFunction('sum(value)')],
+    aggregateSortBys: [{field: 'sum(value)', kind: 'desc'}],
   });
 
   describe('flag OFF (tracemetrics-enabled only)', () => {
@@ -226,6 +226,20 @@ describe('MetricPanel', () => {
 
       // The visualize label badge "A" (from getVisualizeLabel(0)) should be present
       expect(await screen.findByText('A')).toBeInTheDocument();
+    });
+
+    it('does not render telemetry column headers in the samples table', async () => {
+      render(<MetricPanel traceMetric={traceMetric} queryIndex={0} />, {
+        organization,
+        additionalWrapper: createWrapper({queryParams, traceMetric}),
+      });
+
+      // Wait for the samples table to render
+      expect(await screen.findByText('Timestamp')).toBeInTheDocument();
+
+      expect(screen.queryByText('Logs')).not.toBeInTheDocument();
+      expect(screen.queryByText('Spans')).not.toBeInTheDocument();
+      expect(screen.queryByText('Errors')).not.toBeInTheDocument();
     });
 
     it('does not render orientation controls', async () => {

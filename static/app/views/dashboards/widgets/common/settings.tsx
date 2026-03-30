@@ -28,6 +28,7 @@ export const NON_FINITE_NUMBER_MESSAGE = t('Value is not a finite number.');
 // Currently we lose precision for actual number fields because we
 // can't distinguish them from percentage-like fields that need capping.
 export const NUMBER_MAX_FRACTION_DIGITS = 4;
+export const NUMBER_MIN_VALUE = 10 ** -NUMBER_MAX_FRACTION_DIGITS;
 
 export const ALLOWED_CELL_ACTIONS = [
   Actions.OPEN_INTERNAL_LINK,

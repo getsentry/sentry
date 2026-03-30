@@ -206,7 +206,7 @@ class UserSerializer(Serializer):
             )
 
             d["options"] = {
-                "theme": options.get("theme") or "light",
+                "theme": options.get("theme") or "system",
                 "language": options.get("language") or settings.SENTRY_DEFAULT_LANGUAGE,
                 "stacktraceOrder": stacktrace_order,
                 "defaultIssueEvent": options.get("default_issue_event") or "recommended",

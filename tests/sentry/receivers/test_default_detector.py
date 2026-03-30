@@ -27,7 +27,7 @@ from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 
 class TestEnsureMetricDetector(TestCase):
-    def test_creates_detector_with_all_components(self):
+    def test_creates_detector_with_all_components(self) -> None:
         """Test that ensure_default_anomaly_detector creates detector with all required components."""
         project = self.create_project()
         team = self.create_team(organization=project.organization)
@@ -73,7 +73,7 @@ class TestEnsureMetricDetector(TestCase):
         assert snuba_query.aggregate == "count()"
         assert snuba_query.time_window == 60 * 15  # 15 minutes in seconds
 
-    def test_creates_detector_without_team(self):
+    def test_creates_detector_without_team(self) -> None:
         """Test that detector can be created without an owner team."""
         project = self.create_project()
 
@@ -84,7 +84,7 @@ class TestEnsureMetricDetector(TestCase):
         assert detector.owner_team_id is None
         assert detector.enabled is True
 
-    def test_send_new_detector_data_failure_blocks_creation(self):
+    def test_send_new_detector_data_failure_blocks_creation(self) -> None:
         """Test that detector is NOT created if sending data to Seer fails."""
         project = self.create_project()
 
@@ -98,7 +98,7 @@ class TestEnsureMetricDetector(TestCase):
         # Transaction was rolled back, so no detector should exist
         assert not Detector.objects.filter(project=project, type=MetricIssue.slug).exists()
 
-    def test_returns_existing_detector_without_creating_duplicates(self):
+    def test_returns_existing_detector_without_creating_duplicates(self) -> None:
         """Test that calling ensure_default_anomaly_detector twice returns the same detector."""
         project = self.create_project()
 
@@ -117,7 +117,7 @@ class TestEnsureMetricDetector(TestCase):
 class TestCreateDefaultAnomalyDetector(TestCase):
     @with_feature("organizations:default-anomaly-detector")
     @with_feature("organizations:anomaly-detection-alerts")
-    def test_creates_enabled_detector_when_both_features_enabled(self):
+    def test_creates_enabled_detector_when_both_features_enabled(self) -> None:
         """Test that detector is created and enabled when both feature flags are enabled."""
         project = self.create_project()
         # Get the team that was auto-created with the project
@@ -133,7 +133,7 @@ class TestCreateDefaultAnomalyDetector(TestCase):
         assert detector.enabled is True
 
     @with_feature("organizations:default-anomaly-detector")
-    def test_creates_disabled_detector_when_plan_feature_missing(self):
+    def test_creates_disabled_detector_when_plan_feature_missing(self) -> None:
         """Test that detector is created but disabled when anomaly-detection-alerts is off."""
         project = self.create_project()
 
@@ -144,7 +144,7 @@ class TestCreateDefaultAnomalyDetector(TestCase):
         assert detector.enabled is False
 
     @with_feature({"organizations:default-anomaly-detector": False})
-    def test_does_not_create_detector_when_feature_disabled(self):
+    def test_does_not_create_detector_when_feature_disabled(self) -> None:
         """Test that detector is not created when feature flag is disabled."""
         project = self.create_project()
 
@@ -153,7 +153,7 @@ class TestCreateDefaultAnomalyDetector(TestCase):
         assert not Detector.objects.filter(project=project, type=MetricIssue.slug).exists()
 
     @with_feature("organizations:default-anomaly-detector")
-    def test_creates_detector_without_team(self):
+    def test_creates_detector_without_team(self) -> None:
         """Test that detector is created even when project has no teams."""
         project = self.create_project()
         # Remove all teams
@@ -167,7 +167,7 @@ class TestCreateDefaultAnomalyDetector(TestCase):
 
 
 class TestDisableDefaultDetectorCreation(TestCase):
-    def test_context_manager_disables_signal(self):
+    def test_context_manager_disables_signal(self) -> None:
         """Test that disable_default_detector_creation prevents default detectors."""
         with disable_default_detector_creation():
             project = self.create_project(create_default_detectors=True)
@@ -176,7 +176,7 @@ class TestDisableDefaultDetectorCreation(TestCase):
         assert not Detector.objects.filter(project=project, type=ErrorGroupType.slug).exists()
         assert not Detector.objects.filter(project=project, type=IssueStreamGroupType.slug).exists()
 
-    def test_context_manager_reconnects_on_exception(self):
+    def test_context_manager_reconnects_on_exception(self) -> None:
         """Test that signals are reconnected even if exception occurs."""
         try:
             with disable_default_detector_creation():
@@ -193,7 +193,7 @@ class TestDisableDefaultDetectorCreation(TestCase):
         assert "create_default_anomaly_detector" in project_created_uids
 
     @with_feature("organizations:default-anomaly-detector")
-    def test_context_manager_disables_metric_detector_signal(self):
+    def test_context_manager_disables_metric_detector_signal(self) -> None:
         """Test that disable_default_detector_creation also prevents metric detector creation."""
         with (
             disable_default_detector_creation(),
@@ -208,13 +208,13 @@ class TestDisableDefaultDetectorCreation(TestCase):
 
 class TestCreatePerformanceDetectors(TestCase):
     @with_feature("projects:workflow-engine-performance-detectors")
-    def test_creates_detectors_on_project_creation(self):
+    def test_creates_detectors_on_project_creation(self) -> None:
         project = self.create_project()
 
         for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values():
             assert Detector.objects.filter(project=project, type=mapping.wfe_detector_type).exists()
 
-    def test_does_not_create_detectors_when_flag_disabled(self):
+    def test_does_not_create_detectors_when_flag_disabled(self) -> None:
         project = self.create_project()
 
         for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values():
@@ -223,7 +223,7 @@ class TestCreatePerformanceDetectors(TestCase):
             ).exists()
 
     @with_feature("projects:workflow-engine-performance-detectors")
-    def test_idempotent_no_duplicates(self):
+    def test_idempotent_no_duplicates(self) -> None:
         with disable_default_detector_creation():
             project = self.create_project()
 
@@ -237,7 +237,7 @@ class TestCreatePerformanceDetectors(TestCase):
             )
 
     @with_feature("projects:workflow-engine-performance-detectors")
-    def test_disable_default_detector_creation_prevents_performance_detectors(self):
+    def test_disable_default_detector_creation_prevents_performance_detectors(self) -> None:
         with disable_default_detector_creation():
             project = self.create_project()
 

@@ -9,22 +9,23 @@ This skill helps migrate forms from Sentry's legacy form system (JsonForm, FormM
 
 ## Feature Mapping
 
-| Old System           | New System          | Notes                                        |
-| -------------------- | ------------------- | -------------------------------------------- |
-| `saveOnBlur: true`   | `AutoSaveForm`      | Default behavior                             |
-| `confirm`            | `confirm` prop      | `string \| ((value) => string \| undefined)` |
-| `showHelpInTooltip`  | `variant="compact"` | On layout components                         |
-| `disabledReason`     | `disabled="reason"` | String shows tooltip                         |
-| `extraHelp`          | JSX in layout       | Render `<Text>` below field                  |
-| `getData`            | `mutationFn`        | Transform data in mutation function          |
-| `mapFormErrors`      | `setFieldErrors`    | Transform API errors in catch block          |
-| `saveMessage`        | `onSuccess`         | Show toast in mutation onSuccess callback    |
-| `formatMessageValue` | `onSuccess`         | Control toast content in onSuccess callback  |
-| `resetOnError`       | `onError`           | Call form.reset() in mutation onError        |
-| `saveOnBlur: false`  | `useScrapsForm`     | Use regular form with explicit Save button   |
-| `help`               | `hintText`          | On layout components                         |
-| `label`              | `label`             | On layout components                         |
-| `required`           | `required`          | On layout + Zod schema                       |
+| Old System           | New System          | Notes                                                |
+| -------------------- | ------------------- | ---------------------------------------------------- |
+| `saveOnBlur: true`   | `AutoSaveForm`      | Default behavior                                     |
+| `confirm`            | `confirm` prop      | `string \| ((value) => string \| undefined)`         |
+| `showHelpInTooltip`  | `variant="compact"` | On layout components                                 |
+| `disabledReason`     | `disabled="reason"` | String shows tooltip                                 |
+| `extraHelp`          | JSX in layout       | Render `<Text>` below field                          |
+| `getData`            | `mutationFn`        | Transform data in mutation function                  |
+| `mapFormErrors`      | `setFieldErrors`    | Transform API errors in catch block                  |
+| `saveMessage`        | `onSuccess`         | Show toast in mutation onSuccess callback            |
+| `formatMessageValue` | `onSuccess`         | Control toast content in onSuccess callback          |
+| `resetOnError`       | `onError`           | Call form.reset() in mutation onError                |
+| `saveOnBlur: false`  | `useScrapsForm`     | Use regular form with explicit Save button           |
+| (automatic)          | `form.reset()`      | Call after successful mutation if form stays on page |
+| `help`               | `hintText`          | On layout components                                 |
+| `label`              | `label`             | On layout components                                 |
+| `required`           | `required`          | On layout + Zod schema                               |
 
 ## Feature Details
 
@@ -410,6 +411,20 @@ const form = useScrapsForm({
 
 > **Note**: AutoSaveForm with TanStack Query already handles error states gracefully - the mutation's `isError` state is reflected in the UI. Manual reset is typically only needed for specific UX requirements like password fields.
 
+### Resetting After Save
+
+When using `useScrapsForm` for a form that stays on the page after save, call `form.reset()` after a successful mutation. This re-syncs the form with updated `defaultValues` so it becomes pristine again — any UI that depends on the form being dirty (like conditionally shown Save/Cancel buttons) will update correctly.
+
+```tsx
+onSubmit: ({value}) =>
+  mutation
+    .mutateAsync(value)
+    .then(() => form.reset())
+    .catch(() => {}),
+```
+
+> **Note**: `AutoSaveForm` handles this automatically. You only need to add this when using `useScrapsForm`.
+
 ### saveOnBlur: false → `useScrapsForm`
 
 Fields with `saveOnBlur: false` showed an inline alert with Save/Cancel buttons instead of auto-saving. This was used for dangerous operations (slug changes) or large text edits (fingerprint rules).
@@ -597,6 +612,7 @@ This pattern is necessary whenever a required field has no meaningful initial va
 - [ ] Handle `mapFormErrors` with setFieldErrors in catch
 - [ ] Handle `saveMessage` in onSuccess callback
 - [ ] Convert `saveOnBlur: false` fields to regular forms with Save button
+- [ ] Call `form.reset()` after successful mutation (for forms that stay on page)
 - [ ] Verify `onSuccess` cache updates merge with existing data (use updater function) — some API endpoints may return partial objects
 - [ ] Wrap the migrated form with `<FormSearch route="...">` if the old form was searchable in SettingsSearch
 - [ ] Run `pnpm run extract-form-fields` and commit the updated `generatedFieldRegistry.ts`

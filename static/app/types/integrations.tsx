@@ -131,6 +131,11 @@ export type Commit = {
 export type Committer = {
   author: User;
   commits: Commit[];
+  /**
+   * Primary key of the GroupOwner record that linked this committer to the issue.
+   * Used for suspect commit feedback analytics.
+   */
+  group_owner_id?: number;
 };
 
 export type CommitAuthor = {
@@ -571,7 +576,7 @@ export type AppOrProviderOrPlugin =
 /**
  * Webhooks and servicehooks
  */
-export type WebhookEvent = 'issue' | 'error' | 'comment' | 'seer';
+export type WebhookEvent = 'issue' | 'error' | 'comment' | 'seer' | 'preprod_artifact';
 
 export type ServiceHook = {
   dateCreated: string;

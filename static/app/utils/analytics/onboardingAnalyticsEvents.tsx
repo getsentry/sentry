@@ -39,6 +39,22 @@ export type OnboardingEventParameters = {
     project_id: string;
     step: string;
   };
+  'onboarding.scm_connect_repo_selected': {
+    provider: string;
+    repo: string;
+  };
+  'onboarding.scm_connect_step_viewed': Record<string, unknown>;
+  'onboarding.scm_platform_change_platform_clicked': Record<string, unknown>;
+  'onboarding.scm_platform_feature_toggled': {
+    enabled: boolean;
+    feature: string;
+    platform: string;
+  };
+  'onboarding.scm_platform_features_step_viewed': Record<string, unknown>;
+  'onboarding.scm_platform_selected': {
+    platform: string;
+    source: 'detected' | 'manual';
+  };
   'onboarding.select_framework_modal_close_button_clicked': {
     platform: string;
   };
@@ -101,4 +117,12 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.take_me_to_issues_clicked': 'Onboarding: Take Me to Issues Clicked',
   'onboarding.slack_setup_clicked': 'Onboarding: Slack Setup Clicked',
   'onboarding.next_step_clicked': 'Onboarding: Next Step Clicked',
+  'onboarding.scm_connect_repo_selected': 'Onboarding: SCM Connect Repo Selected',
+  'onboarding.scm_connect_step_viewed': 'Onboarding: SCM Connect Step Viewed',
+  'onboarding.scm_platform_change_platform_clicked':
+    'Onboarding: SCM Platform Change Platform Clicked',
+  'onboarding.scm_platform_feature_toggled': 'Onboarding: SCM Platform Feature Toggled',
+  'onboarding.scm_platform_features_step_viewed':
+    'Onboarding: SCM Platform Features Step Viewed',
+  'onboarding.scm_platform_selected': 'Onboarding: SCM Platform Selected',
 };

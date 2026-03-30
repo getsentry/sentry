@@ -6,7 +6,7 @@ import pick from 'lodash/pick';
 import {LinkButton} from '@sentry/scraps/button';
 
 import type {RenderProps} from 'sentry/components/charts/eventsRequest';
-import EventsRequest from 'sentry/components/charts/eventsRequest';
+import {EventsRequest} from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';

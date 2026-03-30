@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import concurrent.futures as cf
 import logging
 from typing import Any
 
@@ -27,6 +26,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import replays_tasks
 from sentry.utils import metrics
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.pubsub import KafkaPublisher
 
 logger = logging.getLogger()
@@ -86,7 +86,7 @@ def delete_replays_script_async(
     for segment in segments:
         rrweb_filenames.append(make_recording_filename(segment))
 
-    with cf.ThreadPoolExecutor(max_workers=100) as pool:
+    with ContextPropagatingThreadPoolExecutor(max_workers=100) as pool:
         pool.map(_delete_if_exists, rrweb_filenames)
 
     # Backwards compatibility. Should be deleted one day.
@@ -128,7 +128,7 @@ def delete_replay_recording(project_id: int, replay_id: str) -> None:
             direct_storage_segments.append(segment)
 
     # Issue concurrent delete requests when interacting with a remote service provider.
-    with cf.ThreadPoolExecutor(max_workers=100) as pool:
+    with ContextPropagatingThreadPoolExecutor(max_workers=100) as pool:
         if direct_storage_segments:
             pool.map(storage.delete, direct_storage_segments)
 

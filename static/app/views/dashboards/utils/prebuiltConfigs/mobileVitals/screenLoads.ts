@@ -3,6 +3,7 @@ import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {SCREEN_LOADS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const TRANSACTION_CONDITION = `is_transaction:true ${SpanFields.TRANSACTION_OP}:[ui.load,navigation]`;
@@ -190,7 +191,7 @@ const TTID_BAR_CHART_WIDGET: Widget = {
       ],
       aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`],
       columns: [SpanFields.DEVICE_CLASS],
-      fieldAliases: ['Device Class', 'AVG TTID'],
+      fieldAliases: [t('Device Class'), 'AVG TTID'],
       conditions: TRANSACTION_CONDITION,
       orderby: SpanFields.DEVICE_CLASS,
     },
@@ -221,7 +222,7 @@ const TTFD_BAR_CHART_WIDGET: Widget = {
       ],
       aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FULL_DISPLAY})`],
       columns: [SpanFields.DEVICE_CLASS],
-      fieldAliases: ['Device Class', 'AVG TTFD'],
+      fieldAliases: [t('Device Class'), 'AVG TTFD'],
       conditions: TRANSACTION_CONDITION,
       orderby: SpanFields.DEVICE_CLASS,
     },
@@ -262,8 +263,8 @@ const SPAN_OPERATIONS_TABLE: Widget = {
       ],
       columns: [SpanFields.SPAN_OP, SpanFields.SPAN_DESCRIPTION],
       fieldAliases: [
-        'Operation',
-        'Span Description',
+        t('Operation'),
+        t('Span Description'),
         'TTID Contribution Rate',
         'TTFD Contribution Rate',
         'Avg Self Time',
@@ -298,7 +299,7 @@ const THIRD_ROW_WIDGETS: Widget[] = [TTID_BAR_CHART_WIDGET, TTFD_BAR_CHART_WIDGE
 
 export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
-  title: t('Mobile Vitals Screen Loads'),
+  title: SCREEN_LOADS_DASHBOARD_TITLE,
   projects: [],
   widgets: [
     ...HEADER_ROW_WIDGETS,
@@ -322,15 +323,6 @@ export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
         tag: {
           key: 'transaction',
           name: 'transaction',
-          kind: FieldKind.TAG,
-        },
-        value: '',
-      },
-      {
-        dataset: WidgetType.SPANS,
-        tag: {
-          key: SpanFields.SPAN_OP,
-          name: SpanFields.SPAN_OP,
           kind: FieldKind.TAG,
         },
         value: '',

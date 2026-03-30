@@ -122,8 +122,8 @@ export function useActivateNavigationGroupOnHover({
     };
 
     return {
-      'aria-selected': activeGroup === group ? true : isActive,
-      'aria-current': isActive ? ('page' as const) : undefined,
+      'aria-current': isActive ? ('location' as const) : undefined,
+      'data-active-group': activeGroup === group ? 'true' : undefined,
       onMouseEnter,
       onMouseLeave,
       onClick,

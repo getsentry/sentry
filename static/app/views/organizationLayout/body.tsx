@@ -6,7 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LogoSentry} from 'sentry/components/logoSentry';
 import {t, tct} from 'sentry/locale';
 import {AlertStore} from 'sentry/stores/alertStore';

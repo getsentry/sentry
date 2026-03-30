@@ -16,13 +16,10 @@ import {Switch} from '@sentry/scraps/switch';
 
 import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {
-  openGenerateDashboardFromSeerModal,
-  openImportDashboardFromFileModal,
-} from 'sentry/actionCreators/modal';
+import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
@@ -173,6 +170,9 @@ function ManageDashboards() {
   const isOnlyPrebuilt =
     hasPrebuiltDashboards && urlFilter === DashboardFilter.ONLY_PREBUILT;
 
+  const areAiFeaturesAllowed =
+    !organization.hideAiFeatures && organization.features.includes('gen-ai-features');
+
   const [showTemplates, setShowTemplatesLocal] = useLocalStorageState(
     SHOW_TEMPLATES_KEY,
     shouldShowTemplates()
@@ -211,7 +211,9 @@ function ManageDashboards() {
           pin: 'favorites',
           per_page:
             dashboardsLayout === GRID ? rowCount * columnCount : DASHBOARD_TABLE_NUM_ROWS,
-          ...(isOnlyPrebuilt ? {filter: DashboardFilter.ONLY_PREBUILT} : {}),
+          ...(isOnlyPrebuilt
+            ? {filter: DashboardFilter.ONLY_PREBUILT}
+            : {filter: DashboardFilter.EXCLUDE_PREBUILT}),
         },
       },
     ],
@@ -597,6 +599,17 @@ function ManageDashboards() {
     );
   }
 
+  function onGenerateDashboard() {
+    trackAnalytics('dashboards_manage.generate.start', {
+      organization,
+    });
+    navigate(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/dashboards/new/from-seer/`,
+      })
+    );
+  }
+
   return (
     <Feature
       organization={organization}
@@ -647,9 +660,9 @@ function ManageDashboards() {
                       )}
 
                       <FeedbackButton />
-                      <Feature features="dashboards-ai-generate">
+                      <Feature features={['dashboards-ai-generate']}>
                         {({hasFeature: hasAiGenerate}) =>
-                          hasAiGenerate ? (
+                          hasAiGenerate && areAiFeaturesAllowed ? (
                             <DashboardCreateLimitWrapper>
                               {({
                                 hasReachedDashboardLimit,
@@ -660,7 +673,7 @@ function ManageDashboards() {
                                   items={[
                                     {
                                       key: 'create-dashboard',
-                                      label: t('Create Manually'),
+                                      label: t('Create dashboard manually'),
                                       onAction: () => onCreate(),
                                       disabled:
                                         hasReachedDashboardLimit ||
@@ -671,16 +684,11 @@ function ManageDashboards() {
                                       key: 'create-dashboard-agent',
                                       label: (
                                         <Flex gap="sm" align="center" as="span">
-                                          {t('Create with Agent')}
-                                          <FeatureBadge type="experimental" />
+                                          {t('Generate dashboard')}
+                                          <FeatureBadge type="beta" />
                                         </Flex>
                                       ),
-                                      onAction: () =>
-                                        openGenerateDashboardFromSeerModal({
-                                          organization,
-                                          location,
-                                          navigate,
-                                        }),
+                                      onAction: () => onGenerateDashboard(),
                                     },
                                   ]}
                                   trigger={triggerProps => (

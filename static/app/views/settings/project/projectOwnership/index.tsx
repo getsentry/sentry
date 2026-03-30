@@ -9,7 +9,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {closeModal, openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
 import {Access, hasEveryAccess} from 'sentry/components/acl/access';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconEdit} from 'sentry/icons';

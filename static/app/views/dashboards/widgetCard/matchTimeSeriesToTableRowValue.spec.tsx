@@ -82,6 +82,21 @@ describe('matchTimeSeriesToTableRowValue', () => {
     expect(result).toBe(50);
   });
 
+  it('matches numeric table values to numeric groupBy values', () => {
+    const result = matchTimeSeriesToTableRowValue({
+      tableDataRows: [
+        {id: '1', 'http.response_status_code': 200, 'count()': 50},
+        {id: '2', 'http.response_status_code': 404, 'count()': 3},
+      ],
+      timeSeries: TimeSeriesFixture({
+        yAxis: 'count()',
+        groupBy: [{key: 'http.response_status_code', value: 200}],
+      }),
+    });
+
+    expect(result).toBe(50);
+  });
+
   it('matches array groupBy values using Python str() format', () => {
     const result = matchTimeSeriesToTableRowValue({
       tableDataRows: [

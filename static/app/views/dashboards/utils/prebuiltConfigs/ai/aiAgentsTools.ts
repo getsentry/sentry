@@ -2,6 +2,8 @@ import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {AI_AGENTS_TOOLS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
+import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -78,7 +80,13 @@ const TOOLS_TABLE = {
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
       columns: [SpanFields.GEN_AI_TOOL_NAME],
-      fieldAliases: [t('Tool'), t('Requests'), t('Errors'), t('Avg'), t('P95')],
+      fieldAliases: [
+        t('Tool'),
+        t('Requests'),
+        t('Errors'),
+        WIDGET_COLUMN_LABELS.avg,
+        WIDGET_COLUMN_LABELS.p95,
+      ],
       orderby: '-count()',
     },
   ],
@@ -94,7 +102,7 @@ const TOOLS_TABLE = {
 export const AI_AGENTS_TOOLS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
-  title: 'AI Agents Tool Details',
+  title: AI_AGENTS_TOOLS_DASHBOARD_TITLE,
   filters: {
     globalFilter: [
       {

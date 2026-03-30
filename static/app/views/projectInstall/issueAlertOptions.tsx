@@ -62,7 +62,7 @@ const INTERVAL_CHOICES = [
   {value: '30d', label: t('30 days')},
 ];
 
-const DEFAULT_ISSUE_ALERT_OPTIONS_VALUES = {
+export const DEFAULT_ISSUE_ALERT_OPTIONS_VALUES = {
   alertSetting: RuleAction.DEFAULT_ALERT,
   interval: '1m',
   metric: MetricValues.ERRORS,

@@ -7,7 +7,7 @@ import {Text} from '@sentry/scraps/text';
 import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
   AssigneeSelector,
   useHandleAssigneeChange,

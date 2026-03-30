@@ -15,7 +15,7 @@ import {uniqueId} from 'sentry/utils/guid';
 /**
  * Matches characters that are not valid in a header name.
  */
-const INVALID_NAME_HEADER_REGEX = new RegExp(/[^a-zA-Z0-9_-]+/g);
+const INVALID_NAME_HEADER_REGEX = new RegExp(/[^\w-]+/g);
 
 type HeaderEntry = [id: string, name: string, value: string];
 

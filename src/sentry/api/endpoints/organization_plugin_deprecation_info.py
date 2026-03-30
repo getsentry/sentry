@@ -62,7 +62,7 @@ class OrganizationPluginDeprecationInfoEndpoint(OrganizationEndpoint):
                     and action.get("service") == plugin
                 ):
                     matching_rule_urls.append(
-                        f"{url_prefix}/alerts/rules/{rule.project.slug}/{rule.id}/details/"
+                        f"{url_prefix}/issues/alerts/rules/{rule.project.slug}/{rule.id}/details/"
                     )
                     break
         return matching_rule_urls

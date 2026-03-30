@@ -10,7 +10,7 @@ from sentry.workflow_engine.caches.mapping import (
 class TestCacheMapping(TestCase):
     def setUp(self) -> None:
         test_only_clear_registered_namespaces()
-        self.mapping = CacheMapping[int, str](lambda x: str(x))
+        self.mapping = CacheMapping[int, str](lambda x: str(x), ttl_seconds=60)
 
     def test_key(self) -> None:
         assert self.mapping.key(123) == "123"
@@ -19,20 +19,20 @@ class TestCacheMapping(TestCase):
         assert self.mapping.get(1) is None
 
     def test_get__returns_value_when_set(self) -> None:
-        self.mapping.set(1, "test_value", 60)
+        self.mapping.set(1, "test_value")
         assert self.mapping.get(1) == "test_value"
 
     def test_set__stores_value(self) -> None:
-        self.mapping.set(42, "stored_value", 60)
+        self.mapping.set(42, "stored_value")
         assert self.mapping.get(42) == "stored_value"
 
     def test_set__overwrites_existing_value(self) -> None:
-        self.mapping.set(1, "first_value", 60)
-        self.mapping.set(1, "second_value", 60)
+        self.mapping.set(1, "first_value")
+        self.mapping.set(1, "second_value")
         assert self.mapping.get(1) == "second_value"
 
     def test_delete__removes_value(self) -> None:
-        self.mapping.set(1, "value_to_delete", 60)
+        self.mapping.set(1, "value_to_delete")
         assert self.mapping.get(1) == "value_to_delete"
 
         result = self.mapping.delete(1)
@@ -67,7 +67,7 @@ class TestCacheMapping(TestCase):
 
     def test_set_many__sets_values(self) -> None:
         data = {i: f"value_{i}" for i in range(5)}
-        failed = self.mapping.set_many(data, 60)
+        failed = self.mapping.set_many(data)
 
         assert failed == []
         for i in range(5):
@@ -75,7 +75,7 @@ class TestCacheMapping(TestCase):
 
     def test_delete_many__deletes_values(self) -> None:
         for i in range(4):
-            self.mapping.set(i, f"value_{i}", 60)
+            self.mapping.set(i, f"value_{i}")
 
         self.mapping.delete_many([0, 1, 2, 3])
 
@@ -86,14 +86,14 @@ class TestCacheMapping(TestCase):
         self.mapping.delete_many([])
 
     def test_namespace__prefixes_key(self) -> None:
-        mapping = CacheMapping[int, str](lambda x: str(x), namespace="test_ns")
+        mapping = CacheMapping[int, str](lambda x: str(x), namespace="test_ns", ttl_seconds=60)
         assert mapping.key(123) == "test_ns:123"
 
     def test_namespace__collision_raises(self) -> None:
-        CacheMapping[int, str](lambda x: str(x), namespace="unique_ns")
+        CacheMapping[int, str](lambda x: str(x), namespace="unique_ns", ttl_seconds=60)
         with pytest.raises(ValueError, match="already registered"):
-            CacheMapping[int, str](lambda x: str(x), namespace="unique_ns")
+            CacheMapping[int, str](lambda x: str(x), namespace="unique_ns", ttl_seconds=60)
 
     def test_namespace__none_does_not_prefix(self) -> None:
-        mapping = CacheMapping[int, str](lambda x: f"raw:{x}")
+        mapping = CacheMapping[int, str](lambda x: f"raw:{x}", ttl_seconds=60)
         assert mapping.key(123) == "raw:123"

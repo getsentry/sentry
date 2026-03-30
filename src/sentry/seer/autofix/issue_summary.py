@@ -21,6 +21,7 @@ from sentry.net.http import connection_from_url
 from sentry.seer.autofix.autofix import _get_trace_tree_for_event, trigger_autofix
 from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_explorer
 from sentry.seer.autofix.constants import (
+    AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD,
     AutofixAutomationTuningSettings,
     AutofixReferrer,
     FixabilityScoreThresholds,
@@ -433,7 +434,7 @@ def run_automation(
                 if hasattr(group, "_times_seen_pending")
                 else group.times_seen
             )
-            if times_seen < 10:
+            if times_seen < AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD:
                 return
 
     user_id = user.id if user else None

@@ -1,4 +1,4 @@
-export default [
+export const languages = [
   ['ja', 'Japanese'],
   ['it', 'Italian'],
   ['zh-tw', 'Traditional Chinese'],

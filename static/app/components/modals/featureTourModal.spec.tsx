@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {GlobalModal} from 'sentry/components/globalModal';
-import FeatureTourModal from 'sentry/components/modals/featureTourModal';
+import {FeatureTourModal} from 'sentry/components/modals/featureTourModal';
 
 const steps = [
   {

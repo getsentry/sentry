@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Stack} from '@sentry/scraps/layout';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Placeholder} from 'sentry/components/placeholder';
 import {ReplayController} from 'sentry/components/replays/replayController';
 import {ReplayView} from 'sentry/components/replays/replayView';

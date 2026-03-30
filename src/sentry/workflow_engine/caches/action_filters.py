@@ -16,18 +16,15 @@ METRIC_PREFIX = f"workflow_engine.cache.processing_workflow.{ACTION_FILTER_CACHE
 ActionFiltersByWorkflow = dict[WorkflowId, list[DataConditionGroup]]
 
 
-class _ActionFilterCacheKey(NamedTuple):
-    workflow_id: WorkflowId
-
-
 class _CacheResults(NamedTuple):
     cached: ActionFiltersByWorkflow
     missed_ids: list[WorkflowId]
 
 
-_action_filters_cache = CacheMapping[_ActionFilterCacheKey, list[DataConditionGroup]](
-    lambda key: f"{key.workflow_id}",
+_action_filters_cache = CacheMapping[WorkflowId, list[DataConditionGroup]](
+    str,
     namespace=f"workflow:{ACTION_FILTER_CACHE_NAME}",
+    ttl_seconds=CACHE_TTL,
 )
 
 
@@ -35,15 +32,15 @@ def _check_cache_by_workflows(workflows: Collection[Workflow]) -> _CacheResults:
     results: ActionFiltersByWorkflow = {}
     missed_ids: list[WorkflowId] = []
 
-    keys = [_ActionFilterCacheKey(w.id) for w in workflows]
+    keys = [w.id for w in workflows]
     cache_results = _action_filters_cache.get_many(inputs=keys)
 
     for key, cached in cache_results.items():
         if cached is not None:
-            results[key.workflow_id] = cached
+            results[key] = cached
             metrics_incr(f"{METRIC_PREFIX}.hit")
         else:
-            missed_ids.append(key.workflow_id)
+            missed_ids.append(key)
             metrics_incr(f"{METRIC_PREFIX}.miss")
 
     return _CacheResults(
@@ -68,12 +65,7 @@ def _query_action_filters_by_workflows(workflow_ids: list[WorkflowId]) -> Action
 
 
 def _populate_cache(action_filters_by_workflow: ActionFiltersByWorkflow) -> None:
-    cache_items: dict[_ActionFilterCacheKey, list[DataConditionGroup]] = {
-        _ActionFilterCacheKey(workflow_id): action_filters
-        for workflow_id, action_filters in action_filters_by_workflow.items()
-    }
-
-    _action_filters_cache.set_many(cache_items, CACHE_TTL)
+    _action_filters_cache.set_many(action_filters_by_workflow)
 
 
 @scopedstats.timer()
@@ -123,6 +115,4 @@ def invalidate_action_filter_cache_by_workflow_ids(workflow_ids: list[WorkflowId
     - DataConditionGroup post_save - When an update to the logic type in the condition group
     """
     metrics_incr(f"{METRIC_PREFIX}.invalidated", value=len(workflow_ids))
-    cache_keys = [_ActionFilterCacheKey(wid) for wid in workflow_ids]
-
-    _action_filters_cache.delete_many(cache_keys)
+    _action_filters_cache.delete_many(workflow_ids)

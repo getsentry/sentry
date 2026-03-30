@@ -89,11 +89,11 @@ class DatabaseBackedControlOrganizationProvisioningService(
             return False
 
     @staticmethod
-    def _generate_org_snowflake_id(region_name: str) -> int:
+    def _generate_org_snowflake_id() -> int:
         return generate_snowflake_id(Organization.snowflake_redis_key)
 
     @staticmethod
-    def _generate_org_slug(region_name: str, slug: str) -> str:
+    def _generate_org_slug(slug: str) -> str:
         slug_base = slug.replace("_", "-").strip("-")
         surrogate_org_slug = OrganizationSlugReservation()
         slugify_instance(surrogate_org_slug, slug_base, reserved=RESERVED_ORGANIZATION_SLUGS)
@@ -133,12 +133,10 @@ class DatabaseBackedControlOrganizationProvisioningService(
         org_provision_args: OrganizationProvisioningOptions,
     ) -> RpcOrganizationSlugReservation:
         # Generate a new non-conflicting slug and org ID
-        org_id = self._generate_org_snowflake_id(region_name=cell_name)
-        slug = self._generate_org_slug(
-            region_name=cell_name, slug=org_provision_args.provision_options.slug
-        )
+        org_id = self._generate_org_snowflake_id()
+        slug = self._generate_org_slug(slug=org_provision_args.provision_options.slug)
 
-        # Generate a provisioning outbox for the region and drain
+        # Generate a provisioning outbox for the cell and drain
         updated_provision_options = deepcopy(org_provision_args.provision_options)
         updated_provision_options.slug = slug
         provision_payload = OrganizationProvisioningOptions(
@@ -209,7 +207,7 @@ class DatabaseBackedControlOrganizationProvisioningService(
 
         slug_base = desired_slug
         if not require_exact:
-            slug_base = self._generate_org_slug(region_name=cell_name, slug=slug_base)
+            slug_base = self._generate_org_slug(slug=slug_base)
 
         try:
             with outbox_context(
@@ -296,7 +294,7 @@ class DatabaseBackedControlOrganizationProvisioningService(
         with outbox_context(transaction.atomic(router.db_for_write(OrganizationSlugReservation))):
             for org_id, slug in slug_mapping.items():
                 slug_reservation = OrganizationSlugReservation(
-                    slug=self._generate_org_slug(slug=slug, region_name=cell_name),
+                    slug=self._generate_org_slug(slug=slug),
                     organization_id=org_id,
                     reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value,
                     user_id=-1,

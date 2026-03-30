@@ -20,11 +20,12 @@ class CacheMapping[K, V]:
         _user_cache = CacheMapping[int, UserData](
             lambda uid: str(uid),
             namespace="user",
+            ttl_seconds=300,
         )
         # Keys will be "user:{uid}"
 
     Example without namespace:
-        _user_cache = CacheMapping[int, UserData](lambda uid: f"user:{uid}")
+        _user_cache = CacheMapping[int, UserData](lambda uid: f"user:{uid}", ttl_seconds=300)
     """
 
     def __init__(
@@ -32,9 +33,11 @@ class CacheMapping[K, V]:
         key_func: Callable[[K], str],
         *,
         namespace: str | None = None,
+        ttl_seconds: float,
     ):
         self._key_func = key_func
         self._namespace = namespace
+        self._ttl_seconds = ttl_seconds
         if namespace is not None:
             if namespace in _registered_namespaces:
                 raise ValueError(f"Cache namespace '{namespace}' is already registered")
@@ -49,8 +52,8 @@ class CacheMapping[K, V]:
     def get(self, input: K) -> V | None:
         return cache.get(self.key(input))
 
-    def set(self, input: K, value: V, timeout: float | None = None) -> None:
-        cache.set(self.key(input), value, timeout)
+    def set(self, input: K, value: V) -> None:
+        cache.set(self.key(input), value, self._ttl_seconds)
 
     def delete(self, input: K) -> bool:
         return cache.delete(self.key(input))
@@ -69,7 +72,7 @@ class CacheMapping[K, V]:
         values = cache.get_many(key_to_input.keys())
         return {key_to_input[k]: values.get(k) for k in key_to_input}
 
-    def set_many(self, data: Mapping[K, V], timeout: float | None = None) -> list[K]:
+    def set_many(self, data: Mapping[K, V]) -> list[K]:
         """
         Set multiple cache values at once.
 
@@ -81,7 +84,7 @@ class CacheMapping[K, V]:
         keyed_data = {self.key(inp): (inp, val) for inp, val in data.items()}
         failed_keys = cache.set_many(
             {k: val for k, (_, val) in keyed_data.items()},
-            timeout,
+            self._ttl_seconds,
         )
         failed = set(failed_keys or [])
         return [inp for k, (inp, _) in keyed_data.items() if k in failed]

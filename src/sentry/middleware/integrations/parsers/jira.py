@@ -67,16 +67,15 @@ class JiraRequestParser(BaseRequestParser):
         if len(cells) == 0:
             return self.get_default_missing_integration_response()
 
-        if len(cells) > 1:
-            # This shouldn't happen because we block multi cell install at the install time.
-            raise ValueError("Jira integration is installed in multiple cells")
-
         if self.view_class in self.immediate_response_cell_classes:
-            try:
-                return self.get_response_from_cell_silo(cell=cells[0])
-            except ApiError as err:
-                sentry_sdk.capture_exception(err)
-                return self.get_response_from_control_silo()
+            if len(cells) == 1:
+                try:
+                    return self.get_response_from_cell_silo(cell=cells[0])
+                except ApiError as err:
+                    sentry_sdk.capture_exception(err)
+                    return self.get_response_from_control_silo()
+            # TODO(cells): Remove once all installs have migrated to JiraSentryIssueDetailsControlView.
+            return JiraSentryIssueDetailsControlView.as_view()(self.request, **self.match.kwargs)
 
         if self.view_class in self.outbox_response_cell_classes:
             return self.get_response_from_webhookpayload(

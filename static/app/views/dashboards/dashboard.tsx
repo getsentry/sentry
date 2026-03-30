@@ -49,8 +49,8 @@ import {
 import {SortableWidget} from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
 import {DashboardFilterKeys, WidgetType} from './types';
-import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
-import type WidgetLegendSelectionState from './widgetLegendSelectionState';
+import {connectDashboardCharts, getMergedDashboardFilters} from './utils';
+import type {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const DRAG_RESIZE_CLASS = 'widget-resize';
@@ -133,6 +133,7 @@ export function Dashboard({
   const [isMobile, setIsMobile] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const forceCheckTimeout = useRef<number | undefined>(undefined);
+  const isGeneratedDashboard = location.query.seerRunId !== undefined;
 
   const debouncedHandleResize = useMemo(
     () =>
@@ -444,7 +445,8 @@ export function Dashboard({
               isEmbedded={isEmbedded}
               isPreview={isPreview}
               isPrebuiltDashboard={defined(dashboard.prebuiltId)}
-              dashboardFilters={getDashboardFiltersFromURL(location) ?? dashboard.filters}
+              isGeneratedDashboard={isGeneratedDashboard}
+              dashboardFilters={getMergedDashboardFilters(dashboard.filters, location)}
               dashboardPermissions={dashboard.permissions}
               dashboardCreator={dashboard.createdBy}
               isMobile={isMobile}

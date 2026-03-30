@@ -26,7 +26,7 @@ import type {BaseGroup, Group, PriorityLevel} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import CursorPoller from 'sentry/utils/cursorPoller';
+import {CursorPoller} from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getCurrentSentryReactRootSpan} from 'sentry/utils/getCurrentSentryReactRootSpan';
 import {parseApiError} from 'sentry/utils/parseApiError';
@@ -37,6 +37,7 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useSuperGroups} from 'sentry/utils/supergroup/useSuperGroups';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -162,6 +163,9 @@ function IssueListOverview({
   }, [groups]);
 
   useIssuesINPObserver();
+
+  const {data: supergroupLookup, isLoading: supergroupsLoading} =
+    useSuperGroups(groupIds);
 
   const onRealtimePoll = useCallback(
     (data: any, {queryCount: newQueryCount}: {queryCount: number}) => {
@@ -490,6 +494,7 @@ function IssueListOverview({
     page: parsePageQueryParam(location, 0),
     query,
     num_issues: groups.length,
+    group_ids: groups.map(group => group.id),
     total_issues_count: queryCount,
     sort,
     realtime_active: realtimeActive,
@@ -899,8 +904,9 @@ function IssueListOverview({
             displayReprocessingActions={displayReprocessingActions}
             memberList={memberList}
             selectedProjectIds={selection.projects}
-            issuesLoading={issuesLoading}
+            issuesLoading={issuesLoading || supergroupsLoading}
             statsLoading={statsLoading}
+            supergroupLookup={supergroupLookup}
             error={error}
             refetchGroups={fetchData}
             paginationCaption={

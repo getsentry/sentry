@@ -1,7 +1,6 @@
 import logging
 import time
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import sentry_sdk
@@ -30,6 +29,7 @@ from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.utils import json, snuba_rpc
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
 
@@ -200,7 +200,9 @@ class Spans(rpc_dataset_common.RPCBase):
                 break
             request.page_token.CopyFrom(response.page_token)
             # We want to process the spans while querying the next page
-            with ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=2) as thread_pool:
+            with ContextPropagatingThreadPoolExecutor(
+                thread_name_prefix=__name__, max_workers=2
+            ) as thread_pool:
                 _ = thread_pool.submit(process_item_groups, response.item_groups)
                 response_future = thread_pool.submit(snuba_rpc.get_trace_rpc, request)
             response = response_future.result()

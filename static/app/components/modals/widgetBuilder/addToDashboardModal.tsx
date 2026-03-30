@@ -55,7 +55,7 @@ import {
 } from 'sentry/views/dashboards/types';
 import {
   eventViewFromWidget,
-  getDashboardFiltersFromURL,
+  getMergedDashboardFilters,
   getSavedFiltersAsPageFilters,
   getSavedPageFilters,
   isWidgetEditable,
@@ -70,7 +70,7 @@ import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
-import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
@@ -516,10 +516,10 @@ function AddToDashboardModal({
                             ? getSavedFiltersAsPageFilters(selectedDashboard)
                             : selection
                         }
-                        dashboardFilters={
-                          getDashboardFiltersFromURL(location) ??
-                          selectedDashboard?.filters
-                        }
+                        dashboardFilters={getMergedDashboardFilters(
+                          selectedDashboard?.filters,
+                          location
+                        )}
                         widget={{
                           ...widget,
                           title: newWidgetTitle,

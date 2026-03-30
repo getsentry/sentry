@@ -10,8 +10,8 @@ import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMouseTracking} from 'sentry/utils/useMouseTracking';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {PerformanceScoreRing} from 'sentry/views/insights/browser/webVitals/components/performanceScoreRing';
+import {ORDER} from 'sentry/views/insights/browser/webVitals/types';
 import type {
   ProjectScore,
   WebVitals,
@@ -37,14 +37,14 @@ type ProjectData = {
 };
 
 type Props = {
-  height: number;
   projectScore: ProjectScore;
   ringBackgroundColors: readonly string[];
   ringSegmentColors: readonly string[];
   text: React.ReactNode;
-  width: number;
+  autoSize?: boolean;
   barWidth?: number;
   differenceToPreviousPeriod?: ProjectScore;
+  height?: number;
   hideWebVitalLabels?: boolean;
   inPerformanceWidget?: boolean;
   labelHeightPadding?: number;
@@ -52,6 +52,7 @@ type Props = {
   radiusPadding?: number;
   size?: number;
   webVitalLabelCoordinates?: WebVitalsLabelCoordinates;
+  width?: number;
   x?: number;
   y?: number;
 };
@@ -138,20 +139,22 @@ export function PerformanceScoreRingWithTooltips({
   projectData,
   ringBackgroundColors,
   ringSegmentColors,
-  width,
-  height,
   text,
   differenceToPreviousPeriod,
   webVitalLabelCoordinates,
+  autoSize = false,
+  width = 220,
+  height = 200,
   barWidth = 16,
   hideWebVitalLabels = false,
   inPerformanceWidget = false,
   size = 140,
   x = 40,
-  y = 25,
+  y: yProp,
   labelHeightPadding = 14,
   radiusPadding = 4,
 }: Props) {
+  const y = yProp ?? (autoSize ? (height - size) / 2 : 25);
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
@@ -205,7 +208,11 @@ export function PerformanceScoreRingWithTooltips({
   );
 
   return (
-    <ProgressRingContainer ref={elem} {...mouseTrackingProps}>
+    <ProgressRingContainer
+      ref={elem}
+      {...mouseTrackingProps}
+      style={autoSize ? {width: '100%', height: '100%'} : undefined}
+    >
       {webVitalTooltip && (
         <PerformanceScoreRingTooltip x={mousePosition.x} y={mousePosition.y}>
           <Flex justify="between" align="center">
@@ -231,7 +238,11 @@ export function PerformanceScoreRingWithTooltips({
           <PerformanceScoreRingTooltipArrow />
         </PerformanceScoreRingTooltip>
       )}
-      <svg height={height} width={width}>
+      <svg
+        height={autoSize ? '100%' : height}
+        width={autoSize ? '100%' : width}
+        viewBox={`0 0 ${width} ${height}`}
+      >
         {!hideWebVitalLabels && (
           <Fragment>
             {Object.keys(weights).map((key, index) => {

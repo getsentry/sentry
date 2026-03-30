@@ -2,6 +2,7 @@ import {memo, useCallback, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -16,11 +17,18 @@ import type {Block} from 'sentry/views/seerExplorer/types';
 
 const MAX_CHAT_HISTORY_HEIGHT = 500;
 
+export type WidgetError = {
+  errorMessage: string;
+  widgetTitle: string;
+};
+
 interface DashboardChatPanelProps {
   blocks: Block[];
   isUpdating: boolean;
   onSend: (message: string) => void;
+  isError?: boolean;
   pendingUserInput?: PendingUserInput | null;
+  widgetErrors?: WidgetError[];
 }
 
 export function DashboardChatPanel({
@@ -28,6 +36,8 @@ export function DashboardChatPanel({
   pendingUserInput,
   onSend,
   isUpdating,
+  isError,
+  widgetErrors,
 }: DashboardChatPanelProps) {
   const theme = useTheme();
   const location = useLocation();
@@ -51,7 +61,7 @@ export function DashboardChatPanel({
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-  }, [blocks.length, pendingUserInput]);
+  }, [blocks.length, pendingUserInput, widgetErrors?.length]);
 
   const handleSubmit = useCallback(() => {
     const trimmed = inputValue.trim();
@@ -120,6 +130,8 @@ export function DashboardChatPanel({
           blocks={blocks}
           pendingUserInput={pendingUserInput}
           seerRunId={seerRunId}
+          isError={isError}
+          widgetErrors={widgetErrors}
         />
       )}
       <InputGroup>
@@ -150,11 +162,15 @@ const ChatHistory = memo(function ChatHistoryInner({
   blocks,
   pendingUserInput,
   seerRunId,
+  isError,
+  widgetErrors,
 }: {
   blocks: Block[];
   ref: React.Ref<HTMLDivElement>;
+  isError?: boolean;
   pendingUserInput?: PendingUserInput | null;
   seerRunId?: number;
+  widgetErrors?: WidgetError[];
 }) {
   return (
     <Container
@@ -174,9 +190,36 @@ const ChatHistory = memo(function ChatHistoryInner({
           />
         ))}
         {pendingUserInput && pendingUserInput.data.questions?.length > 0 && (
-          <Container padding="xl" style={{paddingLeft: '40px'}}>
+          <ChatMessageContainer padding="xl">
             <MarkedText text={pendingUserInput.data.questions[0].question} inline />
-          </Container>
+          </ChatMessageContainer>
+        )}
+        {isError && (
+          <ChatMessageContainer padding="xl">
+            <Alert.Container>
+              <Alert variant="warning" showIcon>
+                {t(
+                  'An error was encountered while generating the dashboard. Please resubmit your prompt to try again.'
+                )}
+              </Alert>
+            </Alert.Container>
+          </ChatMessageContainer>
+        )}
+        {widgetErrors && widgetErrors.length > 0 && (
+          <ChatMessageContainer padding="xl">
+            <Alert.Container>
+              <Alert variant="warning" showIcon>
+                {t('Some widgets encountered errors. You can ask Seer to fix them.')}
+                <ul>
+                  {widgetErrors.map(({widgetTitle, errorMessage}) => (
+                    <li key={`${widgetTitle}:${errorMessage}`}>
+                      <strong>{widgetTitle}</strong>: {errorMessage}
+                    </li>
+                  ))}
+                </ul>
+              </Alert>
+            </Alert.Container>
+          </ChatMessageContainer>
         )}
       </Stack>
     </Container>
@@ -188,4 +231,9 @@ const ChatHistoryToggle = styled(Button)`
     color: ${p => p.theme.tokens.content.primary};
     background-color: ${p => p.theme.tokens.background.primary};
   }
+`;
+
+const ChatMessageContainer = styled(Container)`
+  padding: ${p => p.theme.space.xl};
+  padding-left: 40px;
 `;

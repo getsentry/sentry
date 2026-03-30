@@ -35,35 +35,42 @@ export function useBackActions({
   const onboardingContext = useOnboardingContext();
   const currentStep = onboardingSteps[stepIndex];
 
-  const deleteRecentCreatedProject = useCallback(async () => {
-    if (!recentCreatedProject) {
-      return;
-    }
+  const deleteRecentCreatedProject = useCallback(
+    async (preserveOnboardingState = false) => {
+      if (!recentCreatedProject) {
+        return;
+      }
 
-    onboardingContext.setSelectedPlatform(undefined);
+      if (preserveOnboardingState) {
+        onboardingContext.setCreatedProjectSlug(undefined);
+      } else {
+        onboardingContext.setSelectedPlatform(undefined);
+      }
 
-    try {
-      await removeProject({
-        api,
-        orgSlug: organization.slug,
-        projectSlug: recentCreatedProject.slug,
-        origin: 'onboarding',
-      });
+      try {
+        await removeProject({
+          api,
+          orgSlug: organization.slug,
+          projectSlug: recentCreatedProject.slug,
+          origin: 'onboarding',
+        });
 
-      trackAnalytics('onboarding.data_removed', {
-        organization,
-        date_created: recentCreatedProject.dateCreated,
-        platform: recentCreatedProject.slug,
-        project_id: recentCreatedProject.id,
-      });
-    } catch (error) {
-      handleXhrErrorResponse(
-        'Unable to delete project in onboarding',
-        error as RequestError
-      );
-      // we don't give the user any feedback regarding this error as this shall be silent
-    }
-  }, [api, organization, onboardingContext, recentCreatedProject]);
+        trackAnalytics('onboarding.data_removed', {
+          organization,
+          date_created: recentCreatedProject.dateCreated,
+          platform: recentCreatedProject.slug,
+          project_id: recentCreatedProject.id,
+        });
+      } catch (error) {
+        handleXhrErrorResponse(
+          'Unable to delete project in onboarding',
+          error as RequestError
+        );
+        // we don't give the user any feedback regarding this error as this shall be silent
+      }
+    },
+    [api, organization, onboardingContext, recentCreatedProject]
+  );
 
   const backStepActions = useCallback(
     async ({
@@ -94,7 +101,7 @@ export function useBackActions({
         return;
       }
 
-      // from setup docs to selected platform
+      // from setup docs to previous step
       if (
         currentStep.id === 'setup-docs' &&
         defined(isRecentCreatedProjectActive) &&
@@ -109,7 +116,9 @@ export function useBackActions({
         // Await deletion so the projects store is updated before navigating
         // back. Without this, re-selecting the same platform can see stale
         // store data and skip project creation.
-        await deleteRecentCreatedProject();
+        // In the SCM flow, preserve context so the user keeps their SCM
+        // connection, repo selection, and feature choices.
+        await deleteRecentCreatedProject(prevStep.id === 'scm-project-details');
       }
 
       if (!browserBackButton) {

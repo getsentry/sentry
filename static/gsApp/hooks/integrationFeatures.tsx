@@ -332,9 +332,7 @@ const FeatureDescription = styled('li')`
  * - FeatureList
  *   Renders a list of integration features grouped by plan.
  */
-const hookIntegrationFeatures = () => ({
+export const hookIntegrationFeatures: Hooks['integrations:feature-gates'] = () => ({
   IntegrationFeatures,
   FeatureList,
 });
-
-export default hookIntegrationFeatures as Hooks['integrations:feature-gates'];

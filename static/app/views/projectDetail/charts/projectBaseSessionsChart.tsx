@@ -14,7 +14,7 @@ import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import {StackedAreaChart} from 'sentry/components/charts/stackedAreaChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
-import TransitionChart from 'sentry/components/charts/transitionChart';
+import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';

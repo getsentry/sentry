@@ -32,10 +32,10 @@ type State = {
   values: Values;
 };
 
-class DialogManager<P extends Props = Props, S extends State = State> extends Component<
-  P,
-  S
-> {
+export class ModalManager<
+  P extends Props = Props,
+  S extends State = State,
+> extends Component<P, S> {
   state = this.getDefaultState();
 
   componentDidMount() {
@@ -236,5 +236,3 @@ class DialogManager<P extends Props = Props, S extends State = State> extends Co
     );
   }
 }
-
-export default DialogManager;

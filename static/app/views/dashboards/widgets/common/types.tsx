@@ -78,7 +78,7 @@ type IncompleteReason = 'INCOMPLETE_BUCKET';
  */
 type GroupBy = {
   key: string;
-  value: string | null | Array<string | null> | Array<number | null>;
+  value: string | number | boolean | null | Array<string | null> | Array<number | null>;
 };
 
 // Aliases - allows divergence later if unique cases arise

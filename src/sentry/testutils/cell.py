@@ -18,7 +18,13 @@ class TestEnvCellDirectory(CellDirectory):
 
     def _apply_cells(self, cells: Collection[Cell]) -> None:
         localities = frozenset(
-            Locality(name=c.name, cells=frozenset([c.name]), category=c.category, visible=c.visible)
+            Locality(
+                name=c.name,
+                cells=frozenset([c.name]),
+                category=c.category,
+                visible=c.visible,
+                new_org_cell=c.name,
+            )
             for c in cells
         )
         self._cells = frozenset(cells)
