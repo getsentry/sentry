@@ -1,4 +1,3 @@
-import {Stack} from '@sentry/scraps/layout';
 import type {ReactNode} from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
@@ -9,6 +8,8 @@ import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
 import * as qs from 'query-string';
+
+import {Stack} from '@sentry/scraps/layout';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';

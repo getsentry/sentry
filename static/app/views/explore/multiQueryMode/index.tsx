@@ -34,35 +34,37 @@ export default function MultiQueryMode() {
     >
       <SentryDocumentTitle title={t('Compare Queries')} orgSlug={organization.slug}>
         <Stack flex={1}>
-        <Layout.Header unified>
-          <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                {
-                  label: t('Explore'),
-                },
-                {
-                  label: t('Traces'),
-                  to: makeTracesPathname({
-                    organization,
-                    path: '/',
-                  }),
-                },
-                {
-                  label: t('Compare Queries'),
-                },
-              ]}
-            />
-            <Layout.Title>{title ? title : t('Compare Queries')}</Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <Grid flow="column" align="center" gap="md">
-              <StarSavedQueryButton />
-              {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
-              <FeedbackButton />
-            </Grid>
-          </Layout.HeaderActions>
-        </Layout.Header>
+          <Layout.Header unified>
+            <Layout.HeaderContent>
+              <Breadcrumbs
+                crumbs={[
+                  {
+                    label: t('Explore'),
+                  },
+                  {
+                    label: t('Traces'),
+                    to: makeTracesPathname({
+                      organization,
+                      path: '/',
+                    }),
+                  },
+                  {
+                    label: t('Compare Queries'),
+                  },
+                ]}
+              />
+              <Layout.Title>{title ? title : t('Compare Queries')}</Layout.Title>
+            </Layout.HeaderContent>
+            <Layout.HeaderActions>
+              <Grid flow="column" align="center" gap="md">
+                <StarSavedQueryButton />
+                {defined(id) && savedQuery?.isPrebuilt === false && (
+                  <SavedQueryEditMenu />
+                )}
+                <FeedbackButton />
+              </Grid>
+            </Layout.HeaderActions>
+          </Layout.Header>
           <MultiQueryModeContent />
         </Stack>
       </SentryDocumentTitle>

@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Switch} from '@sentry/scraps/switch';

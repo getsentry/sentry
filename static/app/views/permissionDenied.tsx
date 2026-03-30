@@ -1,8 +1,8 @@
 import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {ExternalLink} from '@sentry/scraps/link';
 import {Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';

@@ -9,6 +9,8 @@ import isEqualWith from 'lodash/isEqualWith';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {
   createDashboard,
   deleteDashboard,
@@ -22,8 +24,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {Stack} from '@sentry/scraps/layout';
-
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';

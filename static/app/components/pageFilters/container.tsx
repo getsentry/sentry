@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import isEqual from 'lodash/isEqual';
 
 import {Stack} from '@sentry/scraps/layout';
-import isEqual from 'lodash/isEqual';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {InitializeUrlStateParams} from 'sentry/components/pageFilters/actions';
