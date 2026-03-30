@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -25,13 +26,13 @@ def _make_request(
     org_id: int,
     start: datetime,
     end: datetime,
-    categories: list[int] | None = None,
+    categories: Sequence[int] | None = None,
 ) -> GetUsageRequest:
     return GetUsageRequest(
         organization_id=org_id,
         start=_make_timestamp(start),
         end=_make_timestamp(end),
-        categories=categories or [],
+        categories=categories or [],  # type: ignore[arg-type]
     )
 
 
@@ -218,12 +219,12 @@ class TestOutcomesIntegration(OutcomesSnubaTest, TestCase):
         )
 
         # Yesterday: only errors
-        yesterday_usage = {u.category: u.data for u in response.days[0].usage}
+        yesterday_usage = {int(u.category): u.data for u in response.days[0].usage}
         assert DataCategory.ERROR in yesterday_usage
         assert yesterday_usage[DataCategory.ERROR].accepted == 5
 
         # Today: errors and transactions
-        today_usage = {u.category: u.data for u in response.days[1].usage}
+        today_usage = {int(u.category): u.data for u in response.days[1].usage}
         assert DataCategory.ERROR in today_usage
         assert DataCategory.TRANSACTION in today_usage
         assert today_usage[DataCategory.ERROR].accepted == 10

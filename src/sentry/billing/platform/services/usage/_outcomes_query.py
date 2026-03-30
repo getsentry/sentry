@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
+from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -72,7 +73,7 @@ def _build_query(
     org_id: int,
     start: datetime,
     end: datetime,
-    categories: list[int],
+    categories: Sequence[int],
 ) -> Request:
     # Half-open interval [start, end) — standard sentry.snuba.outcomes convention.
     # `end` has already been shifted +1 day in query_outcomes_usage() to convert
@@ -136,7 +137,8 @@ def _build_response(rows: list[dict]) -> GetUsageResponse:
     for day_str in sorted(days_map):
         date = _parse_day(day_str)
         usage = [
-            CategoryUsage(category=cat, data=UsageData(**fields))
+            # category uses raw Relay/Sentry DataCategory ints per BIL-2176
+            CategoryUsage(category=cat, data=UsageData(**fields))  # type: ignore[arg-type]
             for cat, fields in sorted(days_map[day_str].items())
         ]
         days.append(DailyUsage(date=date, usage=usage))
