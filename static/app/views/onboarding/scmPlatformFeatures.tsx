@@ -430,7 +430,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
           >
             <Heading as="h3">{t('Select a platform')}</Heading>
             <Select<(typeof platformOptions)[number]>
-              placeholder={t('Search 100+ SDKs by name, package, or description...')}
+              placeholder={t('Search SDKs...')}
               options={manualPickerOptions}
               value={currentPlatformKey ?? null}
               onChange={option => {
