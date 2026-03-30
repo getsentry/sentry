@@ -198,6 +198,7 @@ SENTRY_HYBRIDCLOUD_DELETIONS_REDIS_CLUSTER = "default"
 SENTRY_SESSION_STORE_REDIS_CLUSTER = "default"
 SENTRY_AUTH_IDPMIGRATION_REDIS_CLUSTER = "default"
 SENTRY_SNOWFLAKE_REDIS_CLUSTER = "default"
+SENTRY_SCM_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -751,17 +752,21 @@ SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
 # An enum is better because there shouldn't be multiple "modes".
 SENTRY_MODE = SentryMode.SELF_HOSTED
 
-# If this instance is a region silo, which region is it running in?
-SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
+# If this instance is a cell silo, which cell is it running in?
+SENTRY_LOCAL_CELL = os.environ.get("SENTRY_REGION", None)
 
 # Returns the customer single tenant ID.
 CUSTOMER_ID = os.environ.get("CUSTOMER_ID", None)
 
 # List of the available cells (e.g. "us1", "us2", "de1")
-SENTRY_REGION_CONFIG: list[CellConfig] = []
+SENTRY_CELLS: list[CellConfig] = []
 
 # Mapping of localities (e.g. "us", "de") to their constituent cells (e.g. "us1", "us2")
 SENTRY_LOCALITIES: list[LocalityConfig] = []
+
+# TODO(cells): Superceded by SENTRY_LOCAL_CELL and SENTRY_CELLS. Remove once migration is complete.
+SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
+SENTRY_REGION_CONFIG: list[CellConfig] = []
 
 # Shared secret used to sign cross-region RPC requests.
 RPC_SHARED_SECRET: list[str] | None = None
@@ -3184,13 +3189,6 @@ COGS_EVENT_STORE_LABEL = "bigtable_nodestore"
 SEER_SIMILARITY_MODEL_VERSION = "v0"
 SEER_SIMILAR_ISSUES_URL = f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues"
 SEER_MAX_GROUPING_DISTANCE = 0.01
-SEER_MAX_SIMILARITY_DISTANCE = 0.15  # Not yet in use - Seer doesn't obey this right now
-SEER_GROUPING_RECORDS_URL = (
-    f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record"
-)
-SEER_PROJECT_GROUPING_RECORDS_DELETE_URL = (
-    f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete"
-)
 SEER_HASH_GROUPING_RECORDS_DELETE_URL = (
     f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete-by-hash"
 )

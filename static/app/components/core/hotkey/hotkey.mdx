@@ -1,0 +1,144 @@
+---
+title: Hotkey
+description: Components for displaying keyboard shortcuts with automatic platform-aware modifier rendering.
+category: utilities
+source: '@sentry/scraps/hotkey'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/hotkey/index.tsx
+  a11y:
+    WCAG 1.3.1: https://www.w3.org/TR/WCAG22/#info-and-relationships
+---
+
+import {Hotkey, Kbd} from '@sentry/scraps/hotkey';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/hotkey');
+
+The `<Hotkey>` component displays keyboard shortcuts using semantic `<kbd>` elements with automatic platform-aware modifier rendering. On Mac, `command` renders as `⌘`; on other platforms it renders as `CTRL`. The `<Kbd>` component renders a single styled key cap.
+
+## Hotkey
+
+`<Hotkey>` accepts the same key string format as the `useHotkeys` hook, making it easy to display the shortcuts you've already registered.
+
+<Storybook.Demo>
+  <Flex gap="xl" align="center">
+    <Flex gap="sm" align="center">
+      <Text>Save:</Text>
+      <Hotkey value="command+s" />
+    </Flex>
+    <Flex gap="sm" align="center">
+      <Text>Search:</Text>
+      <Hotkey value="command+k" />
+    </Flex>
+    <Flex gap="sm" align="center">
+      <Text>Copy:</Text>
+      <Hotkey value="command+c" />
+    </Flex>
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Hotkey value="command+s" />
+<Hotkey value="command+k" />
+<Hotkey value="command+c" />
+```
+
+### Platform Mapping
+
+Modifiers are automatically mapped per platform. No fallback arrays needed for standard modifier differences.
+
+| Key name  | Mac | Other platforms |
+| --------- | --- | --------------- |
+| `command` | `⌘` | `CTRL`          |
+| `ctrl`    | `⌃` | `CTRL`          |
+| `alt`     | `⌥` | `ALT`           |
+| `option`  | `⌥` | `ALT`           |
+| `shift`   | `⇧` | `⇧`             |
+
+### Complex Shortcuts
+
+<Storybook.Demo>
+  <Flex gap="xl" align="center">
+    <Flex gap="sm" align="center">
+      <Text>Undo:</Text>
+      <Hotkey value="command+z" />
+    </Flex>
+    <Flex gap="sm" align="center">
+      <Text>Redo:</Text>
+      <Hotkey value="command+shift+z" />
+    </Flex>
+    <Flex gap="sm" align="center">
+      <Text>Navigate:</Text>
+      <Hotkey value="shift+up" />
+    </Flex>
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Hotkey value="command+z" />
+<Hotkey value="command+shift+z" />
+<Hotkey value="shift+up" />
+```
+
+### Array Form
+
+Pass an array when the actual keys (not just modifiers) differ across platforms. The first combo is used.
+
+```jsx
+<Hotkey value={['command+backspace', 'delete']} />
+```
+
+## Kbd
+
+`<Kbd>` renders a single styled key cap. Use it for standalone key references in prose or documentation.
+
+<Storybook.Demo>
+  <Flex gap="lg" align="center">
+    <Text>
+      Press <Kbd>Esc</Kbd> to close
+    </Text>
+    <Text>
+      Use <Kbd>Tab</Kbd> to navigate
+    </Text>
+    <Text>
+      Hit <Kbd>Enter</Kbd> to confirm
+    </Text>
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Text>
+  Press <Kbd>Esc</Kbd> to close
+</Text>
+<Text>
+  Use <Kbd>Tab</Kbd> to navigate
+</Text>
+```
+
+## useHotkeys Hook
+
+The `useHotkeys` hook registers keyboard shortcuts. It uses the same key string format as `<Hotkey>`, so you can display exactly what you register.
+
+```jsx
+import {Hotkey, useHotkeys} from '@sentry/scraps/hotkey';
+
+function MyComponent() {
+  useHotkeys([
+    {match: 'command+k', callback: () => openSearch()},
+    {match: ['command+/', 'ctrl+/'], callback: () => openHelp()},
+  ]);
+
+  return (
+    <Text>
+      Search: <Hotkey value="command+k" />
+    </Text>
+  );
+}
+```
+
+## Accessibility
+
+Both `<Hotkey>` and `<Kbd>` render semantic `<kbd>` HTML elements. `<Hotkey>` uses nested `<kbd>` elements (an outer `<kbd>` wrapping inner `<kbd>` elements for each key), which is the correct HTML semantics for a key combination.

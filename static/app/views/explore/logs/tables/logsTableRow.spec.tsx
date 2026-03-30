@@ -213,17 +213,15 @@ describe('logsTableRow', () => {
     jest.useFakeTimers();
     expect(rowDetailsMock).toHaveBeenCalledTimes(0);
     render(
-      <ProviderWrapper>
-        <LogRowContent
-          dataRow={rowData}
-          highlightTerms={[]}
-          meta={LogFixtureMeta(rowData)}
-          sharedHoverTimeoutRef={
-            {current: null} as React.MutableRefObject<NodeJS.Timeout | null>
-          }
-        />
-      </ProviderWrapper>,
-      {organization, initialRouterConfig}
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={
+          {current: null} as React.MutableRefObject<NodeJS.Timeout | null>
+        }
+      />,
+      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
 
     expect(screen.queryByLabelText('Toggle trace details')).not.toBeInTheDocument(); // Fake button
@@ -247,19 +245,17 @@ describe('logsTableRow', () => {
 
   it('renders row details', async () => {
     render(
-      <ProviderWrapper>
-        <LogRowContent
-          dataRow={rowData}
-          highlightTerms={[]}
-          meta={LogFixtureMeta(rowData)}
-          sharedHoverTimeoutRef={
-            {
-              current: null,
-            } as React.MutableRefObject<NodeJS.Timeout | null>
-          }
-        />
-      </ProviderWrapper>,
-      {organization, initialRouterConfig}
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={
+          {
+            current: null,
+          } as React.MutableRefObject<NodeJS.Timeout | null>
+        }
+      />,
+      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
 
     // Check that the log body and timestamp are rendered
@@ -349,19 +345,21 @@ describe('logsTableRow', () => {
 
   it('shows a link when hovering over code file path in the table', async () => {
     render(
-      <ProviderWrapper>
-        <LogRowContent
-          dataRow={rowDataWithCodeFilePath}
-          highlightTerms={[]}
-          meta={LogFixtureMeta(rowDataWithCodeFilePath)}
-          sharedHoverTimeoutRef={
-            {
-              current: null,
-            } as React.MutableRefObject<NodeJS.Timeout | null>
-          }
-        />
-      </ProviderWrapper>,
-      {organization, initialRouterConfig: initialRouterConfigWithCodeFilePath}
+      <LogRowContent
+        dataRow={rowDataWithCodeFilePath}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowDataWithCodeFilePath)}
+        sharedHoverTimeoutRef={
+          {
+            current: null,
+          } as React.MutableRefObject<NodeJS.Timeout | null>
+        }
+      />,
+      {
+        organization,
+        initialRouterConfig: initialRouterConfigWithCodeFilePath,
+        additionalWrapper: ProviderWrapper,
+      }
     );
 
     // Expand the row to show the attributes
@@ -430,19 +428,17 @@ describe('logsTableRow', () => {
     });
 
     render(
-      <ProviderWrapper>
-        <LogRowContent
-          dataRow={rowData}
-          highlightTerms={[]}
-          meta={LogFixtureMeta(rowData)}
-          sharedHoverTimeoutRef={
-            {
-              current: null,
-            } as React.MutableRefObject<NodeJS.Timeout | null>
-          }
-        />
-      </ProviderWrapper>,
-      {organization, initialRouterConfig}
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={
+          {
+            current: null,
+          } as React.MutableRefObject<NodeJS.Timeout | null>
+        }
+      />,
+      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
 
     // Expand the row to show the action buttons
@@ -489,6 +485,53 @@ describe('logsTableRow', () => {
     expect(parsedData).not.toHaveProperty('sentry.item_id');
   });
 
+  it('does not toggle row when clicking cell action menu items', async () => {
+    const mockWriteText = jest.fn().mockResolvedValue(undefined);
+    Object.defineProperty(window.navigator, 'clipboard', {
+      value: {
+        writeText: mockWriteText,
+      },
+      writable: true,
+    });
+
+    render(
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={
+          {
+            current: null,
+          } as React.MutableRefObject<NodeJS.Timeout | null>
+        }
+      />,
+      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+    );
+
+    const logTableRow = await screen.findByTestId('log-table-row');
+    await userEvent.click(logTableRow);
+
+    await waitFor(() => {
+      expect(rowDetailsMock).toHaveBeenCalledTimes(1);
+    });
+
+    // Row is expanded - verify details are visible
+    expect(await screen.findByRole('button', {name: 'Copy as JSON'})).toBeInTheDocument();
+
+    // Open the ellipsis context menu on a cell
+    const actionsButton = screen.getAllByRole('button', {name: 'Actions'})[0]!;
+    await userEvent.click(actionsButton);
+
+    // Click "Copy to clipboard" in the dropdown menu
+    const copyItem = await screen.findByRole('menuitemradio', {
+      name: 'Copy to clipboard',
+    });
+    await userEvent.click(copyItem);
+
+    // Row should still be expanded - the cell action should not toggle visibility
+    expect(screen.getByRole('button', {name: 'Copy as JSON'})).toBeInTheDocument();
+  });
+
   it('renders fields with data scrubbing meta information', async () => {
     const traceItemMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/trace-items/${rowDataWithScrubbedFields[OurLogKnownFieldKey.ID]}/`,
@@ -531,19 +574,21 @@ describe('logsTableRow', () => {
     });
 
     render(
-      <ProviderWrapper>
-        <LogRowContent
-          dataRow={rowDataWithScrubbedFields}
-          highlightTerms={[]}
-          meta={LogFixtureMeta(rowDataWithScrubbedFields)}
-          sharedHoverTimeoutRef={
-            {
-              current: null,
-            } as React.MutableRefObject<NodeJS.Timeout | null>
-          }
-        />
-      </ProviderWrapper>,
-      {organization, initialRouterConfig: initialRouterConfigWithScrubbedFields}
+      <LogRowContent
+        dataRow={rowDataWithScrubbedFields}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowDataWithScrubbedFields)}
+        sharedHoverTimeoutRef={
+          {
+            current: null,
+          } as React.MutableRefObject<NodeJS.Timeout | null>
+        }
+      />,
+      {
+        organization,
+        initialRouterConfig: initialRouterConfigWithScrubbedFields,
+        additionalWrapper: ProviderWrapper,
+      }
     );
 
     const logTableRow = await screen.findByTestId('log-table-row');

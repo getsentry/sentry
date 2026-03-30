@@ -5,7 +5,7 @@ from snuba_sdk import Column, Condition, Limit, Op
 
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.search.eap.utils import add_start_end_conditions
-from sentry.search.events.datasets.discover import InvalidIssueSearchQuery
+from sentry.search.exceptions import InvalidIssueSearchQuery
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,

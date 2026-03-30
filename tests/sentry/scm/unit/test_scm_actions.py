@@ -60,8 +60,14 @@ from sentry.scm.errors import (
     SCMProviderException,
     SCMUnhandledException,
 )
-from sentry.scm.private.provider import GetBranchProtocol, GetIssueReactionsProtocol
-from sentry.scm.types import PaginatedActionResult, ReactionResult, Referrer, Repository
+from sentry.scm.types import (
+    GetBranchProtocol,
+    GetIssueReactionsProtocol,
+    PaginatedActionResult,
+    ReactionResult,
+    Referrer,
+    Repository,
+)
 from tests.sentry.scm.test_fixtures import BaseTestProvider
 
 
@@ -745,7 +751,10 @@ def test_exec_records_failure_metric_on_unhandled_exception():
         assert isinstance(scm, GetBranchProtocol)
         scm.get_branch(branch="main")
 
-    assert metrics == [("sentry.scm.actions.failed", 1, {})]
+    assert metrics == [
+        ("sentry.scm.actions.failed_by_provider", 1, {"provider": ExplodingProvider.__name__}),
+        ("sentry.scm.actions.failed_by_referrer", 1, {"referrer": "shared"}),
+    ]
 
 
 def test_exec_passes_custom_referrer():

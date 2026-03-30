@@ -102,8 +102,6 @@ export function useScmRepoSelection({
       // Lookup missed (e.g., repo was hidden). Fall through to re-add it.
     }
 
-    // Note: for project creation (non-onboarding), we'll also need to handle
-    // migrateRepository for repos previously connected via legacy plugins.
     setBusy(true);
     try {
       const created = await fetchMutation<Repository>({
@@ -151,7 +149,7 @@ export function useScmRepoSelection({
 
   return {
     // Busy while adding/removing a repo or while existing repos are still
-    // loading. The UI disables the CompactSelect and remove button when true.
+    // loading. The UI disables the Select and remove button when true.
     busy: busy || existingReposPending,
     handleSelect,
     handleRemove,

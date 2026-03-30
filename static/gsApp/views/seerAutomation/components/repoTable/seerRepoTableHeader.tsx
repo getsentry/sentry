@@ -8,6 +8,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import type {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -15,7 +16,6 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
-import type {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useBulkUpdateRepositorySettings';
 
 interface Props {
   gridColumns: string;

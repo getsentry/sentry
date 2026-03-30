@@ -23,7 +23,6 @@ from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
     get_autofix_repos_from_project_code_mappings,
     has_project_connected_repos,
-    is_seer_seat_based_tier_enabled,
 )
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.models import SeerApiError
@@ -151,11 +150,9 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
             org_id=org.id, data_category=DataCategory.SEER_AUTOFIX
         )
 
-        seer_seat_based_tier_enabled = is_seer_seat_based_tier_enabled(org)
-
         seer_repos_linked = False
         # Check if org has github integration and is on seat-based tier.
-        if integration_check is None and seer_seat_based_tier_enabled:
+        if integration_check is None:
             try:
                 # Check if project has repos linked in Seer.
                 # Skip cache to ensure latest data from Seer API.
@@ -168,12 +165,11 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
 
         autofix_enabled = False
         autofix_automation_tuning = group.project.get_option("sentry:autofix_automation_tuning")
-        if seer_seat_based_tier_enabled:
-            if (
-                autofix_automation_tuning
-                and autofix_automation_tuning != AutofixAutomationTuningSettings.OFF
-            ):
-                autofix_enabled = True
+        if (
+            autofix_automation_tuning
+            and autofix_automation_tuning != AutofixAutomationTuningSettings.OFF
+        ):
+            autofix_enabled = True
 
         return Response(
             {

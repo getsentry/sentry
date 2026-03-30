@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -11,6 +12,7 @@ from sentry.preprod.size_analysis.grouptype import (
     PreprodSizeAnalysisDetectorValidator,
     PreprodSizeAnalysisGroupType,
     SizeAnalysisDataPacket,
+    SizeAnalysisValue,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
@@ -281,11 +283,11 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
         condition_group = self.create_data_condition_group(
             organization=self.project.organization,
         )
-        # Trigger when relative diff > 0.1 (10%)
+        # Trigger when relative diff > 10 (10%)
         self.create_data_condition(
             condition_group=condition_group,
             type=Condition.GREATER,
-            comparison=0.1,
+            comparison=10,
             condition_result=DetectorPriorityLevel.HIGH,
         )
         detector = self.create_detector(
@@ -296,7 +298,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             workflow_condition_group=condition_group,
         )
 
-        # (5000000 - 4000000) / 4000000 = 0.25 > 0.1
+        # (5000000 - 4000000) / 4000000 = 25% > 10%
         data_packet: SizeAnalysisDataPacket = DataPacket(
             source_id="test",
             packet={
@@ -316,11 +318,11 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
         condition_group = self.create_data_condition_group(
             organization=self.project.organization,
         )
-        # Trigger when relative diff > 0.1 (10%)
+        # Trigger when relative diff > 10 (10%)
         self.create_data_condition(
             condition_group=condition_group,
             type=Condition.GREATER,
-            comparison=0.1,
+            comparison=10,
             condition_result=DetectorPriorityLevel.HIGH,
         )
         detector = self.create_detector(
@@ -331,7 +333,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             workflow_condition_group=condition_group,
         )
 
-        # (5000000 - 4900000) / 4900000 ≈ 0.02 < 0.1
+        # (5000000 - 4900000) / 4900000 ≈ 2.04% < 10%
         data_packet: SizeAnalysisDataPacket = DataPacket(
             source_id="test",
             packet={
@@ -800,3 +802,153 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
         assert event_data["platform"] == "unknown"
         assert event_data["tags"] == {}
         assert occurrence.evidence_data == {"detector_id": detector.id}
+
+
+@cell_silo_test
+class PreprodSizeAnalysisEvidenceTextTest(TestCase):
+    """Tests for the evidence display text formatting in Slack/Jira notifications."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.condition_group = self.create_data_condition_group(
+            organization=self.project.organization,
+        )
+
+    def _create_condition(self, condition_type, comparison):
+        self.create_data_condition(
+            condition_group=self.condition_group,
+            type=condition_type,
+            comparison=comparison,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+
+    def _evaluate(
+        self,
+        threshold_type,
+        measurement,
+        head_install,
+        head_download,
+        metadata=None,
+        base_install=None,
+        base_download=None,
+    ):
+        detector = self.create_detector(
+            name="test-detector",
+            type=PreprodSizeAnalysisGroupType.slug,
+            project=self.project,
+            config={"threshold_type": threshold_type, "measurement": measurement},
+            workflow_condition_group=self.condition_group,
+        )
+        packet_data: SizeAnalysisValue = {
+            "head_install_size_bytes": head_install,
+            "head_download_size_bytes": head_download,
+        }
+        if base_install is not None:
+            packet_data["base_install_size_bytes"] = base_install
+        if base_download is not None:
+            packet_data["base_download_size_bytes"] = base_download
+        if metadata is not None:
+            packet_data["metadata"] = metadata
+
+        data_packet: SizeAnalysisDataPacket = DataPacket(
+            source_id="test-source",
+            packet=packet_data,
+        )
+        handler = PreprodSizeAnalysisDetectorHandler(detector)
+        result = handler.evaluate(data_packet)
+        assert None in result
+        occurrence = result[None].result
+        assert isinstance(occurrence, IssueOccurrence)
+        return occurrence
+
+    def test_evidence_absolute_install_size(self):
+        self._create_condition(Condition.GREATER, 1000000)
+        occurrence = self._evaluate(
+            "absolute",
+            "install_size",
+            head_install=5000000,
+            head_download=3000000,
+        )
+        evidence = occurrence.evidence_display[0]
+        assert evidence.name == "Size Analysis"
+        assert evidence.important is True
+        assert evidence.value == "Install Size, Absolute Size > 1.0 MB (5.0 MB)"
+
+    def test_evidence_absolute_diff_install_size(self):
+        self._create_condition(Condition.GREATER_OR_EQUAL, 500000)
+        occurrence = self._evaluate(
+            "absolute_diff",
+            "install_size",
+            head_install=5000000,
+            head_download=3000000,
+            base_install=4000000,
+            base_download=2500000,
+        )
+        evidence = occurrence.evidence_display[0]
+        assert evidence.value == "Install Size, Absolute Diff > 500.0 KB (+1.0 MB)"
+
+    def test_evidence_relative_diff_download_size(self):
+        self._create_condition(Condition.GREATER_OR_EQUAL, 5)
+        occurrence = self._evaluate(
+            "relative_diff",
+            "download_size",
+            head_install=5000000,
+            head_download=3000000,
+            base_install=4000000,
+            base_download=2500000,
+        )
+        evidence = occurrence.evidence_display[0]
+        assert evidence.value == "Download Size, Relative Diff > 5% (+20.0%)"
+
+    def _make_metadata(self, platform: str, artifact_type: int) -> dict[str, Any]:
+        head_artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_id="com.example.app",
+            artifact_type=artifact_type,
+        )
+        base_artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_id="com.example.app",
+            artifact_type=artifact_type,
+        )
+        head_artifact = PreprodArtifact.objects.select_related(
+            "mobile_app_info", "commit_comparison"
+        ).get(id=head_artifact.id)
+        base_artifact = PreprodArtifact.objects.select_related(
+            "mobile_app_info", "commit_comparison"
+        ).get(id=base_artifact.id)
+        return {
+            "platform": platform,
+            "head_metric_id": 1,
+            "base_metric_id": 2,
+            "head_artifact_id": head_artifact.id,
+            "base_artifact_id": base_artifact.id,
+            "head_artifact": head_artifact,
+            "base_artifact": base_artifact,
+        }
+
+    def test_evidence_android_shows_uncompressed_size(self):
+        self._create_condition(Condition.GREATER, 1000000)
+        metadata = self._make_metadata("android", PreprodArtifact.ArtifactType.APK)
+        occurrence = self._evaluate(
+            "absolute",
+            "install_size",
+            head_install=5000000,
+            head_download=3000000,
+            metadata=metadata,
+        )
+        evidence = occurrence.evidence_display[0]
+        assert evidence.value == "Uncompressed Size, Absolute Size > 1.0 MB (5.0 MB)"
+
+    def test_evidence_apple_shows_install_size(self):
+        self._create_condition(Condition.GREATER, 1000000)
+        metadata = self._make_metadata("apple", PreprodArtifact.ArtifactType.XCARCHIVE)
+        occurrence = self._evaluate(
+            "absolute",
+            "install_size",
+            head_install=5000000,
+            head_download=3000000,
+            metadata=metadata,
+        )
+        evidence = occurrence.evidence_display[0]
+        assert evidence.value == "Install Size, Absolute Size > 1.0 MB (5.0 MB)"

@@ -1,3 +1,6 @@
+import {escapeDoubleQuotes} from 'sentry/utils';
+import {SpanFields} from 'sentry/views/insights/types';
+
 export function getIsAiAgentSpan(genAiOpType: string | undefined) {
   return genAiOpType === 'agent';
 }
@@ -29,6 +32,40 @@ export const getAgentAndAIClientFilter = () => {
 export const getAIGenerationsFilter = () => {
   return `gen_ai.operation.type:ai_client`;
 };
+
+/**
+ * Agent name fallback filters.
+ *
+ * The Vercel AI SDK sends `gen_ai.function_id` instead of the standard
+ * `gen_ai.agent.name` attribute. The filters below check both fields so
+ * agent identification works regardless of which attribute the SDK sets.
+ */
+
+/**
+ * Returns a search filter that matches spans having an agent name
+ * (either `gen_ai.agent.name` or `gen_ai.function_id`).
+ */
+export function getHasAgentNameFilter(): string {
+  return `(has:${SpanFields.GEN_AI_AGENT_NAME} OR has:${SpanFields.GEN_AI_FUNCTION_ID})`;
+}
+
+/**
+ * Returns a search filter matching specific agent names across both fields.
+ */
+export function getAgentNameSearchFilter(searchTerm: string): string {
+  return `(${SpanFields.GEN_AI_AGENT_NAME}:*${searchTerm}* OR ${SpanFields.GEN_AI_FUNCTION_ID}:*${searchTerm}*)`;
+}
+
+/**
+ * Returns a search filter for an exact set of agent names, checking both fields.
+ */
+export function getAgentNamesFilter(agents: string[]): string {
+  if (agents.length === 0) {
+    return '';
+  }
+  const values = agents.map(v => `"${escapeDoubleQuotes(v)}"`).join(', ');
+  return `(${SpanFields.GEN_AI_AGENT_NAME}:[${values}] OR ${SpanFields.GEN_AI_FUNCTION_ID}:[${values}])`;
+}
 
 export enum GenAiOperationType {
   AGENT = 'agent',

@@ -77,32 +77,6 @@ function applyRepositoryAddComplete(promise: Promise<Repository>) {
 }
 
 /**
- * Migrate a repository to a new integration.
- *
- * @param client ApiClient
- * @param orgSlug Organization Slug
- * @param repositoryId Repository ID
- * @param integration Integration provider data.
- */
-export function migrateRepository(
-  client: Client,
-  orgSlug: string,
-  repositoryId: string,
-  integration: Integration
-): Promise<Repository> {
-  const data = {integrationId: integration.id};
-  addLoadingMessage();
-  const promise = client.requestPromise(
-    `/organizations/${orgSlug}/repos/${repositoryId}/`,
-    {
-      data,
-      method: 'PUT',
-    }
-  );
-  return applyRepositoryAddComplete(promise);
-}
-
-/**
  * Add a repository
  *
  * @param client ApiClient

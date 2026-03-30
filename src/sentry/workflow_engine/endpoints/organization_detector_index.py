@@ -57,13 +57,15 @@ from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id, to_valid
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     BulkDetectorWorkflowsValidator,
-    can_delete_detectors,
-    can_edit_detectors,
 )
 from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
     DetectorWorkflowMutationValidator,
 )
-from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
+from sentry.workflow_engine.endpoints.validators.utils import (
+    can_delete_detectors,
+    can_edit_detectors,
+    get_unknown_detector_type_error,
+)
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 

@@ -221,6 +221,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/organizations/                               @getsentry/hybrid-cloud
 /tests/sentry/hybridcloud/                               @getsentry/hybrid-cloud
 /tests/sentry/silo/                                      @getsentry/hybrid-cloud
+/tests/sentry/models/test_projectkeymapping.py           @getsentry/hybrid-cloud
 /.agents/skills/hybrid-cloud-*                           @getsentry/hybrid-cloud
 ## End of Hybrid Cloud
 
@@ -293,6 +294,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 /src/sentry/search/events/                                                  @getsentry/data-browsing
 /src/sentry/search/eap/                                                     @getsentry/data-browsing
+/src/sentry/search/exceptions.py                                            @getsentry/data-browsing
 
 /src/sentry/issue_detection/                                             @getsentry/issue-detection-backend
 /tests/sentry/issue_detection/                                           @getsentry/issue-detection-backend
@@ -570,7 +572,9 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/dynamic_sampling/                                                    @getsentry/telemetry-experience
 /tests/sentry/dynamic_sampling/                                                  @getsentry/telemetry-experience
 /src/sentry/release_health/metrics_sessions_v2.py                                @getsentry/telemetry-experience
+/src/sentry/release_health/eap_sessions_rollout.py                               @getsentry/telemetry-experience
 /tests/sentry/release_health/test_metrics_sessions_v2.py                         @getsentry/telemetry-experience
+/tests/sentry/release_health/test_eap_sessions_rollout.py                        @getsentry/telemetry-experience
 /src/sentry/utils/platform_categories.py                                         @getsentry/telemetry-experience
 /src/sentry/sentry_metrics/querying/                                             @getsentry/telemetry-experience
 /tests/sentry/sentry_metrics/querying/                                           @getsentry/telemetry-experience
@@ -775,6 +779,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 # Span buffer + process-segments are co-owned by streaming platform and vis for now.
 /src/sentry/spans/                                @getsentry/data-browsing @getsentry/streaming-platform
+/src/sentry/scripts/spans/                        @getsentry/data-browsing @getsentry/streaming-platform
 /tests/sentry/spans/                              @getsentry/data-browsing @getsentry/streaming-platform
 
 # Streaming platform
@@ -793,6 +798,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/preprod/                                   @getsentry/emerge-tools
 /static/app/views/preprod/                             @getsentry/emerge-tools
 /tests/sentry/preprod/                                 @getsentry/emerge-tools
+/static/app/components/events/eventInsightDiff.tsx     @getsentry/emerge-tools
+/bin/preprod/                                          @getsentry/emerge-tools
 # End of preprod
 
 ## Frontend Platform (keep last as we want highest specificity)
@@ -858,7 +865,12 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/integrations/vsts/                                        @getsentry/ecosystem @getsentry/scm
 /tests/sentry/integrations/vsts_extension/                              @getsentry/ecosystem @getsentry/scm
 /tests/sentry/integrations/perforce/                                    @getsentry/ecosystem @getsentry/scm
+/tests/sentry/scm/                                                      @getsentry/scm
 ## End of SCM
+
+## SCM Frontend
+/static/app/components/repositories                                   @getsentry/coding-workflows-sentry-frontend @getsentry/scm
+## End of SCM Frontend
 
 # End of Coding Workflows
 

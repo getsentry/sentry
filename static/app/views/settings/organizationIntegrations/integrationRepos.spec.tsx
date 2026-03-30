@@ -207,7 +207,7 @@ describe('IntegrationRepos', () => {
   });
 
   describe('migratable repo', () => {
-    it('associates repository with integration', async () => {
+    it('adds repository via POST even when existing repo matches', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         body: [
@@ -225,9 +225,9 @@ describe('IntegrationRepos', () => {
         url: `/organizations/${org.slug}/integrations/${integration.id}/repos/`,
         body: {repos: [{identifier: 'example/repo-name', name: 'repo-name'}]},
       });
-      const updateRepo = MockApiClient.addMockResponse({
-        method: 'PUT',
-        url: `/organizations/${org.slug}/repos/4/`,
+      const createRepo = MockApiClient.addMockResponse({
+        method: 'POST',
+        url: `/organizations/${org.slug}/repos/`,
         body: {id: 244},
       });
       render(<IntegrationRepos integration={integration} />);
@@ -235,16 +235,20 @@ describe('IntegrationRepos', () => {
       await userEvent.click(await screen.findByText('Add Repository'));
       await userEvent.type(screen.getByRole('textbox'), 'repo-name');
       await userEvent.click(screen.getByText('repo-name'));
-      expect(updateRepo).toHaveBeenCalledWith(
-        `/organizations/${org.slug}/repos/4/`,
+      expect(createRepo).toHaveBeenCalledWith(
+        `/organizations/${org.slug}/repos/`,
         expect.objectContaining({
-          data: {integrationId: '1'},
+          data: {
+            installation: integration.id,
+            identifier: 'example/repo-name',
+            provider: `integrations:${integration.provider.key}`,
+          },
         })
       );
       await waitFor(() => expect(resetReposSpy).toHaveBeenCalled());
     });
 
-    it('uses externalSlug not name for comparison', async () => {
+    it('uses POST path regardless of externalSlug match', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'GET',
@@ -257,9 +261,9 @@ describe('IntegrationRepos', () => {
           repos: [{identifier: '9876', name: 'repo-name'}],
         },
       });
-      const updateRepo = MockApiClient.addMockResponse({
-        method: 'PUT',
-        url: `/organizations/${org.slug}/repos/4/`,
+      const createRepo = MockApiClient.addMockResponse({
+        method: 'POST',
+        url: `/organizations/${org.slug}/repos/`,
         body: {id: 4320},
       });
       render(<IntegrationRepos integration={integration} />);
@@ -269,10 +273,14 @@ describe('IntegrationRepos', () => {
       await userEvent.click(screen.getByText('repo-name'));
 
       expect(getItems).toHaveBeenCalled();
-      expect(updateRepo).toHaveBeenCalledWith(
-        `/organizations/${org.slug}/repos/4/`,
+      expect(createRepo).toHaveBeenCalledWith(
+        `/organizations/${org.slug}/repos/`,
         expect.objectContaining({
-          data: {integrationId: '1'},
+          data: {
+            installation: integration.id,
+            identifier: '9876',
+            provider: `integrations:${integration.provider.key}`,
+          },
         })
       );
     });

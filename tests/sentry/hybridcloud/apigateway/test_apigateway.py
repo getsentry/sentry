@@ -14,7 +14,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
-@control_silo_test(cells=[ApiGatewayTestCase.REGION], include_monolith_run=True)
+@control_silo_test(cells=[ApiGatewayTestCase.CELL], include_monolith_run=True)
 class ApiGatewayTest(ApiGatewayTestCase):
     @responses.activate
     def test_simple(self) -> None:
@@ -22,7 +22,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
         headers = dict(example="this")
         responses.add_callback(
             responses.GET,
-            f"{self.REGION.address}/organizations/{self.organization.slug}/region/",
+            f"{self.CELL.address}/organizations/{self.organization.slug}/region/",
             verify_request_params(query_params, headers),
         )
 
@@ -44,7 +44,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
     def test_proxy_does_not_resolve_redirect(self) -> None:
         responses.add(
             responses.POST,
-            f"{self.REGION.address}/organizations/{self.organization.slug}/region/",
+            f"{self.CELL.address}/organizations/{self.organization.slug}/region/",
             headers={"Location": "https://zombo.com"},
             status=302,
         )
@@ -78,12 +78,12 @@ class ApiGatewayTest(ApiGatewayTestCase):
         """Test the logic of when a request should be proxied"""
         responses.add(
             responses.GET,
-            f"{self.REGION.address}/organizations/{self.organization.slug}/region/",
+            f"{self.CELL.address}/organizations/{self.organization.slug}/region/",
             json={"proxy": True},
         )
         responses.add(
             responses.GET,
-            f"{self.REGION.address}/organizations/{self.organization.slug}/control/",
+            f"{self.CELL.address}/organizations/{self.organization.slug}/control/",
             json={"proxy": True},
         )
 
@@ -114,22 +114,22 @@ class ApiGatewayTest(ApiGatewayTestCase):
         """Test the logic of when a request should be proxied"""
         responses.add(
             responses.GET,
-            f"{self.REGION.address}/organizations/{self.organization.slug}/region/",
+            f"{self.CELL.address}/organizations/{self.organization.slug}/region/",
             json={"proxy": True},
         )
         responses.add(
             responses.GET,
-            f"{self.REGION.address}/organizations/{self.organization.slug}/control/",
+            f"{self.CELL.address}/organizations/{self.organization.slug}/control/",
             json={"proxy": True},
         )
         responses.add(
             responses.GET,
-            f"{self.REGION.address}/organizations/{self.organization.id}/region/",
+            f"{self.CELL.address}/organizations/{self.organization.id}/region/",
             json={"proxy": True},
         )
         responses.add(
             responses.GET,
-            f"{self.REGION.address}/organizations/{self.organization.id}/control/",
+            f"{self.CELL.address}/organizations/{self.organization.id}/control/",
             json={"proxy": True},
         )
 
@@ -183,7 +183,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
         project_key = self.create_project_key(self.project)
         responses.add(
             responses.GET,
-            f"{self.REGION.address}/js-sdk-loader/{project_key.public_key}.js",
+            f"{self.CELL.address}/js-sdk-loader/{project_key.public_key}.js",
             json={"proxy": True},
         )
 
@@ -206,15 +206,15 @@ class ApiGatewayTest(ApiGatewayTestCase):
             assert resp.data["proxy"] is False
 
     @responses.activate
-    def test_proxy_check_region_pinned_url_with_params(self) -> None:
+    def test_proxy_check_cell_pinned_url_with_params(self) -> None:
         responses.add(
             responses.GET,
-            f"{self.REGION.address}/relays/register/",
+            f"{self.CELL.address}/relays/register/",
             json={"proxy": True},
         )
         responses.add(
             responses.GET,
-            f"{self.REGION.address}/relays/abc123/",
+            f"{self.CELL.address}/relays/abc123/",
             json={"proxy": True, "details": True},
         )
 
@@ -231,16 +231,16 @@ class ApiGatewayTest(ApiGatewayTestCase):
             assert resp_json["details"] is True
 
     @responses.activate
-    def test_proxy_check_region_pinned_issue_urls(self) -> None:
+    def test_proxy_check_cell_pinned_issue_urls(self) -> None:
         issue = self.create_group()
         responses.add(
             responses.GET,
-            f"{self.REGION.address}/issues/{issue.id}/",
+            f"{self.CELL.address}/issues/{issue.id}/",
             json={"proxy": True, "id": issue.id},
         )
         responses.add(
             responses.GET,
-            f"{self.REGION.address}/issues/{issue.id}/events/",
+            f"{self.CELL.address}/issues/{issue.id}/events/",
             json={"proxy": True, "id": issue.id, "events": True},
         )
 
@@ -266,7 +266,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
     def test_proxy_error_embed_dsn(self) -> None:
         responses.add(
             responses.GET,
-            f"{self.REGION.address}/api/embed/error-page/",
+            f"{self.CELL.address}/api/embed/error-page/",
             json={"proxy": True, "name": "error-embed"},
         )
         with override_settings(SILO_MODE=SiloMode.CONTROL, MIDDLEWARE=tuple(self.middleware)):

@@ -1019,6 +1019,7 @@ export interface BaseGroup {
   latestEventHasAttachments?: boolean;
   owners?: SuggestedOwner[] | null;
   seerAutofixLastTriggered?: string | null;
+  seerExplorerAutofixLastTriggered?: string | null;
   seerFixabilityScore?: number | null;
   sentryAppIssues?: PlatformExternalIssue[];
   substatus?: GroupSubstatus | null;
