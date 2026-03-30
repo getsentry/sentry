@@ -117,7 +117,7 @@ function GroupReplaysContent({group}: Props) {
   if (!eventView) {
     // Shown on load and no replay data available
     return (
-      <StyledLayoutPage padding="2xl 3xl">
+      <StyledLayoutPage flex={1} padding="2xl 3xl">
         <Stack>
           <ReplayFilterMessage />
           <Flex align="center" gap="md">
