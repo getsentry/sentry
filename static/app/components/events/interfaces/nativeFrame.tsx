@@ -1,5 +1,5 @@
 import type {MouseEvent} from 'react';
-import {Fragment, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -42,7 +42,9 @@ import type {
 import type {PlatformKey} from 'sentry/types/project';
 import {StackView, type StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {withSentryAppComponents} from 'sentry/utils/withSentryAppComponents';
 import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
@@ -132,7 +134,17 @@ function NativeFrame({
     (hasStreamlinedUI ? !!debugSectionConfig : true);
 
   const organization = useOrganization();
-  const hasScmSourceContext = organization.features.includes('scm-source-context');
+  const {projects} = useProjects();
+  const project = useMemo(
+    () => projects.find(p => p.id === event.projectID),
+    [projects, event]
+  );
+  const hasScmFeature = organization.features.includes('scm-source-context');
+  const {data: detailedProject} = useDetailedProject(
+    {orgSlug: organization.slug, projectSlug: project?.slug ?? ''},
+    {enabled: hasScmFeature && defined(project)}
+  );
+  const hasScmSourceContext = hasScmFeature && !!detailedProject?.scmSourceContextEnabled;
 
   const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
   const expandable = isExpandable({

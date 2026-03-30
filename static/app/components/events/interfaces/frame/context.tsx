@@ -19,6 +19,7 @@ import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {getFileExtension} from 'sentry/utils/fileExtension';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -92,7 +93,12 @@ export function Context({
     [projects, event]
   );
 
-  const hasScmSourceContext = organization.features.includes('scm-source-context');
+  const hasScmFeature = organization.features.includes('scm-source-context');
+  const {data: detailedProject} = useDetailedProject(
+    {orgSlug: organization.slug, projectSlug: project?.slug ?? ''},
+    {enabled: hasScmFeature && defined(project)}
+  );
+  const hasScmSourceContext = hasScmFeature && !!detailedProject?.scmSourceContextEnabled;
   const shouldFetchSourceContext =
     hasScmSourceContext &&
     defined(project) &&

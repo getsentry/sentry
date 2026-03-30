@@ -26,7 +26,9 @@ import type {
 import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {withSentryAppComponents} from 'sentry/utils/withSentryAppComponents';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 
@@ -110,11 +112,21 @@ function DeprecatedLine({
   components,
 }: Props) {
   const organization = useOrganization();
+  const {projects} = useProjects();
+  const project = useMemo(
+    () => projects.find(p => p.id === event.projectID),
+    [projects, event]
+  );
   const [isHovering, setIsHovering] = useState(false);
   const [isExpanded, setIsExpanded] = useState(initialExpanded ?? false);
   const platform = getPlatform(data.platform, propPlatform ?? 'other');
   const leadsToApp = !data.inApp && (nextFrame?.inApp || !nextFrame);
-  const hasScmSourceContext = organization.features.includes('scm-source-context');
+  const hasScmFeature = organization.features.includes('scm-source-context');
+  const {data: detailedProject} = useDetailedProject(
+    {orgSlug: organization.slug, projectSlug: project?.slug ?? ''},
+    {enabled: hasScmFeature && !!project}
+  );
+  const hasScmSourceContext = hasScmFeature && !!detailedProject?.scmSourceContextEnabled;
 
   const isExpandable = useMemo((): boolean => {
     return !!(
