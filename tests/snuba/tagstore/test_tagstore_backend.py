@@ -1,6 +1,7 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from functools import cached_property
 from unittest import mock
+from uuid import uuid4
 
 import pytest
 from django.utils import timezone
@@ -16,11 +17,17 @@ from sentry.search.events.constants import (
     SEMVER_BUILD_ALIAS,
     SEMVER_PACKAGE_ALIAS,
 )
+from sentry.snuba.occurrences_rpc import OccurrenceCategory
 from sentry.tagstore.exceptions import GroupTagKeyNotFound, TagKeyNotFound
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.tagstore.types import GroupTagValue, TagValue
 from sentry.testutils.abstract import Abstract
-from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
+from sentry.testutils.cases import (
+    OccurrenceTestCase,
+    PerformanceIssueTestCase,
+    SnubaTestCase,
+    TestCase,
+)
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
@@ -1561,14 +1568,14 @@ class GetTagValuePaginatorForProjectsSemverBuildTest(BaseSemverTest):
         self.run_test("4", ["456"], env_2)
 
 
-class TestEAPGetGroupsUserCounts(TestCase, SnubaTestCase):
+class TestEAPGetGroupsUserCounts(TestCase, SnubaTestCase, OccurrenceTestCase):
     FROZEN_TIME = before_now(hours=24).replace(hour=6, minute=0, second=0)
 
     def setUp(self) -> None:
         super().setUp()
         self.ts = SnubaTagStorage()
 
-    def _store_event_with_user(
+    def _store_error_event_with_user(
         self, fingerprint: str, user_id: str, timestamp: float, environment: str | None = None
     ):
         extra: dict = {
@@ -1584,25 +1591,37 @@ class TestEAPGetGroupsUserCounts(TestCase, SnubaTestCase):
             extra_event_data=extra,
         )[0]
 
+    def _store_issue_platform_event_with_user(
+        self, group, user_id: str, timestamp: datetime, environment: str | None = None
+    ):
+        eap_item = self.create_eap_occurrence(
+            group_id=group.id,
+            timestamp=timestamp,
+            environment=environment,
+            issue_occurrence_id=uuid4().hex,
+            tags={"sentry:user": f"id:{user_id}"},
+        )
+        self.store_eap_items([eap_item])
+
     @freeze_time(FROZEN_TIME)
     def test_eap_and_snuba_user_counts_match_multiple_groups(self) -> None:
         ts = (self.FROZEN_TIME - timedelta(minutes=5)).timestamp()
 
         # Group A: 3 events from 2 unique users (user1 appears twice)
-        self._store_event_with_user("group-a", "user1", ts)
-        self._store_event_with_user("group-a", "user1", ts)
-        event_a = self._store_event_with_user("group-a", "user2", ts)
+        self._store_error_event_with_user("group-a", "user1", ts)
+        self._store_error_event_with_user("group-a", "user1", ts)
+        event_a = self._store_error_event_with_user("group-a", "user2", ts)
         group_a = event_a.group
         assert group_a is not None
 
         # Group B: 2 events from 2 unique users
-        self._store_event_with_user("group-b", "user3", ts)
-        event_b = self._store_event_with_user("group-b", "user4", ts)
+        self._store_error_event_with_user("group-b", "user3", ts)
+        event_b = self._store_error_event_with_user("group-b", "user4", ts)
         group_b = event_b.group
         assert group_b is not None
 
         # Group C: 1 event from 1 unique user
-        event_c = self._store_event_with_user("group-c", "user5", ts)
+        event_c = self._store_error_event_with_user("group-c", "user5", ts)
         group_c = event_c.group
         assert group_c is not None
 
@@ -1626,6 +1645,7 @@ class TestEAPGetGroupsUserCounts(TestCase, SnubaTestCase):
             start=start,
             end=end,
             referrer="tagstore.get_groups_user_counts",
+            occurrence_category=OccurrenceCategory.ERROR,
         )
 
         assert snuba_result == {group_a.id: 2, group_b.id: 2, group_c.id: 1}
@@ -1637,11 +1657,11 @@ class TestEAPGetGroupsUserCounts(TestCase, SnubaTestCase):
         env = self.create_environment(project=self.project, name="production")
 
         # 2 events in "production" env from 2 unique users
-        self._store_event_with_user("group-a", "user1", ts, environment=env.name)
-        self._store_event_with_user("group-a", "user2", ts, environment=env.name)
+        self._store_error_event_with_user("group-a", "user1", ts, environment=env.name)
+        self._store_error_event_with_user("group-a", "user2", ts, environment=env.name)
 
         # 1 event in a different env (should be excluded by env filter)
-        event = self._store_event_with_user("group-a", "user3", ts, environment="staging")
+        event = self._store_error_event_with_user("group-a", "user3", ts, environment="staging")
         group_a = event.group
         assert group_a is not None
 
@@ -1666,6 +1686,7 @@ class TestEAPGetGroupsUserCounts(TestCase, SnubaTestCase):
             start=start,
             end=end,
             referrer="tagstore.get_groups_user_counts",
+            occurrence_category=OccurrenceCategory.ERROR,
         )
 
         assert snuba_with_env == {group_a.id: 2}
@@ -1688,6 +1709,7 @@ class TestEAPGetGroupsUserCounts(TestCase, SnubaTestCase):
             start=start,
             end=end,
             referrer="tagstore.get_groups_user_counts",
+            occurrence_category=OccurrenceCategory.ERROR,
         )
 
         assert snuba_no_env == {group_a.id: 3}
@@ -1699,11 +1721,11 @@ class TestEAPGetGroupsUserCounts(TestCase, SnubaTestCase):
         recent_ts = (self.FROZEN_TIME - timedelta(minutes=5)).timestamp()
 
         # Old events outside the query window
-        self._store_event_with_user("group-a", "user1", old_ts)
-        self._store_event_with_user("group-a", "user2", old_ts)
+        self._store_error_event_with_user("group-a", "user1", old_ts)
+        self._store_error_event_with_user("group-a", "user2", old_ts)
 
         # Recent event inside the query window
-        event = self._store_event_with_user("group-a", "user3", recent_ts)
+        event = self._store_error_event_with_user("group-a", "user3", recent_ts)
         group_a = event.group
         assert group_a is not None
 
@@ -1728,7 +1750,118 @@ class TestEAPGetGroupsUserCounts(TestCase, SnubaTestCase):
             start=start,
             end=end,
             referrer="tagstore.get_groups_user_counts",
+            occurrence_category=OccurrenceCategory.ERROR,
         )
 
         assert snuba_result == {group_a.id: 1}
         assert eap_result == snuba_result
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_issue_platform_user_counts_multiple_groups(self) -> None:
+        ts = self.FROZEN_TIME - timedelta(minutes=5)
+
+        group_a = self.create_group(project=self.project)
+        group_b = self.create_group(project=self.project)
+        group_c = self.create_group(project=self.project)
+
+        # Group A: 3 items from 2 unique users (user1 appears twice)
+        self._store_issue_platform_event_with_user(group_a, "user1", ts)
+        self._store_issue_platform_event_with_user(group_a, "user1", ts)
+        self._store_issue_platform_event_with_user(group_a, "user2", ts)
+
+        # Group B: 2 items from 2 unique users
+        self._store_issue_platform_event_with_user(group_b, "user3", ts)
+        self._store_issue_platform_event_with_user(group_b, "user4", ts)
+
+        # Group C: 1 item from 1 unique user
+        self._store_issue_platform_event_with_user(group_c, "user5", ts)
+
+        group_ids = [group_a.id, group_b.id, group_c.id]
+        start = self.FROZEN_TIME - timedelta(hours=1)
+        end = self.FROZEN_TIME + timedelta(hours=1)
+
+        eap_result = self.ts._eap_get_groups_user_counts(
+            project_ids=[self.project.id],
+            group_ids=group_ids,
+            environment_ids=None,
+            start=start,
+            end=end,
+            referrer="tagstore.get_generic_groups_user_counts",
+            occurrence_category=OccurrenceCategory.ISSUE_PLATFORM,
+        )
+
+        assert eap_result == {group_a.id: 2, group_b.id: 2, group_c.id: 1}
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_issue_platform_user_counts_with_environment_filter(self) -> None:
+        ts = self.FROZEN_TIME - timedelta(minutes=5)
+        env = self.create_environment(project=self.project, name="prod")
+
+        group_a = self.create_group(project=self.project)
+
+        # 2 items in "prod" env from 2 unique users
+        self._store_issue_platform_event_with_user(group_a, "user1", ts, environment=env.name)
+        self._store_issue_platform_event_with_user(group_a, "user2", ts, environment=env.name)
+
+        # 1 item in a different env
+        self._store_issue_platform_event_with_user(group_a, "user3", ts, environment="staging")
+
+        group_ids = [group_a.id]
+        start = self.FROZEN_TIME - timedelta(hours=1)
+        end = self.FROZEN_TIME + timedelta(hours=1)
+
+        # With environment filter: should only count user1, user2
+        eap_with_env = self.ts._eap_get_groups_user_counts(
+            project_ids=[self.project.id],
+            group_ids=group_ids,
+            environment_ids=[env.id],
+            start=start,
+            end=end,
+            referrer="tagstore.get_generic_groups_user_counts",
+            occurrence_category=OccurrenceCategory.ISSUE_PLATFORM,
+        )
+
+        assert eap_with_env == {group_a.id: 2}
+
+        # Without environment filter: should count all 3 users
+        eap_no_env = self.ts._eap_get_groups_user_counts(
+            project_ids=[self.project.id],
+            group_ids=group_ids,
+            environment_ids=None,
+            start=start,
+            end=end,
+            referrer="tagstore.get_generic_groups_user_counts",
+            occurrence_category=OccurrenceCategory.ISSUE_PLATFORM,
+        )
+
+        assert eap_no_env == {group_a.id: 3}
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_issue_platform_user_counts_with_time_range_filter(self) -> None:
+        old_ts = self.FROZEN_TIME - timedelta(hours=5)
+        recent_ts = self.FROZEN_TIME - timedelta(minutes=5)
+
+        group_a = self.create_group(project=self.project)
+
+        # Old items outside the query window
+        self._store_issue_platform_event_with_user(group_a, "user1", old_ts)
+        self._store_issue_platform_event_with_user(group_a, "user2", old_ts)
+
+        # Recent item inside the query window
+        self._store_issue_platform_event_with_user(group_a, "user3", recent_ts)
+
+        group_ids = [group_a.id]
+        start = self.FROZEN_TIME - timedelta(hours=1)
+        end = self.FROZEN_TIME + timedelta(hours=1)
+
+        eap_result = self.ts._eap_get_groups_user_counts(
+            project_ids=[self.project.id],
+            group_ids=group_ids,
+            environment_ids=None,
+            start=start,
+            end=end,
+            referrer="tagstore.get_generic_groups_user_counts",
+            occurrence_category=OccurrenceCategory.ISSUE_PLATFORM,
+        )
+
+        assert eap_result == {group_a.id: 1}
