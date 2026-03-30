@@ -258,6 +258,12 @@ async function resolveImageAvatarColors(
 
   if (!sampled?.hex) return null;
 
+  // If the image fills all edges and the inferred color is very dark,
+  // fall back to the default button color rather than deriving an unusable chonk.
+  if (sampled.style === 'fill' && color(sampled.hex).lightness() < 15) {
+    return {chonk: undefined, style: sampled.style};
+  }
+
   const chonk = color(sampled.hex)
     .darken(theme === 'dark' ? 0.85 : 0.45)
     .hex();
