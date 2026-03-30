@@ -14,7 +14,7 @@ import type {Config} from 'sentry/types/system';
 import {withApi} from 'sentry/utils/withApi';
 import {withConfig} from 'sentry/utils/withConfig';
 import {getThresholdUnits} from 'sentry/views/alerts/rules/metric/constants';
-import ThresholdControl from 'sentry/views/alerts/rules/metric/triggers/thresholdControl';
+import {ThresholdControl} from 'sentry/views/alerts/rules/metric/triggers/thresholdControl';
 import type {
   AlertRuleThresholdType,
   ThresholdControlValue,

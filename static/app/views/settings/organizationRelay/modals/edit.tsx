@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import type {Relay} from 'sentry/types/relay';
 
-import ModalManager from './modalManager';
+import {ModalManager} from './modalManager';
 
 type Props = {
   relay: Relay;
@@ -9,7 +9,7 @@ type Props = {
 
 type State = ModalManager['state'];
 
-class Edit extends ModalManager<Props, State> {
+export class Edit extends ModalManager<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -40,5 +40,3 @@ class Edit extends ModalManager<Props, State> {
     return {trustedRelays};
   }
 }
-
-export default Edit;

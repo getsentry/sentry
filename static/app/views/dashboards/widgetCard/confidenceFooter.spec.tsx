@@ -155,16 +155,17 @@ describe('WidgetCardConfidenceFooter', () => {
   it('renders metrics footer with raw counts from API', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {data: [{'count(value,duration,d,-)': 120}]},
+      body: {data: [{'count(value)': 120}]},
       match: [MockApiClient.matchQuery({sampling: 'NORMAL', dataset: 'tracemetrics'})],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {data: [{'count(value,duration,d,-)': 500}]},
+      body: {data: [{'count(value)': 500}]},
       match: [
         MockApiClient.matchQuery({
-          sampling: 'HIGHEST_ACCURACY',
+          sampling: 'NORMAL',
           dataset: 'tracemetrics',
+          referrer: 'api.explore.tracemetrics.raw-count.normal-extrapolated-total',
         }),
       ],
     });
@@ -180,8 +181,8 @@ describe('WidgetCardConfidenceFooter', () => {
           queries: [
             WidgetQueryFixture({
               conditions: 'transaction:checkout',
-              aggregates: ['avg(value,duration,d,-)'],
-              fields: ['avg(value,duration,d,-)'],
+              aggregates: ['avg(value,metric_name,distribution,millisecond)'],
+              fields: ['avg(value,metric_name,distribution,millisecond)'],
               columns: [],
             }),
           ],

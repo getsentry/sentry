@@ -8,7 +8,7 @@ import {Button, LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {ReplayCurrentScreen} from 'sentry/components/replays/replayCurrentScreen';
 import {ReplayCurrentUrl} from 'sentry/components/replays/replayCurrentUrl';

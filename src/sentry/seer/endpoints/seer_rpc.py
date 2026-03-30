@@ -252,8 +252,6 @@ class SeerRpcServiceEndpoint(Endpoint):
             sentry_sdk.capture_exception()
             raise ParseError from e
         except ObjectDoesNotExist as e:
-            # Let this fall through, this is normal.
-            sentry_sdk.capture_exception()
             raise NotFound from e
         except SnubaRPCRateLimitExceeded as e:
             sentry_sdk.capture_exception()

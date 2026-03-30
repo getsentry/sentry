@@ -230,7 +230,7 @@ export const CallTreeTableHeaderButton = styled('button')`
   justify-content: space-between;
   padding: 0 ${p => p.theme.space.md};
   border: none;
-  background-color: ${p => p.theme.tokens.background.tertiary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   transition: background-color 100ms ease-in-out;
   line-height: 29px;
 

@@ -4,7 +4,7 @@
 // See: https://bugs.webkit.org/show_bug.cgi?id=174931
 //
 // The ^(?![0-9]+$)[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$ regex should almost match the above regex.
-const ORG_SLUG_REGEX = new RegExp('^(?![0-9]+$)[a-zA-Z0-9][a-zA-Z0-9-]*$');
+const ORG_SLUG_REGEX = new RegExp('^(?!\\d+$)[a-zA-Z0-9][a-zA-Z0-9-]*$');
 
 export function isValidOrgSlug(orgSlug: string): boolean {
   return (

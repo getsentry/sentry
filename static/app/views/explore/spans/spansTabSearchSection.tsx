@@ -366,8 +366,6 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   const [caseInsensitive, setCaseInsensitive] = useCaseInsensitivity();
 
   const organization = useOrganization();
-  const areAiFeaturesAllowed =
-    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
   );
@@ -449,10 +447,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
 
   return (
     <Layout.Main width="full">
-      <SearchQueryBuilderProvider
-        enableAISearch={areAiFeaturesAllowed}
-        {...spanSearchQueryBuilderProviderProps}
-      >
+      <SearchQueryBuilderProvider enableAISearch {...spanSearchQueryBuilderProviderProps}>
         <TourElement<ExploreSpansTour>
           tourContext={ExploreSpansTourContext}
           id={ExploreSpansTour.SEARCH_BAR}

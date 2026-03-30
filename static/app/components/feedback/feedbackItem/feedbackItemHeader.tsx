@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackActions} from 'sentry/components/feedback/feedbackItem/feedbackActions';
 import {FeedbackShortId} from 'sentry/components/feedback/feedbackItem/feedbackShortId';
 import {FeedbackViewers} from 'sentry/components/feedback/feedbackItem/feedbackViewers';
-import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
+import {ExternalIssueList} from 'sentry/components/group/externalIssuesList';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -64,7 +64,7 @@ export function FeedbackItemHeader({eventData, feedbackItem, onBackToList}: Prop
         <ErrorBoundary mini>
           <Flex wrap="wrap" justify="between" align="center" gap="md">
             <Flex direction="row" gap="md">
-              <StreamlinedExternalIssueList
+              <ExternalIssueList
                 group={feedbackItem as unknown as Group}
                 project={feedbackItem.project}
                 event={eventData}

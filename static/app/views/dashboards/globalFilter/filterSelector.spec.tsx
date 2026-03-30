@@ -154,6 +154,27 @@ describe('FilterSelector', () => {
     expect(screen.getByText('firefox')).toBeInTheDocument();
   });
 
+  it('shows selected value in trigger when tag values fail to load', async () => {
+    const emptySearchBarData: SearchBarData = {
+      getFilterKeySections: () => [],
+      getFilterKeys: () => ({}),
+      getTagValues: () => Promise.resolve([]),
+    };
+
+    render(
+      <FilterSelector
+        globalFilter={{...mockGlobalFilter, value: 'browser:firefox'}}
+        searchBarData={emptySearchBarData}
+        onUpdateFilter={mockOnUpdateFilter}
+        onRemoveFilter={mockOnRemoveFilter}
+      />
+    );
+
+    // Even with no fetched tag values, should show selected value, not "All"
+    expect(await screen.findByText('firefox')).toBeInTheDocument();
+    expect(screen.queryByText('All')).not.toBeInTheDocument();
+  });
+
   it('translates subregion codes to human-readable names for spans dataset', async () => {
     const subregionFilter: GlobalFilter = {
       dataset: WidgetType.SPANS,

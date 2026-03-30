@@ -151,7 +151,7 @@ export function SeerAutomationProjectList() {
 
   const handleSearchChange = (searchQuery: string) => {
     setSearch(searchQuery);
-    setPage(1); // Reset to first page when search changes
+    setPage(1);
   };
 
   if (fetching) {
@@ -183,14 +183,12 @@ export function SeerAutomationProjectList() {
     filteredProjects.every(project => selected.has(project.id));
   const toggleSelectAll = () => {
     if (allFilteredSelected) {
-      // Unselect all filtered projects
       setSelected(prev => {
         const newSet = new Set(prev);
         filteredProjects.forEach(project => newSet.delete(project.id));
         return newSet;
       });
     } else {
-      // Select all filtered projects
       setSelected(prev => {
         const newSet = new Set(prev);
         filteredProjects.forEach(project => newSet.add(project.id));
@@ -220,13 +218,12 @@ export function SeerAutomationProjectList() {
   };
 
   const handleCheckboxClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent row click when clicking checkbox
+    e.stopPropagation();
   };
 
   async function updateProjectsSeerValue(value: string) {
     addLoadingMessage('Updating projects...', {duration: 60000});
     try {
-      // Process projects in batches to avoid concurrency limit
       const batchSize = 20;
       const selectedProjects = Array.from(selected);
 
@@ -238,8 +235,6 @@ export function SeerAutomationProjectList() {
             if (!project) return Promise.resolve();
 
             const updateData: any = {autofixAutomationTuning: value};
-
-            // If setting fixes to anything other than "off", also enable scanner
             if (value !== 'off') {
               updateData.seerScannerAutomation = true;
             }
@@ -252,7 +247,7 @@ export function SeerAutomationProjectList() {
         );
       }
       addSuccessMessage('Projects updated successfully');
-    } catch (err) {
+    } catch {
       addErrorMessage('Failed to update some projects');
     } finally {
       Array.from(selected).forEach(projectId => {
@@ -271,7 +266,6 @@ export function SeerAutomationProjectList() {
   async function updateProjectsSeerScanner(value: boolean) {
     addLoadingMessage('Updating projects...', {duration: 60000});
     try {
-      // Process projects in batches to avoid concurrency limit
       const batchSize = 20;
       const selectedProjects = Array.from(selected);
 
@@ -289,7 +283,7 @@ export function SeerAutomationProjectList() {
         );
       }
       addSuccessMessage('Projects updated successfully');
-    } catch (err) {
+    } catch {
       addErrorMessage('Failed to update some projects');
     } finally {
       Array.from(selected).forEach(projectId => {

@@ -243,6 +243,32 @@ def test(monkeypatch) -> None: pass
     assert _run(src) == expected
 
 
+def test_S016() -> None:
+    # Direct import of ThreadPoolExecutor should be flagged
+    src = "from concurrent.futures import ThreadPoolExecutor\n"
+    errors = _run(src)
+    assert errors == [
+        "t.py:1:0: S016 Use `from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor`"
+        " instead of `concurrent.futures.ThreadPoolExecutor` to ensure contextvars propagation.",
+    ]
+
+    # Importing ThreadPoolExecutor alongside other names should still be flagged
+    src = "from concurrent.futures import ThreadPoolExecutor, as_completed\n"
+    errors = _run(src)
+    assert errors == [
+        "t.py:1:0: S016 Use `from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor`"
+        " instead of `concurrent.futures.ThreadPoolExecutor` to ensure contextvars propagation.",
+    ]
+
+    # Importing other names from concurrent.futures is fine
+    src = "from concurrent.futures import as_completed, wait, Future\n"
+    assert _run(src) == []
+
+    # Importing from our wrapper is fine
+    src = "from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor\n"
+    assert _run(src) == []
+
+
 def test_S015_current_or_future_year() -> None:
     cy = datetime.now(timezone.utc).year
     msg = _s015_msg()

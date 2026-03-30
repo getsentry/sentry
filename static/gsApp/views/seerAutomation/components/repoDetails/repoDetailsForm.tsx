@@ -3,12 +3,12 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {Form} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
+import {type RepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
 import {t, tct} from 'sentry/locale';
 import {type RepositoryWithSettings} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
-import {type RepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useBulkUpdateRepositorySettings';
 
 interface Props {
   organization: Organization;

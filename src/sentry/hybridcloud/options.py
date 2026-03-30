@@ -149,6 +149,13 @@ register(
 )
 
 register(
+    "outbox_replication.sentry_projectkey.replication_version",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "hybrid_cloud.authentication.disabled_organization_shards",
     type=Sequence,
     default=[],

@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import Form from 'sentry/components/deprecatedforms/form';
+import {Form} from 'sentry/components/deprecatedforms/form';
 import SelectCreatableField from 'sentry/components/deprecatedforms/selectCreatableField';
 
 describe('SelectCreatableField', () => {

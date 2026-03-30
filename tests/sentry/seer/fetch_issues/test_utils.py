@@ -289,6 +289,18 @@ class TestGetLatestIssueEvent(TestCase):
         results = get_latest_issue_event(group.id, self.organization.id + 1)
         assert results == {}
 
+    def test_get_latest_issue_event_numeric_id_cross_org(self):
+        """Numeric group ID from another org must not be returned."""
+        other_org = self.create_organization(owner=self.create_user())
+        other_project = self.create_project(organization=other_org)
+        data = load_data("python", timestamp=before_now(minutes=1))
+        other_event = self.store_event(data=data, project_id=other_project.id)
+        other_group = other_event.group
+        assert other_group is not None
+
+        result = get_latest_issue_event(other_group.id, self.organization.id)
+        assert result == {}
+
 
 class TestHandleFetchIssuesExceptions(TestCase):
     def test_handle_fetch_issues_exceptions_success(self):

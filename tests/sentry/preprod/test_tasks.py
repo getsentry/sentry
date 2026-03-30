@@ -632,7 +632,8 @@ class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
         )
         return status, details
 
-    def test_assemble_preprod_artifact_installable_app_success(self) -> None:
+    @patch("sentry.preprod.tasks.send_build_distribution_webhook")
+    def test_assemble_preprod_artifact_installable_app_success(self, mock_send_webhook) -> None:
         status, details = self._run_task_and_verify_status(b"test installable app content")
 
         assert status == ChunkFileState.OK
@@ -647,7 +648,13 @@ class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
         self.preprod_artifact.refresh_from_db()
         assert self.preprod_artifact.installable_app_file_id == installable_files[0].id
 
-    def test_assemble_preprod_artifact_installable_app_error_cases(self) -> None:
+        # Verify webhook was sent
+        mock_send_webhook.assert_called_once()
+        call_kwargs = mock_send_webhook.call_args
+        assert call_kwargs.kwargs["organization_id"] == self.organization.id
+
+    @patch("sentry.preprod.tasks.send_build_distribution_webhook")
+    def test_assemble_preprod_artifact_installable_app_error_cases(self, mock_send_webhook) -> None:
         # Test nonexistent artifact
         status, details = self._run_task_and_verify_status(
             b"nonexistent artifact", artifact_id=99999
@@ -677,6 +684,9 @@ class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
         # Verify PreprodArtifact was not updated for error cases
         self.preprod_artifact.refresh_from_db()
         assert self.preprod_artifact.installable_app_file_id is None
+
+        # Verify webhook was NOT sent for any error case
+        mock_send_webhook.assert_not_called()
 
 
 class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):

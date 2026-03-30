@@ -9,7 +9,7 @@ import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 
 import type {ActiveOperationFilter} from './filter';
 import {noFilter, toggleAllFilters, toggleFilter} from './filter';
-import SpanTreeModel from './spanTreeModel';
+import {SpanTreeModel} from './spanTreeModel';
 import type {
   EnhancedProcessedSpanType,
   FilterSpans,
@@ -21,7 +21,7 @@ import type {
 } from './types';
 import {boundsGenerator, generateRootSpan, getSpanID, parseTrace} from './utils';
 
-class WaterfallModel {
+export class WaterfallModel {
   api: Client = new Client();
 
   // readonly state
@@ -356,5 +356,3 @@ class WaterfallModel {
     });
   };
 }
-
-export default WaterfallModel;

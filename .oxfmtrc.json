@@ -99,7 +99,7 @@
   "trailingComma": "es5",
   "useTabs": false,
   "arrowParens": "avoid",
-  "sortPackageJson": false,
+  "sortPackageJson": true,
   "ignorePatterns": [
     ".devenv/bin/**/*",
     "src/**/templates/**/*.html",

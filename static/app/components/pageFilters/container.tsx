@@ -18,17 +18,17 @@ import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useRouter} from 'sentry/utils/useRouter';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/navigation/constants';
 
 import {getDatetimeFromState, getStateFromQuery} from './parse';
 
 type InitializeUrlStateProps = Omit<
   InitializeUrlStateParams,
-  'memberProjects' | 'nonMemberProjects' | 'queryParams' | 'router' | 'organization'
+  'memberProjects' | 'nonMemberProjects' | 'location' | 'navigate' | 'organization'
 >;
 
 interface Props extends InitializeUrlStateProps {
@@ -70,8 +70,8 @@ export function PageFiltersContainer({
     disablePersistence,
     storageNamespace,
   } = props;
-  const router = useRouter();
   const location = useLocation();
+  const navigate = useNavigate();
   const organization = useOrganization();
   const [hasInitialized, setHasInitialized] = useState(false);
 
@@ -97,8 +97,8 @@ export function PageFiltersContainer({
   const doInitialization = () => {
     initializeUrlState({
       organization,
-      queryParams: location.query,
-      router,
+      location,
+      navigate,
       skipLoadLastUsed,
       skipLoadLastUsedEnvironment,
       maxPickableDays,
@@ -181,8 +181,8 @@ export function PageFiltersContainer({
       environment: [],
       project: [],
     });
-    updateDateTime(newDateState, router);
-  }, [maxPickableDays, router, selection.datetime.utc, shouldResetDateTime]);
+    updateDateTime(newDateState, location, navigate);
+  }, [maxPickableDays, location, navigate, selection.datetime.utc, shouldResetDateTime]);
 
   // Update store persistence when `disablePersistence` changes
   useEffect(() => updatePersistence(!disablePersistence), [disablePersistence]);
@@ -225,7 +225,7 @@ export function PageFiltersContainer({
     // Do not pass router to these actionCreators, as we do not want to update
     // routes since these state changes are happening due to a change of routes
     if (!noProjectChange) {
-      updateProjects(newState.project || [], null, {
+      updateProjects(newState.project || [], undefined, undefined, {
         environments: newEnvironments,
         storageNamespace,
       });

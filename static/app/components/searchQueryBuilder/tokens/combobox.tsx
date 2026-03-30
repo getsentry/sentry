@@ -471,7 +471,7 @@ export function SearchQueryBuilderCombobox<
         if (
           e.key === 'ArrowDown' ||
           e.key === 'ArrowUp' ||
-          /^\w$/i.test(e.key) ||
+          /^\w$/.test(e.key) ||
           e.key === ','
         ) {
           if (isOpen || isCtrlKeyPressed(e)) return;

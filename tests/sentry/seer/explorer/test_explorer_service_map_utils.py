@@ -18,7 +18,7 @@ from sentry.seer.explorer.explorer_service_map_utils import (
     _query_service_dependencies,
     _send_to_seer,
 )
-from sentry.tasks.context_engine_index import build_service_map
+from sentry.tasks.seer.context_engine_index import build_service_map
 from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
@@ -129,14 +129,14 @@ class TestBuildServiceMap(TestCase):
 
         with override_options({"explorer.context_engine_indexing.enable": True}):
             with mock.patch(
-                "sentry.tasks.context_engine_index._query_service_dependencies"
+                "sentry.tasks.seer.context_engine_index._query_service_dependencies"
             ) as mock_query:
                 build_service_map(org.id)
 
         mock_query.assert_not_called()
 
-    @mock.patch("sentry.tasks.context_engine_index._send_to_seer")
-    @mock.patch("sentry.tasks.context_engine_index._query_service_dependencies")
+    @mock.patch("sentry.tasks.seer.context_engine_index._send_to_seer")
+    @mock.patch("sentry.tasks.seer.context_engine_index._query_service_dependencies")
     def test_complete_workflow(self, mock_dependencies, mock_send):
         org = self.create_organization()
         project1 = self.create_project(organization=org)
@@ -160,8 +160,8 @@ class TestBuildServiceMap(TestCase):
         assert isinstance(snuba_params, SnubaParams)
         mock_send.assert_called_once()
 
-    @mock.patch("sentry.tasks.context_engine_index._build_nodes")
-    @mock.patch("sentry.tasks.context_engine_index._query_service_dependencies")
+    @mock.patch("sentry.tasks.seer.context_engine_index._build_nodes")
+    @mock.patch("sentry.tasks.seer.context_engine_index._query_service_dependencies")
     def test_handles_no_nodes(self, mock_dependencies, mock_build_nodes):
         org = self.create_organization()
         self.create_project(organization=org)
@@ -170,12 +170,12 @@ class TestBuildServiceMap(TestCase):
         mock_build_nodes.return_value = []
 
         with override_options({"explorer.context_engine_indexing.enable": True}):
-            with mock.patch("sentry.tasks.context_engine_index._send_to_seer") as mock_send:
+            with mock.patch("sentry.tasks.seer.context_engine_index._send_to_seer") as mock_send:
                 build_service_map(org.id)
 
         mock_send.assert_not_called()
 
-    @mock.patch("sentry.tasks.context_engine_index._query_service_dependencies")
+    @mock.patch("sentry.tasks.seer.context_engine_index._query_service_dependencies")
     def test_handles_exception(self, mock_dependencies):
         org = self.create_organization()
 
@@ -1146,7 +1146,7 @@ class TestBuildServiceMapIntegration(SnubaTestCase, SpanTestCase):
 
         self.store_spans(spans)
 
-        with mock.patch("sentry.tasks.context_engine_index._send_to_seer") as mock_send:
+        with mock.patch("sentry.tasks.seer.context_engine_index._send_to_seer") as mock_send:
             with override_options(
                 {
                     "explorer.context_engine_indexing.enable": True,

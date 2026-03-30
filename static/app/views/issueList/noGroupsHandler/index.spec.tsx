@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import NoGroupsHandler from 'sentry/views/issueList/noGroupsHandler';
+import {NoGroupsHandler} from 'sentry/views/issueList/noGroupsHandler';
 
 describe('NoGroupsHandler', () => {
   const defaultProps = {

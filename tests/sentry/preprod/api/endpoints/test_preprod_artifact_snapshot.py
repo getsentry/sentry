@@ -270,13 +270,11 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
             images = {
                 "img1": {
                     "display_name": "Screen1",
-                    "image_file_name": "Screen1",
                     "width": 375,
                     "height": 812,
                 },
                 "img2": {
                     "display_name": "Screen2",
-                    "image_file_name": "Screen2",
                     "width": 1080,
                     "height": 1920,
                 },
@@ -322,9 +320,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert len(response.data["images"]) == 2
         # Images should be sorted by key
         assert response.data["images"][0]["key"] == "img1"
-        assert (
-            response.data["images"][0]["image_file_name"] == "Screen1"
-        )  # response field is still "file_name"
+        assert response.data["images"][0]["image_file_name"] == "img1"
         assert response.data["images"][1]["key"] == "img2"
 
     @patch("sentry.preprod.api.endpoints.preprod_artifact_snapshot.get_preprod_session")

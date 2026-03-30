@@ -130,8 +130,8 @@ def get_rules(
         NotificationRuleDetails(
             rule.id,
             rule.label,
-            f"/organizations/{organization.slug}/alerts/rules/{project.slug}/{rule.id}/",
-            f"/organizations/{organization.slug}/alerts/rules/{project.slug}/{rule.id}/details/",
+            f"/organizations/{organization.slug}/issues/alerts/rules/{project.slug}/{rule.id}/",
+            f"/organizations/{organization.slug}/issues/alerts/rules/{project.slug}/{rule.id}/details/",
         )
         for rule in rules
     ]

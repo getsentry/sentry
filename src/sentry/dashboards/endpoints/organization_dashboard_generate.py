@@ -75,11 +75,15 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
 
         try:
             client = SeerExplorerClient(
-                organization, request.user, on_completion_hook=DashboardOnCompletionHook
+                organization,
+                request.user,
+                on_completion_hook=DashboardOnCompletionHook,
+                category_key="dashboard_generate",
+                category_value=str(organization.id),
             )
             run_id = client.start_run(
                 prompt=prompt,
-                on_page_context="The user is on the dashboard generation page. This session must ONLY generate a dashboard artifact. Do not perform code inspection, code changes, or any tasks unrelated to dashboard generation.",
+                on_page_context="The user is on the dashboard generation page. This session must ONLY generate a dashboard artifact. Do not perform code changes or any tasks unrelated to dashboard generation.",
                 artifact_key="dashboard",
                 artifact_schema=GeneratedDashboard,
                 request=request,

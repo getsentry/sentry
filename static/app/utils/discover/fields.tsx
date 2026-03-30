@@ -894,8 +894,8 @@ export const TRANSACTIONS_AGGREGATION_FUNCTIONS = [
 // This list contains fields/functions that are available with profiling feature.
 export const PROFILING_FIELDS: string[] = [FieldKey.PROFILE_ID];
 
-const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
-const SPAN_OP_BREAKDOWN_PATTERN = /^spans\.([a-zA-Z0-9-_.]+)$/;
+const MEASUREMENT_PATTERN = /^measurements\.([\w-.]+)$/;
+const SPAN_OP_BREAKDOWN_PATTERN = /^spans\.([\w-.]+)$/;
 
 export function isMeasurement(field: string): boolean {
   return MEASUREMENT_PATTERN.test(field);
@@ -918,9 +918,9 @@ export function getMeasurementSlug(field: string): string | null {
   return null;
 }
 
-const AGGREGATE_PATTERN = /^(\w+)\((.*)?\)$/;
+const AGGREGATE_PATTERN = /^(\w+)\((.*)\)$/;
 // Identical to AGGREGATE_PATTERN, but without the $ for newline, or ^ for start of line
-export const AGGREGATE_BASE = /(\w+)\((.*)?\)/g;
+export const AGGREGATE_BASE = /(\w+)\((.*)\)/g;
 
 export function getAggregateArg(field: string): string | null {
   // only returns the first argument if field is an aggregate
@@ -1167,7 +1167,7 @@ export function getAggregateAlias(field: string): string {
     alias += '_' + result.arguments.join('_');
   }
 
-  return alias.replace(/[^\w]/g, '_').replace(/^_+/g, '').replace(/_+$/, '');
+  return alias.replace(/\W/g, '_').replace(/^_+/g, '').replace(/_+$/, '');
 }
 
 /**

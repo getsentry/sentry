@@ -3588,7 +3588,7 @@ export function isDeviceClass(key: any): boolean {
 
 export const DEVICE_CLASS_TAG_VALUES = ['high', 'medium', 'low'];
 
-const TYPED_TAG_KEY_RE = /tags\[([^\s]*),([^\s]*)\]/;
+const TYPED_TAG_KEY_RE = /tags\[(\S*),(\S*)\]/;
 
 export function classifyTagKey(key: string): FieldKind {
   const result = key.match(TYPED_TAG_KEY_RE);

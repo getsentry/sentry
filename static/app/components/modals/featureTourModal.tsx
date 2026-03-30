@@ -72,7 +72,7 @@ const defaultProps = {
  * trigger re-renders in the modal contents. This requires a bit of duplicate state
  * to be managed around the current step.
  */
-class FeatureTourModal extends Component<Props, State> {
+export class FeatureTourModal extends Component<Props, State> {
   static defaultProps = defaultProps;
 
   state: State = {
@@ -121,8 +121,6 @@ class FeatureTourModal extends Component<Props, State> {
     return <Fragment>{children({showModal: this.handleShow})}</Fragment>;
   }
 }
-
-export default FeatureTourModal;
 
 type ContentsProps = ModalRenderProps &
   Pick<Props, 'steps' | 'doneText' | 'doneUrl' | 'onAdvance'> &
