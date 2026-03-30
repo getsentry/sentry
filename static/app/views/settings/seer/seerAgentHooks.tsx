@@ -4,6 +4,8 @@ import {
   bulkAutofixAutomationSettingsInfiniteOptions,
   type AutofixAutomationSettings,
 } from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
+import {makeProjectSeerPreferencesQueryKey} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import type {SeerPreferencesResponse} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {
   useFetchProjectSeerPreferences,
   useUpdateProjectSeerPreferences,
@@ -15,7 +17,7 @@ import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
-import {useQueryClient} from 'sentry/utils/queryClient';
+import {fetchDataQuery, fetchMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function useAgentOptions({
@@ -32,6 +34,7 @@ export function useAgentOptions({
           value: integration,
           label: integration.name,
         })),
+      {value: 'none' as const, label: t('No Handoff')},
     ];
   }, [integrations]);
 }
@@ -205,6 +208,82 @@ export function useMutateSelectedAgent({project}: {project: Project}) {
       }
     },
     [updateProject, updateProjectSeerPreferences, applyOptimisticUpdate, fetchPreferences]
+  );
+}
+
+export function useBulkMutateSelectedAgent({projects}: {projects: Project[]}) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+  const autofixSettingsQueryOptions = bulkAutofixAutomationSettingsInfiniteOptions({
+    organization,
+  });
+
+  return useCallback(
+    async (
+      integration: 'seer' | 'none' | CodingAgentIntegration,
+      {onSuccess, onError}: MutateOptions
+    ) => {
+      const tuning = integration === 'none' ? 'off' : 'medium';
+
+      try {
+        await Promise.all(
+          projects.map(async project => {
+            const [preferencesData] = await queryClient.fetchQuery({
+              queryKey: makeProjectSeerPreferencesQueryKey(
+                organization.slug,
+                project.slug
+              ),
+              queryFn: fetchDataQuery<SeerPreferencesResponse>,
+              staleTime: 0,
+            });
+            const preference = preferencesData?.preference;
+
+            const handoff: ProjectSeerPreferences['automation_handoff'] =
+              integration !== 'seer' && integration !== 'none' && integration
+                ? {
+                    handoff_point: 'root_cause',
+                    target: PROVIDER_TO_HANDOFF_TARGET[integration.provider]!,
+                    integration_id: Number(integration.id),
+                    auto_create_pr:
+                      preference?.automated_run_stopping_point === 'open_pr',
+                  }
+                : undefined;
+
+            return Promise.all([
+              fetchMutation({
+                method: 'PUT',
+                url: `/projects/${organization.slug}/${project.slug}/`,
+                data: {autofixAutomationTuning: tuning},
+              }),
+              fetchMutation({
+                method: 'POST',
+                url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+                data: {
+                  repositories: preference?.repositories ?? [],
+                  automated_run_stopping_point: preference?.automated_run_stopping_point,
+                  automation_handoff: handoff,
+                },
+              }),
+            ]);
+          })
+        );
+
+        projects.forEach(project => {
+          ProjectsStore.onUpdateSuccess({
+            id: project.id,
+            autofixAutomationTuning: tuning,
+          });
+        });
+        queryClient.invalidateQueries({
+          queryKey: autofixSettingsQueryOptions.queryKey,
+        });
+
+        onSuccess?.();
+      } catch {
+        onError?.(new Error('Failed to update agent setting'));
+      }
+    },
+    [projects, organization, queryClient, autofixSettingsQueryOptions.queryKey]
   );
 }
 

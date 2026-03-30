@@ -18,7 +18,10 @@ import {Text} from '@sentry/scraps/text';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
+import {
+  bulkAutofixAutomationSettingsInfiniteOptions,
+  type AutofixAutomationSettings,
+} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
 import {ScmRepoTreeModal} from 'sentry/components/repositories/scmRepoTreeModal';
 import {IconSettings} from 'sentry/icons';
@@ -30,7 +33,10 @@ import {fetchMutation, useQuery} from 'sentry/utils/queryClient';
 import {useInfiniteQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useAgentOptions} from 'sentry/views/settings/seer/seerAgentHooks';
+import {
+  useAgentOptions,
+  useBulkMutateSelectedAgent,
+} from 'sentry/views/settings/seer/seerAgentHooks';
 
 export function useAutofixOverviewData() {
   const organization = useOrganization();
@@ -114,7 +120,7 @@ export function AutofixOverviewSection({canWrite, data, isPending, organization}
         isPending={isPending}
         organization={organization}
         projects={projects}
-        projectsWithPreferredAgentCount={projectsWithPreferredAgent.length}
+        projectsWithPreferredAgent={projectsWithPreferredAgent}
       />
 
       <CreatePrForm
@@ -202,13 +208,13 @@ function AgentNameForm({
   isPending,
   organization,
   projects,
-  projectsWithPreferredAgentCount,
+  projectsWithPreferredAgent,
 }: {
   canWrite: boolean;
   isPending: boolean;
   organization: Organization;
   projects: Project[];
-  projectsWithPreferredAgentCount: number;
+  projectsWithPreferredAgent: AutofixAutomationSettings[];
 }) {
   const {data: integrations} = useQuery(
     organizationIntegrationsCodingAgents(organization)
@@ -253,6 +259,22 @@ function AgentNameForm({
     option => option.value === preferredAgentValue
   )?.label;
 
+  const preferredAgentIntegration =
+    preferredAgentValue === 'seer'
+      ? ('seer' as const)
+      : (rawAgentOptions
+          .filter(option => option.value !== 'seer')
+          .find(option => option.value.id === preferredAgentValue)?.value ?? 'seer');
+
+  const preferredAgentProjectIds = new Set(
+    projectsWithPreferredAgent.map(s => s.projectId)
+  );
+  const projectsToUpdate = projects.filter(p => !preferredAgentProjectIds.has(p.id));
+
+  const bulkMutateSelectedAgent = useBulkMutateSelectedAgent({
+    projects: projectsToUpdate,
+  });
+
   return (
     <AutoSaveForm
       name="agentId"
@@ -282,29 +304,31 @@ function AgentNameForm({
             <Button
               size="xs"
               busy={isPending}
-              disabled={!canWrite || projectsWithPreferredAgentCount === projects.length}
+              disabled={
+                !canWrite || projectsWithPreferredAgent.length === projects.length
+              }
               onClick={() => {
-                // TODO
+                bulkMutateSelectedAgent(preferredAgentIntegration, {});
               }}
             >
               {tn(
                 'Set for the existing project',
                 'Set for all existing projects',
-                projectsWithPreferredAgentCount
+                projectsWithPreferredAgent.length
               )}
             </Button>
             <Text variant="secondary" size="sm">
               {projects.length === 0
                 ? t('No projects found')
                 : projects.length === 1
-                  ? projectsWithPreferredAgentCount === 1
+                  ? projectsWithPreferredAgent.length === 1
                     ? t('Your existing project uses %s', preferredAgentLabel)
                     : t('Your existing project does not use %s', preferredAgentLabel)
-                  : projects.length === projectsWithPreferredAgentCount
+                  : projects.length === projectsWithPreferredAgent.length
                     ? t('All existing projects use %s', preferredAgentLabel)
                     : t(
                         '%s of %s existing projects use %s',
-                        projectsWithPreferredAgentCount,
+                        projectsWithPreferredAgent.length,
                         projects.length,
                         preferredAgentLabel
                       )}
