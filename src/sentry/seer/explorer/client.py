@@ -528,6 +528,7 @@ class SeerExplorerClient:
         run_id: int,
         repo_name: str | None = None,
         blocking: bool = True,
+        pr_description_suffix: str | None = None,
         poll_interval: float = 2.0,
         poll_timeout: float = 120.0,
     ) -> SeerRunState | None:
@@ -554,6 +555,8 @@ class SeerExplorerClient:
         payload: dict[str, Any] = {"type": "create_pr"}
         if repo_name:
             payload["repo_name"] = repo_name
+        if pr_description_suffix:
+            payload["pr_description_suffix"] = pr_description_suffix
         if self.on_completion_hook:
             payload["on_completion_hook"] = extract_hook_definition(self.on_completion_hook).dict()
         update_body = ExplorerUpdateRequest(
