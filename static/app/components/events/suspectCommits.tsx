@@ -9,6 +9,7 @@ import {SuspectCommitFeedback} from 'sentry/components/events/suspectCommitFeedb
 import {Panel} from 'sentry/components/panels/panel';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {t} from 'sentry/locale';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Group} from 'sentry/types/group';
 import type {Commit} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
@@ -33,6 +34,7 @@ export function SuspectCommits({group, eventId, projectSlug}: Props) {
     projectSlug,
     group,
   });
+  const isSelfHosted = ConfigStore.get('isSelfHosted');
 
   const committers = useMemo(
     () => (data?.committers ?? []).slice(0, 100),
@@ -86,7 +88,7 @@ export function SuspectCommits({group, eventId, projectSlug}: Props) {
                 <Heading as="h4" size="lg">
                   {t('Suspect Commit')}
                 </Heading>
-                {committer.group_owner_id !== undefined && (
+                {!isSelfHosted && committer.group_owner_id !== undefined && (
                   <SuspectCommitFeedback
                     groupOwnerId={committer.group_owner_id}
                     organization={organization}
