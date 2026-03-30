@@ -11,7 +11,6 @@ from sentry.testutils.helpers.features import with_feature
 
 @with_feature("organizations:dashboards-ai-generate")
 @with_feature("organizations:gen-ai-features")
-@with_feature("organizations:seer-explorer")
 class OrganizationDashboardGenerateEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-dashboards-generate"
 
