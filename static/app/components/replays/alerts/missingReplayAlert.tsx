@@ -18,7 +18,9 @@ export function MissingReplayAlert({orgSlug}: Props) {
     tct(
       'The replay was rate-limited and could not be accepted. [link:View the stats page] for more information.',
       {
-        link: <Link to={`/organizations/${orgSlug}/stats/?dataCategory=replays`} />,
+        link: (
+          <Link to={`/organizations/${orgSlug}/settings/stats/?dataCategory=replays`} />
+        ),
       }
     ),
     t('The replay has been deleted by a member in your organization.'),
