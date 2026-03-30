@@ -489,10 +489,10 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 *sentryapp*.py                                                       @getsentry/product-owners-settings-integrations @getsentry/ecosystem
 *doc_integration*.py                                                 @getsentry/ecosystem
 
-/src/sentry/runner/commands/createproject.py
-/src/sentry/runner/commands/createorg.py
-/tests/sentry/runner/commands/test_createproject.py
-/tests/sentry/runner/commands/test_createorg.py
+/src/sentry/runner/commands/createproject.py                         @getsentry/ecosystem
+/src/sentry/runner/commands/createorg.py                             @getsentry/ecosystem
+/tests/sentry/runner/commands/test_createproject.py                  @getsentry/ecosystem
+/tests/sentry/runner/commands/test_createorg.py                      @getsentry/ecosystem
 
 ## End of Integrations
 
