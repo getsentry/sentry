@@ -27,7 +27,7 @@ export function ScmPlatformCard({
       <Container border={isSelected ? 'accent' : 'secondary'} padding="lg" radius="md">
         <Grid gap="md" align="center" columns="max-content min-content">
           <PlatformIcon platform={platform} size={28} />
-          <Stack gap="0">
+          <Stack>
             <Text bold textWrap="nowrap">
               {name}
             </Text>
