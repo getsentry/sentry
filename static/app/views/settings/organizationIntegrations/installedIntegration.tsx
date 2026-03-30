@@ -153,15 +153,17 @@ export class InstalledIntegration extends Component<Props> {
                       size="sm"
                     />
                   )}
-                  <StyledLinkButton
-                    priority="transparent"
-                    icon={<IconSettings />}
-                    disabled={!allowMemberConfiguration && !canConfigure}
-                    to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
-                    data-test-id="integration-configure-button"
-                  >
-                    {t('Configure')}
-                  </StyledLinkButton>
+                  {!provider.metadata.aspects?.directEnable && (
+                    <StyledLinkButton
+                      priority="transparent"
+                      icon={<IconSettings />}
+                      disabled={!allowMemberConfiguration && !canConfigure}
+                      to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
+                      data-test-id="integration-configure-button"
+                    >
+                      {t('Configure')}
+                    </StyledLinkButton>
+                  )}
                 </Tooltip>
               </div>
               <div>
