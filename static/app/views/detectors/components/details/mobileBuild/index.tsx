@@ -19,7 +19,7 @@ export function MobileBuildDetectorDetails({
   project,
 }: MobileBuildDetectorDetailsProps) {
   return (
-    <DetailLayout flex={1}>
+    <DetailLayout>
       <DetectorDetailsHeader detector={detector} project={project} />
       <DetailLayout.Body>
         <DetailLayout.Main>

@@ -74,7 +74,7 @@ export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsPr
   const {selection} = usePageFilters();
 
   return (
-    <DetailLayout flex={1}>
+    <DetailLayout>
       <DetailLayout.Header>
         <DetectorDetailsDefaultHeaderContent detector={detector} project={project} />
         <DetailLayout.Actions>

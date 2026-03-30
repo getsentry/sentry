@@ -18,7 +18,7 @@ export function FallbackDetectorDetails({
   project,
 }: FallbackDetectorDetailsProps) {
   return (
-    <DetailLayout flex={1}>
+    <DetailLayout>
       <DetectorDetailsHeader detector={detector} project={project} />
       <DetailLayout.Body>
         <DetailLayout.Main>
