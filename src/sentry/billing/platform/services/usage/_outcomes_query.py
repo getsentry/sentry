@@ -55,7 +55,11 @@ def query_outcomes_usage(request: GetUsageRequest) -> GetUsageResponse:
             "billing.usage_query.truncated",
             extra={"org_id": org_id, "row_count": len(rows)},
         )
-        metrics.incr("billing.usage_query.truncated", tags={"org_id": str(org_id)})
+        metrics.incr(
+            "billing.usage_query.truncated",
+            tags={"org_id": str(org_id)},
+            sample_rate=1.0,
+        )
 
     return _build_response(rows)
 
