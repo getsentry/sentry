@@ -305,7 +305,7 @@ class TestGetLatestIssueEvent(TestCase):
 class TestHandleFetchIssuesExceptions(TestCase):
     def test_handle_fetch_issues_exceptions_success(self) -> None:
         @handle_fetch_issues_exceptions
-        def test_function() -> None:
+        def test_function() -> dict[str, bool]:
             return {"success": True}
 
         result = test_function()
