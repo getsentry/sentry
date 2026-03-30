@@ -49,6 +49,11 @@ import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/w
 
 import {WidgetWrapper} from './styles';
 
+const METRICS_CHART_TYPE_OPTIONS = [
+  ...EXPLORE_CHART_TYPE_OPTIONS,
+  {value: ChartType.HEATMAP, label: t('Heatmap')},
+];
+
 const MINIMIZED_GRAPH_HEIGHT = 50;
 const STACKED_GRAPH_HEIGHT = 362;
 
@@ -212,7 +217,7 @@ function Graph({
         )}
         value={visualize.chartType}
         menuTitle="Type"
-        options={EXPLORE_CHART_TYPE_OPTIONS}
+        options={METRICS_CHART_TYPE_OPTIONS}
         onChange={option => onChartTypeChange(option.value)}
       />
       <CompactSelect

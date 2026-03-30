@@ -3,11 +3,9 @@ import {useTheme} from '@emotion/react';
 
 import {VisualMap} from 'sentry/components/charts/components/visualMap';
 import {HeatMapChart} from 'sentry/components/charts/heatMapChart';
-import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import {useMockHeatmapData} from 'sentry/views/explore/metrics/hooks/useMockHeatmapData';
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
-
-const NUM_Y_BUCKETS = 10;
 
 // Color scale interpolated across three design stops:
 // #eeefff (low) → #7553ff (mid) → #990056 (high)
@@ -25,16 +23,6 @@ const HEATMAP_COLORS = [
   '#990056', // 10 — #990056
 ] as const;
 
-function formatAxisValue(value: number): string {
-  if (Math.abs(value) >= 1_000_000) {
-    return `${(value / 1_000_000).toFixed(1)}M`;
-  }
-  if (Math.abs(value) >= 1_000) {
-    return `${(value / 1_000).toFixed(1)}k`;
-  }
-  return value.toFixed(value % 1 === 0 ? 0 : 2);
-}
-
 function formatTimestamp(ms: number): string {
   const date = new Date(ms);
   const hours = date.getHours();
@@ -42,90 +30,6 @@ function formatTimestamp(ms: number): string {
   const period = hours >= 12 ? 'PM' : 'AM';
   const displayHour = hours % 12 || 12;
   return `${displayHour}:${minutes} ${period}`;
-}
-
-interface HeatmapData {
-  // ECharts heatmap data: [xIndex, yIndex, intensity]
-  data: Array<[number, number, number]>;
-  maxVal: number;
-  minVal: number;
-  timestamps: number[];
-  yLabels: string[];
-}
-
-function buildHeatmapData(
-  seriesData: Record<string, TimeSeries[]>,
-  aggregate: string
-): HeatmapData {
-  const allSeries = seriesData[aggregate] ?? [];
-
-  const allValues: number[] = [];
-  for (const s of allSeries) {
-    for (const item of s.values) {
-      if (item.value !== null && !isNaN(item.value)) {
-        allValues.push(item.value);
-      }
-    }
-  }
-
-  if (allValues.length === 0) {
-    return {data: [], timestamps: [], yLabels: [], minVal: 0, maxVal: 0};
-  }
-
-  const minVal = Math.min(...allValues);
-  const maxVal = Math.max(...allValues);
-  const range = maxVal - minVal || 1;
-
-  const timestampSet = new Set<number>();
-  for (const s of allSeries) {
-    for (const item of s.values) {
-      timestampSet.add(item.timestamp);
-    }
-  }
-  const timestamps = Array.from(timestampSet).sort((a, b) => a - b);
-  const timeIndexMap = new Map(timestamps.map((t, i) => [t, i]));
-
-  const counts: number[][] = Array.from({length: NUM_Y_BUCKETS}, () =>
-    new Array(timestamps.length).fill(0)
-  );
-
-  for (const s of allSeries) {
-    for (const item of s.values) {
-      if (item.value === null || isNaN(item.value)) {
-        continue;
-      }
-      const timeIdx = timeIndexMap.get(item.timestamp);
-      if (timeIdx === undefined) {
-        continue;
-      }
-      const normalized = (item.value - minVal) / range;
-      const yBucket = Math.min(Math.floor(normalized * NUM_Y_BUCKETS), NUM_Y_BUCKETS - 1);
-      counts[yBucket]![timeIdx]!++;
-    }
-  }
-
-  const maxCount = Math.max(...counts.flatMap(row => row), 1);
-
-  // Build flat [xIndex, yIndex, intensity] array for ECharts.
-  // Always emit every cell (including empty ones at intensity 0) so the tooltip
-  // target exists across the full grid — empty cells are mapped to transparent
-  // in the visualMap so they're invisible but still hoverable.
-  const data: Array<[number, number, number]> = [];
-  for (let yBucket = 0; yBucket < NUM_Y_BUCKETS; yBucket++) {
-    for (let timeIdx = 0; timeIdx < timestamps.length; timeIdx++) {
-      const count = counts[yBucket]![timeIdx]!;
-      const intensity = count > 0 ? Math.max(1, Math.round((count / maxCount) * 10)) : 0;
-      data.push([timeIdx, yBucket, intensity]);
-    }
-  }
-
-  // Y-axis labels: bucket boundaries from high to low
-  const yLabels = Array.from({length: NUM_Y_BUCKETS}, (_, i) => {
-    const val = minVal + ((i + 0.5) / NUM_Y_BUCKETS) * range;
-    return formatAxisValue(val);
-  });
-
-  return {data, timestamps, yLabels, minVal, maxVal};
 }
 
 interface MetricHeatmapProps {
@@ -137,10 +41,8 @@ export function MetricHeatmap({timeseriesResult}: MetricHeatmapProps) {
   const visualize = useMetricVisualize();
   const aggregate = visualize.yAxis;
 
-  const {data, timestamps, yLabels} = useMemo(
-    () => buildHeatmapData(timeseriesResult.data, aggregate),
-    [timeseriesResult.data, aggregate]
-  );
+  // TODO(experiment): replace with real multi-dim data once the endpoint supports it
+  const {data, timestamps, yLabels} = useMockHeatmapData(timeseriesResult);
 
   const xAxisLabels = useMemo(
     () => timestamps.map(ts => formatTimestamp(ts)),
