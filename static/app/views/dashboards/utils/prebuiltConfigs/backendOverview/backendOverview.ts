@@ -1,3 +1,4 @@
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -220,7 +221,7 @@ const TRANSACTIONS_TABLE: Widget = {
   description: '',
   displayType: DisplayType.TABLE,
   interval: '5m',
-  tableWidths: TABLE_FIELDS.map(() => -1),
+  tableWidths: TABLE_FIELDS.map(() => COL_WIDTH_UNDEFINED),
   queries: [
     {
       name: '',
