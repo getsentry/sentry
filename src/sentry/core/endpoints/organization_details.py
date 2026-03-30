@@ -385,7 +385,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     )
     defaultCodingAgentIntegrationId = serializers.IntegerField(required=False, allow_null=True)
     defaultAutomatedRunStoppingPoint = serializers.ChoiceField(
-        choices=["root_cause", "solution", "code_changes", "open_pr"],
+        choices=["code_changes", "open_pr"],
         required=False,
     )
     autoOpenPrs = serializers.BooleanField(required=False)

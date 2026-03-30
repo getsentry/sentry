@@ -1621,14 +1621,17 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         )
 
     def test_default_automated_run_stopping_point_can_be_set(self) -> None:
-        for choice in ("root_cause", "solution", "code_changes", "open_pr"):
-            data = {"defaultAutomatedRunStoppingPoint": choice}
-            response = self.get_success_response(self.organization.slug, **data)
-            assert response.data["defaultAutomatedRunStoppingPoint"] == choice
+        for choice in ("code_changes", "open_pr"):
+            with self.subTest(choice=choice):
+                data = {"defaultAutomatedRunStoppingPoint": choice}
+                response = self.get_success_response(self.organization.slug, **data)
+                assert response.data["defaultAutomatedRunStoppingPoint"] == choice
 
     def test_default_automated_run_stopping_point_rejects_invalid(self) -> None:
-        data = {"defaultAutomatedRunStoppingPoint": "invalid_point"}
-        self.get_error_response(self.organization.slug, status_code=400, **data)
+        for invalid in ("root_cause", "solution", "invalid_point"):
+            with self.subTest(value=invalid):
+                data = {"defaultAutomatedRunStoppingPoint": invalid}
+                self.get_error_response(self.organization.slug, status_code=400, **data)
 
     def test_default_coding_agent_integration_id_can_be_cleared(self) -> None:
         self.organization.update_option("sentry:seer_default_coding_agent_integration_id", 123)
