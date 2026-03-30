@@ -234,6 +234,42 @@ incorrect_cases = [
         "<int>,<int>,<int>",
     ),
     (
+        "ip - short double colon object property including only hex",
+        "Fee::add() called too early",
+        "Fee::add() called too early",
+        "<ip>() called too early",
+    ),
+    (
+        "ip - too many initial characters",
+        "12345:6:789",
+        "<int>:<int>:<int>",
+        "<int>:<date>9",
+    ),
+    (
+        "ip - too many final characters",
+        "123:4:56789",
+        "<int>:<int>:<int>",
+        "<int>:<date>789",
+    ),
+    (
+        "ip - v4 mapped to v6",
+        "::ffff:192.168.1.1",
+        "<ip>",
+        "<ip>.<float>.<int>",
+    ),
+    (
+        "ip - v6 compressed",
+        "2012:d157::cbe:908:2013",
+        "<ip>",
+        "<ip>:<int>:<int>",
+    ),
+    (
+        "ip - v6 ULA",
+        "fc00::/7",
+        "<ip>",
+        "<ip>/<int>",
+    ),
+    (
         "json - double quotes",
         '{"dogs are great": true, "dog_id": "greatdog1231"}',
         '{"dogs are great": <bool>, "dog_id": <id>}',
