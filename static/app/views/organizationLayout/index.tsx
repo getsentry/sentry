@@ -96,10 +96,10 @@ function AppLayout({organization}: LayoutProps) {
               <TopBar />
               <Layout.Page>
                 <Outlet />
+                <Footer />
               </Layout.Page>
             </OrganizationDetailsBody>
           </AppBodyContent>
-          <Footer />
         </ContentStack>
       </Flex>
       {organization ? <AppDrawers /> : null}

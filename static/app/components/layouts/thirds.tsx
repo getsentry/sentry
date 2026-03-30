@@ -22,8 +22,8 @@ export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
   if (hasPageFrame) {
     return (
       <StyledPageFrameStack
-        flex="1"
         as="main"
+        flex="1"
         roundedCorner={
           primaryNavigation.layout === 'sidebar' &&
           secondaryNavigation?.view === 'expanded'

@@ -220,7 +220,12 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   );
 }
 
+// @TODO(JonasBadalic): Remove this component once the page-frame feature is GA'd
+// When that feature is enabled, the footer is no longer rendered at the bottom of the page.
 const LayoutPageWithHiddenFooter = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   ~ footer {
     display: none;
   }
