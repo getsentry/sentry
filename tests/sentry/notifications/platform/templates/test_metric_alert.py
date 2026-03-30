@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import asdict
 from datetime import datetime, timezone
 from typing import Any
 
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
-from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import AlertContext, OpenPeriodContext
-from sentry.models.activity import Activity
 from sentry.notifications.platform.templates.metric_alert import (
     ActivityMetricAlertNotificationData,
     ActivityMetricAlertNotificationTemplate,
@@ -18,7 +15,6 @@ from sentry.notifications.platform.templates.metric_alert import (
 from sentry.notifications.platform.types import NotificationRenderedTemplate, NotificationSource
 from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
 from sentry.testutils.cases import TestCase
-from sentry.types.activity import ActivityType
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
     MetricAlertHandlerBase,
@@ -251,38 +247,6 @@ class MetricAlertNotificationDataContextsTest(MetricAlertHandlerBase):
         assert restored.detection_type == alert_context.detection_type
         assert restored.threshold_type == alert_context.threshold_type
         assert restored.comparison_delta == alert_context.comparison_delta
-
-    def test_activity_build_metric_issue_context_uses_ok_priority(self) -> None:
-        activity = Activity(
-            project=self.project,
-            group=self.group,
-            type=ActivityType.SET_RESOLVED.value,
-            data=asdict(self.evidence_data),
-        )
-        activity.save()
-
-        open_period_context = OpenPeriodContext.from_group(self.group)
-        alert_context = AlertContext.from_workflow_engine_models(
-            self.detector,
-            self.evidence_data,
-            self.group.status,
-            DetectorPriorityLevel.HIGH,
-        )
-        data = ActivityMetricAlertNotificationData(
-            group_id=self.group.id,
-            organization_id=self.organization.id,
-            detector_id=self.detector.id,
-            alert_context=SerializableAlertContext.from_alert_context(alert_context),
-            open_period_context=open_period_context,
-            activity_id=activity.id,
-            notification_uuid="test-uuid",
-        )
-
-        context = data.build_metric_issue_context()
-
-        # Activity path always uses DetectorPriorityLevel.OK → IncidentStatus.CLOSED
-        assert context.new_status == IncidentStatus.CLOSED
-        assert context.metric_value == self.evidence_data.value
 
     def test_open_period_context_round_trips_from_real_group(self) -> None:
         open_period_context = OpenPeriodContext.from_group(self.group)

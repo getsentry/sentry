@@ -1,18 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Self
+from typing import Self
 
 from pydantic import BaseModel, ConfigDict
 
-from sentry.incidents.typings.metric_detector import (
-    AlertContext,
-    MetricIssueContext,
-    OpenPeriodContext,
-)
-from sentry.models.activity import Activity
-from sentry.models.group import Group
-from sentry.models.organization import Organization
+from sentry.incidents.typings.metric_detector import AlertContext, OpenPeriodContext
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
     NotificationCategory,
@@ -22,15 +15,6 @@ from sentry.notifications.platform.types import (
     NotificationTemplate,
 )
 from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
-from sentry.services import eventstore
-from sentry.services.eventstore.models import GroupEvent
-from sentry.workflow_engine.models.detector import Detector
-
-if TYPE_CHECKING:
-    from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
-    from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
-        DetectorSerializerResponse,
-    )
 
 
 class SerializableAlertContext(BaseModel):
@@ -86,14 +70,6 @@ class SerializableAlertContext(BaseModel):
 
 
 class BaseMetricAlertNotificationData(NotificationData):
-    """
-    Shared fields and properties for metric alert notification data.
-
-    Subclasses differ only in how they source MetricIssueContext
-    - MetricAlertNotificationData: re-fetches GroupEvent from Snuba
-    - ActivityMetricAlertNotificationData: re-fetches Activity
-    """
-
     group_id: int
     organization_id: int
     detector_id: int
@@ -103,78 +79,22 @@ class BaseMetricAlertNotificationData(NotificationData):
 
     notification_uuid: str
 
-    @property
-    def organization(self) -> Organization:
-        return Organization.objects.get_from_cache(id=self.organization_id)
-
-    @property
-    def group(self) -> Group:
-        return Group.objects.get_from_cache(id=self.group_id)
-
-    @property
-    def detector(self) -> Detector:
-        return Detector.objects.get(id=self.detector_id)
-
-    @property
-    def serialized_alert_rule(self) -> AlertRuleSerializerResponse:
-        from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
-            get_alert_rule_serializer,
-        )
-
-        return get_alert_rule_serializer(self.detector)
-
-    @property
-    def serialized_detector(self) -> DetectorSerializerResponse:
-        from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
-            get_detector_serializer,
-        )
-
-        return get_detector_serializer(self.detector)
-
-    def build_metric_issue_context(self) -> MetricIssueContext:
-        raise NotImplementedError
-
 
 class MetricAlertNotificationData(BaseMetricAlertNotificationData):
+    """GroupEvent / firing path. Renderer re-fetches GroupEvent from Snuba."""
+
     source: NotificationSource = NotificationSource.METRIC_ALERT
 
     event_id: str
     project_id: int
 
-    @property
-    def event(self) -> GroupEvent:
-        event = eventstore.backend.get_event_by_id(
-            self.project_id, self.event_id, group_id=self.group_id
-        )
-        if event is None:
-            raise ValueError(f"Event {self.event_id} not found")
-        elif not isinstance(event, GroupEvent):
-            raise ValueError(f"Event {self.event_id} is not a GroupEvent")
-
-        return event
-
-    def build_metric_issue_context(self) -> MetricIssueContext:
-        from sentry.notifications.notification_action.types import BaseMetricAlertHandler
-
-        event = self.event
-        evidence_data, priority = BaseMetricAlertHandler._extract_from_group_event(event)
-        return MetricIssueContext.from_group_event(event.group, evidence_data, priority)
-
 
 class ActivityMetricAlertNotificationData(BaseMetricAlertNotificationData):
+    """Activity / SET_RESOLVED path. Renderer re-fetches Activity from Postgres."""
+
     source: NotificationSource = NotificationSource.ACTIVITY_METRIC_ALERT
 
     activity_id: int
-
-    @property
-    def activity(self) -> Activity:
-        return Activity.objects.get(id=self.activity_id)
-
-    def build_metric_issue_context(self) -> MetricIssueContext:
-        from sentry.notifications.notification_action.types import BaseMetricAlertHandler
-
-        evidence_data, priority = BaseMetricAlertHandler._extract_from_activity(self.activity)
-        return MetricIssueContext.from_group_event(self.group, evidence_data, priority)
 
 
 _EXAMPLE_ALERT_CONTEXT = SerializableAlertContext(

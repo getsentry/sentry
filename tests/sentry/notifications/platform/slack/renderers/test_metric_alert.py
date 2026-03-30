@@ -10,7 +10,10 @@ import pytest
 from sentry.incidents.typings.metric_detector import AlertContext, OpenPeriodContext
 from sentry.models.activity import Activity
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider
-from sentry.notifications.platform.slack.renderers.metric_alert import SlackMetricAlertRenderer
+from sentry.notifications.platform.slack.renderers.metric_alert import (
+    SlackMetricAlertRenderer,
+    _build_metric_issue_context_from_activity,
+)
 from sentry.notifications.platform.templates.metric_alert import (
     ActivityMetricAlertNotificationData,
     MetricAlertNotificationData,
@@ -254,3 +257,43 @@ class SlackActivityMetricAlertRendererTest(MetricAlertHandlerBase):
         assert blocks[1]["type"] == "image"
         assert blocks[1]["image_url"] == MOCK_CHART_URL
         assert blocks[1]["alt_text"] == "Metric Alert Chart"
+
+
+class MetricIssueContextBuildersTest(MetricAlertHandlerBase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.create_models()
+
+    def test_build_from_activity_uses_ok_priority(self) -> None:
+        from sentry.incidents.models.incident import IncidentStatus
+
+        activity = Activity(
+            project=self.project,
+            group=self.group,
+            type=ActivityType.SET_RESOLVED.value,
+            data=asdict(self.evidence_data),
+        )
+        activity.save()
+
+        data = ActivityMetricAlertNotificationData(
+            group_id=self.group.id,
+            organization_id=self.organization.id,
+            detector_id=self.detector.id,
+            alert_context=SerializableAlertContext.from_alert_context(
+                AlertContext.from_workflow_engine_models(
+                    self.detector,
+                    self.evidence_data,
+                    self.group.status,
+                    DetectorPriorityLevel.HIGH,
+                )
+            ),
+            open_period_context=OpenPeriodContext.from_group(self.group),
+            activity_id=activity.id,
+            notification_uuid="test-uuid",
+        )
+
+        context = _build_metric_issue_context_from_activity(data)
+
+        # Activity path always resolves with DetectorPriorityLevel.OK → IncidentStatus.CLOSED
+        assert context.new_status == IncidentStatus.CLOSED
+        assert context.metric_value == self.evidence_data.value
