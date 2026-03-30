@@ -64,10 +64,13 @@ class OrganizationDashboardGenerateEndpointTest(APITestCase):
         assert response.status_code == 403
 
     @patch(
-        "sentry.dashboards.endpoints.organization_dashboard_generate.has_seer_explorer_access_with_detail"
+        "sentry.dashboards.endpoints.organization_dashboard_generate.has_seer_access_with_detail"
     )
-    def test_post_without_seer_access_returns_403(self, mock_has_access: MagicMock) -> None:
-        mock_has_access.return_value = (False, "AI features are disabled for this organization.")
+    def test_post_without_seer_access_returns_403(self, mock_has_seer_access: MagicMock) -> None:
+        mock_has_seer_access.return_value = (
+            False,
+            "AI features are disabled for this organization.",
+        )
         data = {"prompt": "Show me error rates"}
         response = self.client.post(self.url, data, format="json")
         assert response.status_code == 403
