@@ -25,15 +25,15 @@ class BitbucketServerRequestParserTest(TestCase):
     @override_cells(cell_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_routing_webhook(self) -> None:
-        region_route = reverse(
+        cell_route = reverse(
             "sentry-extensions-bitbucketserver-webhook",
             kwargs={"organization_id": self.organization.id, "integration_id": self.integration.id},
         )
         with outbox_runner():
-            request = self.factory.post(region_route)
+            request = self.factory.post(cell_route)
         parser = BitbucketServerRequestParser(request=request, response_handler=self.get_response)
 
-        # Missing region
+        # Missing cell
         OrganizationMapping.objects.get(organization_id=self.organization.id).update(cell_name="eu")
         with mock.patch.object(
             parser, "get_response_from_control_silo"
@@ -41,7 +41,7 @@ class BitbucketServerRequestParserTest(TestCase):
             parser.get_response()
             assert get_response_from_control_silo.called
 
-        # Valid region
+        # Valid cell
         OrganizationMapping.objects.get(organization_id=self.organization.id).update(cell_name="us")
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
