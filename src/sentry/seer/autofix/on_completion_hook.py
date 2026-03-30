@@ -478,6 +478,22 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         return handoff_config
 
     @classmethod
+    def _clear_handoff_preference(cls, project_id: int, run_id: int, organization_id: int) -> None:
+        """Clear automation_handoff from project preferences after integration is not found."""
+        try:
+            preference_response = get_project_seer_preferences(project_id)
+            if preference_response and preference_response.preference:
+                updated_preference = preference_response.preference.copy(
+                    update={"automation_handoff": None}
+                )
+                set_project_seer_preference(updated_preference)
+        except (SeerApiError, SeerApiResponseValidationError):
+            logger.exception(
+                "autofix.on_completion_hook.clear_handoff_preference_failed",
+                extra={"run_id": run_id, "organization_id": organization_id},
+            )
+
+    @classmethod
     def _trigger_coding_agent_handoff(
         cls,
         organization: Organization,
@@ -531,12 +547,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                     "integration_id": handoff_config.integration_id,
                 },
             )
-            preference_response = get_project_seer_preferences(group.project_id)
-            if preference_response and preference_response.preference:
-                updated_preference = preference_response.preference.copy(
-                    update={"automation_handoff": None}
-                )
-                set_project_seer_preference(updated_preference)
+            cls._clear_handoff_preference(group.project_id, run_id, organization.id)
         except Exception:
             logger.exception(
                 "autofix.on_completion_hook.coding_agent_handoff_failed",

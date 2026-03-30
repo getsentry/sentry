@@ -1334,3 +1334,33 @@ class TestTriggerCodingAgentLaunch:
         )
 
         assert result == {"success": False, "error_code": "integration_not_found"}
+
+    @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
+    def test_organization_not_found_does_not_return_integration_error_code(self, mock_launch):
+        from rest_framework.exceptions import NotFound
+
+        mock_launch.side_effect = NotFound("Organization not found")
+
+        result = trigger_coding_agent_launch(
+            organization_id=1,
+            integration_id=2,
+            run_id=3,
+        )
+
+        assert result == {"success": False}
+        assert result.get("error_code") != "integration_not_found"
+
+    @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
+    def test_autofix_state_not_found_does_not_return_integration_error_code(self, mock_launch):
+        from rest_framework.exceptions import NotFound
+
+        mock_launch.side_effect = NotFound("Autofix state not found")
+
+        result = trigger_coding_agent_launch(
+            organization_id=1,
+            integration_id=2,
+            run_id=3,
+        )
+
+        assert result == {"success": False}
+        assert result.get("error_code") != "integration_not_found"
