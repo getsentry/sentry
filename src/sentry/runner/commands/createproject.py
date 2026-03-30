@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import click
 
+if TYPE_CHECKING:
+    from sentry.models.organization import Organization
 from sentry.runner.decorators import configuration
 
 
-def _resolve_organization(org_value: str):
+def _resolve_organization(org_value: str) -> Organization:
     from sentry.models.organization import Organization
 
     try:
