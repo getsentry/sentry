@@ -103,7 +103,9 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, Release
         logger = logging.getLogger("sentry.files")
         logger.info("organizationreleasefile.start")
 
-        if not self.has_release_permission(request, organization, release):
+        if not self.has_release_permission(
+            request, organization, release, require_all_projects=True
+        ):
             raise ResourceDoesNotExist
 
         return self.post_releasefile(request, release, logger)

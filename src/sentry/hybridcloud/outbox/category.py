@@ -98,25 +98,25 @@ class OutboxCategory(IntEnum):
             object_identifier: int,
             payload: Mapping[str, Any] | None,
             shard_identifier: int,
-            region_name: str,
+            cell_name: str,
             *args: Any,
             **kwds: Any,
         ) -> None:
             from sentry.receivers.outbox import maybe_process_tombstone
 
             maybe_instance: HasControlReplicationHandlers | None = maybe_process_tombstone(
-                cast(Any, model), object_identifier, cell_name=region_name
+                cast(Any, model), object_identifier, cell_name=cell_name
             )
             if maybe_instance is None:
                 model.handle_async_deletion(
                     identifier=object_identifier,
-                    cell_name=region_name,
+                    cell_name=cell_name,
                     shard_identifier=shard_identifier,
                     payload=payload,
                 )
             else:
                 maybe_instance.handle_async_replication(
-                    shard_identifier=shard_identifier, cell_name=region_name
+                    shard_identifier=shard_identifier, cell_name=cell_name
                 )
 
         process_control_outbox.connect(receiver, weak=False, sender=self)
