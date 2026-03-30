@@ -393,7 +393,11 @@ export default function SnapshotsPage() {
     <SentryDocumentTitle title={t('Snapshot')}>
       <Layout.Page>
         <Layout.Header>
-          <SnapshotHeaderContent projectId={data.project_id} data={data} />
+          <SnapshotHeaderContent
+            data={data}
+            isSoloView={isSoloView}
+            onToggleView={handleToggleView}
+          />
           <Layout.HeaderActions>
             <SnapshotDevTools
               organizationSlug={organization.slug}
