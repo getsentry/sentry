@@ -143,7 +143,12 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             )
             |
             # Kitchen
-            ([1-9]\d?:\d{2}(:\d{2})?(?:\s?[aApP][Mm])?)
+            (
+                [1-9]\d? # Hour
+                :\d{2} # Minute
+                (:\d{2})? # Optional second
+                (?:\s?[aApP][Mm])? # Optional, optionally-space-separated AM/PM
+            )
             |
             # Date
             (\d{4}-[01]\d-[0-3]\d)
