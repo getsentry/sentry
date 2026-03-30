@@ -8,7 +8,7 @@ import time
 from abc import ABC
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import timezone
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol, TypedDict
 
 import orjson
 import sentry_sdk
@@ -418,6 +418,21 @@ class InstallationEventWebhook(GitHubWebhook):
             )
 
 
+class GitHubInstallationRepo(TypedDict):
+    id: int
+    full_name: str
+    private: bool
+
+
+class InstallationRepositoriesEvent(TypedDict):
+    action: Literal["added", "removed"]
+    installation: dict[str, Any]
+    repositories_added: list[GitHubInstallationRepo]
+    repositories_removed: list[GitHubInstallationRepo]
+    repository_selection: Literal["all", "selected"]
+    sender: dict[str, Any]
+
+
 class InstallationRepositoriesEventWebhook(GitHubWebhook):
     """
     Handles installation_repositories events when repos are added to or
@@ -428,12 +443,10 @@ class InstallationRepositoriesEventWebhook(GitHubWebhook):
 
     EVENT_TYPE = IntegrationWebhookEventType.INSTALLATION
 
-    def __call__(self, event: Mapping[str, Any], **kwargs: Any) -> None:
-        installation = event.get("installation")
-        if not installation:
-            return
-
-        external_id = get_github_external_id(event=event, host=kwargs.get("host"))
+    def __call__(  # type: ignore[override]
+        self, event: InstallationRepositoriesEvent, host: str | None = None, **kwargs: Any
+    ) -> None:
+        external_id = get_github_external_id(event=event, host=host)
         if external_id is None:
             return
 
@@ -450,10 +463,10 @@ class InstallationRepositoriesEventWebhook(GitHubWebhook):
             )
             return
 
-        action = event.get("action", "")
-        repos_added = event.get("repositories_added", [])
-        repos_removed = event.get("repositories_removed", [])
-        repository_selection = event.get("repository_selection", "selected")
+        action = event["action"]
+        repos_added = event["repositories_added"]
+        repos_removed = event["repositories_removed"]
+        repository_selection = event["repository_selection"]
 
         if not repos_added and not repos_removed:
             return

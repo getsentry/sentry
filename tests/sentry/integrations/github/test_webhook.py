@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from typing import cast
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
@@ -19,7 +20,11 @@ from fixtures.github import (
 )
 from sentry import options
 from sentry.constants import ObjectStatus
-from sentry.integrations.github.webhook import GitHubIntegrationsWebhookEndpoint
+from sentry.integrations.github.webhook import (
+    GitHubIntegrationsWebhookEndpoint,
+    InstallationRepositoriesEvent,
+    InstallationRepositoriesEventWebhook,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
@@ -383,8 +388,6 @@ class InstallationRepositoriesEventWebhookTest(APITestCase):
         )
 
     def _compute_signatures(self, body: str) -> tuple[str, str]:
-        from sentry.integrations.github.webhook import GitHubIntegrationsWebhookEndpoint
-
         sha1 = GitHubIntegrationsWebhookEndpoint.compute_signature(
             "sha1", body.encode(), self.secret
         )
@@ -427,16 +430,17 @@ class InstallationRepositoriesEventWebhookTest(APITestCase):
             metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
         )
 
-        from sentry.integrations.github.webhook import InstallationRepositoriesEventWebhook
-
         handler = InstallationRepositoriesEventWebhook()
         handler(
             event={
                 "installation": {"id": 2},
                 "action": "added",
-                "repositories_added": [{"id": 10, "full_name": "getsentry/sentry"}],
+                "repositories_added": [
+                    {"id": 10, "full_name": "getsentry/sentry", "private": False}
+                ],
                 "repositories_removed": [],
                 "repository_selection": "selected",
+                "sender": {"id": 1, "login": "octocat"},
             }
         )
 
@@ -463,16 +467,17 @@ class InstallationRepositoriesEventWebhookTest(APITestCase):
             metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
         )
 
-        from sentry.integrations.github.webhook import InstallationRepositoriesEventWebhook
-
         handler = InstallationRepositoriesEventWebhook()
         handler(
             event={
                 "installation": {"id": 2},
                 "action": "removed",
                 "repositories_added": [],
-                "repositories_removed": [{"id": 20, "full_name": "getsentry/old-repo"}],
+                "repositories_removed": [
+                    {"id": 20, "full_name": "getsentry/old-repo", "private": False}
+                ],
                 "repository_selection": "selected",
+                "sender": {"id": 1, "login": "octocat"},
             }
         )
 
@@ -495,8 +500,6 @@ class InstallationRepositoriesEventWebhookTest(APITestCase):
             metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
         )
 
-        from sentry.integrations.github.webhook import InstallationRepositoriesEventWebhook
-
         handler = InstallationRepositoriesEventWebhook()
         handler(
             event={
@@ -505,6 +508,7 @@ class InstallationRepositoriesEventWebhookTest(APITestCase):
                 "repositories_added": [],
                 "repositories_removed": [],
                 "repository_selection": "selected",
+                "sender": {"id": 1, "login": "octocat"},
             }
         )
 
@@ -513,12 +517,14 @@ class InstallationRepositoriesEventWebhookTest(APITestCase):
     @patch(
         "sentry.integrations.github.tasks.sync_repos_on_install_change.sync_repos_on_install_change.apply_async"
     )
-    def test_handler_skips_when_no_installation(self, mock_apply_async: MagicMock) -> None:
-        """Missing installation in event — handler returns early."""
-        from sentry.integrations.github.webhook import InstallationRepositoriesEventWebhook
-
+    def test_handler_skips_when_malformed_event(self, mock_apply_async: MagicMock) -> None:
+        """Malformed event missing required keys — handler returns early."""
         handler = InstallationRepositoriesEventWebhook()
-        handler(event={"repositories_added": [{"id": 1}], "repositories_removed": []})
+        malformed_event = cast(
+            InstallationRepositoriesEvent,
+            {"repositories_added": [{"id": 1}], "repositories_removed": []},
+        )
+        handler(event=malformed_event)
 
         mock_apply_async.assert_not_called()
 
@@ -527,16 +533,15 @@ class InstallationRepositoriesEventWebhookTest(APITestCase):
     )
     def test_handler_skips_when_integration_not_found(self, mock_apply_async: MagicMock) -> None:
         """Integration doesn't exist in Sentry — handler returns early."""
-        from sentry.integrations.github.webhook import InstallationRepositoriesEventWebhook
-
         handler = InstallationRepositoriesEventWebhook()
         handler(
             event={
                 "installation": {"id": 99999},
                 "action": "added",
-                "repositories_added": [{"id": 1, "full_name": "org/repo"}],
+                "repositories_added": [{"id": 1, "full_name": "org/repo", "private": False}],
                 "repositories_removed": [],
                 "repository_selection": "selected",
+                "sender": {"id": 1, "login": "octocat"},
             }
         )
 
@@ -556,16 +561,15 @@ class InstallationRepositoriesEventWebhookTest(APITestCase):
             metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
         )
 
-        from sentry.integrations.github.webhook import InstallationRepositoriesEventWebhook
-
         handler = InstallationRepositoriesEventWebhook()
         handler(
             event={
                 "installation": {"id": 2},
                 "action": "added",
-                "repositories_added": [{"id": 1, "full_name": "org/repo"}],
+                "repositories_added": [{"id": 1, "full_name": "org/repo", "private": False}],
                 "repositories_removed": [],
                 "repository_selection": "selected",
+                "sender": {"id": 1, "login": "octocat"},
             },
             host="github.mycompany.com",
         )

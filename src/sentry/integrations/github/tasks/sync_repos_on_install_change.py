@@ -1,5 +1,5 @@
 import logging
-from typing import TypedDict
+from typing import Literal, TypedDict
 
 from taskbroker_client.retry import Retry
 
@@ -49,7 +49,7 @@ def sync_repos_on_install_change(
     action: str,
     repos_added: list[GitHubRepo],
     repos_removed: list[GitHubRepo],
-    repository_selection: str,
+    repository_selection: Literal["all", "selected"],
 ) -> None:
     """
     Handle GitHub installation_repositories webhook events.
@@ -110,7 +110,7 @@ def _sync_repos_for_org(
     provider: str,
     repos_added: list[GitHubRepo],
     repos_removed: list[GitHubRepo],
-    repository_selection: str,
+    repository_selection: Literal["all", "selected"],
 ) -> None:
     rpc_org = organization_service.get(id=organization_id)
     if rpc_org is None:
