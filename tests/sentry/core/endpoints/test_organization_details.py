@@ -87,10 +87,10 @@ class MockAccess:
         return False
 
 
-regions = create_test_cells("us", "de")
+cells = create_test_cells("us", "de")
 
 
-@cell_silo_test(cells=regions, include_monolith_run=True)
+@cell_silo_test(cells=cells, include_monolith_run=True)
 class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestCase):
     @property
     def now(self):
@@ -677,7 +677,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
             assert "onboarding" not in response.data["features"]
 
 
-@cell_silo_test(cells=regions)
+@cell_silo_test(cells=cells)
 class OrganizationUpdateTest(OrganizationDetailsTestBase):
     method = "put"
 
@@ -1227,13 +1227,13 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         res = self.get_error_response(self.organization.slug, slug="taken", status_code=400)
         assert res.json()["slug"] == ['The slug "taken" is already in use.']
 
-    def test_org_mapping_already_taken_org_in_other_region(self) -> None:
-        de_region = regions[1]
-        assert de_region.name == "de"
+    def test_org_mapping_already_taken_org_in_other_cell(self) -> None:
+        de_cell = cells[1]
+        assert de_cell.name == "de"
 
         # Create an org, mapping, and slug reservation. For us to reach the RPC conflict,
         # we need to not have the org record in our database.
-        conflict = self.create_organization(slug="taken", region=de_region)
+        conflict = self.create_organization(slug="taken", cell=de_cell)
         Organization.objects.filter(id=conflict.id).delete()
 
         res = self.get_error_response(self.organization.slug, slug="taken", status_code=400)

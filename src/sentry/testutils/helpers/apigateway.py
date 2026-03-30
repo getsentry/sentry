@@ -164,7 +164,7 @@ class ApiGatewayTestCase(APITestCase):
             adding_headers={"test": "header"},
         )
 
-        self.organization = self.create_organization(region=self.CELL)
+        self.organization = self.create_organization(cell=self.CELL)
 
         # Echos the request body and header back for verification
         def return_request_body(request):
