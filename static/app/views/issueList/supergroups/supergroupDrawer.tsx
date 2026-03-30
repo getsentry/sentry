@@ -45,10 +45,7 @@ export function SupergroupDetailDrawer({supergroup}: {supergroup: SupergroupDeta
         </Flex>
       </DrawerHeader>
       <DrawerContentBody>
-        <FeedbackContainer>
-          {t('Help us improve this feature. Is this grouping accurate?')}
-          <SupergroupFeedback supergroupId={supergroup.id} />
-        </FeedbackContainer>
+        <SupergroupFeedback supergroupId={supergroup.id} />
         <Container padding="2xl" borderBottom="muted">
           <Stack gap="lg">
             <Heading as="h2" size="lg">
@@ -115,13 +112,4 @@ export function SupergroupDetailDrawer({supergroup}: {supergroup: SupergroupDeta
 
 const DrawerContentBody = styled(DrawerBody)`
   padding: 0;
-`;
-
-const FeedbackContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  padding: ${p => p.theme.space.md} ${p => p.theme.space['2xl']};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  background: ${p => p.theme.tokens.background.transparent.promotion.muted};
 `;
