@@ -200,28 +200,31 @@ export const BACKEND_OVERVIEW_SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   {h: 3, minH: 3}
 );
 
+const TABLE_FIELDS = [
+  SpanFields.IS_STARRED_TRANSACTION,
+  SpanFields.REQUEST_METHOD,
+  SpanFields.TRANSACTION,
+  SpanFields.SPAN_OP,
+  SpanFields.PROJECT,
+  'epm()',
+  `p50(${SpanFields.SPAN_DURATION})`,
+  `p95(${SpanFields.SPAN_DURATION})`,
+  `equation|failure_count() / count(${SpanFields.SPAN_DURATION})`,
+  `count_unique(${SpanFields.USER})`,
+  `sum(${SpanFields.SPAN_DURATION})`,
+];
+
 const TRANSACTIONS_TABLE: Widget = {
   id: 'backend-overview-transactions-table',
   title: t('Transactions'),
   description: '',
   displayType: DisplayType.TABLE,
   interval: '5m',
+  tableWidths: TABLE_FIELDS.map(() => -1),
   queries: [
     {
       name: '',
-      fields: [
-        SpanFields.IS_STARRED_TRANSACTION,
-        SpanFields.REQUEST_METHOD,
-        SpanFields.TRANSACTION,
-        SpanFields.SPAN_OP,
-        SpanFields.PROJECT,
-        'epm()',
-        `p50(${SpanFields.SPAN_DURATION})`,
-        `p95(${SpanFields.SPAN_DURATION})`,
-        `equation|failure_count() / count(${SpanFields.SPAN_DURATION})`,
-        `count_unique(${SpanFields.USER})`,
-        `sum(${SpanFields.SPAN_DURATION})`,
-      ],
+      fields: TABLE_FIELDS,
       aggregates: [
         'epm()',
         `p50(${SpanFields.SPAN_DURATION})`,
