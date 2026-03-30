@@ -249,12 +249,12 @@ class Occurrences(rpc_dataset_common.RPCBase):
         return results
 
     @classmethod
-    def _fetch_issue_labels(cls, group_ids: list[str | None]) -> dict[int, str]:
+    def _fetch_issue_labels(cls, group_ids: list[int | None]) -> dict[int, str]:
         resultant_map: dict[int, str] = {}
         for grp in Group.objects.filter(
             pk__in=set([grp_id for grp_id in group_ids if grp_id])
         ).select_related("project"):
-            resultant_map[grp.id] = grp.qualified_short_id
+            resultant_map[grp.id] = grp.qualified_short_id or UNKNOWN_ISSUE
         return resultant_map
 
     @classmethod
@@ -266,13 +266,15 @@ class Occurrences(rpc_dataset_common.RPCBase):
         resolved_column: ResolvedColumn,
     ) -> None:
         if attribute == "issue":
-            group_ids = [
+            group_ids: list[int | None] = [
                 getattr(result, str(result.WhichOneof("value"))) if not result.is_null else None
                 for result in column_value.results
             ]
             group_id_to_issue_map = cls._fetch_issue_labels(group_ids)
             for index, group_id in enumerate(group_ids):
-                issue_label = group_id_to_issue_map.get(group_id, UNKNOWN_ISSUE)
+                issue_label = UNKNOWN_ISSUE
+                if group_id and group_id in group_id_to_issue_map:
+                    issue_label = group_id_to_issue_map[group_id]
                 final_data[index][attribute] = issue_label
         else:
             super().process_a_column_values(column_value, final_data, attribute, resolved_column)
