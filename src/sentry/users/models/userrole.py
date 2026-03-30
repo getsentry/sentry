@@ -44,12 +44,12 @@ class UserRole(OverwritableConfigMixin, ControlOutboxProducingModel):
     __repr__ = sane_repr("name", "permissions")
 
     def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
-        regions = list(find_all_cell_names())
+        cells = list(find_all_cell_names())
         return [
             outbox
             for user_id in self.users.values_list("id", flat=True)
             for outbox in OutboxCategory.USER_UPDATE.as_control_outboxes(
-                cell_names=regions,
+                cell_names=cells,
                 shard_identifier=user_id,
                 object_identifier=user_id,
             )
@@ -67,9 +67,9 @@ class UserRoleUser(ControlOutboxProducingModel):
     role = FlexibleForeignKey("sentry.UserRole")
 
     def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
-        regions = list(find_all_cell_names())
+        cells = list(find_all_cell_names())
         return OutboxCategory.USER_UPDATE.as_control_outboxes(
-            cell_names=regions,
+            cell_names=cells,
             shard_identifier=self.user_id,
             object_identifier=self.user_id,
         )

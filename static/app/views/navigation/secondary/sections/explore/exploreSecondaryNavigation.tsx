@@ -105,6 +105,18 @@ export function ExploreSecondaryNavigation() {
                 </SecondaryNavigation.ListItem>
               </Feature>
             )}
+            <Feature features="organizations:explore-errors">
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={`${baseUrl}/errors/`}
+                  activeTo={`${baseUrl}/errors/`}
+                  analyticsItemName="explore_errors"
+                  trailingItems={<FeatureBadge type="alpha" />}
+                >
+                  {t('Errors')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
+            </Feature>
             <Feature
               features="discover-basic"
               hookName="feature-disabled:discover2-sidebar-item"

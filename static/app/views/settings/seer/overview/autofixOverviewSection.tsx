@@ -49,8 +49,6 @@ export function useAutofixOverviewData() {
                 String(organization.defaultCodingAgentIntegrationId ?? '')
             );
 
-      console.log({autoOpenPrs: organization.autoOpenPrs, autofixItems});
-
       const projectsWithCreatePr = organization.autoOpenPrs
         ? autofixItems.filter(
             settings =>
@@ -63,7 +61,6 @@ export function useAutofixOverviewData() {
               settings.automatedRunStoppingPoint !== 'open_pr' &&
               !settings.automationHandoff?.auto_create_pr
           );
-      console.log({projectsWithCreatePr});
 
       return {
         projectsWithRepos,

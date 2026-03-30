@@ -119,12 +119,12 @@ class ProcessItemsTool(ExplorerTool[ProcessItemsParams]):
 
 @cell_silo_test
 class CustomToolUtilsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         create_test_cells()
         self.organization = self.create_organization()
 
-    def test_validate_tool_class_nested(self):
+    def test_validate_tool_class_nested(self) -> None:
         """Test validation fails for nested classes."""
 
         class OuterClass:
@@ -143,7 +143,7 @@ class CustomToolUtilsTest(TestCase):
             extract_tool_schema(OuterClass.NestedTool)
         assert "module-level class" in str(cm.value)
 
-    def test_extract_tool_schema_basic(self):
+    def test_extract_tool_schema_basic(self) -> None:
         """Test extracting schema from a basic tool class."""
         schema = extract_tool_schema(GetUserInfoTool)
 
@@ -154,7 +154,7 @@ class CustomToolUtilsTest(TestCase):
         assert "properties" in schema.param_schema
         assert "user_id" in schema.param_schema["properties"]
 
-    def test_extract_tool_schema_with_optional_params(self):
+    def test_extract_tool_schema_with_optional_params(self) -> None:
         """Test extracting schema with optional parameters."""
         schema = extract_tool_schema(SearchLogsTool)
 
@@ -168,7 +168,7 @@ class CustomToolUtilsTest(TestCase):
         # Only query is required
         assert schema.param_schema.get("required") == ["query"]
 
-    def test_extract_tool_schema_with_list_params(self):
+    def test_extract_tool_schema_with_list_params(self) -> None:
         """Test extracting schema with list parameters."""
         schema = extract_tool_schema(ProcessItemsTool)
 
@@ -179,7 +179,7 @@ class CustomToolUtilsTest(TestCase):
         assert properties["items"]["type"] == "array"
         assert properties["priorities"]["type"] == "array"
 
-    def test_call_custom_tool_success(self):
+    def test_call_custom_tool_success(self) -> None:
         """Test calling a custom tool successfully."""
         # Use test tool from this test module
         module_path = "tests.sentry.seer.explorer.test_custom_tool_utils.SampleCustomTool"
@@ -194,7 +194,7 @@ class CustomToolUtilsTest(TestCase):
         )
         assert result == "HiHiHi"
 
-    def test_call_custom_tool_with_optional_param(self):
+    def test_call_custom_tool_with_optional_param(self) -> None:
         """Test calling a custom tool with default parameter."""
         module_path = "tests.sentry.seer.explorer.test_custom_tool_utils.SampleToolWithDefault"
         result = call_custom_tool(
@@ -205,7 +205,7 @@ class CustomToolUtilsTest(TestCase):
         )
         assert result == "Hello!"
 
-    def test_call_custom_tool_security_restriction(self):
+    def test_call_custom_tool_security_restriction(self) -> None:
         """Test that only allowed prefixes module paths are allowed."""
         with pytest.raises(ValueError) as cm:
             call_custom_tool(
@@ -216,7 +216,7 @@ class CustomToolUtilsTest(TestCase):
         assert "must start with one of" in str(cm.value)
         assert "('sentry.',)" in str(cm.value)
 
-    def test_call_custom_tool_invalid_path(self):
+    def test_call_custom_tool_invalid_path(self) -> None:
         """Test calling with invalid module path."""
         with pytest.raises(ValueError) as cm:
             call_custom_tool(
@@ -225,7 +225,7 @@ class CustomToolUtilsTest(TestCase):
             )
         assert "Could not import" in str(cm.value)
 
-    def test_call_custom_tool_wrong_return_type(self):
+    def test_call_custom_tool_wrong_return_type(self) -> None:
         """Test error when tool returns non-string."""
         module_path = "tests.sentry.seer.explorer.test_custom_tool_utils.BadTool"
         with pytest.raises(RuntimeError) as cm:
@@ -236,7 +236,7 @@ class CustomToolUtilsTest(TestCase):
             )
         assert "must return str" in str(cm.value)
 
-    def test_tool_without_params_model_raises(self):
+    def test_tool_without_params_model_raises(self) -> None:
         """Test that a tool without params_model raises an error at class definition time."""
         with pytest.raises(TypeError) as cm:
             # This should raise when the class is defined, not when extract_tool_schema is called

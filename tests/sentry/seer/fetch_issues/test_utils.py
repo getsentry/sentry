@@ -16,7 +16,7 @@ from sentry.utils.samples import load_data
 
 
 class TestGetRepoAndProjects(TestCase):
-    def test_get_repo_and_projects_success(self):
+    def test_get_repo_and_projects_success(self) -> None:
         repo = self.create_repo(
             project=self.project,
             name="getsentry/sentry",
@@ -42,7 +42,7 @@ class TestGetRepoAndProjects(TestCase):
         assert len(result.projects) == 1
         assert result.projects[0] == self.project
 
-    def test_get_repo_and_projects_multiple_projects(self):
+    def test_get_repo_and_projects_multiple_projects(self) -> None:
         repo = self.create_repo(
             project=self.project,
             name="getsentry/sentry",
@@ -67,7 +67,7 @@ class TestGetRepoAndProjects(TestCase):
         project_ids = {proj.id for proj in result.projects}
         assert project_ids == {self.project.id, project2.id}
 
-    def test_get_repo_and_projects_no_configs(self):
+    def test_get_repo_and_projects_no_configs(self) -> None:
         self.create_repo(
             project=self.project,
             name="getsentry/sentry",
@@ -84,7 +84,7 @@ class TestGetRepoAndProjects(TestCase):
                 name="sentry",
             )
 
-    def test_get_repo_and_projects_unprefixed_provider(self):
+    def test_get_repo_and_projects_unprefixed_provider(self) -> None:
         repo = self.create_repo(
             project=self.project,
             name="getsentry/sentry",
@@ -104,7 +104,7 @@ class TestGetRepoAndProjects(TestCase):
         assert result.repo == repo
         assert len(result.projects) == 1
 
-    def test_get_repo_and_projects_with_wrong_owner_not_found(self):
+    def test_get_repo_and_projects_with_wrong_owner_not_found(self) -> None:
         from sentry.models.repository import Repository
 
         repo = self.create_repo(
@@ -124,7 +124,7 @@ class TestGetRepoAndProjects(TestCase):
                 name="sentry",
             )
 
-    def test_get_repo_and_projects_repo_not_found(self):
+    def test_get_repo_and_projects_repo_not_found(self) -> None:
         from sentry.models.repository import Repository
 
         with pytest.raises(Repository.DoesNotExist):
@@ -138,7 +138,7 @@ class TestGetRepoAndProjects(TestCase):
 
 
 class TestAsIssueDetails(TestCase):
-    def test_as_issue_details_success(self):
+    def test_as_issue_details_success(self) -> None:
         data = load_data("python", timestamp=before_now(minutes=1))
         event = self.store_event(data=data, project_id=self.project.id)
         group = event.group
@@ -153,11 +153,11 @@ class TestAsIssueDetails(TestCase):
         assert result.transaction is None
         assert result.events == []
 
-    def test_as_issue_details_with_none_group(self):
+    def test_as_issue_details_with_none_group(self) -> None:
         result = as_issue_details(None)
         assert result is None
 
-    def test_as_issue_details_serialization_fails(self):
+    def test_as_issue_details_serialization_fails(self) -> None:
         data = load_data("python", timestamp=before_now(minutes=1))
         event = self.store_event(data=data, project_id=self.project.id)
         group = event.group
@@ -166,7 +166,7 @@ class TestAsIssueDetails(TestCase):
             result = as_issue_details(group)
             assert result is None
 
-    def test_as_issue_details_includes_message(self):
+    def test_as_issue_details_includes_message(self) -> None:
         data = load_data("python", timestamp=before_now(minutes=1))
         event = self.store_event(data=data, project_id=self.project.id)
         group = event.group
@@ -179,7 +179,7 @@ class TestAsIssueDetails(TestCase):
 
 
 class TestBulkSerializeForSeer(TestCase):
-    def test_bulk_serialize_for_seer_success(self):
+    def test_bulk_serialize_for_seer_success(self) -> None:
         data = load_data("python", timestamp=before_now(minutes=1))
         event1 = self.store_event(data=data, project_id=self.project.id)
         event2 = self.store_event(data=data, project_id=self.project.id)
@@ -201,7 +201,7 @@ class TestBulkSerializeForSeer(TestCase):
             assert item["transaction"] is None
             assert item["events"] == []
 
-    def test_bulk_serialize_for_seer_with_none_groups(self):
+    def test_bulk_serialize_for_seer_with_none_groups(self) -> None:
         data = load_data("python", timestamp=before_now(minutes=1))
         event = self.store_event(data=data, project_id=self.project.id)
 
@@ -223,7 +223,7 @@ class TestBulkSerializeForSeer(TestCase):
             assert group_serialized["transaction"] is None
             assert group_serialized["events"] == []
 
-    def test_bulk_serialize_for_seer_serialization_fails(self):
+    def test_bulk_serialize_for_seer_serialization_fails(self) -> None:
         data = load_data("python", timestamp=before_now(minutes=1))
         event = self.store_event(data=data, project_id=self.project.id)
 
@@ -237,7 +237,7 @@ class TestBulkSerializeForSeer(TestCase):
 
 
 class TestGetLatestIssueEvent(TestCase):
-    def test_get_latest_issue_event_success(self):
+    def test_get_latest_issue_event_success(self) -> None:
         data = load_data("python", timestamp=before_now(minutes=1))
         event = self.store_event(data=data, project_id=self.project.id)
         group = event.group
@@ -252,12 +252,12 @@ class TestGetLatestIssueEvent(TestCase):
         assert len(result["events"]) == 1
         assert result["events"][0]["id"] == event.event_id
 
-    def test_get_latest_issue_event_not_found(self):
+    def test_get_latest_issue_event_not_found(self) -> None:
         nonexistent_group_id = 999999
         result = get_latest_issue_event(nonexistent_group_id, self.organization.id)
         assert result == {}
 
-    def test_get_latest_issue_event_with_short_id(self):
+    def test_get_latest_issue_event_with_short_id(self) -> None:
         data = load_data("python", timestamp=before_now(minutes=1))
         event = self.store_event(data=data, project_id=self.project.id)
         group = event.group
@@ -272,24 +272,24 @@ class TestGetLatestIssueEvent(TestCase):
         assert len(result["events"]) == 1
         assert result["events"][0]["id"] == event.event_id
 
-    def test_get_latest_issue_event_with_short_id_not_found(self):
+    def test_get_latest_issue_event_with_short_id_not_found(self) -> None:
         result = get_latest_issue_event("INVALID-SHORT-ID", self.organization.id)
         assert result == {}
 
-    def test_get_latest_issue_event_no_events(self):
+    def test_get_latest_issue_event_no_events(self) -> None:
         # Create a group but don't store any events for it
         group = self.create_group(project=self.project)
         result = get_latest_issue_event(group.id, self.organization.id)
         assert result == {}
 
-    def test_get_latest_issue_event_wrong_organization(self):
+    def test_get_latest_issue_event_wrong_organization(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         group = event.group
         assert group is not None
         results = get_latest_issue_event(group.id, self.organization.id + 1)
         assert results == {}
 
-    def test_get_latest_issue_event_numeric_id_cross_org(self):
+    def test_get_latest_issue_event_numeric_id_cross_org(self) -> None:
         """Numeric group ID from another org must not be returned."""
         other_org = self.create_organization(owner=self.create_user())
         other_project = self.create_project(organization=other_org)
@@ -303,17 +303,17 @@ class TestGetLatestIssueEvent(TestCase):
 
 
 class TestHandleFetchIssuesExceptions(TestCase):
-    def test_handle_fetch_issues_exceptions_success(self):
+    def test_handle_fetch_issues_exceptions_success(self) -> None:
         @handle_fetch_issues_exceptions
-        def test_function():
+        def test_function() -> dict[str, bool]:
             return {"success": True}
 
         result = test_function()
         assert result == {"success": True}
 
-    def test_handle_fetch_issues_exceptions_handles_exception(self):
+    def test_handle_fetch_issues_exceptions_handles_exception(self) -> None:
         @handle_fetch_issues_exceptions
-        def test_function():
+        def test_function() -> None:
             raise ValueError("test error")
 
         result = test_function()

@@ -46,7 +46,7 @@ export function SeerAutomationSettings() {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
 
-  const showSeerOverview = true; //  organization.features.includes('seer-overview');
+  const showSeerOverview = organization.features.includes('seer-overview');
 
   const scmOverviewData = useSCMOverviewSection();
   const autofixOverviewData = useAutofixOverviewData();
@@ -99,6 +99,7 @@ export function SeerAutomationSettings() {
           canWrite={canWrite}
           organizationSlug={organization.slug}
         />
+
         {showSeerOverview ? (
           <Fragment>
             <AutofixOverviewSection

@@ -131,6 +131,11 @@ export type Commit = {
 export type Committer = {
   author: User;
   commits: Commit[];
+  /**
+   * Primary key of the GroupOwner record that linked this committer to the issue.
+   * Used for suspect commit feedback analytics.
+   */
+  group_owner_id?: number;
 };
 
 export type CommitAuthor = {

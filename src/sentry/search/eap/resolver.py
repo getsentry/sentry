@@ -64,9 +64,9 @@ from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events import constants as qb_constants
 from sentry.search.events import fields
 from sentry.search.events import filter as event_filter
-from sentry.search.events.datasets.discover import InvalidIssueSearchQuery
 from sentry.search.events.filter import to_list
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
+from sentry.search.exceptions import InvalidIssueSearchQuery
 
 
 def collect_issue_short_ids_from_parsed_terms(terms: Sequence[object]) -> set[str]:

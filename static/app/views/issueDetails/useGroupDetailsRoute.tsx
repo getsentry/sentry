@@ -1,18 +1,22 @@
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useRouter} from 'sentry/utils/useRouter';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
-type RouteProps = RouteComponentProps<{groupId: string; eventId?: string}>;
-
-function getCurrentTab({router}: {router: RouteProps['router']}) {
-  const currentRoute = router.routes[router.routes.length - 1];
+function getCurrentTab({
+  routes,
+  params,
+}: {
+  params: Record<string, string | undefined>;
+  routes: PlainRoute[];
+}) {
+  const currentRoute = routes[routes.length - 1];
 
   // If we're in the tag details page ("/distributions/:tagKey/")
-  if (router.params.tagKey) {
+  if (params.tagKey) {
     return Tab.DISTRIBUTIONS;
   }
   return (
@@ -24,21 +28,23 @@ function getCurrentRouteInfo({
   groupId,
   eventId,
   organization,
-  router,
+  routes,
+  params,
 }: {
   eventId: string | undefined;
   groupId: string;
   organization: Organization;
-  router: RouteProps['router'];
+  params: Record<string, string | undefined>;
+  routes: PlainRoute[];
 }): {
   baseUrl: string;
   currentTab: Tab;
 } {
-  const currentTab = getCurrentTab({router});
+  const currentTab = getCurrentTab({routes, params});
 
   const baseUrl = normalizeUrl(
     `/organizations/${organization.slug}/issues/${groupId}/${
-      router.params.eventId && eventId ? `events/${eventId}/` : ''
+      params.eventId && eventId ? `events/${eventId}/` : ''
     }`
   );
 
@@ -50,12 +56,17 @@ export function useGroupDetailsRoute(): {
   currentTab: Tab;
 } {
   const organization = useOrganization();
-  const params = useParams<{groupId: string; eventId?: string}>();
-  const router = useRouter();
+  const params = useParams<{
+    groupId: string;
+    eventId?: string;
+    tagKey?: string;
+  }>();
+  const routes = useRoutes();
   return getCurrentRouteInfo({
     groupId: params.groupId,
     eventId: params.eventId,
     organization,
-    router,
+    routes,
+    params,
   });
 }

@@ -69,7 +69,18 @@ let JEST_TESTS: string[] | undefined;
 // to reexec itself here
 if (CI && !process.env.JEST_LIST_TESTS_INNER) {
   try {
-    const stdout = execFileSync('pnpm', ['exec', 'jest', '--listTests', '--json'], {
+    const listTestArguments = ['exec', 'jest', '--listTests', '--json'];
+
+    if (process.env.MERGE_BASE) {
+      console.log('MERGE_BASE detected:', process.env.MERGE_BASE);
+      listTestArguments.push(
+        '--changedSince',
+        process.env.MERGE_BASE,
+        '--passWithNoTests'
+      );
+    }
+
+    const stdout = execFileSync('pnpm', listTestArguments, {
       stdio: 'pipe',
       encoding: 'utf-8',
       env: {...process.env, JEST_LIST_TESTS_INNER: '1'},
@@ -108,6 +119,10 @@ function getTestsForGroup(
   allTests: ReadonlyArray<string>,
   testStats: Record<string, number>
 ): string[] {
+  if (allTests.length === 0) {
+    return [];
+  }
+
   const speculatedSuiteDuration = Object.values(testStats).reduce((a, b) => a + b, 0);
   const targetDuration = speculatedSuiteDuration / nodeTotal;
 
@@ -122,8 +137,13 @@ function getTestsForGroup(
   const tests = new Map<string, number>();
   const SUITE_P50_DURATION_MS = 1500;
 
+  const allTestsSet = new Set(allTests);
+
   // First, iterate over all of the tests we have stats for.
   Object.entries(testStats).forEach(([test, duration]) => {
+    if (!allTestsSet.has(test)) {
+      return;
+    }
     if (duration <= 0) {
       throw new Error(`Test duration is <= 0 for ${test}`);
     }
@@ -199,8 +219,8 @@ function getTestsForGroup(
     }
   }
 
-  if (!groups[nodeIndex]) {
-    throw new Error(`No tests found for node ${nodeIndex}`);
+  if (!groups[nodeIndex]?.length) {
+    return ['<rootDir>/__no_tests_for_this_shard__'];
   }
   return groups[nodeIndex].map(test => `<rootDir>/${test}`);
 }
@@ -285,6 +305,7 @@ const config: Config.InitialOptions = {
     // window/cookies state.
     '@sentry/toolbar': '<rootDir>/tests/js/sentry-test/mocks/sentryToolbarMock.js',
   },
+  passWithNoTests: !!process.env.MERGE_BASE,
   setupFiles: [
     '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
     'jest-canvas-mock',
@@ -333,8 +354,7 @@ const config: Config.InitialOptions = {
    */
   clearMocks: true,
 
-  // To disable the sentry jest integration, set this to 'jsdom'
-  testEnvironment: '@sentry/jest-environment/jsdom',
+  testEnvironment: '<rootDir>/tests/js/sentry-test/jest-environment.js',
   testEnvironmentOptions: {
     globalsCleanup: 'on',
     sentryConfig: {

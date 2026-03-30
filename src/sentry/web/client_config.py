@@ -343,7 +343,7 @@ class _ClientConfig:
         if not self.user or not self.user.id:
             return frozenset()
 
-        cell_names = user_service.get_member_region_names(user_id=self.user.id)
+        cell_names = user_service.get_member_cell_names(user_id=self.user.id)
         directory = get_global_directory()
         return frozenset(
             loc.name

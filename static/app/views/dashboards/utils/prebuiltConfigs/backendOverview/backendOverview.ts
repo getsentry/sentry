@@ -1,3 +1,4 @@
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -200,28 +201,31 @@ export const BACKEND_OVERVIEW_SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   {h: 3, minH: 3}
 );
 
+const TABLE_FIELDS = [
+  SpanFields.IS_STARRED_TRANSACTION,
+  SpanFields.REQUEST_METHOD,
+  SpanFields.TRANSACTION,
+  SpanFields.SPAN_OP,
+  SpanFields.PROJECT,
+  'epm()',
+  `p50(${SpanFields.SPAN_DURATION})`,
+  `p95(${SpanFields.SPAN_DURATION})`,
+  `equation|failure_count() / count(${SpanFields.SPAN_DURATION})`,
+  `count_unique(${SpanFields.USER})`,
+  `sum(${SpanFields.SPAN_DURATION})`,
+];
+
 const TRANSACTIONS_TABLE: Widget = {
   id: 'backend-overview-transactions-table',
   title: t('Transactions'),
   description: '',
   displayType: DisplayType.TABLE,
   interval: '5m',
+  tableWidths: TABLE_FIELDS.map(() => COL_WIDTH_UNDEFINED),
   queries: [
     {
       name: '',
-      fields: [
-        SpanFields.IS_STARRED_TRANSACTION,
-        SpanFields.REQUEST_METHOD,
-        SpanFields.TRANSACTION,
-        SpanFields.SPAN_OP,
-        SpanFields.PROJECT,
-        'epm()',
-        `p50(${SpanFields.SPAN_DURATION})`,
-        `p95(${SpanFields.SPAN_DURATION})`,
-        `equation|failure_count() / count(${SpanFields.SPAN_DURATION})`,
-        `count_unique(${SpanFields.USER})`,
-        `sum(${SpanFields.SPAN_DURATION})`,
-      ],
+      fields: TABLE_FIELDS,
       aggregates: [
         'epm()',
         `p50(${SpanFields.SPAN_DURATION})`,

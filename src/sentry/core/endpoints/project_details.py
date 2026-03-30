@@ -111,6 +111,9 @@ class ProjectMemberSerializer(serializers.Serializer):
         required=False,
     )
     preprodSizeStatusChecksRules = serializers.JSONField(required=False)
+    preprodSnapshotStatusChecksEnabled = serializers.BooleanField(required=False)
+    preprodSnapshotStatusChecksFailOnAdded = serializers.BooleanField(required=False)
+    preprodSnapshotStatusChecksFailOnRemoved = serializers.BooleanField(required=False)
     preprodSizeEnabledByCustomer = serializers.BooleanField(required=False, allow_null=True)
     preprodDistributionEnabledByCustomer = serializers.BooleanField(required=False, allow_null=True)
     preprodDistributionPrCommentsEnabledByCustomer = serializers.BooleanField(
@@ -160,6 +163,9 @@ class ProjectMemberSerializer(serializers.Serializer):
         "preprodDistributionEnabledQuery",
         "preprodSizeEnabledByCustomer",
         "preprodDistributionEnabledByCustomer",
+        "preprodSnapshotStatusChecksEnabled",
+        "preprodSnapshotStatusChecksFailOnAdded",
+        "preprodSnapshotStatusChecksFailOnRemoved",
         "preprodDistributionPrCommentsEnabledByCustomer",
     ]
 )
@@ -831,6 +837,30 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:preprod_distribution_enabled_query"] = result[
                     "preprodDistributionEnabledQuery"
                 ]
+        if result.get("preprodSnapshotStatusChecksEnabled") is not None:
+            if project.update_option(
+                "sentry:preprod_snapshot_status_checks_enabled",
+                result["preprodSnapshotStatusChecksEnabled"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_status_checks_enabled"] = result[
+                    "preprodSnapshotStatusChecksEnabled"
+                ]
+        if result.get("preprodSnapshotStatusChecksFailOnAdded") is not None:
+            if project.update_option(
+                "sentry:preprod_snapshot_status_checks_fail_on_added",
+                result["preprodSnapshotStatusChecksFailOnAdded"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_status_checks_fail_on_added"] = (
+                    result["preprodSnapshotStatusChecksFailOnAdded"]
+                )
+        if result.get("preprodSnapshotStatusChecksFailOnRemoved") is not None:
+            if project.update_option(
+                "sentry:preprod_snapshot_status_checks_fail_on_removed",
+                result["preprodSnapshotStatusChecksFailOnRemoved"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_status_checks_fail_on_removed"] = (
+                    result["preprodSnapshotStatusChecksFailOnRemoved"]
+                )
         if "preprodDistributionPrCommentsEnabledByCustomer" in result:
             if project.update_option(
                 "sentry:preprod_distribution_pr_comments_enabled_by_customer",

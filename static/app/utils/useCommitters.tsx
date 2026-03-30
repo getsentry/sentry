@@ -9,8 +9,8 @@ import {useOrganization} from './useOrganization';
 
 interface UseCommittersProps {
   eventId: string;
+  group: Group;
   projectSlug: string;
-  group?: Group;
 }
 
 interface CommittersResponse {
@@ -39,7 +39,7 @@ export function useCommitters(
   options: Partial<UseApiQueryOptions<CommittersResponse>> = {}
 ) {
   const org = useOrganization();
-  const previousGroupId = usePrevious(group?.id);
+  const previousGroupId = usePrevious(group.id);
   return useApiQuery<CommittersResponse>(
     makeCommittersQueryKey(org.slug, projectSlug, eventId),
     {
@@ -47,7 +47,7 @@ export function useCommitters(
       retry: false,
       enabled: !!eventId,
       placeholderData: previousData => {
-        return group?.id === previousGroupId ? previousData : undefined;
+        return group.id === previousGroupId ? previousData : undefined;
       },
       ...options,
     }
