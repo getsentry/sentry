@@ -379,6 +379,10 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
     def create_organization(name=None, owner=None, cell: Cell | str | None = None, **kwargs):
+        # TODO(cells): Remove once getsentry passes cell everywhere
+        if not cell:
+            cell = kwargs.get("region")
+
         if not name:
             name = petname.generate(2, " ", letters=10).title()
 
