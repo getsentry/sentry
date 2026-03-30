@@ -117,7 +117,7 @@ export function useAttributeValidation(
       return EMPTY_KEYS;
     }
 
-    return Object.entries(data?.[0]?.attributes)
+    return Object.entries(data[0]?.attributes ?? {})
       .filter(([, result]) => !result.valid)
       .map(([key]) => key);
   }, [data, hasValidation]);
