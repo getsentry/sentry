@@ -67,8 +67,9 @@ function validateAttributesQueryOptions({
       }),
       {
         method: 'POST' as const,
-        data: {itemType, attributes: filterKeys},
+        data: {attributes: filterKeys},
         query: {
+          itemType,
           ...Object.fromEntries(
             Object.entries(normalizeDateTimeParams(datetime)).filter(
               (entry): entry is [string, string | string[]] => entry[1] !== null
