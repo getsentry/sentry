@@ -11,7 +11,7 @@ from sentry import analytics, features
 from sentry.analytics.events.autofix_automation_events import AiAutofixAutomationEvent
 from sentry.constants import (
     AUTO_OPEN_PRS_DEFAULT,
-    SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+    SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     ObjectStatus,
 )
 from sentry.models.group import Group
@@ -260,7 +260,7 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
 
     default_stopping_point = organization.get_option(
         "sentry:default_automated_run_stopping_point",
-        SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+        SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     )
 
     preferences_by_id = bulk_get_project_preferences(organization_id, project_ids)

@@ -12,7 +12,7 @@ from sentry import features, options
 from sentry.constants import (
     AUTO_OPEN_PRS_DEFAULT,
     DATA_ROOT,
-    SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+    SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
 )
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
@@ -599,7 +599,7 @@ def set_default_project_seer_preferences(organization: Organization, project: Pr
         repositories=[],
         automated_run_stopping_point=organization.get_option(
             "sentry:default_automated_run_stopping_point",
-            SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+            SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
         ),
         automation_handoff=automation_handoff,
     )

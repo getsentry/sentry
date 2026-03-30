@@ -68,7 +68,7 @@ from sentry.constants import (
     ROLLBACK_ENABLED_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
-    SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+    SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     SEER_DEFAULT_CODING_AGENT_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
     ObjectStatus,
@@ -265,7 +265,7 @@ ORG_OPTIONS = (
         "defaultAutomatedRunStoppingPoint",
         "sentry:default_automated_run_stopping_point",
         str,
-        SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+        SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     ),
     (
         "autoEnableCodeReview",
@@ -385,8 +385,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     )
     defaultCodingAgentIntegrationId = serializers.IntegerField(required=False, allow_null=True)
     defaultAutomatedRunStoppingPoint = serializers.ChoiceField(
-        choices=["code_changes", "open_pr"],
-        required=False,
+        choices=["code_changes", "open_pr"], required=False
     )
     autoOpenPrs = serializers.BooleanField(required=False)
     autoEnableCodeReview = serializers.BooleanField(required=False)

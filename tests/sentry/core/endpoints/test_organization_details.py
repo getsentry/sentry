@@ -21,7 +21,7 @@ from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import (
     RESERVED_ORGANIZATION_SLUGS,
-    SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+    SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     SEER_DEFAULT_CODING_AGENT_DEFAULT,
     ObjectStatus,
 )
@@ -1617,7 +1617,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         response = self.get_success_response(self.organization.slug)
         assert (
             response.data["defaultAutomatedRunStoppingPoint"]
-            == SEER_DEFAULT_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+            == SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
         )
 
     def test_default_automated_run_stopping_point_can_be_set(self) -> None:
