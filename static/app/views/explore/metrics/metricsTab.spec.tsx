@@ -731,5 +731,8 @@ describe('MetricsTabContent (tracemetrics-ui-refresh)', () => {
     await waitFor(() => {
       expect(screen.getAllByTestId('metric-toolbar')).toHaveLength(1);
     });
+    expect(
+      await within(screen.getAllByTestId('metric-toolbar')[0]!).findByRole('combobox')
+    ).toBeInTheDocument();
   });
 });
