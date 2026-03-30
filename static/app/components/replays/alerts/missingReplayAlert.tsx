@@ -7,6 +7,7 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 interface Props {
   orgSlug: string;
@@ -19,7 +20,7 @@ export function MissingReplayAlert({orgSlug}: Props) {
       'The replay was rate-limited and could not be accepted. [link:View the stats page] for more information.',
       {
         link: (
-          <Link to={`/organizations/${orgSlug}/settings/stats/?dataCategory=replays`} />
+          <Link to={normalizeUrl(`/settings/${orgSlug}/stats/?dataCategory=replays`)} />
         ),
       }
     ),
