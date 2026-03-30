@@ -21,7 +21,7 @@ describe('InstalledIntegration', () => {
   it('shows the Configure button normally', () => {
     render(<InstalledIntegration {...defaultProps} />);
 
-    expect(screen.getByRole('link', {name: 'Configure'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Configure'})).toBeInTheDocument();
   });
 
   it('hides the Configure button when directEnable aspect is set', () => {

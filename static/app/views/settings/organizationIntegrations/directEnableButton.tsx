@@ -1,6 +1,7 @@
 import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
@@ -54,13 +55,18 @@ export function DirectEnableButton({
   });
 
   return (
-    <Button
-      {...buttonProps}
-      disabled={buttonProps.disabled || !userHasAccess || isPending}
-      busy={isPending}
-      onClick={() => enable()}
+    <Tooltip
+      title={t('You do not have permission to enable this integration.')}
+      disabled={userHasAccess}
     >
-      {t('Enable Integration')}
-    </Button>
+      <Button
+        {...buttonProps}
+        disabled={buttonProps.disabled || !userHasAccess || isPending}
+        busy={isPending}
+        onClick={() => enable()}
+      >
+        {t('Enable Integration')}
+      </Button>
+    </Tooltip>
   );
 }

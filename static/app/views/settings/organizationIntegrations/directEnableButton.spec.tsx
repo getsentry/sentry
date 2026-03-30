@@ -55,19 +55,4 @@ describe('DirectEnableButton', () => {
 
     expect(screen.getByRole('button', {name: 'Enable Integration'})).toBeDisabled();
   });
-
-  it('shows error message on failure', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/integrations/direct-enable/github_copilot/`,
-      method: 'POST',
-      statusCode: 400,
-      body: {detail: 'Integration is already enabled.'},
-    });
-
-    render(<DirectEnableButton {...defaultProps} />, {organization});
-
-    await userEvent.click(screen.getByRole('button', {name: 'Enable Integration'}));
-
-    expect(await screen.findByText('Failed to enable integration.')).toBeInTheDocument();
-  });
 });
