@@ -105,7 +105,10 @@ export default function PullRequestDetails() {
   }
 
   return (
-    <Stack flex={1}>
+    <Stack
+      flex={1}
+      title={`#${prSuccessData.pull_request.number}: ${prSuccessData.pull_request.title}`}
+    >
       <Layout.Header>
         <PullRequestDetailsHeaderContent pullRequest={prSuccessData} />
         <Layout.HeaderTabs value={selectedTab || 'files'} onChange={setSelectedTab}>
