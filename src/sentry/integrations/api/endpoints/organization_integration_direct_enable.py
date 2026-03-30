@@ -1,34 +1,45 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
+from sentry.api.base import control_silo_endpoint
+from sentry.api.bases.organization import (
+    ControlSiloOrganizationEndpoint,
+    OrganizationIntegrationsPermission,
+)
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.exceptions import NotRegistered
 from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.services.integration import integration_service
-from sentry.models.organization import Organization
+from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 
 logger = logging.getLogger(__name__)
 
 
-@cell_silo_endpoint
-class OrganizationIntegrationDirectEnableEndpoint(OrganizationEndpoint):
+@control_silo_endpoint
+class OrganizationIntegrationDirectEnableEndpoint(ControlSiloOrganizationEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationIntegrationsPermission,)
 
-    def post(self, request: Request, organization: Organization, provider_key: str) -> Response:
+    def post(
+        self,
+        request: Request,
+        organization_context: RpcUserOrganizationContext,
+        organization: RpcOrganization,
+        provider_key: str,
+        **kwargs: Any,
+    ) -> Response:
         """Directly install an integration that requires no pipeline configuration."""
         try:
             provider = integrations.get(provider_key)

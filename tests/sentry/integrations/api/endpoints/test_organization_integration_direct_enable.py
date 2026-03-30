@@ -1,8 +1,10 @@
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class OrganizationIntegrationDirectEnableTest(APITestCase):
     endpoint = "sentry-api-0-organization-integration-direct-enable"
     method = "post"
