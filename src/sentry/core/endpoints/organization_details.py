@@ -110,6 +110,7 @@ from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.services.organization.provisioning import organization_provisioning_service
+from sentry.tasks.console_platform_cleanup import remove_inaccessible_console_platform_sources
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils.audit import create_audit_entry
 
@@ -1298,10 +1299,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                         current_console_platforms
                     )
                     if revoked_platforms:
-                        from sentry.tasks.console_platform_cleanup import (
-                            remove_inaccessible_console_platform_sources,
-                        )
-
                         remove_inaccessible_console_platform_sources.delay(
                             organization.id, current_console_platforms
                         )
