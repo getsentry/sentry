@@ -31,7 +31,7 @@ export default function GettingStarted() {
   const currentPlatform = allPlatforms.find(p => p.id === currentPlatformKey);
 
   return (
-    <GettingStartedLayout>
+    <GettingStartedLayout padding="2xl 3xl">
       {loadingProjects ? (
         <LoadingIndicator />
       ) : project ? (
@@ -50,5 +50,4 @@ export default function GettingStarted() {
 
 const GettingStartedLayout = styled(Stack)`
   background: ${p => p.theme.tokens.background.primary};
-  padding-top: ${p => p.theme.space['2xl']};
 `;

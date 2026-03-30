@@ -151,7 +151,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
       orgSlug={organization.slug}
     >
       <NoProjectMessage organization={organization}>
-        <LayoutPageWithHiddenFooter>
+        <LayoutPageWithHiddenFooter flex={1}>
           <TraceMetaDataHeader
             rootEventResults={rootEventResults}
             tree={tree}

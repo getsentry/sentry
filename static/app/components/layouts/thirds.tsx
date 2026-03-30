@@ -62,9 +62,7 @@ export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
 }
 
 const StyledPageFrameStack = styled(Stack)<{roundedCorner: boolean}>`
-  > :first-child {
-    border-top-left-radius: ${p => (p.roundedCorner ? p.theme.radius.lg : undefined)};
-  }
+  overflow: ${p => (p.roundedCorner ? 'clip' : undefined)};
 `;
 
 /**

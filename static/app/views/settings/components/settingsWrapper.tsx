@@ -2,7 +2,7 @@ import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -22,13 +22,11 @@ export function SettingsWrapper() {
 
   return (
     <AnalyticsArea name="settings">
-      <Stack flex={1}>
-        <StyledFlex flex="1" background={hasPageFrame ? 'primary' : undefined}>
+      <StyledFlex flex="1" background={hasPageFrame ? 'primary' : undefined}>
         <BreadcrumbProvider>
           <Outlet />
         </BreadcrumbProvider>
-        </StyledFlex>
-      </Stack>
+      </StyledFlex>
     </AnalyticsArea>
   );
 }
