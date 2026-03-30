@@ -58,7 +58,7 @@ from sentry.search.events.filter import _flip_field_sort
 from sentry.search.events.types import SnubaParams
 from sentry.services.eventstore.query_preprocessing import translate_environment_ids_to_names
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.occurrences_rpc import Occurrences
+from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.snuba.referrer import Referrer
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT, TagKeyStatus, TagStorage
 from sentry.tagstore.exceptions import GroupTagKeyNotFound, TagKeyNotFound
@@ -1260,6 +1260,7 @@ class SnubaTagStorage(TagStorage):
                 limit=len(group_ids),
                 referrer=referrer,
                 config=SearchResolverConfig(),
+                occurrence_category=OccurrenceCategory.ERROR,
             )
 
             return defaultdict(
