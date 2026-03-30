@@ -142,12 +142,19 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
                 (\d{4}-?[01]\d-?[0-3]\d[\sT][0-2]\d:?[0-5]\d) # no seconds
             )
             |
-            # Kitchen
+            # Kitchen, 12-hr
             (
-                [1-9]\d? # Hour
+                ([1-9]|1[0-2]) # Hour, no leading zero, 1-12 hours
                 :\d{2} # Minute
                 (:\d{2})? # Optional second
                 (?:\s?[aApP][Mm])? # Optional, optionally-space-separated AM/PM
+            )
+            |
+            # Kitchen, 24-hr
+            (
+                (0?\d|1\d|2[0-3]) # Hour, optional leading zero, 0-23 hours
+                :\d{2} # Minute
+                (:\d{2})? # Optional second
             )
             |
             # Date
