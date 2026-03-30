@@ -10,6 +10,8 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
+FEATURE_FLAG = "organizations:github-repo-auto-sync"
+
 
 @control_silo_test
 @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -29,17 +31,15 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
             {"id": 3, "full_name": "getsentry/old-repo", "private": False},
         ]
 
-    @patch("sentry.integrations.github.tasks.sync_repos_on_install_change.features")
-    def test_repos_added(self, mock_features: MagicMock, _: MagicMock) -> None:
-        mock_features.has.return_value = True
-
-        sync_repos_on_install_change(
-            integration_id=self.integration.id,
-            action="added",
-            repos_added=self._make_repos_added(),
-            repos_removed=[],
-            repository_selection="selected",
-        )
+    def test_repos_added(self, _: MagicMock) -> None:
+        with self.feature(FEATURE_FLAG):
+            sync_repos_on_install_change(
+                integration_id=self.integration.id,
+                action="added",
+                repos_added=self._make_repos_added(),
+                repos_removed=[],
+                repository_selection="selected",
+            )
 
         with assume_test_silo_mode(SiloMode.CELL):
             repos = Repository.objects.filter(organization_id=self.organization.id).order_by("name")
@@ -50,10 +50,7 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
         assert repos[0].integration_id == self.integration.id
         assert repos[1].name == "getsentry/snuba"
 
-    @patch("sentry.integrations.github.tasks.sync_repos_on_install_change.features")
-    def test_repos_removed(self, mock_features: MagicMock, _: MagicMock) -> None:
-        mock_features.has.return_value = True
-
+    def test_repos_removed(self, _: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
@@ -64,22 +61,20 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
                 status=ObjectStatus.ACTIVE,
             )
 
-        sync_repos_on_install_change(
-            integration_id=self.integration.id,
-            action="removed",
-            repos_added=[],
-            repos_removed=self._make_repos_removed(),
-            repository_selection="selected",
-        )
+        with self.feature(FEATURE_FLAG):
+            sync_repos_on_install_change(
+                integration_id=self.integration.id,
+                action="removed",
+                repos_added=[],
+                repos_removed=self._make_repos_removed(),
+                repository_selection="selected",
+            )
 
         with assume_test_silo_mode(SiloMode.CELL):
             repo.refresh_from_db()
             assert repo.status == ObjectStatus.DISABLED
 
-    @patch("sentry.integrations.github.tasks.sync_repos_on_install_change.features")
-    def test_mixed_add_and_remove(self, mock_features: MagicMock, _: MagicMock) -> None:
-        mock_features.has.return_value = True
-
+    def test_mixed_add_and_remove(self, _: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             old_repo = Repository.objects.create(
                 organization_id=self.organization.id,
@@ -90,13 +85,14 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
                 status=ObjectStatus.ACTIVE,
             )
 
-        sync_repos_on_install_change(
-            integration_id=self.integration.id,
-            action="added",
-            repos_added=self._make_repos_added(),
-            repos_removed=self._make_repos_removed(),
-            repository_selection="selected",
-        )
+        with self.feature(FEATURE_FLAG):
+            sync_repos_on_install_change(
+                integration_id=self.integration.id,
+                action="added",
+                repos_added=self._make_repos_added(),
+                repos_removed=self._make_repos_removed(),
+                repository_selection="selected",
+            )
 
         with assume_test_silo_mode(SiloMode.CELL):
             old_repo.refresh_from_db()
@@ -110,23 +106,21 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
             assert active_repos[0].name == "getsentry/sentry"
             assert active_repos[1].name == "getsentry/snuba"
 
-    @patch("sentry.integrations.github.tasks.sync_repos_on_install_change.features")
-    def test_multi_org(self, mock_features: MagicMock, _: MagicMock) -> None:
-        mock_features.has.return_value = True
-
+    def test_multi_org(self, _: MagicMock) -> None:
         other_org = self.create_organization(owner=self.user)
         self.create_organization_integration(
             organization_id=other_org.id,
             integration=self.integration,
         )
 
-        sync_repos_on_install_change(
-            integration_id=self.integration.id,
-            action="added",
-            repos_added=self._make_repos_added(),
-            repos_removed=[],
-            repository_selection="selected",
-        )
+        with self.feature(FEATURE_FLAG):
+            sync_repos_on_install_change(
+                integration_id=self.integration.id,
+                action="added",
+                repos_added=self._make_repos_added(),
+                repos_removed=[],
+                repository_selection="selected",
+            )
 
         with assume_test_silo_mode(SiloMode.CELL):
             repos_org1 = Repository.objects.filter(organization_id=self.organization.id)
@@ -161,10 +155,7 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
         with assume_test_silo_mode(SiloMode.CELL):
             assert Repository.objects.count() == 0
 
-    @patch("sentry.integrations.github.tasks.sync_repos_on_install_change.features")
-    def test_feature_flag_off(self, mock_features: MagicMock, _: MagicMock) -> None:
-        mock_features.has.return_value = False
-
+    def test_feature_flag_off(self, _: MagicMock) -> None:
         sync_repos_on_install_change(
             integration_id=self.integration.id,
             action="added",
@@ -176,27 +167,20 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
         with assume_test_silo_mode(SiloMode.CELL):
             assert Repository.objects.count() == 0
 
-    @patch("sentry.integrations.github.tasks.sync_repos_on_install_change.features")
-    def test_empty_repos_is_noop(self, mock_features: MagicMock, _: MagicMock) -> None:
-        mock_features.has.return_value = True
-
-        sync_repos_on_install_change(
-            integration_id=self.integration.id,
-            action="added",
-            repos_added=[],
-            repos_removed=[],
-            repository_selection="selected",
-        )
+    def test_empty_repos_is_noop(self, _: MagicMock) -> None:
+        with self.feature(FEATURE_FLAG):
+            sync_repos_on_install_change(
+                integration_id=self.integration.id,
+                action="added",
+                repos_added=[],
+                repos_removed=[],
+                repository_selection="selected",
+            )
 
         with assume_test_silo_mode(SiloMode.CELL):
             assert Repository.objects.count() == 0
 
-    @patch("sentry.integrations.github.tasks.sync_repos_on_install_change.features")
-    def test_does_not_disable_already_disabled_repos(
-        self, mock_features: MagicMock, _: MagicMock
-    ) -> None:
-        mock_features.has.return_value = True
-
+    def test_does_not_disable_already_disabled_repos(self, _: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
@@ -207,13 +191,14 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
                 status=ObjectStatus.DISABLED,
             )
 
-        sync_repos_on_install_change(
-            integration_id=self.integration.id,
-            action="removed",
-            repos_added=[],
-            repos_removed=self._make_repos_removed(),
-            repository_selection="selected",
-        )
+        with self.feature(FEATURE_FLAG):
+            sync_repos_on_install_change(
+                integration_id=self.integration.id,
+                action="removed",
+                repos_added=[],
+                repos_removed=self._make_repos_removed(),
+                repository_selection="selected",
+            )
 
         with assume_test_silo_mode(SiloMode.CELL):
             repo.refresh_from_db()

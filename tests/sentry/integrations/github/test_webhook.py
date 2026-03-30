@@ -400,7 +400,7 @@ class InstallationRepositoriesEventWebhookTest(APITestCase):
     def test_webhook_dispatches_to_handler(self, mock_call: MagicMock) -> None:
         """Verify the endpoint routes installation_repositories events to the correct handler."""
         body = self._make_event(
-            repos_added=[{"id": 1, "full_name": "getsentry/sentry"}],
+            repos_added=[{"id": 1, "full_name": "getsentry/sentry", "private": False}],
         )
         sha1, sha256 = self._compute_signatures(body)
 
@@ -415,6 +415,88 @@ class InstallationRepositoriesEventWebhookTest(APITestCase):
         )
         assert response.status_code == 204
         assert mock_call.called
+
+    def test_end_to_end_repos_added(self) -> None:
+        """Full end-to-end: webhook URL → handler → task → Repository rows created."""
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        self.create_integration(
+            name="octocat",
+            organization=self.organization,
+            external_id="2",
+            provider="github",
+            metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+        )
+
+        body = self._make_event(
+            repos_added=[
+                {"id": 10, "full_name": "getsentry/sentry", "private": False},
+                {"id": 20, "full_name": "getsentry/snuba", "private": False},
+            ],
+        )
+        sha1, sha256 = self._compute_signatures(body)
+
+        with self.feature("organizations:github-repo-auto-sync"), self.tasks():
+            response = self.client.post(
+                path=self.url,
+                data=body,
+                content_type="application/json",
+                HTTP_X_GITHUB_EVENT="installation_repositories",
+                HTTP_X_HUB_SIGNATURE=sha1,
+                HTTP_X_HUB_SIGNATURE_256=sha256,
+                HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+            )
+        assert response.status_code == 204
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repos = Repository.objects.filter(organization_id=self.organization.id).order_by("name")
+
+        assert len(repos) == 2
+        assert repos[0].name == "getsentry/sentry"
+        assert repos[0].provider == "integrations:github"
+        assert repos[1].name == "getsentry/snuba"
+
+    def test_end_to_end_repos_removed(self) -> None:
+        """Full end-to-end: webhook URL → handler → task → Repository disabled."""
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        integration = self.create_integration(
+            name="octocat",
+            organization=self.organization,
+            external_id="2",
+            provider="github",
+            metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+        )
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="getsentry/old-repo",
+                external_id="30",
+                provider="integrations:github",
+                integration_id=integration.id,
+                status=ObjectStatus.ACTIVE,
+            )
+
+        body = self._make_event(
+            action="removed",
+            repos_removed=[{"id": 30, "full_name": "getsentry/old-repo", "private": False}],
+        )
+        sha1, sha256 = self._compute_signatures(body)
+
+        with self.feature("organizations:github-repo-auto-sync"), self.tasks():
+            response = self.client.post(
+                path=self.url,
+                data=body,
+                content_type="application/json",
+                HTTP_X_GITHUB_EVENT="installation_repositories",
+                HTTP_X_HUB_SIGNATURE=sha1,
+                HTTP_X_HUB_SIGNATURE_256=sha256,
+                HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+            )
+        assert response.status_code == 204
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo.refresh_from_db()
+            assert repo.status == ObjectStatus.DISABLED
 
     @patch(
         "sentry.integrations.github.tasks.sync_repos_on_install_change.sync_repos_on_install_change.apply_async"
