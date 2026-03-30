@@ -6,7 +6,7 @@ from sentry.types.cell import Cell, Locality, RegionCategory
 us = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
 de = Cell("de", 2, "https://de.testserver", RegionCategory.MULTI_TENANT)
 st = Cell("acme", 3, "https://acme.testserver", RegionCategory.SINGLE_TENANT)
-region_config = (us, de, st)
+cell_config = (us, de, st)
 
 us_locality = Locality(
     name="us", cells=frozenset(["us"]), category=RegionCategory.MULTI_TENANT, new_org_cell="us"
@@ -30,12 +30,12 @@ class UserUserRolesTest(APITestCase):
         super().setUp()
         self.user = self.create_user()
 
-    @override_cells(region_config)
+    @override_cells(cell_config)
     def test_get(self) -> None:
         self.login_as(user=self.user)
-        self.create_organization(region="us", owner=self.user)
-        self.create_organization(region="de", owner=self.user)
-        self.create_organization(region="acme", owner=self.user)
+        self.create_organization(cell="us", owner=self.user)
+        self.create_organization(cell="de", owner=self.user)
+        self.create_organization(cell="acme", owner=self.user)
 
         response = self.get_response("me")
         assert response.status_code == 200
@@ -46,36 +46,36 @@ class UserUserRolesTest(APITestCase):
             us_locality.api_serialize(),
         ]
 
-    @override_cells(region_config)
+    @override_cells(cell_config)
     def test_get_only_memberships(self) -> None:
         self.login_as(user=self.user)
         other = self.create_user()
-        self.create_organization(region="acme", owner=other)
-        self.create_organization(region="de", owner=self.user)
+        self.create_organization(cell="acme", owner=other)
+        self.create_organization(cell="de", owner=self.user)
 
         response = self.get_response("me")
         assert response.status_code == 200
         assert "regions" in response.data
         assert response.data["regions"] == [de_locality.api_serialize()]
 
-    @override_cells(region_config)
+    @override_cells(cell_config)
     def test_get_other_user_error(self) -> None:
         self.login_as(user=self.user)
         other = self.create_user()
-        self.create_organization(region="acme", owner=other)
+        self.create_organization(cell="acme", owner=other)
 
         response = self.get_response(other.id)
         assert response.status_code == 403
 
-    @override_cells(region_config)
+    @override_cells(cell_config)
     def test_allow_superuser_to_query_all(self) -> None:
         superuser = self.create_user(is_superuser=True)
         self.login_as(user=superuser, superuser=True)
 
         test_user_1 = self.create_user()
-        self.create_organization(region="us", owner=test_user_1)
-        self.create_organization(region="de", owner=test_user_1)
-        self.create_organization(region="acme", owner=test_user_1)
+        self.create_organization(cell="us", owner=test_user_1)
+        self.create_organization(cell="de", owner=test_user_1)
+        self.create_organization(cell="acme", owner=test_user_1)
 
         test_user_2 = self.create_user()
         response = self.get_response(test_user_1.id)
@@ -92,10 +92,10 @@ class UserUserRolesTest(APITestCase):
         assert "regions" in response.data
         assert response.data["regions"] == []
 
-    @override_cells(region_config)
+    @override_cells(cell_config)
     def test_get_for_user_with_auth_token(self) -> None:
-        self.create_organization(region="us", owner=self.user)
-        self.create_organization(region="de", owner=self.user)
+        self.create_organization(cell="us", owner=self.user)
+        self.create_organization(cell="de", owner=self.user)
         auth_token = self.create_user_auth_token(user=self.user, scope_list=["org:read"])
         response = self.get_success_response(
             "me", extra_headers={"HTTP_AUTHORIZATION": f"Bearer {auth_token.token}"}
@@ -106,11 +106,11 @@ class UserUserRolesTest(APITestCase):
             us_locality.api_serialize(),
         ]
 
-    @override_cells(region_config)
+    @override_cells(cell_config)
     def test_get_other_user_with_auth_token_error(self) -> None:
         other_user = self.create_user()
-        self.create_organization(region="us", owner=other_user)
-        self.create_organization(region="de", owner=other_user)
+        self.create_organization(cell="us", owner=other_user)
+        self.create_organization(cell="de", owner=other_user)
 
         auth_token = self.create_user_auth_token(user=self.user, scope_list=["org:read"])
         self.get_error_response(
@@ -119,10 +119,10 @@ class UserUserRolesTest(APITestCase):
             status_code=403,
         )
 
-    @override_cells(region_config)
+    @override_cells(cell_config)
     def test_get_for_user_with_wrong_scopes_error(self) -> None:
-        self.create_organization(region="us", owner=self.user)
-        self.create_organization(region="de", owner=self.user)
+        self.create_organization(cell="us", owner=self.user)
+        self.create_organization(cell="de", owner=self.user)
 
         auth_token = self.create_user_auth_token(user=self.user, scope_list=["project:read"])
         self.get_error_response(
@@ -131,10 +131,10 @@ class UserUserRolesTest(APITestCase):
             status_code=403,
         )
 
-    @override_cells(region_config)
+    @override_cells(cell_config)
     def test_get_for_user_with_no_auth(self) -> None:
-        self.create_organization(region="us", owner=self.user)
-        self.create_organization(region="de", owner=self.user)
+        self.create_organization(cell="us", owner=self.user)
+        self.create_organization(cell="de", owner=self.user)
 
         self.get_error_response("me", status_code=401)
         self.get_error_response(self.user.id, status_code=401)
