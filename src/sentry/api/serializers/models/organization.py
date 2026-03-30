@@ -559,7 +559,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     defaultSeerScannerAutomation: bool
     enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
-    defaultCodingAgent: str | None
+    defaultCodingAgent: str
     defaultCodingAgentIntegrationId: int | None
     defaultAutomatedRunStoppingPoint: str
     autoEnableCodeReview: bool
