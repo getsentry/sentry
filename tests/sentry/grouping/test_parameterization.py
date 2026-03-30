@@ -229,6 +229,48 @@ def test_experimental_parameterization(name: str, input: str, expected: str) -> 
 incorrect_cases = [
     # ("name", "input", "desired", "actual")
     (
+        "date - kitchen 24-hour with leading zero",
+        "09:08",
+        "<date>",
+        "<int>:<int>",
+    ),
+    (
+        "date - kitchen 24-hour midnight with leading zero",
+        "00:31",
+        "<date>",
+        "<int>:<int>",
+    ),
+    (
+        "date - kitchen 24-hour midnight no leading zero",
+        "0:12",
+        "<date>",
+        "<int>:<int>",
+    ),
+    (
+        "date - kitchen hour too big",
+        "31:21",
+        "<int>:<int>",
+        "<date>",
+    ),
+    (
+        "date - kitchen minute too big",
+        "12:99",
+        "<int>:<int>",
+        "<date>",
+    ),
+    (
+        "date - kitchen second too big",
+        "12:31:99",
+        "<int>:<int>:<int>",
+        "<date>",
+    ),
+    (
+        "date - kitchen too many final digits",
+        "11:2112",
+        "<int>:<int>",
+        "<date>12",
+    ),
+    (
         "int - number in word",
         "Encoding: utf-8",
         "Encoding: utf-8",
