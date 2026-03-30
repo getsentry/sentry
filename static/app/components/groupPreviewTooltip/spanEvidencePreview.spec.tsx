@@ -31,7 +31,6 @@ describe('SpanEvidencePreview', () => {
   it('shows error when request fails', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/group-id/events/recommended/`,
-      body: {},
       statusCode: 500,
     });
 
@@ -39,7 +38,7 @@ describe('SpanEvidencePreview', () => {
 
     await userEvent.hover(screen.getByText('Hover me'), {delay: null});
 
-    await screen.findByText('Failed to load preview');
+    expect(await screen.findByText('Failed to load preview')).toBeInTheDocument();
   });
 
   it('renders the span evidence correctly when request succeeds', async () => {
