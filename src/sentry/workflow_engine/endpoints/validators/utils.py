@@ -159,13 +159,13 @@ def connect_workflows_to_detectors(
     organization: Organization,
     workflow_id: int,
     detector_ids: list[int] | None,
-    update=False,
+    update: bool = False,
 ) -> None:
     if detector_ids is not None:
         validate_detectors_exist_and_have_permissions(detector_ids, organization, request)
 
         def get_detector_workflows_to_add(
-            workflow_id: int, detector_ids: list[int]
+            workflow_id: int, detector_ids: set[int]
         ) -> list[dict[Literal["detector_id", "workflow_id"], int]]:
             detector_workflows_to_add: list[dict[Literal["detector_id", "workflow_id"], int]] = [
                 {"detector_id": detector_id, "workflow_id": workflow_id}
