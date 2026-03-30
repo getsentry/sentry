@@ -262,7 +262,6 @@ class OrganizationEventsTraceMetaEndpointTest(
 
 class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, UptimeResultEAPTestCase):
     url_name = "sentry-api-0-organization-trace-meta"
-    FEATURES = ["organizations:trace-spans-format"]
 
     def create_uptime_check(self, trace_id=None, **kwargs):
         defaults = {

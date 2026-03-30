@@ -7,7 +7,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 
-import WidgetLegendSelectionState from './widgetLegendSelectionState';
+import {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
 const WIDGET_ID_DELIMITER = ':';
 const SERIES_NAME_DELIMITER = '|~|';

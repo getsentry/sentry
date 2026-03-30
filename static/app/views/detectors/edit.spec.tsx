@@ -522,8 +522,10 @@ describe('DetectorEdit', () => {
         );
       });
       const updateBody = updateRequest.mock.calls[0][1];
+      // Percent thresholds are reverse-translated to internal absolute-percentage form:
+      // user enters 22 (meaning "22% higher") → stored as 122 (122% of baseline)
       expect(updateBody.data.conditionGroup.conditions[0]).toEqual({
-        comparison: Number(newThresholdValue),
+        comparison: Number(newThresholdValue) + 100,
         conditionResult: 75,
         type: 'gt',
       });

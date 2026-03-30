@@ -3,6 +3,7 @@ import type {
   IntegrationProvider,
   IntegrationRepository,
   OrganizationIntegration,
+  Repository,
 } from 'sentry/types/integrations';
 
 export type ProviderNode = {
@@ -41,12 +42,26 @@ export type NoMatchNode = {
   type: 'no-match';
 };
 
+export type DisconnectedSectionNode = {
+  isExpanded: boolean;
+  repoCount: number;
+  type: 'disconnected-section';
+};
+
+export type DisconnectedRepoNode = {
+  isToggling: boolean;
+  repo: Repository;
+  type: 'disconnected-repo';
+};
+
 export type TreeNode =
   | ProviderNode
   | IntegrationNode
   | RepoNode
   | AddConfigNode
-  | NoMatchNode;
+  | NoMatchNode
+  | DisconnectedSectionNode
+  | DisconnectedRepoNode;
 
 export type RepoFilter = 'all' | 'connected' | 'not-connected';
 export type ProviderFilter = 'seer-supported' | 'all';

@@ -148,15 +148,6 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           id: 'repos',
         },
         {
-          path: `${organizationSettingsPathPrefix}/integrations/`,
-          title: t('Integrations'),
-          description: t(
-            'Manage organization-level integrations, including: Slack, GitHub, Bitbucket, Jira, and Azure DevOps'
-          ),
-          id: 'integrations',
-          recordAnalytics: true,
-        },
-        {
           path: `${organizationSettingsPathPrefix}/early-features/`,
           title: t('Early Features'),
           description: t('Manage early access features'),
@@ -198,6 +189,33 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
       ],
     },
     {
+      id: 'settings-integrations',
+      name: t('Integrations'),
+      items: [
+        {
+          path: `${organizationSettingsPathPrefix}/mcp-cli/`,
+          title: t('MCP & CLI'),
+          description: t('Connect to Sentry via MCP server or the Sentry CLI'),
+          id: 'mcp-cli',
+        },
+        {
+          path: `${organizationSettingsPathPrefix}/integrations/`,
+          title: t('Integrations'),
+          description: t(
+            'Manage organization-level integrations, including: Slack, GitHub, Bitbucket, Jira, and Azure DevOps'
+          ),
+          id: 'integrations',
+          recordAnalytics: true,
+        },
+        {
+          path: `${organizationSettingsPathPrefix}/developer-settings/`,
+          title: t('Custom Integrations'),
+          description: t('Manage custom integrations'),
+          id: 'developer-settings',
+        },
+      ],
+    },
+    {
       id: 'settings-developer',
       name: t('Developer Settings'),
       items: [
@@ -215,14 +233,8 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           ),
         },
         {
-          path: `${organizationSettingsPathPrefix}/developer-settings/`,
-          title: t('Custom Integrations'),
-          description: t('Manage custom integrations'),
-          id: 'developer-settings',
-        },
-        {
           path: `${userSettingsPathPrefix}/api/applications/`,
-          title: t('Applications'),
+          title: t('OAuth Applications'),
           description: t('Add and configure OAuth2 applications'),
         },
       ],

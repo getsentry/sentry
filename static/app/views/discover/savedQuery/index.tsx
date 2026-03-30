@@ -28,7 +28,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';

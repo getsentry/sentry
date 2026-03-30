@@ -1,6 +1,7 @@
 from typing import Any
 
 from rest_framework.exceptions import NotFound
+from taskbroker_client.retry import Retry
 
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.commit import Commit
@@ -11,7 +12,6 @@ from sentry.notifications.notifications.codeowners_auto_sync import AutoSyncNoti
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import issues_tasks
-from sentry.taskworker.retry import Retry
 
 
 @instrumented_task(

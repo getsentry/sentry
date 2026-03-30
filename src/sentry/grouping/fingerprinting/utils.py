@@ -238,7 +238,7 @@ def resolve_fingerprint_variable(
     if variable_key == "transaction":
         return event.data.get("transaction") or "<no-transaction>"
 
-    elif variable_key == "message":
+    elif variable_key in ("message", "raw_message"):
         message = get_canonical_message_from_event(event)
         return message or "<no-message>"
 
@@ -313,6 +313,17 @@ def resolve_fingerprint_values(
         if variable_key == "default":  # entry is some variation of `{{ default }}`
             return DEFAULT_FINGERPRINT_VARIABLE
         if variable_key is None:  # entry isn't a variable
+            # Attempt to detect cases in which a fingerprint has used any of the event's messages as
+            # part of the fingerprint, and parameterize it if so.
+            raw_event_messages = context.message_parameterization_map.keys()
+            if entry in raw_event_messages:
+                # Use the function to do the lookup rather than doing it directly because the
+                # function also collects metrics
+                return normalize_message_for_grouping(
+                    entry, context, reason="fingerprint_literal", trim_message=False
+                )
+
+            # Otherwise, return the value as is
             return entry
 
         # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we
@@ -328,7 +339,7 @@ def resolve_fingerprint_values(
 
         if variable_key == "message" and resolved_value != "<no-message>":
             return normalize_message_for_grouping(
-                resolved_value, context, reason="fingerprint", trim_message=False
+                resolved_value, context, reason="fingerprint_variable", trim_message=False
             )
 
         return resolved_value

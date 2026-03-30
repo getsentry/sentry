@@ -24,6 +24,7 @@ import {
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import {useLogItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {
   OurLogKnownFieldKey,
   type OurLogsAggregate,
@@ -359,46 +360,13 @@ function ToolbarGroupBy() {
   const groupBys = useQueryParamsGroupBys();
   const setGroupBys = useSetQueryParamsGroupBys();
 
-  const options = useMemo(() => {
-    const seen = new Set<string>();
-    return [
-      {
-        label: '\u2014',
-        value: '',
-        textValue: '\u2014',
-      },
-      ...Object.keys(numberTags ?? {}).map(key => {
-        return optionFromTag(
-          {key, name: prettifyTagKey(key), kind: FieldKind.MEASUREMENT},
-          TraceItemDataset.LOGS
-        );
-      }),
-      ...Object.keys(stringTags ?? {}).map(key => {
-        return optionFromTag(
-          {key, name: prettifyTagKey(key), kind: FieldKind.TAG},
-          TraceItemDataset.LOGS
-        );
-      }),
-      ...Object.keys(booleanTags ?? {}).map(key => {
-        return optionFromTag(
-          {key, name: prettifyTagKey(key), kind: FieldKind.BOOLEAN},
-          TraceItemDataset.LOGS
-        );
-      }),
-    ]
-      .filter(option => {
-        // Filtering by value here, so it's based off of explicit tags i.e. `key`
-        // or `tags[<key>, <boolean | number | string>]
-        if (seen.has(option.value)) return false;
-        seen.add(option.value);
-        return true;
-      })
-      .toSorted((a, b) => {
-        const aLabel = prettifyTagKey(a.value);
-        const bLabel = prettifyTagKey(b.value);
-        return aLabel.localeCompare(bLabel);
-      });
-  }, [booleanTags, numberTags, stringTags]);
+  const options = useGroupByFields({
+    numberTags: numberTags ?? {},
+    stringTags: stringTags ?? {},
+    booleanTags: booleanTags ?? {},
+    groupBys,
+    traceItemType: TraceItemDataset.LOGS,
+  });
 
   const setGroupBysWithOp = useCallback(
     (columns: string[], op: 'insert' | 'update' | 'delete' | 'reorder') => {
@@ -436,6 +404,7 @@ function ToolbarGroupBy() {
               onSearch={onSearch}
               onClose={onClose}
               loading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
+              fieldDefinitionType="log"
             />
           ))}
           <ToolbarFooter>

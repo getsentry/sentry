@@ -4,6 +4,7 @@ from urllib.parse import quote as urlquote
 from urllib.parse import urlencode
 
 from django.contrib.auth import get_user
+from django.contrib.messages import get_messages
 from django.test import override_settings
 from django.urls import reverse
 
@@ -1280,6 +1281,52 @@ class OrganizationAuthLoginDemoModeTest(AuthProviderTestCase):
 
             resp = self.fetch_org_login_page(self.normal_org)
             assert not self.is_logged_in_to_org(resp, self.normal_org)
+
+    def test_no_non_member_warning_for_demo_org(self) -> None:
+        """
+        When demo mode is enabled and a Google OAuth user navigates to the demo org,
+        the "not a member" warning should not be shown.
+        """
+        external_user = self.create_user("external@example.com")
+        self.login_as(external_user)
+
+        with override_options(
+            {
+                "demo-mode.enabled": True,
+                "demo-mode.users": [self.demo_user.id],
+                "demo-mode.orgs": [self.demo_org.id],
+            }
+        ):
+            path = reverse("sentry-auth-organization", args=[self.demo_org.slug])
+            resp = self.client.get(path, follow=True)
+
+            # Demo mode auto-logs in and redirects, but no warning should be
+            # added to the messages framework for the demo org.
+            stored_messages = list(get_messages(resp.wsgi_request))
+            assert not any("is not a member of the" in str(m) for m in stored_messages)
+
+    def test_non_member_warning_still_shown_for_non_demo_org(self) -> None:
+        """
+        The "not a member" warning should still appear for non-demo orgs
+        even when demo mode is enabled.
+        """
+        external_user = self.create_user("external@example.com")
+        self.login_as(external_user)
+
+        with override_options(
+            {
+                "demo-mode.enabled": True,
+                "demo-mode.users": [self.demo_user.id],
+                "demo-mode.orgs": [self.demo_org.id],
+            }
+        ):
+            path = reverse("sentry-auth-organization", args=[self.normal_org.slug])
+            resp = self.client.get(path)
+
+            assert resp.status_code == 200
+            messages_list = list(resp.context["messages"])
+            assert len(messages_list) == 1
+            assert "is not a member of the" in str(messages_list[0])
 
     def test_demo_user_joins_existing_sso_organization(self) -> None:
         """

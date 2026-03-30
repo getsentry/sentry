@@ -35,7 +35,9 @@ def ns(request: pytest.FixtureRequest) -> Generator[NodeStorage]:
         yield ns
 
 
-@override_options({"nodestore.set-subkeys.enable-set-cache-item": False})
+@override_options(
+    {"nodestore.set-subkeys.enable-set-cache-item": False, "nodestore.cache-ttl": 300}
+)
 def test_get_multi(ns: NodeStorage) -> None:
     nodes = [("a" * 32, {"foo": "a"}), ("b" * 32, {"foo": "b"})]
 
@@ -46,7 +48,9 @@ def test_get_multi(ns: NodeStorage) -> None:
     assert result == {n[0]: n[1] for n in nodes}
 
 
-@override_options({"nodestore.set-subkeys.enable-set-cache-item": False})
+@override_options(
+    {"nodestore.set-subkeys.enable-set-cache-item": False, "nodestore.cache-ttl": 300}
+)
 def test_get_multi_with_duplicates(ns: NodeStorage) -> None:
     key = "a" * 32
     value = {"foo": "a"}
@@ -60,7 +64,9 @@ def test_get_multi_with_duplicates(ns: NodeStorage) -> None:
     assert ns.get_multi([key, key]) == {key: value}
 
 
-@override_options({"nodestore.set-subkeys.enable-set-cache-item": False})
+@override_options(
+    {"nodestore.set-subkeys.enable-set-cache-item": False, "nodestore.cache-ttl": 300}
+)
 def test_set(ns: NodeStorage) -> None:
     node_id = "d2502ebbd7df41ceba8d3275595cac33"
     data = {"foo": "bar"}
@@ -68,7 +74,9 @@ def test_set(ns: NodeStorage) -> None:
     assert ns.get(node_id) == data
 
 
-@override_options({"nodestore.set-subkeys.enable-set-cache-item": False})
+@override_options(
+    {"nodestore.set-subkeys.enable-set-cache-item": False, "nodestore.cache-ttl": 300}
+)
 def test_delete(ns: NodeStorage) -> None:
     node_id = "d2502ebbd7df41ceba8d3275595cac33"
     data = {"foo": "bar"}
@@ -78,7 +86,9 @@ def test_delete(ns: NodeStorage) -> None:
     assert not ns.get(node_id)
 
 
-@override_options({"nodestore.set-subkeys.enable-set-cache-item": False})
+@override_options(
+    {"nodestore.set-subkeys.enable-set-cache-item": False, "nodestore.cache-ttl": 300}
+)
 def test_delete_multi(ns: NodeStorage) -> None:
     nodes = [("node_1", {"foo": "a"}), ("node_2", {"foo": "b"})]
 
@@ -90,7 +100,9 @@ def test_delete_multi(ns: NodeStorage) -> None:
     assert not ns.get(nodes[1][0])
 
 
-@override_options({"nodestore.set-subkeys.enable-set-cache-item": False})
+@override_options(
+    {"nodestore.set-subkeys.enable-set-cache-item": False, "nodestore.cache-ttl": 300}
+)
 def test_set_subkeys(ns: NodeStorage) -> None:
     """
     Subkeys are used to store multiple JSON payloads under the same main key.

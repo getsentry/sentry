@@ -39,8 +39,7 @@ class ActionService(RpcService):
     def update_action_status_for_sentry_app_installation(
         self,
         *,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        cell_name: str,
         status: int,
         organization_id: int,
         sentry_app_id: int,
@@ -52,8 +51,7 @@ class ActionService(RpcService):
     def update_action_status_for_sentry_app_via_sentry_app_id(
         self,
         *,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        cell_name: str,
         status: int,
         sentry_app_id: int,
     ) -> None:
@@ -64,8 +62,7 @@ class ActionService(RpcService):
     def update_action_status_for_webhook_via_sentry_app_slug(
         self,
         *,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        cell_name: str,
         status: int,
         sentry_app_slug: str,
     ) -> None:

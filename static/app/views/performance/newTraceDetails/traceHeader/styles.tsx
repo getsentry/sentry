@@ -9,6 +9,7 @@ const HeaderLayout = styled('div')`
   padding: ${p => p.theme.space.md} ${p => p.theme.space['2xl']} ${p => p.theme.space.md}
     ${p => p.theme.space['2xl']};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  flex-shrink: 0;
   min-height: 150px;
 `;
 

@@ -98,9 +98,9 @@ class Integration(DefaultFieldsModelExisting):
                 shard_identifier=identifier,
                 object_identifier=identifier,
                 category=OutboxCategory.INTEGRATION_UPDATE,
-                cell_name=region_name,
+                cell_name=cell_name,
             )
-            for region_name in find_cells_for_orgs(org_ids)
+            for cell_name in find_cells_for_orgs(org_ids)
         ]
 
     def add_organization(

@@ -1,4 +1,4 @@
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackItemSection} from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import {ReplayInlineCTAPanel} from 'sentry/components/feedback/feedbackItem/replayInlineCTAPanel';
 import {ReplaySection} from 'sentry/components/feedback/feedbackItem/replaySection';

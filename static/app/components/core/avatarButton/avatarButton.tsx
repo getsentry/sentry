@@ -5,6 +5,7 @@ import color from 'color';
 import type {BaseAvatarProps} from '@sentry/scraps/avatar';
 import {ImageAvatar, LetterAvatar, useAvatar} from '@sentry/scraps/avatar';
 import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {useSizeContext} from '@sentry/scraps/sizeContext';
 
 import {useQuery} from 'sentry/utils/queryClient';
 
@@ -14,7 +15,7 @@ interface AvatarButtonProps extends Omit<ButtonProps, 'children' | 'icon' | 'pri
   size?: Exclude<ButtonProps['size'], 'zero'>;
 }
 
-export function AvatarButton({avatar, size = 'md', ...props}: AvatarButtonProps) {
+export function AvatarButton({avatar, size: explicitSize, ...props}: AvatarButtonProps) {
   const theme = useTheme();
   const avatarDefinition = useAvatar({
     identifier: avatar.identifier,
@@ -36,6 +37,9 @@ export function AvatarButton({avatar, size = 'md', ...props}: AvatarButtonProps)
     enabled: !!imageUrl && avatarDefinition.type === 'image',
     staleTime: Infinity,
   });
+
+  const contextSize = useSizeContext();
+  const size = explicitSize ?? contextSize ?? 'md';
 
   if (avatarDefinition.type === 'letter') {
     const avatarChonk = color(avatarDefinition.configuration.background)
@@ -131,22 +135,22 @@ const StyledAvatarButton = styled(Button)<{chonk: string | undefined}>`
 // Each edge check returns 'padded' when every pixel on that edge is transparent (alpha < 128).
 // Pixel (col, row) has its alpha channel at (row * 12 + col) * 4 + 3 in a 12×12 RGBA canvas.
 function shouldPadImage(data: Uint8ClampedArray): 'fill' | 'padded' {
-  // prettier-ignore
+  // oxfmt-ignore
   if (!(data[3]!>=128   || data[51]!>=128  || data[99]!>=128  ||
         data[147]!>=128 || data[195]!>=128 || data[243]!>=128 ||
         data[291]!>=128 || data[339]!>=128 || data[387]!>=128 ||
         data[435]!>=128 || data[483]!>=128 || data[531]!>=128)) return 'padded';
-  // prettier-ignore
+  // oxfmt-ignore
   if (!(data[47]!>=128  || data[95]!>=128  || data[143]!>=128 ||
         data[191]!>=128 || data[239]!>=128 || data[287]!>=128 ||
         data[335]!>=128 || data[383]!>=128 || data[431]!>=128 ||
         data[479]!>=128 || data[527]!>=128 || data[575]!>=128)) return 'padded';
-  // prettier-ignore
+  // oxfmt-ignore
   if (!(data[3]!>=128  || data[7]!>=128  || data[11]!>=128 ||
         data[15]!>=128 || data[19]!>=128 || data[23]!>=128 ||
         data[27]!>=128 || data[31]!>=128 || data[35]!>=128 ||
         data[39]!>=128 || data[43]!>=128 || data[47]!>=128)) return 'padded';
-  // prettier-ignore
+  // oxfmt-ignore
   if (!(data[531]!>=128 || data[535]!>=128 || data[539]!>=128 ||
         data[543]!>=128 || data[547]!>=128 || data[551]!>=128 ||
         data[555]!>=128 || data[559]!>=128 || data[563]!>=128 ||
@@ -197,9 +201,9 @@ function sampleAvatarColor(
   const style = shouldPadImage(data);
 
   // Accumulate two sets: chromatic pixels (saturation ≥ 0.15) and all opaque pixels.
-  // prettier-ignore
+  // oxfmt-ignore
   let cr = 0, cg = 0, cb = 0, ccount = 0;
-  // prettier-ignore
+  // oxfmt-ignore
   let ar = 0, ag = 0, ab = 0, acount = 0;
 
   for (let i = 0; i < data.length; i += 4) {

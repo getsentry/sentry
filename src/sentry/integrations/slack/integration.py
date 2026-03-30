@@ -27,8 +27,14 @@ from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.tasks.link_slack_user_identities import link_slack_user_identities
 from sentry.integrations.slack.utils.constants import SlackScope
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.notifications.platform.provider import IntegrationNotificationClient
-from sentry.notifications.platform.slack.provider import SlackRenderable
+from sentry.notifications.platform.provider import (
+    IntegrationNotificationClient,
+    ProviderThreadingContext,
+)
+from sentry.notifications.platform.slack.provider import (
+    SlackProviderThreadingContext,
+    SlackRenderable,
+)
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView
@@ -113,6 +119,35 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
             )
         except SlackApiError as e:
             translate_slack_api_error(e)
+
+    def send_notification_with_threading(
+        self,
+        target: IntegrationNotificationTarget,
+        payload: SlackRenderable,
+        threading_context: ProviderThreadingContext,
+    ) -> dict[str, Any]:
+        client = self.get_client()
+
+        assert isinstance(threading_context, SlackProviderThreadingContext), (
+            "ProviderThreadingContext must be a SlackProviderThreadingContext"
+        )
+        kwargs: dict[str, Any] = dict(
+            channel=target.resource_id,
+            blocks=payload["blocks"],
+            text=payload["text"],
+        )
+
+        if threading_context.thread_ts is not None:
+            kwargs["thread_ts"] = threading_context.thread_ts
+            if threading_context.reply_broadcast:
+                kwargs["reply_broadcast"] = True
+
+        try:
+            response = client.chat_postMessage(**kwargs)
+            return dict(response.data) if isinstance(response.data, dict) else {}
+        except SlackApiError as e:
+            translate_slack_api_error(e)
+            return {}
 
     def send_threaded_message(
         self,

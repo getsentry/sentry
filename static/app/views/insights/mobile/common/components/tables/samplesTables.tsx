@@ -3,7 +3,7 @@ import {useMemo, useState} from 'react';
 import {Flex} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {SubregionSelector} from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';

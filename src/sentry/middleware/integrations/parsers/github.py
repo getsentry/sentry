@@ -15,8 +15,8 @@ from sentry.integrations.github.webhook import (
     get_github_external_id,
 )
 from sentry.integrations.github.webhook_types import (
+    CELL_PROCESSED_GITHUB_EVENTS,
     GITHUB_WEBHOOK_TYPE_HEADER,
-    REGION_PROCESSED_GITHUB_EVENTS,
     GithubWebhookType,
 )
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
@@ -145,7 +145,7 @@ class GithubRequestParser(BaseRequestParser):
         # Only drop when we have a known unprocessed event type. Missing or empty
         # X-GitHub-Event is malformed; let the request be forwarded so the cell
         # returns 400 and GitHub is notified of the delivery failure.
-        if github_event and github_event not in REGION_PROCESSED_GITHUB_EVENTS:
+        if github_event and github_event not in CELL_PROCESSED_GITHUB_EVENTS:
             metrics.incr(
                 "github.webhook.drop_unprocessed_event",
                 tags={"event_type": github_event or "unknown"},

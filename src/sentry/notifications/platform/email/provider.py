@@ -4,10 +4,15 @@ from django.utils.html import escape
 from django.utils.safestring import mark_safe
 
 from sentry import options
-from sentry.notifications.platform.provider import NotificationProvider
+from sentry.notifications.platform.provider import (
+    NotificationProvider,
+    SendResult,
+    SendSuccessResult,
+)
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import GenericNotificationTarget
+from sentry.notifications.platform.threading import ThreadContext
 from sentry.notifications.platform.types import (
     NotificationBodyFormattingBlock,
     NotificationBodyFormattingBlockType,
@@ -144,7 +149,14 @@ class EmailNotificationProvider(NotificationProvider[EmailRenderable]):
         return True
 
     @classmethod
-    def send(cls, *, target: NotificationTarget, renderable: EmailRenderable) -> None:
+    def send(
+        cls,
+        *,
+        target: NotificationTarget,
+        renderable: EmailRenderable,
+        thread_context: ThreadContext | None = None,
+    ) -> SendResult:
         email = renderable
         email.to = [target.resource_id]
         send_messages([email])
+        return SendSuccessResult()

@@ -23,6 +23,7 @@ class NotificationCategory(StrEnum):
     DYNAMIC_SAMPLING = "dynamic-sampling"
     REPOSITORY = "repository"
     SEER = "seer"
+    ISSUE = "issue"
 
     def get_sources(self) -> list[NotificationSource]:
         return NOTIFICATION_SOURCE_MAP[self]
@@ -51,12 +52,17 @@ class NotificationSource(StrEnum):
     # REPOSITORY
     UNABLE_TO_DELETE_REPOSITORY = "unable-to-delete-repository"
 
+    # ISSUE_ALERT
+    ISSUE = "issue"
+
     # SEER
     SEER_AUTOFIX_ERROR = "seer-autofix-error"
     SEER_AUTOFIX_UPDATE = "seer-autofix-update"
     SEER_AUTOFIX_TRIGGER = "seer-autofix-trigger"
     SEER_AUTOFIX_FOOTER = "seer-autofix-footer"
     SEER_AUTOFIX_SUCCESS = "seer-autofix-success"
+    SEER_EXPLORER_RESPONSE = "seer-explorer-response"
+    SEER_EXPLORER_ERROR = "seer-explorer-error"
 
 
 NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = {
@@ -78,11 +84,16 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
     NotificationCategory.REPOSITORY: [
         NotificationSource.UNABLE_TO_DELETE_REPOSITORY,
     ],
+    NotificationCategory.ISSUE: [
+        NotificationSource.ISSUE,
+    ],
     NotificationCategory.SEER: [
         NotificationSource.SEER_AUTOFIX_TRIGGER,
         NotificationSource.SEER_AUTOFIX_ERROR,
         NotificationSource.SEER_AUTOFIX_SUCCESS,
         NotificationSource.SEER_AUTOFIX_UPDATE,
+        NotificationSource.SEER_EXPLORER_RESPONSE,
+        NotificationSource.SEER_EXPLORER_ERROR,
     ],
 }
 

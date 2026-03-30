@@ -63,8 +63,7 @@ const TriggerLabel = styled('span')`
 `;
 
 const StyledBadge = styled(Badge)`
-  margin-top: -${p => p.theme.space.xs};
-  margin-bottom: -${p => p.theme.space.xs};
+  margin-left: ${p => p.theme.space.xs};
   flex-shrink: 0;
   top: auto;
 `;

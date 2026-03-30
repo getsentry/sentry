@@ -105,7 +105,7 @@ def test_replicate_auth_provider() -> None:
     serialized.organization_id = 99999
 
     # Should still succeed despite non existent organization
-    cell_replica_service.upsert_replicated_auth_provider(auth_provider=serialized, region_name="us")
+    cell_replica_service.upsert_replicated_auth_provider(auth_provider=serialized, cell_name="us")
 
 
 @django_db_all(transaction=True)

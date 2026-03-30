@@ -37,16 +37,14 @@ function IssueSearchBar({query, onSearch, className}: IssueSearchProps) {
 }
 
 export function IssueSearch({query, onSearch, className}: IssueSearchProps) {
-  const organization = useOrganization();
   const {selection: pageFilters} = usePageFilters();
   const {getFilterKeys, getFilterKeySections, getTagValues} =
     useIssueListSearchBarDataProvider({pageFilters});
 
-  // Gate behind gen-ai-search-agent-translate (internal only) plus standard AI consent checks
-  const areAiFeaturesAllowed =
-    !organization?.hideAiFeatures &&
-    organization.features.includes('gen-ai-features') &&
-    organization.features.includes('gen-ai-search-agent-translate');
+  const organization = useOrganization();
+  const hasTranslateEndpoint = organization.features.includes(
+    'gen-ai-search-agent-translate'
+  );
 
   return (
     <SearchQueryBuilderProvider
@@ -55,7 +53,7 @@ export function IssueSearch({query, onSearch, className}: IssueSearchProps) {
       filterKeySections={getFilterKeySections()}
       getTagValues={getTagValues}
       searchSource="main_search"
-      enableAISearch={areAiFeaturesAllowed}
+      enableAISearch={hasTranslateEndpoint}
       aiSearchBadgeType="alpha"
       onSearch={onSearch}
       recentSearches={SavedSearchType.ISSUE}

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import contextvars
 import functools
 import logging
 import threading
 from collections.abc import Callable
 from concurrent.futures import Future, InvalidStateError
+from concurrent.futures import ThreadPoolExecutor as _ThreadPoolExecutor  # noqa: S016
 from concurrent.futures._base import FINISHED, RUNNING
 from contextlib import contextmanager
 from queue import Full, PriorityQueue
@@ -257,6 +259,20 @@ class ThreadedExecutor(Executor):
             if future.set_running_or_notify_cancel():
                 future.set_exception(error)
         return future
+
+
+class ContextPropagatingThreadPoolExecutor(_ThreadPoolExecutor):
+    """A ThreadPoolExecutor that automatically copies the caller's
+    ``contextvars.Context`` into each worker invocation.
+
+    This ensures Sentry SDK scopes (isolation_scope, current_scope),
+    OpenTelemetry trace context, and any other context variables are
+    available in worker threads without manual propagation.
+    """
+
+    def submit(self, fn, /, *args, **kwargs):
+        ctx = contextvars.copy_context()
+        return super().submit(ctx.run, fn, *args, **kwargs)
 
 
 class FutureSet:

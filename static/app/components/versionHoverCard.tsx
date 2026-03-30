@@ -74,14 +74,12 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
 
   const authors = useMemo(
     () =>
-      release?.authors.map<Actor | User>(author =>
-        // Add a unique id if missing
-        ({
-          ...author,
-          type: 'user',
-          id: 'id' in author ? author.id : uniqueId(),
-        })
-      ),
+      release?.authors.map<Actor | User>(author => // Add a unique id if missing
+      ({
+        ...author,
+        type: 'user',
+        id: 'id' in author ? author.id : uniqueId(),
+      })),
     [release?.authors]
   );
 

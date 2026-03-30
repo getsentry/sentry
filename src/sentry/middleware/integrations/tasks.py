@@ -9,13 +9,13 @@ import requests
 import sentry_sdk
 from requests import Response
 from rest_framework import status
+from taskbroker_client.retry import Retry
 
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.silo.base import SiloMode
 from sentry.silo.client import CellSiloClient
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_control_tasks
-from sentry.taskworker.retry import Retry
 from sentry.types.cell import Cell, get_cell_by_name
 
 logger = logging.getLogger(__name__)

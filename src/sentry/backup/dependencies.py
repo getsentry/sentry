@@ -685,6 +685,25 @@ def dedupe_and_reassign_groupseen_in_org(
     GroupSeen.objects.filter(scoped, user_id=from_user_id).update(user_id=to_user_id)
 
 
+def dedupe_and_reassign_groupsubscription_in_org(
+    organization_id: int, from_user_id: int, to_user_id: int
+) -> None:
+    """
+    Dedupe GroupSubscription rows inside an organization and reassign them to the new user.
+    """
+    from sentry.models.groupsubscription import GroupSubscription
+
+    scoped = Q(group__project__organization_id=organization_id)
+    GroupSubscription.objects.filter(
+        scoped,
+        user_id=from_user_id,
+        group_id__in=GroupSubscription.objects.filter(scoped, user_id=to_user_id).values(
+            "group_id"
+        ),
+    ).delete()
+    GroupSubscription.objects.filter(scoped, user_id=from_user_id).update(user_id=to_user_id)
+
+
 def merge_users_for_model_in_org(
     model: type[models.base.Model], *, organization_id: int, from_user_id: int, to_user_id: int
 ) -> None:
@@ -694,6 +713,7 @@ def merge_users_for_model_in_org(
     """
 
     from sentry.models.groupseen import GroupSeen
+    from sentry.models.groupsubscription import GroupSubscription
     from sentry.models.organization import Organization
     from sentry.users.models.user import User
 
@@ -701,6 +721,11 @@ def merge_users_for_model_in_org(
     # then update remaining rows.
     if model is GroupSeen:
         dedupe_and_reassign_groupseen_in_org(organization_id, from_user_id, to_user_id)
+        return
+
+    # Special-case: GroupSubscription has unique_together (group, user_id). Same pattern.
+    if model is GroupSubscription:
+        dedupe_and_reassign_groupsubscription_in_org(organization_id, from_user_id, to_user_id)
         return
 
     model_relations = dependencies()[get_model_name(model)]

@@ -12,6 +12,7 @@ from sentry.seer.autofix.utils import AutofixState, AutofixStoppingPoint
 from sentry.seer.entrypoints.operator import (
     AUTOFIX_FALLBACK_CAUSE_ID,
     SeerAutofixOperator,
+    SeerOperatorCompletionHook,
     get_autofix_explorer_status,
     process_autofix_updates,
 )
@@ -19,6 +20,7 @@ from sentry.seer.entrypoints.registry import autofix_entrypoint_registry
 from sentry.seer.entrypoints.types import (
     SeerAutofixEntrypoint,
     SeerEntrypointKey,
+    SeerExplorerEntrypoint,
     SeerOperatorCacheResult,
 )
 from sentry.seer.explorer.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
@@ -609,3 +611,218 @@ class TestGetAutofixExplorerStatus(TestCase):
         assert get_autofix_explorer_status(AutofixStoppingPoint.SOLUTION, state) is True
         # code_changes is the last block and status is processing → False
         assert get_autofix_explorer_status(AutofixStoppingPoint.CODE_CHANGES, state) is False
+
+
+class MockExplorerEntrypoint(SeerExplorerEntrypoint[MockCachePayload]):
+    """Mock explorer entrypoint for testing."""
+
+    key = cast(SeerEntrypointKey, "MOCK_EXPLORER")
+
+    def __init__(self):
+        self.thread_id = str(uuid.uuid4())
+        self.explorer_errors: list[str] = []
+        self.explorer_run_ids: list[int] = []
+
+    @staticmethod
+    def has_access(organization: Organization) -> bool:
+        return True
+
+    def on_trigger_explorer_error(self, *, error: str) -> None:
+        self.explorer_errors.append(error)
+
+    def on_trigger_explorer_success(self, *, run_id: int) -> None:
+        self.explorer_run_ids.append(run_id)
+
+    def create_explorer_cache_payload(self) -> MockCachePayload:
+        return {"thread_id": self.thread_id}
+
+    @staticmethod
+    def on_explorer_update(
+        cache_payload: MockCachePayload, summary: str | None, run_id: int
+    ) -> None:
+        return None
+
+
+class TestSeerOperatorCompletionHook(TestCase):
+    def _make_state(self, blocks: list[MemoryBlock], status: str = "completed") -> SeerRunState:
+        return SeerRunState(
+            run_id=MOCK_RUN_ID,
+            blocks=blocks,
+            status=status,
+            updated_at="2024-01-01T00:00:00Z",
+        )
+
+    _SENTINEL = object()
+
+    def _execute_with_mock_entrypoint(
+        self,
+        mock_fetch: Mock,
+        state: SeerRunState,
+        *,
+        cache_return_value: dict | None | object = _SENTINEL,
+        registrations: dict | None = None,
+    ) -> Mock:
+        """Execute the hook with a standard mock entrypoint setup.
+
+        Returns the mock entrypoint class so callers can assert on it.
+        """
+        if cache_return_value is self._SENTINEL:
+            cache_return_value = {"thread_id": "abc", "organization_id": self.organization.id}
+
+        mock_fetch.return_value = state
+        mock_entrypoint_cls = Mock(spec=SeerExplorerEntrypoint)
+        mock_entrypoint_cls.has_access.return_value = True
+
+        if registrations is None:
+            registrations = {MockExplorerEntrypoint.key: mock_entrypoint_cls}
+
+        with (
+            patch.dict(
+                "sentry.seer.entrypoints.operator.explorer_entrypoint_registry.registrations",
+                registrations,
+                clear=True,
+            ),
+            patch(
+                "sentry.seer.entrypoints.operator.SeerOperatorExplorerCache.get",
+                return_value=cache_return_value,
+            ),
+        ):
+            SeerOperatorCompletionHook.execute(self.organization, MOCK_RUN_ID)
+
+        return mock_entrypoint_cls
+
+    @patch("sentry.seer.explorer.client_utils.fetch_run_status")
+    def test_execute_fetches_summary_from_last_assistant_block(self, mock_fetch):
+        state = self._make_state(
+            blocks=[
+                MemoryBlock(
+                    id="2",
+                    message=Message(role="assistant", content="first assistant"),
+                    timestamp="2024-01-01T00:00:01Z",
+                ),
+                MemoryBlock(
+                    id="3",
+                    message=Message(role="assistant", content="last assistant"),
+                    timestamp="2024-01-01T00:00:02Z",
+                ),
+                MemoryBlock(
+                    id="2",
+                    message=Message(role="user", content="user message"),
+                    timestamp="2024-01-01T00:00:01Z",
+                ),
+            ]
+        )
+        mock_entrypoint_cls = self._execute_with_mock_entrypoint(mock_fetch, state)
+
+        mock_entrypoint_cls.on_explorer_update.assert_called_once_with(
+            cache_payload={"thread_id": "abc", "organization_id": self.organization.id},
+            summary="last assistant",
+            run_id=MOCK_RUN_ID,
+        )
+
+    @patch("sentry.seer.explorer.client_utils.fetch_run_status")
+    def test_execute_uses_default_summary_when_no_assistant_content(self, mock_fetch):
+        state = self._make_state(
+            blocks=[
+                MemoryBlock(
+                    id="1",
+                    message=Message(role="user", content="hello"),
+                    timestamp="2024-01-01T00:00:00Z",
+                ),
+                MemoryBlock(
+                    id="2",
+                    message=Message(role="assistant", content=None),
+                    timestamp="2024-01-01T00:00:01Z",
+                ),
+            ]
+        )
+        mock_entrypoint_cls = self._execute_with_mock_entrypoint(mock_fetch, state)
+
+        mock_entrypoint_cls.on_explorer_update.assert_called_once_with(
+            cache_payload={"thread_id": "abc", "organization_id": self.organization.id},
+            summary="Explorer result could not be fetched. Please try again.",
+            run_id=MOCK_RUN_ID,
+        )
+
+    @patch("sentry.seer.explorer.client_utils.fetch_run_status")
+    def test_execute_returns_early_on_fetch_error(self, mock_fetch):
+        mock_fetch.side_effect = Exception("Seer is down")
+        mock_entrypoint_cls = Mock(spec=SeerExplorerEntrypoint)
+
+        with patch.dict(
+            "sentry.seer.entrypoints.operator.explorer_entrypoint_registry.registrations",
+            {MockExplorerEntrypoint.key: mock_entrypoint_cls},
+            clear=True,
+        ):
+            SeerOperatorCompletionHook.execute(self.organization, MOCK_RUN_ID)
+
+        mock_entrypoint_cls.on_explorer_update.assert_not_called()
+
+    @patch("sentry.seer.explorer.client_utils.fetch_run_status")
+    def test_execute_skips_entrypoint_without_access(self, mock_fetch):
+        state = self._make_state(
+            blocks=[
+                MemoryBlock(
+                    id="1",
+                    message=Message(role="assistant", content="summary"),
+                    timestamp="2024-01-01T00:00:00Z",
+                ),
+            ]
+        )
+        mock_fetch.return_value = state
+        mock_no_access = Mock(spec=SeerExplorerEntrypoint)
+        mock_no_access.has_access.return_value = False
+        mock_has_access = Mock(spec=SeerExplorerEntrypoint)
+        mock_has_access.has_access.return_value = True
+        cache_payload = {"thread_id": "abc"}
+
+        with (
+            patch.dict(
+                "sentry.seer.entrypoints.operator.explorer_entrypoint_registry.registrations",
+                {
+                    cast(SeerEntrypointKey, "NO_ACCESS"): mock_no_access,
+                    cast(SeerEntrypointKey, "HAS_ACCESS"): mock_has_access,
+                },
+                clear=True,
+            ),
+            patch(
+                "sentry.seer.entrypoints.operator.SeerOperatorExplorerCache.get",
+                return_value=cache_payload,
+            ),
+        ):
+            SeerOperatorCompletionHook.execute(self.organization, MOCK_RUN_ID)
+
+        mock_no_access.on_explorer_update.assert_not_called()
+        mock_has_access.on_explorer_update.assert_called_once_with(
+            cache_payload=cache_payload,
+            summary="summary",
+            run_id=MOCK_RUN_ID,
+        )
+
+    @patch("sentry.seer.explorer.client_utils.fetch_run_status")
+    def test_execute_skips_entrypoint_without_cache(self, mock_fetch):
+        state = self._make_state(
+            blocks=[
+                MemoryBlock(
+                    id="1",
+                    message=Message(role="assistant", content="summary"),
+                    timestamp="2024-01-01T00:00:00Z",
+                ),
+            ]
+        )
+        mock_entrypoint_cls = self._execute_with_mock_entrypoint(
+            mock_fetch, state, cache_return_value=None
+        )
+
+        mock_entrypoint_cls.on_explorer_update.assert_not_called()
+
+    @patch("sentry.seer.explorer.client_utils.fetch_run_status")
+    def test_execute_with_empty_blocks(self, mock_fetch):
+        state = self._make_state(blocks=[])
+        mock_entrypoint_cls = self._execute_with_mock_entrypoint(mock_fetch, state)
+
+        mock_entrypoint_cls.on_explorer_update.assert_called_once_with(
+            cache_payload={"thread_id": "abc", "organization_id": self.organization.id},
+            summary="Explorer result could not be fetched. Please try again.",
+            run_id=MOCK_RUN_ID,
+        )

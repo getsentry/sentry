@@ -17,7 +17,7 @@ import type {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
 import {FormContext} from 'sentry/components/forms/formContext';
 import type {FormModel} from 'sentry/components/forms/model';
 import {MockModel} from 'sentry/components/forms/model';
-import FormState from 'sentry/components/forms/state';
+import {FormState} from 'sentry/components/forms/state';
 import type {FieldValue} from 'sentry/components/forms/types';
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';

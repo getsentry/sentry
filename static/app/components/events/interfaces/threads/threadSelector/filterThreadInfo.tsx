@@ -16,7 +16,7 @@ export type ThreadInfo = {
 };
 
 function trimFilename(filename: string) {
-  const pieces = filename.split(/\//g);
+  const pieces = filename.split(/\//);
   return pieces[pieces.length - 1];
 }
 

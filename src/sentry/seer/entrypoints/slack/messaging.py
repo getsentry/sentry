@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import ValidationError
 from slack_sdk.models.blocks.blocks import Block
+from taskbroker_client.retry import Retry
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
@@ -29,7 +30,6 @@ from sentry.seer.entrypoints.metrics import (
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils.registry import NoRegistrationExistsError
 
 if TYPE_CHECKING:

@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import timedelta
 
+from taskbroker_client.retry import Retry
+
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.common import (
     GetActiveOrgsVolumes,
@@ -20,7 +22,6 @@ from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import telemetry_experience_tasks
-from sentry.taskworker.retry import Retry
 
 
 @instrumented_task(

@@ -180,7 +180,14 @@ describe('NewWidgetBuilder', () => {
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/dashboard/1/',
-            query: {project: '-1', displayType: 'line'},
+            query: {
+              project: '-1',
+              displayType: 'line',
+              dataset: 'error-events',
+              yAxis: ['count_unique(user)'],
+              sort: ['-count_unique(user)'],
+              query: ['is:unresolved'],
+            },
           },
         },
       }
@@ -243,7 +250,14 @@ describe('NewWidgetBuilder', () => {
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/dashboard/1/',
-            query: {project: '-1', displayType: 'line'},
+            query: {
+              project: '-1',
+              displayType: 'line',
+              dataset: 'error-events',
+              yAxis: ['count_unique(user)'],
+              sort: ['-count_unique(user)'],
+              query: [''],
+            },
           },
         },
       }

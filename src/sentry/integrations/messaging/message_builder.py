@@ -273,9 +273,13 @@ def build_rule_url(rule: Any, group: Group, project: Project) -> str:
     project_slug = project.slug
     if should_fire_workflow_actions(group.organization, group.type):
         rule_id = get_key_from_rule_data(rule, "legacy_rule_id")
-        rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule_id}/details/"
+        rule_url = (
+            f"/organizations/{org_slug}/issues/alerts/rules/{project_slug}/{rule_id}/details/"
+        )
     else:
-        rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule.id}/details/"
+        rule_url = (
+            f"/organizations/{org_slug}/issues/alerts/rules/{project_slug}/{rule.id}/details/"
+        )
 
     return absolute_uri(rule_url)
 

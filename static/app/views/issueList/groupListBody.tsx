@@ -13,7 +13,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
-import NoGroupsHandler from './noGroupsHandler';
+import {NoGroupsHandler} from './noGroupsHandler';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from './utils';
 
 type GroupListBodyProps = {

@@ -4,6 +4,7 @@ import logging
 from collections.abc import Mapping
 
 from django.utils import timezone
+from taskbroker_client.retry import Retry
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
@@ -13,7 +14,6 @@ from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_control_tasks
-from sentry.taskworker.retry import Retry
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail

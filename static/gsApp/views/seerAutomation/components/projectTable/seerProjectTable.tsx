@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {debounce, parseAsString, useQueryState} from 'nuqs';
 
@@ -17,6 +17,7 @@ import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {useInfiniteQuery, useQuery, useQueryClient} from 'sentry/utils/queryClient';
@@ -36,23 +37,15 @@ export function SeerProjectTable() {
   const autofixSettingsQueryOptions = bulkAutofixAutomationSettingsInfiniteOptions({
     organization,
   });
-  const {
-    data: autofixAutomationSettings,
-    hasNextPage,
-    isError,
-    fetchNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
+  const result = useInfiniteQuery({
     ...autofixSettingsQueryOptions,
     select: ({pages}) => pages.flatMap(page => page.json),
   });
 
   // Auto-fetch each page, one at a time
-  useEffect(() => {
-    if (!isError && !isFetchingNextPage && hasNextPage) {
-      fetchNextPage();
-    }
-  }, [hasNextPage, fetchNextPage, isError, isFetchingNextPage]);
+  useFetchAllPages({result});
+
+  const {data: autofixAutomationSettings} = result;
 
   const {data: integrations, isPending: isPendingIntegrations} = useQuery({
     ...organizationIntegrationsCodingAgents(organization),

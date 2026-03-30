@@ -3,7 +3,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';
-import EventsChart from 'sentry/components/charts/eventsChart';
+import {EventsChart} from 'sentry/components/charts/eventsChart';
 
 jest.mock('sentry/components/charts/baseChart', () => ({
   BaseChart: jest.fn().mockImplementation(() => <div data-test-id="area-chart" />),

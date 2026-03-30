@@ -8,16 +8,20 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ScmIntegrationTree} from 'sentry/components/repositories/scmIntegrationTree/scmIntegrationTree';
 import {ScmTreeFilters} from 'sentry/components/repositories/scmIntegrationTree/scmTreeFilters';
 import type {RepoFilter} from 'sentry/components/repositories/scmIntegrationTree/types';
-import {t, tct} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 
-export function ScmRepoTreeModal({Header, Body}: ModalRenderProps) {
+interface Props extends ModalRenderProps {
+  title: string;
+}
+
+export function ScmRepoTreeModal({Header, Body, title}: Props) {
   const [search, setSearch] = useState('');
   const [repoFilter, setRepoFilter] = useState<RepoFilter>('all');
 
   return (
     <Fragment>
       <Header closeButton>
-        <Heading as="h4">{t('Add Repository')}</Heading>
+        <Heading as="h4">{title}</Heading>
       </Header>
       <Body>
         <Stack gap="2xl">

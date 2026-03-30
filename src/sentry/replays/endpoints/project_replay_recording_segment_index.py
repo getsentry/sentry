@@ -6,7 +6,6 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.paginator import GenericOffsetPaginator
@@ -22,7 +21,6 @@ from sentry.replays.usecases.reader import download_segments, fetch_segments_met
 @cell_silo_endpoint
 @extend_schema(tags=["Replays"])
 class ProjectReplayRecordingSegmentIndexEndpoint(ProjectReplayEndpoint):
-    owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }

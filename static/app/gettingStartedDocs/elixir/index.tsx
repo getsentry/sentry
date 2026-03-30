@@ -1,5 +1,6 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {crashReport} from 'sentry/gettingStartedDocs/elixir/crashReport';
+import {logs} from 'sentry/gettingStartedDocs/elixir/logs';
 import {onboarding} from 'sentry/gettingStartedDocs/elixir/onboarding';
 import {
   feedbackOnboardingJsLoader,
@@ -11,4 +12,5 @@ export const docs: Docs = {
   replayOnboardingJsLoader,
   crashReportOnboarding: crashReport,
   feedbackOnboardingJsLoader,
+  logsOnboarding: logs,
 };

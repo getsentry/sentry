@@ -425,4 +425,50 @@ describe('Onboarding Setup Docs', () => {
       ).toBeInTheDocument();
     });
   });
+
+  it('reads feature selections from URL params', async () => {
+    const organization = OrganizationFixture();
+    const project = ProjectFixture({
+      slug: 'javascript-nextjs',
+      platform: 'javascript-nextjs',
+    });
+
+    ProjectsStore.init();
+    ProjectsStore.loadInitialData([project]);
+
+    renderMockRequests({project, orgSlug: organization.slug});
+
+    const {router} = render(
+      <SetupDocs
+        onComplete={() => {}}
+        stepIndex={2}
+        genSkipOnboardingLink={() => ''}
+        recentCreatedProject={project}
+      />,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/onboarding/setup-docs/',
+            query: {
+              product: [
+                ProductSolution.PERFORMANCE_MONITORING,
+                ProductSolution.SESSION_REPLAY,
+              ],
+            },
+          },
+        },
+      }
+    );
+
+    expect(
+      await screen.findByRole('heading', {name: 'Configure Next.js SDK'})
+    ).toBeInTheDocument();
+
+    // Features should be available from URL params
+    expect(router.location.query.product).toEqual([
+      ProductSolution.PERFORMANCE_MONITORING,
+      ProductSolution.SESSION_REPLAY,
+    ]);
+  });
 });

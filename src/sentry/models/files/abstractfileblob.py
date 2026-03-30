@@ -8,6 +8,7 @@ from uuid import uuid4
 import sentry_sdk
 from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
+from taskbroker_client.task import Task
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, WrappingU32IntegerField
@@ -18,7 +19,6 @@ from sentry.models.files.utils import (
     get_storage,
     nooplogger,
 )
-from sentry.taskworker.task import Task
 from sentry.utils import metrics
 
 MULTI_BLOB_UPLOAD_CONCURRENCY = 8

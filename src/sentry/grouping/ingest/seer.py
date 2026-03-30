@@ -36,7 +36,7 @@ from sentry.seer.similarity.utils import (
 )
 from sentry.services.eventstore.models import Event
 from sentry.utils import metrics
-from sentry.utils.circuit_breaker2 import CircuitBreaker
+from sentry.utils.circuit_breaker2 import CircuitBreaker, CountBasedTripStrategy
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger("sentry.events.grouping")
@@ -246,7 +246,11 @@ def _ratelimiting_enabled(event: Event, project: Project, training_mode: bool = 
 
 def _circuit_breaker_broken(event: Event, project: Project, training_mode: bool = False) -> bool:
     breaker_config = options.get("seer.similarity.circuit-breaker-config")
-    circuit_breaker = CircuitBreaker(settings.SEER_SIMILARITY_CIRCUIT_BREAKER_KEY, breaker_config)
+    circuit_breaker = CircuitBreaker(
+        settings.SEER_SIMILARITY_CIRCUIT_BREAKER_KEY,
+        breaker_config,
+        CountBasedTripStrategy.from_config(breaker_config),
+    )
     circuit_broken = not circuit_breaker.should_allow_request()
 
     if circuit_broken:
@@ -315,6 +319,7 @@ def _build_seer_request(
         "use_reranking": options.get("seer.similarity.ingest.use_reranking"),
         "model": model_version,
         "training_mode": training_mode,
+        "platform": event.platform or "unknown",
     }
     event.data.pop("stacktrace_string", None)
 

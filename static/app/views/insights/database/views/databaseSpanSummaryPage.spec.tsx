@@ -1,20 +1,13 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useParams} from 'sentry/utils/useParams';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {DatabaseSpanSummaryPage} from 'sentry/views/insights/database/views/databaseSpanSummaryPage';
-
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useParams');
-jest.mock('sentry/components/pageFilters/usePageFilters');
 
 jest.mock('sentry/utils/useReleaseStats');
 
@@ -25,34 +18,13 @@ describe('DatabaseSpanSummaryPage', () => {
   const group = GroupFixture();
   const groupId = '1756baf8fd19c116';
 
-  jest.mocked(usePageFilters).mockReturnValue(
-    PageFilterStateFixture({
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [],
-      },
-    })
-  );
-
-  jest.mocked(useParams).mockReturnValue({
-    groupId,
-  });
-
-  jest.mocked(useLocation).mockReturnValue({
-    pathname: '',
-    search: '',
-    query: {statsPeriod: '10d', transactionsCursor: '0:25:0'},
-    hash: '',
-    state: undefined,
-    action: 'PUSH',
-    key: '',
-  });
+  const initialRouterConfig = {
+    route: `/organizations/:orgId/insights/backend/database/spans/span/:groupId/`,
+    location: {
+      pathname: `/organizations/${organization.slug}/insights/backend/database/spans/span/${groupId}/`,
+      query: {statsPeriod: '10d', transactionsCursor: '0:25:0'},
+    },
+  };
 
   jest.mocked(useReleaseStats).mockReturnValue({
     isLoading: false,
@@ -64,6 +36,17 @@ describe('DatabaseSpanSummaryPage', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    PageFiltersStore.onInitializeUrlState({
+      projects: [],
+      environments: [],
+      datetime: {
+        period: '10d',
+        start: null,
+        end: null,
+        utc: false,
+      },
+    });
   });
 
   afterAll(() => {
@@ -175,12 +158,7 @@ describe('DatabaseSpanSummaryPage', () => {
 
     render(<DatabaseSpanSummaryPage />, {
       organization,
-      initialRouterConfig: {
-        route: `/organizations/:orgId/insights/backend/database/spans/span/:groupId/`,
-        location: {
-          pathname: `/organizations/${organization.slug}/insights/backend/database/spans/span/${groupId}/`,
-        },
-      },
+      initialRouterConfig,
     });
 
     // Metrics ribbon

@@ -6,6 +6,8 @@ import sentry_sdk
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import router, transaction
 from django.utils import timezone
+from taskbroker_client.retry import LastAction, Retry
+from taskbroker_client.task import Task
 
 from sentry.deletions.models.scheduleddeletion import (
     BaseScheduledDeletion,
@@ -17,8 +19,6 @@ from sentry.signals import pending_delete
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import deletion_control_tasks, deletion_tasks
-from sentry.taskworker.retry import LastAction, Retry
-from sentry.taskworker.task import Task
 from sentry.utils.env import in_test_environment
 
 logger = logging.getLogger("sentry.deletions.api")

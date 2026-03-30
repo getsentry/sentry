@@ -5,6 +5,7 @@ import type {LocationDescriptor} from 'history';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
@@ -19,11 +20,13 @@ import {useButtonFunctionality} from './useButtonFunctionality';
 export type {LinkButtonProps};
 
 export function LinkButton({
-  size = 'md',
   disabled,
   tooltipProps,
+  size: explicitSize,
   ...props
 }: LinkButtonProps) {
+  const contextSize = useSizeContext();
+  const size = explicitSize ?? contextSize ?? 'md';
   const {handleClick, hasChildren, accessibleLabel} = useButtonFunctionality({
     ...props,
     disabled,

@@ -8,6 +8,7 @@ import orjson
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from taskbroker_client.retry import Retry
 from urllib3 import BaseHTTPResponse
 
 from sentry import features, quotas
@@ -20,6 +21,7 @@ from sentry.net.http import connection_from_url
 from sentry.seer.autofix.autofix import _get_trace_tree_for_event, trigger_autofix
 from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_explorer
 from sentry.seer.autofix.constants import (
+    AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD,
     AutofixAutomationTuningSettings,
     AutofixReferrer,
     FixabilityScoreThresholds,
@@ -48,7 +50,6 @@ from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
-from sentry.taskworker.retry import Retry
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -216,12 +217,11 @@ def _trigger_autofix_task(
 
         # Route to explorer-based autofix if both feature flags are enabled
         run_id: int | None = None
-        if features.has("organizations:seer-explorer", group.organization) and features.has(
-            "organizations:autofix-on-explorer", group.organization
-        ):
+        if features.has("organizations:autofix-on-explorer", group.organization):
             run_id = trigger_autofix_explorer(
                 group=group,
                 step=AutofixStep.ROOT_CAUSE,
+                referrer=referrer,
                 run_id=None,
                 stopping_point=stopping_point,
             )
@@ -434,7 +434,7 @@ def run_automation(
                 if hasattr(group, "_times_seen_pending")
                 else group.times_seen
             )
-            if times_seen < 10:
+            if times_seen < AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD:
                 return
 
     user_id = user.id if user else None

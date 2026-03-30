@@ -4,7 +4,7 @@ import abc
 import logging
 from collections import defaultdict, deque
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 from datetime import datetime, timedelta
 from typing import Any, Optional, TypedDict, TypeVar, cast
 
@@ -38,6 +38,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.numbers import base32_encode, format_grouped_length
 from sentry.utils.sdk import set_span_attribute
 from sentry.utils.snuba import bulk_snuba_queries
@@ -768,6 +769,77 @@ def query_trace_data(
         for result, query in zip(results, [transaction_query, error_query, occurrence_query])
     ]
 
+    errors_callsite = "api.trace.query_trace_data.errors"
+    if EAPOccurrencesComparator.should_check_experiment(errors_callsite):
+        try:
+            eap_error_result = Occurrences.run_table_query(
+                params=snuba_params,
+                query_string=f"trace:{trace_id}",
+                selected_columns=[
+                    "id",
+                    "project_id",
+                    "project.name",
+                    "timestamp",
+                    "span_id",
+                    "transaction",
+                    "group_id",
+                    "title",
+                    "message",
+                    "level",
+                ],
+                orderby=["id"],
+                offset=0,
+                limit=limit,
+                referrer=Referrer.API_TRACE_VIEW_GET_EVENTS.value,
+                config=SearchResolverConfig(),
+                occurrence_category=OccurrenceCategory.ERROR,
+            )
+            eap_errors = [
+                {
+                    "id": row.get("id", ""),
+                    "project": row.get("project.name", ""),
+                    "project.id": row.get("project_id"),
+                    "timestamp": row.get("timestamp", ""),
+                    "timestamp_ms": row.get("timestamp", ""),
+                    "trace.span": row.get("span_id", ""),
+                    "transaction": row.get("transaction", ""),
+                    "issue": row.get("group_id"),
+                    "issue.id": row.get("group_id"),
+                    "title": row.get("title", ""),
+                    "message": row.get("message", ""),
+                    "tags[level]": row.get("level", ""),
+                }
+                for row in eap_error_result.get("data", [])
+            ]
+        except Exception:
+            logger.exception(
+                "Fetching error occurrences for trace from EAP failed in query_trace_data",
+                extra={
+                    "trace_id": trace_id,
+                    "organization_id": (
+                        snuba_params.organization.id if snuba_params.organization else None
+                    ),
+                },
+            )
+            eap_errors = []
+
+        transformed_results[1] = EAPOccurrencesComparator.check_and_choose(
+            control_data=transformed_results[1],
+            experimental_data=eap_errors,
+            callsite=errors_callsite,
+            is_experimental_data_a_null_result=len(eap_errors) == 0,
+            reasonable_match_comparator=lambda snuba, eap: {e["id"] for e in eap}.issubset(
+                {e["id"] for e in snuba}
+            ),
+            debug_context={
+                "trace_id": trace_id,
+                "organization_id": (
+                    snuba_params.organization.id if snuba_params.organization else None
+                ),
+                "project_ids": snuba_params.project_ids,
+            },
+        )
+
     # Join group IDs from the occurrence dataset to transactions data
     occurrence_issue_ids = defaultdict(list)
     occurrence_ids = defaultdict(list)
@@ -1215,7 +1287,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
     @staticmethod
     def nodestore_event_map(events: Sequence[SnubaTransaction]) -> dict[str, Event | GroupEvent]:
         event_map = {}
-        with ThreadPoolExecutor(max_workers=20) as executor:
+        with ContextPropagatingThreadPoolExecutor(max_workers=20) as executor:
             future_to_event = {
                 executor.submit(
                     eventstore.backend.get_event_by_id, event["project.id"], event["id"]

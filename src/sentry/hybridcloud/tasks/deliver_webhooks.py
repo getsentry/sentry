@@ -1,6 +1,6 @@
 import datetime
 import logging
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 
 import orjson
 import requests
@@ -35,6 +35,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import hybridcloud_control_tasks
 from sentry.types.cell import Cell, get_cell_by_name
 from sentry.utils import metrics
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -494,7 +495,7 @@ def _run_parallel_delivery_batch(
         id__gte=payload.id, mailbox_name=payload.mailbox_name
     ).order_by("id")
 
-    with ThreadPoolExecutor(max_workers=worker_threads) as threadpool:
+    with ContextPropagatingThreadPoolExecutor(max_workers=worker_threads) as threadpool:
         futures = {
             threadpool.submit(deliver_message_parallel, record) for record in query[:worker_threads]
         }

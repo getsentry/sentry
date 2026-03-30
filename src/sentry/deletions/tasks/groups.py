@@ -2,6 +2,7 @@ from collections.abc import Sequence
 from typing import Any
 
 import sentry_sdk
+from taskbroker_client.retry import Retry
 
 from sentry import deletions
 from sentry.deletions.defaults.group import GROUP_CHUNK_SIZE
@@ -11,7 +12,6 @@ from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 from sentry.taskworker.namespaces import deletion_tasks
-from sentry.taskworker.retry import Retry
 
 
 @instrumented_task(

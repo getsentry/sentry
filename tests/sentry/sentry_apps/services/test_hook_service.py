@@ -468,7 +468,7 @@ class TestHookServiceBulkCreate(TestCase):
         ]
 
         result = hook_service.bulk_create_service_hooks_for_app(
-            region_name="us",
+            cell_name="us",
             application_id=self.sentry_app.application.id,
             events=["issue.created", "error.created"],
             installation_organization_ids=installation_org_pairs,
@@ -507,7 +507,7 @@ class TestHookServiceBulkCreate(TestCase):
 
         # Call bulk create with expandable events
         result = hook_service.bulk_create_service_hooks_for_app(
-            region_name="us",
+            cell_name="us",
             application_id=self.sentry_app.application.id,
             events=["issue", "comment"],  # These should expand
             installation_organization_ids=[
@@ -529,7 +529,7 @@ class TestHookServiceBulkCreate(TestCase):
     def test_bulk_create_service_hooks_for_app_empty_list(self) -> None:
         # Call with empty installation list
         result = hook_service.bulk_create_service_hooks_for_app(
-            region_name="us",
+            cell_name="us",
             application_id=self.sentry_app.application.id,
             events=["issue.created"],
             installation_organization_ids=[],
@@ -563,7 +563,7 @@ class TestHookServiceBulkCreate(TestCase):
 
         # Try to bulk create hook for same installation  should not create duplicate
         result = hook_service.bulk_create_service_hooks_for_app(
-            region_name="us",
+            cell_name="us",
             application_id=self.sentry_app.application.id,
             events=["error.created"],
             installation_organization_ids=[
@@ -613,7 +613,7 @@ class TestHookServiceBulkCreate(TestCase):
 
         # Call bulk create
         result = hook_service.bulk_create_service_hooks_for_app(
-            region_name="us",
+            cell_name="us",
             application_id=self.sentry_app.application.id,
             events=["issue.created"],
             installation_organization_ids=installation_org_pairs,

@@ -6,7 +6,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {CanvasSupportNotice} from 'sentry/components/replays/canvasSupportNotice';
 import {

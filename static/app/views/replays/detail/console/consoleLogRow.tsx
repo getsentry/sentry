@@ -4,7 +4,7 @@ import classNames from 'classnames';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
 import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
 import type {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';

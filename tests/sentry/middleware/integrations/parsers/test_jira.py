@@ -20,8 +20,8 @@ from sentry.types.cell import Cell, Locality, RegionCategory
 
 region = Cell("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)
 eu_region = Cell("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT)
-locality = Locality("us", frozenset(["us"]), RegionCategory.MULTI_TENANT)
-eu_locality = Locality("eu", frozenset(["eu"]), RegionCategory.MULTI_TENANT)
+locality = Locality("us", frozenset(["us"]), RegionCategory.MULTI_TENANT, new_org_cell="us")
+eu_locality = Locality("eu", frozenset(["eu"]), RegionCategory.MULTI_TENANT, new_org_cell="eu")
 
 region_config = (region, eu_region)
 

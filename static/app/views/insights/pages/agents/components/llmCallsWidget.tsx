@@ -133,7 +133,7 @@ export function LLMCallsWidget() {
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={t('LLM Calls')} />}
+      Title={<Widget.WidgetTitle title={t('LLM Calls by Model')} />}
       Visualization={visualization}
       Actions={
         organization.features.includes('visibility-explore-view') &&

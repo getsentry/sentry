@@ -5,6 +5,7 @@ from typing import Any
 import sentry_sdk
 from django.db import DataError, IntegrityError, router, transaction
 from django.db.models import F
+from taskbroker_client.retry import Retry
 
 from sentry import eventstream, similarity, tsdb
 from sentry.models.group import Group
@@ -12,7 +13,6 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, track_group_async_operation
 from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.taskworker.namespaces import issues_tasks
-from sentry.taskworker.retry import Retry
 from sentry.tsdb.base import TSDBModel
 
 logger = logging.getLogger("sentry.merge")

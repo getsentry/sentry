@@ -9,19 +9,17 @@ import {Alert} from '@sentry/scraps/alert';
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Grid} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Switch} from '@sentry/scraps/switch';
 
 import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {
-  openGenerateDashboardFromSeerModal,
-  openImportDashboardFromFileModal,
-} from 'sentry/actionCreators/modal';
+import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
@@ -29,7 +27,7 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import {Pagination} from 'sentry/components/pagination';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconAdd, IconGrid, IconList, IconSeer} from 'sentry/icons';
+import {IconAdd, IconGrid, IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -172,6 +170,9 @@ function ManageDashboards() {
   const isOnlyPrebuilt =
     hasPrebuiltDashboards && urlFilter === DashboardFilter.ONLY_PREBUILT;
 
+  const areAiFeaturesAllowed =
+    !organization.hideAiFeatures && organization.features.includes('gen-ai-features');
+
   const [showTemplates, setShowTemplatesLocal] = useLocalStorageState(
     SHOW_TEMPLATES_KEY,
     shouldShowTemplates()
@@ -210,7 +211,9 @@ function ManageDashboards() {
           pin: 'favorites',
           per_page:
             dashboardsLayout === GRID ? rowCount * columnCount : DASHBOARD_TABLE_NUM_ROWS,
-          ...(isOnlyPrebuilt ? {filter: DashboardFilter.ONLY_PREBUILT} : {}),
+          ...(isOnlyPrebuilt
+            ? {filter: DashboardFilter.ONLY_PREBUILT}
+            : {filter: DashboardFilter.EXCLUDE_PREBUILT}),
         },
       },
     ],
@@ -596,6 +599,17 @@ function ManageDashboards() {
     );
   }
 
+  function onGenerateDashboard() {
+    trackAnalytics('dashboards_manage.generate.start', {
+      organization,
+    });
+    navigate(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/dashboards/new/from-seer/`,
+      })
+    );
+  }
+
   return (
     <Feature
       organization={organization}
@@ -646,50 +660,81 @@ function ManageDashboards() {
                       )}
 
                       <FeedbackButton />
-                      <DashboardCreateLimitWrapper>
-                        {({
-                          hasReachedDashboardLimit,
-                          isLoading: isLoadingDashboardsLimit,
-                          limitMessage,
-                        }) => (
-                          <Button
-                            data-test-id="dashboard-create"
-                            onClick={event => {
-                              event.preventDefault();
-                              onCreate();
-                            }}
-                            size="sm"
-                            priority="primary"
-                            icon={<IconAdd />}
-                            disabled={
-                              hasReachedDashboardLimit || isLoadingDashboardsLimit
-                            }
-                            tooltipProps={{
-                              isHoverable: true,
-                              title: limitMessage,
-                            }}
-                          >
-                            {t('Create Dashboard')}
-                          </Button>
-                        )}
-                      </DashboardCreateLimitWrapper>
-                      <Feature features="dashboards-ai-generate">
-                        <Button
-                          data-test-id="dashboard-generate-seer"
-                          onClick={() => {
-                            openGenerateDashboardFromSeerModal({
-                              organization,
-                              location,
-                              navigate,
-                            });
-                          }}
-                          size="sm"
-                          priority="primary"
-                          icon={<IconSeer />}
-                        >
-                          {t('Create Dashboard with Seer')}
-                          <FeatureBadge type="experimental" />
-                        </Button>
+                      <Feature features={['dashboards-ai-generate']}>
+                        {({hasFeature: hasAiGenerate}) =>
+                          hasAiGenerate && areAiFeaturesAllowed ? (
+                            <DashboardCreateLimitWrapper>
+                              {({
+                                hasReachedDashboardLimit,
+                                isLoading: isLoadingDashboardsLimit,
+                                limitMessage,
+                              }) => (
+                                <DropdownMenu
+                                  items={[
+                                    {
+                                      key: 'create-dashboard',
+                                      label: t('Create dashboard manually'),
+                                      onAction: () => onCreate(),
+                                      disabled:
+                                        hasReachedDashboardLimit ||
+                                        isLoadingDashboardsLimit,
+                                      details: limitMessage,
+                                    },
+                                    {
+                                      key: 'create-dashboard-agent',
+                                      label: (
+                                        <Flex gap="sm" align="center" as="span">
+                                          {t('Generate dashboard')}
+                                          <FeatureBadge type="beta" />
+                                        </Flex>
+                                      ),
+                                      onAction: () => onGenerateDashboard(),
+                                    },
+                                  ]}
+                                  trigger={triggerProps => (
+                                    <Button
+                                      {...triggerProps}
+                                      data-test-id="dashboard-create"
+                                      size="sm"
+                                      priority="primary"
+                                      icon={<IconAdd />}
+                                    >
+                                      {t('Create Dashboard')}
+                                    </Button>
+                                  )}
+                                />
+                              )}
+                            </DashboardCreateLimitWrapper>
+                          ) : (
+                            <DashboardCreateLimitWrapper>
+                              {({
+                                hasReachedDashboardLimit,
+                                isLoading: isLoadingDashboardsLimit,
+                                limitMessage,
+                              }) => (
+                                <Button
+                                  data-test-id="dashboard-create"
+                                  onClick={event => {
+                                    event.preventDefault();
+                                    onCreate();
+                                  }}
+                                  size="sm"
+                                  priority="primary"
+                                  icon={<IconAdd />}
+                                  disabled={
+                                    hasReachedDashboardLimit || isLoadingDashboardsLimit
+                                  }
+                                  tooltipProps={{
+                                    isHoverable: true,
+                                    title: limitMessage,
+                                  }}
+                                >
+                                  {t('Create Dashboard')}
+                                </Button>
+                              )}
+                            </DashboardCreateLimitWrapper>
+                          )
+                        }
                       </Feature>
                       <Feature features="dashboards-import">
                         <Button

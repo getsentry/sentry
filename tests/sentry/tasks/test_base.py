@@ -4,14 +4,14 @@ import pytest
 from django.test import override_settings
 from taskbroker_client.constants import CompressionType
 from taskbroker_client.registry import TaskRegistry
+from taskbroker_client.retry import Retry, RetryTaskError
+from taskbroker_client.state import CurrentTaskState
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.adapters import SentryMetricsBackend, SentryRouter, make_producer
 from sentry.taskworker.namespaces import exampletasks, test_tasks
-from sentry.taskworker.retry import Retry, RetryTaskError
-from sentry.taskworker.state import CurrentTaskState
 
 
 @instrumented_task(

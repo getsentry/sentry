@@ -257,7 +257,10 @@ export function getMenuOptions(
     }
   }
 
-  if (widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS) {
+  if (
+    organization.features.includes('visibility-explore-view') &&
+    (widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS)
+  ) {
     menuOptions.push({
       key: 'open-in-explore',
       label: t('Open in Explore'),
@@ -306,7 +309,7 @@ export function getMenuOptions(
         const search = new MutableSearch(baseQuery);
         for (const group of timeSeries.groupBy ?? []) {
           if (group.value !== null && !Array.isArray(group.value)) {
-            search.addFilterValue(group.key, group.value);
+            search.addFilterValue(group.key, String(group.value));
           }
         }
 

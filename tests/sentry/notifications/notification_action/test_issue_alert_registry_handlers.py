@@ -814,9 +814,10 @@ class TestInvokeFutureWithErrorHandling(BaseWorkflowTest):
         self.mock_callback.assert_called_once()
 
     def test_raises_retry_error_for_api_error(self):
+        from taskbroker_client.retry import RetryTaskError
+
         from sentry.notifications.notification_action.types import invoke_future_with_error_handling
         from sentry.shared_integrations.exceptions import ApiError
-        from sentry.taskworker.retry import RetryTaskError
 
         self.mock_callback.side_effect = ApiError("API error", 500)
 

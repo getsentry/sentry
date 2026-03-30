@@ -808,7 +808,7 @@ def format_request_data(
             action["config"]["target_type"] = ActionTarget.get_name(target_type)
         translated_actions.append(action)
 
-    filter_match = data.get("filterMatch", "any-short")
+    filter_match = data.get("filterMatch") or Rule.DEFAULT_FILTER_MATCH
     if filter_match == "any":
         filter_match = DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value
 
@@ -862,7 +862,9 @@ class ProjectRulesEndpoint(ProjectEndpoint):
 
         queryset: BaseQuerySet[Workflow, Workflow] | BaseQuerySet[Rule, Rule]
         serializer: WorkflowEngineRuleSerializer | RuleSerializer
-        if features.has("organizations:workflow-engine-rule-serializers", project.organization):
+        if features.has(
+            "organizations:workflow-engine-projectrulesendpoint-get", project.organization
+        ) or features.has("organizations:workflow-engine-rule-serializers", project.organization):
             queryset = Workflow.objects.filter(
                 detectorworkflow__detector__project=project,
                 status=ObjectStatus.ACTIVE,

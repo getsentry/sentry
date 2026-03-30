@@ -1,0 +1,195 @@
+import {isRepeatedFrame} from 'sentry/components/events/interfaces/utils';
+import type {FrameRow, OmittedFramesRow, Row} from 'sentry/components/stackTrace/types';
+import type {Frame} from 'sentry/types/event';
+
+function frameIsVisible(
+  frame: Frame,
+  nextFrame: Frame | undefined,
+  includeSystemFrames: boolean
+) {
+  return (
+    includeSystemFrames ||
+    frame.inApp ||
+    nextFrame?.inApp ||
+    // Include the last non-app frame to keep the call chain understandable.
+    (!frame.inApp && !nextFrame)
+  );
+}
+
+export function createInitialHiddenFrameToggleMap(
+  frames: Frame[],
+  includeSystemFrames: boolean
+) {
+  const indexMap: Record<number, boolean> = {};
+
+  frames.forEach((frame, frameIdx) => {
+    const nextFrame = frames[frameIdx + 1];
+    const repeatedFrame = isRepeatedFrame(frame, nextFrame);
+
+    if (
+      frameIsVisible(frame, nextFrame, includeSystemFrames) &&
+      !repeatedFrame &&
+      !frame.inApp
+    ) {
+      indexMap[frameIdx] = false;
+    }
+  });
+
+  return indexMap;
+}
+
+export function getFrameCountMap(frames: Frame[], includeSystemFrames: boolean) {
+  let count = 0;
+  const countMap: Record<number, number> = {};
+
+  frames.forEach((frame, frameIdx) => {
+    const nextFrame = frames[frameIdx + 1];
+    const repeatedFrame = isRepeatedFrame(frame, nextFrame);
+
+    if (
+      frameIsVisible(frame, nextFrame, includeSystemFrames) &&
+      !repeatedFrame &&
+      !frame.inApp
+    ) {
+      countMap[frameIdx] = count;
+      count = 0;
+    } else if (!repeatedFrame && !frame.inApp) {
+      count += 1;
+    }
+  });
+
+  return countMap;
+}
+
+function getHiddenFrameIndices({
+  frames,
+  hiddenFrameToggleMap,
+  frameCountMap,
+}: {
+  frameCountMap: Record<number, number>;
+  frames: Frame[];
+  hiddenFrameToggleMap: Record<number, boolean>;
+}) {
+  const repeatedIndices = new Set<number>();
+
+  frames.forEach((frame, frameIdx) => {
+    const nextFrame = frames[frameIdx + 1];
+    if (isRepeatedFrame(frame, nextFrame)) {
+      repeatedIndices.add(frameIdx);
+    }
+  });
+
+  const hiddenFrameIndices = new Set<number>();
+
+  Object.entries(hiddenFrameToggleMap).forEach(([indexString, isExpanded]) => {
+    if (!isExpanded) {
+      return;
+    }
+
+    const index = Number(indexString);
+    let i = 1;
+    let numHidden = frameCountMap[index] ?? 0;
+
+    while (numHidden > 0) {
+      if (!repeatedIndices.has(index - i)) {
+        hiddenFrameIndices.add(index - i);
+        numHidden -= 1;
+      }
+      i += 1;
+    }
+  });
+
+  return hiddenFrameIndices;
+}
+
+export function getRows({
+  frames,
+  includeSystemFrames,
+  hiddenFrameToggleMap,
+  frameCountMap,
+  newestFirst,
+  framesOmitted,
+  maxDepth,
+}: {
+  frameCountMap: Record<number, number>;
+  frames: Frame[];
+  framesOmitted: [number, number] | null | undefined;
+  hiddenFrameToggleMap: Record<number, boolean>;
+  includeSystemFrames: boolean;
+  maxDepth: number | undefined;
+  newestFirst: boolean;
+}): Row[] {
+  const hiddenFrameIndices = getHiddenFrameIndices({
+    frames,
+    hiddenFrameToggleMap,
+    frameCountMap,
+  });
+
+  let nRepeats = 0;
+
+  let rows = frames
+    .map((frame, frameIndex) => {
+      const nextFrame = frames[frameIndex + 1];
+      const repeatedFrame = isRepeatedFrame(frame, nextFrame);
+
+      if (repeatedFrame) {
+        nRepeats += 1;
+      }
+
+      if (
+        (frameIsVisible(frame, nextFrame, includeSystemFrames) && !repeatedFrame) ||
+        hiddenFrameIndices.has(frameIndex)
+      ) {
+        const row: FrameRow = {
+          kind: 'frame',
+          frame,
+          frameIndex,
+          nextFrame,
+          timesRepeated: nRepeats,
+          isSubFrame: hiddenFrameIndices.has(frameIndex),
+          hiddenFrameCount: frameCountMap[frameIndex],
+        };
+
+        nRepeats = 0;
+
+        if (frameIndex === framesOmitted?.[0]) {
+          return [
+            row,
+            {
+              kind: 'omitted',
+              omittedFrames: framesOmitted,
+              rowKey: `omitted-${framesOmitted[0]}-${framesOmitted[1]}`,
+            } satisfies OmittedFramesRow,
+          ];
+        }
+
+        return row;
+      }
+
+      if (!repeatedFrame) {
+        nRepeats = 0;
+      }
+
+      if (frameIndex !== framesOmitted?.[0]) {
+        return null;
+      }
+
+      return {
+        kind: 'omitted',
+        omittedFrames: framesOmitted,
+        rowKey: `omitted-${framesOmitted[0]}-${framesOmitted[1]}`,
+      } satisfies OmittedFramesRow;
+    })
+    .flatMap((row): Row[] => {
+      if (!row) {
+        return [];
+      }
+      return Array.isArray(row) ? row : [row];
+    });
+
+  if (maxDepth !== undefined) {
+    rows = rows.slice(-maxDepth);
+  }
+
+  return newestFirst ? [...rows].reverse() : rows;
+}

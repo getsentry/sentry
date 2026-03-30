@@ -132,8 +132,8 @@ class PromptsActivityEndpoint(OrganizationEndpoint):
 
         try:
             with transaction.atomic(router.db_for_write(PromptsActivity)):
-                PromptsActivity.objects.create_or_update(
-                    feature=feature, user_id=request.user.id, values={"data": data}, **fields
+                PromptsActivity.objects.update_or_create(
+                    feature=feature, user_id=request.user.id, defaults={"data": data}, **fields
                 )
         except IntegrityError:
             pass

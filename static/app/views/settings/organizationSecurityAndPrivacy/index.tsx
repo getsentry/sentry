@@ -416,6 +416,7 @@ function ScrubbingConfigurationFieldGroup({hasOrgWrite}: {hasOrgWrite: boolean})
           safeFields: extractMultilineFields(value.safeFields),
         })
         .then(() => {
+          scrubbingConfiguration.reset();
           addSuccessMessage(t('Scrubbing configuration updated'));
         })
         .catch(() => {

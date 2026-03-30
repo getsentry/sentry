@@ -31,6 +31,7 @@ from snuba_sdk import (
     Query,
     Request,
 )
+from taskbroker_client.retry import Retry
 
 from sentry.models.files.utils import get_storage
 from sentry.models.organization import Organization
@@ -39,7 +40,6 @@ from sentry.services.filestore.gcs import GoogleCloudStorage
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import replays_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils import json
 from sentry.utils.snuba import raw_snql_query
 

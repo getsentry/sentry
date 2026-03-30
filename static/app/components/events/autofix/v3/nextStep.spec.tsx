@@ -1,3 +1,5 @@
+import {GroupFixture} from 'sentry-fixture/group';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DiffFileType, DiffLineType} from 'sentry/components/events/autofix/types';
@@ -20,6 +22,7 @@ function makeAutofix(
     reset: jest.fn(),
     triggerCodingAgentHandoff: jest.fn(),
     isLoading: false,
+    isPolling: false,
     isReady: true,
     isStreaming: false,
     ...overrides,
@@ -97,13 +100,17 @@ function makeSection(
 describe('SeerDrawerNextStep', () => {
   it('returns null when no runId', () => {
     const autofix = makeAutofix({runState: null});
-    const {container} = render(<SeerDrawerNextStep sections={[]} autofix={autofix} />);
+    const {container} = render(
+      <SeerDrawerNextStep group={GroupFixture()} sections={[]} autofix={autofix} />
+    );
     expect(container).toBeEmptyDOMElement();
   });
 
   it('returns null when sections are empty', () => {
     const autofix = makeAutofix();
-    const {container} = render(<SeerDrawerNextStep sections={[]} autofix={autofix} />);
+    const {container} = render(
+      <SeerDrawerNextStep group={GroupFixture()} sections={[]} autofix={autofix} />
+    );
     expect(container).toBeEmptyDOMElement();
   });
 
@@ -119,6 +126,7 @@ describe('SeerDrawerNextStep', () => {
       const autofix = makeAutofix();
       const {container} = render(
         <SeerDrawerNextStep
+          group={GroupFixture()}
           sections={[makeSection('root_cause', [])]}
           autofix={autofix}
         />
@@ -129,30 +137,38 @@ describe('SeerDrawerNextStep', () => {
     it('renders prompt and yes button', () => {
       const autofix = makeAutofix();
       render(
-        <SeerDrawerNextStep sections={[makeSection('root_cause')]} autofix={autofix} />
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('root_cause')]}
+          autofix={autofix}
+        />
       );
       expect(screen.getByText('Are you happy with this root cause?')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'No'})).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', {name: 'Yes, make an implementation plan'})
-      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Yes, make a plan'})).toBeInTheDocument();
     });
 
     it('calls startStep with solution on yes click', async () => {
       const autofix = makeAutofix();
       render(
-        <SeerDrawerNextStep sections={[makeSection('root_cause')]} autofix={autofix} />
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('root_cause')]}
+          autofix={autofix}
+        />
       );
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Yes, make an implementation plan'})
-      );
+      await userEvent.click(screen.getByRole('button', {name: 'Yes, make a plan'}));
       expect(autofix.startStep).toHaveBeenCalledWith('solution', 1);
     });
 
     it('shows feedback UI on no click', async () => {
       const autofix = makeAutofix();
       render(
-        <SeerDrawerNextStep sections={[makeSection('root_cause')]} autofix={autofix} />
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('root_cause')]}
+          autofix={autofix}
+        />
       );
       await userEvent.click(screen.getByRole('button', {name: 'No'}));
       expect(screen.getByRole('textbox')).toBeInTheDocument();
@@ -160,14 +176,18 @@ describe('SeerDrawerNextStep', () => {
         screen.getByRole('button', {name: 'Rethink root cause'})
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('button', {name: 'Nevermind, make an implementation plan'})
+        screen.getByRole('button', {name: 'Nevermind, make a plan'})
       ).toBeInTheDocument();
     });
 
     it('calls startStep with root_cause and feedback on rethink click', async () => {
       const autofix = makeAutofix();
       render(
-        <SeerDrawerNextStep sections={[makeSection('root_cause')]} autofix={autofix} />
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('root_cause')]}
+          autofix={autofix}
+        />
       );
       await userEvent.click(screen.getByRole('button', {name: 'No'}));
       await userEvent.type(screen.getByRole('textbox'), 'Try a different approach');
@@ -182,12 +202,14 @@ describe('SeerDrawerNextStep', () => {
     it('proceeds like yes on nevermind click', async () => {
       const autofix = makeAutofix();
       render(
-        <SeerDrawerNextStep sections={[makeSection('root_cause')]} autofix={autofix} />
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('root_cause')]}
+          autofix={autofix}
+        />
       );
       await userEvent.click(screen.getByRole('button', {name: 'No'}));
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Nevermind, make an implementation plan'})
-      );
+      await userEvent.click(screen.getByRole('button', {name: 'Nevermind, make a plan'}));
       expect(autofix.startStep).toHaveBeenCalledWith('solution', 1);
     });
 
@@ -202,7 +224,11 @@ describe('SeerDrawerNextStep', () => {
       });
       const autofix = makeAutofix();
       render(
-        <SeerDrawerNextStep sections={[makeSection('root_cause')]} autofix={autofix} />
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('root_cause')]}
+          autofix={autofix}
+        />
       );
       expect(
         await screen.findByRole('button', {name: 'More code fix options'})
@@ -220,7 +246,11 @@ describe('SeerDrawerNextStep', () => {
     it('returns null when section has no artifacts', () => {
       const autofix = makeAutofix();
       const {container} = render(
-        <SeerDrawerNextStep sections={[makeSection('solution', [])]} autofix={autofix} />
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('solution', [])]}
+          autofix={autofix}
+        />
       );
       expect(container).toBeEmptyDOMElement();
     });
@@ -228,11 +258,13 @@ describe('SeerDrawerNextStep', () => {
     it('renders prompt and yes button', () => {
       const autofix = makeAutofix();
       render(
-        <SeerDrawerNextStep sections={[makeSection('solution')]} autofix={autofix} />
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('solution')]}
+          autofix={autofix}
+        />
       );
-      expect(
-        screen.getByText('Are you happy with this implementation plan?')
-      ).toBeInTheDocument();
+      expect(screen.getByText('Are you happy with this plan?')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'No'})).toBeInTheDocument();
       expect(
         screen.getByRole('button', {name: 'Yes, write a code fix'})
@@ -242,7 +274,11 @@ describe('SeerDrawerNextStep', () => {
     it('calls startStep with code_changes on yes click', async () => {
       const autofix = makeAutofix();
       render(
-        <SeerDrawerNextStep sections={[makeSection('solution')]} autofix={autofix} />
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('solution')]}
+          autofix={autofix}
+        />
       );
       await userEvent.click(screen.getByRole('button', {name: 'Yes, write a code fix'}));
       expect(autofix.startStep).toHaveBeenCalledWith('code_changes', 1);
@@ -251,13 +287,15 @@ describe('SeerDrawerNextStep', () => {
     it('shows feedback UI on no click', async () => {
       const autofix = makeAutofix();
       render(
-        <SeerDrawerNextStep sections={[makeSection('solution')]} autofix={autofix} />
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('solution')]}
+          autofix={autofix}
+        />
       );
       await userEvent.click(screen.getByRole('button', {name: 'No'}));
       expect(screen.getByRole('textbox')).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', {name: 'Rethink implementation plan'})
-      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Rethink plan'})).toBeInTheDocument();
       expect(
         screen.getByRole('button', {name: 'Nevermind, write a code fix'})
       ).toBeInTheDocument();
@@ -266,13 +304,15 @@ describe('SeerDrawerNextStep', () => {
     it('calls startStep with solution and feedback on rethink click', async () => {
       const autofix = makeAutofix();
       render(
-        <SeerDrawerNextStep sections={[makeSection('solution')]} autofix={autofix} />
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('solution')]}
+          autofix={autofix}
+        />
       );
       await userEvent.click(screen.getByRole('button', {name: 'No'}));
       await userEvent.type(screen.getByRole('textbox'), 'Consider edge cases');
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Rethink implementation plan'})
-      );
+      await userEvent.click(screen.getByRole('button', {name: 'Rethink plan'}));
       expect(autofix.startStep).toHaveBeenCalledWith(
         'solution',
         1,
@@ -283,56 +323,17 @@ describe('SeerDrawerNextStep', () => {
     it('proceeds like yes on nevermind click', async () => {
       const autofix = makeAutofix();
       render(
-        <SeerDrawerNextStep sections={[makeSection('solution')]} autofix={autofix} />
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('solution')]}
+          autofix={autofix}
+        />
       );
       await userEvent.click(screen.getByRole('button', {name: 'No'}));
       await userEvent.click(
         screen.getByRole('button', {name: 'Nevermind, write a code fix'})
       );
       expect(autofix.startStep).toHaveBeenCalledWith('code_changes', 1);
-    });
-
-    it('shows coding agent dropdown when integrations exist', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/integrations/coding-agents/',
-        body: {
-          integrations: [
-            {id: '1', name: 'Copilot', provider: 'github', requires_identity: false},
-          ],
-        },
-      });
-      const autofix = makeAutofix();
-      render(
-        <SeerDrawerNextStep sections={[makeSection('solution')]} autofix={autofix} />
-      );
-      expect(
-        await screen.findByRole('button', {name: 'More code fix options'})
-      ).toBeInTheDocument();
-    });
-
-    it('calls triggerCodingAgentHandoff when coding agent option is clicked', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/integrations/coding-agents/',
-        body: {
-          integrations: [
-            {id: '1', name: 'Copilot', provider: 'github', requires_identity: false},
-          ],
-        },
-      });
-      const autofix = makeAutofix();
-      render(
-        <SeerDrawerNextStep sections={[makeSection('solution')]} autofix={autofix} />
-      );
-      await userEvent.click(
-        await screen.findByRole('button', {name: 'More code fix options'})
-      );
-      await userEvent.click(screen.getByText('Send to Copilot'));
-      expect(autofix.triggerCodingAgentHandoff).toHaveBeenCalledWith(1, {
-        id: '1',
-        name: 'Copilot',
-        provider: 'github',
-        requires_identity: false,
-      });
     });
   });
 
@@ -341,6 +342,7 @@ describe('SeerDrawerNextStep', () => {
       const autofix = makeAutofix();
       const {container} = render(
         <SeerDrawerNextStep
+          group={GroupFixture()}
           sections={[makeSection('code_changes', [])]}
           autofix={autofix}
         />
@@ -351,7 +353,11 @@ describe('SeerDrawerNextStep', () => {
     it('renders prompt and yes button', () => {
       const autofix = makeAutofix();
       render(
-        <SeerDrawerNextStep sections={[makeSection('code_changes')]} autofix={autofix} />
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('code_changes')]}
+          autofix={autofix}
+        />
       );
       expect(
         screen.getByText('Are you happy with these code changes?')
@@ -363,7 +369,11 @@ describe('SeerDrawerNextStep', () => {
     it('calls createPR on yes click', async () => {
       const autofix = makeAutofix();
       render(
-        <SeerDrawerNextStep sections={[makeSection('code_changes')]} autofix={autofix} />
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('code_changes')]}
+          autofix={autofix}
+        />
       );
       await userEvent.click(screen.getByRole('button', {name: 'Yes, draft a PR'}));
       expect(autofix.createPR).toHaveBeenCalledWith(1);
@@ -372,7 +382,11 @@ describe('SeerDrawerNextStep', () => {
     it('shows feedback UI on no click', async () => {
       const autofix = makeAutofix();
       render(
-        <SeerDrawerNextStep sections={[makeSection('code_changes')]} autofix={autofix} />
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('code_changes')]}
+          autofix={autofix}
+        />
       );
       await userEvent.click(screen.getByRole('button', {name: 'No'}));
       expect(screen.getByRole('textbox')).toBeInTheDocument();
@@ -387,7 +401,11 @@ describe('SeerDrawerNextStep', () => {
     it('calls startStep with code_changes and feedback on rethink click', async () => {
       const autofix = makeAutofix();
       render(
-        <SeerDrawerNextStep sections={[makeSection('code_changes')]} autofix={autofix} />
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('code_changes')]}
+          autofix={autofix}
+        />
       );
       await userEvent.click(screen.getByRole('button', {name: 'No'}));
       await userEvent.type(screen.getByRole('textbox'), 'Fix the error handling');
@@ -402,7 +420,11 @@ describe('SeerDrawerNextStep', () => {
     it('proceeds like yes on nevermind click', async () => {
       const autofix = makeAutofix();
       render(
-        <SeerDrawerNextStep sections={[makeSection('code_changes')]} autofix={autofix} />
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('code_changes')]}
+          autofix={autofix}
+        />
       );
       await userEvent.click(screen.getByRole('button', {name: 'No'}));
       await userEvent.click(screen.getByRole('button', {name: 'Nevermind, draft a PR'}));
@@ -420,7 +442,11 @@ describe('SeerDrawerNextStep', () => {
       });
       const autofix = makeAutofix();
       render(
-        <SeerDrawerNextStep sections={[makeSection('code_changes')]} autofix={autofix} />
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('code_changes')]}
+          autofix={autofix}
+        />
       );
       expect(
         screen.queryByRole('button', {name: 'More code fix options'})

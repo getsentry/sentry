@@ -458,7 +458,7 @@ ${registryEntries}
 `;
 
   fs.writeFileSync(outputPath, registryContent, 'utf-8');
-  execFileSync('pnpm', ['prettier', '--write', outputPath], {stdio: 'ignore'});
+  execFileSync('pnpm', ['oxfmt', outputPath], {stdio: 'ignore'});
   console.log(`✅ Generated ${dedupedFields.length} field definitions in ${outputPath}`);
 }
 
