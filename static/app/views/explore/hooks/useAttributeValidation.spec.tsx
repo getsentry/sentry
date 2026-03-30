@@ -15,7 +15,10 @@ const DEFAULT_SELECTION: AttributeValidationSelection = {
 };
 
 describe('useAttributeValidation', () => {
-  const organization = OrganizationFixture({slug: ORG_SLUG});
+  const organization = OrganizationFixture({
+    slug: ORG_SLUG,
+    features: ['search-query-attribute-validation'],
+  });
 
   it('returns empty invalidFilterKeys for empty query', () => {
     const {result} = renderHookWithProviders(
@@ -149,6 +152,25 @@ describe('useAttributeValidation', () => {
         }),
       })
     );
+  });
+
+  it('does not validate when feature flag is disabled', () => {
+    const orgWithoutFlag = OrganizationFixture({slug: ORG_SLUG, features: []});
+
+    const mockValidate = MockApiClient.addMockResponse({
+      url: `/organizations/${ORG_SLUG}/trace-items/attributes/validate/`,
+      method: 'POST',
+      body: {attributes: {'span.op': {valid: false, error: 'Unknown attribute'}}},
+    });
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useAttributeValidation(TraceItemDataset.SPANS, 'span.op:db', DEFAULT_SELECTION),
+      {organization: orgWithoutFlag}
+    );
+
+    expect(result.current.invalidFilterKeys).toEqual([]);
+    expect(mockValidate).not.toHaveBeenCalled();
   });
 
   it('re-validates when selection changes', async () => {

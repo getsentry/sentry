@@ -92,27 +92,34 @@ export function useAttributeValidation(
   invalidFilterKeys: string[];
 } {
   const organization = useOrganization();
+  const hasValidation = organization.features.includes(
+    'search-query-attribute-validation'
+  );
 
-  const filterKeys = useMemo(() => extractFilterKeys(parseSearch(query)), [query]);
+  const filterKeys = useMemo(
+    () => (hasValidation ? extractFilterKeys(parseSearch(query)) : EMPTY_KEYS),
+    [hasValidation, query]
+  );
 
-  const {data} = useQuery(
-    validateAttributesQueryOptions({
+  const {data} = useQuery({
+    ...validateAttributesQueryOptions({
       itemType,
       filterKeys,
       organizationSlug: organization.slug,
       ...selection,
-    })
-  );
+    }),
+    enabled: hasValidation,
+  });
 
   const invalidFilterKeys = useMemo(() => {
-    if (!data) {
+    if (!data || !hasValidation) {
       return EMPTY_KEYS;
     }
 
     return Object.entries(data?.[0]?.attributes)
       .filter(([, result]) => !result.valid)
       .map(([key]) => key);
-  }, [data]);
+  }, [data, hasValidation]);
 
   return {invalidFilterKeys};
 }
