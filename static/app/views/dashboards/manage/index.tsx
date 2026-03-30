@@ -9,7 +9,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Switch} from '@sentry/scraps/switch';
@@ -478,13 +478,13 @@ function ManageDashboards() {
 
   function renderNoAccess() {
     return (
-      <Layout.Page>
+      <Stack flex={1}>
         <Alert.Container>
           <Alert variant="warning" showIcon={false}>
             {t("You don't have access to this feature")}
           </Alert>
         </Alert.Container>
-      </Layout.Page>
+      </Stack>
     );
   }
 
@@ -622,11 +622,11 @@ function ManageDashboards() {
       >
         <ErrorBoundary>
           {isError ? (
-            <Layout.Page withPadding>
+            <Stack flex={1} padding="2xl 3xl">
               <RouteError error={error} />
-            </Layout.Page>
+            </Stack>
           ) : (
-            <Layout.Page>
+            <Stack flex={1}>
               <NoProjectMessage organization={organization}>
                 <Layout.Header unified>
                   <Layout.HeaderContent unified>
@@ -769,7 +769,7 @@ function ManageDashboards() {
                   </Layout.Main>
                 </Layout.Body>
               </NoProjectMessage>
-            </Layout.Page>
+            </Stack>
           )}
         </ErrorBoundary>
       </SentryDocumentTitle>

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -23,7 +23,7 @@ function DetailLayoutComponent({children}: WorkflowEngineDetailLayoutProps) {
   return <StyledPage>{children}</StyledPage>;
 }
 
-const StyledPage = styled(Layout.Page)`
+const StyledPage = styled(Stack)`
   background: ${p => p.theme.tokens.background.primary};
 `;
 

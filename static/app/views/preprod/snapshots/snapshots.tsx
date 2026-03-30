@@ -2,7 +2,7 @@ import {useCallback, useDeferredValue, useEffect, useMemo, useRef, useState} fro
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -365,11 +365,11 @@ export default function SnapshotsPage() {
   if (isPending) {
     return (
       <SentryDocumentTitle title={t('Snapshot')}>
-        <Layout.Page>
+        <Stack flex={1}>
           <Flex align="center" justify="center" padding="3xl">
             <LoadingIndicator />
           </Flex>
-        </Layout.Page>
+        </Stack>
       </SentryDocumentTitle>
     );
   }
@@ -377,18 +377,18 @@ export default function SnapshotsPage() {
   if (isError || !data) {
     return (
       <SentryDocumentTitle title={t('Snapshot')}>
-        <Layout.Page>
+        <Stack flex={1}>
           <Flex align="center" justify="center" padding="3xl">
             <Text variant="muted">{t('Unable to load snapshot data.')}</Text>
           </Flex>
-        </Layout.Page>
+        </Stack>
       </SentryDocumentTitle>
     );
   }
 
   return (
     <SentryDocumentTitle title={t('Snapshot')}>
-      <Layout.Page>
+      <Stack flex={1}>
         <Layout.Header>
           <SnapshotHeaderContent projectId={data.project_id} data={data} />
           <Layout.HeaderActions>
@@ -405,7 +405,7 @@ export default function SnapshotsPage() {
         </Layout.Header>
 
         {isComparisonProcessing ? processingContent : snapshotContent}
-      </Layout.Page>
+      </Stack>
     </SentryDocumentTitle>
   );
 }

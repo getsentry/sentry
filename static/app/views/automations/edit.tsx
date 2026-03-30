@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import type {FieldValue} from 'sentry/components/forms/model';
@@ -224,9 +224,9 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       initialData={initialData}
       onSubmit={handleFormSubmit}
     >
-      <AutomationFormProvider automation={automation}>
-        <AutomationDocumentTitle />
-        <Layout.Page>
+      <Stack flex={1}>
+        <AutomationFormProvider automation={automation}>
+          <AutomationDocumentTitle />
           <StyledLayoutHeader>
             <HeaderInner maxWidth={maxWidth}>
               <Layout.HeaderContent>
@@ -263,13 +263,13 @@ function AutomationEditForm({automation}: {automation: Automation}) {
               </AutomationBuilderErrorContext.Provider>
             </Layout.Main>
           </StyledBody>
-        </Layout.Page>
         <StickyFooter>
           <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
             <EditAutomationActions automation={automation} form={model} />
           </Flex>
         </StickyFooter>
-      </AutomationFormProvider>
+        </AutomationFormProvider>
+      </Stack>
     </FullHeightForm>
   );
 }

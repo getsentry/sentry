@@ -49,7 +49,7 @@ export default function PullRequestDetails() {
 
   if (isLoading) {
     return (
-      <Layout.Page>
+      <Stack flex={1}>
         <Layout.Header>
           <Layout.Title>Pull Request Details</Layout.Title>
         </Layout.Header>
@@ -60,14 +60,14 @@ export default function PullRequestDetails() {
             </Flex>
           </Layout.Main>
         </Layout.Body>
-      </Layout.Page>
+      </Stack>
     );
   }
 
   const errorData = error?.responseJSON as PullRequestDetailsErrorResponse | undefined;
   if (error || !data) {
     return (
-      <Layout.Page>
+      <Stack flex={1}>
         <Layout.Header>
           <Layout.Title>Pull Request Details</Layout.Title>
         </Layout.Header>
@@ -90,7 +90,7 @@ export default function PullRequestDetails() {
             </Container>
           </Layout.Main>
         </Layout.Body>
-      </Layout.Page>
+      </Stack>
     );
   }
 
@@ -105,9 +105,7 @@ export default function PullRequestDetails() {
   }
 
   return (
-    <Layout.Page
-      title={`#${prSuccessData.pull_request.number}: ${prSuccessData.pull_request.title}`}
-    >
+    <Stack flex={1}>
       <Layout.Header>
         <PullRequestDetailsHeaderContent pullRequest={prSuccessData} />
         <Layout.HeaderTabs value={selectedTab || 'files'} onChange={setSelectedTab}>
@@ -123,6 +121,6 @@ export default function PullRequestDetails() {
       <Layout.Body>
         <Layout.Main width="full">{mainContent}</Layout.Main>
       </Layout.Body>
-    </Layout.Page>
+    </Stack>
   );
 }

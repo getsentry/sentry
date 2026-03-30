@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {updateUptimeRule} from 'sentry/actionCreators/uptime';
@@ -121,7 +121,7 @@ export default function UptimeAlertDetails() {
   );
 
   return (
-    <Layout.Page>
+    <Stack flex={1}>
       <SentryDocumentTitle title={`${detector.name} — Alerts`} />
       <Layout.Header>
         <Layout.HeaderContent>
@@ -213,7 +213,7 @@ export default function UptimeAlertDetails() {
           />
         </Layout.Side>
       </Layout.Body>
-    </Layout.Page>
+    </Stack>
   );
 }
 

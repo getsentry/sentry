@@ -1,5 +1,5 @@
 import {LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -61,7 +61,7 @@ export default function LogsContent() {
           analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
           source="location"
         >
-          <Layout.Page>
+          <Stack flex={1}>
             <LogsHeader />
             <LogsPageDataProvider allowHighFidelity>
               {defined(onboardingProject) ? (
@@ -74,7 +74,7 @@ export default function LogsContent() {
                 <LogsTabContent datePageFilterProps={datePageFilterProps} />
               )}
             </LogsPageDataProvider>
-          </Layout.Page>
+          </Stack>
         </LogsQueryParamsProvider>
       </PageFiltersContainer>
     </SentryDocumentTitle>

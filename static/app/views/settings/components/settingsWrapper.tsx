@@ -2,10 +2,9 @@ import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useScrollToTop} from 'sentry/utils/useScrollToTop';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
@@ -23,13 +22,13 @@ export function SettingsWrapper() {
 
   return (
     <AnalyticsArea name="settings">
-      <Layout.Page>
+      <Stack flex={1}>
         <StyledFlex flex="1" background={hasPageFrame ? 'primary' : undefined}>
-          <BreadcrumbProvider>
-            <Outlet />
-          </BreadcrumbProvider>
+        <BreadcrumbProvider>
+          <Outlet />
+        </BreadcrumbProvider>
         </StyledFlex>
-      </Layout.Page>
+      </Stack>
     </AnalyticsArea>
   );
 }

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
@@ -152,20 +152,20 @@ export function ProjectDetail() {
 
   if (!loadingProjects && !project) {
     return (
-      <Layout.Page withPadding>
+      <Stack flex={1} padding="2xl 3xl">
         <LoadingError
           message={t('This project could not be found.')}
           onRetry={onRetryProjects}
         />
-      </Layout.Page>
+      </Stack>
     );
   }
 
   if (!loadingProjects && project && !project.hasAccess) {
     return (
-      <Layout.Page>
+      <Stack flex={1}>
         <MissingProjectMembership organization={organization} project={project} />
-      </Layout.Page>
+      </Stack>
     );
   }
 
@@ -176,7 +176,7 @@ export function ProjectDetail() {
         skipLoadLastUsed
         showAbsolute={!hasOnlyBasicChart}
       >
-        <Layout.Page>
+        <Stack flex={1}>
           <NoProjectMessage organization={organization}>
             <Layout.Header unified>
               <Layout.HeaderContent unified>
@@ -308,7 +308,7 @@ export function ProjectDetail() {
               </Layout.Side>
             </Layout.Body>
           </NoProjectMessage>
-        </Layout.Page>
+        </Stack>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );

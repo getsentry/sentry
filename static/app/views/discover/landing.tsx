@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -46,13 +47,13 @@ const SORT_OPTIONS = [
 
 function NoAccess() {
   return (
-    <Layout.Page withPadding>
+    <Stack flex={1} padding="2xl 3xl">
       <Alert.Container>
         <Alert variant="warning" showIcon={false}>
           {t("You don't have access to this feature")}
         </Alert>
       </Alert.Container>
-    </Layout.Page>
+    </Stack>
   );
 }
 
@@ -187,7 +188,7 @@ function DiscoverLanding() {
       renderDisabled={() => <NoAccess />}
     >
       <SentryDocumentTitle title={t('Discover')} orgSlug={organization.slug}>
-        <Layout.Page>
+        <Stack flex={1}>
           <Layout.Header>
             <Layout.HeaderContent>
               <Breadcrumbs
@@ -275,7 +276,7 @@ function DiscoverLanding() {
               )}
             </Layout.Main>
           </Layout.Body>
-        </Layout.Page>
+        </Stack>
       </SentryDocumentTitle>
     </Feature>
   );

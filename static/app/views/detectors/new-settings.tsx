@@ -1,6 +1,8 @@
 import orderBy from 'lodash/orderBy';
 import {parseAsString, useQueryState} from 'nuqs';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -28,13 +30,13 @@ export default function DetectorNewSettings() {
 
   if (isFetchingProjects) {
     return (
-      <Layout.Page>
+      <Stack flex={1}>
         <Layout.Body>
           <Layout.Main width="full">
             <LoadingIndicator />
           </Layout.Main>
         </Layout.Body>
-      </Layout.Page>
+      </Stack>
     );
   }
 

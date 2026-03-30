@@ -1,7 +1,7 @@
 import {Alert} from '@sentry/scraps/alert';
+import {Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -9,13 +9,13 @@ import {TransactionReplays} from './transactionReplays';
 
 function renderNoAccess() {
   return (
-    <Layout.Page withPadding>
+    <Stack flex={1} padding="2xl 3xl">
       <Alert.Container>
         <Alert variant="warning" showIcon={false}>
           {t("You don't have access to this feature")}
         </Alert>
       </Alert.Container>
-    </Layout.Page>
+    </Stack>
   );
 }
 
