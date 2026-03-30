@@ -151,6 +151,80 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
                 enable_coding=feature_enabled and option_enabled,
             )
 
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    def test_get_run_allowed_with_dashboards_ai_generate_flag(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        """GET with run_id should succeed with dashboards-ai-generate flag even without seer-explorer."""
+        from sentry.seer.explorer.client_models import SeerRunState
+
+        mock_state = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+        mock_client = MagicMock()
+        mock_client.get_run.return_value = mock_state
+        mock_client_class.return_value = mock_client
+
+        with self.feature(
+            {
+                "organizations:seer-explorer": False,
+                "organizations:dashboards-ai-generate": True,
+            }
+        ):
+            response = self.client.get(f"{self.url}123/")
+
+        assert response.status_code == 200
+        assert response.data["session"]["run_id"] == 123
+
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    def test_continue_run_allowed_with_dashboards_ai_generate_flag(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        """POST with run_id should succeed with dashboards-ai-generate flag."""
+        mock_client = MagicMock()
+        mock_client.continue_run.return_value = 789
+        mock_client_class.return_value = mock_client
+
+        data = {"query": "Follow up question"}
+        with self.feature(
+            {
+                "organizations:seer-explorer": False,
+                "organizations:dashboards-ai-generate": True,
+            }
+        ):
+            response = self.client.post(f"{self.url}789/", data, format="json")
+
+        assert response.status_code == 200
+        assert response.data == {"run_id": 789}
+
+    def test_new_run_denied_without_seer_explorer_flag(self) -> None:
+        """POST without run_id should be denied with only dashboards-ai-generate flag."""
+        data = {"query": "Start a new conversation"}
+        with self.feature(
+            {
+                "organizations:seer-explorer": False,
+                "organizations:dashboards-ai-generate": True,
+            }
+        ):
+            response = self.client.post(self.url, data, format="json")
+
+        assert response.status_code == 403
+
+    def test_get_denied_without_either_flag(self) -> None:
+        """GET should be denied without seer-explorer or dashboards-ai-generate."""
+        with self.feature(
+            {
+                "organizations:seer-explorer": False,
+                "organizations:dashboards-ai-generate": False,
+            }
+        ):
+            response = self.client.get(self.url)
+
+        assert response.status_code == 403
+
 
 @with_feature("organizations:seer-explorer")
 @with_feature("organizations:gen-ai-features")
