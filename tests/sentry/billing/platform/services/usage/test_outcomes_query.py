@@ -12,10 +12,10 @@ from sentry_protos.billing.v1.services.usage.v1.endpoint_usage_pb2 import (
 from snuba_sdk import Op
 
 from sentry.billing.platform.services.usage._outcomes_query import (
-    OVER_QUOTA_REASONS,
     _build_query,
     _build_response,
     _empty_fields,
+    _is_over_quota_reason,
     _map_outcome_to_fields,
     query_outcomes_usage,
 )
@@ -111,6 +111,28 @@ class TestMapOutcomeToFields:
         assert fields["dropped"] >= fields["over_quota"] + fields["spike_protection"]
 
 
+class TestIsOverQuotaReason:
+    def test_standard_usage_exceeded(self):
+        assert _is_over_quota_reason("usage_exceeded") is True
+        assert _is_over_quota_reason("error_usage_exceeded") is True
+        assert _is_over_quota_reason("span_usage_exceeded") is True
+
+    def test_grace_period(self):
+        assert _is_over_quota_reason("grace_period") is True
+
+    def test_new_category_usage_exceeded(self):
+        """Any new *_usage_exceeded reason is automatically matched."""
+        assert _is_over_quota_reason("future_category_usage_exceeded") is True
+
+    def test_non_quota_reasons(self):
+        assert _is_over_quota_reason("smart_rate_limit") is False
+        assert _is_over_quota_reason("some_random_reason") is False
+        assert _is_over_quota_reason("") is False
+
+    def test_partial_match_not_accepted(self):
+        assert _is_over_quota_reason("usage_exceeded_extra") is False
+
+
 class TestBuildResponse:
     def test_build_response_empty(self):
         response = _build_response([])
@@ -148,7 +170,6 @@ class TestBuildResponse:
         assert len(response.days) == 1
         day = response.days[0]
         assert len(day.usage) == 3
-        # Sorted by category int
         assert day.usage[0].category == 1
         assert day.usage[1].category == 2
         assert day.usage[2].category == 9
@@ -191,7 +212,6 @@ class TestBuildQuery:
         snuba_request = _build_query(org_id=1, start=start, end=end, categories=[1, 2])
 
         query = snuba_request.query
-        # Find the category condition
         category_conditions = [
             c for c in query.where if hasattr(c, "lhs") and c.lhs.name == "category"
         ]
@@ -222,34 +242,9 @@ class TestBuildQuery:
         assert snuba_request.tenant_ids == {"organization_id": 42}
 
         query = snuba_request.query
-        # Verify org_id condition
         org_conditions = [c for c in query.where if hasattr(c, "lhs") and c.lhs.name == "org_id"]
         assert len(org_conditions) == 1
         assert org_conditions[0].rhs == 42
-
-
-class TestOverQuotaReasons:
-    def test_over_quota_reasons_exhaustive(self):
-        """All known *_usage_exceeded strings and grace_period are in OVER_QUOTA_REASONS."""
-        expected_reasons = {
-            "usage_exceeded",
-            "error_usage_exceeded",
-            "transaction_usage_exceeded",
-            "attachment_usage_exceeded",
-            "replay_usage_exceeded",
-            "span_usage_exceeded",
-            "profile_duration_usage_exceeded",
-            "profile_duration_ui_usage_exceeded",
-            "log_byte_usage_exceeded",
-            "size_analysis_usage_exceeded",
-            "installable_build_usage_exceeded",
-            "custom_usage_exceeded",
-            "grace_period",
-        }
-        assert OVER_QUOTA_REASONS == expected_reasons
-
-    def test_over_quota_reasons_is_frozenset(self):
-        assert isinstance(OVER_QUOTA_REASONS, frozenset)
 
 
 class TestQueryOutcomesUsage:

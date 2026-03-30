@@ -1,7 +1,10 @@
 from __future__ import annotations
 
-import datetime
+import logging
+from collections import defaultdict
+from datetime import datetime, timezone
 
+from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.billing.v1.date_pb2 import Date
 from sentry_protos.billing.v1.services.usage.v1.endpoint_usage_pb2 import (
     CategoryUsage,
@@ -24,26 +27,11 @@ from snuba_sdk import (
 )
 from snuba_sdk.orderby import Direction
 
+from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import raw_snql_query
 
-OVER_QUOTA_REASONS = frozenset(
-    {
-        "usage_exceeded",
-        "error_usage_exceeded",
-        "transaction_usage_exceeded",
-        "attachment_usage_exceeded",
-        "replay_usage_exceeded",
-        "span_usage_exceeded",
-        "profile_duration_usage_exceeded",
-        "profile_duration_ui_usage_exceeded",
-        "log_byte_usage_exceeded",
-        "size_analysis_usage_exceeded",
-        "installable_build_usage_exceeded",
-        "custom_usage_exceeded",
-        "grace_period",
-    }
-)
+logger = logging.getLogger(__name__)
 
 _REFERRER = "billing.usage_service.clickhouse"
 _APP_ID = "billing"
@@ -53,7 +41,6 @@ _QUERY_LIMIT = 10000
 
 
 def query_outcomes_usage(request: GetUsageRequest) -> GetUsageResponse:
-    """Query ClickHouse outcomes and return usage data as a proto response."""
     org_id = request.organization_id
     start = _timestamp_to_datetime(request.start)
     end = _timestamp_to_datetime(request.end)
@@ -61,16 +48,24 @@ def query_outcomes_usage(request: GetUsageRequest) -> GetUsageResponse:
 
     snuba_request = _build_query(org_id, start, end, categories)
     result = raw_snql_query(snuba_request, referrer=_REFERRER)
-    return _build_response(result["data"])
+    rows = result["data"]
+
+    if len(rows) >= _QUERY_LIMIT:
+        logger.warning(
+            "billing.usage_query.truncated",
+            extra={"org_id": org_id, "row_count": len(rows)},
+        )
+        metrics.incr("billing.usage_query.truncated", tags={"org_id": str(org_id)})
+
+    return _build_response(rows)
 
 
 def _build_query(
     org_id: int,
-    start: datetime.datetime,
-    end: datetime.datetime,
+    start: datetime,
+    end: datetime,
     categories: list[int],
 ) -> Request:
-    """Build a SnQL query for daily outcomes aggregation."""
     where = [
         Condition(Column("org_id"), Op.EQ, org_id),
         Condition(Column("timestamp"), Op.GTE, start),
@@ -108,9 +103,10 @@ def _build_query(
 
 
 def _build_response(rows: list[dict]) -> GetUsageResponse:
-    """Process raw ClickHouse rows into a GetUsageResponse proto."""
-    # Accumulate: day_str -> category -> usage fields
-    days_map: dict[str, dict[int, dict[str, int]]] = {}
+    # day_str -> category -> usage fields
+    days_map: defaultdict[str, defaultdict[int, dict[str, int]]] = defaultdict(
+        lambda: defaultdict(_empty_fields)
+    )
 
     for row in rows:
         day = row["time"]
@@ -118,11 +114,6 @@ def _build_response(rows: list[dict]) -> GetUsageResponse:
         outcome = int(row["outcome"])
         reason = row.get("reason") or ""
         qty = int(row["qty"])
-
-        if day not in days_map:
-            days_map[day] = {}
-        if category not in days_map[day]:
-            days_map[day][category] = _empty_fields()
 
         _map_outcome_to_fields(days_map[day][category], outcome, reason, qty)
 
@@ -139,14 +130,13 @@ def _build_response(rows: list[dict]) -> GetUsageResponse:
 
 
 def _map_outcome_to_fields(fields: dict[str, int], outcome: int, reason: str, qty: int) -> None:
-    """Map an outcome+reason pair to UsageData fields (mutates fields in place)."""
     fields["total"] += qty
 
     if outcome == Outcome.ACCEPTED:
         fields["accepted"] += qty
     elif outcome == Outcome.RATE_LIMITED:
         fields["dropped"] += qty
-        if reason in OVER_QUOTA_REASONS:
+        if _is_over_quota_reason(reason):
             fields["over_quota"] += qty
         if reason == "smart_rate_limit":
             fields["spike_protection"] += qty
@@ -154,6 +144,14 @@ def _map_outcome_to_fields(fields: dict[str, int], outcome: int, reason: str, qt
         fields["filtered"] += qty
         if reason.startswith("Sampled:"):
             fields["dynamic_sampling"] += qty
+
+
+def _is_over_quota_reason(reason: str) -> bool:
+    # Quota reasons follow the pattern "{category_api_name}_usage_exceeded"
+    # (generated in getsentry/quotas.py). Suffix match is future-proof.
+    return (
+        reason == "usage_exceeded" or reason.endswith("_usage_exceeded") or reason == "grace_period"
+    )
 
 
 def _empty_fields() -> dict[str, int]:
@@ -168,12 +166,10 @@ def _empty_fields() -> dict[str, int]:
     }
 
 
-def _timestamp_to_datetime(ts) -> datetime.datetime:
-    """Convert a proto Timestamp to a timezone-aware Python datetime."""
-    return datetime.datetime.fromtimestamp(ts.seconds, tz=datetime.timezone.utc)
+def _timestamp_to_datetime(ts: Timestamp) -> datetime:
+    return ts.ToDatetime(tzinfo=timezone.utc)
 
 
 def _parse_day(value: str) -> Date:
-    """Parse a ClickHouse time string into a Date proto."""
-    dt = datetime.datetime.fromisoformat(value)
+    dt = datetime.fromisoformat(value)
     return Date(year=dt.year, month=dt.month, day=dt.day)
