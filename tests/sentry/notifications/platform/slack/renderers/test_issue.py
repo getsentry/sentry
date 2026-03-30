@@ -77,7 +77,12 @@ class IssueAlertInvocationMixin(TestCase):
 
 class IssueNotificationDataTest(IssueAlertInvocationMixin):
     def test_source(self) -> None:
-        data = IssueNotificationData(group_id=self.group.id)
+        data = IssueNotificationData(
+            group_id=self.group.id,
+            rule=SerializableRuleProxy(
+                id=1, label="Test Detector", data={}, project_id=self.project.id
+            ),
+        )
         assert data.source == NotificationSource.ISSUE
 
     def test_from_action_invocation(self) -> None:
@@ -91,14 +96,22 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
         assert result.group_id == invocation.event_data.group.id
         assert isinstance(invocation.event_data.event, GroupEvent)
         assert result.event_id == invocation.event_data.event.event_id
-        assert result.tags == {"environment", "level"}
-        assert result.notes == "test note"
         assert result.notification_uuid == "test-uuid-123"
-
         assert isinstance(result.rule, SerializableRuleProxy)
         assert result.rule.id == invocation.action.id
-        assert result.rule.label == "Test Detector"
-        assert result.rule.environment_id is None
+        assert result.rule.label == invocation.detector.name
+        assert result.rule.data["tags"] == "environment,level"
+        assert result.rule.data["notes"] == "test note"
+        assert len(result.rule.data["actions"]) == 1
+        action_blob = result.rule.data["actions"][0]
+        assert action_blob["workflow_id"] == getattr(invocation.action, "workflow_id", None)
+        assert (
+            action_blob["id"] == "sentry.integrations.slack.notify_action.SlackNotifyServiceAction"
+        )
+        assert action_blob["workspace"] == invocation.action.integration_id
+        assert action_blob["channel_id"] == "C12345"
+        assert action_blob["channel"] == "#test-channel"
+        assert result.rule.project_id == self.project.id
 
     def test_from_action_invocation_empty_tags(self) -> None:
         invocation = self._create_invocation(tags="", notes="")
@@ -108,9 +121,17 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
         assert result.source == NotificationSource.ISSUE
         assert isinstance(invocation.event_data.event, GroupEvent)
         assert result.event_id == invocation.event_data.event.event_id
-        assert result.tags == set()
-        assert result.notes == ""
-        assert result.rule is not None
+        assert result.rule.data["tags"] == ""
+        assert result.rule.data["notes"] == ""
+        assert len(result.rule.data["actions"]) == 1
+        action_blob = result.rule.data["actions"][0]
+        assert action_blob["workflow_id"] == getattr(invocation.action, "workflow_id", None)
+        assert (
+            action_blob["id"] == "sentry.integrations.slack.notify_action.SlackNotifyServiceAction"
+        )
+        assert action_blob["workspace"] == invocation.action.integration_id
+        assert action_blob["channel_id"] == "C12345"
+        assert action_blob["channel"] == "#test-channel"
 
 
 class IssueAlertNotificationTemplateTest(TestCase):
@@ -142,6 +163,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
         *,
         group: Group,
         workflow_id: int,
+        event_id: str,
         title: str = "test event",
         notes: str | None = None,
         tags_text: str | None = None,
@@ -156,7 +178,8 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
 
         issue_url = (
             f"http://testserver/organizations/{org_slug}/issues/{group_id}/"
-            f"?referrer=slack&notification_uuid=test-uuid"
+            f"events/{event_id}/"
+            f"?referrer=slack"
             f"&workflow_id={workflow_id}&alert_type=issue"
         )
         alert_url = f"http://testserver/organizations/{org_slug}/monitors/alerts/{workflow_id}/"
@@ -262,9 +285,11 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
             rendered_template=rendered_template,
         )
 
+        assert isinstance(invocation.event_data.event, GroupEvent)
         assert result == self._build_expected_blocks(
             group=invocation.event_data.group,
             workflow_id=getattr(invocation.action, "workflow_id"),
+            event_id=invocation.event_data.event.event_id,
         )
 
     @patch(
@@ -281,9 +306,11 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
             rendered_template=rendered_template,
         )
 
+        assert isinstance(invocation.event_data.event, GroupEvent)
         assert result == self._build_expected_blocks(
             group=invocation.event_data.group,
             workflow_id=getattr(invocation.action, "workflow_id"),
+            event_id=invocation.event_data.event.event_id,
             notes="important note",
         )
 
@@ -304,9 +331,11 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
             rendered_template=rendered_template,
         )
 
+        assert isinstance(invocation.event_data.event, GroupEvent)
         assert result == self._build_expected_blocks(
             group=invocation.event_data.group,
             workflow_id=getattr(invocation.action, "workflow_id"),
+            event_id=invocation.event_data.event.event_id,
             title="tagged event",
             tags_text="level: `error`  ",
         )
@@ -314,7 +343,12 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
 
 class IssueAlertProviderDispatchTest(TestCase):
     def test_provider_returns_issue_renderer(self) -> None:
-        data = IssueNotificationData(group_id=self.group.id)
+        data = IssueNotificationData(
+            group_id=self.group.id,
+            rule=SerializableRuleProxy(
+                id=1, label="Test Detector", data={}, project_id=self.project.id
+            ),
+        )
         renderer = SlackNotificationProvider.get_renderer(
             data=data,
             category=NotificationCategory.ISSUE,
@@ -322,7 +356,12 @@ class IssueAlertProviderDispatchTest(TestCase):
         assert renderer is IssueSlackRenderer
 
     def test_provider_returns_default_for_unknown_category(self) -> None:
-        data = IssueNotificationData(group_id=self.group.id)
+        data = IssueNotificationData(
+            group_id=self.group.id,
+            rule=SerializableRuleProxy(
+                id=1, label="Test Detector", data={}, project_id=self.project.id
+            ),
+        )
         renderer = SlackNotificationProvider.get_renderer(
             data=data,
             category=NotificationCategory.DEBUG,

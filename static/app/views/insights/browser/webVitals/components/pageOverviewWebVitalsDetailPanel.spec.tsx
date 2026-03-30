@@ -1,40 +1,33 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {useLocation} from 'sentry/utils/useLocation';
 import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/pageOverviewWebVitalsDetailPanel';
-
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('PageOverviewWebVitalsDetailPanel', () => {
   const organization = OrganizationFixture({
     features: ['performance-web-vitals-seer-suggestions'],
   });
   const project = ProjectFixture();
-  const location = LocationFixture({
-    query: {
-      project: project.id,
-      transaction: 'test-transaction',
+  const initialRouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/insights/frontend/pageloads/overview/`,
+      query: {},
     },
-  });
+    route: `/organizations/:orgId/insights/frontend/pageloads/overview/`,
+  };
 
   beforeEach(() => {
-    jest.mocked(useLocation).mockReturnValue(location);
-    jest.mocked(usePageFilters).mockReturnValue({
-      ...PageFilterStateFixture(),
-      selection: {
-        ...PageFilterStateFixture().selection,
-        projects: [2],
-      },
-    });
     ProjectsStore.loadInitialData([project]);
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({
+        projects: [2],
+      })
+    );
 
     // Mock API responses
     MockApiClient.addMockResponse({
@@ -74,6 +67,16 @@ describe('PageOverviewWebVitalsDetailPanel', () => {
   it('renders correctly with web vital', async () => {
     render(<PageOverviewWebVitalsDetailPanel webVital="fcp" />, {
       organization,
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          query: {
+            project: project.id,
+            transaction: 'test-transaction',
+          },
+        },
+      },
     });
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));

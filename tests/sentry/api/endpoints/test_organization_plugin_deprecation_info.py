@@ -34,7 +34,7 @@ class OrganizationPluginDeprecationInfoEndpointTest(APITestCase):
             },
         )
 
-    def test_project_with_linked_issue(self):
+    def test_project_with_linked_issue(self) -> None:
         group_with_plugin = self.create_group(project=self.project_with_plugin)
         group_without_plugin = self.create_group(project=self.project_without_plugin)
 
@@ -56,7 +56,7 @@ class OrganizationPluginDeprecationInfoEndpointTest(APITestCase):
         assert len(affected_groups) == 1
         assert f"/issues/{group_with_plugin.id}/" in affected_groups[0]
 
-    def test_project_with_plugin_rule(self):
+    def test_project_with_plugin_rule(self) -> None:
         rule_action_data = [
             {
                 "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
@@ -82,7 +82,7 @@ class OrganizationPluginDeprecationInfoEndpointTest(APITestCase):
         expected_rule_url = f"/organizations/{self.organization.slug}/issues/alerts/rules/{self.project_with_plugin.slug}/{rule.id}/details/"
         assert expected_rule_url in affected_rules[0]
 
-    def test_permission_denied_for_non_member(self):
+    def test_permission_denied_for_non_member(self) -> None:
         non_member_user = self.create_user("non-member@example.com")
         self.login_as(non_member_user)
 

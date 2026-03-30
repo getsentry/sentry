@@ -41,6 +41,10 @@ class Lock {
         document.body.style.left = '0';
         document.body.style.right = '0';
         document.body.style.width = '100%';
+        document.documentElement.style.setProperty(
+          '--scrollbar-size',
+          `${scrollbarWidth}px`
+        );
         document.body.style.paddingRight = `${existingPaddingRight + scrollbarWidth}px`;
       } else {
         this.initialOverflow = this.container.style.overflow;
@@ -61,6 +65,7 @@ class Lock {
         document.body.style.right = this.initialBodyStyles.right;
         document.body.style.width = this.initialBodyStyles.width;
         document.body.style.paddingRight = this.initialBodyStyles.paddingRight;
+        document.documentElement.style.removeProperty('--scrollbar-size');
         const {x, y} = this.scroll;
         requestAnimationFrame(() => {
           if (this.acquiredBy.size === 0) {

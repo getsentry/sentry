@@ -24,7 +24,10 @@ export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
       <StyledPageFrameStack
         flex="1"
         as="main"
-        roundedCorner={primaryNavigation.layout === 'sidebar'}
+        roundedCorner={
+          primaryNavigation.layout === 'sidebar' &&
+          secondaryNavigation?.view === 'expanded'
+        }
         padding={props.withPadding ? '2xl 3xl' : undefined}
         radius={
           secondaryNavigation?.view === 'expanded'

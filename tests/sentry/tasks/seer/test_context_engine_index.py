@@ -16,7 +16,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 @django_db_all
 class TestIndexOrgProjectKnowledge(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization()
         self.project = self.create_project(organization=self.org, platform="python")
@@ -24,7 +24,7 @@ class TestIndexOrgProjectKnowledge(TestCase):
         self.project.flags.has_profiles = True
         self.project.save()
 
-    def test_returns_early_when_no_projects_found(self):
+    def test_returns_early_when_no_projects_found(self) -> None:
         org_without_projects = self.create_organization()
         with override_options({"explorer.context_engine_indexing.enable": True}):
             with mock.patch(
@@ -33,7 +33,7 @@ class TestIndexOrgProjectKnowledge(TestCase):
                 index_org_project_knowledge(org_without_projects.id)
                 mock_counts.assert_not_called()
 
-    def test_returns_early_when_no_high_volume_projects(self):
+    def test_returns_early_when_no_high_volume_projects(self) -> None:
         with override_options({"explorer.context_engine_indexing.enable": True}):
             with mock.patch(
                 "sentry.tasks.seer.context_engine_index.get_event_counts_for_org_projects",
@@ -117,10 +117,19 @@ class TestIndexOrgProjectKnowledge(TestCase):
 
 @django_db_all
 class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
-    def test_returns_only_orgs_assigned_to_current_slot(self):
+    def _create_org_with_github(self):
+        org = self.create_organization()
+        self.create_integration(
+            organization=org,
+            provider="github",
+            external_id=f"github:{org.id}",
+        )
+        return org
+
+    def test_returns_only_orgs_assigned_to_current_slot(self) -> None:
         from sentry.utils.hashlib import md5_text
 
-        orgs = [self.create_organization() for _ in range(50)]
+        orgs = [self._create_org_with_github() for _ in range(50)]
         org_ids = [org.id for org in orgs]
 
         TOTAL_SLOTS = 24
@@ -143,11 +152,11 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
         for org_id in eligible:
             assert int(md5_text(str(org_id)).hexdigest(), 16) % TOTAL_SLOTS == target_slot
 
-    def test_excludes_orgs_without_feature_flag(self):
+    def test_excludes_orgs_without_feature_flag(self) -> None:
         from sentry.utils.hashlib import md5_text
 
-        org_with_flag = self.create_organization()
-        org_without_flag = self.create_organization()
+        org_with_flag = self._create_org_with_github()
+        org_without_flag = self._create_org_with_github()
 
         TOTAL_SLOTS = 24
         target_slot = int(md5_text(str(org_without_flag.id)).hexdigest(), 16) % TOTAL_SLOTS
@@ -157,23 +166,45 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
             with self.feature(
                 {
                     "organizations:seer-explorer": [org_with_flag.slug],
-                    "organizations:seer-explorer-context-engine": [org_with_flag.slug],
+                    "organizations:seer-explorer-index": [org_with_flag.slug],
                 }
             ):
                 eligible = get_allowed_org_ids_context_engine_indexing()
 
         assert org_without_flag.id not in eligible
 
-    def test_returns_empty_when_no_orgs_have_feature_flag(self):
+    def test_returns_empty_when_no_orgs_have_feature_flag(self) -> None:
         with self.feature(
             {
                 "organizations:seer-explorer": False,
-                "organizations:seer-explorer-context-engine": False,
+                "organizations:seer-explorer-index": False,
             }
         ):
             eligible = get_allowed_org_ids_context_engine_indexing()
 
         assert eligible == []
+
+    def test_excludes_orgs_without_github_integration(self) -> None:
+        from sentry.utils.hashlib import md5_text
+
+        org_with_github = self._create_org_with_github()
+        org_without_github = self.create_organization()
+
+        TOTAL_SLOTS = 24
+        target_slot = int(md5_text(str(org_with_github.id)).hexdigest(), 16) % TOTAL_SLOTS
+        frozen_time = f"2024-01-14 {target_slot:02d}:00:00"
+
+        def feature_enabled_for_all(_flag_name: str, org, *args, **kwargs) -> bool:
+            return True
+
+        with freeze_time(frozen_time):
+            with mock.patch(
+                "sentry.tasks.seer.context_engine_index.features.has",
+                side_effect=feature_enabled_for_all,
+            ):
+                eligible = get_allowed_org_ids_context_engine_indexing()
+
+        assert org_without_github.id not in eligible
 
 
 @django_db_all

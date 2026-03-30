@@ -52,10 +52,8 @@ def process_resource_change(instance: RepositoryProjectPathConfig, **kwargs):
     if instance._skip_post_save:
         return
 
-    from sentry.models.group import Group
     from sentry.models.project import Project
     from sentry.tasks.codeowners import update_code_owners_schema
-    from sentry.utils.cache import cache
 
     def _spawn_update_schema_task():
         """
@@ -71,22 +69,7 @@ def process_resource_change(instance: RepositoryProjectPathConfig, **kwargs):
         except Project.DoesNotExist:
             pass
 
-    def _clear_commit_context_cache():
-        """
-        Once we have a new code mapping for a project, we want to give all groups in the project
-        a new chance to generate missing suspect commits. We debounce the process_commit_context task
-        if we cannot find the Suspect Committer from the given code mappings. Thus, need to clear the
-        cache to reprocess with the new code mapping
-        """
-
-        group_ids = Group.objects.filter(project_id=instance.project_id).values_list(
-            "id", flat=True
-        )
-        cache_keys = [f"process-commit-context-{group_id}" for group_id in group_ids]
-        cache.delete_many(cache_keys)
-
     transaction.on_commit(_spawn_update_schema_task, router.db_for_write(type(instance)))
-    transaction.on_commit(_clear_commit_context_cache, router.db_for_write(type(instance)))
 
 
 post_save.connect(

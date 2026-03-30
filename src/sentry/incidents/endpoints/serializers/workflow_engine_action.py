@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, Sequence
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -20,6 +20,24 @@ from sentry.workflow_engine.models import Action, ActionAlertRuleTriggerAction
 
 
 class WorkflowEngineActionSerializer(Serializer):
+    def get_attrs(
+        self, item_list: Sequence[Action], user: User | RpcUser | AnonymousUser, **kwargs: Any
+    ) -> dict[Action, dict[str, Any]]:
+        aarta_by_action_id = {
+            aarta.action_id: aarta
+            for aarta in ActionAlertRuleTriggerAction.objects.filter(
+                action__in=[item.id for item in item_list]
+            )
+        }
+        targets_by_action_id = MetricAlertRegistryHandler.get_targets(item_list)
+        return {
+            item: {
+                "aarta": aarta_by_action_id.get(item.id),
+                "target": targets_by_action_id.get(item.id),
+            }
+            for item in item_list
+        }
+
     def serialize(
         self, obj: Action, attrs: Mapping[str, Any], user: User | RpcUser | AnonymousUser, **kwargs
     ) -> dict[str, Any]:
@@ -30,13 +48,10 @@ class WorkflowEngineActionSerializer(Serializer):
 
         alert_rule_trigger_id = kwargs.get("alert_rule_trigger_id", -1)
 
-        try:
-            aarta = ActionAlertRuleTriggerAction.objects.get(action=obj.id)
-        except ActionAlertRuleTriggerAction.DoesNotExist:
-            aarta = None
+        aarta = attrs.get("aarta")
         priority = obj.data.get("priority")
         type_value = ActionService.get_value(obj.type)
-        target = MetricAlertRegistryHandler.target(obj)
+        target = attrs.get("target")
 
         target_type = obj.config.get("target_type")
         target_identifier = obj.config.get("target_identifier")

@@ -1,6 +1,8 @@
 import {useEffect, useMemo} from 'react';
 
 import {organizationRepositoriesInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
+import {organizationConfigIntegrationsQueryOptions} from 'sentry/endpoints/organizations/organizationsConfigIntegrationsQueryOptions';
+import {organizationIntegrationsQueryOptions} from 'sentry/endpoints/organizations/organizationsIntegrationsQueryOptions';
 import type {
   IntegrationProvider,
   IntegrationRepository,
@@ -29,13 +31,7 @@ export function useScmIntegrationTreeData(): ScmIntegrationTreeData {
 
   // 1. Fetch all integration providers and filter to SCM
   const providersQuery = useQuery(
-    apiOptions.as<{providers: IntegrationProvider[]}>()(
-      '/organizations/$organizationIdOrSlug/config/integrations/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        staleTime: 0,
-      }
-    )
+    organizationConfigIntegrationsQueryOptions({organization})
   );
 
   const scmProviders = useMemo(
@@ -53,13 +49,10 @@ export function useScmIntegrationTreeData(): ScmIntegrationTreeData {
 
   // 2. Fetch installed integrations and filter to SCM providers
   const integrationsQuery = useQuery(
-    apiOptions.as<OrganizationIntegration[]>()(
-      '/organizations/$organizationIdOrSlug/integrations/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        staleTime: 0,
-      }
-    )
+    organizationIntegrationsQueryOptions({
+      organization,
+      features: ['commits'],
+    })
   );
 
   const scmIntegrations = useMemo(
@@ -71,13 +64,17 @@ export function useScmIntegrationTreeData(): ScmIntegrationTreeData {
   );
 
   // 3. Fetch already-connected repos, auto-paginate to get all
-  const reposQueryOptions = organizationRepositoriesInfiniteOptions({organization});
+  const reposQueryOptions = organizationRepositoriesInfiniteOptions({
+    organization,
+    staleTime: 0,
+  });
   const {
     data: reposPages,
     hasNextPage: reposHasNextPage,
     isFetchingNextPage: reposIsFetchingNextPage,
     fetchNextPage: reposFetchNextPage,
     isError: reposIsError,
+    refetch: reposRefetch,
   } = useInfiniteQuery(reposQueryOptions);
 
   useEffect(() => {
@@ -143,7 +140,11 @@ export function useScmIntegrationTreeData(): ScmIntegrationTreeData {
     scmIntegrations,
     connectedRepos,
     connectedIdentifiers,
-    refetchIntegrations: integrationsQuery.refetch,
+    refetchIntegrations: () => {
+      providersQuery.refetch();
+      integrationsQuery.refetch();
+      reposRefetch();
+    },
     reposByIntegrationId,
     reposPendingByIntegrationId,
     reposQueryOptions,

@@ -129,4 +129,108 @@ describe('AttributesTreeValue', () => {
 
     expect(screen.getByText('null')).toBeInTheDocument();
   });
+
+  it('renders JSON object values as structured data', () => {
+    const jsonContent = {
+      ...defaultProps.content,
+      value: '{"key": "value", "number": 42}',
+    };
+
+    render(<AttributesTreeValue {...defaultProps} content={jsonContent} />);
+
+    expect(screen.getByText('key')).toBeInTheDocument();
+    expect(screen.getByText('value')).toBeInTheDocument();
+    expect(screen.getByText('42')).toBeInTheDocument();
+  });
+
+  it('renders JSON array values as structured data', () => {
+    const jsonContent = {
+      ...defaultProps.content,
+      value: '[1, 2, 3]',
+    };
+
+    render(<AttributesTreeValue {...defaultProps} content={jsonContent} />);
+
+    expect(screen.getByText('1')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument();
+  });
+
+  it('renders invalid JSON containing braces as plain text', () => {
+    const invalidJsonContent = {
+      ...defaultProps.content,
+      value: 'not {json',
+    };
+
+    render(<AttributesTreeValue {...defaultProps} content={invalidJsonContent} />);
+
+    expect(screen.getByText('not {json')).toBeInTheDocument();
+  });
+
+  it('renders plain strings without braces as plain text', () => {
+    const plainContent = {
+      ...defaultProps.content,
+      value: 'hello world',
+    };
+
+    render(<AttributesTreeValue {...defaultProps} content={plainContent} />);
+
+    expect(screen.getByText('hello world')).toBeInTheDocument();
+  });
+
+  it('does not render JSON as structured data when disableRichValue is true', () => {
+    const jsonContent = {
+      ...defaultProps.content,
+      value: '{"key": "value"}',
+    };
+
+    render(
+      <AttributesTreeValue
+        {...defaultProps}
+        content={jsonContent}
+        config={{disableRichValue: true}}
+      />
+    );
+
+    expect(screen.getByText('{"key": "value"}')).toBeInTheDocument();
+    expect(screen.queryByRole('list')).not.toBeInTheDocument();
+  });
+
+  it('renders simple JSON with compact class', () => {
+    const jsonContent = {
+      ...defaultProps.content,
+      value: '{"boop": "bop"}',
+    };
+
+    render(<AttributesTreeValue {...defaultProps} content={jsonContent} />);
+
+    const pre = screen.getByText('bop').closest('pre');
+    expect(pre).toHaveClass('compact');
+  });
+
+  it('renders short JSON with nested objects without compact class', () => {
+    const jsonContent = {
+      ...defaultProps.content,
+      value: '{"a":{"b":{"c":{"d":1}}}}',
+    };
+
+    render(<AttributesTreeValue {...defaultProps} content={jsonContent} />);
+
+    const pre = screen.getByText('a').closest('pre');
+    expect(pre).not.toHaveClass('compact');
+  });
+
+  it('renders long JSON without compact class', () => {
+    const jsonContent = {
+      ...defaultProps.content,
+      value: '{"k": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}',
+    };
+
+    render(<AttributesTreeValue {...defaultProps} content={jsonContent} />);
+
+    const pre = screen
+      .getByText('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+      .closest('pre');
+    expect(pre).not.toHaveClass('compact');
+  });
 });

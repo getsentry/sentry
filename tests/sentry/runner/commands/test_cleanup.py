@@ -11,7 +11,9 @@ from sentry.models.files.file import File
 from sentry.models.group import Group
 from sentry.runner.commands.cleanup import (
     _cleanup,
+    generate_bulk_query_deletes,
     prepare_deletes_by_project,
+    remove_cross_project_bulk_query_models,
     run_bulk_deletes_by_project,
     task_execution,
 )
@@ -20,6 +22,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.uptime.models import UptimeResponseCapture, UptimeSubscription
+from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 
 
 class SynchronousTaskQueue:
@@ -228,6 +231,17 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
         # Should have seen both projects
         assert project1.id in project_ids_seen
         assert project2.id in project_ids_seen
+
+
+class RemoveCrossProjectBulkQueryModelsTest(TestCase):
+    def test_removes_workflow_fire_history(self) -> None:
+        bulk_query_deletes = generate_bulk_query_deletes()
+        models_before = {m for m, _, _ in bulk_query_deletes}
+        assert WorkflowFireHistory in models_before
+
+        remove_cross_project_bulk_query_models(bulk_query_deletes)
+        models_after = {m for m, _, _ in bulk_query_deletes}
+        assert WorkflowFireHistory not in models_after
 
 
 class UptimeResponseCaptureCleanupTest(TestCase):

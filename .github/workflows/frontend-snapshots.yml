@@ -69,7 +69,7 @@ jobs:
 
       - name: Install sentry-cli
         if: ${{ !cancelled() }}
-        run: curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=3.3.3 sh
+        run: curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=3.3.4 sh
 
       - name: Upload snapshots
         id: upload

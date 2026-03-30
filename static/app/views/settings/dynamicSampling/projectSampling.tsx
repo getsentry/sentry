@@ -1,7 +1,9 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import {
@@ -12,13 +14,13 @@ import {
 import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
 import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
+import {sampleRateField} from 'sentry/views/settings/dynamicSampling/organizationSampling';
 import {ProjectionPeriodControl} from 'sentry/views/settings/dynamicSampling/projectionPeriodControl';
 import {ProjectsEditTable} from 'sentry/views/settings/dynamicSampling/projectsEditTable';
 import {SamplingModeSwitch} from 'sentry/views/settings/dynamicSampling/samplingModeSwitch';
 import {mapArrayToObject} from 'sentry/views/settings/dynamicSampling/utils';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
-import {projectSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/projectSamplingForm';
 import {
   useProjectSampleCounts,
   type ProjectionSamplePeriod,
@@ -28,10 +30,13 @@ import {
   useUpdateSamplingProjectRates,
 } from 'sentry/views/settings/dynamicSampling/utils/useSamplingProjectRates';
 
-const {useFormState, FormProvider} = projectSamplingForm;
 const UNSAVED_CHANGES_MESSAGE = t(
   'You have unsaved changes, are you sure you want to leave?'
 );
+
+const projectSamplingSchema = z.object({
+  projectRates: z.record(z.string(), sampleRateField),
+});
 
 export function ProjectSampling() {
   const hasAccess = useHasDynamicSamplingWriteAccess();
@@ -54,37 +59,55 @@ export function ProjectSampling() {
     [sampleRatesQuery.data]
   );
 
-  const initialValues = useMemo(() => ({projectRates}), [projectRates]);
+  const [savedProjectRates, setSavedProjectRates] =
+    useState<Record<string, string>>(projectRates);
 
-  const formState = useFormState({
-    initialValues,
-    enableReInitialize: true,
-  });
-
-  const handleReset = () => {
-    formState.reset();
-    setEditMode('single');
-  };
-
-  const handleSubmit = () => {
-    const ratesArray = Object.entries(formState.fields.projectRates.value).map(
-      ([id, rate]) => ({
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      projectRates,
+    },
+    validators: {
+      onDynamic: projectSamplingSchema,
+    },
+    onSubmit: async ({value, formApi}) => {
+      const ratesArray = Object.entries(value.projectRates).map(([id, rate]) => ({
         id: Number(id),
         sampleRate: parsePercent(rate),
-      })
-    );
-    addLoadingMessage(t('Saving changes...'));
-    updateSamplingProjectRates.mutate(ratesArray, {
-      onSuccess: () => {
-        formState.save();
+      }));
+      addLoadingMessage(t('Saving changes...'));
+      try {
+        await updateSamplingProjectRates.mutateAsync(ratesArray);
+        setSavedProjectRates(value.projectRates);
         setEditMode('single');
+        formApi.reset(value);
         addSuccessMessage(t('Changes applied'));
-      },
-      onError: () => {
+      } catch {
         addErrorMessage(t('Unable to save changes. Please try again.'));
-      },
-    });
-  };
+      }
+    },
+  });
+
+  const handleProjectRateChange = useCallback(
+    (projectId: string, rate: string) => {
+      form.setFieldValue(`projectRates.${projectId}`, rate);
+    },
+    [form]
+  );
+
+  const handleBulkProjectRateChange = useCallback(
+    (updates: Record<string, string>) => {
+      form.setFieldValue('projectRates', prev => ({...prev, ...updates}));
+    },
+    [form]
+  );
+
+  // Mirror enableReInitialize: reset the form whenever the server data changes
+  useEffect(() => {
+    form.reset({projectRates});
+    setSavedProjectRates(projectRates);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectRates]);
 
   const initialTargetRate = useMemo(() => {
     const sampleRates = sampleRatesQuery.data ?? [];
@@ -105,52 +128,75 @@ export function ProjectSampling() {
     );
   }, [sampleRatesQuery.data, sampleCountsQuery.data]);
 
-  const isFormActionDisabled =
-    !hasAccess ||
-    sampleRatesQuery.isPending ||
-    updateSamplingProjectRates.isPending ||
-    !formState.hasChanged;
-
   return (
-    <FormProvider formState={formState}>
-      <OnRouteLeave
-        message={UNSAVED_CHANGES_MESSAGE}
-        when={locationChange =>
-          locationChange.currentLocation.pathname !==
-            locationChange.nextLocation.pathname && formState.hasChanged
-        }
-      />
-      <Flex justify="between" marginBottom="lg">
-        <ProjectionPeriodControl period={period} onChange={setPeriod} />
-        <SamplingModeSwitch initialTargetRate={initialTargetRate} />
-      </Flex>
-      {sampleCountsQuery.isError ? (
-        <LoadingError onRetry={sampleCountsQuery.refetch} />
-      ) : (
-        <ProjectsEditTable
-          period={period}
-          editMode={editMode}
-          onEditModeChange={setEditMode}
-          isLoading={sampleRatesQuery.isPending || sampleCountsQuery.isPending}
-          sampleCounts={sampleCountsQuery.data}
-          actions={
-            <Fragment>
-              <Button disabled={isFormActionDisabled} onClick={handleReset}>
-                {t('Reset')}
-              </Button>
-              <Button
-                priority="primary"
-                disabled={isFormActionDisabled || !formState.isValid}
-                onClick={handleSubmit}
-              >
-                {t('Apply Changes')}
-              </Button>
-            </Fragment>
+    <form.AppForm form={form}>
+      <form.Subscribe
+        selector={s => ({
+          isDirty: s.isDirty,
+          currentProjectRates: s.values.projectRates,
+          fieldMeta: s.fieldMeta,
+        })}
+      >
+        {({isDirty, currentProjectRates, fieldMeta}) => {
+          const projectErrors: Record<string, string | undefined> = {};
+          for (const id of Object.keys(currentProjectRates)) {
+            const error = fieldMeta[`projectRates.${id}`]?.errors?.[0]?.message;
+            if (error) {
+              projectErrors[id] = error;
+            }
           }
-        />
-      )}
-      <FormActions />
-    </FormProvider>
+
+          return (
+            <Fragment>
+              <OnRouteLeave
+                message={UNSAVED_CHANGES_MESSAGE}
+                when={locationChange =>
+                  locationChange.currentLocation.pathname !==
+                    locationChange.nextLocation.pathname && isDirty
+                }
+              />
+              <Flex justify="between" marginBottom="lg">
+                <ProjectionPeriodControl period={period} onChange={setPeriod} />
+                <SamplingModeSwitch initialTargetRate={initialTargetRate} />
+              </Flex>
+              {sampleCountsQuery.isError ? (
+                <LoadingError onRetry={sampleCountsQuery.refetch} />
+              ) : (
+                <ProjectsEditTable
+                  period={period}
+                  editMode={editMode}
+                  onEditModeChange={setEditMode}
+                  onProjectRateChange={handleProjectRateChange}
+                  onBulkProjectRateChange={handleBulkProjectRateChange}
+                  projectRates={currentProjectRates}
+                  projectErrors={projectErrors}
+                  isLoading={sampleRatesQuery.isPending || sampleCountsQuery.isPending}
+                  sampleCounts={sampleCountsQuery.data}
+                  savedProjectRates={savedProjectRates}
+                  actions={
+                    <Fragment>
+                      <Button
+                        disabled={!isDirty || updateSamplingProjectRates.isPending}
+                        onClick={() => {
+                          form.reset();
+                          setEditMode('single');
+                        }}
+                      >
+                        {t('Reset')}
+                      </Button>
+                      <form.SubmitButton disabled={!hasAccess} formNoValidate>
+                        {t('Apply Changes')}
+                      </form.SubmitButton>
+                    </Fragment>
+                  }
+                />
+              )}
+              <FormActions />
+            </Fragment>
+          );
+        }}
+      </form.Subscribe>
+    </form.AppForm>
   );
 }
 
