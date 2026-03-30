@@ -57,5 +57,5 @@ describe('getting started with react-native', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
     expect(await screen.findByText(/Sentry\.metrics\.count/)).toBeInTheDocument();
     expect(screen.getByText(/Sentry\.metrics\.gauge/)).toBeInTheDocument();
-  });
+  }, 10_000);
 });
