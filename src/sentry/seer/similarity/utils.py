@@ -573,10 +573,6 @@ def set_default_project_seer_scanner_automation(
 def set_default_project_auto_open_prs(organization: Organization, project: Project) -> None:
     """Called once at project creation time to set the initial automated run stopping
     point and automation handoff.
-
-    Reads org options (default_automated_run_stopping_point, auto_open_prs, default_coding_agent,
-    default_coding_agent_integration_id) and writes the corresponding project-level
-    options (stopping point, handoff config).
     """
     if not is_seer_seat_based_tier_enabled(organization):
         return
