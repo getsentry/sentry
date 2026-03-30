@@ -27,7 +27,7 @@ from sentry.testutils.cases import TestCase
 
 
 class SlackAutofixEntrypointTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.slack_user_id = "UXXXXXXXXX1"
         self.channel_id = "CXXXXXXXXX1"
         self.thread_ts = "1712345678.987654"
@@ -70,7 +70,7 @@ class SlackAutofixEntrypointTest(TestCase):
             action=self.action,
         )
 
-    def test_has_access(self):
+    def test_has_access(self) -> None:
         with self.feature({"organizations:seer-slack-workflows": False}):
             assert not SlackAutofixEntrypoint.has_access(self.organization)
         with self.feature("organizations:seer-slack-workflows"):
@@ -104,7 +104,7 @@ class SlackAutofixEntrypointTest(TestCase):
         ep.on_trigger_autofix_success(run_id=MOCK_RUN_ID)
         mock_update_message.assert_called_once()
 
-    def test_create_autofix_cache_payload(self):
+    def test_create_autofix_cache_payload(self) -> None:
         ep = self._get_entrypoint()
         cache_payload = ep.create_autofix_cache_payload()
         SlackAutofixCachePayload(**cache_payload)
@@ -240,7 +240,7 @@ class SlackAutofixEntrypointTest(TestCase):
 
         mock_update_message.assert_called_once()
 
-    def test_get_autofix_lock_key(self):
+    def test_get_autofix_lock_key(self) -> None:
         lock_key = SlackAutofixEntrypoint.get_autofix_lock_key(
             group_id=self.group.id,
             stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
@@ -452,7 +452,7 @@ class SlackAutofixEntrypointTest(TestCase):
         )
         assert result == expected
 
-    def test_get_autofix_stopping_point_from_action(self):
+    def test_get_autofix_stopping_point_from_action(self) -> None:
         # Empty, None, and invalid values default to ROOT_CAUSE
         self._assert_stopping_point_from_action("", AutofixStoppingPoint.ROOT_CAUSE)
         self._assert_stopping_point_from_action(None, AutofixStoppingPoint.ROOT_CAUSE)
@@ -462,7 +462,7 @@ class SlackAutofixEntrypointTest(TestCase):
             AutofixStoppingPoint.SOLUTION.value, AutofixStoppingPoint.SOLUTION
         )
 
-    def test_get_group_link_includes_seer_drawer(self):
+    def test_get_group_link_includes_seer_drawer(self) -> None:
         link = SlackAutofixEntrypoint.get_group_link(self.group)
         assert "seerDrawer=true" in link
 
@@ -486,7 +486,7 @@ class SlackAutofixEntrypointTest(TestCase):
 
 
 class SlackExplorerEntrypointTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.slack_user_id = "UXXXXXXXXX2"
         self.channel_id = "CXXXXXXXXX2"
         self.message_ts = "1712345678.111111"
@@ -507,7 +507,7 @@ class SlackExplorerEntrypointTest(TestCase):
             slack_user_id=self.slack_user_id,
         )
 
-    def test_init_success(self):
+    def test_init_success(self) -> None:
         ep = self._get_entrypoint()
         assert ep.channel_id == self.channel_id
         assert ep.message_ts == self.message_ts
@@ -517,7 +517,7 @@ class SlackExplorerEntrypointTest(TestCase):
         assert ep.install.model.id == self.integration.id
         assert ep.thread == SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)
 
-    def test_init_defaults_thread_ts_to_message_ts_when_none(self):
+    def test_init_defaults_thread_ts_to_message_ts_when_none(self) -> None:
         ep = SlackExplorerEntrypoint(
             integration_id=self.integration.id,
             organization_id=self.organization.id,
@@ -529,7 +529,7 @@ class SlackExplorerEntrypointTest(TestCase):
         assert ep.thread_ts == self.message_ts
         assert ep.thread["thread_ts"] == self.message_ts
 
-    def test_init_raises_if_integration_not_found(self):
+    def test_init_raises_if_integration_not_found(self) -> None:
         with pytest.raises(ValueError):
             SlackExplorerEntrypoint(
                 integration_id=99999,
@@ -555,7 +555,7 @@ class SlackExplorerEntrypointTest(TestCase):
                 slack_user_id=self.slack_user_id,
             )
 
-    def test_has_access(self):
+    def test_has_access(self) -> None:
         explorer_flags = {
             "organizations:gen-ai-features": True,
             "organizations:seer-explorer": True,
@@ -581,11 +581,11 @@ class SlackExplorerEntrypointTest(TestCase):
             slack_user_id=self.slack_user_id,
         )
 
-    def test_on_trigger_explorer_success_is_noop(self):
+    def test_on_trigger_explorer_success_is_noop(self) -> None:
         ep = self._get_entrypoint()
         ep.on_trigger_explorer_success(run_id=12345)
 
-    def test_create_explorer_cache_payload(self):
+    def test_create_explorer_cache_payload(self) -> None:
         ep = self._get_entrypoint()
         payload = ep.create_explorer_cache_payload()
         SlackExplorerCachePayload(**payload)  # validates TypedDict structure
@@ -634,7 +634,7 @@ class SlackExplorerEntrypointTest(TestCase):
         assert isinstance(call_data, SeerExplorerError)
         assert call_data.error_message == "Seer was unable to generate a response."
 
-    def test_on_explorer_update_skips_clear_when_integration_not_found(self):
+    def test_on_explorer_update_skips_clear_when_integration_not_found(self) -> None:
         ep = self._get_entrypoint()
         cache_payload = ep.create_explorer_cache_payload()
 

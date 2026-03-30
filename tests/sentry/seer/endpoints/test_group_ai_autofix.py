@@ -808,7 +808,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
         mock_cache.set.assert_called_once_with(f"autofix_access_check:{group.id}", True, timeout=60)
 
-    def test_ai_autofix_post_invalid_stopping_point_string(self):
+    def test_ai_autofix_post_invalid_stopping_point_string(self) -> None:
         group = self.create_group()
 
         self.login_as(user=self.user)
@@ -822,7 +822,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert "stoppingPoint" in response.data
         assert "not a valid choice" in str(response.data["stoppingPoint"])
 
-    def test_ai_autofix_post_invalid_stopping_point_type(self):
+    def test_ai_autofix_post_invalid_stopping_point_type(self) -> None:
         group = self.create_group()
 
         self.login_as(user=self.user)
@@ -971,7 +971,7 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
         assert response.status_code == 202, response.data
         mock_call_autofix.assert_called_once()
 
-    def test_post_coding_agent_handoff_errors_with_both_provider_and_integration_id(self):
+    def test_post_coding_agent_handoff_errors_with_both_provider_and_integration_id(self) -> None:
         """POST returns 400 when both provider and integration_id are specified for coding_agent_handoff."""
         for flag in EXPLORER_FLAGS:
             group = self.create_group()
@@ -1118,7 +1118,7 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
             assert call_body["payload"]["type"] == "create_pr"
             assert "repo_name" not in call_body["payload"]
 
-    def test_open_pr_no_run_id(self):
+    def test_open_pr_no_run_id(self) -> None:
         self.login_as(user=self.user)
 
         for flag in EXPLORER_FLAGS:

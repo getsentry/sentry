@@ -72,31 +72,31 @@ class UptimeMonitorDataSourceValidatorTest(TestCase):
             "body": kwargs.get("body", None),
         }
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.context = {
             "organization": self.project.organization,
             "project": self.project,
             "request": self.make_request(),
         }
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         validator = UptimeMonitorDataSourceValidator(
             data=self.get_valid_data(), context=self.context
         )
         assert validator.is_valid()
 
-    def test_bad_interval(self):
+    def test_bad_interval(self) -> None:
         data = self.get_valid_data(interval_seconds=3700)
         validator = UptimeMonitorDataSourceValidator(data=data, context=self.context)
         assert not validator.is_valid()
 
-    def test_bad_method(self):
+    def test_bad_method(self) -> None:
         data = self.get_valid_data(method="GOT")
         validator = UptimeMonitorDataSourceValidator(data=data, context=self.context)
         assert not validator.is_valid()
 
     @mock.patch("sentry.uptime.subscriptions.subscriptions.MAX_MONITORS_PER_DOMAIN", 1)
-    def test_too_many_urls(self):
+    def test_too_many_urls(self) -> None:
         self.create_uptime_subscription(
             url="https://www.google.com",
             interval_seconds=3600,
@@ -112,14 +112,14 @@ class UptimeMonitorDataSourceValidatorTest(TestCase):
             validator.errors["url"]
         )
 
-    def test_too_big_request(self):
+    def test_too_big_request(self) -> None:
         data = self.get_valid_data(body="0" * 1000)
         validator = UptimeMonitorDataSourceValidator(data=data, context=self.context)
         assert not validator.is_valid()
 
 
 class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.context = {
             "organization": self.organization,
@@ -171,7 +171,7 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
         assert conditions[1].condition_result == DetectorPriorityLevel.OK
         assert conditions[1].type == Condition.EQUAL
 
-    def test_rejects_multiple_data_sources(self):
+    def test_rejects_multiple_data_sources(self) -> None:
         """Test that multiple data sources are rejected for uptime monitors."""
         data = self.get_valid_data(
             data_sources=[

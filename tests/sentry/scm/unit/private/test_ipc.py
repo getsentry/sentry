@@ -35,7 +35,7 @@ from sentry.scm.types import (
 )
 
 
-def test_exec_listener():
+def test_exec_listener() -> None:
     """
     Test successful execution of a listener.
     """
@@ -49,7 +49,7 @@ def test_exec_listener():
     assert count == 0, "Listener could not be executed or failed"
 
 
-def test_exec_listener_missing_listener():
+def test_exec_listener_missing_listener() -> None:
     """
     Assert the developers listener was removed prior to channel drain.
     """
@@ -66,7 +66,7 @@ def test_exec_listener_missing_listener():
     assert tags == {"reason": "not-found", "fn": "name"}
 
 
-def test_exec_listener_failed():
+def test_exec_listener_failed() -> None:
     """
     Assert the developers listener failed.
     """
@@ -87,7 +87,7 @@ def test_exec_listener_failed():
         assert tags == {"reason": "internal", "fn": "name"}
 
 
-def test_run_check_run_listener():
+def test_run_check_run_listener() -> None:
     event = None
 
     scm = SourceCodeManagerEventStream()
@@ -117,7 +117,7 @@ def test_run_check_run_listener():
     assert isinstance(event, CheckRunEvent), "Parsing from type hint failed."
 
 
-def test_run_comment_listener():
+def test_run_comment_listener() -> None:
     """
     Test that comment events are properly deserialized and routed to comment listeners.
     """
@@ -160,7 +160,7 @@ def test_run_comment_listener():
     assert event.comment["author"]["username"] == "testuser"
 
 
-def test_run_pull_request_listener():
+def test_run_pull_request_listener() -> None:
     """
     Test that pull request events are properly deserialized and routed to PR listeners.
     """
@@ -206,7 +206,7 @@ def test_run_pull_request_listener():
     assert event.pull_request["base"]["ref"] == "main"
 
 
-def test_run_listener_metrics_recorded():
+def test_run_listener_metrics_recorded() -> None:
     """
     Test that success metrics and timing metrics are properly recorded.
     """
@@ -260,7 +260,7 @@ def test_run_listener_metrics_recorded():
     assert any(key == "sentry.scm.run_listener.real_time" for key, _, _ in timers)
 
 
-def test_run_listener_not_found():
+def test_run_listener_not_found() -> None:
     """
     Test that calling a non-existent listener doesn't raise an exception.
     """
@@ -294,7 +294,7 @@ def test_run_listener_not_found():
     ) in metrics
 
 
-def test_run_listener_exception_propagates():
+def test_run_listener_exception_propagates() -> None:
     """
     Test that exceptions from listeners are properly propagated and metrics recorded.
     """
@@ -334,7 +334,7 @@ def test_run_listener_exception_propagates():
     ) in metrics
 
 
-def test_run_listener_malformed_input():
+def test_run_listener_malformed_input() -> None:
     metrics = []
 
     def record_count(a, b, c):
@@ -354,7 +354,7 @@ def test_run_listener_malformed_input():
     assert metrics == [("sentry.scm.run_listener.failed", 1, {"reason": "parse", "fn": "t"})]
 
 
-def test_serialize_deserialize_check_run_event():
+def test_serialize_deserialize_check_run_event() -> None:
     """
     Test round-trip serialization and deserialization of check run events.
     """
@@ -386,7 +386,7 @@ def test_serialize_deserialize_check_run_event():
     assert deserialized.subscription_event["sentry_meta"] == event.subscription_event["sentry_meta"]
 
 
-def test_serialize_deserialize_comment_event():
+def test_serialize_deserialize_comment_event() -> None:
     """
     Test round-trip serialization and deserialization of comment events.
     """
@@ -421,7 +421,7 @@ def test_serialize_deserialize_comment_event():
     assert deserialized.comment["author"]["username"] == event.comment["author"]["username"]
 
 
-def test_serialize_deserialize_comment_event_no_author():
+def test_serialize_deserialize_comment_event_no_author() -> None:
     """
     Test serialization/deserialization of comment events with null author.
     """
@@ -450,7 +450,7 @@ def test_serialize_deserialize_comment_event_no_author():
     assert deserialized.comment["body"] is None
 
 
-def test_serialize_deserialize_pull_request_event():
+def test_serialize_deserialize_pull_request_event() -> None:
     """
     Test round-trip serialization and deserialization of pull request events.
     """
@@ -487,7 +487,7 @@ def test_serialize_deserialize_pull_request_event():
     assert deserialized.pull_request["is_private_repo"] is True
 
 
-def test_serialize_deserialize_pull_request_event_no_author():
+def test_serialize_deserialize_pull_request_event_no_author() -> None:
     """
     Test serialization/deserialization of PR events with null author and description.
     """
@@ -519,7 +519,7 @@ def test_serialize_deserialize_pull_request_event_no_author():
     assert deserialized.pull_request["description"] is None
 
 
-def test_serialize_event_dispatches_correctly():
+def test_serialize_event_dispatches_correctly() -> None:
     """
     Test that serialize_event dispatches to the correct serializer based on event type.
     """
@@ -585,7 +585,7 @@ def test_serialize_event_dispatches_correctly():
     assert isinstance(deserialize_pull_request_event(pr_bytes), PullRequestEvent)
 
 
-def test_deserialize_event_dispatches_correctly():
+def test_deserialize_event_dispatches_correctly() -> None:
     """
     Test that deserialize_event dispatches to the correct deserializer based on type hint.
     """
@@ -624,7 +624,7 @@ def test_deserialize_event_dispatches_correctly():
     assert isinstance(deserialize_event(pr_bytes, "pull_request"), PullRequestEvent)
 
 
-def test_produce_to_listeners_check_run():
+def test_produce_to_listeners_check_run() -> None:
     """
     Test that produce_to_listeners correctly routes check run events to registered listeners.
     """
@@ -669,7 +669,7 @@ def test_produce_to_listeners_check_run():
         assert listener_names == {"listener_one", "listener_two"}
 
 
-def test_produce_to_listeners_comment():
+def test_produce_to_listeners_comment() -> None:
     """
     Test that produce_to_listeners correctly routes comment events to registered listeners.
     """
@@ -709,7 +709,7 @@ def test_produce_to_listeners_comment():
         assert produced_messages[0][3] == "region"
 
 
-def test_produce_to_listeners_pull_request():
+def test_produce_to_listeners_pull_request() -> None:
     """
     Test that produce_to_listeners correctly routes PR events to registered listeners.
     """
@@ -756,7 +756,7 @@ def test_produce_to_listeners_pull_request():
         assert produced_messages[0][3] == "control"
 
 
-def test_produce_to_listeners_returns_none_for_unsupported_events():
+def test_produce_to_listeners_returns_none_for_unsupported_events() -> None:
     """
     Test that produce_to_listeners returns None when deserialize_raw_event returns None.
     """
