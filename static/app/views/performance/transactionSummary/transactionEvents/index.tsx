@@ -2,16 +2,13 @@ import type {Location} from 'history';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
-import {SEGMENT_SPANS_CURSOR} from 'sentry/views/performance/eap/utils';
 import {
   decodeFilterFromLocation,
   filterToLocationQuery,
@@ -24,28 +21,30 @@ import {
 import {useTransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 
 import {EventsContent} from './content';
+import {EAPSampledEventsTab} from './eapSampledEventsTab';
 import {
   decodeEventsDisplayFilterFromLocation,
-  EAP_PERCENTILE_FIELDS,
   EventsDisplayFilterName,
-  filterEventsDisplayToEAPLocationQuery,
   filterEventsDisplayToLocationQuery,
   getEventsFilterOptions,
   getPercentilesEventView,
   getWebVital,
-  mapEAPPercentileValues,
   mapPercentileValues,
 } from './utils';
 
 type PercentileValues = Record<EventsDisplayFilterName, number>;
 
 function TransactionEvents() {
+  const shouldUseEAP = useTransactionSummaryEAP();
+  return shouldUseEAP ? <EAPSampledEventsTab /> : <LegacyTransactionEvents />;
+}
+
+function LegacyTransactionEvents() {
   const {organization, eventView, transactionName, setError, projectId, projects} =
     useTransactionSummaryContext();
 
   const navigate = useNavigate();
   const location = useLocation();
-  const shouldUseEAP = useTransactionSummaryEAP();
   const eventsDisplayFilterName = decodeEventsDisplayFilterFromLocation(location);
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
   const webVital = getWebVital(location);
@@ -129,14 +128,6 @@ function TransactionEvents() {
     });
   };
 
-  if (shouldUseEAP) {
-    return (
-      <EAPTransactionEvents
-        onChangeSpanOperationBreakdownFilter={onChangeSpanOperationBreakdownFilter}
-      />
-    );
-  }
-
   return (
     <DiscoverQuery
       eventView={percentilesView}
@@ -175,81 +166,6 @@ function TransactionEvents() {
         );
       }}
     </DiscoverQuery>
-  );
-}
-
-function EAPTransactionEvents({
-  onChangeSpanOperationBreakdownFilter,
-}: {
-  onChangeSpanOperationBreakdownFilter: (
-    newFilter: SpanOperationBreakdownFilter | undefined
-  ) => void;
-}) {
-  const {organization, eventView, transactionName, setError, projectId, projects} =
-    useTransactionSummaryContext();
-  const {selection} = usePageFilters();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const eventsDisplayFilterName = decodeEventsDisplayFilterFromLocation(location);
-  const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
-  const webVital = getWebVital(location);
-
-  const percentileQuery = new MutableSearch('');
-  percentileQuery.setFilterValues('is_transaction', ['true']);
-  percentileQuery.setFilterValues('transaction', [transactionName]);
-
-  const {data: percentileData} = useSpans(
-    {
-      search: percentileQuery,
-      fields: [...EAP_PERCENTILE_FIELDS],
-      pageFilters: selection,
-    },
-    'api.insights.transaction-events-percentiles'
-  );
-
-  const percentileValues = mapEAPPercentileValues(percentileData);
-
-  const onChangeEventsDisplayFilter = (newFilterName: EventsDisplayFilterName) => {
-    trackAnalytics(
-      'performance_views.transactionEvents.display_filter_dropdown.selection',
-      {
-        organization,
-        action: newFilterName as string,
-      }
-    );
-
-    const nextQuery: Location['query'] = {
-      ...removeHistogramQueryStrings(location, [ZOOM_START, ZOOM_END]),
-      ...filterEventsDisplayToEAPLocationQuery(newFilterName),
-      [SEGMENT_SPANS_CURSOR]: undefined,
-    };
-
-    if (newFilterName === EventsDisplayFilterName.P100) {
-      delete nextQuery.showTransactions;
-    }
-
-    navigate({
-      pathname: location.pathname,
-      query: nextQuery,
-    });
-  };
-
-  return (
-    <EventsContent
-      location={location}
-      organization={organization}
-      eventView={eventView}
-      transactionName={transactionName}
-      spanOperationBreakdownFilter={spanOperationBreakdownFilter}
-      onChangeSpanOperationBreakdownFilter={onChangeSpanOperationBreakdownFilter}
-      eventsDisplayFilterName={eventsDisplayFilterName}
-      onChangeEventsDisplayFilter={onChangeEventsDisplayFilter}
-      percentileValues={percentileValues}
-      projectId={projectId}
-      projects={projects}
-      webVital={webVital}
-      setError={setError}
-    />
   );
 }
 
