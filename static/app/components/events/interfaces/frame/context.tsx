@@ -19,7 +19,6 @@ import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {getFileExtension} from 'sentry/utils/fileExtension';
-import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -45,6 +44,7 @@ type Props = {
   hasContextRegisters?: boolean;
   hasContextSource?: boolean;
   hasContextVars?: boolean;
+  hasScmSourceContext?: boolean;
   isExpanded?: boolean;
   isFirst?: boolean;
   platform?: PlatformKey;
@@ -73,6 +73,7 @@ export function Context({
   isExpanded = false,
   hasAssembly = false,
   emptySourceNotation = false,
+  hasScmSourceContext = false,
   registers,
   frame,
   event,
@@ -93,12 +94,6 @@ export function Context({
     [projects, event]
   );
 
-  const hasScmFeature = organization.features.includes('scm-source-context');
-  const {data: detailedProject} = useDetailedProject(
-    {orgSlug: organization.slug, projectSlug: project?.slug ?? ''},
-    {enabled: hasScmFeature && defined(project)}
-  );
-  const hasScmSourceContext = hasScmFeature && !!detailedProject?.scmSourceContextEnabled;
   const shouldFetchSourceContext =
     hasScmSourceContext &&
     defined(project) &&

@@ -359,6 +359,7 @@ function DeprecatedLine({
         hasContextRegisters={hasContextRegisters(registers)}
         emptySourceNotation={emptySourceNotation}
         hasAssembly={hasAssembly(data, platform)}
+        hasScmSourceContext={hasScmSourceContext}
         isExpanded={isExpanded}
         registersMeta={registersMeta}
         frameMeta={frameMeta}
