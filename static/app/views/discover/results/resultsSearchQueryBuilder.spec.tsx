@@ -1,6 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {SavedSearchType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -11,6 +17,8 @@ import {ResultsSearchQueryBuilder} from './resultsSearchQueryBuilder';
 describe('ResultsSearchQueryBuilder', () => {
   let organization: Organization;
   beforeEach(() => {
+    MockApiClient.clearMockResponses();
+
     organization = OrganizationFixture();
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/recent-searches/`,
@@ -41,7 +49,6 @@ describe('ResultsSearchQueryBuilder', () => {
           user: {key: 'user', name: 'user', kind: FieldKind.FIELD},
         }}
         recentSearches={SavedSearchType.EVENT}
-        // This fields definition is what caused p50 to appear as a function tag
         fields={[{field: 'p50(transaction.duration)'}]}
       />,
       {
@@ -49,14 +56,17 @@ describe('ResultsSearchQueryBuilder', () => {
       }
     );
 
-    // Focus the input and type "has:p" to simulate a search for p50
     const input = await screen.findByRole('combobox');
-    await userEvent.type(input, 'has:p');
+    await userEvent.click(input);
+    await screen.findByRole('listbox');
+    await userEvent.keyboard('has:p');
 
-    // Check that "p50" (a function tag) is NOT in the dropdown
-    expect(
-      within(screen.getByRole('listbox')).queryByText('p50')
-    ).not.toBeInTheDocument();
+    const listbox = await screen.findByRole('listbox');
+    expect(within(listbox).queryByText('p50')).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
+    });
   });
 
   it('shows normal tags, e.g. transaction, in the dropdown', async () => {
@@ -73,7 +83,6 @@ describe('ResultsSearchQueryBuilder', () => {
           user: {key: 'user', name: 'user', kind: FieldKind.FIELD},
         }}
         recentSearches={SavedSearchType.EVENT}
-        // This fields definition is what caused p50 to appear as a function tag
         fields={[{field: 'p50(transaction.duration)'}]}
       />,
       {
@@ -81,14 +90,19 @@ describe('ResultsSearchQueryBuilder', () => {
       }
     );
 
-    // Check that a normal tag (e.g. "transaction") IS in the dropdown
     const input = await screen.findByRole('combobox');
-    await userEvent.type(input, 'transact');
+    await userEvent.click(input);
+    await screen.findByRole('listbox');
+    await userEvent.keyboard('transact');
 
     expect(
       await within(screen.getByRole('listbox')).findByRole('option', {
         name: 'transaction',
       })
     ).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
+    });
   });
 });
