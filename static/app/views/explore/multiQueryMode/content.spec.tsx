@@ -101,6 +101,11 @@ describe('MultiQueryModeContent', () => {
       method: 'GET',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/validate/`,
+      method: 'POST',
+      body: {attributes: {}},
+    });
   });
 
   it('disables changing fields for count', async () => {

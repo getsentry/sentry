@@ -18,7 +18,7 @@ class MockCachePayload(TypedDict):
 
 
 class SeerOperatorAutofixCacheTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.entrypoint_key = str(SeerEntrypointKey.SLACK)
         self.pre_cache_key = SeerOperatorAutofixCache._get_pre_autofix_cache_key(
             entrypoint_key=self.entrypoint_key, group_id=MOCK_GROUP_ID
@@ -27,10 +27,10 @@ class SeerOperatorAutofixCacheTest(TestCase):
             entrypoint_key=self.entrypoint_key, run_id=MOCK_RUN_ID
         )
 
-    def test_get_pre_autofix_cache_key(self):
+    def test_get_pre_autofix_cache_key(self) -> None:
         assert self.pre_cache_key == f"seer:pre_autofix:{self.entrypoint_key}:{MOCK_GROUP_ID}"
 
-    def test_get_post_autofix_cache_key(self):
+    def test_get_post_autofix_cache_key(self) -> None:
         assert self.post_cache_key == f"seer:post_autofix:{self.entrypoint_key}:{MOCK_RUN_ID}"
 
     @patch("sentry.seer.entrypoints.cache.cache.set")
@@ -164,7 +164,7 @@ class SeerOperatorAutofixCacheTest(TestCase):
 
 
 class SeerOperatorAutofixCacheMigrateTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.entrypoint_key = str(SeerEntrypointKey.SLACK)
         self.pre_cache_key = SeerOperatorAutofixCache._get_pre_autofix_cache_key(
             entrypoint_key=self.entrypoint_key, group_id=MOCK_GROUP_ID
@@ -228,13 +228,13 @@ class SeerOperatorAutofixCacheMigrateTest(TestCase):
 
 
 class SeerOperatorExplorerCacheTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.entrypoint_key = str(SeerEntrypointKey.SLACK)
         self.cache_key = SeerOperatorExplorerCache._get_cache_key(
             entrypoint_key=self.entrypoint_key, run_id=MOCK_RUN_ID
         )
 
-    def test_get_cache_key(self):
+    def test_get_cache_key(self) -> None:
         assert self.cache_key == f"seer:explorer:{self.entrypoint_key}:{MOCK_RUN_ID}"
 
     @patch("sentry.seer.entrypoints.cache.cache.set")

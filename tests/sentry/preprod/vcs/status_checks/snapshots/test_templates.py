@@ -17,7 +17,7 @@ from sentry.testutils.silo import cell_silo_test
 
 
 class SnapshotStatusCheckTestBase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.organization)
@@ -75,14 +75,14 @@ class SnapshotStatusCheckTestBase(TestCase):
 
 @cell_silo_test
 class SnapshotEmptyArtifactsTest(SnapshotStatusCheckTestBase):
-    def test_empty_artifacts_raises_error(self):
+    def test_empty_artifacts_raises_error(self) -> None:
         with pytest.raises(ValueError, match="Cannot format messages for empty artifact list"):
             format_snapshot_status_check_messages([], {}, {}, StatusCheckStatus.SUCCESS, {})
 
 
 @cell_silo_test
 class SnapshotProcessingStateFormattingTest(SnapshotStatusCheckTestBase):
-    def test_artifact_without_metrics_shows_processing(self):
+    def test_artifact_without_metrics_shows_processing(self) -> None:
         artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -100,7 +100,7 @@ class SnapshotProcessingStateFormattingTest(SnapshotStatusCheckTestBase):
         assert "Processing" in summary
         assert "com.example.app" in summary
 
-    def test_artifact_with_metrics_but_no_comparison_shows_processing(self):
+    def test_artifact_with_metrics_but_no_comparison_shows_processing(self) -> None:
         artifact, metrics = self._create_artifact_with_metrics()
 
         snapshot_metrics_map = {artifact.id: metrics}
@@ -113,7 +113,7 @@ class SnapshotProcessingStateFormattingTest(SnapshotStatusCheckTestBase):
         assert subtitle == "Comparing snapshots..."
         assert "Processing" in summary
 
-    def test_comparison_in_pending_state_shows_comparing(self):
+    def test_comparison_in_pending_state_shows_comparing(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics(app_id="com.example.head")
         base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
 
@@ -136,7 +136,7 @@ class SnapshotProcessingStateFormattingTest(SnapshotStatusCheckTestBase):
         assert subtitle == "Comparing snapshots..."
         assert "Processing" in summary
 
-    def test_comparison_in_processing_state_shows_comparing(self):
+    def test_comparison_in_processing_state_shows_comparing(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics(app_id="com.example.head")
         base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
 
@@ -160,7 +160,7 @@ class SnapshotProcessingStateFormattingTest(SnapshotStatusCheckTestBase):
 
 @cell_silo_test
 class SnapshotSuccessStateFormattingTest(SnapshotStatusCheckTestBase):
-    def test_all_images_match_shows_success(self):
+    def test_all_images_match_shows_success(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics(
             app_id="com.example.app", app_name="My App"
         )
@@ -191,7 +191,7 @@ class SnapshotSuccessStateFormattingTest(SnapshotStatusCheckTestBase):
         assert "✅ Unchanged" in summary
         assert "My App" in summary
 
-    def test_app_id_shown_in_name_cell(self):
+    def test_app_id_shown_in_name_cell(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics(
             app_id="com.example.noname"
         )
@@ -212,7 +212,7 @@ class SnapshotSuccessStateFormattingTest(SnapshotStatusCheckTestBase):
 
         assert "`com.example.noname`" in summary
 
-    def test_multiple_artifacts_all_match(self):
+    def test_multiple_artifacts_all_match(self) -> None:
         artifacts = []
         snapshot_metrics_map = {}
         comparisons_map = {}
@@ -246,7 +246,7 @@ class SnapshotSuccessStateFormattingTest(SnapshotStatusCheckTestBase):
 
 @cell_silo_test
 class SnapshotChangesFormattingTest(SnapshotStatusCheckTestBase):
-    def test_images_changed_shows_failure_subtitle(self):
+    def test_images_changed_shows_failure_subtitle(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics()
         base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
 
@@ -274,7 +274,7 @@ class SnapshotChangesFormattingTest(SnapshotStatusCheckTestBase):
         assert subtitle == "3 modified, 7 unchanged"
         assert "⏳ Needs approval" in summary
 
-    def test_single_image_changed(self):
+    def test_single_image_changed(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics()
         base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
 
@@ -298,7 +298,7 @@ class SnapshotChangesFormattingTest(SnapshotStatusCheckTestBase):
 
         assert subtitle == "1 modified, 9 unchanged"
 
-    def test_images_added_and_removed(self):
+    def test_images_added_and_removed(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics()
         base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
 
@@ -324,7 +324,7 @@ class SnapshotChangesFormattingTest(SnapshotStatusCheckTestBase):
 
         assert subtitle == "2 added, 1 removed, 8 unchanged"
 
-    def test_images_renamed(self):
+    def test_images_renamed(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics()
         base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
 
@@ -348,7 +348,7 @@ class SnapshotChangesFormattingTest(SnapshotStatusCheckTestBase):
 
         assert subtitle == "4 renamed, 6 unchanged"
 
-    def test_all_change_types_combined(self):
+    def test_all_change_types_combined(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics()
         base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
 
@@ -379,7 +379,7 @@ class SnapshotChangesFormattingTest(SnapshotStatusCheckTestBase):
 
 @cell_silo_test
 class SnapshotFailureStateFormattingTest(SnapshotStatusCheckTestBase):
-    def test_failed_comparison_returns_error_message(self):
+    def test_failed_comparison_returns_error_message(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics()
         base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
 
@@ -404,7 +404,7 @@ class SnapshotFailureStateFormattingTest(SnapshotStatusCheckTestBase):
         assert subtitle == "We had trouble comparing snapshots, our team is investigating."
         assert summary == ""
 
-    def test_failed_comparison_early_returns_ignoring_other_artifacts(self):
+    def test_failed_comparison_early_returns_ignoring_other_artifacts(self) -> None:
         # First artifact has a failed comparison
         head1, head1_metrics = self._create_artifact_with_metrics(
             app_id="com.example.failed", build_number=1
@@ -450,7 +450,7 @@ class SnapshotFailureStateFormattingTest(SnapshotStatusCheckTestBase):
 
 @cell_silo_test
 class SnapshotMixedStateFormattingTest(SnapshotStatusCheckTestBase):
-    def test_mixed_success_and_processing(self):
+    def test_mixed_success_and_processing(self) -> None:
         head1, head1_metrics = self._create_artifact_with_metrics(
             app_id="com.example.done", build_number=1
         )
@@ -494,7 +494,7 @@ class SnapshotMixedStateFormattingTest(SnapshotStatusCheckTestBase):
 
 @cell_silo_test
 class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
-    def test_summary_table_has_correct_headers(self):
+    def test_summary_table_has_correct_headers(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics()
         base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
         comparison = self._create_comparison(head_metrics, base_metrics)
@@ -513,7 +513,7 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
         assert "| Name | Added | Removed | Modified | Renamed | Unchanged | Status |" in summary
         assert "| :--- | :---: | :---: | :---: | :---: | :---: | :---: |" in summary
 
-    def test_summary_has_no_settings_link(self):
+    def test_summary_has_no_settings_link(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics()
         base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
         comparison = self._create_comparison(head_metrics, base_metrics)
@@ -532,7 +532,7 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
         assert "Configure" not in summary
         assert "settings" not in summary
 
-    def test_summary_uses_comparison_url_when_base_artifact_exists(self):
+    def test_summary_uses_comparison_url_when_base_artifact_exists(self) -> None:
         head_commit_comparison = CommitComparison.objects.create(
             head_repo_name="test/repo",
             head_sha="head_sha_123",
@@ -564,7 +564,7 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
         expected_url = f"http://testserver/organizations/{self.organization.slug}/preprod/snapshots/{head_artifact.id}"
         assert expected_url in summary
 
-    def test_summary_uses_artifact_url_when_no_base(self):
+    def test_summary_uses_artifact_url_when_no_base(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics()
         base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
         comparison = self._create_comparison(head_metrics, base_metrics)
@@ -583,7 +583,7 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
         expected_url = f"http://testserver/organizations/{self.organization.slug}/preprod/snapshots/{head_artifact.id}"
         assert expected_url in summary
 
-    def test_full_success_summary_format(self):
+    def test_full_success_summary_format(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics(
             app_id="com.example.app", app_name="My App"
         )
@@ -624,7 +624,7 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
         )
         assert summary == expected
 
-    def test_full_failure_summary_format(self):
+    def test_full_failure_summary_format(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics(
             app_id="com.example.app", app_name="My App"
         )
@@ -671,7 +671,7 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
 
 @cell_silo_test
 class SnapshotFirstUploadFormattingTest(SnapshotStatusCheckTestBase):
-    def test_first_upload_single_artifact(self):
+    def test_first_upload_single_artifact(self) -> None:
         artifact, metrics = self._create_artifact_with_metrics(
             app_id="com.example.app", app_name="My App", image_count=24
         )
@@ -688,7 +688,7 @@ class SnapshotFirstUploadFormattingTest(SnapshotStatusCheckTestBase):
         assert "✅ Uploaded" in summary
         assert "first snapshot upload" in summary
 
-    def test_first_upload_multiple_artifacts(self):
+    def test_first_upload_multiple_artifacts(self) -> None:
         artifacts = []
         snapshot_metrics_map: dict[int, PreprodSnapshotMetrics] = {}
 
@@ -711,7 +711,7 @@ class SnapshotFirstUploadFormattingTest(SnapshotStatusCheckTestBase):
             assert f"com.example.app{i}" in summary
         assert "first snapshot upload" in summary
 
-    def test_first_upload_artifact_without_metrics(self):
+    def test_first_upload_artifact_without_metrics(self) -> None:
         artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -728,11 +728,11 @@ class SnapshotFirstUploadFormattingTest(SnapshotStatusCheckTestBase):
         assert "com.example.app" in summary
         assert "first snapshot upload" in summary
 
-    def test_first_upload_empty_artifacts_raises(self):
+    def test_first_upload_empty_artifacts_raises(self) -> None:
         with pytest.raises(ValueError, match="Cannot format messages for empty artifact list"):
             format_first_snapshot_status_check_messages([], {})
 
-    def test_first_upload_summary_table_format(self):
+    def test_first_upload_summary_table_format(self) -> None:
         artifact, metrics = self._create_artifact_with_metrics(
             app_id="com.example.app", app_name="My App", image_count=15
         )
@@ -755,7 +755,7 @@ class SnapshotFirstUploadFormattingTest(SnapshotStatusCheckTestBase):
 
 @cell_silo_test
 class SnapshotGeneratedFormattingTest(SnapshotStatusCheckTestBase):
-    def test_generated_single_artifact(self):
+    def test_generated_single_artifact(self) -> None:
         artifact, metrics = self._create_artifact_with_metrics(
             app_id="com.example.app", app_name="My App", image_count=24
         )
@@ -771,7 +771,7 @@ class SnapshotGeneratedFormattingTest(SnapshotStatusCheckTestBase):
         assert "24" in summary
         assert "✅ Uploaded" in summary
 
-    def test_generated_multiple_artifacts(self):
+    def test_generated_multiple_artifacts(self) -> None:
         artifacts = []
         snapshot_metrics_map: dict[int, PreprodSnapshotMetrics] = {}
 
@@ -793,7 +793,7 @@ class SnapshotGeneratedFormattingTest(SnapshotStatusCheckTestBase):
         for i in range(3):
             assert f"com.example.app{i}" in summary
 
-    def test_generated_single_snapshot_singular(self):
+    def test_generated_single_snapshot_singular(self) -> None:
         artifact, metrics = self._create_artifact_with_metrics(
             app_id="com.example.app", image_count=1
         )
@@ -805,11 +805,11 @@ class SnapshotGeneratedFormattingTest(SnapshotStatusCheckTestBase):
 
         assert subtitle == "Generated 1 snapshot"
 
-    def test_generated_empty_artifacts_raises(self):
+    def test_generated_empty_artifacts_raises(self) -> None:
         with pytest.raises(ValueError, match="Cannot format messages for empty artifact list"):
             format_generated_snapshot_status_check_messages([], {})
 
-    def test_generated_summary_table_format(self):
+    def test_generated_summary_table_format(self) -> None:
         artifact, metrics = self._create_artifact_with_metrics(
             app_id="com.example.app", app_name="My App", image_count=15
         )
@@ -831,7 +831,7 @@ class SnapshotGeneratedFormattingTest(SnapshotStatusCheckTestBase):
 
 @cell_silo_test
 class SnapshotMissingBaseFormattingTest(SnapshotStatusCheckTestBase):
-    def test_missing_base_single_artifact(self):
+    def test_missing_base_single_artifact(self) -> None:
         artifact, metrics = self._create_artifact_with_metrics(
             app_id="com.example.app", app_name="My App", image_count=24
         )
@@ -848,7 +848,7 @@ class SnapshotMissingBaseFormattingTest(SnapshotStatusCheckTestBase):
         assert "✅ Uploaded" in summary
         assert "No base snapshots found to compare against" in summary
 
-    def test_missing_base_multiple_artifacts(self):
+    def test_missing_base_multiple_artifacts(self) -> None:
         artifacts = []
         snapshot_metrics_map: dict[int, PreprodSnapshotMetrics] = {}
 
@@ -871,11 +871,11 @@ class SnapshotMissingBaseFormattingTest(SnapshotStatusCheckTestBase):
             assert f"com.example.app{i}" in summary
         assert "No base snapshots found to compare against" in summary
 
-    def test_missing_base_empty_artifacts_raises(self):
+    def test_missing_base_empty_artifacts_raises(self) -> None:
         with pytest.raises(ValueError, match="Cannot format messages for empty artifact list"):
             format_missing_base_snapshot_status_check_messages([], {})
 
-    def test_missing_base_summary_table_format(self):
+    def test_missing_base_summary_table_format(self) -> None:
         artifact, metrics = self._create_artifact_with_metrics(
             app_id="com.example.app", app_name="My App", image_count=15
         )

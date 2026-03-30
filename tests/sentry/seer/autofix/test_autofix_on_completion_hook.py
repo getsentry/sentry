@@ -136,19 +136,19 @@ def impact_assessment_memory_block() -> MemoryBlock:
 class TestAutofixOnCompletionHookHelpers(TestCase):
     """Tests for helper methods in AutofixOnCompletionHook."""
 
-    def test_get_current_step_root_cause(self):
+    def test_get_current_step_root_cause(self) -> None:
         """Returns ROOT_CAUSE when root_cause artifact exists."""
         state = run_state(blocks=[root_cause_memory_block()])
         result = AutofixOnCompletionHook._get_current_step(state)
         assert result == AutofixStep.ROOT_CAUSE
 
-    def test_get_current_step_solution(self):
+    def test_get_current_step_solution(self) -> None:
         """Returns SOLUTION when solution artifact exists."""
         state = run_state(blocks=[root_cause_memory_block(), solution_memory_block()])
         result = AutofixOnCompletionHook._get_current_step(state)
         assert result == AutofixStep.SOLUTION
 
-    def test_get_current_step_code_changes(self):
+    def test_get_current_step_code_changes(self) -> None:
         """Returns CODE_CHANGES when code changes exist."""
         state = run_state(
             blocks=[
@@ -160,28 +160,28 @@ class TestAutofixOnCompletionHookHelpers(TestCase):
         result = AutofixOnCompletionHook._get_current_step(state)
         assert result == AutofixStep.CODE_CHANGES
 
-    def test_get_current_step_none(self):
+    def test_get_current_step_none(self) -> None:
         """Returns None when no artifacts or code changes exist."""
         state = run_state()
         result = AutofixOnCompletionHook._get_current_step(state)
         assert result is None
 
-    def test_get_next_step_root_cause_to_solution(self):
+    def test_get_next_step_root_cause_to_solution(self) -> None:
         """Returns SOLUTION after ROOT_CAUSE."""
         result = AutofixOnCompletionHook._get_next_step(AutofixStep.ROOT_CAUSE)
         assert result == AutofixStep.SOLUTION
 
-    def test_get_next_step_solution_to_code_changes(self):
+    def test_get_next_step_solution_to_code_changes(self) -> None:
         """Returns CODE_CHANGES after SOLUTION."""
         result = AutofixOnCompletionHook._get_next_step(AutofixStep.SOLUTION)
         assert result == AutofixStep.CODE_CHANGES
 
-    def test_get_next_step_code_changes_is_last(self):
+    def test_get_next_step_code_changes_is_last(self) -> None:
         """Returns None after CODE_CHANGES (last step)."""
         result = AutofixOnCompletionHook._get_next_step(AutofixStep.CODE_CHANGES)
         assert result is None
 
-    def test_get_next_step_unknown_step(self):
+    def test_get_next_step_unknown_step(self) -> None:
         """Returns None for steps not in pipeline."""
         result = AutofixOnCompletionHook._get_next_step(AutofixStep.TRIAGE)
         assert result is None
@@ -190,7 +190,7 @@ class TestAutofixOnCompletionHookHelpers(TestCase):
 class TestAutofixOnCompletionHookPipeline(TestCase):
     """Tests for pipeline continuation logic."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
@@ -200,14 +200,14 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
     def test_maybe_continue_pipeline_no_metadata(self, mock_trigger):
         """Does not continue when metadata is missing."""
         state = run_state(blocks=[root_cause_memory_block()])
-        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state)
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
         mock_trigger.assert_not_called()
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_explorer")
     def test_maybe_continue_pipeline_no_stopping_point_in_metadata(self, mock_trigger):
         """Does not continue when stopping_point is missing from metadata."""
         state = run_state(blocks=[root_cause_memory_block()], metadata={"group_id": self.group.id})
-        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state)
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
         mock_trigger.assert_not_called()
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_explorer")
@@ -220,7 +220,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
                 "stopping_point": AutofixStoppingPoint.ROOT_CAUSE.value,
             },
         )
-        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state)
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
         mock_trigger.assert_not_called()
 
     @patch("sentry.seer.autofix.on_completion_hook.get_project_seer_preferences")
@@ -237,7 +237,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
                 "stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
             },
         )
-        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state)
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
         mock_trigger.assert_called_once()
         call_kwargs = mock_trigger.call_args.kwargs
         assert call_kwargs["group"].id == self.group.id
@@ -258,7 +258,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
                 "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
             },
         )
-        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state)
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
         mock_push_changes.assert_called_once_with(
             self.group,
             123,
@@ -270,7 +270,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
 class TestPipelineConstants(TestCase):
     """Tests for pipeline constants."""
 
-    def test_pipeline_order(self):
+    def test_pipeline_order(self) -> None:
         """Pipeline order is root_cause -> solution -> code_changes."""
         assert PIPELINE_ORDER == [
             AutofixStep.ROOT_CAUSE,
@@ -278,7 +278,7 @@ class TestPipelineConstants(TestCase):
             AutofixStep.CODE_CHANGES,
         ]
 
-    def test_stopping_point_to_step_mapping(self):
+    def test_stopping_point_to_step_mapping(self) -> None:
         """Stopping points map to correct steps."""
         assert STOPPING_POINT_TO_STEP[AutofixStoppingPoint.ROOT_CAUSE] == AutofixStep.ROOT_CAUSE
         assert STOPPING_POINT_TO_STEP[AutofixStoppingPoint.SOLUTION] == AutofixStep.SOLUTION
@@ -287,9 +287,11 @@ class TestPipelineConstants(TestCase):
 
 
 class TestAutofixOnCompletionHookWebhooks(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+        self.group = self.create_group(project=self.project)
 
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
     def test_send_step_webhook_artifact_types(self, mock_broadcast):
@@ -328,7 +330,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         for i, test_case in enumerate(test_cases):
             mock_broadcast.reset_mock()
             state = run_state(blocks=[test_case["block"]])
-            AutofixOnCompletionHook._send_step_webhook(self.organization, run_id, state)
+            AutofixOnCompletionHook._send_step_webhook(self.organization, run_id, state, self.group)
 
             mock_broadcast.assert_called_once()
             call_kwargs = mock_broadcast.call_args.kwargs
@@ -352,7 +354,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
                 code_changes_memory_block(),
             ]
         )
-        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state)
+        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
 
         mock_broadcast.assert_called_once()
         call_kwargs = mock_broadcast.call_args.kwargs
@@ -371,7 +373,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
             artifacts=[],
         )
         state = run_state(blocks=[block])
-        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state)
+        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
 
         mock_broadcast.assert_not_called()
 
@@ -379,7 +381,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
 class TestAutofixOnCompletionHookSupergroups(TestCase):
     """Tests for supergroups embedding trigger in AutofixOnCompletionHook."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
@@ -391,7 +393,9 @@ class TestAutofixOnCompletionHookSupergroups(TestCase):
         """Triggers supergroups embedding when root cause completes with feature flag enabled."""
         block = root_cause_memory_block()
         state = run_state(blocks=[block], metadata={"group_id": self.group.id})
-        AutofixOnCompletionHook._maybe_trigger_supergroups_embedding(self.organization, 123, state)
+        AutofixOnCompletionHook._maybe_trigger_supergroups_embedding(
+            self.organization, 123, state, self.group
+        )
 
         mock_trigger_sg.assert_called_once_with(
             organization_id=self.organization.id,
@@ -407,15 +411,9 @@ class TestAutofixOnCompletionHookSupergroups(TestCase):
             blocks=[root_cause_memory_block()],
             metadata={"group_id": self.group.id},
         )
-        AutofixOnCompletionHook._maybe_trigger_supergroups_embedding(self.organization, 123, state)
-
-        mock_trigger_sg.assert_not_called()
-
-    @patch("sentry.seer.autofix.on_completion_hook.trigger_supergroups_embedding")
-    def test_skips_embedding_when_no_group_id(self, mock_trigger_sg):
-        """Does not trigger supergroups embedding when group_id is missing from metadata."""
-        state = run_state(blocks=[root_cause_memory_block()])
-        AutofixOnCompletionHook._maybe_trigger_supergroups_embedding(self.organization, 123, state)
+        AutofixOnCompletionHook._maybe_trigger_supergroups_embedding(
+            self.organization, 123, state, self.group
+        )
 
         mock_trigger_sg.assert_not_called()
 
@@ -454,7 +452,7 @@ class TestAutofixOnCompletionHookSupergroups(TestCase):
 class TestAutofixOnCompletionHookHandoff(TestCase):
     """Tests for coding agent handoff logic in AutofixOnCompletionHook."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
@@ -559,7 +557,7 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
             },
         )
 
-        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state)
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
 
         mock_trigger_handoff.assert_called_once()
 

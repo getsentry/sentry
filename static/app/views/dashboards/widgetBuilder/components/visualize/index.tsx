@@ -1023,7 +1023,9 @@ export function Visualize({error, setError}: VisualizeProps) {
                                 />
                               </Tooltip>
                             )}
-                          {(!isBigNumberWidget || datasetConfig.enableEquations) && (
+                          {(!isBigNumberWidget ||
+                            datasetConfig.enableEquations ||
+                            (isBigNumberWidget && fields.length > 1)) && (
                             <Button
                               priority="transparent"
                               icon={<IconDelete />}

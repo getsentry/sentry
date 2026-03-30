@@ -55,7 +55,7 @@ import {
 } from 'sentry/views/dashboards/types';
 import {
   eventViewFromWidget,
-  getDashboardFiltersFromURL,
+  getMergedDashboardFilters,
   getSavedFiltersAsPageFilters,
   getSavedPageFilters,
   isWidgetEditable,
@@ -516,10 +516,10 @@ function AddToDashboardModal({
                             ? getSavedFiltersAsPageFilters(selectedDashboard)
                             : selection
                         }
-                        dashboardFilters={
-                          getDashboardFiltersFromURL(location) ??
-                          selectedDashboard?.filters
-                        }
+                        dashboardFilters={getMergedDashboardFilters(
+                          selectedDashboard?.filters,
+                          location
+                        )}
                         widget={{
                           ...widget,
                           title: newWidgetTitle,
