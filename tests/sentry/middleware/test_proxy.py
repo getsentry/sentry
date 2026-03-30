@@ -35,7 +35,7 @@ class SetRemoteAddrFromForwardedForTestCase(TestCase):
         assert request.META["REMOTE_ADDR"] == "2001:4860:4860::8888"
 
 
-test_region = Cell(
+test_cell = Cell(
     "us",
     1,
     "https://test",
@@ -43,7 +43,7 @@ test_region = Cell(
 )
 
 
-@control_silo_test(cells=[test_region])
+@control_silo_test(cells=[test_cell])
 class FakedAPIProxyTest(APITestCase):
     endpoint = "sentry-api-0-organization-teams"
     method = "post"
