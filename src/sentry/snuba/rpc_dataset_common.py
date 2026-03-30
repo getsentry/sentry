@@ -439,6 +439,30 @@ class RPCBase:
         return results
 
     @classmethod
+    def process_a_column_values(
+        cls,
+        column_value: Any,
+        final_data: SnubaData,
+        attribute: Any,
+        resolved_column: ResolvedColumn,
+    ) -> None:
+        for index, result in enumerate(column_value.results):
+            result_value: str | int | float | None
+            if result.is_null:
+                result_value = None
+            else:
+                result_value = getattr(result, str(result.WhichOneof("value")))
+            result_value = process_value(result_value)
+            final_data[index][attribute] = resolved_column.process_column(result_value)
+
+    @classmethod
+    def process_column_confidence(cls, column_value, final_confidence, attribute) -> None:
+        for index, result in enumerate(column_value.results):
+            final_confidence[index][attribute] = CONFIDENCES.get(
+                column_value.reliabilities[index], None
+            )
+
+    @classmethod
     def process_table_response(
         cls,
         rpc_response: TraceItemTableResponse,
@@ -480,18 +504,9 @@ class RPCBase:
                 final_data.append({})
                 final_confidence.append({})
 
-            for index, result in enumerate(column_value.results):
-                result_value: str | int | float | None
-                if result.is_null:
-                    result_value = None
-                else:
-                    result_value = getattr(result, str(result.WhichOneof("value")))
-                result_value = process_value(result_value)
-                final_data[index][attribute] = resolved_column.process_column(result_value)
-                if has_reliability:
-                    final_confidence[index][attribute] = CONFIDENCES.get(
-                        column_value.reliabilities[index], None
-                    )
+            cls.process_a_column_values(column_value, final_data, attribute, resolved_column)
+            if has_reliability:
+                cls.process_column_confidence(column_value, final_confidence, attribute)
 
         if debug:
             set_debug_meta(final_meta, rpc_response.meta, table_request.rpc_request)

@@ -1,4 +1,3 @@
-from sentry.models.group import Group
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     ResolvedAttribute,
@@ -6,15 +5,6 @@ from sentry.search.eap.columns import (
 )
 from sentry.search.eap.common_columns import COMMON_COLUMNS, project_virtual_contexts
 from sentry.utils.validators import is_event_id_or_list
-
-
-def group_id_to_issue_processor(group_id: int) -> str:
-    try:
-        grp = Group.objects.filter(id=group_id).first()
-        return grp.qualified_short_id
-    except Group.DoesNotExist:
-        return "Unknown"
-
 
 OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
     column.public_alias: column
@@ -293,8 +283,8 @@ OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
             ResolvedAttribute(
                 public_alias="issue",
                 internal_name="group_id",
-                search_type="integer",
-                processor=group_id_to_issue_processor,
+                search_type="string",
+                internal_type=constants.INT,
             ),
         ]
     )

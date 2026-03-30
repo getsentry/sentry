@@ -11,15 +11,18 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
-from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute
+from sentry.models.group import Group
+from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute, ResolvedColumn
 from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import AdditionalQueries, EAPResponse, SearchResolverConfig
-from sentry.search.events.types import SAMPLING_MODES, SnubaParams
+from sentry.search.events.types import SAMPLING_MODES, SnubaData, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.utils.snuba import process_value
 
 logger = logging.getLogger(__name__)
+
+UNKNOWN_ISSUE = "UNKNOWN"
 
 
 class OccurrenceCategory(Enum):
@@ -244,6 +247,35 @@ class Occurrences(rpc_dataset_common.RPCBase):
             results.extend(time_dict.values())
 
         return results
+
+    @classmethod
+    def _fetch_issue_labels(cls, group_ids: list[str | None]) -> dict[int, str]:
+        resultant_map: dict[int, str] = {}
+        for grp in Group.objects.filter(
+            pk__in=set([grp_id for grp_id in group_ids if grp_id])
+        ).select_related("project"):
+            resultant_map[grp.id] = grp.qualified_short_id
+        return resultant_map
+
+    @classmethod
+    def process_a_column_values(
+        cls,
+        column_value: Any,
+        final_data: SnubaData,
+        attribute: Any,
+        resolved_column: ResolvedColumn,
+    ) -> None:
+        if attribute == "issue":
+            group_ids = [
+                getattr(result, str(result.WhichOneof("value"))) if not result.is_null else None
+                for result in column_value.results
+            ]
+            group_id_to_issue_map = cls._fetch_issue_labels(group_ids)
+            for index, group_id in enumerate(group_ids):
+                issue_label = group_id_to_issue_map.get(group_id, UNKNOWN_ISSUE)
+                final_data[index][attribute] = issue_label
+        else:
+            super().process_a_column_values(column_value, final_data, attribute, resolved_column)
 
     @classmethod
     def _build_category_filter(cls, category: OccurrenceCategory | None) -> TraceItemFilter | None:
