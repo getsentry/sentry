@@ -56,11 +56,11 @@ export function ScmFeatureCard({
               gap="xs lg"
               align="center"
               areas={`
-                    "cell1 cell2"
-                    ". cell4"
+                    "icon label"
+                    ". description"
                   `}
             >
-              <Container area="cell1">
+              <Container area="icon">
                 {containerProps => (
                   <Icon
                     {...containerProps}
@@ -70,12 +70,12 @@ export function ScmFeatureCard({
                 )}
               </Container>
 
-              <Container area="cell2">
+              <Container area="label">
                 <Text bold size="lg">
                   {label}
                 </Text>
               </Container>
-              <Container area="cell4">
+              <Container area="description">
                 <Text variant="muted">{description}</Text>
               </Container>
             </Grid>
