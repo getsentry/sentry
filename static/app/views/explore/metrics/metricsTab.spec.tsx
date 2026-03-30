@@ -731,5 +731,14 @@ describe('MetricsTabContent (tracemetrics-ui-refresh)', () => {
     await waitFor(() => {
       expect(screen.getAllByTestId('metric-toolbar')).toHaveLength(1);
     });
+
+    // Wait for the SearchQueryBuilderCombobox inside the re-expanded sidebar to
+    // finish initialising, otherwise its async state updates fire after the test
+    // ends and trigger an act() warning that jest-fail-on-console catches.
+    await waitFor(() => {
+      expect(
+        within(screen.getAllByTestId('metric-toolbar')[0]!).getByRole('combobox')
+      ).toBeInTheDocument();
+    });
   });
 });
