@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useEffect, Fragment, useRef} from 'react';
 
 import {Stack} from '@sentry/scraps/layout';
 
