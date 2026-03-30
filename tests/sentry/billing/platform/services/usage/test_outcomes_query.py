@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -261,6 +261,29 @@ class TestQueryOutcomesUsage:
         mock_query.assert_called_once()
         _, kwargs = mock_query.call_args
         assert kwargs["referrer"] == "billing.usage_service.clickhouse"
+
+    @patch("sentry.billing.platform.services.usage._outcomes_query.raw_snql_query")
+    def test_end_date_shifted_plus_one_day(self, mock_query):
+        """Proto end is inclusive (last included day). The query shifts +1 day for half-open."""
+        mock_query.return_value = {"data": []}
+
+        start = _make_timestamp(datetime(2025, 3, 1, tzinfo=timezone.utc))
+        end = _make_timestamp(datetime(2025, 3, 31, tzinfo=timezone.utc))
+        request = GetUsageRequest(organization_id=1, start=start, end=end)
+
+        query_outcomes_usage(request)
+
+        snuba_request = mock_query.call_args[0][0]
+        timestamp_conditions = {
+            c.op: c.rhs
+            for c in snuba_request.query.where
+            if hasattr(c, "lhs") and c.lhs.name == "timestamp"
+        }
+        assert timestamp_conditions[Op.GTE] == datetime(2025, 3, 1, tzinfo=timezone.utc)
+        # end=March 31 (inclusive) → query uses < April 1 (exclusive)
+        assert timestamp_conditions[Op.LT] == datetime(
+            2025, 3, 31, tzinfo=timezone.utc
+        ) + timedelta(days=1)
 
     @patch("sentry.billing.platform.services.usage._outcomes_query.raw_snql_query")
     def test_query_returns_response(self, mock_query):

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.billing.v1.date_pb2 import Date
@@ -43,7 +43,11 @@ _QUERY_LIMIT = 10000
 def query_outcomes_usage(request: GetUsageRequest) -> GetUsageResponse:
     org_id = request.organization_id
     start = _timestamp_to_datetime(request.start)
-    end = _timestamp_to_datetime(request.end)
+    # The proto contract defines `end` as inclusive (midnight of the last
+    # included day). Snuba queries use a half-open interval [start, end),
+    # so we add one day to convert inclusive→exclusive. Without this, all
+    # hourly rows on the last day would be excluded.
+    end = _timestamp_to_datetime(request.end) + timedelta(days=1)
     categories = list(request.categories)
 
     snuba_request = _build_query(org_id, start, end, categories)
@@ -70,9 +74,9 @@ def _build_query(
     end: datetime,
     categories: list[int],
 ) -> Request:
-    # Half-open interval [start, end) — matches sentry.snuba.outcomes convention.
-    # Callers pass end as the exclusive boundary (start of the next period) so
-    # adjacent periods never overlap and rows are never double-counted.
+    # Half-open interval [start, end) — standard sentry.snuba.outcomes convention.
+    # `end` has already been shifted +1 day in query_outcomes_usage() to convert
+    # the proto's inclusive end into the exclusive boundary Snuba expects.
     where = [
         Condition(Column("org_id"), Op.EQ, org_id),
         Condition(Column("timestamp"), Op.GTE, start),
