@@ -279,18 +279,26 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
         else:
             repositories = existing_pref.get("repositories") or []
 
-            if existing_pref.get("automated_run_stopping_point") in ("open_pr", "code_changes"):
-                stopping_point = existing_pref["automated_run_stopping_point"]
+            existing_stopping_point = existing_pref.get("automated_run_stopping_point")
+            existing_handoff = existing_pref.get("automation_handoff")
 
-            if existing_pref.get("automation_handoff"):
-                handoff = existing_pref["automation_handoff"]
-        repositories = deduplicate_repositories(repositories)
+            # Skip projects that a) already have an acceptable stopping point configured
+            # AND b) already have a handoff configured or no org default handoff.
+            if existing_stopping_point in ("open_pr", "code_changes") and (
+                existing_handoff or default_handoff is None
+            ):
+                continue
+
+            if existing_stopping_point in ("open_pr", "code_changes"):
+                stopping_point = existing_stopping_point
+            if existing_handoff:
+                handoff = existing_handoff
 
         preferences_to_set.append(
             {
                 "organization_id": organization_id,
                 "project_id": project_id,
-                "repositories": repositories or [],
+                "repositories": deduplicate_repositories(repositories) or [],
                 "automated_run_stopping_point": stopping_point,
                 "automation_handoff": handoff,
             }
