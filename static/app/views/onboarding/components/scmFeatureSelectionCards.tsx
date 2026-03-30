@@ -85,17 +85,24 @@ export function ScmFeatureSelectionCards({
 
   return (
     <Flex direction="column" gap="md" width="100%" justify="center">
-      <Grid columns="1fr auto 1fr" align="center" areas='"spacer heading counter"'>
-        <Flex area="heading">
+      <Grid
+        columns={{xs: '1fr', md: '1fr auto 1fr'}}
+        align="center"
+        justify="center"
+        areas={{xs: '"heading" "counter"', md: '"spacer heading counter"'}}
+      >
+        <Flex area="heading" justify={{xs: 'center', md: 'start'}}>
           <Heading as="h3">{t('What do you want to set up?')}</Heading>
         </Flex>
-        <Flex area="counter" justify="end">
+        <Flex area="counter" justify={{xs: 'center', md: 'end'}}>
           <Text variant="muted">{t('%s of %s selected', selectedCount, totalCount)}</Text>
         </Flex>
       </Grid>
       <Grid
         gap="lg"
-        columns={availableFeatures.length === 1 ? '1fr' : 'repeat(2, 1fr)'}
+        columns={
+          availableFeatures.length === 1 ? '1fr' : {xs: '1fr', md: 'repeat(2, 1fr)'}
+        }
         maxWidth={availableFeatures.length === 1 ? '50%' : undefined}
         margin={availableFeatures.length === 1 ? '0 auto' : undefined}
       >

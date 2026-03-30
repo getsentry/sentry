@@ -393,8 +393,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
                 <LoadingIndicator mini />
               ) : (
                 <Grid
-                  autoColumns="1fr"
-                  flow="column"
+                  columns={{xs: '1fr', md: `repeat(${resolvedPlatforms.length}, 1fr)`}}
                   justify="center"
                   gap="md"
                   role="radiogroup"
