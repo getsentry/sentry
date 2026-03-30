@@ -274,6 +274,18 @@ incorrect_cases = [
         "<date>12",
     ),
     (
+        "int - dashed string with numbers",
+        "415-908",
+        "<int>-<int>",
+        "<int><int>",
+    ),
+    (
+        "int - dashed string with letters",
+        "maisey-908",
+        "maisey-<int>",
+        "maisey<int>",
+    ),
+    (
         "int - number in word",
         "Encoding: utf-8",
         "Encoding: utf-8",
