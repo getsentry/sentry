@@ -43,7 +43,7 @@ export default function ReplayDetails() {
               align="center"
               gap="md"
               wrap="wrap"
-              padding={hasPageFrame ? 'md xl' : 'sm lg'}
+              padding={hasPageFrame ? {sm: 'sm lg', md: 'md xl'} : 'sm lg'}
             >
               {t('Replay Details')}
             </Flex>
@@ -92,7 +92,6 @@ function ReplayDetailsContent() {
 
   const hasPageFrame = useHasPageFrameFeature();
 
-  // padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
   const content = (
     <Fragment>
       <Flex direction="column">
@@ -102,7 +101,7 @@ function ReplayDetailsContent() {
           align="center"
           gap="md"
           wrap="wrap"
-          padding={hasPageFrame ? 'md xl' : 'sm lg'}
+          padding={hasPageFrame ? {sm: 'sm lg', md: 'md xl'} : 'sm lg'}
         >
           <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
           <ReplayDetailsHeaderActions readerResult={readerResult} />
@@ -110,7 +109,7 @@ function ReplayDetailsContent() {
         <Flex
           justify="between"
           align="center"
-          padding={hasPageFrame ? 'md xl' : 'md lg'}
+          padding={hasPageFrame ? {sm: 'md lg', md: 'md xl'} : 'md lg'}
           borderBottom="secondary"
         >
           <ReplayDetailsUserBadge readerResult={readerResult} />

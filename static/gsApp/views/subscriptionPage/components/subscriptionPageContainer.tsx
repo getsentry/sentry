@@ -23,7 +23,7 @@ export function SubscriptionPageContainer({
       background={hasPageFrame ? 'primary' : background}
       borderTop={background === 'secondary' ? 'primary' : undefined}
       flexGrow={1}
-      padding={hasPageFrame ? 'md xl' : {xs: 'xl', md: '3xl'}}
+      padding={hasPageFrame ? {sm: 'sm lg', md: 'md xl'} : {xs: 'xl', md: '3xl'}}
       {...rest}
     >
       {children}
