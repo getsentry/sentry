@@ -71,7 +71,7 @@ class MockAutofixEntrypoint(SeerAutofixEntrypoint[MockCachePayload]):
 
 
 class SeerOperatorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.entrypoint = MockAutofixEntrypoint()
         self.operator = SeerAutofixOperator(self.entrypoint)
 
@@ -345,7 +345,7 @@ class SeerOperatorTest(TestCase):
             cache_payload=cache_payload,
         )
 
-    def test_process_autofix_updates_no_operator_access(self):
+    def test_process_autofix_updates_no_operator_access(self) -> None:
         mock_entrypoint_cls = Mock(spec=SeerAutofixEntrypoint)
         event_type = SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED
         event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
@@ -464,7 +464,7 @@ class SeerOperatorTest(TestCase):
         assert payload["type"] == "select_root_cause"
         assert payload["cause_id"] == 34
 
-    def test_can_trigger_autofix_returns_false_without_seer_access(self):
+    def test_can_trigger_autofix_returns_false_without_seer_access(self) -> None:
         assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is False
 
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
@@ -521,11 +521,11 @@ class TestGetAutofixExplorerStatus(TestCase):
             repo_pr_states=repo_pr_states or {},
         )
 
-    def test_no_blocks_returns_none(self):
+    def test_no_blocks_returns_none(self) -> None:
         state = self._make_state(blocks=[])
         assert get_autofix_explorer_status(AutofixStoppingPoint.ROOT_CAUSE, state) is None
 
-    def test_blocks_with_no_metadata_returns_none(self):
+    def test_blocks_with_no_metadata_returns_none(self) -> None:
         block = MemoryBlock(
             id="1",
             message=Message(role="assistant", metadata=None),
@@ -534,7 +534,7 @@ class TestGetAutofixExplorerStatus(TestCase):
         state = self._make_state(blocks=[block])
         assert get_autofix_explorer_status(AutofixStoppingPoint.ROOT_CAUSE, state) is None
 
-    def test_blocks_with_metadata_but_no_step_key_returns_none(self):
+    def test_blocks_with_metadata_but_no_step_key_returns_none(self) -> None:
         block = MemoryBlock(
             id="1",
             message=Message(role="assistant", metadata={"other": "value"}),
@@ -543,7 +543,7 @@ class TestGetAutofixExplorerStatus(TestCase):
         state = self._make_state(blocks=[block])
         assert get_autofix_explorer_status(AutofixStoppingPoint.ROOT_CAUSE, state) is None
 
-    def test_block_with_invalid_step_value_returns_none(self):
+    def test_block_with_invalid_step_value_returns_none(self) -> None:
         block = MemoryBlock(
             id="1",
             message=Message(role="assistant", metadata={"step": "not_a_real_step"}),
@@ -552,34 +552,34 @@ class TestGetAutofixExplorerStatus(TestCase):
         state = self._make_state(blocks=[block])
         assert get_autofix_explorer_status(AutofixStoppingPoint.ROOT_CAUSE, state) is None
 
-    def test_matching_last_block_processing_returns_false(self):
+    def test_matching_last_block_processing_returns_false(self) -> None:
         block = self._make_block("root_cause")
         state = self._make_state(blocks=[block], status="processing")
         assert get_autofix_explorer_status(AutofixStoppingPoint.ROOT_CAUSE, state) is False
 
-    def test_matching_last_block_completed_returns_true(self):
+    def test_matching_last_block_completed_returns_true(self) -> None:
         block = self._make_block("root_cause")
         state = self._make_state(blocks=[block], status="completed")
         assert get_autofix_explorer_status(AutofixStoppingPoint.ROOT_CAUSE, state) is True
 
-    def test_matching_last_block_error_returns_true(self):
+    def test_matching_last_block_error_returns_true(self) -> None:
         block = self._make_block("root_cause")
         state = self._make_state(blocks=[block], status="error")
         assert get_autofix_explorer_status(AutofixStoppingPoint.ROOT_CAUSE, state) is True
 
-    def test_matching_block_not_last_returns_true(self):
+    def test_matching_block_not_last_returns_true(self) -> None:
         root_cause_block = self._make_block("root_cause", block_id="1")
         solution_block = self._make_block("solution", block_id="2")
         state = self._make_state(blocks=[root_cause_block, solution_block], status="processing")
         # root_cause is not the last block, so it's already completed
         assert get_autofix_explorer_status(AutofixStoppingPoint.ROOT_CAUSE, state) is True
 
-    def test_open_pr_no_repo_pr_states_returns_false(self):
+    def test_open_pr_no_repo_pr_states_returns_false(self) -> None:
         block = self._make_block("code_changes")
         state = self._make_state(blocks=[block], repo_pr_states={})
         assert get_autofix_explorer_status(AutofixStoppingPoint.OPEN_PR, state) is None
 
-    def test_open_pr_all_prs_completed_returns_true(self):
+    def test_open_pr_all_prs_completed_returns_true(self) -> None:
         block = self._make_block("code_changes")
         pr_states = {
             "repo1": RepoPRState(repo_name="repo1", pr_creation_status="completed"),
@@ -588,7 +588,7 @@ class TestGetAutofixExplorerStatus(TestCase):
         state = self._make_state(blocks=[block], repo_pr_states=pr_states)
         assert get_autofix_explorer_status(AutofixStoppingPoint.OPEN_PR, state) is True
 
-    def test_open_pr_some_prs_still_creating_returns_false(self):
+    def test_open_pr_some_prs_still_creating_returns_false(self) -> None:
         block = self._make_block("code_changes")
         pr_states = {
             "repo1": RepoPRState(repo_name="repo1", pr_creation_status="completed"),
@@ -597,7 +597,7 @@ class TestGetAutofixExplorerStatus(TestCase):
         state = self._make_state(blocks=[block], repo_pr_states=pr_states)
         assert get_autofix_explorer_status(AutofixStoppingPoint.OPEN_PR, state) is False
 
-    def test_multiple_stopping_points(self):
+    def test_multiple_stopping_points(self) -> None:
         """Verify from_autofix_stopping_point mapping works for various stopping points."""
         root_cause_block = self._make_block("root_cause", block_id="1")
         solution_block = self._make_block("solution", block_id="2")

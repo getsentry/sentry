@@ -136,19 +136,19 @@ def impact_assessment_memory_block() -> MemoryBlock:
 class TestAutofixOnCompletionHookHelpers(TestCase):
     """Tests for helper methods in AutofixOnCompletionHook."""
 
-    def test_get_current_step_root_cause(self):
+    def test_get_current_step_root_cause(self) -> None:
         """Returns ROOT_CAUSE when root_cause artifact exists."""
         state = run_state(blocks=[root_cause_memory_block()])
         result = AutofixOnCompletionHook._get_current_step(state)
         assert result == AutofixStep.ROOT_CAUSE
 
-    def test_get_current_step_solution(self):
+    def test_get_current_step_solution(self) -> None:
         """Returns SOLUTION when solution artifact exists."""
         state = run_state(blocks=[root_cause_memory_block(), solution_memory_block()])
         result = AutofixOnCompletionHook._get_current_step(state)
         assert result == AutofixStep.SOLUTION
 
-    def test_get_current_step_code_changes(self):
+    def test_get_current_step_code_changes(self) -> None:
         """Returns CODE_CHANGES when code changes exist."""
         state = run_state(
             blocks=[
@@ -160,28 +160,28 @@ class TestAutofixOnCompletionHookHelpers(TestCase):
         result = AutofixOnCompletionHook._get_current_step(state)
         assert result == AutofixStep.CODE_CHANGES
 
-    def test_get_current_step_none(self):
+    def test_get_current_step_none(self) -> None:
         """Returns None when no artifacts or code changes exist."""
         state = run_state()
         result = AutofixOnCompletionHook._get_current_step(state)
         assert result is None
 
-    def test_get_next_step_root_cause_to_solution(self):
+    def test_get_next_step_root_cause_to_solution(self) -> None:
         """Returns SOLUTION after ROOT_CAUSE."""
         result = AutofixOnCompletionHook._get_next_step(AutofixStep.ROOT_CAUSE)
         assert result == AutofixStep.SOLUTION
 
-    def test_get_next_step_solution_to_code_changes(self):
+    def test_get_next_step_solution_to_code_changes(self) -> None:
         """Returns CODE_CHANGES after SOLUTION."""
         result = AutofixOnCompletionHook._get_next_step(AutofixStep.SOLUTION)
         assert result == AutofixStep.CODE_CHANGES
 
-    def test_get_next_step_code_changes_is_last(self):
+    def test_get_next_step_code_changes_is_last(self) -> None:
         """Returns None after CODE_CHANGES (last step)."""
         result = AutofixOnCompletionHook._get_next_step(AutofixStep.CODE_CHANGES)
         assert result is None
 
-    def test_get_next_step_unknown_step(self):
+    def test_get_next_step_unknown_step(self) -> None:
         """Returns None for steps not in pipeline."""
         result = AutofixOnCompletionHook._get_next_step(AutofixStep.TRIAGE)
         assert result is None
@@ -190,7 +190,7 @@ class TestAutofixOnCompletionHookHelpers(TestCase):
 class TestAutofixOnCompletionHookPipeline(TestCase):
     """Tests for pipeline continuation logic."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
@@ -270,7 +270,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
 class TestPipelineConstants(TestCase):
     """Tests for pipeline constants."""
 
-    def test_pipeline_order(self):
+    def test_pipeline_order(self) -> None:
         """Pipeline order is root_cause -> solution -> code_changes."""
         assert PIPELINE_ORDER == [
             AutofixStep.ROOT_CAUSE,
@@ -278,7 +278,7 @@ class TestPipelineConstants(TestCase):
             AutofixStep.CODE_CHANGES,
         ]
 
-    def test_stopping_point_to_step_mapping(self):
+    def test_stopping_point_to_step_mapping(self) -> None:
         """Stopping points map to correct steps."""
         assert STOPPING_POINT_TO_STEP[AutofixStoppingPoint.ROOT_CAUSE] == AutofixStep.ROOT_CAUSE
         assert STOPPING_POINT_TO_STEP[AutofixStoppingPoint.SOLUTION] == AutofixStep.SOLUTION
@@ -287,7 +287,7 @@ class TestPipelineConstants(TestCase):
 
 
 class TestAutofixOnCompletionHookWebhooks(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
@@ -381,7 +381,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
 class TestAutofixOnCompletionHookSupergroups(TestCase):
     """Tests for supergroups embedding trigger in AutofixOnCompletionHook."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
@@ -452,7 +452,7 @@ class TestAutofixOnCompletionHookSupergroups(TestCase):
 class TestAutofixOnCompletionHookHandoff(TestCase):
     """Tests for coding agent handoff logic in AutofixOnCompletionHook."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
