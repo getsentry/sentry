@@ -15,7 +15,6 @@ from sentry.notifications.platform.templates.metric_alert import (
     ActivityMetricAlertNotificationData,
     MetricAlertNotificationData,
     SerializableAlertContext,
-    SerializableOpenPeriodContext,
 )
 from sentry.notifications.platform.templates.seer import SeerAutofixError
 from sentry.notifications.platform.types import (
@@ -45,7 +44,7 @@ def _make_notification_data(**overrides: object) -> MetricAlertNotificationData:
             action_identifier_id=1,
             detection_type="static",
         ),
-        open_period_context=SerializableOpenPeriodContext(
+        open_period_context=OpenPeriodContext(
             id=1,
             date_started=datetime(2024, 1, 1, tzinfo=timezone.utc),
         ),
@@ -105,9 +104,7 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
             organization_id=self.organization.id,
             detector_id=self.detector.id,
             alert_context=SerializableAlertContext.from_alert_context(alert_context),
-            open_period_context=SerializableOpenPeriodContext.from_open_period_context(
-                open_period_context
-            ),
+            open_period_context=open_period_context,
             notification_uuid="test-uuid",
         )
         self.rendered_template = NotificationRenderedTemplate(subject="Metric Alert", body=[])
@@ -218,9 +215,7 @@ class SlackActivityMetricAlertRendererTest(MetricAlertHandlerBase):
             organization_id=self.organization.id,
             detector_id=self.detector.id,
             alert_context=SerializableAlertContext.from_alert_context(alert_context),
-            open_period_context=SerializableOpenPeriodContext.from_open_period_context(
-                open_period_context
-            ),
+            open_period_context=open_period_context,
             activity_id=activity.id,
             notification_uuid="test-uuid",
         )

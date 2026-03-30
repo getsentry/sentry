@@ -85,29 +85,6 @@ class SerializableAlertContext(BaseModel):
         )
 
 
-class SerializableOpenPeriodContext(BaseModel):
-    model_config = ConfigDict(frozen=True)
-
-    id: int
-    date_started: datetime
-    date_closed: datetime | None = None
-
-    @classmethod
-    def from_open_period_context(cls, opc: OpenPeriodContext) -> Self:
-        return cls(
-            id=opc.id,
-            date_started=opc.date_started,
-            date_closed=opc.date_closed,
-        )
-
-    def to_open_period_context(self) -> OpenPeriodContext:
-        return OpenPeriodContext(
-            id=self.id,
-            date_started=self.date_started,
-            date_closed=self.date_closed,
-        )
-
-
 class BaseMetricAlertNotificationData(NotificationData):
     """
     Shared fields and properties for metric alert notification data.
@@ -122,7 +99,7 @@ class BaseMetricAlertNotificationData(NotificationData):
     detector_id: int
 
     alert_context: SerializableAlertContext
-    open_period_context: SerializableOpenPeriodContext
+    open_period_context: OpenPeriodContext
 
     notification_uuid: str
 
@@ -205,7 +182,7 @@ _EXAMPLE_ALERT_CONTEXT = SerializableAlertContext(
     action_identifier_id=1,
     detection_type="static",
 )
-_EXAMPLE_OPEN_PERIOD_CONTEXT = SerializableOpenPeriodContext(
+_EXAMPLE_OPEN_PERIOD_CONTEXT = OpenPeriodContext(
     id=1,
     date_started=datetime(2024, 1, 1, 0, 0, 0),
 )

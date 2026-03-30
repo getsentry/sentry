@@ -32,7 +32,7 @@ class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
 
         # Deserialize pre-computed contexts (no Action/Detector/GroupOpenPeriod re-queries)
         alert_context = data.alert_context.to_alert_context()
-        open_period_context = data.open_period_context.to_open_period_context()
+        open_period_context = data.open_period_context
 
         chart_url = None
         if features.has("organizations:metric-alert-chartcuterie", organization):
@@ -62,4 +62,5 @@ class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
         return SlackRenderable(
             blocks=slack_body.get("blocks", []),
             text=slack_body.get("text", ""),
+            color=slack_body.get("color", ""),
         )

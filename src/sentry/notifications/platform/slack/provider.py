@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, NotRequired, TypedDict
 
 from slack_sdk.models.blocks import (
     ActionsBlock,
@@ -59,6 +59,7 @@ class SlackProviderThreadingContext(ProviderThreadingContext):
 class SlackRenderable(TypedDict):
     blocks: list[Block]
     text: str
+    color: NotRequired[str]
 
 
 class SlackRenderer(NotificationRenderer[SlackRenderable]):

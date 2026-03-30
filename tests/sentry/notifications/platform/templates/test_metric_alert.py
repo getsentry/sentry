@@ -14,7 +14,6 @@ from sentry.notifications.platform.templates.metric_alert import (
     MetricAlertNotificationData,
     MetricAlertNotificationTemplate,
     SerializableAlertContext,
-    SerializableOpenPeriodContext,
 )
 from sentry.notifications.platform.types import NotificationRenderedTemplate, NotificationSource
 from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
@@ -38,7 +37,7 @@ def _make_notification_data(**overrides: Any) -> MetricAlertNotificationData:
             action_identifier_id=1,
             detection_type="static",
         ),
-        "open_period_context": SerializableOpenPeriodContext(
+        "open_period_context": OpenPeriodContext(
             id=1,
             date_started=datetime(2024, 1, 1, tzinfo=timezone.utc),
         ),
@@ -102,41 +101,31 @@ class SerializableAlertContextTest(TestCase):
         assert round_tripped.threshold_type is None
 
 
-class SerializableOpenPeriodContextTest(TestCase):
-    def test_from_and_to_open_period_context_with_date_closed(self) -> None:
+class OpenPeriodContextTest(TestCase):
+    def test_fields_with_date_closed(self) -> None:
         date_started = datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         date_closed = datetime(2024, 1, 1, 13, 0, 0, tzinfo=timezone.utc)
-        original = OpenPeriodContext(
-            id=100,
-            date_started=date_started,
-            date_closed=date_closed,
-        )
-        serializable = SerializableOpenPeriodContext.from_open_period_context(original)
+        ctx = OpenPeriodContext(id=100, date_started=date_started, date_closed=date_closed)
 
-        assert serializable.id == 100
-        assert serializable.date_started == date_started
-        assert serializable.date_closed == date_closed
+        assert ctx.id == 100
+        assert ctx.date_started == date_started
+        assert ctx.date_closed == date_closed
 
-        round_tripped = serializable.to_open_period_context()
-        assert round_tripped.id == original.id
-        assert round_tripped.date_started == original.date_started
-        assert round_tripped.date_closed == original.date_closed
-
-    def test_from_and_to_open_period_context_without_date_closed(self) -> None:
+    def test_fields_without_date_closed(self) -> None:
         date_started = datetime(2024, 6, 15, 9, 30, 0, tzinfo=timezone.utc)
-        original = OpenPeriodContext(
-            id=200,
-            date_started=date_started,
-            date_closed=None,
-        )
-        serializable = SerializableOpenPeriodContext.from_open_period_context(original)
+        ctx = OpenPeriodContext(id=200, date_started=date_started)
 
-        assert serializable.id == 200
-        assert serializable.date_closed is None
+        assert ctx.id == 200
+        assert ctx.date_closed is None
 
-        round_tripped = serializable.to_open_period_context()
-        assert round_tripped.id == original.id
-        assert round_tripped.date_closed is None
+    def test_pydantic_round_trip(self) -> None:
+        date_started = datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        original = OpenPeriodContext(id=100, date_started=date_started)
+        restored = OpenPeriodContext.parse_obj(original.dict())
+
+        assert restored.id == original.id
+        assert restored.date_started == original.date_started
+        assert restored.date_closed is None
 
 
 class MetricAlertNotificationDataTest(TestCase):
@@ -155,7 +144,7 @@ class MetricAlertNotificationDataTest(TestCase):
             resolve_threshold=1.0,
             alert_threshold=10.0,
         )
-        open_period_ctx = SerializableOpenPeriodContext(
+        open_period_ctx = OpenPeriodContext(
             id=77,
             date_started=datetime(2024, 3, 1, 0, 0, 0, tzinfo=timezone.utc),
             date_closed=datetime(2024, 3, 1, 1, 0, 0, tzinfo=timezone.utc),
@@ -195,7 +184,7 @@ def _make_activity_notification_data(**overrides: Any) -> ActivityMetricAlertNot
             action_identifier_id=1,
             detection_type="static",
         ),
-        "open_period_context": SerializableOpenPeriodContext(
+        "open_period_context": OpenPeriodContext(
             id=1,
             date_started=datetime(2024, 1, 1, tzinfo=timezone.utc),
         ),
@@ -284,9 +273,7 @@ class MetricAlertNotificationDataContextsTest(MetricAlertHandlerBase):
             organization_id=self.organization.id,
             detector_id=self.detector.id,
             alert_context=SerializableAlertContext.from_alert_context(alert_context),
-            open_period_context=SerializableOpenPeriodContext.from_open_period_context(
-                open_period_context
-            ),
+            open_period_context=open_period_context,
             activity_id=activity.id,
             notification_uuid="test-uuid",
         )
@@ -299,8 +286,7 @@ class MetricAlertNotificationDataContextsTest(MetricAlertHandlerBase):
 
     def test_open_period_context_round_trips_from_real_group(self) -> None:
         open_period_context = OpenPeriodContext.from_group(self.group)
-        serialized = SerializableOpenPeriodContext.from_open_period_context(open_period_context)
-        restored = serialized.to_open_period_context()
+        restored = OpenPeriodContext.parse_obj(open_period_context.dict())
 
         assert restored.id == open_period_context.id
         assert restored.date_started == open_period_context.date_started
