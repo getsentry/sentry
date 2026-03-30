@@ -225,9 +225,6 @@ src/sentry/scripts/quotas/is_rate_limited.lua
 src/sentry/scripts/ratelimits/api_limiter.lua
 src/sentry/scripts/ratelimits/leaky_bucket.lua
 src/sentry/scripts/similarity/index.lua
-src/sentry/scripts/spans/add-buffer.lua
-src/sentry/scripts/spans/done-flush-segment-data.lua
-src/sentry/scripts/spans/done-flush-segment.lua
 src/sentry/scripts/tsdb/cmsketch.lua
 src/sentry/scripts/utils/locking/delete_lock.lua
 src/sentry/scripts/utils/sadd_capped.lua
@@ -552,6 +549,7 @@ static/app/components/discover/transactionsList.spec.tsx
 static/app/components/discover/transactionsList.tsx
 static/app/components/discover/transactionsTable.tsx
 static/app/components/discoverButton.tsx
+static/app/components/dnd/dragReorderButton.tsx
 static/app/components/dropdownButton.tsx
 static/app/components/dropdownMenu/footer.tsx
 static/app/components/dropdownMenu/index.spec.tsx
@@ -1022,18 +1020,6 @@ static/app/components/replaysOnboarding/replayConfigToggle.tsx
 static/app/components/replaysOnboarding/replayOnboardingLayout.tsx
 static/app/components/replaysOnboarding/sidebar.tsx
 static/app/components/replaysOnboarding/utils.tsx
-static/app/components/repositories/getRepoStatusLabel.tsx
-static/app/components/repositories/repoProviderIcon.tsx
-static/app/components/repositories/scmIntegrationTree/providerConfigLink.tsx
-static/app/components/repositories/scmIntegrationTree/scmIntegrationTree.tsx
-static/app/components/repositories/scmIntegrationTree/scmIntegrationTreeNodes.ts
-static/app/components/repositories/scmIntegrationTree/scmIntegrationTreeRow.tsx
-static/app/components/repositories/scmIntegrationTree/scmTreeFilters.tsx
-static/app/components/repositories/scmIntegrationTree/types.ts
-static/app/components/repositories/scmIntegrationTree/useScmIntegrationTreeData.spec.tsx
-static/app/components/repositories/scmIntegrationTree/useScmIntegrationTreeData.ts
-static/app/components/repositories/scmIntegrationTree/useScmTreeFilters.tsx
-static/app/components/repositories/scmRepoTreeModal.tsx
 static/app/components/repositoryRow.spec.tsx
 static/app/components/repositoryRow.tsx
 static/app/components/resolutionBox.spec.tsx
