@@ -1,5 +1,8 @@
 from unittest.mock import patch
 
+from sentry.integrations.messaging.metrics import AppMentionHaltReason
+from sentry.testutils.asserts import assert_halt_metric
+
 from . import BaseEventTest
 
 APP_MENTION_EVENT = {
@@ -63,24 +66,29 @@ class AppMentionEventTest(BaseEventTest):
         assert kwargs["ts"] == APP_MENTION_EVENT["ts"]
         assert kwargs["thread_ts"] is None
 
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
-    def test_app_mention_feature_flag_disabled(self, mock_apply_async):
+    def test_app_mention_feature_flag_disabled(self, mock_apply_async, mock_record):
         resp = self.post_webhook(event_data=APP_MENTION_EVENT)
 
         assert resp.status_code == 200
         mock_apply_async.assert_not_called()
+        assert_halt_metric(mock_record, AppMentionHaltReason.FEATURE_NOT_ENABLED)
 
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
-    def test_app_mention_empty_text(self, mock_apply_async):
+    def test_app_mention_empty_text(self, mock_apply_async, mock_record):
         event_data = {**APP_MENTION_EVENT, "text": ""}
         with self.feature("organizations:seer-slack-explorer"):
             resp = self.post_webhook(event_data=event_data)
 
         assert resp.status_code == 200
         mock_apply_async.assert_not_called()
+        assert_halt_metric(mock_record, AppMentionHaltReason.MISSING_EVENT_DATA)
 
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
-    def test_app_mention_no_organization(self, mock_apply_async):
+    def test_app_mention_no_organization(self, mock_apply_async, mock_record):
         """When the integration has no org integrations, we should not dispatch."""
         with patch(
             "sentry.integrations.slack.webhooks.event.integration_service.get_organization_integrations",
@@ -91,3 +99,18 @@ class AppMentionEventTest(BaseEventTest):
 
         assert resp.status_code == 200
         mock_apply_async.assert_not_called()
+        assert_halt_metric(mock_record, AppMentionHaltReason.NO_ORGANIZATION)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
+    def test_app_mention_org_not_found(self, mock_apply_async, mock_record):
+        with patch(
+            "sentry.organizations.services.organization.impl.DatabaseBackedOrganizationService.get",
+            return_value=None,
+        ):
+            with self.feature("organizations:seer-slack-explorer"):
+                resp = self.post_webhook(event_data=APP_MENTION_EVENT)
+
+        assert resp.status_code == 200
+        mock_apply_async.assert_not_called()
+        assert_halt_metric(mock_record, AppMentionHaltReason.ORGANIZATION_NOT_FOUND)

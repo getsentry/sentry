@@ -7,6 +7,7 @@ from typing import Any
 
 import orjson
 import sentry_sdk
+from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 from slack_sdk.errors import SlackApiError
@@ -339,7 +340,11 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 organization_id=organization_id
             )
             assert isinstance(installation, SlackIntegration)
-            organization = installation.organization
+            try:
+                organization = installation.organization
+            except NotFound:
+                lifecycle.record_halt(AppMentionHaltReason.ORGANIZATION_NOT_FOUND)
+                return self.respond()
 
             if organization.status != OrganizationStatus.ACTIVE:
                 lifecycle.add_extra("status", organization.status)
