@@ -1,4 +1,4 @@
-from typing import Any, Literal, NotRequired, TypedDict, TypeVar
+from typing import Any, NotRequired, TypedDict, TypeVar
 
 from django.db import router, transaction
 from rest_framework import serializers
@@ -22,18 +22,16 @@ from sentry.workflow_engine.endpoints.validators.base.data_condition_group impor
     DataConditionGroupInput,
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
+    connect_workflows_to_detectors,
     log_alerting_quota_hit,
-    perform_bulk_detector_workflow_operations,
     remove_items_by_api_input,
     update_owner,
-    validate_detectors_exist_and_have_permissions,
     validate_json_schema,
 )
 from sentry.workflow_engine.models import (
     Action,
     DataConditionGroup,
     DataConditionGroupAction,
-    DetectorWorkflow,
     Workflow,
     WorkflowDataConditionGroup,
 )
@@ -294,34 +292,9 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
             instance.update(**validated_data)
 
             # Update detector connections
-            if detector_ids is not None:
-                validate_detectors_exist_and_have_permissions(detector_ids, organization, request)
-
-                existing_detector_workflows = list(
-                    DetectorWorkflow.objects.filter(
-                        workflow_id=instance.id,
-                    )
-                )
-                new_detector_ids = set(detector_ids) - {
-                    dw.detector_id for dw in existing_detector_workflows
-                }
-
-                detector_workflows_to_add: list[
-                    dict[Literal["detector_id", "workflow_id"], int]
-                ] = [
-                    {"detector_id": detector_id, "workflow_id": instance.id}
-                    for detector_id in new_detector_ids
-                ]
-                detector_workflows_to_remove = [
-                    dw for dw in existing_detector_workflows if dw.detector_id not in detector_ids
-                ]
-
-                perform_bulk_detector_workflow_operations(
-                    detector_workflows_to_add,
-                    detector_workflows_to_remove,
-                    request,
-                    organization,
-                )
+            connect_workflows_to_detectors(
+                request, organization, instance.id, detector_ids, update=True
+            )
 
             instance.save()
             return instance
@@ -387,21 +360,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
             )
             # connect detectors
             detector_ids = validated_value.get("detector_ids")
-            if detector_ids:
-                validate_detectors_exist_and_have_permissions(detector_ids, organization, request)
-
-                detector_workflows_to_add: list[
-                    dict[Literal["detector_id", "workflow_id"], int]
-                ] = [
-                    {"detector_id": detector_id, "workflow_id": workflow.id}
-                    for detector_id in set(detector_ids)
-                ]
-                perform_bulk_detector_workflow_operations(
-                    detector_workflows_to_add=detector_workflows_to_add,
-                    detector_workflows_to_remove=[],
-                    request=request,
-                    organization=organization,
-                )
+            connect_workflows_to_detectors(request, organization, workflow.id, detector_ids)
 
             # TODO -- can we bulk create: actions, dcga's and the workflow dcg?
             # Create actions and action filters, then associate them to the workflow
