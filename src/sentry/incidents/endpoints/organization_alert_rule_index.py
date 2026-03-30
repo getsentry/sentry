@@ -607,7 +607,9 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         # Common setup: type filter
         type_filter = request.GET.getlist("alertType", [])
 
-        if features.has("organizations:workflow-engine-rule-serializers", organization):
+        if features.has(
+            "organizations:workflow-engine-rule-serializers", organization
+        ) or features.has("organizations:workflow-engine-combinedruleindex-get", organization):
             return self._get_workflow_engine(
                 request=request,
                 organization=organization,

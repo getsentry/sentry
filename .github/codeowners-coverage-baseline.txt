@@ -752,8 +752,6 @@ static/app/components/hook.spec.tsx
 static/app/components/hook.tsx
 static/app/components/hookOrDefault.spec.tsx
 static/app/components/hookOrDefault.tsx
-static/app/components/hotkeysLabel.spec.tsx
-static/app/components/hotkeysLabel.tsx
 static/app/components/hovercard.spec.tsx
 static/app/components/hovercard.tsx
 static/app/components/iconCircledNumber.tsx

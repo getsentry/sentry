@@ -81,7 +81,10 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
         provider_model = None
         if state.provider_model_id:
             assert cls.provider_model_cls is not None
-            provider_model = cls.provider_model_cls.objects.get(id=state.provider_model_id)
+            try:
+                provider_model = cls.provider_model_cls.objects.get(id=state.provider_model_id)
+            except cls.provider_model_cls.DoesNotExist:
+                return None
 
         organization: RpcOrganization | None = None
         if state.org_id:

@@ -18,6 +18,7 @@ from sentry.pipeline.views.base import ApiPipelineEndpoint, ApiPipelineSteps, Pi
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.models.identity import IdentityProvider
 
 
 class PipelineStep:
@@ -312,6 +313,24 @@ class PipelineTestCase(TestCase):
         resp = intercepted_pipeline.next_step()
         assert isinstance(resp, HttpResponse)  # TODO(cathy): fix typing on
         assert ERR_MISMATCHED_USER.encode() in resp.content
+
+    @patch("sentry.pipeline.base.bind_organization_context")
+    def test_unpack_state_returns_none_when_provider_model_deleted(
+        self, mock_bind_org_context: MagicMock
+    ) -> None:
+        """If the provider model is deleted after the pipeline session was created,
+        get_for_request should return None instead of raising DoesNotExist."""
+        idp = IdentityProvider.objects.create(type="dummy", external_id="test123")
+
+        with patch.object(DummyPipeline, "provider_model_cls", IdentityProvider):
+            pipeline = DummyPipeline(self.request, "dummy", self.org, provider_model=idp)
+            pipeline.initialize()
+
+            assert DummyPipeline.get_for_request(self.request) is not None
+
+            idp.delete()
+
+            assert DummyPipeline.get_for_request(self.request) is None
 
 
 @control_silo_test

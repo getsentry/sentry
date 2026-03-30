@@ -193,7 +193,7 @@ class PreprodSizeAnalysisDetectorHandler(
                 return self._extract_head(data_packet) - self._extract_base(data_packet)
             case "relative_diff":
                 base = self._extract_base(data_packet)
-                return (self._extract_head(data_packet) - base) / base
+                return ((self._extract_head(data_packet) - base) / base) * 100
             case _:
                 raise ValueError(f"Unknown threshold_type: {threshold_type}")
 
