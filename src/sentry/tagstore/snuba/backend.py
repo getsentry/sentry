@@ -1227,7 +1227,7 @@ class SnubaTagStorage(TagStorage):
         end: datetime | None,
         referrer: str,
         occurrence_category: OccurrenceCategory,
-    ) -> dict[int, int]:
+    ) -> defaultdict[int, int]:
         organization_id = get_organization_id_from_project_ids(project_ids)
 
         now = datetime.now(tz=timezone.utc)
