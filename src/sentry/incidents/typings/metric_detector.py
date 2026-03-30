@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -289,7 +289,8 @@ class OpenPeriodContext(BaseModel):
     that we used to use `incident` for.
     """
 
-    model_config = ConfigDict(frozen=True)
+    class Config:
+        frozen = True
 
     date_started: datetime
     date_closed: datetime | None = None
