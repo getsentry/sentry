@@ -1,3 +1,6 @@
+from collections.abc import Mapping
+from typing import Any
+
 from slack_sdk.models.blocks import (
     ContextBlock,
     DividerBlock,
@@ -351,7 +354,7 @@ class BuildThreadContextTest(TestCase):
         assert "this issue" in result
 
     def test_mixed_block_and_text_messages(self):
-        messages = [
+        messages: list[Mapping[str, Any]] = [
             {
                 "user": "U123",
                 "text": "alert fallback",

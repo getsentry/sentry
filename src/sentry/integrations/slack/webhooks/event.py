@@ -360,6 +360,16 @@ class SlackEventEndpoint(SlackDMEndpoint):
             ts = data.get("ts")
             thread_ts = data.get("thread_ts")  # None for top-level messages
 
+            lifecycle.add_extras(
+                {
+                    "channel_id": channel_id,
+                    "text": text,
+                    "ts": ts,
+                    "thread_ts": thread_ts,
+                    "user_id": slack_request.user_id,
+                }
+            )
+
             if not channel_id or not text or not ts or not slack_request.user_id:
                 lifecycle.record_halt(AppMentionHaltReason.MISSING_EVENT_DATA)
                 return self.respond()

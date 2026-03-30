@@ -17,7 +17,10 @@ from sentry.seer.entrypoints.metrics import (
 from sentry.seer.entrypoints.operator import SeerExplorerOperator
 from sentry.seer.entrypoints.slack.entrypoint import EntrypointSetupError, SlackExplorerEntrypoint
 from sentry.seer.entrypoints.slack.mention import build_thread_context, extract_prompt
-from sentry.seer.entrypoints.slack.metrics import ProcessMentionFailureReason
+from sentry.seer.entrypoints.slack.metrics import (
+    ProcessMentionFailureReason,
+    ProcessMentionHaltReason,
+)
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.users.services.user import RpcUser
@@ -99,7 +102,7 @@ def process_mention_for_slack(
             slack_user_id=slack_user_id,
         )
         if not user:
-            lifecycle.record_failure(failure_reason=ProcessMentionFailureReason.IDENTITY_NOT_LINKED)
+            lifecycle.record_halt(ProcessMentionHaltReason.IDENTITY_NOT_LINKED)
             # In a thread, show the prompt in the thread; top-level, show in the channel.
             _send_link_identity_prompt(
                 entrypoint=entrypoint,
