@@ -2686,6 +2686,7 @@ register(
         "broken_state_duration": 300,  # 5 minutes
         "threshold": 0.5,  # 50% error rate
         "floor": 500,  # 500 errors before error rate check applies
+        "metrics_key": "sentry-app.webhook",  # to avoid high cardinality slug tag
     },
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

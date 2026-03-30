@@ -1,3 +1,4 @@
+from collections import namedtuple
 from unittest.mock import Mock, patch
 
 import pytest
@@ -6,11 +7,23 @@ from requests.exceptions import Timeout
 
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.utils.webhooks import IssueActionType, SentryAppResourceType
+from sentry.shared_integrations.exceptions import ApiHostError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import cell_silo_test
+from sentry.utils.circuit_breaker2 import CircuitBreaker
 from sentry.utils.sentry_apps.webhooks import send_and_save_webhook_request
+
+
+def _raise_status_false() -> bool:
+    return False
+
+
+_MockResponse = namedtuple(
+    "_MockResponse",
+    ["headers", "content", "text", "ok", "status_code", "raise_for_status", "request"],
+)
 
 CIRCUIT_BREAKER_OPTIONS = {
     "sentry-apps.webhook.circuit-breaker.config": {
@@ -126,3 +139,22 @@ class WebhookCircuitBreakerTest(TestCase):
 
         send_and_save_webhook_request(self.sentry_app, self._make_event())
         mock_breaker_instance.record_success.assert_called_once()
+
+    @with_feature("organizations:sentry-app-webhook-circuit-breaker")
+    @override_options(CIRCUIT_BREAKER_OPTIONS)
+    @patch.object(CircuitBreaker, "record_success")
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    def test_http_error_response_records_success_and_raises(
+        self, mock_safe_urlopen, mock_record_success
+    ):
+        """When the circuit breaker allows a request but the response is an HTTP error,
+        the breaker records success (the connection completed) and the normal error
+        handling still raises the appropriate exception."""
+        mock_safe_urlopen.return_value = _MockResponse(
+            {}, '{"error": "service unavailable"}', "", False, 503, _raise_status_false, None
+        )
+
+        with pytest.raises(ApiHostError):
+            send_and_save_webhook_request(self.sentry_app, self._make_event())
+
+        mock_record_success.assert_called_once()

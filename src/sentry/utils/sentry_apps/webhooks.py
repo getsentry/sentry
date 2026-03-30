@@ -89,7 +89,6 @@ def _create_circuit_breaker(
         return None
     config = options.get("sentry-apps.webhook.circuit-breaker.config")
     return CircuitBreaker(
-        metrics_key="sentry-app.webhook",
         key=f"sentry-app.webhook.{sentry_app.slug}",
         config=config,
         trip_strategy=RateBasedTripStrategy.from_config(config),
