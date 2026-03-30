@@ -1500,21 +1500,13 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         response = self.get_success_response(self.organization.slug)
         assert response.data["defaultCodingAgent"] == SEER_DEFAULT_CODING_AGENT_DEFAULT
 
-    def test_default_coding_agent_can_be_set(self) -> None:
-        data = {"defaultCodingAgent": "claude_code_agent"}
-        response = self.get_success_response(self.organization.slug, **data)
-        assert (
-            self.organization.get_option("sentry:seer_default_coding_agent") == "claude_code_agent"
-        )
-        assert response.data["defaultCodingAgent"] == "claude_code_agent"
-
-    def test_default_coding_agent_seer(self) -> None:
+    def test_default_coding_agent_can_be_set_to_seer(self) -> None:
         data = {"defaultCodingAgent": "seer"}
         response = self.get_success_response(self.organization.slug, **data)
         assert self.organization.get_option("sentry:seer_default_coding_agent") == "seer"
         assert response.data["defaultCodingAgent"] == "seer"
 
-    def test_default_coding_agent_cursor(self) -> None:
+    def test_default_coding_agent_can_be_set_to_cursor(self) -> None:
         for value in ("cursor", "cursor_background_agent"):
             data = {"defaultCodingAgent": value}
             response = self.get_success_response(self.organization.slug, **data)
@@ -1524,7 +1516,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             )
             assert response.data["defaultCodingAgent"] == "cursor_background_agent"
 
-    def test_default_coding_agent_claude(self) -> None:
+    def test_default_coding_agent_can_be_set_to_claude(self) -> None:
         for value in ("claude_code", "claude_code_agent"):
             data = {"defaultCodingAgent": value}
             response = self.get_success_response(self.organization.slug, **data)
@@ -1534,15 +1526,30 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             )
             assert response.data["defaultCodingAgent"] == "claude_code_agent"
 
-    def test_default_coding_agent_null_casts_to_seer(self) -> None:
+    def test_default_coding_agent_none_casts_to_seer(self) -> None:
         data = {"defaultCodingAgent": None}
         response = self.get_success_response(self.organization.slug, **data)
         assert self.organization.get_option("sentry:seer_default_coding_agent") == "seer"
         assert response.data["defaultCodingAgent"] == "seer"
 
+    def test_default_coding_agent_none_resets_to_seer(self) -> None:
+        self.organization.update_option(
+            "sentry:seer_default_coding_agent", "cursor_background_agent"
+        )
+        data = {"defaultCodingAgent": None}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert self.organization.get_option("sentry:seer_default_coding_agent") == "seer"
+        assert response.data["defaultCodingAgent"] == "seer"
+
+    def test_default_coding_agent_rejects_invalid_choice(self) -> None:
+        data = {"defaultCodingAgent": "invalid_agent"}
+        self.get_error_response(self.organization.slug, status_code=400, **data)
+
     def test_default_coding_agent_writing_default_value_stores_but_skips_audit_log(
         self,
     ) -> None:
+        # Sending the default value does not produce an audit log entry (by design:
+        # the ORG_OPTIONS loop only audits writes that differ from the default).
         with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
@@ -1606,19 +1613,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         )
         assert response.data["defaultCodingAgentIntegrationId"] is None
 
-    def test_default_coding_agent_null_resets_to_seer(self) -> None:
-        self.organization.update_option(
-            "sentry:seer_default_coding_agent", "cursor_background_agent"
-        )
-        data = {"defaultCodingAgent": None}
-        response = self.get_success_response(self.organization.slug, **data)
-        assert self.organization.get_option("sentry:seer_default_coding_agent") == "seer"
-        assert response.data["defaultCodingAgent"] == "seer"
-
-    def test_default_coding_agent_rejects_invalid_choice(self) -> None:
-        data = {"defaultCodingAgent": "invalid_agent"}
-        self.get_error_response(self.organization.slug, status_code=400, **data)
-
     def test_default_automated_run_stopping_point_default(self) -> None:
         response = self.get_success_response(self.organization.slug)
         assert (
@@ -1627,14 +1621,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         )
 
     def test_default_automated_run_stopping_point_can_be_set(self) -> None:
-        data = {"defaultAutomatedRunStoppingPoint": "open_pr"}
-        response = self.get_success_response(self.organization.slug, **data)
-        assert (
-            self.organization.get_option("sentry:default_automated_run_stopping_point") == "open_pr"
-        )
-        assert response.data["defaultAutomatedRunStoppingPoint"] == "open_pr"
-
-    def test_default_automated_run_stopping_point_all_choices(self) -> None:
         for choice in ("root_cause", "solution", "code_changes", "open_pr"):
             data = {"defaultAutomatedRunStoppingPoint": choice}
             response = self.get_success_response(self.organization.slug, **data)
