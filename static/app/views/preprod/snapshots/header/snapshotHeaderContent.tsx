@@ -85,7 +85,7 @@ export function SnapshotHeaderContent({
         </Flex>
       )}
 
-      {data.comparison_type === 'diff' && (
+      {data.comparison_type === 'diff' && data.base_artifact_id && (
         <Flex align="center" gap="sm" padding="sm 0">
           <Text size="sm" variant="muted" bold>
             {t('Comparing:')}
