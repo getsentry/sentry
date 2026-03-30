@@ -897,4 +897,4 @@ class TestTriggerPushChanges(TestCase):
             )
 
         body = mock_post.call_args[0][0]
-        assert body["payload"]["pr_description_suffix"] == f"FIXES {self.group.qualified_short_id}"
+        assert body["payload"]["pr_description_suffix"] == f"Fixes {self.group.qualified_short_id}"
