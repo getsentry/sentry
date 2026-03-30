@@ -44,7 +44,7 @@ export function ScmFeatureCard({
       >
         <Container
           border={isSelected ? 'accent' : 'secondary'}
-          padding="xl"
+          padding={{xs: 'md', md: 'xl'}}
           radius="md"
           height="100%"
           style={isSelected ? {marginBottom: 2} : {borderBottomWidth: 3}} // this prevents el height from changing when switching border variant
@@ -53,7 +53,7 @@ export function ScmFeatureCard({
             <Grid
               columns="min-content 1fr"
               rows="min-content min-content"
-              gap="xs lg"
+              gap={{xs: 'xs md', md: 'xs lg'}}
               align="center"
               areas={`
                     "icon label"
