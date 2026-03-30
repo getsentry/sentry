@@ -1023,14 +1023,12 @@ export function Visualize({error, setError}: VisualizeProps) {
                                 />
                               </Tooltip>
                             )}
-                          {(!isBigNumberWidget || datasetConfig.enableEquations) && (
+                          {fields.length > 1 && (
                             <Button
                               priority="transparent"
                               icon={<IconDelete />}
                               size="zero"
-                              disabled={
-                                fields.length <= 1 || !canDelete || isOnlyFieldOrAggregate
-                              }
+                              disabled={!canDelete || isOnlyFieldOrAggregate}
                               onClick={() => {
                                 dispatch({
                                   type: BuilderStateAction.DELETE_AGGREGATE,
