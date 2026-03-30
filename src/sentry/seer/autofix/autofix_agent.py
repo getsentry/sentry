@@ -517,6 +517,11 @@ def trigger_push_changes(
     referrer: AutofixReferrer,
     state: SeerRunState | None = None,
 ):
+    if not group.organization.get_option(
+        "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
+    ):
+        raise PermissionDenied("Code generation is disabled for this organization")
+
     client = get_autofix_explorer_client(group)
 
     if state is None:

@@ -9,6 +9,7 @@ from sentry.seer.autofix.autofix_agent import (
     generate_autofix_handoff_prompt,
     trigger_autofix_explorer,
     trigger_coding_agent_handoff,
+    trigger_push_changes,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.explorer.client_models import (
@@ -903,3 +904,18 @@ class TestTriggerCodingAgentHandoff(TestCase):
         mock_get_autofix_state.assert_not_called()
         repos = mock_client.launch_coding_agents.call_args.kwargs["repos"]
         assert repos[0].branch_name == "release/v2"
+
+
+class TestTriggerPushChanges(TestCase):
+    """Tests for trigger_push_changes function."""
+
+    def test_raises_permission_denied_when_coding_disabled(self):
+        self.organization.update_option("sentry:enable_seer_coding", False)
+        group = self.create_group()
+
+        with pytest.raises(PermissionDenied, match="Code generation is disabled"):
+            trigger_push_changes(
+                group=group,
+                run_id=123,
+                referrer=AutofixReferrer.UNKNOWN,
+            )
