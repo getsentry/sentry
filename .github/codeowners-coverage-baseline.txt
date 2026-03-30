@@ -1489,9 +1489,6 @@ static/app/views/setupWizard/utils/useOrganizationsWithRegion.tsx
 static/app/views/setupWizard/utils/useUpdateWizardCache.tsx
 static/app/views/setupWizard/waitingForWizardToConnect.tsx
 static/app/views/setupWizard/wizardProjectSelection.tsx
-static/app/views/sharedGroupDetails/index.spec.tsx
-static/app/views/sharedGroupDetails/index.tsx
-static/app/views/sharedGroupDetails/sharedGroupHeader.tsx
 static/app/views/unsubscribe/issue.spec.tsx
 static/app/views/unsubscribe/issue.tsx
 static/app/views/unsubscribe/project.spec.tsx
