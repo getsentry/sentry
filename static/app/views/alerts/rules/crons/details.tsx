@@ -110,7 +110,11 @@ export default function MonitorDetails() {
   }
 
   if (!monitor) {
-    return <LoadingIndicator />;
+    return (
+      <Stack flex={1}>
+        <LoadingIndicator />
+      </Stack>
+    );
   }
 
   return (
