@@ -621,6 +621,13 @@ export function buildToolLinkUrl(
         };
       }
 
+      if (dataset === 'metrics' || dataset === 'tracemetrics') {
+        return {
+          pathname: `/organizations/${orgSlug}/explore/metrics/`,
+          query: queryParams,
+        };
+      }
+
       // Default to spans (traces) search
       const {y_axes, group_by, mode} = toolLink.params;
       const aggregateFields: string[] = [];
