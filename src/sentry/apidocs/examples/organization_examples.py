@@ -304,7 +304,7 @@ class OrganizationExamples:
                 "enableSeerCoding": True,
                 "enableSeerEnhancedAlerts": True,
                 "autoOpenPrs": False,
-                "defaultCodingAgent": None,
+                "defaultCodingAgent": "seer",
                 "defaultCodingAgentIntegrationId": None,
                 "defaultAutomatedRunStoppingPoint": "open_pr",
                 "issueAlertsThreadFlag": True,
