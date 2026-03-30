@@ -1,9 +1,12 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.seer.entrypoints.slack.entrypoint import EntrypointSetupError
-from sentry.seer.entrypoints.slack.metrics import ProcessMentionFailureReason
+from sentry.seer.entrypoints.slack.metrics import (
+    ProcessMentionFailureReason,
+    ProcessMentionHaltReason,
+)
 from sentry.seer.entrypoints.slack.tasks import process_mention_for_slack
-from sentry.testutils.asserts import assert_failure_metric
+from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
 
 TASK_KWARGS = {
@@ -113,7 +116,7 @@ class ProcessMentionForSlackTest(TestCase):
             entrypoint=mock_entrypoint, thread_ts="1234567890.123456"
         )
         mock_operator_cls.assert_not_called()
-        assert_failure_metric(mock_record, ProcessMentionFailureReason.IDENTITY_NOT_LINKED)
+        assert_halt_metric(mock_record, ProcessMentionHaltReason.IDENTITY_NOT_LINKED)
 
     @patch("sentry.seer.entrypoints.slack.tasks.SeerExplorerOperator")
     @patch("sentry.seer.entrypoints.slack.tasks.SlackExplorerEntrypoint")
