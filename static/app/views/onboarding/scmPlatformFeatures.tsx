@@ -370,7 +370,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     (!currentPlatformKey || currentPlatformIsDetected);
 
   return (
-    <Flex direction="column" align="center" flexGrow={1} style={{gap: 48}}>
+    <Flex direction="column" align="center" gap="3xl" flexGrow={1}>
       <ScmStepHeader
         stepNumber={2}
         heading={t('Platform & features')}
