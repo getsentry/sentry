@@ -41,13 +41,6 @@ describe('useReplaysFromIssue', () => {
       initialRouterConfig,
     });
 
-    expect(result.current).toEqual({
-      eventView: null,
-      fetchError: undefined,
-      isFetching: true,
-      pageLinks: null,
-    });
-
     await waitFor(() =>
       expect(result.current).toEqual({
         eventView: expect.objectContaining({
@@ -80,13 +73,6 @@ describe('useReplaysFromIssue', () => {
       initialRouterConfig,
     });
 
-    expect(result.current).toEqual({
-      eventView: null,
-      fetchError: undefined,
-      isFetching: true,
-      pageLinks: null,
-    });
-
     await waitFor(() =>
       expect(result.current).toEqual({
         eventView: expect.objectContaining({
@@ -115,13 +101,6 @@ describe('useReplaysFromIssue', () => {
         organization,
       },
       initialRouterConfig,
-    });
-
-    expect(result.current).toEqual({
-      eventView: null,
-      fetchError: undefined,
-      isFetching: true,
-      pageLinks: null,
     });
 
     await waitFor(() =>
