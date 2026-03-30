@@ -35,6 +35,7 @@ from sentry.seer.models import SeerApiError, SeerPermissionError, SeerRepoDefini
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
 
@@ -170,7 +171,7 @@ class SeerExplorerClient:
 
         Args:
             organization: Sentry organization
-            user: User for permission checks and user-specific context (can be User, AnonymousUser, or None)
+            user: User for permission checks and user-specific context (can be User, RpcUser, AnonymousUser, or None)
             project: Optional project for project-scoped runs (e.g. autofix for an issue)
             category_key: Optional category key for filtering/grouping runs (e.g., "bug-fixer", "trace-analyzer"). Must be provided together with category_value. Makes it easy to retrieve runs for your feature later.
             category_value: Optional category value for filtering/grouping runs (e.g., issue ID, trace ID). Must be provided together with category_key. Makes it easy to retrieve a specific run for your feature later.
@@ -185,7 +186,7 @@ class SeerExplorerClient:
     def __init__(
         self,
         organization: Organization,
-        user: User | AnonymousUser | None = None,
+        user: User | RpcUser | AnonymousUser | None = None,
         project: Project | None = None,
         category_key: str | None = None,
         category_value: str | None = None,
