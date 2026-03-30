@@ -129,6 +129,13 @@ export enum SpanFields {
   AI_TOTAL_COST = 'ai.total_cost',
   AI_TOTAL_TOKENS_USED = 'ai.total_tokens.used',
 
+  // Span Operation Breakdown fields
+  SPANS_BROWSER = 'spans.browser',
+  SPANS_DB = 'spans.db',
+  SPANS_HTTP = 'spans.http',
+  SPANS_RESOURCE = 'spans.resource',
+  SPANS_UI = 'spans.ui',
+
   // DB fields
   DB_SYSTEM = 'db.system', // TODO: this is a duplicate of `SPAN_SYSTEM`
 
@@ -250,7 +257,12 @@ export type SpanNumberFields =
   | SpanFields.THREAD_ID
   | SpanFields.PROJECT_ID
   | SpanFields.TTID
-  | SpanFields.TTFD;
+  | SpanFields.TTFD
+  | SpanFields.SPANS_BROWSER
+  | SpanFields.SPANS_DB
+  | SpanFields.SPANS_HTTP
+  | SpanFields.SPANS_RESOURCE
+  | SpanFields.SPANS_UI;
 
 // TODO: Enforce that these fields all come from SpanFields
 // These fields should never be `null` when coming from the backend. This list

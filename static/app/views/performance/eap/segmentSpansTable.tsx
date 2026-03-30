@@ -63,7 +63,7 @@ export function SegmentSpansTable({
   const {projects} = useProjects();
   const navigate = useNavigate();
 
-  const projectSlug = projects.find(p => p.id === `${eventView.project}`)?.slug;
+  const projectSlug = projects.find(p => p.id === String(eventView.project[0]))?.slug;
   const spanCategory = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
   const {selected, options} = getEAPSegmentSpansListSort(location, spanCategory);
 

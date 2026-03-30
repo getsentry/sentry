@@ -14,6 +14,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {WebVital} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {
   decodeFilterFromLocation,
@@ -301,4 +302,35 @@ export function getWebVital(location: Location): WebVital | undefined {
     return webVital;
   }
   return undefined;
+}
+
+export const EAP_PERCENTILE_FIELDS = [
+  'p50(span.duration)',
+  'p75(span.duration)',
+  'p95(span.duration)',
+  'p99(span.duration)',
+  'p100(span.duration)',
+] as const;
+
+export function mapEAPPercentileValues(
+  data: Array<Record<string, number>>
+): PercentileValues {
+  const row = data[0];
+  return {
+    p50: row?.['p50(span.duration)'] ?? 0,
+    p75: row?.['p75(span.duration)'] ?? 0,
+    p95: row?.['p95(span.duration)'] ?? 0,
+    p99: row?.['p99(span.duration)'] ?? 0,
+    p100: row?.['p100(span.duration)'] ?? 0,
+  };
+}
+
+export function filterEventsDisplayToEAPLocationQuery(option: EventsDisplayFilterName) {
+  const query: Record<string, string> = {
+    showTransactions: option,
+  };
+  if (option !== EventsDisplayFilterName.P100) {
+    query[QueryParameterNames.SPANS_SORT] = '-span.duration';
+  }
+  return query;
 }
