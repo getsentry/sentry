@@ -93,6 +93,12 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
         : `Queried logs${projectInfo}: '${question}'`;
     }
 
+    if (dataset === 'metrics' || dataset === 'tracemetrics') {
+      return isLoading
+        ? `Querying metrics${projectInfo}: '${question}'...`
+        : `Queried metrics${projectInfo}: '${question}'`;
+    }
+
     // Default to spans dataset
     return isLoading
       ? `Querying spans${projectInfo}: '${question}'...`
