@@ -41,7 +41,7 @@ EXCLUDED_ACTION_DATA_KEYS = ["uuid", "id"]
 
 class ActionType(StrEnum):
     SLACK = "slack"
-    SLACK_STAGING = "slack-staging"
+    SLACK_STAGING = "slack_staging"
     MSTEAMS = "msteams"
     DISCORD = "discord"
 

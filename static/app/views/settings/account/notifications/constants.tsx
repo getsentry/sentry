@@ -1,7 +1,7 @@
 export const SUPPORTED_PROVIDERS = [
   'email',
   'slack',
-  'slack-staging',
+  'slack_staging',
   'msteams',
 ] as const;
 export type SupportedProviders = (typeof SUPPORTED_PROVIDERS)[number];

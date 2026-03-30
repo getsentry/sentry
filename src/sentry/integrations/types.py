@@ -32,7 +32,7 @@ class ExternalProviders(ValueEqualityEnum):
 
 class IntegrationProviderSlug(StrEnum):
     SLACK = "slack"
-    SLACK_STAGING = "slack-staging"
+    SLACK_STAGING = "slack_staging"
     DISCORD = "discord"
     MSTEAMS = "msteams"
     JIRA = "jira"

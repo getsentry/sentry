@@ -346,7 +346,3 @@ class SlackRequestParser(BaseRequestParser):
             if self.response_url
             else self.get_response_from_first_cell()
         )
-
-
-class SlackStagingRequestParser(SlackRequestParser):
-    provider = "slack_staging"

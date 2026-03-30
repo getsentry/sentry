@@ -39,7 +39,7 @@ const IDENTITY_ICONS = {
   rippling,
   saml2,
   slack,
-  'slack-staging': slack,
+  slack_staging: slack,
   visualstudio,
   vsts,
 } satisfies Record<string, string>;

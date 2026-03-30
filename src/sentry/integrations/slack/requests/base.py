@@ -71,7 +71,8 @@ class SlackRequest:
         self._data: MutableMapping[str, Any] = {}
 
     def _is_staging_request(self) -> bool:
-        return "/extensions/slack-staging/" in self.request.path
+        path = self.request.path
+        return isinstance(path, str) and "/extensions/slack-staging/" in path
 
     @property
     def _provider_slug(self) -> str:
