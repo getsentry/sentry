@@ -49,14 +49,11 @@ describe('ResultsSearchQueryBuilder', () => {
       }
     );
 
-    // Focus the input and type "has:p" to simulate a search for p50
     const input = await screen.findByRole('combobox');
-    await userEvent.type(input, 'has:p');
+    await userEvent.type(input, 'has:p', {delay: null});
 
-    // Check that "p50" (a function tag) is NOT in the dropdown
-    expect(
-      within(screen.getByRole('listbox')).queryByText('p50')
-    ).not.toBeInTheDocument();
+    const listbox = await screen.findByRole('listbox');
+    expect(within(listbox).queryByText('p50')).not.toBeInTheDocument();
   });
 
   it('shows normal tags, e.g. transaction, in the dropdown', async () => {
@@ -81,9 +78,8 @@ describe('ResultsSearchQueryBuilder', () => {
       }
     );
 
-    // Check that a normal tag (e.g. "transaction") IS in the dropdown
     const input = await screen.findByRole('combobox');
-    await userEvent.type(input, 'transact');
+    await userEvent.type(input, 'transact', {delay: null});
 
     expect(
       await within(screen.getByRole('listbox')).findByRole('option', {
