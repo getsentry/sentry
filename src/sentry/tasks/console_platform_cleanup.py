@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.tasks.console_platform_cleanup.remove_inaccessible_console_platform_sources",
     namespace=symbolication_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def remove_inaccessible_console_platform_sources(
     organization_id: int, current_platforms: list[str], **kwargs
