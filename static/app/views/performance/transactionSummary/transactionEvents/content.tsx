@@ -13,33 +13,23 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import type {WebVital} from 'sentry/utils/fields';
-import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {getExploreUrl} from 'sentry/views/explore/utils';
-import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {SampledEventsTable} from 'sentry/views/performance/eap/sampledEventsTable';
-import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {
   Filter,
@@ -53,27 +43,6 @@ import {
 
 import {EventsTable} from './eventsTable';
 import {EventsDisplayFilterName, getEventsFilterOptions} from './utils';
-
-function EAPSearchBar({
-  projects,
-  initialQuery,
-  onSearch,
-}: {
-  initialQuery: string;
-  onSearch: (query: string) => void;
-  projects: number[];
-}) {
-  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
-    projects,
-    initialQuery,
-    onSearch,
-    searchSource: 'transaction_events',
-  });
-
-  return (
-    <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} disallowFreeText />
-  );
-}
 
 type Props = {
   eventView: EventView;
@@ -117,13 +86,8 @@ export function EventsContent(props: Props) {
   const routes = useRoutes();
   const theme = useTheme();
   const domainViewFilters = useDomainViewFilters();
-  const shouldUseEAP = useTransactionSummaryEAP();
 
   const {eventView, titles} = useMemo(() => {
-    if (shouldUseEAP) {
-      return {eventView: originalEventView, titles: []};
-    }
-
     const eventViewClone = originalEventView.clone();
     const transactionsListTitles = TRANSACTIONS_LIST_TITLES.slice();
     const project = projects.find(p => p.id === projectId);
@@ -196,7 +160,6 @@ export function EventsContent(props: Props) {
       titles: transactionsListTitles,
     };
   }, [
-    shouldUseEAP,
     originalEventView,
     location,
     organization,
@@ -206,19 +169,7 @@ export function EventsContent(props: Props) {
     webVital,
   ]);
 
-  const {eventsDisplayFilterName, percentileValues} = props;
-  const maxDuration =
-    eventsDisplayFilterName === EventsDisplayFilterName.P100
-      ? undefined
-      : percentileValues?.[eventsDisplayFilterName];
-
-  const table = shouldUseEAP ? (
-    <SampledEventsTable
-      eventView={eventView}
-      transactionName={transactionName}
-      maxDuration={maxDuration}
-    />
-  ) : (
+  const table = (
     <EventsTable
       theme={theme}
       eventView={eventView}
@@ -283,41 +234,30 @@ function Search(props: Props) {
   };
 
   const projectIds = useMemo(() => eventView.project?.slice(), [eventView.project]);
-  const shouldUseEAP = useTransactionSummaryEAP();
 
   const maxPickableDays = useMaxPickableDays({
-    dataCategories: [shouldUseEAP ? DataCategory.SPANS : DataCategory.TRANSACTIONS],
+    dataCategories: [DataCategory.TRANSACTIONS],
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   return (
-    <FilterActions eap={shouldUseEAP}>
-      {!shouldUseEAP && (
-        <Filter
-          organization={organization}
-          currentFilter={spanOperationBreakdownFilter}
-          onChangeFilter={onChangeSpanOperationBreakdownFilter}
-        />
-      )}
+    <FilterActions>
+      <Filter
+        organization={organization}
+        currentFilter={spanOperationBreakdownFilter}
+        onChangeFilter={onChangeSpanOperationBreakdownFilter}
+      />
       <PageFilterBar condensed>
         <EnvironmentPageFilter />
         <DatePageFilter {...datePageFilterProps} />
       </PageFilterBar>
-      <StyledSearchBarWrapper eap={shouldUseEAP}>
-        {shouldUseEAP ? (
-          <EAPSearchBar
-            projects={projectIds ?? []}
-            initialQuery={query}
-            onSearch={handleSearch}
-          />
-        ) : (
-          <TransactionSearchQueryBuilder
-            projects={projectIds}
-            initialQuery={query}
-            onSearch={handleSearch}
-            searchSource="transaction_events"
-          />
-        )}
+      <StyledSearchBarWrapper>
+        <TransactionSearchQueryBuilder
+          projects={projectIds}
+          initialQuery={query}
+          onSearch={handleSearch}
+          searchSource="transaction_events"
+        />
       </StyledSearchBarWrapper>
       <CompactSelect
         trigger={triggerProps => (
@@ -330,98 +270,38 @@ function Search(props: Props) {
           label: filter.label,
         }))}
       />
-      {!shouldUseEAP && (
-        <LinkButton
-          to={eventView.getResultsViewUrlTarget(
-            organization,
-            false,
-            hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
-          )}
-          onClick={handleDiscoverButtonClick}
-        >
-          {t('Open in Discover')}
-        </LinkButton>
-      )}
-      {shouldUseEAP && <OpenInExploreButton {...props} />}
+      <LinkButton
+        to={eventView.getResultsViewUrlTarget(
+          organization,
+          false,
+          hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
+        )}
+        onClick={handleDiscoverButtonClick}
+      >
+        {t('Open in Discover')}
+      </LinkButton>
     </FilterActions>
   );
 }
 
-function OpenInExploreButton({
-  location,
-  organization,
-  transactionName,
-  eventsDisplayFilterName,
-  percentileValues,
-}: Pick<
-  Props,
-  | 'location'
-  | 'organization'
-  | 'transactionName'
-  | 'eventsDisplayFilterName'
-  | 'percentileValues'
->) {
-  const {selection} = usePageFilters();
-
-  if (!organization.features.includes('visibility-explore-view')) {
-    return null;
-  }
-
-  const searchQuery = decodeScalar(location.query.query, '');
-  const sort = decodeSorts(location.query?.[QueryParameterNames.SPANS_SORT])[0] ?? {
-    field: 'timestamp',
-    kind: 'desc' as const,
-  };
-
-  const query = new MutableSearch(searchQuery);
-  query.setFilterValues('is_transaction', ['true']);
-  query.setFilterValues('transaction', [transactionName]);
-
-  const maxDuration =
-    eventsDisplayFilterName === EventsDisplayFilterName.P100
-      ? undefined
-      : percentileValues?.[eventsDisplayFilterName];
-  if (maxDuration !== undefined && maxDuration > 0) {
-    query.setFilterValues('span.duration', [`<=${maxDuration.toFixed(0)}`]);
-  }
-
-  const exploreUrl = getExploreUrl({
-    organization,
-    selection,
-    mode: Mode.SAMPLES,
-    query: query.formatString(),
-    field: ['span_id', 'request.method', 'span.duration', 'trace', 'timestamp'],
-    sort: encodeSort(sort),
-  });
-
-  return <LinkButton to={exploreUrl}>{t('Open in Explore')}</LinkButton>;
-}
-
-const FilterActions = styled('div')<{eap: boolean}>`
+const FilterActions = styled('div')`
   display: grid;
   gap: ${p => p.theme.space.xl};
   margin-bottom: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: ${p =>
-      p.eap ? 'auto 1fr auto auto' : 'repeat(4, min-content)'};
+    grid-template-columns: repeat(4, min-content);
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    grid-template-columns: ${p =>
-      p.eap ? 'auto 1fr auto auto' : 'auto auto 1fr auto auto'};
+    grid-template-columns: auto auto 1fr auto auto;
   }
 `;
 
-const StyledSearchBarWrapper = styled('div')<{eap: boolean}>`
+const StyledSearchBarWrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    ${p =>
-      p.eap
-        ? ''
-        : `
-      order: 1;
-      grid-column: 1/6;
-    `}
+    order: 1;
+    grid-column: 1/6;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xl}) {

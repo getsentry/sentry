@@ -34,7 +34,6 @@ import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay'
 import type {Theme} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
@@ -42,7 +41,6 @@ import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spa
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {ModuleName, type SpanProperty} from 'sentry/views/insights/types';
-import {SEGMENT_SPANS_CURSOR} from 'sentry/views/performance/eap/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
@@ -112,15 +110,24 @@ const PROFILE_COLUMN: SampledEventsColumn = {
 
 type Props = {
   eventView: EventView;
+  isMaxDurationLoading: boolean;
+  onCursor: CursorHandler;
   transactionName: string;
+  cursor?: string;
   maxDuration?: number;
 };
 
-export function SampledEventsTable({eventView, transactionName, maxDuration}: Props) {
+export function SampledEventsTable({
+  eventView,
+  transactionName,
+  maxDuration,
+  isMaxDurationLoading,
+  cursor,
+  onCursor,
+}: Props) {
   const {selection} = usePageFilters();
   const location = useLocation();
   const {projects} = useProjects();
-  const navigate = useNavigate();
   const theme = useTheme();
   const organization = useOrganization();
 
@@ -141,7 +148,6 @@ export function SampledEventsTable({eventView, transactionName, maxDuration}: Pr
   ];
 
   const searchQuery = decodeScalar(location.query.query, '');
-  const cursor = decodeScalar(location.query?.[SEGMENT_SPANS_CURSOR]);
   const sort = decodeSorts(location.query?.[QueryParameterNames.SPANS_SORT])[0] ?? {
     field: 'timestamp',
     kind: 'desc' as const,
@@ -207,17 +213,10 @@ export function SampledEventsTable({eventView, transactionName, maxDuration}: Pr
     };
   });
 
-  const handleCursor: CursorHandler = (_cursor, pathname, query) => {
-    navigate({
-      pathname,
-      query: {...query, [SEGMENT_SPANS_CURSOR]: _cursor},
-    });
-  };
-
   return (
     <Fragment>
       <GridEditable
-        isLoading={isLoading}
+        isLoading={isLoading || isMaxDurationLoading}
         error={error}
         data={consolidatedData}
         columnOrder={columnOrder}
@@ -251,7 +250,7 @@ export function SampledEventsTable({eventView, transactionName, maxDuration}: Pr
       />
       <Pagination
         pageLinks={pageLinks}
-        onCursor={handleCursor}
+        onCursor={onCursor}
         size="md"
         caption={numEventsError ? undefined : paginationCaption}
       />
@@ -383,11 +382,11 @@ function renderOperationDurationCell(row: Record<string, any>, theme: Theme) {
     cumulativeSpanOpBreakdown === 0
   ) {
     return (
-      <Duration
-        seconds={(row['span.duration'] ?? 0) / 1000}
-        fixedDigits={2}
-        abbreviation
-      />
+      <div key="other" style={{width: '100%'}}>
+        <Tooltip title={<div>{t('Other')}</div>} containerDisplayMode="block">
+          <OtherRelativeOpsBreakdown />
+        </Tooltip>
+      </div>
     );
   }
 
