@@ -5,7 +5,6 @@ from collections.abc import Callable
 from enum import StrEnum
 from typing import TYPE_CHECKING, Literal
 
-from django.utils import timezone
 from pydantic import BaseModel
 
 from sentry.seer.autofix.artifact_schemas import (
@@ -247,8 +246,6 @@ def trigger_autofix_explorer(
             artifact_key=artifact_key,
             artifact_schema=artifact_schema,
         )
-
-    group.update(seer_explorer_autofix_last_triggered=timezone.now())
 
     payload = {
         "run_id": run_id,
@@ -510,6 +507,7 @@ def trigger_push_changes(
     run_id: int,
     referrer: AutofixReferrer,
     state: SeerRunState | None = None,
+    repo_name: str | None = None,
 ):
     client = get_autofix_explorer_client(group)
 
@@ -523,7 +521,7 @@ def trigger_push_changes(
     if group_id != group.id:
         raise SeerPermissionError("Unknown run id for group")
 
-    client.push_changes(run_id, blocking=False)
+    client.push_changes(run_id, repo_name=repo_name, blocking=False)
 
     metrics.incr(
         "autofix.explorer.trigger",

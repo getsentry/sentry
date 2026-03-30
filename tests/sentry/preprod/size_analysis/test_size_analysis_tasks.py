@@ -1,245 +1,160 @@
+from datetime import timedelta
 from unittest.mock import patch
 
-from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
+from django.utils import timezone
+
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactSizeComparison,
+    PreprodArtifactSizeMetrics,
+)
 from sentry.preprod.size_analysis.grouptype import (
     PreprodSizeAnalysisGroupType,
     _artifact_to_tags,
 )
-from sentry.preprod.size_analysis.models import ComparisonResults, SizeMetricDiffItem
 from sentry.preprod.size_analysis.tasks import (
     _get_platform,
-    maybe_emit_issues,
     maybe_emit_issues_from_absolute_size_results,
+    maybe_emit_issues_from_diff_size_results,
 )
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
-class MaybeEmitIssuesTest(TestCase):
-    """Tests for the maybe_emit_issues function."""
+class MaybeEmitIssuesFromDiffSizeResultsTest(TestCase):
+    """Tests for the maybe_emit_issues_from_diff_size_results function."""
 
-    def _create_comparison_results(
+    def _create_artifact_with_metrics(
         self,
-        head_install_size: int = 5000000,
-        head_download_size: int = 2000000,
-        base_install_size: int = 4000000,
-        base_download_size: int = 1500000,
-    ) -> ComparisonResults:
-        return ComparisonResults(
-            diff_items=[],
-            insight_diff_items=[],
-            size_metric_diff_item=SizeMetricDiffItem(
-                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-                identifier=None,
-                head_install_size=head_install_size,
-                head_download_size=head_download_size,
-                base_install_size=base_install_size,
-                base_download_size=base_download_size,
-            ),
-            skipped_diff_item_comparison=False,
+        max_install_size=5000000,
+        max_download_size=2000000,
+        date_added=None,
+        app_name=None,
+        **kwargs,
+    ):
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_id="com.example.app",
+            date_added=date_added,
+            app_name=app_name,
+            **kwargs,
         )
-
-    def test_maybe_emit_issues_triggers_detector_evaluation(self):
-        head_artifact = self.create_preprod_artifact(project=self.project, app_id="com.example.app")
-        base_artifact = self.create_preprod_artifact(project=self.project, app_id="com.example.app")
-
-        head_metric = self.create_preprod_artifact_size_metrics(
-            head_artifact,
+        self.create_preprod_artifact_size_metrics(
+            artifact,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
             identifier=None,
-            max_install_size=5000000,
-            max_download_size=2000000,
+            max_install_size=max_install_size,
+            max_download_size=max_download_size,
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
         )
+        return artifact
 
-        base_metric = self.create_preprod_artifact_size_metrics(
-            base_artifact,
-            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-            identifier=None,
-            max_install_size=4000000,
-            max_download_size=1500000,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-        )
-
+    def _create_diff_detector(self, threshold_type="absolute_diff", comparison=500000, **kwargs):
         condition_group = self.create_data_condition_group(
             organization=self.project.organization,
         )
         self.create_data_condition(
             condition_group=condition_group,
             type=Condition.GREATER,
-            comparison=500000,
+            comparison=comparison,
             condition_result=DetectorPriorityLevel.HIGH,
         )
-        self.create_detector(
+        config = {"threshold_type": threshold_type, "measurement": "install_size", **kwargs}
+        return self.create_detector(
             name="test-detector",
             project=self.project,
             type=PreprodSizeAnalysisGroupType.slug,
-            config={"threshold_type": "absolute_diff", "measurement": "install_size"},
+            config=config,
             workflow_condition_group=condition_group,
         )
 
-        comparison_results = self._create_comparison_results()
+    def test_triggers_detector_evaluation(self):
+        now = timezone.now()
+        self._create_artifact_with_metrics(
+            max_install_size=4000000,
+            date_added=now - timedelta(hours=2),
+        )
+        head = self._create_artifact_with_metrics(
+            max_install_size=5000000,
+            date_added=now - timedelta(hours=1),
+        )
+        self._create_diff_detector()
 
         with self.feature("organizations:preprod-issues"):
             with patch(
                 "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
             ) as mock_produce:
-                maybe_emit_issues(comparison_results, head_metric, base_metric)
+                maybe_emit_issues_from_diff_size_results(head, self.organization.id)
 
             assert mock_produce.call_count == 1
 
-    def test_maybe_emit_issues_no_detectors(self):
-        head_artifact = self.create_preprod_artifact(project=self.project, app_id="com.example.app")
-        base_artifact = self.create_preprod_artifact(project=self.project, app_id="com.example.app")
-
-        head_metric = self.create_preprod_artifact_size_metrics(
-            head_artifact,
-            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-            identifier=None,
-            max_install_size=5000000,
-            max_download_size=2000000,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-        )
-
-        base_metric = self.create_preprod_artifact_size_metrics(
-            base_artifact,
-            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-            identifier=None,
-            max_install_size=4000000,
-            max_download_size=1500000,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-        )
-
-        comparison_results = self._create_comparison_results()
+    def test_no_detectors(self):
+        now = timezone.now()
+        self._create_artifact_with_metrics(date_added=now - timedelta(hours=2))
+        head = self._create_artifact_with_metrics(date_added=now - timedelta(hours=1))
 
         with self.feature("organizations:preprod-issues"):
             with patch(
                 "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
             ) as mock_produce:
-                maybe_emit_issues(comparison_results, head_metric, base_metric)
+                maybe_emit_issues_from_diff_size_results(head, self.organization.id)
 
             assert mock_produce.call_count == 0
 
-    def test_maybe_emit_issues_feature_flag_disabled(self):
-        head_artifact = self.create_preprod_artifact(project=self.project, app_id="com.example.app")
-        base_artifact = self.create_preprod_artifact(project=self.project, app_id="com.example.app")
-
-        head_metric = self.create_preprod_artifact_size_metrics(
-            head_artifact,
-            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-            identifier=None,
-            max_install_size=5000000,
-            max_download_size=2000000,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-        )
-
-        base_metric = self.create_preprod_artifact_size_metrics(
-            base_artifact,
-            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-            identifier=None,
-            max_install_size=4000000,
-            max_download_size=1500000,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-        )
-
-        comparison_results = self._create_comparison_results()
+    def test_feature_flag_disabled(self):
+        now = timezone.now()
+        self._create_artifact_with_metrics(date_added=now - timedelta(hours=2))
+        head = self._create_artifact_with_metrics(date_added=now - timedelta(hours=1))
+        self._create_diff_detector()
 
         with patch(
             "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
         ) as mock_produce:
-            maybe_emit_issues(comparison_results, head_metric, base_metric)
+            maybe_emit_issues_from_diff_size_results(head, self.organization.id)
 
         assert mock_produce.call_count == 0
 
-    def test_maybe_emit_issues_populates_metadata(self):
-        head_artifact = self.create_preprod_artifact(
-            project=self.project,
-            app_id="com.example.app",
-            artifact_type=PreprodArtifact.ArtifactType.APK,
-        )
-        base_artifact = self.create_preprod_artifact(
-            project=self.project,
-            app_id="com.example.app",
-            artifact_type=PreprodArtifact.ArtifactType.APK,
-        )
-
-        head_metric = self.create_preprod_artifact_size_metrics(
-            head_artifact,
-            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-            identifier=None,
-            max_install_size=5000000,
-            max_download_size=2000000,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-        )
-
-        base_metric = self.create_preprod_artifact_size_metrics(
-            base_artifact,
-            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-            identifier=None,
+    def test_populates_metadata(self):
+        now = timezone.now()
+        base = self._create_artifact_with_metrics(
             max_install_size=4000000,
             max_download_size=1500000,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            date_added=now - timedelta(hours=2),
+            artifact_type=PreprodArtifact.ArtifactType.APK,
         )
-
-        condition_group = self.create_data_condition_group(
-            organization=self.project.organization,
+        head = self._create_artifact_with_metrics(
+            max_install_size=5000000,
+            max_download_size=2000000,
+            date_added=now - timedelta(hours=1),
+            artifact_type=PreprodArtifact.ArtifactType.APK,
         )
-        self.create_data_condition(
-            condition_group=condition_group,
-            type=Condition.GREATER,
-            comparison=500000,
-            condition_result=DetectorPriorityLevel.HIGH,
-        )
-        self.create_detector(
-            name="test-detector",
-            project=self.project,
-            type=PreprodSizeAnalysisGroupType.slug,
-            config={"threshold_type": "absolute_diff", "measurement": "install_size"},
-            workflow_condition_group=condition_group,
-        )
-
-        comparison_results = self._create_comparison_results()
+        self._create_diff_detector()
 
         with self.feature("organizations:preprod-issues"):
             with patch("sentry.preprod.size_analysis.tasks.process_detectors") as mock_process:
                 mock_process.return_value = {}
-                maybe_emit_issues(comparison_results, head_metric, base_metric)
+                maybe_emit_issues_from_diff_size_results(head, self.organization.id)
 
             assert mock_process.call_count == 1
             data_packet = mock_process.call_args[0][0]
-            metadata = data_packet.packet["metadata"]
+            packet = data_packet.packet
+            metadata = packet["metadata"]
 
             assert metadata["platform"] == "android"
-            assert metadata["head_metric_id"] == head_metric.id
-            assert metadata["base_metric_id"] == base_metric.id
-            assert metadata["head_artifact_id"] == head_artifact.id
-            assert metadata["base_artifact_id"] == base_artifact.id
-            assert metadata["head_artifact"].id == head_artifact.id
-            assert metadata["base_artifact"].id == base_artifact.id
+            assert metadata["head_artifact_id"] == head.id
+            assert metadata["base_artifact_id"] == base.id
+            assert metadata["head_artifact"].id == head.id
+            assert metadata["base_artifact"].id == base.id
+            assert packet["head_install_size_bytes"] == 5000000
+            assert packet["head_download_size_bytes"] == 2000000
+            assert packet["base_install_size_bytes"] == 4000000
+            assert packet["base_download_size_bytes"] == 1500000
 
-    def test_maybe_emit_issues_skips_absolute_detectors(self):
-        """Absolute detectors should not fire from the comparison path."""
-        head_artifact = self.create_preprod_artifact(project=self.project, app_id="com.example.app")
-        base_artifact = self.create_preprod_artifact(project=self.project, app_id="com.example.app")
-
-        head_metric = self.create_preprod_artifact_size_metrics(
-            head_artifact,
-            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-            identifier=None,
-            max_install_size=5000000,
-            max_download_size=2000000,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-        )
-
-        base_metric = self.create_preprod_artifact_size_metrics(
-            base_artifact,
-            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-            identifier=None,
-            max_install_size=4000000,
-            max_download_size=1500000,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-        )
+    def test_skips_absolute_detectors(self):
+        now = timezone.now()
+        self._create_artifact_with_metrics(date_added=now - timedelta(hours=2))
+        head = self._create_artifact_with_metrics(date_added=now - timedelta(hours=1))
 
         condition_group = self.create_data_condition_group(
             organization=self.project.organization,
@@ -258,15 +173,75 @@ class MaybeEmitIssuesTest(TestCase):
             workflow_condition_group=condition_group,
         )
 
-        comparison_results = self._create_comparison_results()
+        with self.feature("organizations:preprod-issues"):
+            with patch(
+                "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
+            ) as mock_produce:
+                maybe_emit_issues_from_diff_size_results(head, self.organization.id)
+
+            assert mock_produce.call_count == 0
+
+    def test_skips_when_no_base(self):
+        head = self._create_artifact_with_metrics()
+        self._create_diff_detector()
 
         with self.feature("organizations:preprod-issues"):
             with patch(
                 "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
             ) as mock_produce:
-                maybe_emit_issues(comparison_results, head_metric, base_metric)
+                maybe_emit_issues_from_diff_size_results(head, self.organization.id)
 
             assert mock_produce.call_count == 0
+
+    def test_skips_when_no_head_metrics(self):
+        head = self.create_preprod_artifact(project=self.project, app_id="com.example.app")
+        self._create_diff_detector()
+
+        with self.feature("organizations:preprod-issues"):
+            with patch(
+                "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
+            ) as mock_produce:
+                maybe_emit_issues_from_diff_size_results(head, self.organization.id)
+
+            assert mock_produce.call_count == 0
+
+    def test_batches_queries(self):
+        now = timezone.now()
+        self._create_artifact_with_metrics(date_added=now - timedelta(hours=2))
+        head = self._create_artifact_with_metrics(date_added=now - timedelta(hours=1))
+
+        # Two detectors with the same (empty) query
+        self._create_diff_detector(threshold_type="absolute_diff")
+        self._create_diff_detector(threshold_type="relative_diff")
+
+        with self.feature("organizations:preprod-issues"):
+            with patch(
+                "sentry.preprod.size_analysis.tasks.get_sequential_base_artifact"
+            ) as mock_lookup:
+                mock_lookup.return_value = None
+                maybe_emit_issues_from_diff_size_results(head, self.organization.id)
+
+            # Should only be called once for the shared empty query
+            assert mock_lookup.call_count == 1
+
+    def test_creates_comparison_record(self):
+        now = timezone.now()
+        self._create_artifact_with_metrics(
+            max_install_size=4000000,
+            date_added=now - timedelta(hours=2),
+        )
+        head = self._create_artifact_with_metrics(
+            max_install_size=5000000,
+            date_added=now - timedelta(hours=1),
+        )
+        self._create_diff_detector()
+
+        with self.feature("organizations:preprod-issues"):
+            maybe_emit_issues_from_diff_size_results(head, self.organization.id)
+
+        assert PreprodArtifactSizeComparison.objects.count() == 1
+        comparison = PreprodArtifactSizeComparison.objects.first()
+        assert comparison is not None
 
 
 class MaybeEmitIssuesFromSizeResultsTest(TestCase):

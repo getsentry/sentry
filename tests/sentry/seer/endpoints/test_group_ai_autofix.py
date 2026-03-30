@@ -1031,6 +1031,93 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
             assert response.status_code == 202, f"Failed for {flag}: {response.data}"
             assert response.data == {"run_id": 123}
 
+    @patch("sentry.seer.explorer.client_utils.make_explorer_state_request")
+    @patch("sentry.seer.explorer.client.make_explorer_update_request")
+    def test_open_pr_with_repo_name(
+        self, mock_explorer_update_request, mock_explorer_state_request
+    ):
+        self.login_as(user=self.user)
+        group = self.create_group()
+
+        mock_explorer_update_response = Mock()
+        mock_explorer_update_response.status = 200
+        mock_explorer_update_request.return_value = mock_explorer_update_response
+
+        mock_explorer_state_response = Mock()
+        mock_explorer_state_response.status = 200
+        mock_explorer_state_response.json = Mock(
+            return_value={
+                "session": SeerRunState(
+                    run_id=123,
+                    blocks=[],
+                    status="completed",
+                    updated_at="2023-07-18T12:00:00Z",
+                    metadata={"group_id": group.id},
+                ).dict()
+            }
+        )
+        mock_explorer_state_request.return_value = mock_explorer_state_response
+
+        for flag in EXPLORER_FLAGS:
+            with self.feature(flag):
+                response = self.client.post(
+                    self._get_url(group.id, mode="explorer"),
+                    data={
+                        "step": "open_pr",
+                        "run_id": 123,
+                        "repo_name": "my-org/my-repo",
+                    },
+                    format="json",
+                )
+
+            assert response.status_code == 202, f"Failed for {flag}: {response.data}"
+            call_body = mock_explorer_update_request.call_args[0][0]
+            assert call_body["payload"]["type"] == "create_pr"
+            assert call_body["payload"]["repo_name"] == "my-org/my-repo"
+
+    @patch("sentry.seer.explorer.client_utils.make_explorer_state_request")
+    @patch("sentry.seer.explorer.client.make_explorer_update_request")
+    def test_open_pr_without_repo_name(
+        self, mock_explorer_update_request, mock_explorer_state_request
+    ):
+        self.login_as(user=self.user)
+        group = self.create_group()
+
+        mock_explorer_update_response = Mock()
+        mock_explorer_update_response.status = 200
+        mock_explorer_update_request.return_value = mock_explorer_update_response
+
+        mock_explorer_state_response = Mock()
+        mock_explorer_state_response.status = 200
+        mock_explorer_state_response.json = Mock(
+            return_value={
+                "session": SeerRunState(
+                    run_id=123,
+                    blocks=[],
+                    status="completed",
+                    updated_at="2023-07-18T12:00:00Z",
+                    metadata={"group_id": group.id},
+                ).dict()
+            }
+        )
+        mock_explorer_state_request.return_value = mock_explorer_state_response
+
+        for flag in EXPLORER_FLAGS:
+            with self.feature(flag):
+                response = self.client.post(
+                    self._get_url(group.id, mode="explorer"),
+                    data={
+                        "step": "open_pr",
+                        "run_id": 123,
+                    },
+                    format="json",
+                )
+
+            assert response.status_code == 202, f"Failed for {flag}: {response.data}"
+            call_body = mock_explorer_update_request.call_args[0][0]
+            assert call_body["payload"]["type"] == "create_pr"
+            assert "repo_name" not in call_body["payload"]
+
     def test_open_pr_no_run_id(self):
         self.login_as(user=self.user)
 

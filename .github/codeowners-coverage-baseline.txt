@@ -605,14 +605,9 @@ static/app/components/events/eventAttachmentActions.tsx
 static/app/components/events/eventAttachments.spec.tsx
 static/app/components/events/eventAttachments.tsx
 static/app/components/events/eventAttachmentsCrashReportsNotice.tsx
-static/app/components/events/eventBreadcrumbsSection.spec.tsx
-static/app/components/events/eventBreadcrumbsSection.tsx
 static/app/components/events/eventCustomPerformanceMetrics.tsx
 static/app/components/events/eventDataSection.tsx
 static/app/components/events/eventDrawer.tsx
-static/app/components/events/eventEntries.spec.tsx
-static/app/components/events/eventEntries.tsx
-static/app/components/events/eventEntry.tsx
 static/app/components/events/eventEvidence.spec.tsx
 static/app/components/events/eventEvidence.tsx
 static/app/components/events/eventExtraData/getEventExtraDataKnownDataDetails.tsx
@@ -1489,9 +1484,6 @@ static/app/views/setupWizard/utils/useOrganizationsWithRegion.tsx
 static/app/views/setupWizard/utils/useUpdateWizardCache.tsx
 static/app/views/setupWizard/waitingForWizardToConnect.tsx
 static/app/views/setupWizard/wizardProjectSelection.tsx
-static/app/views/sharedGroupDetails/index.spec.tsx
-static/app/views/sharedGroupDetails/index.tsx
-static/app/views/sharedGroupDetails/sharedGroupHeader.tsx
 static/app/views/unsubscribe/issue.spec.tsx
 static/app/views/unsubscribe/issue.tsx
 static/app/views/unsubscribe/project.spec.tsx
