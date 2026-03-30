@@ -237,7 +237,7 @@ def recover_confirm(
             if mode == "relocate":
                 # Relocation form requires users to accept TOS and privacy policy with an org
                 # associated. We only need the first membership, since all of user's orgs will be in
-                # the same region.
+                # the same cell.
                 membership = OrganizationMemberMapping.objects.filter(user=user).first()
                 assert membership is not None
                 mapping = OrganizationMapping.objects.get(

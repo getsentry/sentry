@@ -5,7 +5,6 @@ from collections.abc import Callable
 from enum import StrEnum
 from typing import TYPE_CHECKING, Literal
 
-from django.utils import timezone
 from pydantic import BaseModel
 
 from sentry.seer.autofix.artifact_schemas import (
@@ -35,6 +34,7 @@ from sentry.seer.models.seer_api_models import SeerPermissionError
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
+from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -247,8 +247,6 @@ def trigger_autofix_explorer(
             artifact_schema=artifact_schema,
         )
 
-    group.update(seer_explorer_autofix_last_triggered=timezone.now())
-
     payload = {
         "run_id": run_id,
         "group_id": group.id,
@@ -293,6 +291,8 @@ def trigger_autofix_explorer(
                 "group_id": group.id,
             },
         )
+
+    metrics.incr("autofix.explorer.trigger", tags={"step": step.value, "referrer": referrer.value})
 
     return run_id
 
@@ -407,6 +407,7 @@ def _get_relevant_repo(
 def trigger_coding_agent_handoff(
     group: Group,
     run_id: int,
+    referrer: AutofixReferrer,
     integration_id: int | None = None,
     provider: str | None = None,
     user_id: int | None = None,
@@ -482,7 +483,7 @@ def trigger_coding_agent_handoff(
 
     prompt = generate_autofix_handoff_prompt(state, short_id=short_id)
 
-    return client.launch_coding_agents(
+    coding_agents = client.launch_coding_agents(
         run_id=run_id,
         integration_id=integration_id,
         provider=provider,
@@ -493,8 +494,20 @@ def trigger_coding_agent_handoff(
         auto_create_pr=auto_create_pr,
     )
 
+    metrics.incr(
+        "autofix.explorer.trigger",
+        tags={"step": "coding_agent_handoff", "referrer": referrer.value},
+    )
 
-def trigger_push_changes(group: Group, run_id: int, state: SeerRunState | None = None):
+    return coding_agents
+
+
+def trigger_push_changes(
+    group: Group,
+    run_id: int,
+    referrer: AutofixReferrer,
+    state: SeerRunState | None = None,
+):
     client = get_autofix_explorer_client(group)
 
     if state is None:
@@ -508,3 +521,8 @@ def trigger_push_changes(group: Group, run_id: int, state: SeerRunState | None =
         raise SeerPermissionError("Unknown run id for group")
 
     client.push_changes(run_id, blocking=False)
+
+    metrics.incr(
+        "autofix.explorer.trigger",
+        tags={"step": "open_pr", "referrer": referrer.value},
+    )

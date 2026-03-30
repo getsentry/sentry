@@ -1174,6 +1174,15 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:preprod_size_status_checks_rules": options.get(
                 "sentry:preprod_size_status_checks_rules"
             ),
+            "sentry:preprod_snapshot_status_checks_enabled": options.get(
+                "sentry:preprod_snapshot_status_checks_enabled", True
+            ),
+            "sentry:preprod_snapshot_status_checks_fail_on_added": options.get(
+                "sentry:preprod_snapshot_status_checks_fail_on_added", False
+            ),
+            "sentry:preprod_snapshot_status_checks_fail_on_removed": options.get(
+                "sentry:preprod_snapshot_status_checks_fail_on_removed", False
+            ),
             "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
             "sentry:preprod_size_enabled_query": options.get("sentry:preprod_size_enabled_query"),
             "sentry:preprod_distribution_enabled_query": options.get(
