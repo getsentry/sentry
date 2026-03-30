@@ -275,6 +275,12 @@ incorrect_cases = [
         "<date>12",
     ),
     (
+        "hex without prefix - no letters, 8+ digits, negative",
+        "-12345678",
+        "<hex>",
+        "<int>",
+    ),
+    (
         "int - dashed string with numbers",
         "415-908",
         "<int>-<int>",
