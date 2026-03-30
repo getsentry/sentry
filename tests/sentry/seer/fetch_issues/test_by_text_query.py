@@ -61,7 +61,7 @@ class CreateEventTestCase(TestCase):
 class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
     provider = GitHubIntegrationProvider
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.gh_repo: Repository = self.create_repo(
             name="getsentry/sentry",
@@ -76,7 +76,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
             repo=self.gh_repo,
         )
 
-    def test_fetch_issues_message_substring_search(self):
+    def test_fetch_issues_message_substring_search(self) -> None:
         """Test that text queries do case-insensitive substring search in issue messages."""
         group = self._create_event(
             filenames=["auth.py", "utils.py"],
@@ -133,7 +133,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
         # Check that the group ID matches
         assert first_issue["id"] == str(group.id)
 
-    def test_fetch_issues_no_match(self):
+    def test_fetch_issues_no_match(self) -> None:
         """Test that non-matching queries return empty results."""
         self._create_event(
             filenames=["models/user.py"],
@@ -156,7 +156,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
         # Should return empty results
         assert seer_response == {"issues": [], "issues_full": []}
 
-    def test_fetch_issues_culprit_search(self):
+    def test_fetch_issues_culprit_search(self) -> None:
         """Test that queries match content in the culprit field."""
         group = self._create_event(
             filenames=["test.py"],
@@ -180,7 +180,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
         assert len(seer_response["issues"]) > 0
         assert group.id in seer_response["issues"]
 
-    def test_fetch_issues_limit_parameter(self):
+    def test_fetch_issues_limit_parameter(self) -> None:
         """Test that the limit parameter is respected."""
         # Create multiple matching events
         for i in range(5):
@@ -206,7 +206,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
         assert "error" not in seer_response
         assert len(seer_response["issues"]) <= limit
 
-    def test_fetch_issues_from_repo_projects_returns_groups(self):
+    def test_fetch_issues_from_repo_projects_returns_groups(self) -> None:
         """Test that _fetch_issues_from_repo_projects returns a list of Group objects."""
         # Create a group that should match the search query
         event = self._create_event(
@@ -240,7 +240,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
         result_ids = [result.id for result in results]
         assert expected_group.id in result_ids
 
-    def test_fetch_issues_from_repo_projects_empty_result(self):
+    def test_fetch_issues_from_repo_projects_empty_result(self) -> None:
         """Test that _fetch_issues_from_repo_projects returns empty list when no matches."""
         # Get repo projects but don't create any matching events
         assert self.gh_repo.external_id is not None

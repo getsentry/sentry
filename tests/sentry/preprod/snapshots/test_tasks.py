@@ -7,7 +7,7 @@ def _meta(content_hash: str) -> ImageMetadata:
 
 
 class TestCategorizeImageDiff:
-    def test_basic_rename(self):
+    def test_basic_rename(self) -> None:
         head = SnapshotManifest(images={"new.png": _meta("hash_a")})
         base = SnapshotManifest(images={"old.png": _meta("hash_a")})
 
@@ -17,7 +17,7 @@ class TestCategorizeImageDiff:
         assert result.added == set()
         assert result.removed == set()
 
-    def test_no_rename_when_hashes_differ(self):
+    def test_no_rename_when_hashes_differ(self) -> None:
         head = SnapshotManifest(images={"a.png": _meta("hash_1")})
         base = SnapshotManifest(images={"b.png": _meta("hash_2")})
 
@@ -27,7 +27,7 @@ class TestCategorizeImageDiff:
         assert result.added == {"a.png"}
         assert result.removed == {"b.png"}
 
-    def test_same_name_same_hash_is_matched_not_renamed(self):
+    def test_same_name_same_hash_is_matched_not_renamed(self) -> None:
         head = SnapshotManifest(images={"screen.png": _meta("hash_a")})
         base = SnapshotManifest(images={"screen.png": _meta("hash_a")})
 
@@ -38,7 +38,7 @@ class TestCategorizeImageDiff:
         assert result.removed == set()
         assert result.matched == {"screen.png"}
 
-    def test_mixed_renames_adds_removes(self):
+    def test_mixed_renames_adds_removes(self) -> None:
         head = SnapshotManifest(
             images={
                 "renamed.png": _meta("hash_shared"),
@@ -60,7 +60,7 @@ class TestCategorizeImageDiff:
         assert result.added == {"brand_new.png"}
         assert result.removed == {"deleted.png"}
 
-    def test_multiple_independent_renames(self):
+    def test_multiple_independent_renames(self) -> None:
         head = SnapshotManifest(images={"new_a.png": _meta("hash_a"), "new_b.png": _meta("hash_b")})
         base = SnapshotManifest(images={"old_a.png": _meta("hash_a"), "old_b.png": _meta("hash_b")})
 

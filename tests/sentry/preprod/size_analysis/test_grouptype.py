@@ -32,7 +32,7 @@ class PreprodSizeAnalysisDetectorValidatorTest(TestCase):
             "request": self.make_request(),
         }
 
-    def test_create_detector(self):
+    def test_create_detector(self) -> None:
         condition_group = self.create_data_condition_group(organization=self.project.organization)
         data = {
             "name": "Test Detector",
@@ -71,7 +71,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             condition_result=DetectorPriorityLevel.HIGH,
         )
 
-    def test_evaluate_creates_occurrence_when_condition_met(self):
+    def test_evaluate_creates_occurrence_when_condition_met(self) -> None:
         detector = self.create_detector(
             name="test-detector",
             type=PreprodSizeAnalysisGroupType.slug,
@@ -95,7 +95,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
         assert result.priority == DetectorPriorityLevel.HIGH
         assert result.result is not None
 
-    def test_evaluate_no_occurrence_when_condition_not_met(self):
+    def test_evaluate_no_occurrence_when_condition_not_met(self) -> None:
         detector = self.create_detector(
             name="test-detector",
             type=PreprodSizeAnalysisGroupType.slug,
@@ -116,7 +116,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
 
         assert evaluation_result == {}
 
-    def test_evaluate_returns_highest_matched_priority(self):
+    def test_evaluate_returns_highest_matched_priority(self) -> None:
         condition_group = self.create_data_condition_group(
             organization=self.project.organization,
         )
@@ -154,7 +154,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
         assert None in evaluation_result
         assert evaluation_result[None].priority == DetectorPriorityLevel.HIGH
 
-    def test_evaluate_returns_medium_when_only_medium_condition_met(self):
+    def test_evaluate_returns_medium_when_only_medium_condition_met(self) -> None:
         condition_group = self.create_data_condition_group(
             organization=self.project.organization,
         )
@@ -192,7 +192,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
         assert None in evaluation_result
         assert evaluation_result[None].priority == DetectorPriorityLevel.MEDIUM
 
-    def test_evaluate_no_occurrence_when_no_condition_group(self):
+    def test_evaluate_no_occurrence_when_no_condition_group(self) -> None:
         detector = self.create_detector(
             name="test-detector",
             type=PreprodSizeAnalysisGroupType.slug,
@@ -212,7 +212,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
 
         assert evaluation_result == {}
 
-    def test_evaluate_absolute_diff(self):
+    def test_evaluate_absolute_diff(self) -> None:
         condition_group = self.create_data_condition_group(
             organization=self.project.organization,
         )
@@ -246,7 +246,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
         assert None in evaluation_result
         assert evaluation_result[None].priority == DetectorPriorityLevel.HIGH
 
-    def test_evaluate_absolute_diff_no_trigger_when_below_threshold(self):
+    def test_evaluate_absolute_diff_no_trigger_when_below_threshold(self) -> None:
         condition_group = self.create_data_condition_group(
             organization=self.project.organization,
         )
@@ -279,7 +279,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
 
         assert evaluation_result == {}
 
-    def test_evaluate_relative_diff(self):
+    def test_evaluate_relative_diff(self) -> None:
         condition_group = self.create_data_condition_group(
             organization=self.project.organization,
         )
@@ -314,7 +314,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
         assert None in evaluation_result
         assert evaluation_result[None].priority == DetectorPriorityLevel.HIGH
 
-    def test_evaluate_relative_diff_no_trigger_when_below_threshold(self):
+    def test_evaluate_relative_diff_no_trigger_when_below_threshold(self) -> None:
         condition_group = self.create_data_condition_group(
             organization=self.project.organization,
         )
@@ -348,7 +348,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
 
         assert evaluation_result == {}
 
-    def test_evaluate_diff_raises_when_base_missing(self):
+    def test_evaluate_diff_raises_when_base_missing(self) -> None:
         condition_group = self.create_data_condition_group(
             organization=self.project.organization,
         )
@@ -426,7 +426,7 @@ class PreprodSizeAnalysisDetectorQueryFilterTest(TestCase):
             },
         )
 
-    def test_no_query_evaluates_normally(self):
+    def test_no_query_evaluates_normally(self) -> None:
         detector = self.create_detector(
             name="test-detector",
             type=PreprodSizeAnalysisGroupType.slug,
@@ -440,7 +440,7 @@ class PreprodSizeAnalysisDetectorQueryFilterTest(TestCase):
         assert None in result
         assert result[None].priority == DetectorPriorityLevel.HIGH
 
-    def test_empty_query_evaluates_normally(self):
+    def test_empty_query_evaluates_normally(self) -> None:
         detector = self.create_detector(
             name="test-detector",
             type=PreprodSizeAnalysisGroupType.slug,
@@ -454,7 +454,7 @@ class PreprodSizeAnalysisDetectorQueryFilterTest(TestCase):
         assert None in result
         assert result[None].priority == DetectorPriorityLevel.HIGH
 
-    def test_whitespace_query_evaluates_normally(self):
+    def test_whitespace_query_evaluates_normally(self) -> None:
         detector = self.create_detector(
             name="test-detector",
             type=PreprodSizeAnalysisGroupType.slug,
@@ -468,7 +468,7 @@ class PreprodSizeAnalysisDetectorQueryFilterTest(TestCase):
         assert None in result
         assert result[None].priority == DetectorPriorityLevel.HIGH
 
-    def test_matching_query_evaluates_normally(self):
+    def test_matching_query_evaluates_normally(self) -> None:
         detector = self.create_detector(
             name="test-detector",
             type=PreprodSizeAnalysisGroupType.slug,
@@ -486,7 +486,7 @@ class PreprodSizeAnalysisDetectorQueryFilterTest(TestCase):
         assert None in result
         assert result[None].priority == DetectorPriorityLevel.HIGH
 
-    def test_non_matching_query_skips_evaluation(self):
+    def test_non_matching_query_skips_evaluation(self) -> None:
         detector = self.create_detector(
             name="test-detector",
             type=PreprodSizeAnalysisGroupType.slug,
@@ -503,7 +503,7 @@ class PreprodSizeAnalysisDetectorQueryFilterTest(TestCase):
 
         assert result == {}
 
-    def test_invalid_query_skips_evaluation_and_logs_exception(self):
+    def test_invalid_query_skips_evaluation_and_logs_exception(self) -> None:
         detector = self.create_detector(
             name="test-detector",
             type=PreprodSizeAnalysisGroupType.slug,
@@ -526,7 +526,7 @@ class PreprodSizeAnalysisDetectorQueryFilterTest(TestCase):
             extra={"detector_id": detector.id, "query": "foo OR bar"},
         )
 
-    def test_no_metadata_with_query_raises_error(self):
+    def test_no_metadata_with_query_raises_error(self) -> None:
         detector = self.create_detector(
             name="test-detector",
             type=PreprodSizeAnalysisGroupType.slug,
@@ -552,7 +552,7 @@ class PreprodSizeAnalysisDetectorQueryFilterTest(TestCase):
 
 @cell_silo_test
 class PreprodSizeAnalysisDetectorHandlerIntegrationTest(TestCase):
-    def test_e2e(self):
+    def test_e2e(self) -> None:
         condition_group = self.create_data_condition_group(
             organization=self.project.organization,
         )
@@ -621,7 +621,7 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
         handler = PreprodSizeAnalysisDetectorHandler(detector)
         return handler.evaluate(data_packet)
 
-    def test_create_occurrence_install_size_with_metadata(self):
+    def test_create_occurrence_install_size_with_metadata(self) -> None:
         commit_comparison = self.create_commit_comparison(
             organization=self.project.organization,
             head_sha="a" * 40,
@@ -684,7 +684,7 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
         assert occurrence.evidence_data["head_size_metric_id"] == 100
         assert occurrence.evidence_data["base_size_metric_id"] == 200
 
-    def test_create_occurrence_download_size_with_metadata(self):
+    def test_create_occurrence_download_size_with_metadata(self) -> None:
         commit_comparison = self.create_commit_comparison(
             organization=self.project.organization,
             head_sha="c" * 40,
@@ -736,7 +736,7 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
         assert event_data["tags"]["git.repo"] == "owner/repo"
         assert occurrence.evidence_data["head_artifact_id"] == head_artifact.id
 
-    def test_create_occurrence_with_metadata_no_commit_comparison(self):
+    def test_create_occurrence_with_metadata_no_commit_comparison(self) -> None:
         head_artifact = self.create_preprod_artifact(
             project=self.project,
             app_id="com.example.app",
@@ -774,7 +774,7 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
         assert "git.branch" not in event_data["tags"]
         assert "git.repo" not in event_data["tags"]
 
-    def test_create_occurrence_without_metadata(self):
+    def test_create_occurrence_without_metadata(self) -> None:
         detector = self.create_detector(
             name="test-detector",
             type=PreprodSizeAnalysisGroupType.slug,
@@ -861,7 +861,7 @@ class PreprodSizeAnalysisEvidenceTextTest(TestCase):
         assert isinstance(occurrence, IssueOccurrence)
         return occurrence
 
-    def test_evidence_absolute_install_size(self):
+    def test_evidence_absolute_install_size(self) -> None:
         self._create_condition(Condition.GREATER, 1000000)
         occurrence = self._evaluate(
             "absolute",
@@ -874,7 +874,7 @@ class PreprodSizeAnalysisEvidenceTextTest(TestCase):
         assert evidence.important is True
         assert evidence.value == "Install Size, Absolute Size > 1.0 MB (5.0 MB)"
 
-    def test_evidence_absolute_diff_install_size(self):
+    def test_evidence_absolute_diff_install_size(self) -> None:
         self._create_condition(Condition.GREATER_OR_EQUAL, 500000)
         occurrence = self._evaluate(
             "absolute_diff",
@@ -887,7 +887,7 @@ class PreprodSizeAnalysisEvidenceTextTest(TestCase):
         evidence = occurrence.evidence_display[0]
         assert evidence.value == "Install Size, Absolute Diff > 500.0 KB (+1.0 MB)"
 
-    def test_evidence_relative_diff_download_size(self):
+    def test_evidence_relative_diff_download_size(self) -> None:
         self._create_condition(Condition.GREATER_OR_EQUAL, 5)
         occurrence = self._evaluate(
             "relative_diff",
@@ -927,7 +927,7 @@ class PreprodSizeAnalysisEvidenceTextTest(TestCase):
             "base_artifact": base_artifact,
         }
 
-    def test_evidence_android_shows_uncompressed_size(self):
+    def test_evidence_android_shows_uncompressed_size(self) -> None:
         self._create_condition(Condition.GREATER, 1000000)
         metadata = self._make_metadata("android", PreprodArtifact.ArtifactType.APK)
         occurrence = self._evaluate(
@@ -940,7 +940,7 @@ class PreprodSizeAnalysisEvidenceTextTest(TestCase):
         evidence = occurrence.evidence_display[0]
         assert evidence.value == "Uncompressed Size, Absolute Size > 1.0 MB (5.0 MB)"
 
-    def test_evidence_apple_shows_install_size(self):
+    def test_evidence_apple_shows_install_size(self) -> None:
         self._create_condition(Condition.GREATER, 1000000)
         metadata = self._make_metadata("apple", PreprodArtifact.ArtifactType.XCARCHIVE)
         occurrence = self._evaluate(

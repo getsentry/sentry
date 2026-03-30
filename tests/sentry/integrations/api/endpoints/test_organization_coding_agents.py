@@ -85,7 +85,7 @@ class BaseOrganizationCodingAgentsTest(APITestCase):
 
     endpoint = "sentry-api-0-organization-coding-agents"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self._setup_mock_integration()
@@ -196,7 +196,7 @@ class BaseOrganizationCodingAgentsTest(APITestCase):
 
 
 class StoreCodingAgentStatesToSeerTest(APITestCase):
-    def test_batch_function_posts_correct_payload(self):
+    def test_batch_function_posts_correct_payload(self) -> None:
         from datetime import UTC, datetime
         from unittest.mock import MagicMock, patch
 
@@ -244,7 +244,7 @@ class StoreCodingAgentStatesToSeerTest(APITestCase):
 class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
     """Test class for GET endpoint functionality."""
 
-    def test_no_integrations(self):
+    def test_no_integrations(self) -> None:
         """Test GET request with no coding agent integrations."""
         organization = self.create_organization(owner=self.user)
 
@@ -253,7 +253,7 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
         assert response.status_code == 200
         assert response.data["integrations"] == []
 
-    def test_with_mock_integration(self):
+    def test_with_mock_integration(self) -> None:
         """Test GET request with mocked coding agent integration."""
         organization = self.create_organization(owner=self.user)
 
@@ -332,7 +332,7 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
         assert "integrations" in response.data
         assert len(response.data["integrations"]) == 0
 
-    def test_github_copilot_shown_with_feature_flag(self):
+    def test_github_copilot_shown_with_feature_flag(self) -> None:
         """Test GET endpoint shows GitHub Copilot when feature flag is enabled."""
         with (
             self.feature("organizations:integrations-github-copilot-agent"),
@@ -417,7 +417,7 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
                 user_id=self.user.id
             )
 
-    def test_github_copilot_not_shown_without_feature_flag(self):
+    def test_github_copilot_not_shown_without_feature_flag(self) -> None:
         """Test GET endpoint does not show GitHub Copilot without feature flag."""
         with (
             self.feature({"organizations:integrations-github-copilot-agent": False}),
@@ -432,7 +432,7 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
 class OrganizationCodingAgentsPostParameterValidationTest(BaseOrganizationCodingAgentsTest):
     """Test class for POST endpoint parameter validation."""
 
-    def test_missing_integration_id_and_provider(self):
+    def test_missing_integration_id_and_provider(self) -> None:
         """Test POST endpoint with missing integration_id and provider."""
         data = {"run_id": 123}
         response = self.get_error_response(
@@ -443,7 +443,7 @@ class OrganizationCodingAgentsPostParameterValidationTest(BaseOrganizationCoding
             response.data["non_field_errors"]
         )
 
-    def test_both_integration_id_and_provider_provided(self):
+    def test_both_integration_id_and_provider_provided(self) -> None:
         """Test POST endpoint with both integration_id and provider provided."""
         data = {"run_id": 123, "integration_id": "123", "provider": "github_copilot"}
         response = self.get_error_response(
@@ -454,7 +454,7 @@ class OrganizationCodingAgentsPostParameterValidationTest(BaseOrganizationCoding
             response.data["non_field_errors"]
         )
 
-    def test_invalid_integration_id(self):
+    def test_invalid_integration_id(self) -> None:
         """Test POST endpoint with invalid integration_id."""
         data = {"integration_id": "invalid_id", "run_id": 123}
 
@@ -463,7 +463,7 @@ class OrganizationCodingAgentsPostParameterValidationTest(BaseOrganizationCoding
         )
         assert "integration_id" in response.data
 
-    def test_invalid_provider(self):
+    def test_invalid_provider(self) -> None:
         """Test POST endpoint with invalid provider (not enabled)."""
         data = {"provider": "github_copilot", "run_id": 123}
 
@@ -472,7 +472,7 @@ class OrganizationCodingAgentsPostParameterValidationTest(BaseOrganizationCoding
         )
         assert "GitHub Copilot is not enabled" in response.data["detail"]
 
-    def test_non_coding_agent_integration(self):
+    def test_non_coding_agent_integration(self) -> None:
         """Test POST endpoint with non-coding agent integration."""
         # Create a non-coding agent integration (e.g., Slack)
         slack_integration = self.create_integration(
