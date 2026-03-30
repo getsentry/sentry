@@ -371,7 +371,7 @@ USE_TZ = True
 # so that responses aren't modified after Content-Length is set, or have the
 # response modifying middleware reset the Content-Length header.
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
-APIGW_ASYNC = os.environ.get("SENTRY_ASYNC_APIGW", "").lower() in ("1", "true", "y", "yes")
+APIGW_ASYNC = os.environ.get("SENTRY_APIGW_ASYNC", "").lower() in ("1", "true", "y", "yes")
 APIGW_MIDDLEWARE = (
     "sentry.hybridcloud.apigateway_async.middleware.ApiGatewayMiddleware"
     if APIGW_ASYNC
@@ -3187,9 +3187,9 @@ REGION_PINNED_URL_NAMES = {
 }
 # Used in tests to skip forwarding relay paths to a region silo that does not exist.
 APIGATEWAY_PROXY_SKIP_RELAY = False
-APIGATEWAY_PROXY_MAX_CONCURRENCY = 100
-APIGATEWAY_PROXY_MAX_FAILURES = 100
-APIGATEWAY_PROXY_FAILURE_WINDOW = 60
+APIGATEWAY_PROXY_MAX_CONCURRENCY = int(os.environ.get("SENTRY_APIGW_PROXY_MAX_CONCURRENCY", 100))
+APIGATEWAY_PROXY_MAX_FAILURES = int(os.environ.get("SENTRY_APIGW_PROXY_MAX_FAILURES", 100))
+APIGATEWAY_PROXY_FAILURE_WINDOW = int(os.environ.get("SENTRY_APIGW_PROXY_FAILURE_WINDOW", 60))
 
 # Shared resource ids for accounting
 EVENT_PROCESSING_STORE = "rc_processing_redis"
