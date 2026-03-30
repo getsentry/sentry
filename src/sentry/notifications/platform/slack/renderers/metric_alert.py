@@ -104,7 +104,7 @@ class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
             blocks=slack_body.get("blocks", []),
             text=slack_body.get("text", ""),
         )
-        if slack_body.get("color"):
-            renderable["color"] = slack_body.get("color")
+        if (color := slack_body.get("color")) is not None:
+            renderable["color"] = color
 
         return renderable
