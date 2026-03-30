@@ -92,7 +92,9 @@ export function ScmFeatureSelectionCards({
         areas={{xs: '"heading" "counter"', md: '"spacer heading counter"'}}
       >
         <Flex area="heading" justify={{xs: 'center', md: 'start'}}>
-          <Heading as="h3">{t('What do you want to set up?')}</Heading>
+          <Heading as="h3" size="xl">
+            {t('What do you want to set up?')}
+          </Heading>
         </Flex>
         <Flex area="counter" justify={{xs: 'center', md: 'end'}}>
           <Text variant="muted">{t('%s of %s selected', selectedCount, totalCount)}</Text>
