@@ -52,16 +52,15 @@ export function ScmAlertFrequency({
           <Stack
             gap="lg"
             padding="sm 0 0 2xl"
-            width="100%"
             borderLeft={isCustomSelected ? 'accent' : 'secondary'}
           >
-            <Stack gap="xs" width="100%">
+            <Stack gap="xs">
               <Container>
                 <Text size="md" density="comfortable">
                   {t('When there are more than')}
                 </Text>
               </Container>
-              <Grid gap="md" width="100%" columns=".35fr .65fr">
+              <Grid gap="md" columns=".35fr .65fr">
                 <Input
                   size="sm"
                   type="number"
@@ -80,7 +79,7 @@ export function ScmAlertFrequency({
                 />
               </Grid>
             </Stack>
-            <Stack gap="xs" width="100%">
+            <Stack gap="xs">
               <Container>
                 <Text size="md" density="comfortable">
                   {t('a unique error in')}
