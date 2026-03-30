@@ -11,7 +11,7 @@ from sentry.billing.platform.core import BillingService, service_method
 class TestBillingService:
     """Tests for the BillingService base class and service_method decorator."""
 
-    def test_service_inheritance_and_basic_method(self):
+    def test_service_inheritance_and_basic_method(self) -> None:
         """Services inherit from BillingService and methods accept/return protobufs."""
 
         class TestService(BillingService):
@@ -26,7 +26,7 @@ class TestBillingService:
         assert isinstance(response, StringValue)
         assert response.value == "hello"
 
-    def test_service_method_validates_input_type(self):
+    def test_service_method_validates_input_type(self) -> None:
         """Service methods reject non-protobuf input."""
 
         class TestService(BillingService):
@@ -39,7 +39,7 @@ class TestBillingService:
         with pytest.raises(TypeError, match="expects a protobuf Message"):
             service.process("not a protobuf")  # type: ignore[arg-type]
 
-    def test_service_method_validates_return_type(self):
+    def test_service_method_validates_return_type(self) -> None:
         """Service methods reject non-protobuf return values."""
 
         class TestService(BillingService):
@@ -103,7 +103,7 @@ class TestBillingService:
             },
         )
 
-    def test_multiple_methods_on_same_service(self):
+    def test_multiple_methods_on_same_service(self) -> None:
         """A service can have multiple service methods."""
 
         class UserService(BillingService):

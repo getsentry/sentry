@@ -994,7 +994,7 @@ def _make_api_client() -> GitHubProviderApiClient:
 
 
 class TestGitHubProviderApiClientGraphql:
-    def test_returns_data_on_success(self):
+    def test_returns_data_on_success(self) -> None:
         api_client = _make_api_client()
         api_client.post = MagicMock(  # type: ignore[method-assign]
             return_value=FakeResponse({"data": {"viewer": {"login": "octocat"}}})
@@ -1007,7 +1007,7 @@ class TestGitHubProviderApiClientGraphql:
             "/graphql", data={"query": "{ viewer { login } }"}, headers={}
         )
 
-    def test_includes_variables_when_provided(self):
+    def test_includes_variables_when_provided(self) -> None:
         api_client = _make_api_client()
         api_client.post = MagicMock(  # type: ignore[method-assign]
             return_value=FakeResponse({"data": {"node": {"id": "123"}}})
@@ -1022,7 +1022,7 @@ class TestGitHubProviderApiClientGraphql:
         )
         assert call_data["variables"] == {"id": "123"}
 
-    def test_excludes_variables_when_empty(self):
+    def test_excludes_variables_when_empty(self) -> None:
         api_client = _make_api_client()
         api_client.post = MagicMock(  # type: ignore[method-assign]
             return_value=FakeResponse({"data": {}})
@@ -1037,7 +1037,7 @@ class TestGitHubProviderApiClientGraphql:
         )
         assert "variables" not in call_data
 
-    def test_raises_on_non_dict_response(self):
+    def test_raises_on_non_dict_response(self) -> None:
         api_client = _make_api_client()
         api_client.post = MagicMock(  # type: ignore[method-assign]
             return_value=FakeResponse([{"unexpected": "list"}])
@@ -1046,7 +1046,7 @@ class TestGitHubProviderApiClientGraphql:
         with pytest.raises(SCMProviderException, match="not in expected format"):
             api_client.graphql("{ viewer { login } }", {})
 
-    def test_raises_on_response_missing_data_and_errors(self):
+    def test_raises_on_response_missing_data_and_errors(self) -> None:
         api_client = _make_api_client()
         api_client.post = MagicMock(  # type: ignore[method-assign]
             return_value=FakeResponse({"something": "else"})
@@ -1055,7 +1055,7 @@ class TestGitHubProviderApiClientGraphql:
         with pytest.raises(SCMProviderException, match="not in expected format"):
             api_client.graphql("{ viewer { login } }", {})
 
-    def test_raises_on_errors_without_data(self):
+    def test_raises_on_errors_without_data(self) -> None:
         api_client = _make_api_client()
         api_client.post = MagicMock(  # type: ignore[method-assign]
             return_value=FakeResponse(
@@ -1066,7 +1066,7 @@ class TestGitHubProviderApiClientGraphql:
         with pytest.raises(SCMProviderException, match="Field not found\nUnauthorized"):
             api_client.graphql("{ viewer { login } }", {})
 
-    def test_returns_data_on_partial_success_with_errors(self):
+    def test_returns_data_on_partial_success_with_errors(self) -> None:
         api_client = _make_api_client()
         api_client.post = MagicMock(  # type: ignore[method-assign]
             return_value=FakeResponse(
@@ -1081,7 +1081,7 @@ class TestGitHubProviderApiClientGraphql:
 
         assert result == {"viewer": {"login": "octocat"}}
 
-    def test_returns_empty_dict_when_data_key_missing_but_errors_empty(self):
+    def test_returns_empty_dict_when_data_key_missing_but_errors_empty(self) -> None:
         api_client = _make_api_client()
         api_client.post = MagicMock(  # type: ignore[method-assign]
             return_value=FakeResponse({"errors": []})

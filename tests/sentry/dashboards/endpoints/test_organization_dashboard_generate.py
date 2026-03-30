@@ -14,7 +14,7 @@ from sentry.testutils.helpers.features import with_feature
 class OrganizationDashboardGenerateEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-dashboards-generate"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.url = f"/api/0/organizations/{self.organization.slug}/dashboards/generate/"

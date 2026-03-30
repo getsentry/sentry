@@ -197,7 +197,7 @@ def test_rate_limited_action(action: Callable[..., Any], kwargs: dict[str, Any])
         action(scm, **kwargs)
 
 
-def test_scm_is_instance_of_scm():
+def test_scm_is_instance_of_scm() -> None:
     # This weird test is justified by the creation of the dynamic Facade subclass in SourceCodeManager.__new__.
     # In a previous version, it was returning a subclass of Facade, but not of SourceCodeManager.
     provider = BaseTestProvider()
@@ -206,7 +206,7 @@ def test_scm_is_instance_of_scm():
     assert scm.provider is provider
 
 
-def test_repository_not_found():
+def test_repository_not_found() -> None:
     with raises_with_code(SCMCodedError, "repository_not_found"):
         SourceCodeManager.make_from_repository_id(
             organization_id=1,
@@ -215,7 +215,7 @@ def test_repository_not_found():
         )
 
 
-def test_repository_inactive():
+def test_repository_inactive() -> None:
     with raises_with_code(SCMCodedError, "repository_inactive"):
         SourceCodeManager.make_from_repository_id(
             organization_id=1,
@@ -230,7 +230,7 @@ def test_repository_inactive():
         )
 
 
-def test_repository_organization_mismatch():
+def test_repository_organization_mismatch() -> None:
     with raises_with_code(SCMCodedError, "repository_organization_mismatch"):
         SourceCodeManager.make_from_repository_id(
             organization_id=2,
@@ -677,7 +677,7 @@ def test_action_success(method, kwargs: dict[str, Any], check):
     ]
 
 
-def test_provider_exception_is_not_wrapped():
+def test_provider_exception_is_not_wrapped() -> None:
     """SCMProviderException should pass through exec_provider_fn, not be wrapped as SCMUnhandledException."""
 
     class FailingProvider(BaseTestProvider):
@@ -721,7 +721,7 @@ def test_exec_raises_provider_not_supported_for_all_actions(
         action(scm, **kwargs)
 
 
-def test_exec_wraps_unhandled_exception():
+def test_exec_wraps_unhandled_exception() -> None:
     """Non-SCM exceptions raised by the provider are wrapped as SCMUnhandledException."""
 
     class ExplodingProvider(BaseTestProvider):
@@ -735,7 +735,7 @@ def test_exec_wraps_unhandled_exception():
         scm.get_branch(branch="main")
 
 
-def test_exec_records_failure_metric_on_unhandled_exception():
+def test_exec_records_failure_metric_on_unhandled_exception() -> None:
     """record_count is called with the failure metric when a non-SCM exception occurs."""
     metrics: list[tuple[str, int, dict[str, str]]] = []
 
@@ -757,7 +757,7 @@ def test_exec_records_failure_metric_on_unhandled_exception():
     ]
 
 
-def test_exec_passes_custom_referrer():
+def test_exec_passes_custom_referrer() -> None:
     """The referrer set on SourceCodeManager is forwarded through _exec to exec_provider_fn."""
     metrics: list[tuple[str, int, dict[str, str]]] = []
 
@@ -775,7 +775,7 @@ def test_exec_passes_custom_referrer():
     ]
 
 
-def test_exec_passes_custom_record_count():
+def test_exec_passes_custom_record_count() -> None:
     """A custom record_count callable provided at construction is used by _exec."""
     calls: list[tuple[str, int, dict[str, str]]] = []
 
@@ -795,7 +795,7 @@ def test_exec_passes_custom_record_count():
     assert calls[1] == ("sentry.scm.actions.success_by_referrer", 1, {"referrer": "shared"})
 
 
-def test_get_capabilities():
+def test_get_capabilities() -> None:
     assert list(get_capabilities(SourceCodeManager(BaseTestProvider()))) == [
         "CompareCommitsProtocol",
         "CreateBranchProtocol",

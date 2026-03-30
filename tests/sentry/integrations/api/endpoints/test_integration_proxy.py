@@ -348,12 +348,12 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert self.endpoint_cls._validate_sender(self.valid_request)
 
     @override_settings(SENTRY_SUBNET_SECRET=secret, SILO_MODE=SiloMode.CONTROL)
-    def test__validate_request(self):
+    def test__validate_request(self) -> None:
         request = self.factory.get(self.path)
         assert not self.endpoint_cls._validate_request(request)
 
     @override_settings(SENTRY_SUBNET_SECRET=secret, SILO_MODE=SiloMode.CONTROL)
-    def test__validate_header_data(self):
+    def test__validate_header_data(self) -> None:
         self.org_integration.update(status=ObjectStatus.DISABLED)
         header_kwargs = SiloHttpHeaders(
             HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION=str(self.org_integration.id),
@@ -362,7 +362,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert not self.endpoint_cls._validate_request(request)
 
     @override_settings(SENTRY_SUBNET_SECRET=secret, SILO_MODE=SiloMode.CONTROL)
-    def test__validate_organization_integration(self):
+    def test__validate_organization_integration(self) -> None:
         header_kwargs = SiloHttpHeaders(
             HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION="None",
         )
