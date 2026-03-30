@@ -1,10 +1,11 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {FieldKind} from 'sentry/utils/fields';
 import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
 
 import {EventsSearchBar} from './eventsSearchBar';
@@ -14,6 +15,7 @@ jest.mock('sentry/utils/useCustomMeasurements');
 describe('EventsSearchBar', () => {
   let organization: Organization;
   beforeEach(() => {
+    jest.useFakeTimers();
     organization = OrganizationFixture();
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
     MockApiClient.addMockResponse({
@@ -25,9 +27,23 @@ describe('EventsSearchBar', () => {
       body: [],
       method: 'POST',
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/tags/`,
+      body: [
+        {key: 'environment', name: 'environment', kind: FieldKind.FIELD},
+        {key: 'transaction', name: 'transaction', kind: FieldKind.FIELD},
+      ],
+    });
+  });
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
   });
 
   it('does not show function tags in has: dropdown', async () => {
+    const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+
     render(
       <EventsSearchBar
         onClose={jest.fn()}
@@ -52,21 +68,25 @@ describe('EventsSearchBar', () => {
     );
 
     const input = await screen.findByRole('combobox', {name: 'Add a search term'});
-    await userEvent.click(input, {delay: null});
-    await userEvent.paste('has:p', {delay: null});
+    await user.click(input);
+    await user.paste('has:p');
 
-    await userEvent.click(
-      screen.getByRole('button', {name: 'Edit value for filter: has'})
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+
+    await user.click(
+      await screen.findByRole('button', {name: 'Edit value for filter: has'})
     );
 
-    // Assert we actually have has: dropdown options before checking exclusions.
     expect(await screen.findByRole('option', {name: 'environment'})).toBeInTheDocument();
 
-    // p50 is a function and should not be suggested as a has: tag.
     expect(screen.queryByRole('option', {name: 'p50'})).not.toBeInTheDocument();
   });
 
   it('shows the selected aggregate in the dropdown', async () => {
+    const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+
     render(
       <EventsSearchBar
         onClose={jest.fn()}
@@ -91,8 +111,8 @@ describe('EventsSearchBar', () => {
     );
 
     const input = await screen.findByRole('combobox', {name: 'Add a search term'});
-    await userEvent.click(input);
-    await userEvent.paste('count_uni', {delay: null});
+    await user.click(input);
+    await user.paste('count_uni');
 
     expect(
       await within(await screen.findByRole('listbox')).findByText('count_unique(...)')
@@ -100,6 +120,8 @@ describe('EventsSearchBar', () => {
   });
 
   it('shows normal tags, e.g. transaction, in the dropdown', async () => {
+    const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+
     render(
       <EventsSearchBar
         onClose={jest.fn()}
@@ -124,9 +146,9 @@ describe('EventsSearchBar', () => {
     );
 
     const input = await screen.findByRole('combobox', {name: 'Add a search term'});
-    await userEvent.clear(input);
-    await userEvent.click(input, {delay: null});
-    await userEvent.paste('transact', {delay: null});
+    await user.clear(input);
+    await user.click(input);
+    await user.paste('transact');
 
     expect(
       await within(await screen.findByRole('listbox')).findByRole('option', {
