@@ -236,12 +236,14 @@ export interface MissingMember {
 }
 
 /**
- * Minimal organization shape used on shared issue views.
+ * Minimal organization shape from SharedProjectSerializer.
+ * Backend provides {slug, name}. Features is added client-side
+ * for compatibility with OrganizationContext.
  */
 export type SharedViewOrganization = {
   slug: string;
   features?: string[];
-  id?: string;
+  name?: string;
 };
 
 export type AuditLog = {

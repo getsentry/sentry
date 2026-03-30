@@ -178,26 +178,6 @@ def make_provider(client: RecordingClient | None = None) -> tuple[GitHubProvider
     return provider, transport
 
 
-def assert_action_result(result: Any, *, expected_data: Any, raw: Any) -> None:
-    assert result["type"] == "github"
-    assert result["raw"] == raw
-    assert result["data"] == expected_data
-    assert result["meta"] == {}
-
-
-def assert_paginated_result(
-    result: Any,
-    *,
-    expected_data: Any,
-    raw: Any,
-    next_cursor: str,
-) -> None:
-    assert result["type"] == "github"
-    assert result["raw"] == raw
-    assert result["data"] == expected_data
-    assert result["meta"] == {"next_cursor": next_cursor}
-
-
 def expected_comment(raw: dict[str, Any]) -> dict[str, Any]:
     return {
         "id": str(raw["id"]),
@@ -857,12 +837,11 @@ def test_paginated_methods(case: dict[str, Any]) -> None:
 
     result = getattr(provider, case["name"])(**case["kwargs"])
 
-    assert_paginated_result(
-        result,
-        expected_data=case["expected_data"],
-        raw=case["raw"],
-        next_cursor=case["next_cursor"],
-    )
+    assert result["type"] == "github"
+    assert result["raw"] == {"data": case["raw"], "headers": {}}
+    assert result["data"] == case["expected_data"]
+    assert result["meta"] == {"next_cursor": case["next_cursor"]}
+
     assert client.calls == [
         {
             "operation": "get",
@@ -885,7 +864,11 @@ def test_action_methods(case: dict[str, Any]) -> None:
 
     result = getattr(provider, case["name"])(**case["kwargs"])
 
-    assert_action_result(result, expected_data=case["expected_data"], raw=case["raw"])
+    assert result["type"] == "github"
+    assert result["raw"] == {"data": case["raw"], "headers": case.get("headers", {})}
+    assert result["data"] == case["expected_data"]
+    assert result["meta"] == {}
+
     expected_call = {"operation": case["operation"], "path": case["path"]}
     if "data" in case:
         expected_call["data"] = case["data"]
@@ -916,7 +899,13 @@ def test_get_pull_request_diff_uses_raw_request_and_extracts_meta() -> None:
     result = provider.get_pull_request_diff("42")
 
     assert result["type"] == "github"
-    assert result["raw"] == "diff --git a/f.py b/f.py"
+    assert result["raw"] == {
+        "data": "diff --git a/f.py b/f.py",
+        "headers": {
+            "ETag": '"etag-123"',
+            "Last-Modified": "Tue, 04 Feb 2026 10:00:00 GMT",
+        },
+    }
     assert result["data"] == "diff --git a/f.py b/f.py"
     assert result["meta"]["etag"] == '"etag-123"'
     assert result["meta"]["last_modified"].isoformat() == "2026-02-04T10:00:00+00:00"
@@ -1005,7 +994,7 @@ def _make_api_client() -> GitHubProviderApiClient:
 
 
 class TestGitHubProviderApiClientGraphql:
-    def test_returns_data_on_success(self):
+    def test_returns_data_on_success(self) -> None:
         api_client = _make_api_client()
         api_client.post = MagicMock(  # type: ignore[method-assign]
             return_value=FakeResponse({"data": {"viewer": {"login": "octocat"}}})
@@ -1018,7 +1007,7 @@ class TestGitHubProviderApiClientGraphql:
             "/graphql", data={"query": "{ viewer { login } }"}, headers={}
         )
 
-    def test_includes_variables_when_provided(self):
+    def test_includes_variables_when_provided(self) -> None:
         api_client = _make_api_client()
         api_client.post = MagicMock(  # type: ignore[method-assign]
             return_value=FakeResponse({"data": {"node": {"id": "123"}}})
@@ -1033,7 +1022,7 @@ class TestGitHubProviderApiClientGraphql:
         )
         assert call_data["variables"] == {"id": "123"}
 
-    def test_excludes_variables_when_empty(self):
+    def test_excludes_variables_when_empty(self) -> None:
         api_client = _make_api_client()
         api_client.post = MagicMock(  # type: ignore[method-assign]
             return_value=FakeResponse({"data": {}})
@@ -1048,7 +1037,7 @@ class TestGitHubProviderApiClientGraphql:
         )
         assert "variables" not in call_data
 
-    def test_raises_on_non_dict_response(self):
+    def test_raises_on_non_dict_response(self) -> None:
         api_client = _make_api_client()
         api_client.post = MagicMock(  # type: ignore[method-assign]
             return_value=FakeResponse([{"unexpected": "list"}])
@@ -1057,7 +1046,7 @@ class TestGitHubProviderApiClientGraphql:
         with pytest.raises(SCMProviderException, match="not in expected format"):
             api_client.graphql("{ viewer { login } }", {})
 
-    def test_raises_on_response_missing_data_and_errors(self):
+    def test_raises_on_response_missing_data_and_errors(self) -> None:
         api_client = _make_api_client()
         api_client.post = MagicMock(  # type: ignore[method-assign]
             return_value=FakeResponse({"something": "else"})
@@ -1066,7 +1055,7 @@ class TestGitHubProviderApiClientGraphql:
         with pytest.raises(SCMProviderException, match="not in expected format"):
             api_client.graphql("{ viewer { login } }", {})
 
-    def test_raises_on_errors_without_data(self):
+    def test_raises_on_errors_without_data(self) -> None:
         api_client = _make_api_client()
         api_client.post = MagicMock(  # type: ignore[method-assign]
             return_value=FakeResponse(
@@ -1077,7 +1066,7 @@ class TestGitHubProviderApiClientGraphql:
         with pytest.raises(SCMProviderException, match="Field not found\nUnauthorized"):
             api_client.graphql("{ viewer { login } }", {})
 
-    def test_returns_data_on_partial_success_with_errors(self):
+    def test_returns_data_on_partial_success_with_errors(self) -> None:
         api_client = _make_api_client()
         api_client.post = MagicMock(  # type: ignore[method-assign]
             return_value=FakeResponse(
@@ -1092,7 +1081,7 @@ class TestGitHubProviderApiClientGraphql:
 
         assert result == {"viewer": {"login": "octocat"}}
 
-    def test_returns_empty_dict_when_data_key_missing_but_errors_empty(self):
+    def test_returns_empty_dict_when_data_key_missing_but_errors_empty(self) -> None:
         api_client = _make_api_client()
         api_client.post = MagicMock(  # type: ignore[method-assign]
             return_value=FakeResponse({"errors": []})

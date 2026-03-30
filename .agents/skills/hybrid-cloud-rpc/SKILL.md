@@ -41,7 +41,7 @@ The service's `local_mode` determines where the database-backed implementation r
 
 | Data lives in...                                  | `local_mode`       | Decorator on methods            | Example                            |
 | ------------------------------------------------- | ------------------ | ------------------------------- | ---------------------------------- |
-| Region silo (projects, events, issues, org data)  | `SiloMode.CELL`    | `@cell_rpc_method(resolve=...)` | `OrganizationService`              |
+| Cell silo (projects, events, issues, org data)    | `SiloMode.CELL`    | `@cell_rpc_method(resolve=...)` | `OrganizationService`              |
 | Control silo (users, auth, billing, org mappings) | `SiloMode.CONTROL` | `@rpc_method`                   | `OrganizationMemberMappingService` |
 
 **Decision rule**: If the Django models you need to query live in the cell database, use `SiloMode.CELL`. If they live in the control database, use `SiloMode.CONTROL`.
@@ -95,7 +95,7 @@ If your service doesn't fit any of these, add a new entry to the `service_packag
 
 ## Step 4: Add or Update Methods
 
-### For REGION silo services
+### For CELL silo services
 
 Load `references/resolvers.md` for resolver details.
 
@@ -217,11 +217,11 @@ Every RPC service needs three categories of tests: **silo mode compatibility**, 
 
 ### 7.1 Silo mode compatibility with `@all_silo_test`
 
-Every service test class MUST use `@all_silo_test` so tests run in all three modes (MONOLITH, REGION, CONTROL). This ensures the delegation layer works for both local and remote dispatch paths.
+Every service test class MUST use `@all_silo_test` so tests run in all three modes (MONOLITH, CELL, CONTROL). This ensures the delegation layer works for both local and remote dispatch paths.
 
 ```python
 from sentry.testutils.cases import TestCase, TransactionTestCase
-from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_regions
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_cells
 
 @all_silo_test
 class MyServiceTest(TestCase):
@@ -234,8 +234,8 @@ class MyServiceTest(TestCase):
 For tests that need named cells (e.g., testing cell resolution):
 
 ```python
-@all_silo_test(regions=create_test_regions("us", "eu"))
-class MyServiceRegionTest(TransactionTestCase):
+@all_silo_test(cells=create_test_cells("us", "eu"))
+class MyServiceCellTest(TransactionTestCase):
     ...
 ```
 
@@ -403,7 +403,7 @@ from sentry.testutils.silo import (
     cell_silo_test,
     assume_test_silo_mode,
     assume_test_silo_mode_of,
-    create_test_regions,
+    create_test_cells,
 )
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -423,7 +423,7 @@ Before submitting your PR, verify:
 - [ ] All RPC method parameters are keyword-only (`*` separator)
 - [ ] All parameters have explicit type annotations
 - [ ] All types are serializable (primitives, RpcModel, list, Optional, dict, Enum, datetime)
-- [ ] Region service methods have `@cell_rpc_method` with appropriate resolver
+- [ ] Cell service methods have `@cell_rpc_method` with appropriate resolver
 - [ ] Control service methods have `@rpc_method`
 - [ ] `@cell_rpc_method` / `@rpc_method` comes BEFORE `@abstractmethod`
 - [ ] `create_delegation()` is called at module level at the bottom of service.py

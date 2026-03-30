@@ -413,6 +413,12 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         )
         assert {d["name"] for d in response.data} == {detector2.name}
 
+        issue_stream_resp = self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id, "query": "type:issue_stream"},
+        )
+        assert {d["name"] for d in issue_stream_resp.data} == {self.issue_stream_detector.name}
+
         # Query for multiple types.
         response2 = self.get_success_response(
             self.organization.slug,

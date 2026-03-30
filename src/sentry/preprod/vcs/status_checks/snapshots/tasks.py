@@ -35,6 +35,10 @@ logger = logging.getLogger(__name__)
 # Action identifier for the "Approve" button on snapshot GitHub check runs.
 APPROVE_SNAPSHOT_ACTION_IDENTIFIER = "approve_snapshots"
 
+ENABLED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_enabled"
+FAIL_ON_ADDED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_added"
+FAIL_ON_REMOVED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_removed"
+
 
 @instrumented_task(
     name="sentry.preprod.tasks.create_preprod_snapshot_status_check",
@@ -89,7 +93,19 @@ def create_preprod_snapshot_status_check_task(
         )
         return
 
-    # TODO(EME-911) Wireup enabled options once gating/billing comes into play
+    status_checks_enabled = preprod_artifact.project.get_option(ENABLED_OPTION_KEY, default=True)
+    if not status_checks_enabled:
+        logger.info(
+            "preprod.snapshot_status_checks.create.disabled",
+            extra={
+                "artifact_id": preprod_artifact.id,
+                "project_id": preprod_artifact.project.id,
+            },
+        )
+        return
+
+    fail_on_added = preprod_artifact.project.get_option(FAIL_ON_ADDED_OPTION_KEY, default=False)
+    fail_on_removed = preprod_artifact.project.get_option(FAIL_ON_REMOVED_OPTION_KEY, default=True)
 
     all_artifacts = list(preprod_artifact.get_sibling_artifacts_for_commit())
 
@@ -182,8 +198,19 @@ def create_preprod_snapshot_status_check_task(
                 snapshot_metrics_map,
             )
     else:
+        changes_map = _build_changes_map(
+            all_artifacts,
+            snapshot_metrics_map,
+            comparisons_map,
+            fail_on_added=fail_on_added,
+            fail_on_removed=fail_on_removed,
+        )
         status = _compute_snapshot_status(
-            all_artifacts, snapshot_metrics_map, comparisons_map, approvals_map
+            all_artifacts,
+            snapshot_metrics_map,
+            comparisons_map,
+            approvals_map,
+            changes_map,
         )
         title, subtitle, summary = format_snapshot_status_check_messages(
             all_artifacts,
@@ -191,8 +218,9 @@ def create_preprod_snapshot_status_check_task(
             comparisons_map,
             status,
             base_artifact_map,
+            changes_map,
         )
-        if _has_snapshot_changes(all_artifacts, snapshot_metrics_map, comparisons_map):
+        if any(changes_map.values()):
             approve_action_identifier = APPROVE_SNAPSHOT_ACTION_IDENTIFIER
 
     completed_at: datetime | None = None
@@ -266,12 +294,27 @@ def create_preprod_snapshot_status_check_task(
     )
 
 
-def _has_snapshot_changes(
+def _comparison_has_changes(
+    comparison: PreprodSnapshotComparison,
+    fail_on_added: bool = False,
+    fail_on_removed: bool = True,
+) -> bool:
+    return (
+        comparison.images_changed > 0
+        or comparison.images_renamed > 0
+        or (fail_on_added and comparison.images_added > 0)
+        or (fail_on_removed and comparison.images_removed > 0)
+    )
+
+
+def _build_changes_map(
     artifacts: list[PreprodArtifact],
     snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
     comparisons_map: dict[int, PreprodSnapshotComparison],
-) -> bool:
-    """Check if any artifact has snapshot changes (added/removed/changed)."""
+    fail_on_added: bool = False,
+    fail_on_removed: bool = True,
+) -> dict[int, bool]:
+    changes_map: dict[int, bool] = {}
     for artifact in artifacts:
         metrics = snapshot_metrics_map.get(artifact.id)
         if not metrics:
@@ -279,15 +322,10 @@ def _has_snapshot_changes(
         comparison = comparisons_map.get(metrics.id)
         if not comparison or comparison.state != PreprodSnapshotComparison.State.SUCCESS:
             continue
-
-        if (
-            comparison.images_changed > 0
-            or comparison.images_added > 0
-            or comparison.images_removed > 0
-            or comparison.images_renamed > 0
-        ):
-            return True
-    return False
+        changes_map[artifact.id] = _comparison_has_changes(
+            comparison, fail_on_added, fail_on_removed
+        )
+    return changes_map
 
 
 def _compute_snapshot_status(
@@ -295,13 +333,8 @@ def _compute_snapshot_status(
     snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
     comparisons_map: dict[int, PreprodSnapshotComparison],
     approvals_map: dict[int, PreprodComparisonApproval],
+    changes_map: dict[int, bool],
 ) -> StatusCheckStatus:
-    """Compute the overall snapshot status check status.
-
-    - IN_PROGRESS if any comparison is pending/processing
-    - FAILURE if any comparison failed, or if any has changes and not approved
-    - SUCCESS if all comparisons succeeded with no changes, or all approved
-    """
     has_in_progress = False
 
     for artifact in artifacts:
@@ -320,12 +353,7 @@ def _compute_snapshot_status(
             case PreprodSnapshotComparison.State.FAILED:
                 return StatusCheckStatus.FAILURE
             case PreprodSnapshotComparison.State.SUCCESS:
-                if (
-                    comparison.images_changed > 0
-                    or comparison.images_added > 0
-                    or comparison.images_removed > 0
-                    or comparison.images_renamed > 0
-                ) and artifact.id not in approvals_map:
+                if changes_map.get(artifact.id, False) and artifact.id not in approvals_map:
                     return StatusCheckStatus.FAILURE
 
     if has_in_progress:
