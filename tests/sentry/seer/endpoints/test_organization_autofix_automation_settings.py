@@ -14,7 +14,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 
 class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.url = reverse(
@@ -248,7 +248,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             }
         ]
 
-    def test_post_requires_one_or_more_project_ids(self):
+    def test_post_requires_one_or_more_project_ids(self) -> None:
         response = self.client.post(
             self.url,
             {"automatedRunStoppingPoint": AutofixStoppingPoint.OPEN_PR.value},
@@ -264,7 +264,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         )
         assert response.status_code == 400
 
-    def test_post_rejects_invalid_project_ids(self):
+    def test_post_rejects_invalid_project_ids(self) -> None:
         response = self.client.post(
             self.url,
             {
@@ -274,7 +274,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         )
         assert response.status_code == 403
 
-    def test_post_rejects_invalid_tuning(self):
+    def test_post_rejects_invalid_tuning(self) -> None:
         response = self.client.post(
             self.url,
             {
@@ -284,7 +284,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         )
         assert response.status_code == 400
 
-    def test_post_rejects_invalid_stopping_point(self):
+    def test_post_rejects_invalid_stopping_point(self) -> None:
         response = self.client.post(
             self.url,
             {
@@ -294,7 +294,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         )
         assert response.status_code == 400
 
-    def test_post_rejects_projects_not_in_organization(self):
+    def test_post_rejects_projects_not_in_organization(self) -> None:
         project = self.create_project(organization=self.organization)
         other_org = self.create_organization()
         other_project = self.create_project(organization=other_org)

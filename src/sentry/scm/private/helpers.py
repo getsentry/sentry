@@ -8,11 +8,10 @@ from sentry.integrations.services.integration.service import integration_service
 from sentry.models.repository import Repository as RepositoryModel
 from sentry.scm.errors import SCMCodedError, SCMError, SCMUnhandledException
 from sentry.scm.private.ipc import record_count_metric
-from sentry.scm.private.provider import Provider
 from sentry.scm.private.providers.github import GitHubProvider
 from sentry.scm.private.providers.gitlab import GitLabProvider
 from sentry.scm.private.rate_limit import RateLimitProvider, RedisRateLimitProvider
-from sentry.scm.types import ExternalId, ProviderName, Referrer, Repository, RepositoryId
+from sentry.scm.types import ExternalId, Provider, ProviderName, Referrer, Repository, RepositoryId
 
 
 def map_integration_to_provider(
@@ -113,15 +112,16 @@ def exec_provider_fn[P: Provider, T](
     if provider.is_rate_limited(referrer):
         raise SCMCodedError(provider, referrer, code="rate_limit_exceeded")
 
+    provider_name = provider.__class__.__name__
+
     try:
         result = provider_fn()
-        record_count(
-            "sentry.scm.actions.success_by_provider", 1, {"provider": provider.__class__.__name__}
-        )
+        record_count("sentry.scm.actions.success_by_provider", 1, {"provider": provider_name})
         record_count("sentry.scm.actions.success_by_referrer", 1, {"referrer": referrer})
         return result
     except SCMError:
         raise
     except Exception as e:
-        record_count("sentry.scm.actions.failed", 1, {})
+        record_count("sentry.scm.actions.failed_by_provider", 1, {"provider": provider_name})
+        record_count("sentry.scm.actions.failed_by_referrer", 1, {"referrer": referrer})
         raise SCMUnhandledException from e

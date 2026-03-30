@@ -685,6 +685,7 @@ class Group(Model):
     priority_locked_at = models.DateTimeField(null=True)
     seer_fixability_score = models.FloatField(null=True)
     seer_autofix_last_triggered = models.DateTimeField(null=True)
+    # This actually represents the last timestamp when the explorer agent completes a step
     seer_explorer_autofix_last_triggered = models.DateTimeField(null=True)
 
     objects: ClassVar[GroupManager] = GroupManager(cache_fields=("id",))

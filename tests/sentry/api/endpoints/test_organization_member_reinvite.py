@@ -13,7 +13,7 @@ class OrganizationMemberReinviteTest(APITestCase):
     endpoint = "sentry-api-0-organization-member-reinvite"
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.regular_user = self.create_user("member@email.com")
@@ -94,7 +94,7 @@ class OrganizationMemberReinviteTest(APITestCase):
 
         assert not mock_send_invite_email.mock_calls
 
-    def test_member_cannot_regenerate_pending_invite(self):
+    def test_member_cannot_regenerate_pending_invite(self) -> None:
         self.login_as(self.regular_user)
         self.organization.flags.disable_member_invite = True
         self.organization.save()
@@ -163,7 +163,7 @@ class OrganizationMemberReinviteTest(APITestCase):
         invite = OrganizationMemberInvite.objects.get(id=invite.id)
         assert invite.token_expired is False
 
-    def test_cannot_reinvite_unapproved_invite(self):
+    def test_cannot_reinvite_unapproved_invite(self) -> None:
         invite = self.create_member_invite(
             organization=self.organization,
             email="sencha@tea.com",
@@ -174,7 +174,7 @@ class OrganizationMemberReinviteTest(APITestCase):
         invite.update(invite_status=InviteStatus.REQUESTED_TO_JOIN.value)
         self.get_error_response(self.organization.slug, invite.id, status_code=400)
 
-    def test_cannot_regenerate_unapproved_invite(self):
+    def test_cannot_regenerate_unapproved_invite(self) -> None:
         invite = self.create_member_invite(
             organization=self.organization,
             email="sencha@tea.com",
@@ -189,7 +189,7 @@ class OrganizationMemberReinviteTest(APITestCase):
             self.organization.slug, invite.id, trigger_regenerate_token=1, status_code=400
         )
 
-    def test_other_org_admin_cannot_resend_invite(self):
+    def test_other_org_admin_cannot_resend_invite(self) -> None:
         org = self.create_organization(slug="other-org")
         other_admin_user = self.create_user("other-admin@email.com")
         self.create_member(organization=org, role="owner", user=other_admin_user)

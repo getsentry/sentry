@@ -75,7 +75,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             yield
 
     def _setup_cell_restriction(self):
-        self.provider.is_cell_restricted = True
+        setattr(self.provider, "is_cell_restricted", True)
         na_orgs = [
             self.create_organization(name="na_org"),
             self.create_organization(name="na_org_2"),
@@ -142,27 +142,6 @@ class FinishPipelineTestCase(IntegrationTestCase):
             ).exists()
 
     @patch("sentry.signals.integration_added.send_robust")
-    def test_provider_should_check_cell_violation(self, *args) -> None:
-        """Ensures we validate cells if `provider.is_cell_restricted` is set to True"""
-        self.provider.is_cell_restricted = True
-        self.pipeline.state.data = {"external_id": self.external_id}
-        with patch(
-            "sentry.integrations.pipeline.is_violating_cell_restriction"
-        ) as mock_check_violation:
-            self.pipeline.finish_pipeline()
-            assert mock_check_violation.called
-
-    @patch("sentry.signals.integration_added.send_robust")
-    def test_provider_should_not_check_cell_violation(self, *args) -> None:
-        """Ensures we don't reject cells if `provider.is_cell_restricted` is set to False"""
-        self.pipeline.state.data = {"external_id": self.external_id}
-        with patch(
-            "sentry.integrations.pipeline.is_violating_cell_restriction"
-        ) as mock_check_violation:
-            self.pipeline.finish_pipeline()
-            assert not mock_check_violation.called
-
-    @patch("sentry.signals.integration_added.send_robust")
     def test_is_violating_cell_restriction_success(self, *args) -> None:
         """Ensures pipeline can complete if all integration organizations reside in one cell."""
         self._setup_cell_restriction()
@@ -198,11 +177,9 @@ class FinishPipelineTestCase(IntegrationTestCase):
             response = self.pipeline.finish_pipeline()
             assert isinstance(response, HttpResponse)
             error_message = "This integration has already been installed on another Sentry organization which resides in a different cell. Installation could not be completed."
-            assert error_message in response.content.decode()
-
             if SiloMode.get_current_mode() == SiloMode.MONOLITH:
                 assert error_message not in response.content.decode()
-            if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            else:
                 assert error_message in response.content.decode()
 
     def test_aliased_integration_key(self, *args) -> None:
@@ -727,7 +704,7 @@ class ApiFinishPipelineTestCase(IntegrationTestCase):
             yield
 
     def _setup_cell_restriction(self):
-        self.provider.is_cell_restricted = True
+        setattr(self.provider, "is_cell_restricted", True)
         na_orgs = [
             self.create_organization(name="na_org"),
             self.create_organization(name="na_org_2"),

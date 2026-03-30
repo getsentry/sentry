@@ -339,12 +339,17 @@ class OAuthAuthorizeView(AuthLoginView):
         response = super().post(request, application=application, **kwargs)
         # once they login, bind their user ID
         if request.user.is_authenticated:
+            # Save OAuth payload before session regeneration
+            oa2_payload = request.session.get("oa2")
+
             # Regenerate session to prevent session fixation attacks
             request.session.cycle_key()
 
-            # Update OAuth payload with authenticated user ID for validation in post()
-            request.session["oa2"]["uid"] = request.user.id
-            request.session.modified = True
+            # Restore OAuth payload after session regeneration and update user ID
+            if oa2_payload is not None:
+                oa2_payload["uid"] = request.user.id
+                request.session["oa2"] = oa2_payload
+                request.session.modified = True
         return response
 
     def post(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
