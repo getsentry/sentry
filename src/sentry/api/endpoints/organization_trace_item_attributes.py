@@ -920,7 +920,7 @@ def _check_attributes_exist(
     )
 
     found: set[tuple[AttributeKey.Type.ValueType, str]] = set()
-    with ThreadPoolExecutor(
+    with ContextPropagatingThreadPoolExecutor(
         thread_name_prefix="attr_validate",
         max_workers=MAX_ATTRIBUTE_VALIDATION_THREADS,
     ) as pool:
