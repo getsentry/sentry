@@ -9,14 +9,12 @@ from sentry_protos.billing.v1.services.usage.v1.endpoint_usage_pb2 import (
     GetUsageRequest,
     GetUsageResponse,
 )
-from snuba_sdk import Op
+from snuba_sdk import Column, Function, Op
 
 from sentry.billing.platform.services.usage._outcomes_query import (
     _build_query,
     _build_response,
-    _empty_fields,
-    _is_over_quota_reason,
-    _map_outcome_to_fields,
+    _over_quota_condition,
     query_outcomes_usage,
 )
 from sentry.utils.outcomes import Outcome
@@ -32,105 +30,56 @@ def _make_row(
     *,
     time: str = "2025-03-15T00:00:00+00:00",
     category: int = 1,
-    outcome: int = 0,
-    reason: str = "",
-    qty: int = 100,
+    total: int = 0,
+    accepted: int = 0,
+    dropped: int = 0,
+    filtered: int = 0,
+    over_quota: int = 0,
+    spike_protection: int = 0,
+    dynamic_sampling: int = 0,
 ) -> dict:
     return {
         "time": time,
         "category": category,
-        "outcome": outcome,
-        "reason": reason,
-        "qty": qty,
+        "total": total,
+        "accepted": accepted,
+        "dropped": dropped,
+        "filtered": filtered,
+        "over_quota": over_quota,
+        "spike_protection": spike_protection,
+        "dynamic_sampling": dynamic_sampling,
     }
 
 
-class TestMapOutcomeToFields:
-    def test_map_outcome_accepted(self):
-        fields = _empty_fields()
-        _map_outcome_to_fields(fields, Outcome.ACCEPTED, "", 100)
+class TestOverQuotaCondition:
+    def test_returns_and_function(self):
+        cond = _over_quota_condition()
+        assert isinstance(cond, Function)
+        assert cond.function == "and"
 
-        assert fields["accepted"] == 100
-        assert fields["total"] == 100
-        assert fields["dropped"] == 0
-        assert fields["filtered"] == 0
+    def test_outer_condition_checks_rate_limited(self):
+        cond = _over_quota_condition()
+        outcome_check = cond.parameters[0]
+        assert outcome_check.function == "equals"
+        assert isinstance(outcome_check.parameters[0], Column)
+        assert outcome_check.parameters[0].name == "outcome"
+        assert outcome_check.parameters[1] == Outcome.RATE_LIMITED
 
-    def test_map_outcome_rate_limited_over_quota(self):
-        fields = _empty_fields()
-        _map_outcome_to_fields(fields, Outcome.RATE_LIMITED, "usage_exceeded", 50)
+    def test_inner_or_includes_ends_with(self):
+        cond = _over_quota_condition()
+        or_clause = cond.parameters[1]
+        assert or_clause.function == "or"
+        ends_with = or_clause.parameters[0]
+        assert ends_with.function == "endsWith"
+        assert ends_with.parameters[1] == "_usage_exceeded"
 
-        assert fields["dropped"] == 50
-        assert fields["over_quota"] == 50
-        assert fields["total"] == 50
-        assert fields["spike_protection"] == 0
-
-    def test_map_outcome_rate_limited_spike(self):
-        fields = _empty_fields()
-        _map_outcome_to_fields(fields, Outcome.RATE_LIMITED, "smart_rate_limit", 30)
-
-        assert fields["dropped"] == 30
-        assert fields["spike_protection"] == 30
-        assert fields["total"] == 30
-        assert fields["over_quota"] == 0
-
-    def test_map_outcome_rate_limited_other(self):
-        fields = _empty_fields()
-        _map_outcome_to_fields(fields, Outcome.RATE_LIMITED, "some_random_reason", 20)
-
-        assert fields["dropped"] == 20
-        assert fields["over_quota"] == 0
-        assert fields["spike_protection"] == 0
-        assert fields["total"] == 20
-
-    def test_map_outcome_filtered_dynamic_sampling(self):
-        fields = _empty_fields()
-        _map_outcome_to_fields(fields, Outcome.FILTERED, "Sampled:100", 40)
-
-        assert fields["filtered"] == 40
-        assert fields["dynamic_sampling"] == 40
-        assert fields["total"] == 40
-
-    def test_map_outcome_filtered_other(self):
-        fields = _empty_fields()
-        _map_outcome_to_fields(fields, Outcome.FILTERED, "ip-filter", 15)
-
-        assert fields["filtered"] == 15
-        assert fields["dynamic_sampling"] == 0
-        assert fields["total"] == 15
-
-    def test_overlapping_semantics(self):
-        """dropped >= over_quota + spike_protection when multiple reasons contribute."""
-        fields = _empty_fields()
-        _map_outcome_to_fields(fields, Outcome.RATE_LIMITED, "usage_exceeded", 100)
-        _map_outcome_to_fields(fields, Outcome.RATE_LIMITED, "smart_rate_limit", 50)
-        _map_outcome_to_fields(fields, Outcome.RATE_LIMITED, "other_reason", 25)
-
-        assert fields["dropped"] == 175
-        assert fields["over_quota"] == 100
-        assert fields["spike_protection"] == 50
-        assert fields["dropped"] >= fields["over_quota"] + fields["spike_protection"]
-
-
-class TestIsOverQuotaReason:
-    def test_standard_usage_exceeded(self):
-        assert _is_over_quota_reason("usage_exceeded") is True
-        assert _is_over_quota_reason("error_usage_exceeded") is True
-        assert _is_over_quota_reason("span_usage_exceeded") is True
-
-    def test_grace_period(self):
-        assert _is_over_quota_reason("grace_period") is True
-
-    def test_new_category_usage_exceeded(self):
-        """Any new *_usage_exceeded reason is automatically matched."""
-        assert _is_over_quota_reason("future_category_usage_exceeded") is True
-
-    def test_non_quota_reasons(self):
-        assert _is_over_quota_reason("smart_rate_limit") is False
-        assert _is_over_quota_reason("some_random_reason") is False
-        assert _is_over_quota_reason("") is False
-
-    def test_partial_match_not_accepted(self):
-        assert _is_over_quota_reason("usage_exceeded_extra") is False
+    def test_inner_or_includes_usage_exceeded_and_grace_period(self):
+        cond = _over_quota_condition()
+        inner_or = cond.parameters[1].parameters[1]
+        assert inner_or.function == "or"
+        equals_fns = [inner_or.parameters[0], inner_or.parameters[1]]
+        values = {fn.parameters[1] for fn in equals_fns}
+        assert values == {"usage_exceeded", "grace_period"}
 
 
 class TestBuildResponse:
@@ -142,9 +91,9 @@ class TestBuildResponse:
 
     def test_build_response_multi_day(self):
         rows = [
-            _make_row(time="2025-03-17T00:00:00+00:00", outcome=Outcome.ACCEPTED, qty=50),
-            _make_row(time="2025-03-15T00:00:00+00:00", outcome=Outcome.ACCEPTED, qty=100),
-            _make_row(time="2025-03-16T00:00:00+00:00", outcome=Outcome.ACCEPTED, qty=75),
+            _make_row(time="2025-03-17T00:00:00+00:00", accepted=50, total=50),
+            _make_row(time="2025-03-15T00:00:00+00:00", accepted=100, total=100),
+            _make_row(time="2025-03-16T00:00:00+00:00", accepted=75, total=75),
         ]
         response = _build_response(rows)
 
@@ -155,15 +104,9 @@ class TestBuildResponse:
 
     def test_build_response_multi_category(self):
         rows = [
-            _make_row(
-                time="2025-03-15T00:00:00+00:00", category=2, outcome=Outcome.ACCEPTED, qty=50
-            ),
-            _make_row(
-                time="2025-03-15T00:00:00+00:00", category=1, outcome=Outcome.ACCEPTED, qty=100
-            ),
-            _make_row(
-                time="2025-03-15T00:00:00+00:00", category=9, outcome=Outcome.ACCEPTED, qty=25
-            ),
+            _make_row(time="2025-03-15T00:00:00+00:00", category=2, accepted=50, total=50),
+            _make_row(time="2025-03-15T00:00:00+00:00", category=1, accepted=100, total=100),
+            _make_row(time="2025-03-15T00:00:00+00:00", category=9, accepted=25, total=25),
         ]
         response = _build_response(rows)
 
@@ -178,30 +121,52 @@ class TestBuildResponse:
         assert day.usage[1].data.accepted == 50
         assert day.usage[2].data.accepted == 25
 
-    def test_build_response_aggregates_same_category_day(self):
+    def test_build_response_preserves_overlapping_semantics(self):
+        """dropped >= over_quota + spike_protection — all values preserved as-is from query."""
         rows = [
             _make_row(
-                time="2025-03-15T00:00:00+00:00", category=1, outcome=Outcome.ACCEPTED, qty=60
-            ),
+                total=175,
+                accepted=0,
+                dropped=175,
+                filtered=0,
+                over_quota=100,
+                spike_protection=50,
+                dynamic_sampling=0,
+            )
+        ]
+        response = _build_response(rows)
+
+        data = response.days[0].usage[0].data
+        assert data.dropped == 175
+        assert data.over_quota == 100
+        assert data.spike_protection == 50
+        assert data.dropped >= data.over_quota + data.spike_protection
+
+    def test_build_response_all_fields(self):
+        rows = [
             _make_row(
                 time="2025-03-15T00:00:00+00:00",
                 category=1,
-                outcome=Outcome.RATE_LIMITED,
-                reason="usage_exceeded",
-                qty=40,
+                total=100,
+                accepted=60,
+                dropped=40,
+                filtered=0,
+                over_quota=30,
+                spike_protection=10,
+                dynamic_sampling=0,
             ),
         ]
         response = _build_response(rows)
 
         assert len(response.days) == 1
-        day = response.days[0]
-        assert len(day.usage) == 1
-
-        data = day.usage[0].data
+        data = response.days[0].usage[0].data
         assert data.total == 100
         assert data.accepted == 60
         assert data.dropped == 40
-        assert data.over_quota == 40
+        assert data.over_quota == 30
+        assert data.spike_protection == 10
+        assert data.filtered == 0
+        assert data.dynamic_sampling == 0
 
 
 class TestBuildQuery:
@@ -245,6 +210,40 @@ class TestBuildQuery:
         org_conditions = [c for c in query.where if hasattr(c, "lhs") and c.lhs.name == "org_id"]
         assert len(org_conditions) == 1
         assert org_conditions[0].rhs == 42
+
+    def test_build_query_groups_by_category_and_time_only(self):
+        start = datetime(2025, 3, 1, tzinfo=timezone.utc)
+        end = datetime(2025, 3, 31, tzinfo=timezone.utc)
+
+        snuba_request = _build_query(org_id=1, start=start, end=end, categories=[])
+
+        groupby_names = [col.name for col in snuba_request.query.groupby]
+        assert groupby_names == ["category", "time"]
+
+    def test_build_query_select_has_sumif_columns(self):
+        start = datetime(2025, 3, 1, tzinfo=timezone.utc)
+        end = datetime(2025, 3, 31, tzinfo=timezone.utc)
+
+        snuba_request = _build_query(org_id=1, start=start, end=end, categories=[])
+
+        select = snuba_request.query.select
+        aliases = []
+        for item in select:
+            if isinstance(item, Column):
+                aliases.append(item.name)
+            elif isinstance(item, Function):
+                aliases.append(item.alias)
+        assert aliases == [
+            "category",
+            "time",
+            "total",
+            "accepted",
+            "dropped",
+            "filtered",
+            "over_quota",
+            "spike_protection",
+            "dynamic_sampling",
+        ]
 
 
 class TestQueryOutcomesUsage:
@@ -292,9 +291,13 @@ class TestQueryOutcomesUsage:
                 {
                     "time": "2025-03-15T00:00:00+00:00",
                     "category": 1,
-                    "outcome": Outcome.ACCEPTED,
-                    "reason": "",
-                    "qty": 200,
+                    "total": 200,
+                    "accepted": 200,
+                    "dropped": 0,
+                    "filtered": 0,
+                    "over_quota": 0,
+                    "spike_protection": 0,
+                    "dynamic_sampling": 0,
                 }
             ]
         }

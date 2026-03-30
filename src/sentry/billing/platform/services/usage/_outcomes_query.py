@@ -89,18 +89,58 @@ def _build_query(
     query = Query(
         match=Entity("outcomes"),
         select=[
-            Function("sum", [Column("quantity")], "qty"),
-            Column("outcome"),
-            Column("reason"),
             Column("category"),
             Column("time"),
+            Function("sum", [Column("quantity")], "total"),
+            Function(
+                "sumIf",
+                [Column("quantity"), Function("equals", [Column("outcome"), Outcome.ACCEPTED])],
+                "accepted",
+            ),
+            Function(
+                "sumIf",
+                [
+                    Column("quantity"),
+                    Function("equals", [Column("outcome"), Outcome.RATE_LIMITED]),
+                ],
+                "dropped",
+            ),
+            Function(
+                "sumIf",
+                [Column("quantity"), Function("equals", [Column("outcome"), Outcome.FILTERED])],
+                "filtered",
+            ),
+            Function("sumIf", [Column("quantity"), _over_quota_condition()], "over_quota"),
+            Function(
+                "sumIf",
+                [
+                    Column("quantity"),
+                    Function(
+                        "and",
+                        [
+                            Function("equals", [Column("outcome"), Outcome.RATE_LIMITED]),
+                            Function("equals", [Column("reason"), "smart_rate_limit"]),
+                        ],
+                    ),
+                ],
+                "spike_protection",
+            ),
+            Function(
+                "sumIf",
+                [
+                    Column("quantity"),
+                    Function(
+                        "and",
+                        [
+                            Function("equals", [Column("outcome"), Outcome.FILTERED]),
+                            Function("startsWith", [Column("reason"), "Sampled:"]),
+                        ],
+                    ),
+                ],
+                "dynamic_sampling",
+            ),
         ],
-        groupby=[
-            Column("outcome"),
-            Column("reason"),
-            Column("category"),
-            Column("time"),
-        ],
+        groupby=[Column("category"), Column("time")],
         where=where,
         orderby=[OrderBy(Column("time"), Direction.ASC)],
         granularity=Granularity(_DAILY_GRANULARITY),
@@ -115,29 +155,27 @@ def _build_query(
 
 
 def _build_response(rows: list[dict]) -> GetUsageResponse:
-    # Two-level accumulator: days_map[day_str][category_id] -> usage counters.
-    #   str  = day timestamp from Snuba (e.g. "2026-03-30T00:00:00+00:00")
-    #   int  = outcome category ID (e.g. 1=errors, 2=transactions)
-    #   dict = zeroed usage counters from _empty_fields()
-    #          (total, accepted, dropped, filtered, over_quota, spike_protection, dynamic_sampling)
-    days_map: defaultdict[str, defaultdict[int, dict[str, int]]] = defaultdict(
-        lambda: defaultdict(_empty_fields)
-    )
+    # Two-level accumulator: days_map[day_str][category_id] -> usage fields.
+    # Each row already contains all 7 sumIf-aggregated fields from ClickHouse.
+    days_map: defaultdict[str, dict[int, dict[str, int]]] = defaultdict(dict)
 
     for row in rows:
         day = row["time"]
         category = int(row["category"])
-        outcome = int(row["outcome"])
-        reason = row.get("reason") or ""
-        qty = int(row["qty"])
-
-        _map_outcome_to_fields(days_map[day][category], outcome, reason, qty)
+        days_map[day][category] = {
+            "total": int(row["total"]),
+            "accepted": int(row["accepted"]),
+            "dropped": int(row["dropped"]),
+            "filtered": int(row["filtered"]),
+            "over_quota": int(row["over_quota"]),
+            "spike_protection": int(row["spike_protection"]),
+            "dynamic_sampling": int(row["dynamic_sampling"]),
+        }
 
     days = []
     for day_str in sorted(days_map):
         date = _parse_day(day_str)
         usage = [
-            # category uses raw Relay/Sentry DataCategory ints per BIL-2176
             CategoryUsage(category=cat, data=UsageData(**fields))  # type: ignore[arg-type]
             for cat, fields in sorted(days_map[day_str].items())
         ]
@@ -146,41 +184,31 @@ def _build_response(rows: list[dict]) -> GetUsageResponse:
     return GetUsageResponse(days=days, seats=[])
 
 
-def _map_outcome_to_fields(fields: dict[str, int], outcome: int, reason: str, qty: int) -> None:
-    fields["total"] += qty
+def _over_quota_condition() -> Function:
+    """ClickHouse condition for over-quota rate limiting.
 
-    if outcome == Outcome.ACCEPTED:
-        fields["accepted"] += qty
-    elif outcome == Outcome.RATE_LIMITED:
-        fields["dropped"] += qty
-        if _is_over_quota_reason(reason):
-            fields["over_quota"] += qty
-        if reason == "smart_rate_limit":
-            fields["spike_protection"] += qty
-    elif outcome == Outcome.FILTERED:
-        fields["filtered"] += qty
-        if reason.startswith("Sampled:"):
-            fields["dynamic_sampling"] += qty
-
-
-def _is_over_quota_reason(reason: str) -> bool:
-    # Quota reasons follow the pattern "{category_api_name}_usage_exceeded"
-    # (generated in getsentry/quotas.py). Suffix match is future-proof.
-    return (
-        reason == "usage_exceeded" or reason.endswith("_usage_exceeded") or reason == "grace_period"
+    Matches: outcome=RATE_LIMITED AND (reason ends with "_usage_exceeded"
+    OR reason="usage_exceeded" OR reason="grace_period").
+    """
+    return Function(
+        "and",
+        [
+            Function("equals", [Column("outcome"), Outcome.RATE_LIMITED]),
+            Function(
+                "or",
+                [
+                    Function("endsWith", [Column("reason"), "_usage_exceeded"]),
+                    Function(
+                        "or",
+                        [
+                            Function("equals", [Column("reason"), "usage_exceeded"]),
+                            Function("equals", [Column("reason"), "grace_period"]),
+                        ],
+                    ),
+                ],
+            ),
+        ],
     )
-
-
-def _empty_fields() -> dict[str, int]:
-    return {
-        "total": 0,
-        "accepted": 0,
-        "dropped": 0,
-        "filtered": 0,
-        "over_quota": 0,
-        "spike_protection": 0,
-        "dynamic_sampling": 0,
-    }
 
 
 def _timestamp_to_datetime(ts: Timestamp) -> datetime:
