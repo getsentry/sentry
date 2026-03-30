@@ -305,8 +305,6 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         healthy_since,
         produce_to_pipe: ProduceToPipe | None,
     ) -> None:
-        flush_oversized_segments = options.get("spans.buffer.flush-oversized-segments")
-
         logger.info("Flusher process main started for shards %s", shards)
 
         shard_tag = ",".join(map(str, shards))
@@ -342,6 +340,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
             first_iteration = True
             while not stopped.value:
+                flush_oversized_segments = options.get("spans.buffer.flush-oversized-segments")
                 system_now = int(time.time())
                 now = system_now + current_drift.value
                 flushed_segments = buffer.flush_segments(now=now)

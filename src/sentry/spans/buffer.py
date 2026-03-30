@@ -725,14 +725,13 @@ class SpansBuffer:
             decompress_latency_ms += (time.monotonic() - decompress_start) * 1000
 
             sizes[key] = sizes.get(key, 0) + sum(len(span) for span in decompressed)
-            if sizes[key] > max_segment_bytes:
+            if sizes[key] > max_segment_bytes and not flush_oversized_segments:
                 metrics.incr("spans.buffer.flush_segments.segment_size_exceeded")
-                if not flush_oversized_segments:
-                    logger.warning("Skipping too large segment, byte size %s", sizes[key])
-                    payloads.pop(key, None)
-                    sizes.pop(key, None)
-                    dropped_segments.add(key)
-                    return False
+                logger.warning("Skipping too large segment, byte size %s", sizes[key])
+                payloads.pop(key, None)
+                sizes.pop(key, None)
+                dropped_segments.add(key)
+                return False
 
             payloads[key].extend(decompressed)
             return True
