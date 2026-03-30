@@ -37,7 +37,7 @@ class GetSequentialBaseArtifactTest(TestCase):
         )
         return artifact
 
-    def test_returns_most_recent_matching_artifact(self):
+    def test_returns_most_recent_matching_artifact(self) -> None:
         now = timezone.now()
         oldest = self._create_artifact_with_metrics(date_added=now - timedelta(hours=3))
         middle = self._create_artifact_with_metrics(date_added=now - timedelta(hours=2))
@@ -48,19 +48,19 @@ class GetSequentialBaseArtifactTest(TestCase):
         assert result.id == middle.id
         assert result.id != oldest.id
 
-    def test_returns_none_when_no_prior_artifact(self):
+    def test_returns_none_when_no_prior_artifact(self) -> None:
         head = self._create_artifact_with_metrics()
 
         result = get_sequential_base_artifact(head, "", self.organization)
         assert result is None
 
-    def test_excludes_self(self):
+    def test_excludes_self(self) -> None:
         head = self._create_artifact_with_metrics()
 
         result = get_sequential_base_artifact(head, "", self.organization)
         assert result is None
 
-    def test_requires_completed_size_metrics(self):
+    def test_requires_completed_size_metrics(self) -> None:
         self._create_artifact_with_metrics(
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
             date_added=timezone.now() - timedelta(hours=2),
@@ -72,7 +72,7 @@ class GetSequentialBaseArtifactTest(TestCase):
         result = get_sequential_base_artifact(head, "", self.organization)
         assert result is None
 
-    def test_matches_on_app_id(self):
+    def test_matches_on_app_id(self) -> None:
         self._create_artifact_with_metrics(
             app_id="com.other.app",
             date_added=timezone.now() - timedelta(hours=2),
@@ -85,7 +85,7 @@ class GetSequentialBaseArtifactTest(TestCase):
         result = get_sequential_base_artifact(head, "", self.organization)
         assert result is None
 
-    def test_matches_on_artifact_type(self):
+    def test_matches_on_artifact_type(self) -> None:
         self._create_artifact_with_metrics(
             artifact_type=PreprodArtifact.ArtifactType.AAB,
             date_added=timezone.now() - timedelta(hours=2),
@@ -98,7 +98,7 @@ class GetSequentialBaseArtifactTest(TestCase):
         result = get_sequential_base_artifact(head, "", self.organization)
         assert result is None
 
-    def test_matches_on_build_configuration(self):
+    def test_matches_on_build_configuration(self) -> None:
         config_release = self.create_preprod_build_configuration(
             project=self.project, name="release"
         )
@@ -116,7 +116,7 @@ class GetSequentialBaseArtifactTest(TestCase):
         result = get_sequential_base_artifact(head, "", self.organization)
         assert result is None
 
-    def test_applies_query_filter(self):
+    def test_applies_query_filter(self) -> None:
         now = timezone.now()
         # This one matches the query
         matching = self._create_artifact_with_metrics(
@@ -137,7 +137,7 @@ class GetSequentialBaseArtifactTest(TestCase):
         assert result is not None
         assert result.id == matching.id
 
-    def test_empty_query_matches_all(self):
+    def test_empty_query_matches_all(self) -> None:
         now = timezone.now()
         base = self._create_artifact_with_metrics(date_added=now - timedelta(hours=2))
         head = self._create_artifact_with_metrics(date_added=now - timedelta(hours=1))
@@ -146,7 +146,7 @@ class GetSequentialBaseArtifactTest(TestCase):
         assert result is not None
         assert result.id == base.id
 
-    def test_handles_null_build_configuration(self):
+    def test_handles_null_build_configuration(self) -> None:
         now = timezone.now()
         base = self._create_artifact_with_metrics(
             build_configuration=None,

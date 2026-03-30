@@ -69,7 +69,7 @@ class MaybeEmitIssuesFromDiffSizeResultsTest(TestCase):
             workflow_condition_group=condition_group,
         )
 
-    def test_triggers_detector_evaluation(self):
+    def test_triggers_detector_evaluation(self) -> None:
         now = timezone.now()
         self._create_artifact_with_metrics(
             max_install_size=4000000,
@@ -89,7 +89,7 @@ class MaybeEmitIssuesFromDiffSizeResultsTest(TestCase):
 
             assert mock_produce.call_count == 1
 
-    def test_no_detectors(self):
+    def test_no_detectors(self) -> None:
         now = timezone.now()
         self._create_artifact_with_metrics(date_added=now - timedelta(hours=2))
         head = self._create_artifact_with_metrics(date_added=now - timedelta(hours=1))
@@ -102,7 +102,7 @@ class MaybeEmitIssuesFromDiffSizeResultsTest(TestCase):
 
             assert mock_produce.call_count == 0
 
-    def test_feature_flag_disabled(self):
+    def test_feature_flag_disabled(self) -> None:
         now = timezone.now()
         self._create_artifact_with_metrics(date_added=now - timedelta(hours=2))
         head = self._create_artifact_with_metrics(date_added=now - timedelta(hours=1))
@@ -115,7 +115,7 @@ class MaybeEmitIssuesFromDiffSizeResultsTest(TestCase):
 
         assert mock_produce.call_count == 0
 
-    def test_populates_metadata(self):
+    def test_populates_metadata(self) -> None:
         now = timezone.now()
         base = self._create_artifact_with_metrics(
             max_install_size=4000000,
@@ -151,7 +151,7 @@ class MaybeEmitIssuesFromDiffSizeResultsTest(TestCase):
             assert packet["base_install_size_bytes"] == 4000000
             assert packet["base_download_size_bytes"] == 1500000
 
-    def test_skips_absolute_detectors(self):
+    def test_skips_absolute_detectors(self) -> None:
         now = timezone.now()
         self._create_artifact_with_metrics(date_added=now - timedelta(hours=2))
         head = self._create_artifact_with_metrics(date_added=now - timedelta(hours=1))
@@ -181,7 +181,7 @@ class MaybeEmitIssuesFromDiffSizeResultsTest(TestCase):
 
             assert mock_produce.call_count == 0
 
-    def test_skips_when_no_base(self):
+    def test_skips_when_no_base(self) -> None:
         head = self._create_artifact_with_metrics()
         self._create_diff_detector()
 
@@ -193,7 +193,7 @@ class MaybeEmitIssuesFromDiffSizeResultsTest(TestCase):
 
             assert mock_produce.call_count == 0
 
-    def test_skips_when_no_head_metrics(self):
+    def test_skips_when_no_head_metrics(self) -> None:
         head = self.create_preprod_artifact(project=self.project, app_id="com.example.app")
         self._create_diff_detector()
 
@@ -205,7 +205,7 @@ class MaybeEmitIssuesFromDiffSizeResultsTest(TestCase):
 
             assert mock_produce.call_count == 0
 
-    def test_batches_queries(self):
+    def test_batches_queries(self) -> None:
         now = timezone.now()
         self._create_artifact_with_metrics(date_added=now - timedelta(hours=2))
         head = self._create_artifact_with_metrics(date_added=now - timedelta(hours=1))
@@ -224,7 +224,7 @@ class MaybeEmitIssuesFromDiffSizeResultsTest(TestCase):
             # Should only be called once for the shared empty query
             assert mock_lookup.call_count == 1
 
-    def test_creates_comparison_record(self):
+    def test_creates_comparison_record(self) -> None:
         now = timezone.now()
         self._create_artifact_with_metrics(
             max_install_size=4000000,
@@ -247,7 +247,7 @@ class MaybeEmitIssuesFromDiffSizeResultsTest(TestCase):
 class MaybeEmitIssuesFromSizeResultsTest(TestCase):
     """Tests for the maybe_emit_issues_from_absolute_size_results function."""
 
-    def test_triggers_absolute_detector(self):
+    def test_triggers_absolute_detector(self) -> None:
         artifact = self.create_preprod_artifact(project=self.project, app_id="com.example.app")
         metric = self.create_preprod_artifact_size_metrics(
             artifact,
@@ -283,7 +283,7 @@ class MaybeEmitIssuesFromSizeResultsTest(TestCase):
 
             assert mock_produce.call_count == 1
 
-    def test_skips_diff_detectors(self):
+    def test_skips_diff_detectors(self) -> None:
         """Diff-based detectors should not fire from the single-build path."""
         artifact = self.create_preprod_artifact(project=self.project, app_id="com.example.app")
         metric = self.create_preprod_artifact_size_metrics(
@@ -320,7 +320,7 @@ class MaybeEmitIssuesFromSizeResultsTest(TestCase):
 
             assert mock_produce.call_count == 0
 
-    def test_feature_flag_disabled(self):
+    def test_feature_flag_disabled(self) -> None:
         artifact = self.create_preprod_artifact(project=self.project, app_id="com.example.app")
         metric = self.create_preprod_artifact_size_metrics(
             artifact,
@@ -355,7 +355,7 @@ class MaybeEmitIssuesFromSizeResultsTest(TestCase):
 
         assert mock_produce.call_count == 0
 
-    def test_populates_metadata_without_base(self):
+    def test_populates_metadata_without_base(self) -> None:
         artifact = self.create_preprod_artifact(
             project=self.project,
             app_id="com.example.app",
@@ -404,7 +404,7 @@ class MaybeEmitIssuesFromSizeResultsTest(TestCase):
             assert "base_artifact_id" not in metadata
             assert "base_artifact" not in metadata
 
-    def test_no_detectors(self):
+    def test_no_detectors(self) -> None:
         artifact = self.create_preprod_artifact(project=self.project, app_id="com.example.app")
         metric = self.create_preprod_artifact_size_metrics(
             artifact,
@@ -431,21 +431,21 @@ class GetPlatformTest(TestCase):
             project=self.project, file_id=file.id, artifact_type=artifact_type
         )
 
-    def test_xcarchive_returns_apple(self):
+    def test_xcarchive_returns_apple(self) -> None:
         assert _get_platform(self._make_artifact(PreprodArtifact.ArtifactType.XCARCHIVE)) == "apple"
 
-    def test_aab_returns_android(self):
+    def test_aab_returns_android(self) -> None:
         assert _get_platform(self._make_artifact(PreprodArtifact.ArtifactType.AAB)) == "android"
 
-    def test_apk_returns_android(self):
+    def test_apk_returns_android(self) -> None:
         assert _get_platform(self._make_artifact(PreprodArtifact.ArtifactType.APK)) == "android"
 
-    def test_none_returns_unknown(self):
+    def test_none_returns_unknown(self) -> None:
         assert _get_platform(self._make_artifact(None)) == "unknown"
 
 
 class ArtifactToTagsTest(TestCase):
-    def test_full_artifact_data(self):
+    def test_full_artifact_data(self) -> None:
         artifact = self.create_preprod_artifact(
             project=self.project,
             app_id="com.example.app",
@@ -465,7 +465,7 @@ class ArtifactToTagsTest(TestCase):
         assert tags["build_number"] == "42"
         assert tags["artifact_type"] == "apk"
 
-    def test_minimal_artifact_data(self):
+    def test_minimal_artifact_data(self) -> None:
         artifact = self.create_preprod_artifact(
             project=self.project,
             app_id="com.example.app",

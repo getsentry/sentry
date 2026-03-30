@@ -65,13 +65,13 @@ class OrganizationObjectstoreEndpointTest(TransactionTestCase):
         return session
 
     @with_feature("organizations:objectstore-endpoint")
-    def test_health(self):
+    def test_health(self) -> None:
         url = self.get_endpoint_url() + "health"
         res = requests.get(url, headers=self.get_auth_headers())
         res.raise_for_status()
 
     @with_feature("organizations:objectstore-endpoint")
-    def test_full_cycle(self):
+    def test_full_cycle(self) -> None:
         session = self.get_session()
 
         object_key = session.put(b"test data")
@@ -92,7 +92,7 @@ class OrganizationObjectstoreEndpointTest(TransactionTestCase):
             session.get(object_key)
 
     @with_feature("organizations:objectstore-endpoint")
-    def test_uncompressed(self):
+    def test_uncompressed(self) -> None:
         session = self.get_session()
 
         object_key = session.put(b"test data", compression="none")
@@ -102,7 +102,7 @@ class OrganizationObjectstoreEndpointTest(TransactionTestCase):
         assert retrieved.payload.read() == b"test data"
 
     @with_feature("organizations:objectstore-endpoint")
-    def test_accept_encoding_passthrough(self):
+    def test_accept_encoding_passthrough(self) -> None:
         data = os.urandom(10 * 1024)
         ctx = zstandard.ZstdCompressor()
         compressed = ctx.compress(data)
@@ -149,7 +149,7 @@ class OrganizationObjectstoreEndpointTest(TransactionTestCase):
             assert reader.read() == data
 
     @with_feature("organizations:objectstore-endpoint")
-    def test_large_payload(self):
+    def test_large_payload(self) -> None:
         session = self.get_session()
         data = b"A" * 1_000_000
 
@@ -195,7 +195,7 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
         )
         return path
 
-    def test_health(self):
+    def test_health(self) -> None:
         config = asdict(test_region)
         config["address"] = self.live_server.url
         with override_cells([Cell(**config)]):
@@ -208,7 +208,7 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                 # consume body to close connection
                 b"".join(response.streaming_content)  # type: ignore[attr-defined]
 
-    def test_full_cycle(self):
+    def test_full_cycle(self) -> None:
         config = asdict(test_region)
         config["address"] = self.live_server.url
         auth_header = self.create_basic_auth_header(self.api_key.key).decode()
@@ -275,7 +275,7 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                 # consume body to close connection
                 b"".join(response.streaming_content)  # type: ignore[attr-defined]
 
-    def test_roundtrip_compressed(self):
+    def test_roundtrip_compressed(self) -> None:
         config = asdict(test_region)
         config["address"] = self.live_server.url
         auth_header = self.create_basic_auth_header(self.api_key.key).decode()

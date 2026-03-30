@@ -527,7 +527,7 @@ class SeerExplorerClient:
         self,
         run_id: int,
         repo_name: str | None = None,
-        blocking=True,
+        blocking: bool = True,
         poll_interval: float = 2.0,
         poll_timeout: float = 120.0,
     ) -> SeerRunState | None:
