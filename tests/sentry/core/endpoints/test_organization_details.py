@@ -1498,7 +1498,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     def test_default_coding_agent_default(self) -> None:
         response = self.get_success_response(self.organization.slug)
-        assert response.data["defaultCodingAgent"] is None
+        assert response.data["defaultCodingAgent"] == SEER_DEFAULT_CODING_AGENT_DEFAULT
 
     def test_default_coding_agent_can_be_set(self) -> None:
         data = {"defaultCodingAgent": "claude_code_agent"}
