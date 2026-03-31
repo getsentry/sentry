@@ -633,8 +633,6 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             ApiError(404): File not found in depot
             ApiError(500): Perforce connection or command error
         """
-        from sentry.shared_integrations.exceptions import ApiError
-
         with self._connect() as p4:
             depot_path = self.build_depot_path(repo, path)
 
@@ -647,7 +645,10 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             try:
                 result = p4.run("print", depot_path)
             except P4Exception as e:
-                raise ApiError(str(e), code=404)
+                error_msg = str(e)
+                if "no such file" in error_msg.lower() or "not in client view" in error_msg.lower():
+                    raise ApiError(error_msg, code=404)
+                raise ApiError(error_msg, code=500)
 
             # p4 print returns a list: first element is file metadata dict,
             # remaining elements are file content strings/bytes
