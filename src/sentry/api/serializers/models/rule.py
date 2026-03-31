@@ -398,15 +398,19 @@ class WorkflowEngineRuleSerializer(Serializer):
             )
         }
 
-    def _fetch_workflow_projects(
-        self, item_list: Sequence[Workflow]
-    ) -> dict[Workflow, set[Project]]:
-        workflow_to_projects: dict[Workflow, set[Project]] = defaultdict(set)
-        detector_workflows = DetectorWorkflow.objects.filter(
-            workflow_id__in=[item.id for item in item_list]
-        ).prefetch_related("detector__project")
-        for detector_workflow in detector_workflows:
-            workflow_to_projects[detector_workflow.workflow].add(detector_workflow.detector.project)
+    def _fetch_workflow_projects(self, item_list: Sequence[Workflow]) -> dict[int, set[Project]]:
+        workflow_to_projects: dict[int, set[Project]] = defaultdict(set)
+        workflows_to_project_ids = list(
+            DetectorWorkflow.objects.filter(
+                workflow_id__in=[item.id for item in item_list]
+            ).values_list("workflow_id", "detector__project_id")
+        )
+        projects = Project.objects.get_many_from_cache(
+            {project_id for _, project_id in workflows_to_project_ids}
+        )
+        projects_by_id = {project.id: project for project in projects}
+        for workflow_id, project_id in workflows_to_project_ids:
+            workflow_to_projects[workflow_id].add(projects_by_id[project_id])
 
         return workflow_to_projects
 
@@ -583,7 +587,7 @@ class WorkflowEngineRuleSerializer(Serializer):
                 result[workflow]["owner"] = owner
 
             result[workflow]["environment"] = workflow.environment
-            result[workflow]["projects"] = list(workflow_to_projects[workflow])
+            result[workflow]["projects"] = list(workflow_to_projects[workflow.id])
             result[workflow]["rule_id"] = workflow_rule_ids.get(
                 workflow.id, get_fake_id_from_object_id(workflow.id)
             )
