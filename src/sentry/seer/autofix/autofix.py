@@ -741,7 +741,7 @@ def _resolve_project_preference(
             "seer.write_preferences.resolve_project_preference.failed",
             extra={"project_id": project.id, "organization_id": organization.id},
         )
-        return
+        return None
 
     try:
         write_preference_to_sentry_db(project, preference)
