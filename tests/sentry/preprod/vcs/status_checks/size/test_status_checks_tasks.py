@@ -1432,8 +1432,8 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             assert "com.valid" in kwargs["summary"]
             assert "com.skipped" not in kwargs["summary"]
 
-    def test_all_skipped_artifacts_no_status_check(self) -> None:
-        """No status check created when all artifacts are SKIPPED."""
+    def test_all_skipped_artifacts_shows_neutral_status(self) -> None:
+        """NEUTRAL status check posted when all artifacts are SKIPPED."""
         artifact = self._create_preprod_artifact(state=PreprodArtifact.ArtifactState.PROCESSED)
         PreprodArtifactSizeMetrics.objects.create(
             preprod_artifact=artifact,
@@ -1449,7 +1449,13 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         with client_patch, provider_patch:
             with self.tasks():
                 create_preprod_status_check_task(artifact.id)
-            mock_provider.create_status_check.assert_not_called()
+
+            mock_provider.create_status_check.assert_called_once()
+            kwargs = mock_provider.create_status_check.call_args.kwargs
+            assert kwargs["status"] == StatusCheckStatus.NEUTRAL
+            assert "skipped" in kwargs["subtitle"].lower()
+            assert "Configure" in kwargs["summary"]
+            assert kwargs["completed_at"] is not None
 
     def test_no_quota_shows_neutral_status(self) -> None:
         """NO_QUOTA artifacts trigger neutral status with quota exceeded message."""

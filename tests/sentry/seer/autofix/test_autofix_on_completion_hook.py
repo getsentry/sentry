@@ -39,13 +39,16 @@ def run_state(run_id=123, blocks: list[MemoryBlock] | None = None, metadata=None
     )
 
 
-def root_cause_memory_block() -> MemoryBlock:
+def root_cause_memory_block(referrer: str | None = None) -> MemoryBlock:
+    metadata: dict[str, str] = {"step": "root_cause"}
+    if referrer is not None:
+        metadata["referrer"] = referrer
     return MemoryBlock(
         id="block-root-cause",
         message=Message(
             role="assistant",
             content="message root cause",
-            metadata={"step": "root_cause"},
+            metadata=metadata,
         ),
         timestamp="2026-02-10T00:00:00Z",
         artifacts=[
@@ -58,13 +61,16 @@ def root_cause_memory_block() -> MemoryBlock:
     )
 
 
-def solution_memory_block() -> MemoryBlock:
+def solution_memory_block(referrer: str | None = None) -> MemoryBlock:
+    metadata: dict[str, str] = {"step": "solution"}
+    if referrer is not None:
+        metadata["referrer"] = referrer
     return MemoryBlock(
         id="block-solution",
         message=Message(
             role="assistant",
             content="message solution",
-            metadata={"step": "solution"},
+            metadata=metadata,
         ),
         timestamp="2026-02-10T00:00:00Z",
         artifacts=[
@@ -77,13 +83,16 @@ def solution_memory_block() -> MemoryBlock:
     )
 
 
-def code_changes_memory_block() -> MemoryBlock:
+def code_changes_memory_block(referrer: str | None = None) -> MemoryBlock:
+    metadata: dict[str, str] = {"step": "code_changes"}
+    if referrer is not None:
+        metadata["referrer"] = referrer
     return MemoryBlock(
         id="block-code-changes",
         message=Message(
             role="assistant",
             content="message code changes",
-            metadata={"step": "code_changes"},
+            metadata=metadata,
         ),
         timestamp="2026-02-10T00:00:00Z",
         merged_file_patches=[
@@ -95,13 +104,16 @@ def code_changes_memory_block() -> MemoryBlock:
     )
 
 
-def triage_memory_block() -> MemoryBlock:
+def triage_memory_block(referrer: str | None = None) -> MemoryBlock:
+    metadata: dict[str, str] = {"step": "triage"}
+    if referrer is not None:
+        metadata["referrer"] = referrer
     return MemoryBlock(
         id="block-triage",
         message=Message(
             role="assistant",
             content="message triage",
-            metadata={"step": "triage"},
+            metadata=metadata,
         ),
         timestamp="2026-02-10T00:00:00Z",
         artifacts=[
@@ -114,13 +126,16 @@ def triage_memory_block() -> MemoryBlock:
     )
 
 
-def impact_assessment_memory_block() -> MemoryBlock:
+def impact_assessment_memory_block(referrer: str | None = None) -> MemoryBlock:
+    metadata: dict[str, str] = {"step": "impact_assessment"}
+    if referrer is not None:
+        metadata["referrer"] = referrer
     return MemoryBlock(
         id="block-impact-assessment",
         message=Message(
             role="assistant",
             content="message impact assessment",
-            metadata={"step": "impact_assessment"},
+            metadata=metadata,
         ),
         timestamp="2026-02-10T00:00:00Z",
         artifacts=[
@@ -139,14 +154,16 @@ class TestAutofixOnCompletionHookHelpers(TestCase):
     def test_get_current_step_root_cause(self) -> None:
         """Returns ROOT_CAUSE when root_cause artifact exists."""
         state = run_state(blocks=[root_cause_memory_block()])
-        result = AutofixOnCompletionHook._get_current_step(state)
-        assert result == AutofixStep.ROOT_CAUSE
+        step, referrer = AutofixOnCompletionHook._get_current_step(state)
+        assert step == AutofixStep.ROOT_CAUSE
+        assert referrer is None
 
     def test_get_current_step_solution(self) -> None:
         """Returns SOLUTION when solution artifact exists."""
         state = run_state(blocks=[root_cause_memory_block(), solution_memory_block()])
-        result = AutofixOnCompletionHook._get_current_step(state)
-        assert result == AutofixStep.SOLUTION
+        step, referrer = AutofixOnCompletionHook._get_current_step(state)
+        assert step == AutofixStep.SOLUTION
+        assert referrer is None
 
     def test_get_current_step_code_changes(self) -> None:
         """Returns CODE_CHANGES when code changes exist."""
@@ -157,14 +174,44 @@ class TestAutofixOnCompletionHookHelpers(TestCase):
                 code_changes_memory_block(),
             ]
         )
-        result = AutofixOnCompletionHook._get_current_step(state)
-        assert result == AutofixStep.CODE_CHANGES
+        step, referrer = AutofixOnCompletionHook._get_current_step(state)
+        assert step == AutofixStep.CODE_CHANGES
+        assert referrer is None
 
     def test_get_current_step_none(self) -> None:
         """Returns None when no artifacts or code changes exist."""
         state = run_state()
-        result = AutofixOnCompletionHook._get_current_step(state)
-        assert result is None
+        step, referrer = AutofixOnCompletionHook._get_current_step(state)
+        assert step is None
+        assert referrer is None
+
+    def test_get_current_step_extracts_referrer(self):
+        """Returns the referrer from message metadata."""
+        state = run_state(
+            blocks=[root_cause_memory_block(referrer=AutofixReferrer.ON_COMPLETION_HOOK.value)]
+        )
+        step, referrer = AutofixOnCompletionHook._get_current_step(state)
+        assert step == AutofixStep.ROOT_CAUSE
+        assert referrer == AutofixReferrer.ON_COMPLETION_HOOK
+
+    def test_get_current_step_extracts_referrer_from_latest_block(self):
+        """Returns the referrer from the most recent block with step metadata."""
+        state = run_state(
+            blocks=[
+                root_cause_memory_block(referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT.value),
+                solution_memory_block(referrer=AutofixReferrer.ON_COMPLETION_HOOK.value),
+            ]
+        )
+        step, referrer = AutofixOnCompletionHook._get_current_step(state)
+        assert step == AutofixStep.SOLUTION
+        assert referrer == AutofixReferrer.ON_COMPLETION_HOOK
+
+    def test_get_current_step_invalid_referrer_returns_none(self):
+        """Returns None referrer when referrer value is not a valid AutofixReferrer."""
+        state = run_state(blocks=[root_cause_memory_block(referrer="not_a_valid_referrer")])
+        step, referrer = AutofixOnCompletionHook._get_current_step(state)
+        assert step == AutofixStep.ROOT_CAUSE
+        assert referrer is None
 
     def test_get_next_step_root_cause_to_solution(self) -> None:
         """Returns SOLUTION after ROOT_CAUSE."""

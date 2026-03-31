@@ -8,6 +8,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 
 import {ScmCardButton} from './scmCardButton';
+import {ScmSelectableContainer} from './scmSelectableContainer';
 
 interface ScmFeatureCardProps {
   description: string;
@@ -42,12 +43,11 @@ export function ScmFeatureCard({
         disabled={disabled}
         style={{width: '100%', height: '100%'}}
       >
-        <Container
-          border={isSelected ? 'accent' : 'secondary'}
+        <ScmSelectableContainer
+          isSelected={isSelected}
           padding={{xs: 'md', md: 'xl'}}
-          radius="md"
           height="100%"
-          style={isSelected ? {marginBottom: 2} : {borderBottomWidth: 3}} // this prevents el height from changing when switching border variant
+          borderCompensation={3}
         >
           <Flex>
             <Grid
@@ -90,7 +90,7 @@ export function ScmFeatureCard({
               />
             </Flex>
           </Flex>
-        </Container>
+        </ScmSelectableContainer>
       </ScmCardButton>
     </Tooltip>
   );

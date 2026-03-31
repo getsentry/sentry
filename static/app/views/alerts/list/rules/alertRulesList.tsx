@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {
@@ -210,7 +211,7 @@ export default function AlertRulesList() {
     <Fragment>
       <SentryDocumentTitle title={t('Alerts')} orgSlug={organization.slug} />
 
-      <Layout.Page>
+      <Stack flex={1}>
         <PageFiltersContainer>
           <AlertHeader activeTab="rules" />
           <Layout.Body>
@@ -337,7 +338,7 @@ export default function AlertRulesList() {
             </Layout.Main>
           </Layout.Body>
         </PageFiltersContainer>
-      </Layout.Page>
+      </Stack>
     </Fragment>
   );
 }

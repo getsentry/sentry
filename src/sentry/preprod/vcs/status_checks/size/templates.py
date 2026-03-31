@@ -20,6 +20,15 @@ def format_no_quota_messages() -> tuple[str, str, str]:
     return str(title), str(subtitle), str(summary)
 
 
+def format_all_skipped_messages(project: Project) -> tuple[str, str, str]:
+    """Format status check messages when all artifacts are filtered/skipped."""
+    title = _SIZE_ANALYZER_TITLE_BASE
+    subtitle = _("Size analysis skipped")
+    settings_url = _get_settings_url(project)
+    summary = str(_format_configure_link(project, settings_url))
+    return str(title), str(subtitle), str(summary)
+
+
 def format_status_check_messages(
     artifacts: list[PreprodArtifact],
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],

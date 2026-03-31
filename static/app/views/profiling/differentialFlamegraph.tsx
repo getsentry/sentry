@@ -353,7 +353,7 @@ const DifferentialFlamegraphContainer = styled('div')`
 
 function DifferentialFlamegraphWithProviders() {
   return (
-    <LayoutPageWithHiddenFooter>
+    <LayoutPageWithHiddenFooter flex={1}>
       <FlamegraphThemeProvider>
         <FlamegraphStateProvider
           initialState={{
