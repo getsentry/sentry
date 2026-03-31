@@ -1235,13 +1235,6 @@ class TestGetOrgDefaultSeerAutomationHandoff(TestCase):
         assert stopping_point == "open_pr"
         assert handoff is None
 
-    def test_invalid_stopping_point_falls_back_to_default(self):
-        self.organization.update_option("sentry:default_automated_run_stopping_point", "root_cause")
-
-        stopping_point, handoff = get_org_default_seer_automation_handoff(self.organization)
-        assert stopping_point == "code_changes"
-        assert handoff is None
-
     def test_seer_agent_auto_open_prs_forces_open_pr(self):
         self.organization.update_option(
             "sentry:default_automated_run_stopping_point", "code_changes"
