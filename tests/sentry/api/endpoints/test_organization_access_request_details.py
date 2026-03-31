@@ -3,7 +3,9 @@ from django.urls import reverse
 from sentry.models.apitoken import ApiToken
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class GetOrganizationAccessRequestTest(APITestCase):
@@ -58,7 +60,8 @@ class GetOrganizationAccessRequestTest(APITestCase):
         )
         access_request = OrganizationAccessRequest.objects.create(member=member, team=team)
 
-        token = ApiToken.objects.create(user=owner_user, scope_list=["org:read"])
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=owner_user, scope_list=["org:read"])
 
         resp = self.client.get(
             reverse("sentry-api-0-organization-access-requests", args=[organization.slug]),
@@ -101,7 +104,8 @@ class GetOrganizationAccessRequestTest(APITestCase):
         access_request_a = OrganizationAccessRequest.objects.create(member=member_a, team=team_a)
         OrganizationAccessRequest.objects.create(member=member_b, team=team_b)
 
-        token = ApiToken.objects.create(user=token_user, scope_list=["team:read"])
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=token_user, scope_list=["team:read"])
 
         resp = self.client.get(
             reverse("sentry-api-0-organization-access-requests", args=[organization.slug]),
