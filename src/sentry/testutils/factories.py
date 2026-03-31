@@ -381,7 +381,7 @@ class Factories:
     def create_organization(name=None, owner=None, cell: Cell | str | None = None, **kwargs):
         # TODO(cells): Remove once getsentry passes cell everywhere
         if not cell:
-            cell = kwargs.pop("region")
+            cell = kwargs.pop("region", None)
 
         if not name:
             name = petname.generate(2, " ", letters=10).title()
