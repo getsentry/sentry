@@ -12,8 +12,6 @@ interface CommonCommandPaletteAction {
     /** Icon to render for this action */
     icon?: ReactNode;
   };
-  /** Section to group the action in the palette */
-  groupingKey?: CommandPaletteGroupKey;
   /** Whether this action should be hidden from the palette */
   hidden?: boolean;
   /** Optional keywords to improve searchability */
@@ -33,33 +31,35 @@ export interface CommandPaletteActionCallback extends CommonCommandPaletteAction
   onAction: () => void;
 }
 
-export type CommandPaletteActionChild =
-  | CommandPaletteActionCallback
-  | CommandPaletteActionLink;
-
-export interface CommandPaletteActionGroup<
-  T = CommandPaletteActionChild,
-> extends CommonCommandPaletteAction {
-  /** Nested actions to show when this action is selected */
-  actions: T[];
-}
 
 export type CommandPaletteAction =
   | CommandPaletteActionLink
   | CommandPaletteActionCallback
   | CommandPaletteActionGroup;
 
+export interface CommandPaletteActionGroup extends CommonCommandPaletteAction {
+  /** Nested actions to show when this action is selected */
+  actions: Array<
+    CommandPaletteActionLink | CommandPaletteActionCallback | CommandPaletteActionGroup
+  >;
+  type: 'group';
+}
+
 // Internally, a key is added to the actions in order to track them for registration and selection.
 export type CommandPaletteActionLinkWithKey = CommandPaletteActionLink & {key: string};
 export type CommandPaletteActionCallbackWithKey = CommandPaletteActionCallback & {
   key: string;
 };
-type CommandPaletteActionGroupWithKey<T> = CommandPaletteActionGroup<T> & {
-  key: string;
-};
 export type CommandPaletteActionWithKey =
   | CommandPaletteActionLinkWithKey
   | CommandPaletteActionCallbackWithKey
-  | CommandPaletteActionGroupWithKey<
-      CommandPaletteActionLinkWithKey | CommandPaletteActionCallbackWithKey
-    >;
+  | CommandPaletteActionGroupWithKey;
+
+export interface CommandPaletteActionGroupWithKey extends CommandPaletteActionGroup {
+  actions: Array<
+    | CommandPaletteActionLinkWithKey
+    | CommandPaletteActionCallbackWithKey
+    | CommandPaletteActionGroupWithKey
+  >;
+  key: string;
+}

@@ -2,10 +2,12 @@ import {ProjectAvatar} from '@sentry/scraps/avatar';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import type {
-  CommandPaletteAction,
-  CommandPaletteActionChild,
-} from 'sentry/components/commandPalette/types';
+import {
+  makeCommandPaletteCallback,
+  makeCommandPaletteGroup,
+  makeCommandPaletteLink,
+} from 'sentry/components/commandPalette/makeCommandPaletteAction';
+import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
 import {useCommandPaletteActions} from 'sentry/components/commandPalette/useCommandPaletteActions';
 import {
   IconAdd,
@@ -21,6 +23,7 @@ import {
   IconSettings,
   IconStar,
   IconUser,
+  IconQuestion,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
@@ -49,225 +52,236 @@ function useNavigationActions(): CommandPaletteAction[] {
   const {data: starredDashboards = []} = useGetStarredDashboards();
   const {projects} = useProjects();
 
-  const issuesChildren: CommandPaletteActionChild[] = [
-    {
+  const issuesChildren: CommandPaletteAction[] = [
+    makeCommandPaletteLink({
       display: {
         label: t('Feed'),
       },
       to: `${prefix}/issues/`,
-    },
-    ...Object.values(ISSUE_TAXONOMY_CONFIG).map(config => ({
-      display: {
-        label: config.label,
-      },
-      to: `${prefix}/issues/${config.key}/`,
-    })),
-    {
+    }),
+    ...Object.values(ISSUE_TAXONOMY_CONFIG).map(config =>
+      makeCommandPaletteLink({
+        display: {
+          label: config.label,
+        },
+        to: `${prefix}/issues/${config.key}/`,
+      })
+    ),
+    makeCommandPaletteLink({
       display: {
         label: t('User Feedback'),
       },
       to: `${prefix}/issues/feedback/`,
-    },
-    {
+    }),
+    makeCommandPaletteLink({
       display: {
         label: t('All Views'),
       },
       to: `${prefix}/issues/views/`,
-    },
-    ...starredViews.map(view => ({
-      display: {
-        label: view.label,
-        icon: <IconStar />,
-      },
-      to: `${prefix}/issues/views/${view.id}/`,
-    })),
+    }),
+    ...starredViews.map(view =>
+      makeCommandPaletteLink({
+        display: {
+          label: view.label,
+          icon: <IconStar />,
+        },
+        to: `${prefix}/issues/views/${view.id}/`,
+      })
+    ),
   ];
 
-  const exploreChildren: CommandPaletteActionChild[] = [
-    {
+  const exploreChildren: CommandPaletteAction[] = [
+    makeCommandPaletteLink({
       display: {
         label: t('Traces'),
       },
       to: `${prefix}/explore/traces/`,
-    },
-    {
+    }),
+    makeCommandPaletteLink({
       display: {
         label: t('Logs'),
       },
       to: `${prefix}/explore/logs/`,
       hidden: !organization.features.includes('ourlogs-enabled'),
-    },
-    {
+    }),
+    makeCommandPaletteLink({
       display: {
         label: t('Discover'),
       },
       to: `${prefix}/explore/discover/homepage/`,
-    },
-    {
+    }),
+    makeCommandPaletteLink({
       display: {
         label: t('Profiles'),
       },
       to: `${prefix}/explore/profiling/`,
       hidden: !organization.features.includes('profiling'),
-    },
-    {
+    }),
+    makeCommandPaletteLink({
       display: {
         label: t('Replays'),
       },
       to: `${prefix}/explore/replays/`,
       hidden: !organization.features.includes('session-replay-ui'),
-    },
-    {
+    }),
+    makeCommandPaletteLink({
       display: {
         label: t('Releases'),
       },
       to: `${prefix}/explore/releases/`,
-    },
-    {
+    }),
+    makeCommandPaletteLink({
       display: {
         label: t('All Queries'),
       },
       to: `${prefix}/explore/saved-queries/`,
-    },
+    }),
   ];
 
-  const dashboardsChildren: CommandPaletteActionChild[] = [
-    {
+  const dashboardsChildren: CommandPaletteAction[] = [
+    makeCommandPaletteLink({
       display: {
         label: t('All Dashboards'),
       },
       to: `${prefix}/dashboards/`,
-    },
-    ...starredDashboards.map(dashboard => ({
+    }),
+    makeCommandPaletteGroup({
       display: {
-        label: dashboard.title,
+        label: t('Starred Dashboards'),
         icon: <IconStar />,
       },
-      to: `${prefix}/dashboard/${dashboard.id}/`,
-    })),
+      actions: starredDashboards.map(dashboard =>
+        makeCommandPaletteLink({
+          display: {
+            label: dashboard.title,
+            icon: <IconStar />,
+          },
+          to: `${prefix}/dashboard/${dashboard.id}/`,
+        })
+      ),
+    }),
   ];
 
-  const insightsChildren: CommandPaletteActionChild[] = [
-    {
+  const insightsChildren: CommandPaletteAction[] = [
+    makeCommandPaletteLink({
       display: {
         label: t('Frontend'),
       },
       to: `${prefix}/insights/${FRONTEND_LANDING_SUB_PATH}/`,
-    },
-    {
+    }),
+    makeCommandPaletteLink({
       display: {
         label: t('Backend'),
       },
       to: `${prefix}/insights/${BACKEND_LANDING_SUB_PATH}/`,
-    },
-    {
+    }),
+    makeCommandPaletteLink({
       display: {
         label: t('Mobile'),
       },
       to: `${prefix}/insights/${MOBILE_LANDING_SUB_PATH}/`,
-    },
-    {
+    }),
+    makeCommandPaletteLink({
       display: {
         label: t('Agents'),
       },
       to: `${prefix}/insights/${AGENTS_LANDING_SUB_PATH}/`,
-    },
-    {
+    }),
+    makeCommandPaletteLink({
       display: {
         label: t('MCP'),
       },
       to: `${prefix}/insights/${MCP_LANDING_SUB_PATH}/`,
-    },
-    {
+    }),
+    makeCommandPaletteLink({
       display: {
         label: t('Crons'),
       },
       to: `${prefix}/insights/crons/`,
-    },
-    {
+    }),
+    makeCommandPaletteLink({
       display: {
         label: t('Uptime'),
       },
       to: `${prefix}/insights/uptime/`,
       hidden: !organization.features.includes('uptime'),
-    },
-    {
+    }),
+    makeCommandPaletteLink({
       display: {
         label: t('All Projects'),
       },
       to: `${prefix}/insights/projects/`,
-    },
+    }),
   ];
 
-  const settingsChildren: CommandPaletteActionChild[] =
-    getUserOrgNavigationConfiguration().flatMap(item =>
-      item.items.map(settingsChildItem => ({
-        display: {
-          label: settingsChildItem.title,
-        },
-        to: settingsChildItem.path,
-      }))
-    );
-
-  const projectSettingsChildren: CommandPaletteActionChild[] = projects.map(project =>
-    makeCommandPaletteLink({
-      display: {
-        label: project.name,
-        icon: <ProjectAvatar project={project} size={16} />,
-      },
-      to: `/settings/${slug}/projects/${project.slug}/`,
-    })
-  );
-
   return [
-    {
-      groupingKey: 'navigate',
-      display: {
-        label: t('Issues'),
-        icon: <IconIssues />,
-      },
-      actions: issuesChildren,
-    },
-    {
-      groupingKey: 'navigate',
-      display: {
-        label: t('Explore'),
-        icon: <IconCompass />,
-      },
-      actions: exploreChildren,
-    },
-    {
-      groupingKey: 'navigate',
-      display: {
-        label: t('Dashboards'),
-        icon: <IconDashboard />,
-      },
-      actions: dashboardsChildren,
-    },
-    {
-      groupingKey: 'navigate',
-      display: {
-        label: t('Insights'),
-        icon: <IconGraph type="area" />,
-      },
-      actions: insightsChildren,
-      hidden: !organization.features.includes('performance-view'),
-    },
-    {
-      groupingKey: 'navigate',
-      display: {
-        label: t('Settings'),
-        icon: <IconSettings />,
-      },
-      actions: settingsChildren,
-    }),
     makeCommandPaletteGroup({
-      groupingKey: 'navigate',
       display: {
-        label: t('Project Settings'),
-        icon: <IconSettings />,
+        label: t('Navigate'),
+        icon: <IconChevron />,
       },
-      actions: projectSettingsChildren,
+      actions: [
+        makeCommandPaletteGroup({
+          display: {
+            label: t('Issues'),
+            icon: <IconIssues />,
+          },
+          actions: issuesChildren,
+        }),
+        makeCommandPaletteGroup({
+          display: {
+            label: t('Explore'),
+            icon: <IconCompass />,
+          },
+          actions: exploreChildren,
+        }),
+        makeCommandPaletteGroup({
+          display: {
+            label: t('Dashboards'),
+            icon: <IconDashboard />,
+          },
+          actions: dashboardsChildren,
+        }),
+        makeCommandPaletteGroup({
+          display: {
+            label: t('Insights'),
+            icon: <IconGraph type="area" />,
+          },
+          actions: insightsChildren,
+          hidden: !organization.features.includes('performance-view'),
+        }),
+        makeCommandPaletteGroup({
+          display: {
+            label: t('Settings'),
+            icon: <IconSettings />,
+          },
+          actions: getUserOrgNavigationConfiguration().flatMap(item =>
+            item.items.map(settingsChildItem =>
+              makeCommandPaletteLink({
+                display: {
+                  label: settingsChildItem.title,
+                },
+                to: settingsChildItem.path,
+              })
+            )
+          ),
+        }),
+        makeCommandPaletteGroup({
+          display: {
+            label: t('Project Settings'),
+            icon: <IconSettings />,
+          },
+          actions: projects.map(project =>
+            makeCommandPaletteLink({
+              display: {
+                label: project.name,
+                icon: <ProjectAvatar project={project} size={16} />,
+              },
+              to: `/settings/${slug}/projects/${project.slug}/`,
+            })
+          ),
+        }),
+      ],
     }),
   ];
 }
@@ -302,71 +316,85 @@ export function useGlobalCommandPaletteActions() {
 
   useCommandPaletteActions([
     ...navigateActions,
-    {
+    // BEGIN ADD ACTIONS
+    makeCommandPaletteGroup({
       display: {
-        label: t('Create Dashboard'),
+        label: t('Add'),
         icon: <IconAdd />,
       },
-      groupingKey: 'add',
-      to: `${navPrefix}/dashboards/new/`,
-    },
-    {
+      actions: [
+        makeCommandPaletteLink({
+          display: {
+            label: t('Create Dashboard'),
+            icon: <IconAdd />,
+          },
+          to: `${navPrefix}/dashboards/new/`,
+        }),
+        makeCommandPaletteLink({
+          display: {
+            label: t('Create Alert'),
+            icon: <IconAdd />,
+          },
+          to: `${navPrefix}/issues/alerts/wizard/`,
+        }),
+        makeCommandPaletteLink({
+          display: {
+            label: t('Create Project'),
+            icon: <IconAdd />,
+          },
+          to: `${navPrefix}/projects/new/`,
+        }),
+        makeCommandPaletteCallback({
+          display: {
+            label: t('Invite Members'),
+            icon: <IconUser />,
+          },
+          onAction: () => openInviteMembersModal(),
+        }),
+      ],
+    }),
+    // END ADD
+    // BEGIN HELP ACTIONS
+    makeCommandPaletteGroup({
       display: {
-        label: t('Create Alert'),
-        icon: <IconAdd />,
+        label: t('Help'),
+        icon: <IconQuestion />,
       },
-      groupingKey: 'add',
-      to: `${navPrefix}/issues/alerts/wizard/`,
-    },
-    {
-      groupingKey: 'add',
-      display: {
-        label: t('Create Project'),
-        icon: <IconAdd />,
-      },
-      to: `${navPrefix}/projects/new/`,
-    },
-    {
-      display: {
-        label: t('Invite Members'),
-        icon: <IconUser />,
-      },
-      groupingKey: 'add',
-      onAction: () => openInviteMembersModal(),
-    },
-    {
-      display: {
-        label: t('Open Documentation'),
-        icon: <IconDocs />,
-      },
-      groupingKey: 'help',
-      onAction: () => window.open('https://docs.sentry.io', '_blank', 'noreferrer'),
-    },
-    {
-      display: {
-        label: t('Join Discord'),
-        icon: <IconDiscord />,
-      },
-      groupingKey: 'help',
-      onAction: () => window.open('https://discord.gg/sentry', '_blank', 'noreferrer'),
-    },
-    {
-      display: {
-        label: t('Open GitHub Repository'),
-        icon: <IconGithub />,
-      },
-      groupingKey: 'help',
-      onAction: () =>
-        window.open('https://github.com/getsentry/sentry', '_blank', 'noreferrer'),
-    },
-    {
-      display: {
-        label: t('View Changelog'),
-        icon: <IconOpen />,
-      },
-      groupingKey: 'help',
-      onAction: () => window.open('https://sentry.io/changelog/', '_blank', 'noreferrer'),
-    },
+      actions: [
+        makeCommandPaletteCallback({
+          display: {
+            label: t('Open Documentation'),
+            icon: <IconDocs />,
+          },
+          onAction: () => window.open('https://docs.sentry.io', '_blank', 'noreferrer'),
+        }),
+        makeCommandPaletteCallback({
+          display: {
+            label: t('Join Discord'),
+            icon: <IconDiscord />,
+          },
+          onAction: () =>
+            window.open('https://discord.gg/sentry', '_blank', 'noreferrer'),
+        }),
+        makeCommandPaletteCallback({
+          display: {
+            label: t('Open GitHub Repository'),
+            icon: <IconGithub />,
+          },
+          onAction: () =>
+            window.open('https://github.com/getsentry/sentry', '_blank', 'noreferrer'),
+        }),
+        makeCommandPaletteCallback({
+          display: {
+            label: t('View Changelog'),
+            icon: <IconOpen />,
+          },
+          onAction: () =>
+            window.open('https://sentry.io/changelog/', '_blank', 'noreferrer'),
+        }),
+      ],
+    }),
+    // END HELP ACTIONS
     navigationToggleAction,
     {
       display: {
