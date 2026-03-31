@@ -102,15 +102,6 @@ class GithubCopilotTask(BaseModel):
     url: str | None = None
 
 
-class GithubCopilotTaskResponse(BaseModel):
-    """
-    Response from GitHub Copilot Tasks API.
-    The API may wrap the task object in a {"task": {...}} envelope.
-    """
-
-    task: GithubCopilotTask
-
-
 class GithubPRFromGraphQL(BaseModel):
     """PR info fetched from GitHub GraphQL API"""
 
