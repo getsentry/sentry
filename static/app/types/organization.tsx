@@ -1,4 +1,3 @@
-import type {AutofixStoppingPoint} from 'sentry/components/events/autofix/types';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import type {
   DatasetSource,
@@ -65,7 +64,6 @@ export interface Organization extends OrganizationSummary {
   dataScrubber: boolean;
   dataScrubberDefaults: boolean;
   debugFilesRole: string;
-  defaultAutomatedRunStoppingPoint: 'off' | AutofixStoppingPoint;
   defaultCodeReviewTriggers: CodeReviewTrigger[];
   defaultCodingAgent: string | null;
   defaultCodingAgentIntegrationId: string | number | null;
