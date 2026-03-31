@@ -919,12 +919,13 @@ def _check_attributes_exist(
     resolver: SearchResolver,
     item_type: SupportedTraceItemType,
     attrs_by_type: dict[AttributeKey.Type.ValueType, list[str]],
+    referrer: Referrer = Referrer.API_TRACE_ITEM_ATTRIBUTE_VALIDATE,
 ) -> set[tuple[AttributeKey.Type.ValueType, str]]:
     """Check which typed attribute internal names exist in storage."""
     if not attrs_by_type:
         return set()
 
-    meta = resolver.resolve_meta(referrer=Referrer.API_TRACE_ITEM_ATTRIBUTE_VALIDATE.value)
+    meta = resolver.resolve_meta(referrer=referrer.value)
     meta.trace_item_type = constants.SUPPORTED_TRACE_ITEM_TYPE_MAP.get(
         item_type, ProtoTraceItemType.TRACE_ITEM_TYPE_SPAN
     )
@@ -1032,7 +1033,7 @@ class OrganizationTraceItemQueryValidatorSerializer(serializers.Serializer):
     itemType = serializers.ChoiceField(
         [e.value for e in SupportedTraceItemType], required=True, source="item_type"
     )
-    query = serializers.CharField(required=True)
+    query = serializers.CharField(required=True, max_length=4096)
 
 
 def _extract_tokens(
@@ -1175,7 +1176,12 @@ class OrganizationTraceItemQueryValidatorEndpoint(OrganizationTraceItemAttribute
             for _, resolved in unknown_attrs:
                 attrs_by_type.setdefault(resolved.proto_type, []).append(resolved.internal_name)
             with handle_query_errors():
-                existing = _check_attributes_exist(resolver, item_type, attrs_by_type)
+                existing = _check_attributes_exist(
+                    resolver,
+                    item_type,
+                    attrs_by_type,
+                    referrer=Referrer.API_TRACE_ITEM_QUERY_VALIDATOR,
+                )
 
             for key_name, resolved in unknown_attrs:
                 if (resolved.proto_type, resolved.internal_name) in existing:
