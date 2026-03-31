@@ -30,7 +30,7 @@ export function FormSection({
       className={className}
     >
       <Disclosure.Title trailingItems={trailingItems}>
-        <Text size="lg">{title}</Text>
+        <Heading as="h3">{title}</Heading>
       </Disclosure.Title>
       <Disclosure.Content>
         <Flex direction="column" gap="md">
