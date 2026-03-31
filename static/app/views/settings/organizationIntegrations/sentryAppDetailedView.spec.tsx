@@ -39,7 +39,6 @@ describe('SentryAppDetailedView', () => {
       organization,
     });
     renderGlobalModal();
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
   }
 
   describe('Published Sentry App', () => {

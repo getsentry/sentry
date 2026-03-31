@@ -83,8 +83,7 @@ describe('HighlightsDataSection', () => {
     render(<HighlightsDataSection event={event} project={project} />, {
       organization,
     });
-    expect(screen.getByText('Highlights')).toBeInTheDocument();
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
+    expect(await screen.findByText('Highlights')).toBeInTheDocument();
     for (const tagKey of highlightTags) {
       const row = screen
         .getByText(tagKey, {selector: 'div'})
