@@ -377,14 +377,18 @@ def if_query_validator(term: str) -> bool:
 def if_combinator(definition: AggregateDefinition) -> AggregateDefinition:
     # Copy the TraceMetricAggregateDefinition but make it Conditional
     if_definition = ConditionalTraceMetricAggregateDefinition(
-        internal_function=definition.internal_function,
+        attribute_resolver=definition.attribute_resolver,
         default_search_type=definition.default_search_type,
+        extrapolation_mode_override=definition.extrapolation_mode_override,
+        infer_search_type_from_arguments=definition.infer_search_type_from_arguments,
+        internal_function=definition.internal_function,
+        internal_type=definition.internal_type,
+        processor=definition.processor,
+        private=definition.private,
         arguments=[
             ValueArgumentDefinition(argument_types={"query"}, validator=if_query_validator),
             *definition.arguments,
         ],
-        infer_search_type_from_arguments=definition.infer_search_type_from_arguments,
-        processor=definition.processor,
     )
     return if_definition
 

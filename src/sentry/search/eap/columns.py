@@ -740,12 +740,12 @@ def validate_trace_metric_aggregate_arguments(
 ) -> None:
     if len(arguments) != expected_args:
         raise InvalidSearchQuery(
-            f"Trace metric aggregates expects exactly 4 arguments to be defined, got {len(arguments)}"
+            f"Trace metric aggregates expects exactly {expected_args} arguments to be defined, got {len(arguments)}"
         )
 
     if not isinstance(arguments[offset], AttributeArgumentDefinition):
         raise InvalidSearchQuery(
-            "Trace metric aggregates expect argument 0 to be of type AttributeArgumentDefinition"
+            f"Trace metric aggregates expect argument {offset} to be of type AttributeArgumentDefinition"
         )
 
     for i in range(offset + 1, expected_args):
