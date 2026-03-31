@@ -542,6 +542,7 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
 
 const ViewportConstrainedBody = styled(ExploreBodyContent)`
   flex-direction: row;
+  min-height: 0;
 `;
 
 const LogsControlSection = styled(ExploreControlSection)`

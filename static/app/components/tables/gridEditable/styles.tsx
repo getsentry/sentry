@@ -100,6 +100,8 @@ export const Grid = styled('table')<{
       ? css`
           height: 100%;
           max-height: ${typeof p.height === 'number' ? p.height + 'px' : p.height};
+          flex: 1;
+          min-height: 0;
 
           &:has(> thead + tbody) {
             grid-template-rows: auto 1fr;
