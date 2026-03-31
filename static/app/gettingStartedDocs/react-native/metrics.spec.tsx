@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -49,13 +49,15 @@ describe('getting started with react-native', () => {
       screen.getByRole('heading', {name: /send metrics and verify/i})
     ).toBeInTheDocument();
 
-    // Goes to the configure step
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
     expect(await screen.findByText(/Metrics are enabled by default/)).toBeInTheDocument();
 
-    // Goes to the verify step
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
     expect(await screen.findByText(/Sentry\.metrics\.count/)).toBeInTheDocument();
     expect(screen.getByText(/Sentry\.metrics\.gauge/)).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByText(/Sentry\.metrics\.count/)).toBeInTheDocument();
+    });
   });
 });
