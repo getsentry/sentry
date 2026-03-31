@@ -300,6 +300,10 @@ filterwarnings = [
   # a deprecated constant. But, still report it as a warning so that we're
   # informed and can evaluate.
   "default:ATTRIBUTE_NAMES\\..* is deprecated.*:DeprecationWarning",
+
+  # PyJWT 2.12.0 introduced InsecureKeyLengthWarning for HMAC keys shorter than
+  # 32 bytes. Tests use short secrets intentionally; production secrets are long enough.
+  "ignore:.*HMAC key.*below the minimum recommended length.*:jwt.warnings.InsecureKeyLengthWarning",
 ]
 looponfailroots = ["src", "tests"]
 

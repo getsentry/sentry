@@ -48,10 +48,18 @@ export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
   }
 
   const selectedList = [...selectedNames].filter(Boolean);
+  const defaultValue = DEFAULT_YAXIS_BY_TYPE[traceMetric.type];
+  const isDefaultSelection =
+    selectedList.length === 1 && selectedList[0] === defaultValue;
 
   return (
     <CompositeSelect
       disabled={groups.length === 0}
+      menuHeaderTrailingItems={
+        isDefaultSelection
+          ? undefined
+          : () => <CompositeSelect.ClearButton onClick={() => handleChange([])} />
+      }
       style={{width: '100%'}}
       trigger={triggerProps => (
         <OverlayTrigger.Button
@@ -88,11 +96,11 @@ export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
           return (
             <CompositeSelect.Region
               key={groupKey}
-              label={group.label as string}
+              label={group.label}
               multiple
               options={group.options}
               value={activeValues}
-              onChange={(opts: Array<SelectOption<string>>) => handleChange(opts)}
+              onChange={handleChange}
             />
           );
         }
@@ -100,10 +108,10 @@ export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
         return (
           <CompositeSelect.Region
             key={groupKey}
-            label={group.label as string}
+            label={group.label}
             options={group.options}
-            value={activeValues[0] as string}
-            onChange={(opt: SelectOption<string>) => handleChange([opt])}
+            value={activeValues[0]}
+            onChange={opt => handleChange([opt])}
           />
         );
       })}

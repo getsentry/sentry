@@ -316,7 +316,6 @@ def _build_seer_request(
         "exception_type": filter_null_from_string(exception_type) if exception_type else None,
         "k": options.get("seer.similarity.ingest.num_matches_to_request"),
         "referrer": "ingest",
-        "use_reranking": options.get("seer.similarity.ingest.use_reranking"),
         "model": model_version,
         "training_mode": training_mode,
         "platform": event.platform or "unknown",
@@ -413,8 +412,6 @@ def get_seer_similar_issues(
             # By asking Seer to find zero matches, we can trick it into thinking there aren't
             # any, thereby forcing it to create the record
             "k": 0,
-            # Turn off re-ranking to speed up the process of finding nothing
-            "use_reranking": False,
         }
 
         # TODO: Temporary log to prove things are working as they should. This should come in a pair

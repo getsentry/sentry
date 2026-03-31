@@ -99,7 +99,7 @@ class GithubPluginAppsClient(GithubPluginClientMixin, ApiClient):
             # JWT expiration time (10 minute maximum)
             "exp": exp,
             # Integration's GitHub identifier
-            "iss": options.get("github.integration-app-id"),
+            "iss": str(options.get("github.integration-app-id")),
         }
 
         return jwt.encode(payload, options.get("github.integration-private-key"), algorithm="RS256")

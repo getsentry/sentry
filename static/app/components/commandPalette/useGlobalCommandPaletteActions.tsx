@@ -2,11 +2,6 @@ import {ProjectAvatar} from '@sentry/scraps/avatar';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import {
-  makeCommandPaletteCallback,
-  makeCommandPaletteGroup,
-  makeCommandPaletteLink,
-} from 'sentry/components/commandPalette/makeCommandPaletteAction';
 import type {
   CommandPaletteAction,
   CommandPaletteActionChild,
@@ -55,212 +50,202 @@ function useNavigationActions(): CommandPaletteAction[] {
   const {projects} = useProjects();
 
   const issuesChildren: CommandPaletteActionChild[] = [
-    makeCommandPaletteLink({
+    {
       display: {
         label: t('Feed'),
       },
       to: `${prefix}/issues/`,
-    }),
-    ...Object.values(ISSUE_TAXONOMY_CONFIG).map(config =>
-      makeCommandPaletteLink({
-        display: {
-          label: config.label,
-        },
-        to: `${prefix}/issues/${config.key}/`,
-      })
-    ),
-    makeCommandPaletteLink({
+    },
+    ...Object.values(ISSUE_TAXONOMY_CONFIG).map(config => ({
+      display: {
+        label: config.label,
+      },
+      to: `${prefix}/issues/${config.key}/`,
+    })),
+    {
       display: {
         label: t('User Feedback'),
       },
       to: `${prefix}/issues/feedback/`,
-    }),
-    makeCommandPaletteLink({
+    },
+    {
       display: {
         label: t('All Views'),
       },
       to: `${prefix}/issues/views/`,
-    }),
-    ...starredViews.map(view =>
-      makeCommandPaletteLink({
-        display: {
-          label: view.label,
-          icon: <IconStar />,
-        },
-        to: `${prefix}/issues/views/${view.id}/`,
-      })
-    ),
+    },
+    ...starredViews.map(view => ({
+      display: {
+        label: view.label,
+        icon: <IconStar />,
+      },
+      to: `${prefix}/issues/views/${view.id}/`,
+    })),
   ];
 
   const exploreChildren: CommandPaletteActionChild[] = [
-    makeCommandPaletteLink({
+    {
       display: {
         label: t('Traces'),
       },
       to: `${prefix}/explore/traces/`,
-    }),
-    makeCommandPaletteLink({
+    },
+    {
       display: {
         label: t('Logs'),
       },
       to: `${prefix}/explore/logs/`,
       hidden: !organization.features.includes('ourlogs-enabled'),
-    }),
-    makeCommandPaletteLink({
+    },
+    {
       display: {
         label: t('Discover'),
       },
       to: `${prefix}/explore/discover/homepage/`,
-    }),
-    makeCommandPaletteLink({
+    },
+    {
       display: {
         label: t('Profiles'),
       },
       to: `${prefix}/explore/profiling/`,
       hidden: !organization.features.includes('profiling'),
-    }),
-    makeCommandPaletteLink({
+    },
+    {
       display: {
         label: t('Replays'),
       },
       to: `${prefix}/explore/replays/`,
       hidden: !organization.features.includes('session-replay-ui'),
-    }),
-    makeCommandPaletteLink({
+    },
+    {
       display: {
         label: t('Releases'),
       },
       to: `${prefix}/explore/releases/`,
-    }),
-    makeCommandPaletteLink({
+    },
+    {
       display: {
         label: t('All Queries'),
       },
       to: `${prefix}/explore/saved-queries/`,
-    }),
+    },
   ];
 
   const dashboardsChildren: CommandPaletteActionChild[] = [
-    makeCommandPaletteLink({
+    {
       display: {
         label: t('All Dashboards'),
       },
       to: `${prefix}/dashboards/`,
-    }),
-    ...starredDashboards.map(dashboard =>
-      makeCommandPaletteLink({
-        display: {
-          label: dashboard.title,
-          icon: <IconStar />,
-        },
-        to: `${prefix}/dashboard/${dashboard.id}/`,
-      })
-    ),
+    },
+    ...starredDashboards.map(dashboard => ({
+      display: {
+        label: dashboard.title,
+        icon: <IconStar />,
+      },
+      to: `${prefix}/dashboard/${dashboard.id}/`,
+    })),
   ];
 
   const insightsChildren: CommandPaletteActionChild[] = [
-    makeCommandPaletteLink({
+    {
       display: {
         label: t('Frontend'),
       },
       to: `${prefix}/insights/${FRONTEND_LANDING_SUB_PATH}/`,
-    }),
-    makeCommandPaletteLink({
+    },
+    {
       display: {
         label: t('Backend'),
       },
       to: `${prefix}/insights/${BACKEND_LANDING_SUB_PATH}/`,
-    }),
-    makeCommandPaletteLink({
+    },
+    {
       display: {
         label: t('Mobile'),
       },
       to: `${prefix}/insights/${MOBILE_LANDING_SUB_PATH}/`,
-    }),
-    makeCommandPaletteLink({
+    },
+    {
       display: {
         label: t('Agents'),
       },
       to: `${prefix}/insights/${AGENTS_LANDING_SUB_PATH}/`,
-    }),
-    makeCommandPaletteLink({
+    },
+    {
       display: {
         label: t('MCP'),
       },
       to: `${prefix}/insights/${MCP_LANDING_SUB_PATH}/`,
-    }),
-    makeCommandPaletteLink({
+    },
+    {
       display: {
         label: t('Crons'),
       },
       to: `${prefix}/insights/crons/`,
-    }),
-    makeCommandPaletteLink({
+    },
+    {
       display: {
         label: t('Uptime'),
       },
       to: `${prefix}/insights/uptime/`,
       hidden: !organization.features.includes('uptime'),
-    }),
-    makeCommandPaletteLink({
+    },
+    {
       display: {
         label: t('All Projects'),
       },
       to: `${prefix}/insights/projects/`,
-    }),
+    },
   ];
 
   const settingsChildren: CommandPaletteActionChild[] =
     getUserOrgNavigationConfiguration().flatMap(item =>
-      item.items.map(settingsChildItem =>
-        makeCommandPaletteLink({
-          display: {
-            label: settingsChildItem.title,
-          },
-          to: settingsChildItem.path,
-        })
-      )
+      item.items.map(settingsChildItem => ({
+        display: {
+          label: settingsChildItem.title,
+        },
+        to: settingsChildItem.path,
+      }))
     );
 
   const projectSettingsChildren: CommandPaletteActionChild[] =
     organization.features.includes('cmd-k-supercharged')
-      ? projects.map(project =>
-          makeCommandPaletteLink({
-            display: {
-              label: project.name,
-              icon: <ProjectAvatar project={project} size={16} />,
-            },
-            to: `/settings/${slug}/projects/${project.slug}/`,
-          })
-        )
+      ? projects.map(project => ({
+          display: {
+            label: project.name,
+            icon: <ProjectAvatar project={project} size={16} />,
+          },
+          to: `/settings/${slug}/projects/${project.slug}/`,
+        }))
       : [];
 
   return [
-    makeCommandPaletteGroup({
+    {
       groupingKey: 'navigate',
       display: {
         label: t('Issues'),
         icon: <IconIssues />,
       },
       actions: issuesChildren,
-    }),
-    makeCommandPaletteGroup({
+    },
+    {
       groupingKey: 'navigate',
       display: {
         label: t('Explore'),
         icon: <IconCompass />,
       },
       actions: exploreChildren,
-    }),
-    makeCommandPaletteGroup({
+    },
+    {
       groupingKey: 'navigate',
       display: {
         label: t('Dashboards'),
         icon: <IconDashboard />,
       },
       actions: dashboardsChildren,
-    }),
-    makeCommandPaletteGroup({
+    },
+    {
       groupingKey: 'navigate',
       display: {
         label: t('Insights'),
@@ -268,26 +253,26 @@ function useNavigationActions(): CommandPaletteAction[] {
       },
       actions: insightsChildren,
       hidden: !organization.features.includes('performance-view'),
-    }),
-    makeCommandPaletteGroup({
+    },
+    {
       groupingKey: 'navigate',
       display: {
         label: t('Settings'),
         icon: <IconSettings />,
       },
       actions: settingsChildren,
-    }),
+    },
     organization.features.includes('cmd-k-supercharged')
-      ? makeCommandPaletteGroup({
+      ? {
           groupingKey: 'navigate',
           display: {
             label: t('Project Settings'),
             icon: <IconSettings />,
           },
           actions: projectSettingsChildren,
-        })
+        }
       : null,
-  ].filter(x => x !== null);
+  ].filter(x => x !== null) as CommandPaletteAction[];
 }
 
 function useNavigationToggleCollapsed(): CommandPaletteAction {
@@ -295,7 +280,6 @@ function useNavigationToggleCollapsed(): CommandPaletteAction {
   const isCollapsed = view !== 'expanded';
 
   return {
-    type: 'callback',
     display: {
       label: isCollapsed
         ? t('Expand Navigation Sidebar')
@@ -321,55 +305,55 @@ export function useGlobalCommandPaletteActions() {
 
   useCommandPaletteActions([
     ...navigateActions,
-    makeCommandPaletteLink({
+    {
       display: {
         label: t('Create Dashboard'),
         icon: <IconAdd />,
       },
       groupingKey: 'add',
       to: `${navPrefix}/dashboards/new/`,
-    }),
-    makeCommandPaletteLink({
+    },
+    {
       display: {
         label: t('Create Alert'),
         icon: <IconAdd />,
       },
       groupingKey: 'add',
       to: `${navPrefix}/issues/alerts/wizard/`,
-    }),
-    makeCommandPaletteLink({
+    },
+    {
       groupingKey: 'add',
       display: {
         label: t('Create Project'),
         icon: <IconAdd />,
       },
       to: `${navPrefix}/projects/new/`,
-    }),
-    makeCommandPaletteCallback({
+    },
+    {
       display: {
         label: t('Invite Members'),
         icon: <IconUser />,
       },
       groupingKey: 'add',
       onAction: () => openInviteMembersModal(),
-    }),
-    makeCommandPaletteCallback({
+    },
+    {
       display: {
         label: t('Open Documentation'),
         icon: <IconDocs />,
       },
       groupingKey: 'help',
       onAction: () => window.open('https://docs.sentry.io', '_blank', 'noreferrer'),
-    }),
-    makeCommandPaletteCallback({
+    },
+    {
       display: {
         label: t('Join Discord'),
         icon: <IconDiscord />,
       },
       groupingKey: 'help',
       onAction: () => window.open('https://discord.gg/sentry', '_blank', 'noreferrer'),
-    }),
-    makeCommandPaletteCallback({
+    },
+    {
       display: {
         label: t('Open GitHub Repository'),
         icon: <IconGithub />,
@@ -377,23 +361,23 @@ export function useGlobalCommandPaletteActions() {
       groupingKey: 'help',
       onAction: () =>
         window.open('https://github.com/getsentry/sentry', '_blank', 'noreferrer'),
-    }),
-    makeCommandPaletteCallback({
+    },
+    {
       display: {
         label: t('View Changelog'),
         icon: <IconOpen />,
       },
       groupingKey: 'help',
       onAction: () => window.open('https://sentry.io/changelog/', '_blank', 'noreferrer'),
-    }),
+    },
     navigationToggleAction,
-    makeCommandPaletteGroup({
+    {
       display: {
         label: t('Change Color Theme'),
         icon: <IconSettings />,
       },
       actions: [
-        makeCommandPaletteCallback({
+        {
           display: {
             label: t('System'),
           },
@@ -402,8 +386,8 @@ export function useGlobalCommandPaletteActions() {
             await mutateUserOptions({theme: 'system'});
             addSuccessMessage(t('Theme preference saved: System'));
           },
-        }),
-        makeCommandPaletteCallback({
+        },
+        {
           display: {
             label: t('Light'),
           },
@@ -412,8 +396,8 @@ export function useGlobalCommandPaletteActions() {
             await mutateUserOptions({theme: 'light'});
             addSuccessMessage(t('Theme preference saved: Light'));
           },
-        }),
-        makeCommandPaletteCallback({
+        },
+        {
           display: {
             label: t('Dark'),
           },
@@ -422,8 +406,8 @@ export function useGlobalCommandPaletteActions() {
             await mutateUserOptions({theme: 'dark'});
             addSuccessMessage(t('Theme preference saved: Dark'));
           },
-        }),
+        },
       ],
-    }),
+    },
   ]);
 }

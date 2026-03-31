@@ -1,12 +1,12 @@
 import {useCallback} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
 
 import type {FormModel} from 'sentry/components/forms/model';
 import {EnvironmentSelector} from 'sentry/components/workflowEngine/form/environmentSelector';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Card} from 'sentry/components/workflowEngine/ui/card';
+import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {AutomationBuilder} from 'sentry/views/automations/components/automationBuilder';
@@ -32,34 +32,27 @@ export function AutomationForm({model}: {model: FormModel}) {
         setConnectedIds={setConnectedIds}
       />
       <Card>
-        <Flex direction="column" gap="sm">
-          <Heading as="h2" size="lg">
-            {t('Choose Environment')}
-          </Heading>
-          <Text size="sm" variant="muted">
-            {t(
-              'If you select environments different than your monitors then the automation will not fire.'
-            )}
-          </Text>
-        </Flex>
-        <EnvironmentSelector />
+        <Section
+          title={t('Choose Environment')}
+          description={t(
+            'If you select environments different than your monitors then the automation will not fire.'
+          )}
+        >
+          <EnvironmentSelector />
+        </Section>
       </Card>
       <Card>
-        <Heading as="h2" size="lg">
-          {t('Alert Builder')}
-        </Heading>
-        <AutomationBuilder />
+        <Section title={t('Alert Builder')}>
+          <AutomationBuilder />
+        </Section>
       </Card>
       <Card>
-        <Flex direction="column" gap="sm">
-          <Heading as="h2" size="lg">
-            {t('Action Interval')}
-          </Heading>
-          <Text size="sm" variant="muted">
-            {t('Perform the actions above this often for an issue.')}
-          </Text>
-        </Flex>
-        <ActionIntervalSelectField />
+        <Section
+          title={t('Action Interval')}
+          description={t('Perform the actions above this often for an issue.')}
+        >
+          <ActionIntervalSelectField />
+        </Section>
       </Card>
     </Flex>
   );
