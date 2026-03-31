@@ -80,11 +80,8 @@ def record_pr_action_analytic(
     if explorer_state:
         group_id = explorer_state.metadata.get("group_id") if explorer_state.metadata else None
         if group_id is None:
-            return
-        try:
-            group = Group.objects.get(id=group_id, project__organization_id=org.id)
-        except Group.DoesNotExist:
-            return
+            raise ValueError(f"Missing group id in explorer run {explorer_state.run_id}")
+        group = Group.objects.get(id=group_id, project__organization_id=org.id)
 
         analytics.record(
             ACTION_TO_EVENTS[analytic_action](
