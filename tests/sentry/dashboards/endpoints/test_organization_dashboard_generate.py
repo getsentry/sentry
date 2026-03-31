@@ -91,7 +91,14 @@ class OrganizationDashboardGenerateEndpointTest(APITestCase):
     def test_post_with_invalid_current_dashboard_returns_400(self) -> None:
         data = {
             "prompt": "Add an error widget",
-            "current_dashboard": {"invalid": "schema"},
+            "current_dashboard": {
+                "title": "Bad Dashboard",
+                "widgets": [
+                    {
+                        "displayType": "not_a_real_type",
+                    }
+                ],
+            },
         }
         response = self.client.post(self.url, data, format="json")
         assert response.status_code == 400
@@ -112,17 +119,18 @@ class OrganizationDashboardGenerateEndpointTest(APITestCase):
                     {
                         "title": "Error Count",
                         "description": "Total errors",
-                        "display_type": "line",
-                        "widget_type": "error-events",
+                        "displayType": "line",
+                        "widgetType": "error-events",
                         "queries": [
                             {
                                 "aggregates": ["count()"],
                                 "columns": [],
+                                "fields": ["count()"],
                                 "conditions": "",
                                 "orderby": "",
                             }
                         ],
-                        "layout": {"x": 0, "y": 0, "w": 3, "h": 2, "min_h": 2},
+                        "layout": {"x": 0, "y": 0, "w": 3, "h": 2, "minH": 2},
                         "limit": 5,
                         "interval": "1h",
                     }

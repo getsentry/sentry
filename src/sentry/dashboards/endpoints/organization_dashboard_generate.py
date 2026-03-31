@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from pydantic import ValidationError
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -14,6 +13,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.serializers.rest_framework import DashboardDetailsSerializer
 from sentry.dashboards.models.generate_dashboard_artifact import GeneratedDashboard
 from sentry.dashboards.on_completion_hook import DashboardOnCompletionHook
 from sentry.models.organization import Organization
@@ -44,7 +44,7 @@ class DashboardGenerateSerializer(serializers.Serializer[dict[str, Any]]):
     current_dashboard = serializers.JSONField(
         required=False,
         default=None,
-        help_text="Natural language description of the dashboard to generate or modifications to apply to an existing dashboard if provided.",
+        help_text="JSON representation of the current dashboard state to edit.",
     )
 
 
@@ -90,17 +90,18 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
         prompt = validated_data["prompt"]
         current_dashboard = validated_data.get("current_dashboard")
 
-        # If current_dashboard is provided, we're editing; otherwise creating
+        # If current_dashboard is provided, we're editing; otherwise generating a new dashboard.
         if current_dashboard is not None:
-            try:
-                GeneratedDashboard.parse_obj(current_dashboard)
-            except ValidationError:
-                return Response(
-                    {
-                        "detail": "current_dashboard does not match the expected schema.",
-                    },
-                    status=400,
-                )
+            dashboard_serializer = DashboardDetailsSerializer(
+                data=current_dashboard,
+                context={
+                    "organization": organization,
+                    "request": request,
+                    "projects": self.get_projects(request, organization),
+                },
+            )
+            if not dashboard_serializer.is_valid():
+                return Response(dashboard_serializer.errors, status=400)
 
             on_page_context = EDIT_ON_PAGE_CONTEXT_TEMPLATE.format(
                 current_dashboard_json=json.dumps(current_dashboard)
