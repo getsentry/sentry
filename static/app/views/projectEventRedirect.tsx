@@ -10,7 +10,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import {IssueCategory} from 'sentry/types/group';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -66,7 +65,7 @@ export function ProjectEventRedirect() {
 
     // If the event has a group ID, navigate to the issue event page
     if (event.groupID && event.eventID) {
-      if (event.issueCategory === IssueCategory.FEEDBACK) {
+      if ('feedback' in event.contexts) {
         navigate(
           {
             pathname: makeFeedbackPathname({
