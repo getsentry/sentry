@@ -12,6 +12,7 @@ import {
   getResultButtonLabel,
 } from 'sentry/components/events/autofix/types';
 import {
+  collectPatches,
   getAutofixArtifactFromSection,
   isCodeChangesArtifact,
   isCodingAgentsArtifact,
@@ -33,7 +34,6 @@ import {IconPullRequest} from 'sentry/icons/iconPullRequest';
 import {t, tct, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/fileDiffViewer';
-import {type ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
 interface AutofixCardProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
@@ -167,22 +167,14 @@ export function CodeChangesCard({autofix, section}: AutofixCardProps) {
     return isCodeChangesArtifact(sectionArtifact) ? sectionArtifact : null;
   }, [section]);
 
-  const patchesForRepos = useMemo(() => {
-    const patchesByRepo = new Map<string, ExplorerFilePatch[]>();
-    for (const patch of artifact ?? []) {
-      const existing = patchesByRepo.get(patch.repo_name) || [];
-      existing.push(patch);
-      patchesByRepo.set(patch.repo_name, existing);
-    }
-    return patchesByRepo;
-  }, [artifact]);
+  const patchesByRepo = useMemo(() => collectPatches(artifact ?? []), [artifact]);
 
   const summary = useMemo(() => {
-    const reposChanged = patchesForRepos.size;
+    const reposChanged = patchesByRepo.size;
 
     const filesChanged = new Set<string>();
 
-    for (const [repo, patchesForRepo] of patchesForRepos.entries()) {
+    for (const [repo, patchesForRepo] of patchesByRepo.entries()) {
       for (const patch of patchesForRepo) {
         filesChanged.add(`${repo}:${patch.patch.path}`);
       }
@@ -197,7 +189,7 @@ export function CodeChangesCard({autofix, section}: AutofixCardProps) {
     }
 
     return t('%s files changed in %s repos', filesChanged.size, reposChanged);
-  }, [patchesForRepos]);
+  }, [patchesByRepo]);
 
   const {runState, startStep} = autofix;
   const runId = runState?.run_id;
@@ -208,10 +200,10 @@ export function CodeChangesCard({autofix, section}: AutofixCardProps) {
         <LoadingDetails messages={section.messages} />
       ) : (
         <Fragment>
-          {patchesForRepos.size ? (
+          {patchesByRepo.size ? (
             <Fragment>
               <Text>{summary}</Text>
-              {[...patchesForRepos.entries()].map(([repo, patches]) => (
+              {[...patchesByRepo.entries()].map(([repo, patches]) => (
                 <ArtifactDetails key={repo}>
                   <Flex gap="lg">
                     <Text bold>{t('Repository:')}</Text>

@@ -11,6 +11,7 @@ import {
   getCodingAgentName,
 } from 'sentry/components/events/autofix/types';
 import {
+  collectPatches,
   getAutofixArtifactFromSection,
   isCodeChangesArtifact,
   isCodingAgentsArtifact,
@@ -27,7 +28,6 @@ import {IconCode} from 'sentry/icons/iconCode';
 import {IconList} from 'sentry/icons/iconList';
 import {IconPullRequest} from 'sentry/icons/iconPullRequest';
 import {t, tn} from 'sentry/locale';
-import {type ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
 interface ArtifactPreviewProps {
   section: AutofixSection;
@@ -83,22 +83,14 @@ export function CodeChangesPreview({section}: ArtifactPreviewProps) {
     return isCodeChangesArtifact(sectionArtifact) ? sectionArtifact : [];
   }, [section]);
 
-  const patchesForRepos = useMemo(() => {
-    const patchesByRepo = new Map<string, ExplorerFilePatch[]>();
-    for (const patch of artifact) {
-      const existing = patchesByRepo.get(patch.repo_name) || [];
-      existing.push(patch);
-      patchesByRepo.set(patch.repo_name, existing);
-    }
-    return patchesByRepo;
-  }, [artifact]);
+  const patchesByRepo = useMemo(() => collectPatches(artifact ?? []), [artifact]);
 
   const summary = useMemo(() => {
-    const reposChanged = patchesForRepos.size;
+    const reposChanged = patchesByRepo.size;
 
     const filesChanged = new Set<string>();
 
-    for (const [repo, patchesForRepo] of patchesForRepos.entries()) {
+    for (const [repo, patchesForRepo] of patchesByRepo.entries()) {
       for (const patch of patchesForRepo) {
         filesChanged.add(`${repo}:${patch.patch.path}`);
       }
@@ -129,7 +121,7 @@ export function CodeChangesPreview({section}: ArtifactPreviewProps) {
     return (
       <Text>{t('%s files changed in %s repos', filesChanged.size, reposChanged)}</Text>
     );
-  }, [patchesForRepos]);
+  }, [patchesByRepo]);
 
   return (
     <ArtifactCard icon={<IconCode />} title={t('Code Changes')}>
