@@ -39,10 +39,18 @@ from sentry.seer.autofix.types import (
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     get_autofix_repos_from_project_code_mappings,
+    get_project_seer_preferences,
     make_autofix_start_request,
     make_autofix_update_request,
+    set_project_seer_preference,
+    write_preference_to_sentry_db,
 )
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
+from sentry.seer.models import (
+    SeerApiError,
+    SeerApiResponseValidationError,
+    SeerProjectPreference,
+)
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -530,6 +538,7 @@ def _call_autofix(
     auto_run_source: str | None = None,
     stopping_point: AutofixStoppingPoint | None = None,
     github_username: str | None = None,
+    preference: SeerProjectPreference | None = None,
 ):
     body = orjson.dumps(
         {
@@ -568,6 +577,7 @@ def _call_autofix(
                 ),
                 "stopping_point": stopping_point.value if stopping_point else None,
             },
+            "preference": preference.dict() if preference else None,
         },
         option=orjson.OPT_NON_STR_KEYS,
     )
@@ -691,6 +701,59 @@ def get_all_tags_overview(
     }
 
 
+def _resolve_project_preference(
+    organization: Organization, project: Project, code_mapping_repos: list[dict]
+) -> SeerProjectPreference | None:
+    """
+    Resolve the Seer project preference for a project before triggering autofix.
+
+    If an existing preference is found in Seer, returns it.
+    If not, creates one from code mapping repos.
+
+    Returns None only if the preference cannot be resolved (e.g. API errors
+    and no code mapping repos to bootstrap from).
+    """
+    try:
+        preference_response = get_project_seer_preferences(project.id)
+        if preference_response.preference and preference_response.preference.repositories:
+            return SeerProjectPreference.validate(preference_response.preference)
+    except (SeerApiError, SeerApiResponseValidationError):
+        logger.exception(
+            "seer.write_preferences.resolve_project_preference.failed",
+            extra={"project_id": project.id, "organization_id": organization.id},
+        )
+
+    # No code mapping repos to bootstrap from.
+    if not code_mapping_repos:
+        return None
+
+    preference = SeerProjectPreference(
+        organization_id=organization.id,
+        project_id=project.id,
+        repositories=code_mapping_repos,
+        automated_run_stopping_point=AutofixStoppingPoint.CODE_CHANGES.value,
+    )
+
+    try:
+        set_project_seer_preference(preference)
+    except SeerApiError:
+        logger.exception(
+            "seer.write_preferences.resolve_project_preference.failed",
+            extra={"project_id": project.id, "organization_id": organization.id},
+        )
+        return
+
+    try:
+        write_preference_to_sentry_db(project, preference)
+    except Exception:
+        logger.exception(
+            "seer.write_preferences.resolve_project_preference.failed",
+            extra={"project_id": project.id, "organization_id": organization.id},
+        )
+
+    return preference
+
+
 def trigger_autofix(
     *,
     group: Group,
@@ -738,6 +801,10 @@ def trigger_autofix(
 
     code_mappings = get_sorted_code_mapping_configs(group.project)
     repos = get_autofix_repos_from_project_code_mappings(group.project, code_mappings=code_mappings)
+
+    preference = _resolve_project_preference(group.organization, group.project, repos)
+    if preference and preference.repositories:
+        repos = [repo.dict() for repo in preference.repositories]
 
     # Pre-resolve stacktrace frame paths using code mappings so Seer can skip
     # expensive git tree fetches for large repos.
@@ -796,6 +863,7 @@ def trigger_autofix(
             auto_run_source=auto_run_source,
             stopping_point=stopping_point,
             github_username=github_username,
+            preference=preference,
         )
     except Exception:
         logger.exception("Failed to send autofix to seer")
