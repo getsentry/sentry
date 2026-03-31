@@ -500,11 +500,17 @@ describe('IssueRuleEditor', () => {
         body: {uuid},
       });
       const {router} = createWrapper();
+      // Flush the initial debounced preview fetch (500ms debounce)
+      await act(async () => {
+        jest.advanceTimersByTime(600);
+      });
       await userEvent.click(await screen.findByRole('button', {name: 'Save Rule'}), {
         delay: null,
       });
 
-      act(() => jest.advanceTimersByTime(1000));
+      await act(async () => {
+        jest.advanceTimersByTime(1000);
+      });
       await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(addSuccessMessage).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(mockSuccess).toHaveBeenCalledTimes(1));
@@ -524,12 +530,19 @@ describe('IssueRuleEditor', () => {
         statusCode: 202,
         body: {uuid},
       });
+
       createWrapper();
+      // Flush the initial debounced preview fetch (500ms debounce)
+      await act(async () => {
+        jest.advanceTimersByTime(600);
+      });
       await userEvent.click(await screen.findByRole('button', {name: 'Save Rule'}), {
         delay: null,
       });
 
-      act(() => jest.advanceTimersByTime(1000));
+      await act(async () => {
+        jest.advanceTimersByTime(1000);
+      });
       expect(addLoadingMessage).toHaveBeenCalledTimes(2);
       expect(pollingMock).toHaveBeenCalledTimes(1);
       expect(await screen.findByTestId('loading-mask')).toBeInTheDocument();
@@ -547,11 +560,17 @@ describe('IssueRuleEditor', () => {
         body: {uuid},
       });
       createWrapper();
+      // Flush the initial debounced preview fetch (500ms debounce)
+      await act(async () => {
+        jest.advanceTimersByTime(600);
+      });
       await userEvent.click(await screen.findByRole('button', {name: 'Save Rule'}), {
         delay: null,
       });
 
-      act(() => jest.advanceTimersByTime(1000));
+      await act(async () => {
+        jest.advanceTimersByTime(1000);
+      });
       await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(mockFailed).toHaveBeenCalledTimes(1));
       expect(addErrorMessage).toHaveBeenCalledTimes(1);
