@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from pydantic import ValidationError
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -21,15 +22,29 @@ from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
+
+CREATE_ON_PAGE_CONTEXT = "The user is on the dashboard generation page. This session must ONLY generate a dashboard artifact. Do not perform code changes or any tasks unrelated to dashboard generation."
+
+EDIT_ON_PAGE_CONTEXT_TEMPLATE = """The user is editing an existing dashboard. The current dashboard state is:
+
+{current_dashboard_json}
+
+This session must ONLY modify the dashboard artifact. Produce a COMPLETE dashboard artifact that incorporates the requested changes while preserving widgets the user did not ask to change. Do not perform code changes or any tasks unrelated to dashboard editing."""
 
 
 class DashboardGenerateSerializer(serializers.Serializer[dict[str, Any]]):
     prompt = serializers.CharField(
         required=True,
         allow_blank=False,
-        help_text="Natural language description of the dashboard to generate.",
+        help_text="Natural language description of the dashboard to generate or edit.",
+    )
+    current_dashboard = serializers.JSONField(
+        required=False,
+        default=None,
+        help_text="Natural language description of the dashboard to generate or modifications to apply to an existing dashboard if provided.",
     )
 
 
@@ -71,7 +86,27 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        prompt = serializer.validated_data["prompt"]
+        validated_data = serializer.validated_data
+        prompt = validated_data["prompt"]
+        current_dashboard = validated_data.get("current_dashboard")
+
+        # If current_dashboard is provided, we're editing; otherwise creating
+        if current_dashboard is not None:
+            try:
+                GeneratedDashboard.parse_obj(current_dashboard)
+            except ValidationError:
+                return Response(
+                    {
+                        "detail": "current_dashboard does not match the expected schema.",
+                    },
+                    status=400,
+                )
+
+            on_page_context = EDIT_ON_PAGE_CONTEXT_TEMPLATE.format(
+                current_dashboard_json=json.dumps(current_dashboard)
+            )
+        else:
+            on_page_context = CREATE_ON_PAGE_CONTEXT
 
         try:
             client = SeerExplorerClient(
@@ -83,7 +118,7 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
             )
             run_id = client.start_run(
                 prompt=prompt,
-                on_page_context="The user is on the dashboard generation page. This session must ONLY generate a dashboard artifact. Do not perform code changes or any tasks unrelated to dashboard generation.",
+                on_page_context=on_page_context,
                 artifact_key="dashboard",
                 artifact_schema=GeneratedDashboard,
                 request=request,
