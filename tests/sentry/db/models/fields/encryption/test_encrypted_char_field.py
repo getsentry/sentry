@@ -48,7 +48,7 @@ def test_encrypted_char_field_fernet_end_to_end(fernet_keys_store):
 
 
 @pytest.mark.django_db
-def test_encrypted_char_field_plaintext_end_to_end():
+def test_encrypted_char_field_plaintext_end_to_end() -> None:
     """Test complete save/retrieve cycle with EncryptedCharField."""
     with override_options({"database.encryption.method": "plaintext"}):
         test_data = "This is plain text data"
@@ -72,7 +72,7 @@ def test_encrypted_char_field_plaintext_end_to_end():
 
 
 @pytest.mark.django_db
-def test_encrypted_char_field_null_value():
+def test_encrypted_char_field_null_value() -> None:
     with override_options({"database.encryption.method": "plaintext"}):
         model_instance = EncryptedFieldModel.objects.create(data=None)
         assert model_instance.id is not None
@@ -90,7 +90,7 @@ def test_encrypted_char_field_null_value():
 
 
 @pytest.mark.django_db
-def test_encrypted_char_field_metrics_on_encrypt():
+def test_encrypted_char_field_metrics_on_encrypt() -> None:
     """Test that encryption sends metrics with correct tags including table_name."""
     with (
         override_options({"database.encryption.method": "plaintext"}),

@@ -116,7 +116,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
 
         Determines which step just completed and sends the appropriate webhook event.
         """
-        current_step = cls._get_current_step(state)
+        current_step, current_referrer = cls._get_current_step(state)
 
         webhook_payload = {
             "run_id": run_id,
@@ -221,6 +221,12 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                 },
             )
 
+        if current_step is not None:
+            referrer = current_referrer.value if current_referrer is not None else None
+            metrics.incr(
+                "autofix.explorer.complete", tags={"step": current_step.value, "referrer": referrer}
+            )
+
     @classmethod
     def _maybe_trigger_supergroups_embedding(
         cls,
@@ -230,7 +236,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         group: Group,
     ) -> None:
         """Trigger supergroups embedding if feature flag is enabled."""
-        current_step = cls._get_current_step(state)
+        current_step, _ = cls._get_current_step(state)
         if current_step != AutofixStep.ROOT_CAUSE:
             return
 
@@ -259,20 +265,33 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             )
 
     @classmethod
-    def _get_current_step(cls, state: SeerRunState) -> AutofixStep | None:
+    def _get_current_step(
+        cls, state: SeerRunState
+    ) -> tuple[AutofixStep, AutofixReferrer | None] | tuple[None, None]:
         """Determine which step just completed."""
         for block in reversed(state.blocks):
             message = block.message
             if message.metadata is not None:
+                referrer = message.metadata.get("referrer")
+                if referrer is not None:
+                    try:
+                        autofix_referrer = AutofixReferrer(referrer)
+                    except ValueError:
+                        autofix_referrer = None
+                else:
+                    autofix_referrer = None
+
                 # find the first message with a valid step metadata
                 step = message.metadata.get("step")
                 if step is not None:
                     try:
-                        return AutofixStep(step)
+                        autofix_step = AutofixStep(step)
                     except ValueError:
                         continue
 
-        return None
+                    return autofix_step, autofix_referrer
+
+        return None, None
 
     @classmethod
     def _get_next_step(cls, current_step: AutofixStep) -> AutofixStep | None:
@@ -301,7 +320,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             run_id: The run ID
             state: The current run state
         """
-        current_step = cls._get_current_step(state)
+        current_step, _ = cls._get_current_step(state)
 
         # Get pipeline metadata from state
         metadata = state.metadata

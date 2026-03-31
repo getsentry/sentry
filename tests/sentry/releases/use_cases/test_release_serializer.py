@@ -15,7 +15,7 @@ class ReleaseSerializerUseCaseTest(TestCase):
     as opposed to the old model-based serializer in api.serializers.models.release.
     """
 
-    def test_new_groups_single_release_per_project(self):
+    def test_new_groups_single_release_per_project(self) -> None:
         """
         Test new groups counts for one release with multiple projects, each having different issue counts.
         """
@@ -60,7 +60,7 @@ class ReleaseSerializerUseCaseTest(TestCase):
         assert projects[project_b.id]["name"] == "Project B"
         assert projects[project_b.id]["slug"] == "project-b"
 
-    def test_new_groups_multiple_releases_per_project(self):
+    def test_new_groups_multiple_releases_per_project(self) -> None:
         """
         Test new groups count for multiple releases per project.
         """
@@ -146,7 +146,7 @@ class ReleaseSerializerUseCaseTest(TestCase):
         assert projects_2[project_a.id]["newGroups"] == 1
         assert projects_2[project_b.id]["newGroups"] == 4
 
-    def test_new_groups_environment_filtering(self):
+    def test_new_groups_environment_filtering(self) -> None:
         """
         Test new group counts for a single release with environment filtering.
         """
@@ -242,7 +242,7 @@ class ReleaseSerializerUseCaseTest(TestCase):
         assert projects[project_b.id]["newGroups"] == 2
         assert serialized_release["newGroups"] == 6
 
-    def test_new_groups_cross_project_release_environment(self):
+    def test_new_groups_cross_project_release_environment(self) -> None:
         """
         Test new group counts for multiple releases with different environments.
         """

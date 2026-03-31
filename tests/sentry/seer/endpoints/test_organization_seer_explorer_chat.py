@@ -9,7 +9,7 @@ from sentry.testutils.helpers.features import with_feature
 @with_feature("organizations:gen-ai-features")
 @with_feature("organizations:gen-ai-consent-flow-removal")
 class OrganizationSeerExplorerChatEndpointTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization.flags.allow_joinleave = True
         self.organization.save()
@@ -232,7 +232,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
 class OrganizationSeerExplorerChatContextEngineTest(APITestCase):
     """End-to-end tests verifying is_context_engine_enabled reaches make_explorer_chat_request."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-chat/"

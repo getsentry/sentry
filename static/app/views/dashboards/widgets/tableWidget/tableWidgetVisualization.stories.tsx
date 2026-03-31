@@ -386,8 +386,6 @@ function onTriggerCellAction(actions: Actions, value: string | number) {
     case Actions.EXCLUDE:
       setFilter(filter.filter(_value => _value !== value));
       break;
-    default:
-      break;
   }
 }
         `}

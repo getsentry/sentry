@@ -916,7 +916,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         # Verify the mock was called with correct project IDs
         mock_are_any_projects_error_upsampled.assert_called_once_with([self.project.id])
 
-    def test_update_marks_query_as_user_updated_when_snapshot_exists(self):
+    def test_update_marks_query_as_user_updated_when_snapshot_exists(self) -> None:
         alert_rule = self.create_alert_rule()
 
         alert_rule.snuba_query.query_snapshot = {
@@ -941,7 +941,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert updated_alert_rule.snuba_query.query_snapshot is not None
         assert updated_alert_rule.snuba_query.query_snapshot.get("user_updated") is True
 
-    def test_update_does_not_mark_user_updated_when_no_snapshot(self):
+    def test_update_does_not_mark_user_updated_when_no_snapshot(self) -> None:
         alert_rule = self.create_alert_rule()
 
         alert_rule.snuba_query.query_snapshot = None

@@ -673,7 +673,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
 
 
 class FindOrCreateReleaseTest(TestCase):
-    def test_exact_version_matching_prevents_incorrect_matches(self):
+    def test_exact_version_matching_prevents_incorrect_matches(self) -> None:
         package = "com.hackernews"
         version = "1.2.3"
 
@@ -686,7 +686,7 @@ class FindOrCreateReleaseTest(TestCase):
         assert result is not None
         assert result.version == f"{package}@{version}"
 
-    def test_finds_existing_release_regardless_of_build_number(self):
+    def test_finds_existing_release_regardless_of_build_number(self) -> None:
         package = "com.example.app"
         version = "2.1.0"
 

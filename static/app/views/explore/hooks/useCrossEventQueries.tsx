@@ -30,8 +30,6 @@ export function useCrossEventQueries() {
         case 'logs':
           logQuery.push(crossEvent.query);
           break;
-        default:
-          break;
       }
     }
 

@@ -601,18 +601,21 @@ export function useExplorerAutofix(
   const createPR = useCallback(
     async (runId: number, repoName?: string) => {
       try {
+        const data: Record<string, any> = {
+          step: 'open_pr',
+          run_id: runId,
+        };
+        if (repoName) {
+          data.repo_name = repoName;
+        }
         await api.requestPromise(
-          getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-update/$runId/', {
-            path: {organizationIdOrSlug: orgSlug, runId},
+          getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
+            path: {organizationIdOrSlug: orgSlug, issueId: groupId},
           }),
           {
             method: 'POST',
-            data: {
-              payload: {
-                type: 'create_pr',
-                repo_name: repoName,
-              },
-            },
+            query: {mode: 'explorer'},
+            data,
           }
         );
 

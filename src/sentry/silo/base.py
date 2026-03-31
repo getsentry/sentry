@@ -3,7 +3,6 @@ from __future__ import annotations
 import abc
 import contextlib
 import functools
-import threading
 import typing
 from collections.abc import Callable, Generator, Iterable
 from enum import Enum
@@ -56,7 +55,7 @@ class SiloMode(Enum):
         return SingleProcessSiloModeState.get_mode() or process_level_silo_mode
 
 
-class SingleProcessSiloModeState(threading.local):
+class SingleProcessSiloModeState:
     """
     Used by silo endpoint decorators and other contexts that help 'suggest' to
     acceptance testing and local single process silo testing which 'silo context' the
