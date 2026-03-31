@@ -30,6 +30,7 @@ class InMemoryCache:
         del self.data[key]
 
 
+@django_db_all
 def test_meta_basic() -> None:
     att = CachedAttachment(key="c:foo", id=123, name="lol.txt", content_type="text/plain", chunks=3)
 
@@ -61,6 +62,7 @@ def test_meta_rate_limited() -> None:
     }
 
 
+@django_db_all
 def test_basic_chunked() -> None:
     data = InMemoryCache()
     cache = BaseAttachmentCache(data)
