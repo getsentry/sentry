@@ -146,7 +146,7 @@ def _get_autofix_state(run_id: int, organization: Organization) -> AutofixState 
 
     if not autofix_state:
         logger.warning(
-            "coding_agent.post.autofix_state_not_found",
+            "coding_agent.autofix_state_not_found",
             extra={
                 "organization_id": organization.id,
                 "run_id": run_id,
