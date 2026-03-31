@@ -163,8 +163,8 @@ def connect_workflows_to_detectors(
     update: bool = False,
 ) -> None:
     def get_detector_workflows_to_add(
-        base_id: int | None,
-        connector_ids: set[int] | None,
+        base_id: int,
+        connector_ids: set[int],
         workflow_base: bool = False,
     ) -> list[dict[Literal["detector_id", "workflow_id"], int]]:
         detector_workflows_to_add: list[dict[Literal["detector_id", "workflow_id"], int]] = []
