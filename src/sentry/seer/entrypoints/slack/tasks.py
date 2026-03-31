@@ -117,6 +117,11 @@ def process_mention_for_slack(
 
         if not organization.has_access(user):
             lifecycle.record_halt(ProcessMentionHaltReason.USER_NOT_ORG_MEMBER)
+            entrypoint.install.set_thread_status(
+                channel_id=channel_id,
+                thread_ts=thread_ts or ts,
+                status="",
+            )
             return
 
         prompt = extract_prompt(text, bot_user_id)

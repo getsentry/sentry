@@ -140,6 +140,11 @@ class ProcessMentionForSlackTest(TestCase):
         self._run_task(organization_id=other_org.id)
 
         mock_operator_cls.assert_not_called()
+        mock_entrypoint.install.set_thread_status.assert_called_once_with(
+            channel_id="C1234567890",
+            thread_ts="1234567890.123456",
+            status="",
+        )
         assert_halt_metric(mock_record, ProcessMentionHaltReason.USER_NOT_ORG_MEMBER)
 
     @patch("sentry.seer.entrypoints.slack.tasks.SeerExplorerOperator")
