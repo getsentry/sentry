@@ -228,7 +228,7 @@ export function useBulkMutateSelectedAgent({projects}: {projects: Project[]}) {
     ) => {
       const results = await processInChunks({
         items: projects,
-        chunkSize: 10,
+        chunkSize: 15,
         fn: async project => {
           const [preferencesData] = await queryClient.fetchQuery({
             queryKey: makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
@@ -271,7 +271,7 @@ export function useBulkMutateSelectedAgent({projects}: {projects: Project[]}) {
         if (result.status === 'fulfilled') {
           ProjectsStore.onUpdateSuccess({
             id: projects[i]!.id,
-            autofixAutomationTuning: tuning,
+            autofixAutomationTuning: integration === 'none' ? 'off' : 'medium',
           });
         }
       });

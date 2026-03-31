@@ -81,6 +81,9 @@ export function AutofixOverviewSection({canWrite, data, isPending, organization}
 
   const {projectsWithPreferredAgent = [], projectsWithCreatePr = []} = data ?? {};
 
+  const [isBulkMutatingAgent, setIsBulkMutatingAgent] = useState(false);
+  const [isBulkMutatingCreatePr, setIsBulkMutatingCreatePr] = useState(false);
+
   return (
     <FieldGroup
       title={
@@ -99,6 +102,9 @@ export function AutofixOverviewSection({canWrite, data, isPending, organization}
       <AgentNameForm
         canWrite={canWrite}
         isPending={isPending}
+        isBulkMutatingAgent={isBulkMutatingAgent}
+        setIsBulkMutatingAgent={setIsBulkMutatingAgent}
+        isBulkMutatingCreatePr={isBulkMutatingCreatePr}
         organization={organization}
         projects={projects}
         projectsWithPreferredAgent={projectsWithPreferredAgent}
@@ -107,6 +113,9 @@ export function AutofixOverviewSection({canWrite, data, isPending, organization}
       <CreatePrForm
         canWrite={canWrite}
         isPending={isPending}
+        isBulkMutatingCreatePr={isBulkMutatingCreatePr}
+        setIsBulkMutatingCreatePr={setIsBulkMutatingCreatePr}
+        isBulkMutatingAgent={isBulkMutatingAgent}
         organization={organization}
         projects={projects}
         projectsWithCreatePr={projectsWithCreatePr}
@@ -118,15 +127,21 @@ export function AutofixOverviewSection({canWrite, data, isPending, organization}
 function AgentNameForm({
   canWrite,
   isPending,
+  isBulkMutatingAgent,
+  setIsBulkMutatingAgent,
+  isBulkMutatingCreatePr,
   organization,
   projects,
   projectsWithPreferredAgent,
 }: {
   canWrite: boolean;
+  isBulkMutatingAgent: boolean;
+  isBulkMutatingCreatePr: boolean;
   isPending: boolean;
   organization: Organization;
   projects: Project[];
   projectsWithPreferredAgent: AutofixAutomationSettings[];
+  setIsBulkMutatingAgent: (value: boolean) => void;
 }) {
   const {data: integrations} = useQuery(
     organizationIntegrationsCodingAgents(organization)
@@ -186,7 +201,6 @@ function AgentNameForm({
   const bulkMutateSelectedAgent = useBulkMutateSelectedAgent({
     projects: projectsToUpdate,
   });
-  const [isBulkMutatingAgent, setIsBulkMutatingAgent] = useState(false);
 
   return (
     <AutoSaveForm
@@ -220,6 +234,7 @@ function AgentNameForm({
               disabled={
                 !canWrite ||
                 isBulkMutatingAgent ||
+                isBulkMutatingCreatePr ||
                 projectsWithPreferredAgent.length === projects.length
               }
               onClick={async () => {
@@ -260,15 +275,21 @@ function AgentNameForm({
 function CreatePrForm({
   canWrite,
   isPending,
+  isBulkMutatingCreatePr,
+  setIsBulkMutatingCreatePr,
+  isBulkMutatingAgent,
   organization,
   projects,
   projectsWithCreatePr,
 }: {
   canWrite: boolean;
+  isBulkMutatingAgent: boolean;
+  isBulkMutatingCreatePr: boolean;
   isPending: boolean;
   organization: Organization;
   projects: Project[];
   projectsWithCreatePr: AutofixAutomationSettings[];
+  setIsBulkMutatingCreatePr: (value: boolean) => void;
 }) {
   const orgMutationOpts = mutationOptions({
     mutationFn: (updateData: Partial<Organization>) =>
@@ -284,7 +305,6 @@ function CreatePrForm({
   const projectsToUpdate = projects.filter(p => !projectsWithCreatePrIds.has(p.id));
 
   const bulkMutateCreatePr = useBulkMutateCreatePr({projects: projectsToUpdate});
-  const [isBulkMutatingCreatePr, setIsBulkMutatingCreatePr] = useState(false);
 
   return (
     <AutoSaveForm
@@ -325,6 +345,7 @@ function CreatePrForm({
               disabled={
                 !canWrite ||
                 isBulkMutatingCreatePr ||
+                isBulkMutatingAgent ||
                 organization.enableSeerCoding === false ||
                 projectsWithCreatePr.length === projects.length
               }
