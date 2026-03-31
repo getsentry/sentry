@@ -73,7 +73,13 @@ from sentry.seer.assisted_query.traces_tools import (
     get_attribute_values_with_substring,
 )
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
-from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
+from sentry.seer.autofix.coding_agent import (
+    AutofixStateNotFound,
+    IntegrationNotFound,
+    OrganizationNotFound,
+    StateReposNotFound,
+    launch_coding_agents_for_run,
+)
 from sentry.seer.autofix.utils import AutofixTriggerSource
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS, SeerSCMProvider
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
@@ -589,7 +595,7 @@ def trigger_coding_agent_launch(
             trigger_source=AutofixTriggerSource(trigger_source),
         )
         return {"success": True}
-    except NotFound as e:
+    except IntegrationNotFound:
         logger.exception(
             "coding_agent.rpc_launch_error",
             extra={
@@ -598,10 +604,15 @@ def trigger_coding_agent_launch(
                 "run_id": run_id,
             },
         )
-        if str(e.detail) == "Integration not found":
-            return {"success": False, "error_code": "integration_not_found"}
-        return {"success": False}
-    except (PermissionDenied, ValidationError, APIException):
+        return {"success": False, "error_code": "integration_not_found"}
+    except (
+        OrganizationNotFound,
+        AutofixStateNotFound,
+        StateReposNotFound,
+        PermissionDenied,
+        ValidationError,
+        APIException,
+    ):
         logger.exception(
             "coding_agent.rpc_launch_error",
             extra={

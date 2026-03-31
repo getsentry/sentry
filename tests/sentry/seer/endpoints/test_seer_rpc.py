@@ -1485,9 +1485,9 @@ class TestSeerRpcMethods(APITestCase):
 class TestTriggerCodingAgentLaunch:
     @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
     def test_not_found_returns_integration_not_found_error_code(self, mock_launch):
-        from rest_framework.exceptions import NotFound
+        from sentry.seer.autofix.coding_agent import IntegrationNotFound
 
-        mock_launch.side_effect = NotFound("Integration not found")
+        mock_launch.side_effect = IntegrationNotFound()
 
         result = trigger_coding_agent_launch(
             organization_id=1,
@@ -1499,9 +1499,9 @@ class TestTriggerCodingAgentLaunch:
 
     @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
     def test_organization_not_found_does_not_return_integration_error_code(self, mock_launch):
-        from rest_framework.exceptions import NotFound
+        from sentry.seer.autofix.coding_agent import OrganizationNotFound
 
-        mock_launch.side_effect = NotFound("Organization not found")
+        mock_launch.side_effect = OrganizationNotFound()
 
         result = trigger_coding_agent_launch(
             organization_id=1,
@@ -1514,9 +1514,9 @@ class TestTriggerCodingAgentLaunch:
 
     @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
     def test_autofix_state_not_found_does_not_return_integration_error_code(self, mock_launch):
-        from rest_framework.exceptions import NotFound
+        from sentry.seer.autofix.coding_agent import AutofixStateNotFound
 
-        mock_launch.side_effect = NotFound("Autofix state not found")
+        mock_launch.side_effect = AutofixStateNotFound()
 
         result = trigger_coding_agent_launch(
             organization_id=1,

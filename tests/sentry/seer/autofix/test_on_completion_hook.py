@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-from rest_framework.exceptions import NotFound
-
+from sentry.seer.autofix.coding_agent import IntegrationNotFound
 from sentry.seer.autofix.utils import CodingAgentProviderType
 from sentry.seer.models.seer_api_models import SeerAutomationHandoffConfiguration
 from sentry.testutils.cases import TestCase
@@ -31,7 +30,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
     ) -> None:
         from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 
-        mock_trigger.side_effect = NotFound("Integration not found")
+        mock_trigger.side_effect = IntegrationNotFound("Integration not found")
 
         mock_pref = MagicMock()
         mock_pref.automation_handoff = self._make_handoff_config()
@@ -59,7 +58,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
     ) -> None:
         from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 
-        mock_trigger.side_effect = NotFound("Integration not found")
+        mock_trigger.side_effect = IntegrationNotFound("Integration not found")
         mock_get_prefs.return_value = None
 
         AutofixOnCompletionHook._trigger_coding_agent_handoff(
