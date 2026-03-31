@@ -15,10 +15,17 @@ from objectstore_client import (
 )
 from objectstore_client.metrics import Tags
 
+from sentry import options
 from sentry.utils import metrics as sentry_metrics
 from sentry.utils.env import in_test_environment
 
 __all__ = ["get_attachments_session", "parse_accept_encoding"]
+
+
+# NB: It is expected that all attachments declare their retention. This default
+# exists for defensive coding purposes to ensure that attachments that are
+# created without specified expiry.
+ATTACHMENT_RETENTION = int(options.get("system.event-retention-days") or 0) or 30
 
 
 class SentryMetricsBackend(MetricsBackend):
@@ -49,7 +56,9 @@ class SentryMetricsBackend(MetricsBackend):
 _ATTACHMENTS_CLIENT: Client | None = None
 
 _OBJECTSTORE_CLIENT: Client | None = None
-_ATTACHMENTS_USECASE = Usecase("attachments", expiration_policy=TimeToLive(timedelta(days=30)))
+_ATTACHMENTS_USECASE = Usecase(
+    "attachments", expiration_policy=TimeToLive(timedelta(days=ATTACHMENT_RETENTION))
+)
 _PREPROD_USECASE = Usecase("preprod", expiration_policy=TimeToLive(timedelta(days=30)))
 
 

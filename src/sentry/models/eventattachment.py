@@ -3,6 +3,7 @@ from __future__ import annotations
 import mimetypes
 import os
 from dataclasses import dataclass
+from datetime import timedelta
 from hashlib import sha1
 from io import BytesIO
 from typing import IO, Any
@@ -11,6 +12,7 @@ import zstandard
 from django.core.cache import cache
 from django.db import models
 from django.utils import timezone
+from objectstore_client import TimeToLive
 
 from sentry.attachments.base import CachedAttachment
 from sentry.backup.scopes import RelocationScope
@@ -219,7 +221,11 @@ class EventAttachment(Model):
 
         else:
             organization_id = _get_organization(project_id)
-            blob_path = V2_PREFIX + get_attachments_session(organization_id, project_id).put(data)
+            session = get_attachments_session(organization_id, project_id)
+            key = session.put(
+                data, expiration_policy=TimeToLive(timedelta(days=attachment.retention_days))
+            )
+            blob_path = V2_PREFIX + key
 
         return PutfileResult(
             content_type=content_type, size=size, sha1=checksum, blob_path=blob_path
