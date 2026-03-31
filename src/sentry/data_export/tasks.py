@@ -1,5 +1,3 @@
-import codecs
-import csv
 import logging
 import tempfile
 from hashlib import sha1
@@ -12,7 +10,16 @@ from django.db import IntegrityError, router
 from django.utils import timezone
 from taskbroker_client.retry import NoRetriesRemainingError, Retry, retry_task
 
+from sentry.data_export.models import ExportedData, ExportedDataBlob
+from sentry.data_export.processors.discover import DiscoverProcessor
 from sentry.data_export.processors.explore import ExploreProcessor
+from sentry.data_export.processors.issues_by_tag import IssuesByTagProcessor
+from sentry.data_export.utils import handle_snuba_errors
+from sentry.data_export.writers import (
+    FileWriter,
+    get_content_type,
+    get_file_type,
+)
 from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.fileblobindex import FileBlobIndex
@@ -31,12 +38,17 @@ from .base import (
     ExportError,
     ExportQueryType,
 )
-from .models import ExportedData, ExportedDataBlob
-from .processors.discover import DiscoverProcessor
-from .processors.issues_by_tag import IssuesByTagProcessor
-from .utils import handle_snuba_errors
 
 logger = logging.getLogger(__name__)
+
+
+def _export_metric_tags(data_export: ExportedData) -> dict[str, str]:
+    dataset = data_export.query_info.get("dataset", "None")
+    return {
+        "format": data_export.export_format.value,
+        "query_type": ExportQueryType.as_str(data_export.query_type),
+        "dataset": dataset,
+    }
 
 
 @instrumented_task(
@@ -70,7 +82,11 @@ def assemble_download(
                 logger.info("dataexport.start", extra=extra)
             data_export = ExportedData.objects.get(id=data_export_id)
             if first_page:
-                metrics.incr("dataexport.start", tags={"success": True}, sample_rate=1.0)
+                metrics.incr(
+                    "dataexport.start",
+                    tags={**_export_metric_tags(data_export), "success": True},
+                    sample_rate=1.0,
+                )
         except ExportedData.DoesNotExist:
             if first_page:
                 metrics.incr("dataexport.start", tags={"success": False}, sample_rate=1.0)
@@ -93,18 +109,15 @@ def assemble_download(
                 export_limit = min(export_limit, EXPORTED_ROWS_LIMIT)
 
             processor = get_processor(data_export, environment_id)
+            output_mode = data_export.export_format
 
             with tempfile.TemporaryFile(mode="w+b") as tf:
-                # XXX(python3):
-                #
-                # In python3 we write unicode strings (which is all the csv
-                # module is able to do, it will NOT write bytes like in py2).
-                # Because of this we use the codec getwriter to transform our
-                # file handle to a stream writer that will encode to utf8.
-                tfw = codecs.getwriter("utf-8")(tf)
-
-                writer = csv.DictWriter(
-                    tfw, processor.header_fields, escapechar="\\", extrasaction="ignore"
+                writer = FileWriter(
+                    buffer=tf,
+                    output_mode=output_mode,
+                    csv_headers=processor.header_fields,
+                    escapechar="\\",
+                    extrasaction="ignore",
                 )
                 if first_page:
                     writer.writeheader()
@@ -124,7 +137,6 @@ def assemble_download(
                 for _ in range(MAX_FRAGMENTS_PER_BATCH):
                     # the number of rows to export in the next batch fragment
                     fragment_row_count = min(batch_size, max(export_limit - next_offset, 1))
-
                     rows = process_rows(processor, data_export, fragment_row_count, next_offset)
                     writer.writerows(rows)
 
@@ -157,11 +169,19 @@ def assemble_download(
                     },
                 )
             else:
-                metrics.incr("dataexport.error", tags={"error": str(error)}, sample_rate=1.0)
+                metrics.incr(
+                    "dataexport.error",
+                    tags={**_export_metric_tags(data_export), "error": str(error)},
+                    sample_rate=1.0,
+                )
                 logger.exception("assemble_download: ExportError", extra=extra)
                 return data_export.email_failure(message=str(error))
         except Exception as error:
-            metrics.incr("dataexport.error", tags={"error": str(error)}, sample_rate=1.0)
+            metrics.incr(
+                "dataexport.error",
+                tags={**_export_metric_tags(data_export), "error": str(error)},
+                sample_rate=1.0,
+            )
             logger.exception("assemble_download: Exception", extra=extra)
 
             try:
@@ -169,7 +189,11 @@ def assemble_download(
             except NoRetriesRemainingError:
                 metrics.incr(
                     "dataexport.end",
-                    tags={"success": False, "error": str(error)},
+                    tags={
+                        **_export_metric_tags(data_export),
+                        "success": False,
+                        "error": str(error),
+                    },
                     sample_rate=1.0,
                 )
                 return data_export.email_failure(message="Internal processing failure")
@@ -235,7 +259,7 @@ def process_rows(
     data_export: ExportedData,
     batch_size: int,
     offset: int,
-) -> list[dict[str, str]]:
+) -> list[dict[str, Any]]:
     try:
         if data_export.query_type == ExportQueryType.ISSUES_BY_TAG:
             rows = process_issues_by_tag(processor, batch_size, offset)
@@ -255,18 +279,18 @@ def process_rows(
 @handle_snuba_errors(logger)
 def process_issues_by_tag(
     processor: IssuesByTagProcessor, limit: int, offset: int
-) -> list[dict[str, str]]:
+) -> list[dict[str, Any]]:
     return processor.get_serialized_data(limit=limit, offset=offset)
 
 
 @handle_snuba_errors(logger)
-def process_discover(processor: DiscoverProcessor, limit: int, offset: int) -> list[dict[str, str]]:
+def process_discover(processor: DiscoverProcessor, limit: int, offset: int) -> list[dict[str, Any]]:
     raw_data_unicode = processor.data_fn(limit=limit, offset=offset)["data"]
     return processor.handle_fields(raw_data_unicode)
 
 
 @handle_snuba_errors(logger)
-def process_explore(processor: ExploreProcessor, limit: int, offset: int) -> list[dict[str, str]]:
+def process_explore(processor: ExploreProcessor, limit: int, offset: int) -> list[dict[str, Any]]:
     return processor.run_query(offset, limit)
 
 
@@ -333,6 +357,7 @@ def merge_export_blobs(data_export_id: int, **kwargs: Any) -> None:
 
         # adapted from `putfile` in  `src/sentry/models/file.py`
         try:
+
             with atomic_transaction(
                 using=(
                     router.db_for_write(File),
@@ -341,8 +366,8 @@ def merge_export_blobs(data_export_id: int, **kwargs: Any) -> None:
             ):
                 file = File.objects.create(
                     name=data_export.file_name,
-                    type="export.csv",
-                    headers={"Content-Type": "text/csv"},
+                    type=get_file_type(data_export.export_format),
+                    headers={"Content-Type": get_content_type(data_export.export_format)},
                 )
                 size = 0
                 file_checksum = sha1(b"")
@@ -379,12 +404,20 @@ def merge_export_blobs(data_export_id: int, **kwargs: Any) -> None:
                 time_elapsed = (timezone.now() - data_export.date_added).total_seconds()
                 metrics.timing("dataexport.duration", time_elapsed, sample_rate=1.0)
                 logger.info("dataexport.end", extra=extra)
-                metrics.incr("dataexport.end", tags={"success": True}, sample_rate=1.0)
+                metrics.incr(
+                    "dataexport.end",
+                    tags={**_export_metric_tags(data_export), "success": True},
+                    sample_rate=1.0,
+                )
         except Exception as error:
-            metrics.incr("dataexport.error", tags={"error": str(error)}, sample_rate=1.0)
+            metrics.incr(
+                "dataexport.error",
+                tags={**_export_metric_tags(data_export), "error": str(error)},
+                sample_rate=1.0,
+            )
             metrics.incr(
                 "dataexport.end",
-                tags={"success": False, "error": str(error)},
+                tags={**_export_metric_tags(data_export), "success": False, "error": str(error)},
                 sample_rate=1.0,
             )
             logger.exception("merge_export_blobs: Exception", extra=extra)
@@ -402,4 +435,8 @@ def _set_data_on_scope(data_export: ExportedData) -> None:
         scope.set_user(user)
     scope.set_tag("organization.slug", data_export.organization.slug)
     scope.set_tag("export.type", ExportQueryType.as_str(data_export.query_type))
+    scope.set_tag("export.format", data_export.export_format.value)
+    qi = data_export.query_info
+    if qi.get("dataset") is not None:
+        scope.set_tag("export.dataset", str(qi.get("dataset")))
     scope.set_extra("export.query", data_export.query_info)

@@ -53,8 +53,9 @@ class DataExportDetailsEndpoint(OrganizationEndpoint):
         file = data_export._get_file()
         assert file is not None
         raw_file = file.getfile()
+        content_type = file.headers.get("Content-Type", "text/csv")
         response = StreamingHttpResponse(
-            iter(lambda: raw_file.read(4096), b""), content_type="text/csv"
+            iter(lambda: raw_file.read(4096), b""), content_type=content_type
         )
         response["Content-Length"] = file.size
         response["Content-Disposition"] = f'attachment; filename="{file.name}"'

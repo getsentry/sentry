@@ -10,6 +10,7 @@ from sentry.models.files.file import File
 from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
 from sentry.testutils.cases import OurLogTestCase, SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import (
     DatasetSelectionError,
@@ -788,6 +789,60 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
         with file.getfile() as f:
             content = f.read().strip()
         assert b"log.body,severity_text" in content
+
+    @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_explore_logs_jsonl_format(self, emailer: MagicMock) -> None:
+        logs = [
+            self.create_ourlog(
+                {"body": "jsonl log message", "severity_text": "INFO"},
+                timestamp=before_now(minutes=10),
+                attributes={"custom.field": "test_value"},
+            ),
+            self.create_ourlog(
+                {"body": "jsonl log message two", "severity_text": "INFO"},
+                timestamp=before_now(minutes=5),
+                attributes={"custom.field": "test_value"},
+            )
+        ]
+        self.store_eap_items(logs)
+
+        de = ExportedData.objects.create(
+            user_id=self.user.id,
+            organization=self.org,
+            query_type=ExportQueryType.EXPLORE,
+            query_info={
+                "project": [self.project.id],
+                "field": ["log.body", "severity_text"],
+                "query": "",
+                "dataset": "logs",
+                "format": "jsonl",
+                "start": before_now(minutes=15).isoformat(),
+                "end": before_now(minutes=5).isoformat(),
+            },
+        )
+
+        with self.tasks():
+            assemble_download(de.id, batch_size=1)
+
+        de = ExportedData.objects.get(id=de.id)
+        assert de.date_finished is not None
+        assert de.date_expired is not None
+        assert de.file_id is not None
+        file = de._get_file()
+        assert isinstance(file, File)
+        assert file.headers == {"Content-Type": "application/x-ndjson"}
+        assert file.size is not None
+        assert file.checksum is not None
+
+        with file.getfile() as f:
+            content = f.read().strip()
+
+        lines = [ln for ln in content.split(b"\n") if ln]
+        assert len(lines) >= 1
+        row = json.loads(lines[0].decode("utf-8"))
+        assert row["log.body"] == "jsonl log message"
+        assert row["severity_text"] == "INFO"
+        assert emailer.called
 
     @patch("sentry.data_export.models.ExportedData.email_success")
     def test_explore_datasets_isolation(self, emailer: MagicMock) -> None:
