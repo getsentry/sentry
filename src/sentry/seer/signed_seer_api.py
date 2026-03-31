@@ -537,10 +537,12 @@ def make_delete_grouping_records_by_project_request(
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
+    project_id = body["project_id"]
     return make_signed_seer_api_request(
         seer_grouping_default_connection_pool,
-        "/v0/issues/similar-issues/grouping-record/delete",
-        body=orjson.dumps(body),
+        f"/v0/issues/similar-issues/grouping-record/delete/{project_id}",
+        body=b"",
+        method="GET",
         timeout=timeout,
         viewer_context=viewer_context,
     )

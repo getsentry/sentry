@@ -12,7 +12,7 @@ interface ScmProviderPillsProps {
 
 export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) {
   return (
-    <Flex gap="md" wrap="wrap" justify="center">
+    <Flex gap="lg" wrap="wrap" justify="center">
       {providers.map(provider => (
         <IntegrationContext
           key={provider.key}
@@ -31,7 +31,6 @@ export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) 
             onAddIntegration={onInstall}
             onExternalClick={() => {}}
             buttonProps={{
-              size: 'sm',
               icon: getIntegrationIcon(provider.key, 'sm'),
               buttonText: provider.name,
             }}

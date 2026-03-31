@@ -405,6 +405,7 @@ register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR
 #  - retries: int | None = None,
 #  - timeout_ms: float | None = None,
 #  - connection_kwargs: Mapping[str, Any] | None = None,
+#  - token_generator: Mapping[str, Any] | None = None,
 #
 # For an always up-to-date list, see:
 # https://getsentry.github.io/objectstore/python/objectstore_client.html#objectstore_client.Client
@@ -2393,63 +2394,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# List of organization IDs that should be using segment metrics for boost low volume transactions.
-register(
-    "dynamic-sampling.transactions.segment-metric-orgs",
-    default=[],
-    type=Sequence,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# When enabled, use segment metrics for ALL orgs in boost low volume transactions.
-register(
-    "dynamic-sampling.transactions.segment-metric.enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# List of organization IDs that should be using segment metrics for recalibrate_orgs.
-register(
-    "dynamic-sampling.recalibrate_orgs.segment-metric-orgs",
-    default=[],
-    type=Sequence,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# When enabled, use segment metrics for ALL orgs in recalibrate_orgs.
-register(
-    "dynamic-sampling.recalibrate_orgs.segment-metric.enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# List of organization IDs that should be using segment metrics for sliding_window_org.
-register(
-    "dynamic-sampling.sliding_window_org.segment-metric-orgs",
-    default=[],
-    type=Sequence,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# When enabled, use segment metrics for ALL orgs in sliding_window_org.
-register(
-    "dynamic-sampling.sliding_window_org.segment-metric.enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# List of organization IDs that should be using segment metrics for boost_low_volume_projects.
-register(
-    "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs",
-    default=[],
-    type=Sequence,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# When enabled, use segment metrics for ALL orgs in boost_low_volume_projects.
-register(
-    "dynamic-sampling.boost_low_volume_projects.segment-metric.enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-
 # === Hybrid cloud subsystem options ===
 # UI rollout
 register(
@@ -3337,12 +3281,6 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "spans.buffer.done-flush-conditional-zrem",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Segments consumer
 register(
     "spans.process-segments.consumer.enable",
@@ -4193,6 +4131,13 @@ register(
 # TODO(telkins): Remove once we no longer need integration_id on SLO metrics
 register(
     "integrations.slo.integration-id-tag-enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "integrations.jira.multi-cell-enabled",
     default=False,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,

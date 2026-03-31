@@ -876,36 +876,6 @@ def is_issue_category_eligible(group: Group) -> bool:
     }
 
 
-def is_issue_eligible_for_seer_automation(group: Group) -> bool:
-    """Check if Seer automation is allowed for a given group based on permissions and issue type."""
-    from sentry import quotas
-
-    if not is_issue_category_eligible(group):
-        return False
-
-    if not features.has("organizations:gen-ai-features", group.organization):
-        return False
-
-    gen_ai_allowed = not group.organization.get_option("sentry:hide_ai_features")
-    if not gen_ai_allowed:
-        return False
-
-    project = group.project
-    if (
-        not project.get_option("sentry:seer_scanner_automation")
-        and not group.issue_type.always_trigger_seer_automation
-    ):
-        return False
-
-    has_budget: bool = quotas.backend.check_seer_quota(
-        org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
-    )
-    if not has_budget:
-        return False
-
-    return True
-
-
 AUTOFIX_AUTOTRIGGED_RATE_LIMIT_OPTION_MULTIPLIERS = {
     AutofixAutomationTuningSettings.OFF: 5,
     AutofixAutomationTuningSettings.SUPER_LOW: 5,

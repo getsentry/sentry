@@ -6,10 +6,13 @@ import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
 type OnboardingContextProps = {
+  clearDerivedState: () => void;
+  setCreatedProjectSlug: (slug?: string) => void;
   setSelectedFeatures: (features?: ProductSolution[]) => void;
   setSelectedIntegration: (integration?: Integration) => void;
   setSelectedPlatform: (selectedSDK?: OnboardingSelectedSDK) => void;
   setSelectedRepository: (repo?: Repository) => void;
+  createdProjectSlug?: string;
   selectedFeatures?: ProductSolution[];
   selectedIntegration?: Integration;
   selectedPlatform?: OnboardingSelectedSDK;
@@ -17,6 +20,7 @@ type OnboardingContextProps = {
 };
 
 export type OnboardingSessionState = {
+  createdProjectSlug?: string;
   selectedFeatures?: ProductSolution[];
   selectedIntegration?: Integration;
   selectedPlatform?: OnboardingSelectedSDK;
@@ -35,6 +39,9 @@ const OnboardingContext = createContext<OnboardingContextProps>({
   setSelectedRepository: () => {},
   selectedFeatures: undefined,
   setSelectedFeatures: () => {},
+  createdProjectSlug: undefined,
+  setCreatedProjectSlug: () => {},
+  clearDerivedState: () => {},
 });
 
 type ProviderProps = {
@@ -72,6 +79,21 @@ export function OnboardingContextProvider({children, initialValue}: ProviderProp
       selectedFeatures: onboarding?.selectedFeatures,
       setSelectedFeatures: (selectedFeatures?: ProductSolution[]) => {
         setOnboarding(prev => ({...prev, selectedFeatures}));
+      },
+      createdProjectSlug: onboarding?.createdProjectSlug,
+      setCreatedProjectSlug: (createdProjectSlug?: string) => {
+        setOnboarding(prev => ({...prev, createdProjectSlug}));
+      },
+      // Clear state derived from the selected repository (platform, features,
+      // created project) without wiping the entire session. Use this when the
+      // repo changes so downstream steps start fresh.
+      clearDerivedState: () => {
+        setOnboarding(prev => ({
+          ...prev,
+          selectedPlatform: undefined,
+          selectedFeatures: undefined,
+          createdProjectSlug: undefined,
+        }));
       },
     }),
     [onboarding, setOnboarding, removeOnboarding]

@@ -474,7 +474,7 @@ class ControlOutboxBase(OutboxBase):
         process_control_outbox.send(
             sender=OutboxCategory(self.category),
             payload=self.payload,
-            region_name=self.cell_name,
+            cell_name=self.cell_name,
             object_identifier=self.object_identifier,
             shard_identifier=self.shard_identifier,
             shard_scope=self.shard_scope,

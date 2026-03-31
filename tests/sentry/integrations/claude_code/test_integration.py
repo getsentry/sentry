@@ -62,7 +62,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
 
     # ── Provider metadata ────────────────────────────────────────────
 
-    def test_provider_metadata(self):
+    def test_provider_metadata(self) -> None:
         p = self.provider()
         assert p.key == PROVIDER_KEY
         assert p.name == PROVIDER_NAME
@@ -71,7 +71,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
 
     # ── build_integration ────────────────────────────────────────────
 
-    def test_build_integration(self):
+    def test_build_integration(self) -> None:
         mock_cls, mock_client = _mock_client_class()
         state: Mapping[str, Any] = {"api_key": "sk-ant-test-api-key-123"}
 
@@ -89,7 +89,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         assert metadata["agent_id"] is None
         assert metadata["agent_version"] is None
 
-    def test_build_integration_creates_unique_external_ids(self):
+    def test_build_integration_creates_unique_external_ids(self) -> None:
         mock_cls, _ = _mock_client_class()
         state: Mapping[str, Any] = {"api_key": "sk-ant-test-api-key-123"}
 
@@ -99,11 +99,11 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
 
         assert r1["external_id"] != r2["external_id"]
 
-    def test_build_integration_missing_api_key(self):
+    def test_build_integration_missing_api_key(self) -> None:
         with pytest.raises(IntegrationConfigurationError, match="Missing API key"):
             self.provider().build_integration({})
 
-    def test_build_integration_invalid_api_key(self):
+    def test_build_integration_invalid_api_key(self) -> None:
         mock_cls, _ = _mock_client_class(validate_return=False)
 
         with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
@@ -113,7 +113,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             ):
                 self.provider().build_integration({"api_key": "invalid-key"})
 
-    def test_build_integration_validation_network_error(self):
+    def test_build_integration_validation_network_error(self) -> None:
         mock_cls, _ = _mock_client_class(validate_side_effect=Exception("Network error"))
 
         with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
@@ -125,7 +125,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
 
     # ── get_client ───────────────────────────────────────────────────
 
-    def test_get_client(self):
+    def test_get_client(self) -> None:
         mock_cls, mock_client = _mock_client_class()
         integration = self.create_provider_integration(
             provider="claude_code",
@@ -147,7 +147,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             agent_version=None,
         )
 
-    def test_get_client_with_environment_and_workspace(self):
+    def test_get_client_with_environment_and_workspace(self) -> None:
         mock_cls, mock_client = _mock_client_class()
         integration = self.create_provider_integration(
             provider="claude_code",
@@ -174,7 +174,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             agent_version="v1",
         )
 
-    def test_get_client_class_not_configured(self):
+    def test_get_client_class_not_configured(self) -> None:
         installation = self._create_installation()
 
         with self.settings(CLAUDE_CODE_CLIENT_CLASS=None):
@@ -183,7 +183,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
 
     # ── Property getters ─────────────────────────────────────────────
 
-    def test_property_getters(self):
+    def test_property_getters(self) -> None:
         installation = self._create_installation(
             api_key="sk-ant-prop-key",
             environment_id="env-prop-123",
@@ -192,31 +192,31 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         assert installation.api_key == "sk-ant-prop-key"
         assert installation.model.metadata["environment_id"] == "env-prop-123"
 
-    def test_environment_id_defaults_to_none(self):
+    def test_environment_id_defaults_to_none(self) -> None:
         installation = self._create_installation()
         assert installation.model.metadata.get("environment_id") is None
 
     # ── update_organization_config ───────────────────────────────────
 
-    def test_update_organization_config_sets_environment_id(self):
+    def test_update_organization_config_sets_environment_id(self) -> None:
         installation = self._create_installation()
         installation.update_organization_config({"environment_id": "env-new-456"})
 
         assert installation.model.metadata["environment_id"] == "env-new-456"
 
-    def test_update_organization_config_clears_environment_id(self):
+    def test_update_organization_config_clears_environment_id(self) -> None:
         installation = self._create_installation(environment_id="env-old")
         installation.update_organization_config({"environment_id": ""})
 
         assert installation.model.metadata["environment_id"] is None
 
-    def test_update_organization_config_sets_workspace_name(self):
+    def test_update_organization_config_sets_workspace_name(self) -> None:
         installation = self._create_installation()
         installation.update_organization_config({"workspace_name": "my-workspace"})
 
         assert installation.model.metadata["workspace_name"] == "my-workspace"
 
-    def test_update_organization_config_clears_workspace_name(self):
+    def test_update_organization_config_clears_workspace_name(self) -> None:
         installation = self._create_installation(workspace_name="old-ws")
         installation.update_organization_config({"workspace_name": ""})
 
@@ -224,7 +224,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
 
     # ── get_config_data ──────────────────────────────────────────────
 
-    def test_get_config_data(self):
+    def test_get_config_data(self) -> None:
         installation = self._create_installation(
             environment_id="env-cfg",
             workspace_name="ws-cfg",
@@ -234,7 +234,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         assert data["environment_id"] == "env-cfg"
         assert data["workspace_name"] == "ws-cfg"
 
-    def test_get_config_data_defaults_to_empty_strings_except_workspace(self):
+    def test_get_config_data_defaults_to_empty_strings_except_workspace(self) -> None:
         installation = self._create_installation()
         data = installation.get_config_data()
 
@@ -306,7 +306,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
 
         return installation, mock_client, mock_cls, request
 
-    def test_launch_calls_client_with_webhook_url(self):
+    def test_launch_calls_client_with_webhook_url(self) -> None:
         installation, mock_client, mock_cls, request = self._setup_launch()
 
         with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
@@ -319,7 +319,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         assert "/extensions/claude_code/" in call_kwargs["webhook_url"]
         assert call_kwargs["request"] is request
 
-    def test_launch_updates_environment_id_when_changed(self):
+    def test_launch_updates_environment_id_when_changed(self) -> None:
         """When the client resolves a new environment_id, it should be persisted."""
         installation, mock_client, mock_cls, request = self._setup_launch(
             environment_id=None,
@@ -331,7 +331,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
 
         assert installation.model.metadata["environment_id"] == "env-resolved-123"
 
-    def test_launch_does_not_update_metadata_when_unchanged(self):
+    def test_launch_does_not_update_metadata_when_unchanged(self) -> None:
         """When client IDs match stored ones, metadata should not be persisted."""
         installation, mock_client, mock_cls, request = self._setup_launch(
             environment_id="env-same",
@@ -348,7 +348,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
 
         mock_persist.assert_not_called()
 
-    def test_launch_does_not_update_when_client_has_no_ids(self):
+    def test_launch_does_not_update_when_client_has_no_ids(self) -> None:
         """When client IDs are None, no update should happen."""
         installation, mock_client, mock_cls, request = self._setup_launch(
             environment_id="env-existing",
@@ -365,7 +365,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
 
         mock_persist.assert_not_called()
 
-    def test_launch_updates_agent_id_when_changed(self):
+    def test_launch_updates_agent_id_when_changed(self) -> None:
         """When the client resolves a new agent, it should be persisted."""
         installation, mock_client, mock_cls, request = self._setup_launch(
             agent_id=None,
@@ -379,7 +379,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         assert installation.model.metadata["agent_id"] == "agent-new-123"
         assert installation.model.metadata["agent_version"] == "v-new"
 
-    def test_launch_updates_both_environment_and_agent_when_changed(self):
+    def test_launch_updates_both_environment_and_agent_when_changed(self) -> None:
         """When both IDs change, both should be persisted in a single update."""
         installation, mock_client, mock_cls, request = self._setup_launch(
             environment_id=None,

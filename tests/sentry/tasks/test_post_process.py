@@ -753,7 +753,7 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
             (o.user_id, o.team_id) for o in owners
         }
 
-    def test_owner_assignment_existing_assignee_preserved(self):
+    def test_owner_assignment_existing_assignee_preserved(self) -> None:
         """
         Tests that if a group already has an assignee, post-processing won't reassign it
         even if ownership rules change in the interim.
@@ -3442,7 +3442,7 @@ class SeerAutomationHelperFunctionsTestMixin(BasePostProcessGroupMixin):
         """Test permission check with various failure conditions."""
         from sentry.constants import DataCategory
         from sentry.issues.grouptype import GroupCategory
-        from sentry.seer.autofix.utils import is_issue_eligible_for_seer_automation
+        from sentry.seer.autofix.trigger import is_issue_eligible_for_seer_automation
 
         self.project.update_option("sentry:seer_scanner_automation", True)
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
@@ -4150,7 +4150,7 @@ class ProcessDataForwardingTest(BasePostProcessGroupMixin, SnubaTestCase):
 
         return data_forwarder, data_forwarder_project
 
-    def test_process_data_forwarding_no_forwarders(self):
+    def test_process_data_forwarding_no_forwarders(self) -> None:
         event = self.create_event(
             data={"message": "test message", "level": "error"},
             project_id=self.project.id,

@@ -107,8 +107,7 @@ def process_github_webhook_event(
     *,
     seer_path: str,
     event_payload: Mapping[str, Any],
-    tags: Mapping[str, Any] | None = None,
-    **kwargs: Any,
+    tags: Mapping[str, Any],
 ) -> None:
     """
     Forward a validated code-review payload to Seer.
@@ -117,15 +116,12 @@ def process_github_webhook_event(
         seer_path: The path to the Seer API endpoint to call
         event_payload: The payload (already validated before scheduling)
         tags: Sentry SDK tags to set on this task's scope for error correlation
-        **kwargs: Absorbs legacy serialized task arguments from in-flight work
-            (e.g. removed ``enqueued_at_str``).
     """
     status = "success"
     try:
-        if tags:
-            sentry_sdk.set_tags(tags)
+        sentry_sdk.set_tags(tags)
         viewer_context: SeerViewerContext | None = None
-        if tags and (org_id := tags.get("sentry_organization_id")):
+        if org_id := tags.get("sentry_organization_id"):
             viewer_context = SeerViewerContext(organization_id=int(org_id))
 
         make_seer_request(path=seer_path, payload=event_payload, viewer_context=viewer_context)

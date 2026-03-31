@@ -608,10 +608,61 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
     ) -> str:
         """
-        Get file contents from Perforce depot.
-        Required by abstract base class but not used (CODEOWNERS).
+        Get file contents from Perforce depot using ``p4 print``.
+
+        API docs: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_print.html
+
+        Perforce supports two revision specifiers:
+        - ``@N`` — changelist number (global point-in-time snapshot)
+        - ``#N`` — file revision (per-file version counter)
+
+        Args:
+            repo: Repository object containing depot path config
+            path: File path relative to depot root
+            ref: Revision specifier. Accepts:
+                 - ``"#3"`` → file revision 3
+                 - ``"@42"`` → changelist 42
+                 - ``"42"`` → treated as changelist (``@42``)
+                 - ``None`` → head revision
+            codeowners: Not used for Perforce
+
+        Returns:
+            File contents as a UTF-8 string
+
+        Raises:
+            ApiError(404): File not found in depot
+            ApiError(500): Perforce connection or command error
         """
-        raise NotImplementedError("get_file is not supported for Perforce")
+        with self._connect() as p4:
+            depot_path = self.build_depot_path(repo, path)
+
+            if ref and "#" not in depot_path and "@" not in depot_path:
+                if ref.startswith("#") or ref.startswith("@"):
+                    depot_path = f"{depot_path}{ref}"
+                else:
+                    depot_path = f"{depot_path}@{ref}"
+
+            try:
+                result = p4.run("print", depot_path)
+            except P4Exception as e:
+                error_msg = str(e)
+                if "no such file" in error_msg.lower() or "not in client view" in error_msg.lower():
+                    raise ApiError(error_msg, code=404)
+                raise ApiError(error_msg, code=500)
+
+            # p4 print returns a list: first element is file metadata dict,
+            # remaining elements are file content strings/bytes
+            if not result or not isinstance(result[0], dict):
+                raise ApiError(f"File not found: {depot_path}", code=404)
+
+            content_parts = result[1:]
+            if not content_parts:
+                return ""
+
+            return "".join(
+                part.decode("utf-8", errors="replace") if isinstance(part, bytes) else part
+                for part in content_parts
+            )
 
     def create_comment(self, repo: str, issue_id: str, data: dict[str, Any]) -> Any:
         """Create comment. Not applicable for Perforce."""
