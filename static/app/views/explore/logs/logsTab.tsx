@@ -432,7 +432,7 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
     organization.features.includes('ourlogs-table-expando') ||
     location.query.logsTableExpando === 'true';
   const expando = useExpando();
-  const isExpanded = hasExpando && expando.expanded;
+  const isExpanded = hasExpando ? expando.expanded : undefined;
 
   return (
     <Fragment>
