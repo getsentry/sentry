@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from rest_framework.request import Request
 
 from sentry import features, options
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.explorer.client_models import ExplorerRun, ExplorerRunWithPrs, SeerRunState
@@ -550,7 +551,13 @@ class SeerExplorerClient:
         Raises:
             TimeoutError: If polling exceeds timeout
             SeerApiError: If the Seer API request fails
+            SeerPermissionError: If code generation is disabled for the organization
         """
+        if not self.organization.get_option(
+            "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
+        ):
+            raise SeerPermissionError("Code generation is disabled for this organization")
+
         # Trigger PR creation
         payload: dict[str, Any] = {"type": "create_pr"}
         if repo_name:

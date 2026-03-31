@@ -1165,6 +1165,24 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
 
             assert response.status_code == 404, f"Failed for {flag}: {response.data}"
 
+    def test_open_pr_coding_disabled(self):
+        self.login_as(user=self.user)
+        group = self.create_group()
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        for flag in EXPLORER_FLAGS:
+            with self.feature(flag):
+                response = self.client.post(
+                    self._get_url(group.id, mode="explorer"),
+                    data={
+                        "step": "open_pr",
+                        "run_id": 123,
+                    },
+                    format="json",
+                )
+
+            assert response.status_code == 403, f"Failed for {flag}: {response.data}"
+
 
 @with_feature("organizations:gen-ai-features")
 @with_feature("organizations:seer-explorer")

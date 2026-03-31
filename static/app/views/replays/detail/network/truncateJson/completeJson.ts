@@ -37,7 +37,7 @@ export function completeJson(incompleteJson: string, stack: JsonToken[]): string
   for (let i = lastPos; i >= 0; i--) {
     const step = stack[i];
 
-    // eslint-disable-next-line default-case
+    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
     switch (step) {
       case OBJ:
         json = `${json}}`;

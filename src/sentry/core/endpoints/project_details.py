@@ -257,6 +257,10 @@ E.g. `['release', 'environment']`""",
     targetSampleRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     dynamicSamplingBiases = DynamicSamplingBiasSerializer(required=False, many=True)
     tempestFetchScreenshots = serializers.BooleanField(required=False)
+    scmSourceContextEnabled = serializers.BooleanField(
+        required=False,
+        help_text="Enable on-demand source context fetching from SCM integrations for stack traces.",
+    )
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
@@ -471,6 +475,15 @@ E.g. `['release', 'environment']`""",
             raise serializers.ValidationError(
                 "Organization does not have the tempest feature enabled."
             )
+        return value
+
+    def validate_scmSourceContextEnabled(self, value):
+        if value:
+            organization = self.context["project"].organization
+            if not features.has("organizations:scm-source-context", organization):
+                raise serializers.ValidationError(
+                    "Organization does not have the SCM source context feature enabled."
+                )
         return value
 
     def validate_debugFilesRole(self, value):
@@ -760,6 +773,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             ):
                 changed_proj_settings["sentry:tempest_fetch_screenshots"] = result[
                     "tempestFetchScreenshots"
+                ]
+        if result.get("scmSourceContextEnabled") is not None:
+            if project.update_option(
+                "sentry:scm_source_context_enabled", result["scmSourceContextEnabled"]
+            ):
+                changed_proj_settings["sentry:scm_source_context_enabled"] = result[
+                    "scmSourceContextEnabled"
                 ]
         if result.get("targetSampleRate") is not None:
             if project.update_option(

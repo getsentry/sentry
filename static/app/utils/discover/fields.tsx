@@ -24,6 +24,7 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import {STARFISH_FIELDS} from 'sentry/views/insights/common/utils/constants';
 import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/insights/constants';
+import {SpanFields} from 'sentry/views/insights/types';
 
 import {CONDITIONS_ARGUMENTS, DiscoverDatasets, WEB_VITALS_QUALITY} from './types';
 
@@ -1404,6 +1405,10 @@ export function fieldAlignment(
   columnType?: ColumnValueType,
   metadata?: Record<string, ColumnValueType>
 ): Alignments {
+  if (columnName === SpanFields.IS_STARRED_TRANSACTION) {
+    return 'right';
+  }
+
   let align: Alignments = 'left';
 
   if (columnType) {

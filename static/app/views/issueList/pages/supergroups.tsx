@@ -120,7 +120,7 @@ function Supergroups() {
   }
 
   return (
-    <Layout.Page>
+    <Stack flex={1}>
       <Layout.Header noActionWrap unified>
         <Layout.HeaderContent>
           <Flex align="center" gap="md">
@@ -172,7 +172,7 @@ function Supergroups() {
           )}
         </Layout.Main>
       </Layout.Body>
-    </Layout.Page>
+    </Stack>
   );
 }
 

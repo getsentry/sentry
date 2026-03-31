@@ -19,7 +19,7 @@ class PluginRequestParserTest(TestCase):
         return HttpResponse(status=200, content="passthrough")
 
     @responses.activate
-    def test_routing_webhooks_no_region(self) -> None:
+    def test_routing_webhooks_no_cell(self) -> None:
         routes = [
             reverse("sentry-plugins-github-webhook", args=[self.organization.id]),
             reverse("sentry-plugins-bitbucket-webhook", args=[self.organization.id]),
@@ -37,7 +37,7 @@ class PluginRequestParserTest(TestCase):
             assert len(responses.calls) == 0
             assert_no_webhook_payloads()
 
-    def test_routing_webhooks_with_region(self) -> None:
+    def test_routing_webhooks_with_cell(self) -> None:
         routes = [
             reverse("sentry-plugins-github-webhook", args=[self.organization.id]),
             reverse("sentry-plugins-bitbucket-webhook", args=[self.organization.id]),
@@ -50,7 +50,7 @@ class PluginRequestParserTest(TestCase):
             assert_webhook_payloads_for_mailbox(
                 request=request,
                 mailbox_name=f"plugins:{self.organization.id}",
-                region_names=["us"],
+                cell_names=["us"],
             )
             # Purge outboxes after checking each route
             WebhookPayload.objects.all().delete()

@@ -5,9 +5,8 @@ import {slugify} from 'sentry/utils/slugify';
 import {useCommandPaletteRegistration} from './context';
 import type {
   CommandPaletteAction,
-  CommandPaletteActionCallback,
   CommandPaletteActionCallbackWithKey,
-  CommandPaletteActionLink,
+  CommandPaletteActionChild,
   CommandPaletteActionLinkWithKey,
   CommandPaletteActionWithKey,
 } from './types';
@@ -17,9 +16,10 @@ function addKeysToActions(
   actions: CommandPaletteAction[]
 ): CommandPaletteActionWithKey[] {
   return actions.map(action => {
-    const actionKey = `${id}:${action.type}:${slugify(action.display.label)}`;
+    const kind = 'actions' in action ? 'group' : 'to' in action ? 'navigate' : 'callback';
+    const actionKey = `${id}:${kind}:${slugify(action.display.label)}`;
 
-    if (action.type === 'group') {
+    if ('actions' in action) {
       return {
         ...action,
         actions: addKeysToChildActions(id, action.actions),
@@ -36,13 +36,13 @@ function addKeysToActions(
 
 function addKeysToChildActions(
   id: string,
-  actions: Array<CommandPaletteActionLink | CommandPaletteActionCallback>
+  actions: CommandPaletteActionChild[]
 ): Array<CommandPaletteActionLinkWithKey | CommandPaletteActionCallbackWithKey> {
   return actions.map(action => {
     const label = action.display.label.toLowerCase().replace(/ /g, '-');
-    const disambiguator =
-      action.type === 'navigate' ? `:${JSON.stringify(action.to)}` : '';
-    const actionKey = `${id}:${action.type}:${label}${disambiguator}`;
+    const disambiguator = 'to' in action ? `:${JSON.stringify(action.to)}` : '';
+    const kind = 'to' in action ? 'navigate' : 'callback';
+    const actionKey = `${id}:${kind}:${label}${disambiguator}`;
     return {
       ...action,
       key: actionKey,

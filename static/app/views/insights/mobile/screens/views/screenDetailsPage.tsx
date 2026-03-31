@@ -3,6 +3,7 @@ import {useState} from 'react';
 import omit from 'lodash/omit';
 
 import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';
+import {Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -125,7 +126,7 @@ function ScreenDetailsPage() {
   return (
     <PageFiltersContainer>
       <SentryDocumentTitle title={t('Mobile Vitals')} orgSlug={organization.slug} />
-      <Layout.Page>
+      <Stack flex={1}>
         <PageAlertProvider>
           <Tabs value={selectedTabKey} onChange={tabKey => handleTabChange(tabKey)}>
             <MobileHeader
@@ -154,7 +155,7 @@ function ScreenDetailsPage() {
             </Layout.Body>
           </Tabs>
         </PageAlertProvider>
-      </Layout.Page>
+      </Stack>
     </PageFiltersContainer>
   );
 }
