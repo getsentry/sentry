@@ -1,19 +1,24 @@
-import {useState} from 'react';
+import {Fragment} from 'react';
 
-import {Button} from '@sentry/scraps/button';
+import {Heading, Text} from '@sentry/scraps/text';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {InputField} from 'sentry/components/forms/fields/inputField';
+import {NumberField} from 'sentry/components/forms/fields/numberField';
+import {Form, type FormProps} from 'sentry/components/forms/form';
 import type {Organization} from 'sentry/types/organization';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 const DEFAULT_PARALLEL_LIMIT = 20;
+
+type OnSubmitArgs = Parameters<NonNullable<FormProps['onSubmit']>>;
+interface MutationVariables {
+  limit: number;
+  onSubmitError: OnSubmitArgs[2];
+  onSubmitSuccess: OnSubmitArgs[1];
+}
 
 interface ChangeDashboardsParallelLimitModalProps extends ModalRenderProps {
   onSuccess: () => void;
@@ -23,66 +28,81 @@ interface ChangeDashboardsParallelLimitModalProps extends ModalRenderProps {
 function ChangeDashboardsParallelLimitModal({
   Header,
   Body,
-  Footer,
   closeModal,
   organization,
   onSuccess,
 }: ChangeDashboardsParallelLimitModalProps) {
   const currentLimit =
     organization.dashboardsAsyncQueueParallelLimit ?? DEFAULT_PARALLEL_LIMIT;
-  const [limit, setLimit] = useState<number>(currentLimit);
 
-  const {isPending, mutate} = useMutation({
-    mutationFn: (newLimit: number) =>
+  const {mutate, isPending} = useMutation<
+    Record<string, any>,
+    RequestError,
+    MutationVariables
+  >({
+    mutationFn: ({limit}) =>
       fetchMutation({
         method: 'PUT',
         url: `/organizations/${organization.slug}/`,
-        data: {dashboardsAsyncQueueParallelLimit: newLimit},
+        data: {dashboardsAsyncQueueParallelLimit: limit},
       }),
-    onMutate: () => addLoadingMessage('Saving changes\u2026'),
-    onSuccess: () => {
+    onSuccess: (response, {onSubmitSuccess}) => {
+      onSubmitSuccess?.(response);
       addSuccessMessage('Dashboard parallel query limit updated.');
       onSuccess();
       closeModal();
     },
-    onError: () => {
+    onError: (error, {onSubmitError}) => {
+      onSubmitError?.({responseJSON: error?.responseJSON});
       addErrorMessage('Failed to update dashboard parallel query limit.');
     },
   });
 
+  const onSubmit: NonNullable<FormProps['onSubmit']> = (
+    data,
+    onSubmitSuccess,
+    onSubmitError
+  ) => {
+    const limit = Number(data.dashboardsAsyncQueueParallelLimit);
+
+    if (!limit || limit < 1 || isPending) {
+      return;
+    }
+
+    mutate({limit, onSubmitSuccess, onSubmitError});
+  };
+
   return (
-    <div>
-      <Header closeButton>
-        <h4>Change Dashboard Parallel Query Limit</h4>
+    <Fragment>
+      <Header>
+        <Heading as="h2">Change Dashboard Parallel Query Limit</Heading>
       </Header>
       <Body>
         <p>
-          Controls how many dashboard widget queries can run in parallel. Current value:{' '}
-          <strong>{currentLimit}</strong>.
+          <Text bold>Current value: </Text>
+          {currentLimit}
         </p>
-        <InputField
-          name="dashboardsAsyncQueueParallelLimit"
-          label="Parallel Limit"
-          type="number"
-          min={1}
-          inline={false}
-          stacked
-          flexibleControlStateSize
-          value={limit}
-          onChange={(val: any) => setLimit(Number(val))}
-        />
-      </Body>
-      <Footer>
-        <Button onClick={closeModal}>Cancel</Button>
-        <Button
-          priority="primary"
-          disabled={isPending || limit < 1}
-          onClick={() => mutate(limit)}
+        <Form
+          onSubmit={onSubmit}
+          onCancel={closeModal}
+          submitLabel={isPending ? 'Submitting...' : 'Save'}
+          submitDisabled={isPending}
+          cancelLabel="Cancel"
+          footerClass="modal-footer"
         >
-          Save
-        </Button>
-      </Footer>
-    </div>
+          <NumberField
+            label="Parallel Limit"
+            name="dashboardsAsyncQueueParallelLimit"
+            help="Controls how many dashboard widget queries can run in parallel."
+            defaultValue={currentLimit}
+            min={1}
+            disabled={isPending}
+            inline={false}
+            stacked
+          />
+        </Form>
+      </Body>
+    </Fragment>
   );
 }
 
