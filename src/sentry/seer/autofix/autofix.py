@@ -722,6 +722,7 @@ def _resolve_project_preference(
             "seer.write_preferences.resolve_project_preference.failed",
             extra={"project_id": project.id, "organization_id": organization.id},
         )
+        return None
 
     # No code mapping repos to bootstrap from.
     if not code_mapping_repos:
