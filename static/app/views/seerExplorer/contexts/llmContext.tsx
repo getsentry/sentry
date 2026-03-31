@@ -212,15 +212,19 @@ export function useLLMContext(
     if (!nodeId || data === undefined) {
       return;
     }
-    let serialized: string;
+    let serialized: string | null;
     try {
       serialized = JSON.stringify(data);
     } catch {
-      // Non-serializable value (e.g. circular reference) — always write
-      serialized = '';
+      // Non-serializable value (e.g. circular reference) — skip dedup,
+      // always write. Use null sentinel so this branch never matches
+      // prevDataRef and we don't skip future writes.
+      serialized = null;
     }
-    if (serialized !== prevDataRef.current) {
-      prevDataRef.current = serialized;
+    if (serialized === null || serialized !== prevDataRef.current) {
+      if (serialized !== null) {
+        prevDataRef.current = serialized;
+      }
       ctx.updateNodeData(nodeId, data);
     }
   });
