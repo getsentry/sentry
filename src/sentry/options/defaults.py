@@ -2694,6 +2694,7 @@ register(
 # When True, the circuit breaker tracks state and emits metrics but does not block requests.
 register(
     "sentry-apps.webhook.circuit-breaker.dry-run",
+    type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

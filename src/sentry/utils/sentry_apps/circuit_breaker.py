@@ -26,7 +26,7 @@ def circuit_breaker_tracking(
     # Currently we only count WebhookTimeoutError as an error in the circuit breaker as those operations are the ones that are taking too long
     # If an app returns a say 500, in a reasonable time that's okay
     except WebhookTimeoutError:
-        # This is gross but we don't want to propogate a redis or circuit breaker error to the webhook code
+        # This is gross but we don't want to propagate a redis or circuit breaker error to the webhook code
         try:
             breaker.record_error()
         except Exception:
