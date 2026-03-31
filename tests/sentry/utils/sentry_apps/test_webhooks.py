@@ -13,7 +13,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import cell_silo_test
 from sentry.utils.circuit_breaker2 import CircuitBreaker
-from sentry.utils.sentry_apps.webhooks import send_and_save_webhook_request
+from sentry.utils.sentry_apps.webhooks import WebhookTimeoutError, send_and_save_webhook_request
 
 
 def _raise_status_false() -> bool:
@@ -112,8 +112,26 @@ class WebhookCircuitBreakerTest(TestCase):
     @override_options(CIRCUIT_BREAKER_OPTIONS)
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
-    def test_timeout_calls_record_error(self, MockBreaker, mock_safe_urlopen):
-        """Timeout exceptions should call record_error()."""
+    def test_hard_timeout_calls_record_error(self, MockBreaker, mock_safe_urlopen):
+        """WebhookTimeoutError (hard timeout) should call record_error() on the circuit breaker."""
+        mock_breaker_instance = MockBreaker.return_value
+        mock_breaker_instance.should_allow_request.return_value = True
+        mock_safe_urlopen.side_effect = WebhookTimeoutError()
+
+        with pytest.raises(WebhookTimeoutError):
+            send_and_save_webhook_request(self.sentry_app, self._make_event())
+
+        mock_breaker_instance.record_error.assert_called_once()
+        mock_breaker_instance.record_success.assert_not_called()
+
+    @with_feature("organizations:sentry-app-webhook-circuit-breaker")
+    @override_options(CIRCUIT_BREAKER_OPTIONS)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
+    def test_timeout_does_not_record_error(self, MockBreaker, mock_safe_urlopen):
+        """Regular Timeout exceptions are not recorded as circuit breaker errors — only
+        WebhookTimeoutError (hard timeout) is. A fast network timeout still counts as
+        a completed attempt from the breaker's perspective."""
         mock_breaker_instance = MockBreaker.return_value
         mock_breaker_instance.should_allow_request.return_value = True
         mock_safe_urlopen.side_effect = Timeout()
@@ -121,7 +139,8 @@ class WebhookCircuitBreakerTest(TestCase):
         with pytest.raises(Timeout):
             send_and_save_webhook_request(self.sentry_app, self._make_event())
 
-        mock_breaker_instance.record_error.assert_called_once()
+        mock_breaker_instance.record_error.assert_not_called()
+        mock_breaker_instance.record_success.assert_not_called()
 
     @with_feature("organizations:sentry-app-webhook-circuit-breaker")
     @override_options(CIRCUIT_BREAKER_OPTIONS)

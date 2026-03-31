@@ -248,13 +248,19 @@ def send_and_save_webhook_request(
             raise
 
         track_response_code(response.status_code, slug, event)
+
+        project_id = (
+            int(p_id)
+            if (p_id := response.headers.get("Sentry-Hook-Project")) and p_id.isdigit()
+            else None
+        )
         buffer.add_request(
             response_code=response.status_code,
             org_id=org_id,
             event=event,
             url=url,
             error_id=response.headers.get("Sentry-Hook-Error"),
-            project_id=response.headers.get("Sentry-Hook-Project"),
+            project_id=project_id,
             response=response,
             headers=app_platform_event.headers,
         )

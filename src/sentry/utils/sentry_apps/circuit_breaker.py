@@ -11,12 +11,12 @@ logger = logging.getLogger("sentry.sentry_apps.circuit_breaker")
 def circuit_breaker_tracking(
     breaker: CircuitBreaker | None,
 ) -> Generator[None]:
-    from sentry.utils.sentry_apps.webhooks import WebhookTimeoutError
-
     """Track request outcome: record_error on WebhookTimeoutError, record_success on normal exit.
 
     Handles the None case as a no-op so callers don't need nullcontext().
     """
+    from sentry.utils.sentry_apps.webhooks import WebhookTimeoutError
+
     if breaker is None:
         yield
         return
