@@ -75,6 +75,8 @@ def _extract_block_text(block: Mapping[str, Any]) -> str:
     if block_type == "rich_text":
         parts: list[str] = []
         for container in block.get("elements", []):
+            if not isinstance(container, dict):
+                continue
             container_parts = [
                 _extract_rich_text_element_text(el) for el in container.get("elements", [])
             ]
