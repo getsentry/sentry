@@ -96,11 +96,11 @@ export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
           return (
             <CompositeSelect.Region
               key={groupKey}
-              label={group.label as string}
+              label={group.label}
               multiple
               options={group.options}
               value={activeValues}
-              onChange={(opts: Array<SelectOption<string>>) => handleChange(opts)}
+              onChange={handleChange}
             />
           );
         }
@@ -108,10 +108,10 @@ export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
         return (
           <CompositeSelect.Region
             key={groupKey}
-            label={group.label as string}
+            label={group.label}
             options={group.options}
-            value={activeValues[0] as string}
-            onChange={(opt: SelectOption<string>) => handleChange([opt])}
+            value={activeValues[0]}
+            onChange={opt => handleChange([opt])}
           />
         );
       })}
