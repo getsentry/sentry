@@ -104,7 +104,7 @@ from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
 from sentry.models.eventattachment import V1_PREFIX, V2_PREFIX, EventAttachment
 from sentry.models.files.utils import get_storage
 from sentry.models.project import Project
-from sentry.objectstore import get_attachments_session
+from sentry.objectstore import ATTACHMENT_RETENTION, get_attachments_session
 from sentry.options.rollout import in_random_rollout
 from sentry.search.eap.occurrences.common_queries import count_occurrences
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
@@ -420,7 +420,9 @@ def _maybe_copy_attachment_into_cache(
         # attachment is already in objectstore (regardless of flag)
         stored_id = blob_path.removeprefix(V2_PREFIX)
     elif in_random_rollout("objectstore.enable_for.attachments"):
-        retention_days = quotas.backend.get_event_retention(project.organization)
+        retention_days = (
+            quotas.backend.get_event_retention(project.organization) or ATTACHMENT_RETENTION
+        )
         # move the attachment into objectstore and update the record
         with attachment.getfile() as fp:
             stored_id = get_attachments_session(project.organization_id, project.id).put(
