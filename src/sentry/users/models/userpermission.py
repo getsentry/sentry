@@ -43,11 +43,11 @@ class UserPermission(OverwritableConfigMixin, ControlOutboxProducingModel):
         return frozenset(cls.objects.filter(user=user_id).values_list("permission", flat=True))
 
     def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
-        regions = find_cells_for_user(self.user_id)
+        cells = find_cells_for_user(self.user_id)
         return [
             outbox
             for outbox in OutboxCategory.USER_UPDATE.as_control_outboxes(
-                cell_names=regions,
+                cell_names=cells,
                 shard_identifier=self.user_id,
                 object_identifier=self.user_id,
             )

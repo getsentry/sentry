@@ -16,7 +16,7 @@ from sentry.testutils.silo import cell_silo_test
 
 @cell_silo_test
 class HandlePreprodCheckRunEventTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.organization)
@@ -96,7 +96,7 @@ class HandlePreprodCheckRunEventTest(TestCase):
             },
         }
 
-    def test_ignores_non_check_run_events(self):
+    def test_ignores_non_check_run_events(self) -> None:
         artifact = self._create_preprod_artifact()
         event = self._create_webhook_event(
             action="requested_action",
@@ -118,7 +118,7 @@ class HandlePreprodCheckRunEventTest(TestCase):
             == 0
         )
 
-    def test_ignores_non_requested_action(self):
+    def test_ignores_non_requested_action(self) -> None:
         artifact = self._create_preprod_artifact()
         event = self._create_webhook_event(
             action="completed",
@@ -140,7 +140,7 @@ class HandlePreprodCheckRunEventTest(TestCase):
             == 0
         )
 
-    def test_ignores_non_approve_size_identifier(self):
+    def test_ignores_non_approve_size_identifier(self) -> None:
         artifact = self._create_preprod_artifact()
         event = self._create_webhook_event(
             action="requested_action",
@@ -162,7 +162,7 @@ class HandlePreprodCheckRunEventTest(TestCase):
             == 0
         )
 
-    def test_creates_approval_for_valid_request(self):
+    def test_creates_approval_for_valid_request(self) -> None:
         artifact = self._create_preprod_artifact()
         event = self._create_webhook_event(
             action="requested_action",
@@ -200,7 +200,7 @@ class HandlePreprodCheckRunEventTest(TestCase):
             }
         )
 
-    def test_creates_approvals_for_all_sibling_artifacts(self):
+    def test_creates_approvals_for_all_sibling_artifacts(self) -> None:
         artifact1 = self._create_preprod_artifact(app_id="com.example.app1")
         commit_comparison = artifact1.commit_comparison
 
@@ -234,7 +234,7 @@ class HandlePreprodCheckRunEventTest(TestCase):
             == 2
         )
 
-    def test_handles_missing_external_id(self):
+    def test_handles_missing_external_id(self) -> None:
         event = self._create_webhook_event(
             action="requested_action",
             identifier=APPROVE_SIZE_ACTION_IDENTIFIER,
@@ -256,7 +256,7 @@ class HandlePreprodCheckRunEventTest(TestCase):
             == 0
         )
 
-    def test_handles_invalid_external_id(self):
+    def test_handles_invalid_external_id(self) -> None:
         event = self._create_webhook_event(
             action="requested_action",
             identifier=APPROVE_SIZE_ACTION_IDENTIFIER,
@@ -277,7 +277,7 @@ class HandlePreprodCheckRunEventTest(TestCase):
             == 0
         )
 
-    def test_handles_nonexistent_artifact(self):
+    def test_handles_nonexistent_artifact(self) -> None:
         event = self._create_webhook_event(
             action="requested_action",
             identifier=APPROVE_SIZE_ACTION_IDENTIFIER,
@@ -298,7 +298,7 @@ class HandlePreprodCheckRunEventTest(TestCase):
             == 0
         )
 
-    def test_artifact_not_found_for_different_organization(self):
+    def test_artifact_not_found_for_different_organization(self) -> None:
         """Artifact belonging to a different org is not found (org filter is part of query)."""
         other_org = self.create_organization(owner=self.user)
         other_project = self.create_project(organization=other_org, name="other_project")
@@ -341,7 +341,7 @@ class HandlePreprodCheckRunEventTest(TestCase):
             == 0
         )
 
-    def test_skips_duplicate_approval_from_same_user(self):
+    def test_skips_duplicate_approval_from_same_user(self) -> None:
         """Same GitHub user clicking approve twice should not create duplicate."""
         artifact = self._create_preprod_artifact()
 
@@ -374,7 +374,7 @@ class HandlePreprodCheckRunEventTest(TestCase):
         # Should still be 1 (no duplicate created)
         assert PreprodComparisonApproval.objects.filter(preprod_artifact=artifact).count() == 1
 
-    def test_allows_different_user_to_create_new_approval(self):
+    def test_allows_different_user_to_create_new_approval(self) -> None:
         """Different GitHub user approving should create a new approval record."""
         artifact = self._create_preprod_artifact()
 
@@ -416,7 +416,7 @@ class HandlePreprodCheckRunEventTest(TestCase):
         assert latest_approval is not None
         assert latest_approval.extras == {"github": {"id": 12345, "login": "octocat"}}
 
-    def test_checks_latest_approval_not_first(self):
+    def test_checks_latest_approval_not_first(self) -> None:
         """When multiple approvals exist, check against the latest one, not the first."""
         artifact = self._create_preprod_artifact()
 

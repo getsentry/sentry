@@ -109,7 +109,7 @@ class BuildWebhookPayloadTest(TestCase):
     # Completed standalone builds
     # ------------------------------------------------------------------
 
-    def test_standalone_build_success(self):
+    def test_standalone_build_success(self) -> None:
         """Completed standalone build produces API-subset payload."""
         artifact, _ = self._create_artifact_with_completed_analysis()
 
@@ -144,7 +144,7 @@ class BuildWebhookPayloadTest(TestCase):
 
         self._assert_no_api_heavy_fields(payload)
 
-    def test_standalone_build_with_git_context(self):
+    def test_standalone_build_with_git_context(self) -> None:
         """Standalone build on main branch has gitInfo but no comparison."""
         commit_comparison = self.create_commit_comparison(
             organization=self.organization,
@@ -180,7 +180,7 @@ class BuildWebhookPayloadTest(TestCase):
     # PR builds with comparisons
     # ------------------------------------------------------------------
 
-    def test_pr_build_comparison_succeeded(self):
+    def test_pr_build_comparison_succeeded(self) -> None:
         """PR build with successful comparison includes per-artifact comparisons."""
         commit_comparison = self.create_commit_comparison(
             organization=self.organization,
@@ -250,7 +250,7 @@ class BuildWebhookPayloadTest(TestCase):
 
         self._assert_no_api_heavy_fields(payload)
 
-    def test_pr_build_comparison_failed(self):
+    def test_pr_build_comparison_failed(self) -> None:
         """PR build with failed comparison: top-level state stays COMPLETED."""
         commit_comparison = self.create_commit_comparison(
             organization=self.organization,
@@ -294,7 +294,7 @@ class BuildWebhookPayloadTest(TestCase):
         assert len(payload["comparisons"]) == 1
         assert payload["comparisons"][0]["state"] == "FAILED"
 
-    def test_multi_metric_comparison(self):
+    def test_multi_metric_comparison(self) -> None:
         """Multiple artifacts (main + watch) produce multiple comparison entries."""
         commit_comparison = self.create_commit_comparison(
             organization=self.organization,
@@ -420,7 +420,7 @@ class BuildWebhookPayloadTest(TestCase):
     # Analysis failures
     # ------------------------------------------------------------------
 
-    def test_analysis_failed(self):
+    def test_analysis_failed(self) -> None:
         """Analysis failure produces FAILED payload with error details."""
         commit_comparison = self.create_commit_comparison(
             organization=self.organization,
@@ -454,7 +454,7 @@ class BuildWebhookPayloadTest(TestCase):
 
         self._assert_no_api_heavy_fields(payload)
 
-    def test_analysis_timeout_error_code(self):
+    def test_analysis_timeout_error_code(self) -> None:
         """Timeout error code is mapped correctly."""
         artifact = self.create_preprod_artifact(project=self.project)
         self.create_preprod_artifact_size_metrics(
@@ -470,7 +470,7 @@ class BuildWebhookPayloadTest(TestCase):
         assert payload is not None
         assert payload["errorCode"] == "TIMEOUT"
 
-    def test_unsupported_artifact_error_code(self):
+    def test_unsupported_artifact_error_code(self) -> None:
         """Unsupported artifact error code is mapped correctly."""
         artifact = self.create_preprod_artifact(project=self.project)
         self.create_preprod_artifact_size_metrics(
@@ -490,7 +490,7 @@ class BuildWebhookPayloadTest(TestCase):
     # Suppressed states
     # ------------------------------------------------------------------
 
-    def test_not_ran_returns_none(self):
+    def test_not_ran_returns_none(self) -> None:
         """NOT_RAN state should not produce a webhook payload."""
         artifact = self.create_preprod_artifact(project=self.project)
         self.create_preprod_artifact_size_metrics(
@@ -502,7 +502,7 @@ class BuildWebhookPayloadTest(TestCase):
 
         assert build_webhook_payload(artifact) is None
 
-    def test_pending_returns_none(self):
+    def test_pending_returns_none(self) -> None:
         """PENDING state should not produce a webhook payload."""
         artifact = self.create_preprod_artifact(project=self.project)
         self.create_preprod_artifact_size_metrics(
@@ -512,7 +512,7 @@ class BuildWebhookPayloadTest(TestCase):
 
         assert build_webhook_payload(artifact) is None
 
-    def test_processing_returns_none(self):
+    def test_processing_returns_none(self) -> None:
         """PROCESSING state should not produce a webhook payload."""
         artifact = self.create_preprod_artifact(project=self.project)
         self.create_preprod_artifact_size_metrics(
@@ -522,7 +522,7 @@ class BuildWebhookPayloadTest(TestCase):
 
         assert build_webhook_payload(artifact) is None
 
-    def test_no_metrics_returns_none(self):
+    def test_no_metrics_returns_none(self) -> None:
         """No size metrics at all should not produce a webhook payload."""
         artifact = self.create_preprod_artifact(project=self.project)
 
@@ -532,7 +532,7 @@ class BuildWebhookPayloadTest(TestCase):
     # Edge cases
     # ------------------------------------------------------------------
 
-    def test_no_mobile_app_info(self):
+    def test_no_mobile_app_info(self) -> None:
         """Artifact without mobile app info has null appInfo fields."""
         artifact = self.create_preprod_artifact(
             project=self.project,
@@ -553,7 +553,7 @@ class BuildWebhookPayloadTest(TestCase):
         assert payload["appInfo"]["version"] is None
         assert payload["appInfo"]["buildNumber"] is None
 
-    def test_build_id_is_string(self):
+    def test_build_id_is_string(self) -> None:
         """buildId should always be a string, not an integer."""
         artifact, _ = self._create_artifact_with_completed_analysis()
 
@@ -562,7 +562,7 @@ class BuildWebhookPayloadTest(TestCase):
         assert payload is not None
         assert isinstance(payload["buildId"], str)
 
-    def test_android_apk_artifact_type(self):
+    def test_android_apk_artifact_type(self) -> None:
         """Android APK artifact has correct appInfo.artifactType."""
         artifact, _ = self._create_artifact_with_completed_analysis(
             artifact_type=PreprodArtifact.ArtifactType.APK,
@@ -573,7 +573,7 @@ class BuildWebhookPayloadTest(TestCase):
         assert payload is not None
         assert payload["appInfo"]["artifactType"] == "APK"
 
-    def test_android_aab_artifact_type(self):
+    def test_android_aab_artifact_type(self) -> None:
         """Android AAB artifact has correct appInfo.artifactType."""
         artifact, _ = self._create_artifact_with_completed_analysis(
             artifact_type=PreprodArtifact.ArtifactType.AAB,

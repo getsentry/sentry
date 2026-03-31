@@ -22,6 +22,7 @@ from sentry.workflow_engine.endpoints.validators.base.data_condition_group impor
     DataConditionGroupInput,
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
+    connect_workflows_to_detectors,
     log_alerting_quota_hit,
     remove_items_by_api_input,
     update_owner,
@@ -53,6 +54,7 @@ class WorkflowInput(TypedDict):
     triggers: NotRequired[DataConditionGroupInput]
     actionFilters: NotRequired[list[ActionFilterInput]]
     owner: NotRequired[str | int | None]
+    detectorIds: NotRequired[list[int]]
 
 
 class WorkflowValidator(CamelSnakeSerializer[Any]):
@@ -60,6 +62,11 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
     name = serializers.CharField(required=True, max_length=256, help_text="The name of the alert")
     enabled = serializers.BooleanField(
         required=False, default=True, help_text="Whether the alert is enabled or disabled"
+    )
+    detector_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        help_text="The IDs of the monitors to connect this alert to. Use 'Fetch an Organization's Monitors' to find the IDs.",
     )
     config = serializers.JSONField(
         required=False,
@@ -257,6 +264,13 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         return filters
 
     def update(self, instance: Workflow, validated_data: InputData) -> Workflow:
+        organization = self.context["organization"]
+        request = self.context["request"]
+
+        detector_ids = None
+        if "detector_ids" in validated_data:
+            detector_ids = validated_data.pop("detector_ids")
+
         with transaction.atomic(router.db_for_write(Workflow)):
             # Update the Workflow.when_condition_group
             triggers = validated_data.pop("triggers", None)
@@ -276,6 +290,12 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
 
             # Update the workflow
             instance.update(**validated_data)
+
+            # Update detector connections
+            connect_workflows_to_detectors(
+                request, organization, instance.id, detector_ids, update=True
+            )
+
             instance.save()
             return instance
 
@@ -306,6 +326,8 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
     def create(self, validated_value: InputData) -> Workflow:
         condition_group_validator = BaseDataConditionGroupValidator(context=self.context)
         action_validator = BaseActionValidator(context=self.context)
+        organization = self.context["organization"]
+        request = self.context["request"]
 
         self._validate_workflow_limits()
 
@@ -329,13 +351,16 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
                 name=validated_value["name"],
                 enabled=validated_value["enabled"],
                 config=validated_value["config"],
-                organization_id=self.context["organization"].id,
+                organization_id=organization.id,
                 environment_id=environment.id if environment else None,
                 when_condition_group=when_condition_group,
-                created_by_id=self.context["request"].user.id,
+                created_by_id=request.user.id,
                 owner_user_id=owner_user_id,
                 owner_team_id=owner_team_id,
             )
+            # connect detectors
+            detector_ids = validated_value.get("detector_ids")
+            connect_workflows_to_detectors(request, organization, workflow.id, detector_ids)
 
             # TODO -- can we bulk create: actions, dcga's and the workflow dcg?
             # Create actions and action filters, then associate them to the workflow
@@ -357,8 +382,8 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
                     )
 
             create_audit_entry(
-                request=self.context["request"],
-                organization=self.context["organization"],
+                request=request,
+                organization=organization,
                 target_object=workflow.id,
                 event=audit_log.get_event_id("WORKFLOW_ADD"),
                 data=workflow.get_audit_log_data(),

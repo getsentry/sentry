@@ -274,14 +274,18 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
     def test_autofix_automation_tuning_non_seat_based(self) -> None:
         self.login_as(user=self.user)
 
-        for setting in [None] + list(AutofixAutomationTuningSettings):
+        for setting in [None, *list(AutofixAutomationTuningSettings)]:
             self.project.update_option("sentry:autofix_automation_tuning", setting)
             group = self.create_group()
             url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/"
             response = self.client.get(url, format="json")
 
             assert response.status_code == 200
-            assert response.data["autofixEnabled"] is False
+            if setting is None or setting == AutofixAutomationTuningSettings.OFF:
+                expected = False
+            else:
+                expected = True
+            assert response.data["autofixEnabled"] is expected
 
     def test_autofix_automation_tuning_off(self) -> None:
         self._set_seat_based_tier_cache(True)

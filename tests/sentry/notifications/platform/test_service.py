@@ -8,6 +8,7 @@ from sentry.integrations.types import EventLifecycleOutcome
 from sentry.notifications.platform.email.provider import EmailNotificationProvider
 from sentry.notifications.platform.provider import SendFailure, SendFailureStatus
 from sentry.notifications.platform.service import (
+    NotificationRenderError,
     NotificationService,
     NotificationServiceError,
     deserialize_notification_data,
@@ -192,6 +193,21 @@ class NotificationServiceTest(TestCase):
         # slo asserts - should have 2 notifications sent
         assert_count_of_metric(mock_record, EventLifecycleOutcome.STARTED, 2)
         assert_count_of_metric(mock_record, EventLifecycleOutcome.SUCCESS, 2)
+
+    @mock.patch("sentry.notifications.platform.service.NotificationService.render_template")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_render_error_records_failure_and_raises(
+        self, mock_record: mock.MagicMock, mock_render: mock.MagicMock
+    ) -> None:
+        mock_render.side_effect = ValueError("missing occurrence")
+        service = NotificationService(data=MockNotification(message="test"))
+
+        with pytest.raises(NotificationRenderError) as exc_info:
+            with self.tasks():
+                service.notify_async(targets=[self.target])
+
+        assert "missing occurrence" in str(exc_info.value.__cause__)
+        assert_count_of_metric(mock_record, EventLifecycleOutcome.FAILURE, 1)
 
 
 class NotificationDataSerializationTest(TestCase):

@@ -13,7 +13,7 @@ from sentry.uptime.seer_assertions import (
 
 
 class ParsePreviewResponseTest(TestCase):
-    def test_basic_json_body(self):
+    def test_basic_json_body(self) -> None:
         body_bytes = b'{"status": "ok", "count": 42}'
         encoded = base64.b64encode(body_bytes).decode()
 
@@ -37,7 +37,7 @@ class ParsePreviewResponseTest(TestCase):
         assert result["headers"] == {"content-type": "application/json"}
         assert result["body"] == {"status": "ok", "count": 42}
 
-    def test_non_json_body(self):
+    def test_non_json_body(self) -> None:
         body_bytes = b"<html>Hello</html>"
         encoded = base64.b64encode(body_bytes).decode()
 
@@ -56,7 +56,7 @@ class ParsePreviewResponseTest(TestCase):
 
         assert result["body"] == "<html>Hello</html>"
 
-    def test_empty_body(self):
+    def test_empty_body(self) -> None:
         preview_result = {
             "check_result": {
                 "duration_ms": 100,
@@ -73,7 +73,7 @@ class ParsePreviewResponseTest(TestCase):
         assert result["body"] is None
         assert result["status_code"] == 204
 
-    def test_empty_preview_result(self):
+    def test_empty_preview_result(self) -> None:
         result = parse_preview_response({})
 
         assert result["status_code"] is None
@@ -82,7 +82,7 @@ class ParsePreviewResponseTest(TestCase):
 
 
 class BuildAssertionPromptTest(TestCase):
-    def test_includes_response_data(self):
+    def test_includes_response_data(self) -> None:
         response_data = {
             "status_code": 200,
             "response_time_ms": 150,
@@ -99,7 +99,7 @@ class BuildAssertionPromptTest(TestCase):
 
 
 class SuggestionToAssertionJsonTest(TestCase):
-    def test_status_code(self):
+    def test_status_code(self) -> None:
         suggestion = SuggestedAssertion(
             assertion_type="status_code",
             comparison="equals",
@@ -116,7 +116,7 @@ class SuggestionToAssertionJsonTest(TestCase):
             "operator": {"cmp": "equals"},
         }
 
-    def test_json_path_equals(self):
+    def test_json_path_equals(self) -> None:
         suggestion = SuggestedAssertion(
             assertion_type="json_path",
             comparison="equals",
@@ -135,7 +135,7 @@ class SuggestionToAssertionJsonTest(TestCase):
             "operand": {"jsonpath_op": "literal", "value": "ok"},
         }
 
-    def test_json_path_always(self):
+    def test_json_path_always(self) -> None:
         suggestion = SuggestedAssertion(
             assertion_type="json_path",
             comparison="always",
@@ -154,7 +154,7 @@ class SuggestionToAssertionJsonTest(TestCase):
             "operand": {"jsonpath_op": "none"},
         }
 
-    def test_header_equals(self):
+    def test_header_equals(self) -> None:
         suggestion = SuggestedAssertion(
             assertion_type="header",
             comparison="equals",
@@ -174,7 +174,7 @@ class SuggestionToAssertionJsonTest(TestCase):
             "value_operand": {"header_op": "literal", "value": "application/json"},
         }
 
-    def test_header_always(self):
+    def test_header_always(self) -> None:
         suggestion = SuggestedAssertion(
             assertion_type="header",
             comparison="always",
@@ -194,7 +194,7 @@ class SuggestionToAssertionJsonTest(TestCase):
             "value_operand": {"header_op": "none"},
         }
 
-    def test_invalid_comparison_falls_back_to_equals(self):
+    def test_invalid_comparison_falls_back_to_equals(self) -> None:
         suggestion = SuggestedAssertion(
             assertion_type="status_code",
             comparison="invalid_op",
@@ -207,7 +207,7 @@ class SuggestionToAssertionJsonTest(TestCase):
 
         assert result["operator"]["cmp"] == "equals"
 
-    def test_unknown_type_falls_back_to_status_code(self):
+    def test_unknown_type_falls_back_to_status_code(self) -> None:
         suggestion = SuggestedAssertion(
             assertion_type="unknown",
             comparison="equals",
@@ -226,14 +226,14 @@ class SuggestionToAssertionJsonTest(TestCase):
 
 
 class SuggestionsToCombinedAssertionTest(TestCase):
-    def test_empty_suggestions(self):
+    def test_empty_suggestions(self) -> None:
         result = suggestions_to_combined_assertion([])
 
         assert result == {
             "root": {"op": "status_code_check", "value": 200, "operator": {"cmp": "equals"}}
         }
 
-    def test_single_suggestion(self):
+    def test_single_suggestion(self) -> None:
         suggestion = SuggestedAssertion(
             assertion_type="status_code",
             comparison="equals",
@@ -252,7 +252,7 @@ class SuggestionsToCombinedAssertionTest(TestCase):
             }
         }
 
-    def test_multiple_suggestions(self):
+    def test_multiple_suggestions(self) -> None:
         suggestions = [
             SuggestedAssertion(
                 assertion_type="status_code",
@@ -280,7 +280,7 @@ class SuggestionsToCombinedAssertionTest(TestCase):
 
 
 class GenerateAssertionSuggestionsTest(TestCase):
-    def test_no_status_code(self):
+    def test_no_status_code(self) -> None:
         suggestions, debug = generate_assertion_suggestions(
             {"check_result": {"request_info": {}}},
         )

@@ -61,6 +61,7 @@ interface SearchQueryBuilderContextData {
   getSuggestedFilterKey: (key: string) => string | null;
   getTagValues: GetTagValues;
   handleSearch: (query: string) => void;
+  invalidFilterKeys: string[];
   parseQuery: (query: string) => ParseResult | null;
   parsedQuery: ParseResult | null;
   query: string;
@@ -128,6 +129,7 @@ export function SearchQueryBuilderProvider({
   filterKeyAliases,
   caseInsensitive,
   onCaseInsensitiveClick,
+  invalidFilterKeys,
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
@@ -198,6 +200,11 @@ export function SearchQueryBuilderProvider({
 
   const parsedQuery = useMemo(() => parseQuery(state.query), [parseQuery, state.query]);
 
+  const stableInvalidFilterKeys = useMemo(
+    () => invalidFilterKeys ?? [],
+    [invalidFilterKeys]
+  );
+
   const previousQuery = usePrevious(state.query);
   const firstRender = useRef(true);
   useEffect(() => {
@@ -242,6 +249,7 @@ export function SearchQueryBuilderProvider({
     return {
       ...state,
       aiSearchBadgeType,
+      invalidFilterKeys: stableInvalidFilterKeys,
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
       disallowLogicalOperators: Boolean(disallowLogicalOperators),
@@ -300,6 +308,7 @@ export function SearchQueryBuilderProvider({
     getTagKeys,
     getTagValues,
     handleSearch,
+    stableInvalidFilterKeys,
     matchKeySuggestions,
     onCaseInsensitiveClick,
     parseQuery,
