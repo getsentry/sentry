@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
@@ -25,6 +26,8 @@ from sentry.organizations.services.organization import (
     organization_service,
 )
 from sentry.utils import auth
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from rest_framework.views import APIView
@@ -343,6 +346,30 @@ class DemoSafePermission(SentryPermission):
                 return False
 
         return super().has_object_permission(request, view, obj)
+
+
+class DisallowImpersonatedTokenCreation(BasePermission):
+    """
+    Blocks non-safe requests (POST, PUT, DELETE) during impersonation sessions.
+    Prevents creating/modifying/revoking tokens as another user.
+    """
+
+    def has_permission(self, request: Request, view: object) -> bool:
+        if request.method in SAFE_METHODS:
+            return True
+        actual_user = getattr(request, "actual_user", None)
+        if actual_user is not None:
+            logger.warning(
+                "impersonation.token_creation_blocked",
+                extra={
+                    "actual_user_id": actual_user.id,
+                    "impersonated_user_id": request.user.id,
+                    "method": request.method,
+                    "path": request.path,
+                },
+            )
+            return False
+        return True
 
 
 class SentryIsAuthenticated(IsAuthenticated):

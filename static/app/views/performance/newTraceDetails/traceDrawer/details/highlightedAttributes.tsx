@@ -14,13 +14,14 @@ import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTra
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
+import {resolveAgentName} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   getIsAiAgentSpan,
   getToolSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {SpanFields} from 'sentry/views/insights/types';
-import {tryParseJson} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import {tryParseJsonRecursive} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 type HighlightedAttribute = {
   name: string;
@@ -41,7 +42,7 @@ function getAIToolDefinitions(
 ): any[] | null {
   const toolDefinitions = attributes['gen_ai.tool.definitions'];
   if (toolDefinitions) {
-    const parsed = tryParseJson(toolDefinitions.toString());
+    const parsed = tryParseJsonRecursive(toolDefinitions.toString());
     if (Array.isArray(parsed)) {
       return parsed;
     }
@@ -49,7 +50,7 @@ function getAIToolDefinitions(
 
   const availableTools = attributes['gen_ai.request.available_tools'];
   if (availableTools) {
-    const parsed = tryParseJson(availableTools.toString());
+    const parsed = tryParseJsonRecursive(availableTools.toString());
     if (Array.isArray(parsed)) {
       return parsed;
     }
@@ -110,7 +111,7 @@ function getAISpanAttributes({
 
   const genAiOpType = attributes['gen_ai.operation.type'] as string | undefined;
 
-  const agentName = attributes['gen_ai.agent.name'] || attributes['gen_ai.function_id'];
+  const agentName = resolveAgentName(attributes);
   if (agentName) {
     highlightedAttributes.push({
       name: t('Agent Name'),
@@ -355,6 +356,42 @@ function HighlightedTools({
   );
 }
 
+// Per our and OTel conventions, input_tokens includes cached and output_tokens includes
+// reasoning. Some providers don't do this, so we detect the gap and adjust as a fallback.
+function getDisplayInputTokens(
+  inputTokens: number,
+  cachedTokens: number,
+  outputTokens: number,
+  totalTokens: number
+): number {
+  if (cachedTokens <= 0) {
+    return inputTokens;
+  }
+  const without = inputTokens + outputTokens;
+  const withCached = without + cachedTokens;
+  if (Math.abs(withCached - totalTokens) < Math.abs(without - totalTokens)) {
+    return inputTokens + cachedTokens;
+  }
+  return inputTokens;
+}
+
+function getDisplayOutputTokens(
+  displayInput: number,
+  outputTokens: number,
+  reasoningTokens: number,
+  totalTokens: number
+): number {
+  if (reasoningTokens <= 0) {
+    return outputTokens;
+  }
+  const without = displayInput + outputTokens;
+  const withReasoning = without + reasoningTokens;
+  if (Math.abs(withReasoning - totalTokens) < Math.abs(without - totalTokens)) {
+    return outputTokens + reasoningTokens;
+  }
+  return outputTokens;
+}
+
 function HighlightedTokenAttributes({
   inputTokens,
   cachedTokens,
@@ -368,6 +405,22 @@ function HighlightedTokenAttributes({
   reasoningTokens: number;
   totalTokens: number;
 }) {
+  const effectiveCached = isNaN(cachedTokens) ? 0 : cachedTokens;
+  const effectiveReasoning = isNaN(reasoningTokens) ? 0 : reasoningTokens;
+
+  const displayInput = getDisplayInputTokens(
+    inputTokens,
+    effectiveCached,
+    outputTokens,
+    totalTokens
+  );
+  const displayOutput = getDisplayOutputTokens(
+    displayInput,
+    outputTokens,
+    effectiveReasoning,
+    totalTokens
+  );
+
   return (
     <Tooltip
       title={
@@ -375,13 +428,11 @@ function HighlightedTokenAttributes({
           <span>{t('Input')}</span>
           <span>{inputTokens.toString()}</span>
           <SubTextCell>{t('Cached')}</SubTextCell>
-          <SubTextCell>{isNaN(cachedTokens) ? '0' : cachedTokens.toString()}</SubTextCell>
+          <SubTextCell>{effectiveCached.toString()}</SubTextCell>
           <span>{t('Output')}</span>
           <span>{outputTokens.toString()}</span>
           <SubTextCell>{t('Reasoning')}</SubTextCell>
-          <SubTextCell>
-            {isNaN(reasoningTokens) ? '0' : reasoningTokens.toString()}
-          </SubTextCell>
+          <SubTextCell>{effectiveReasoning.toString()}</SubTextCell>
           <span>{t('Total')}</span>
           <span>{totalTokens.toString()}</span>
         </TokensTooltipTitle>
@@ -389,11 +440,11 @@ function HighlightedTokenAttributes({
     >
       <TokensSpan>
         <span>
-          <Count value={inputTokens.toString()} /> {t('in')}
+          <Count value={displayInput.toString()} /> {t('in')}
         </span>
         <span>+</span>
         <span>
-          <Count value={outputTokens.toString()} /> {t('out')}
+          <Count value={displayOutput.toString()} /> {t('out')}
         </span>
         <span>=</span>
         <span>

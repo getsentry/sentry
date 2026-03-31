@@ -6,7 +6,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {List} from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {ListItem} from 'sentry/components/list/listItem';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {
   OnboardingCopyMarkdownButton,

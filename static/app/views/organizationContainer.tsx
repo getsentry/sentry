@@ -94,7 +94,7 @@ export function OrganizationContainer({children}: Props) {
 /**
  * Route component version of OrganizationContainer that uses <Outlet />.
  */
-export default function OrganizationContainerRoute() {
+export function OrganizationContainerRoute() {
   return (
     <OrganizationContainer>
       <Outlet />

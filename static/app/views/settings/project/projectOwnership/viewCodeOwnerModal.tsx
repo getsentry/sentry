@@ -14,7 +14,7 @@ interface ViewCodeOwnerModalProps extends ModalRenderProps {
   codeowner: CodeOwner;
 }
 
-function ViewCodeOwnerModal({Body, Header, codeowner}: ViewCodeOwnerModalProps) {
+export function ViewCodeOwnerModal({Body, Header, codeowner}: ViewCodeOwnerModalProps) {
   return (
     <Fragment>
       <Header closeButton>
@@ -55,5 +55,3 @@ export const modalCss = (theme: Theme) => css`
     overflow: initial;
   }
 `;
-
-export default ViewCodeOwnerModal;

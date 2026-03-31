@@ -240,6 +240,35 @@ class DetailedOrganizationSerializerTest(TestCase):
 
         assert result["replayAccessMembers"] == []
 
+    def test_experiments_field_defaults_to_empty_dict(self) -> None:
+        user = self.create_user()
+        organization = self.create_organization(owner=user)
+        acc = access.from_user(user, organization)
+
+        serializer = DetailedOrganizationSerializer()
+        result = serialize(organization, user, serializer, access=acc)
+
+        assert result["experiments"] == {}
+
+    def test_experiments_field_populated_from_entity_handler(self) -> None:
+        user = self.create_user()
+        organization = self.create_organization(owner=user)
+        acc = access.from_user(user, organization)
+
+        handler = mock.Mock(spec=features.FeatureHandler)
+        handler.get_experiment_assignments.return_value = {"experiment-test": "active"}
+        handler.batch_has.return_value = None
+        handler.has.return_value = None
+
+        features.default_manager.add_entity_handler(handler)
+        try:
+            serializer = DetailedOrganizationSerializer()
+            result = serialize(organization, user, serializer, access=acc)
+
+            assert result["experiments"] == {"experiment-test": "active"}
+        finally:
+            features.default_manager._entity_handler = None
+
 
 class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
     def test_detailed_org_projs_teams(self) -> None:

@@ -11,7 +11,7 @@ export type Extraction = {
   timestamp: number;
 };
 
-const extractDomNodes = {
+export const extractDomNodes = {
   shouldVisitFrame: (frame: any) => {
     const nodeIds = getNodeIds(frame);
     return nodeIds.some((nodeId: any) => nodeId !== -1);
@@ -28,8 +28,6 @@ const extractDomNodes = {
     });
   },
 };
-
-export default extractDomNodes;
 
 function extractHtmlAndSelector(
   nodeIds: number[],

@@ -1,6 +1,6 @@
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 

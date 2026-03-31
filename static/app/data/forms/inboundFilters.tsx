@@ -15,7 +15,7 @@ const globHelpText = tct('Allows [link:glob pattern matching].', {
 
 export const getOptionsData = (data: Record<PropertyKey, unknown>) => ({options: data});
 
-const formGroups: JsonFormObject[] = [
+export const formGroups: JsonFormObject[] = [
   {
     // Form "section"/"panel"
     title: t('Custom Filters'),
@@ -44,8 +44,6 @@ const formGroups: JsonFormObject[] = [
     ],
   },
 ];
-
-export default formGroups;
 
 type FieldWithFeature = Field & {
   feature?: string;

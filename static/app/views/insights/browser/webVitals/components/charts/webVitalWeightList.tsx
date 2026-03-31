@@ -5,9 +5,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {t} from 'sentry/locale';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
-import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
-
-import {ORDER} from './performanceScoreChart';
+import {ORDER, type WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 
 interface WebVitalsWeightListProps {
   weights: Record<WebVitals, number>;

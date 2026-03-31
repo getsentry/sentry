@@ -11,7 +11,7 @@ import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconDiamond} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';

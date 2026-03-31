@@ -6,13 +6,13 @@ import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
-import AnalyticsArea from 'sentry/components/analyticsArea';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ReplayBadge} from 'sentry/components/replays/replayBadge';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {useReplayList} from 'sentry/utils/replays/hooks/useReplayList';
 import {useOrganization} from 'sentry/utils/useOrganization';

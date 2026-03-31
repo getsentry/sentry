@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import Feature from 'sentry/components/acl/feature';
@@ -16,7 +17,7 @@ import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import Pagination from 'sentry/components/pagination';
+import {Pagination} from 'sentry/components/pagination';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {
   ContinuousProfilingBetaAlertBanner,
@@ -157,7 +158,7 @@ export default function ProfilingContent() {
             : undefined
         }
       >
-        <Layout.Page>
+        <Stack flex={1}>
           <ProfilingBetaAlertBanner organization={organization} />
           <Feature features="continuous-profiling-beta-ui">
             <ContinuousProfilingBetaAlertBanner organization={organization} />
@@ -243,7 +244,7 @@ export default function ProfilingContent() {
               )}
             </LayoutMain>
           </LayoutBody>
-        </Layout.Page>
+        </Stack>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );

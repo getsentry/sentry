@@ -448,7 +448,7 @@ function TaskGroup({
   ]);
 
   return (
-    <Stack padding="lg" paddingBottom="0" gap="md">
+    <Stack paddingBottom="0" gap="md">
       <TaskGroupHeader
         title={<strong>{title}</strong>}
         description={
@@ -581,7 +581,7 @@ const TaskCardWrapper = styled('div')`
   gap: ${p => p.theme.space.lg};
   cursor: ${p => (p.onClick ? 'pointer' : 'default')};
   border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  padding: ${p => p.theme.space.md} 0;
   p {
     margin: 0;
     font-size: ${p => p.theme.font.size.sm};

@@ -1,8 +1,18 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
+import {AnimatePresence, motion} from 'framer-motion';
+
+import {Button} from '@sentry/scraps/button';
+import {Hotkey} from '@sentry/scraps/hotkey';
+import {Container} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {IconSeer} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -12,6 +22,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {getConversationsUrl} from 'sentry/views/insights/pages/conversations/utils/urlParams';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/blockComponents';
 import {EmptyState} from 'sentry/views/seerExplorer/emptyState';
@@ -23,11 +34,11 @@ import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUse
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {InputSection} from 'sentry/views/seerExplorer/inputSection';
 import {useExternalOpen} from 'sentry/views/seerExplorer/openSeerExplorer';
-import PanelContainers, {
+import {
   BlocksContainer,
+  PanelContainers,
 } from 'sentry/views/seerExplorer/panelContainers';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/prWidget';
-import {SeerFab} from 'sentry/views/seerExplorer/seerFab';
 import {TopBar} from 'sentry/views/seerExplorer/topBar';
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
@@ -64,6 +75,8 @@ export function ExplorerPanel() {
   const allowHoverFocusChange = useRef<boolean>(true);
   const sessionHistoryButtonRef = useRef<HTMLButtonElement>(null);
   const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
+
+  const hasPageFrame = useHasPageFrameFeature();
 
   const {panelSize, handleMaxSize, handleMedSize} = usePanelSizing();
 
@@ -774,8 +787,60 @@ export function ExplorerPanel() {
   return createPortal(
     <Fragment>
       {panelContent}
-      <SeerFab hide={isVisible || isSeerDrawerOpen} onOpen={openExplorerPanel} />
+      {!hasPageFrame && (
+        <SeerFloatingActionButton
+          visible={!isVisible && !isSeerDrawerOpen}
+          onClick={openExplorerPanel}
+        />
+      )}
     </Fragment>,
     document.body
   );
 }
+
+const MotionButton = motion.create(Button);
+
+interface SeerFloatingActionButtonProps extends React.ComponentProps<
+  typeof MotionButton
+> {
+  visible: boolean;
+}
+
+function SeerFloatingActionButton(props: SeerFloatingActionButtonProps) {
+  const {visible, ...rest} = props;
+  const theme = useTheme();
+
+  return (
+    <AnimatePresence>
+      {visible && (
+        <Container
+          position="fixed"
+          bottom={theme.space.lg}
+          right={theme.space.lg}
+          style={{zIndex: theme.zIndex.sidebarPanel}}
+        >
+          <SeerButton
+            initial={{opacity: 0, scale: 0.9, y: 20}}
+            animate={{opacity: 1, scale: 1, y: 0}}
+            exit={{opacity: 0, scale: 0.9, y: 20}}
+            transition={{duration: 0.2, ease: [0.4, 0, 0.2, 1]}}
+            size="sm"
+            {...rest}
+            icon={<IconSeer />}
+          >
+            <Flex align="center" gap="sm">
+              <Text size="sm">{t('Ask Seer')}</Text>
+              <Hotkey variant="debossed" value="command+/" />
+            </Flex>
+          </SeerButton>
+        </Container>
+      )}
+    </AnimatePresence>
+  );
+}
+
+const SeerButton = styled(MotionButton)`
+  & > span:last-child {
+    overflow: visible;
+  }
+`;

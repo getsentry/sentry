@@ -641,5 +641,4 @@ const storeConfig: GroupingStoreDefinition = {
   },
 };
 
-const GroupingStore = createStore(storeConfig);
-export default GroupingStore;
+export const GroupingStore = createStore(storeConfig);

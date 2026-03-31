@@ -51,7 +51,7 @@ export function IssueSeerBadge({group}: IssueSeerBadgeProps) {
         }}
       >
         <IconSeer size="xs" />
-        {seerFixable && <p>{t('Quick Fix')}</p>}
+        {seerFixable && <span>{t('Quick Fix')}</span>}
       </SeerLink>
     </Tooltip>
   );

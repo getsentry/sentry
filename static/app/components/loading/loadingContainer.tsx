@@ -17,7 +17,7 @@ type MaskProps = {
   maskBackgroundColor: string;
 };
 
-export default function LoadingContainer({
+export function LoadingContainer({
   isLoading = false,
   isReloading = false,
   maskBackgroundColor,

@@ -8,7 +8,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import ShortId from 'sentry/components/shortId';
+import {ShortId} from 'sentry/components/shortId';
 import {IconCopy, IconGlobe} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -17,7 +17,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import ShareIssueModal, {getShareUrl} from 'sentry/views/issueDetails/actions/shareModal';
+import {getShareUrl, ShareIssueModal} from 'sentry/views/issueDetails/actions/shareModal';
 
 interface ShortIdBreadcrumbProps {
   group: Group;

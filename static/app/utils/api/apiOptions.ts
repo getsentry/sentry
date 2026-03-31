@@ -1,18 +1,18 @@
 import type {SkipToken} from '@tanstack/react-query';
 import {infiniteQueryOptions, queryOptions, skipToken} from '@tanstack/react-query';
 
-import apiFetch, {apiFetchInfinite} from 'sentry/utils/api/apiFetch';
+import {apiFetch, apiFetchInfinite} from 'sentry/utils/api/apiFetch';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import type {
   ApiQueryKey,
   InfiniteApiQueryKey,
   QueryKeyEndpointOptions,
 } from 'sentry/utils/api/apiQueryKey';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ExtractPathParams, OptionalPathParams} from 'sentry/utils/api/getApiUrl';
 import type {KnownGetsentryApiUrls} from 'sentry/utils/api/knownGetsentryApiUrls';
 import type {KnownSentryApiUrls} from 'sentry/utils/api/knownSentryApiUrls.generated';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 
 type KnownApiUrls = KnownGetsentryApiUrls | KnownSentryApiUrls;
 

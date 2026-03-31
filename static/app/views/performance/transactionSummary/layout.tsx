@@ -3,12 +3,12 @@ import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
 import {t} from 'sentry/locale';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import PageLayout from 'sentry/views/performance/transactionSummary/pageLayout';
-import Tab from 'sentry/views/performance/transactionSummary/tabs';
+import {PageLayout} from 'sentry/views/performance/transactionSummary/pageLayout';
+import {Tab} from 'sentry/views/performance/transactionSummary/tabs';
 import {generateTransactionEventsEventView} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {generateTransactionOverviewEventView} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {generateTransactionReplaysEventView} from 'sentry/views/performance/transactionSummary/transactionReplays/utils';

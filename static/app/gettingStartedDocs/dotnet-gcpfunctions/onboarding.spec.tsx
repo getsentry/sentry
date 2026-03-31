@@ -4,7 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from './index';
+import {docs} from './index';
 
 describe('gcpfunctions onboarding docs', () => {
   it('renders docs correctly', async () => {

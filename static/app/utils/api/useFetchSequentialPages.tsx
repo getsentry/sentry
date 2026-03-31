@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 
 import {defined} from 'sentry/utils';
-import parseLinkHeader, {type ParsedHeader} from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader, type ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {fetchDataQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
 
 interface Props {

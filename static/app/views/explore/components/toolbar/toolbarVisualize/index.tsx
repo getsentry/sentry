@@ -1,4 +1,6 @@
 import type {ReactNode} from 'react';
+import {useSortable} from '@dnd-kit/sortable';
+import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -6,6 +8,7 @@ import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {IconAdd} from 'sentry/icons';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
@@ -39,6 +42,7 @@ interface ToolbarVisualizeDropdownProps {
   onChangeAggregate: (option: SelectOption<SelectKey>) => void;
   onChangeArgument: (index: number, option: SelectOption<SelectKey>) => void;
   parsedFunction: ParsedFunction | null;
+  dragColumnId?: number;
   label?: ReactNode;
   loading?: boolean;
   onClose?: () => void;
@@ -47,6 +51,7 @@ interface ToolbarVisualizeDropdownProps {
 }
 
 export function ToolbarVisualizeDropdown({
+  dragColumnId,
   aggregateOptions,
   fieldOptions,
   onChangeAggregate,
@@ -58,13 +63,25 @@ export function ToolbarVisualizeDropdown({
   label,
   loading,
 }: ToolbarVisualizeDropdownProps) {
+  const {attributes, listeners, setNodeRef, transform} = useSortable({
+    id: dragColumnId ?? 0,
+    transition: null,
+  });
+
   const aggregateFunc = parsedFunction?.name;
   const aggregateDefinition = aggregateFunc
     ? getFieldDefinition(aggregateFunc, 'span')
     : undefined;
 
   return (
-    <ToolbarRow>
+    <ToolbarRow
+      ref={setNodeRef}
+      style={{transform: CSS.Transform.toString(transform)}}
+      {...attributes}
+    >
+      {dragColumnId === undefined ? null : (
+        <DragReorderButton iconSize="sm" {...listeners} />
+      )}
       {label}
       <AggregateCompactSelect
         search
@@ -113,6 +130,7 @@ export function ToolbarVisualizeDropdown({
 interface ToolbarVisualizeAddProps {
   add: () => void;
   disabled: boolean;
+  display?: 'button' | 'link';
   label?: string;
 }
 
@@ -120,13 +138,14 @@ export function ToolbarVisualizeAddChart({
   add,
   disabled,
   label,
+  display = 'link',
 }: ToolbarVisualizeAddProps) {
   return (
     <ToolbarFooterButton
-      size="zero"
+      size={display === 'link' ? 'zero' : 'md'}
       icon={<IconAdd />}
       onClick={add}
-      priority="link"
+      priority={display === 'link' ? 'link' : undefined}
       aria-label={label ?? t('Add Chart')}
       disabled={disabled}
     >

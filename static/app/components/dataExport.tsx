@@ -94,7 +94,7 @@ export function useDataExport({
   ]);
 }
 
-function DataExport({
+export function DataExport({
   children,
   disabled,
   payload,
@@ -171,5 +171,3 @@ function DataExport({
     </Feature>
   );
 }
-
-export default DataExport;

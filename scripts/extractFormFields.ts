@@ -159,11 +159,11 @@ class FormFieldExtractor {
     route: string,
     sourceFile: ts.SourceFile
   ): ExtractedField | null {
-    // Check if this is <form.AppField> or <AutoSaveField>
+    // Check if this is <form.AppField> or <AutoSaveForm>
     const tagName = this.getJsxTagName(node, sourceFile);
     const isAppField = tagName?.includes('AppField');
-    const isAutoSaveField = tagName === 'AutoSaveField';
-    if (!isAppField && !isAutoSaveField) {
+    const isAutoSaveForm = tagName === 'AutoSaveForm';
+    if (!isAppField && !isAutoSaveForm) {
       return null;
     }
 
@@ -458,7 +458,7 @@ ${registryEntries}
 `;
 
   fs.writeFileSync(outputPath, registryContent, 'utf-8');
-  execFileSync('pnpm', ['prettier', '--write', outputPath], {stdio: 'ignore'});
+  execFileSync('pnpm', ['oxfmt', outputPath], {stdio: 'ignore'});
   console.log(`✅ Generated ${dedupedFields.length} field definitions in ${outputPath}`);
 }
 

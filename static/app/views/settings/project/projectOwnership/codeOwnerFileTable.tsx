@@ -9,7 +9,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {openModal} from 'sentry/actionCreators/modal';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconEllipsis, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {CodeOwner, CodeownersFile} from 'sentry/types/integrations';
@@ -18,7 +18,7 @@ import {getCodeOwnerIcon} from 'sentry/utils/integrationUtil';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import ViewCodeOwnerModal, {modalCss} from './viewCodeOwnerModal';
+import {modalCss, ViewCodeOwnerModal} from './viewCodeOwnerModal';
 
 interface CodeOwnerFileTableProps {
   codeowners: CodeOwner[];

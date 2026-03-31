@@ -32,6 +32,7 @@ import {
   TraceDrawerActionKind,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
+import {getSizeBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
@@ -54,7 +55,7 @@ export interface EventTagsTreeRowProps {
   spacerCount?: number;
 }
 
-export default function EventTagsTreeRow({
+export function EventTagsTreeRow({
   event,
   content,
   tagKey,
@@ -196,7 +197,7 @@ function EventTagsTreeRowDropdown({
       label: t('Search feedback with this tag value'),
       hidden: !isFeedback,
       to: {
-        pathname: `/organizations/${organization.slug}/feedback/`,
+        pathname: `/organizations/${organization.slug}/issues/feedback/`,
         query: {...globalSelectionParams, ...query},
       },
     },
@@ -396,6 +397,21 @@ function EventTagsTreeValue({
           </Link>
         </TagLinkText>
       );
+      break;
+    }
+    case 'head.artifact_id':
+    case 'base.artifact_id': {
+      const buildPath = getSizeBuildPath({
+        organizationSlug: organization.slug,
+        baseArtifactId: content.value,
+      });
+      if (buildPath) {
+        tagValue = (
+          <TagLinkText>
+            <Link to={buildPath}>{content.value}</Link>
+          </TagLinkText>
+        );
+      }
       break;
     }
     default:

@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Feature from 'sentry/components/acl/feature';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -13,7 +12,7 @@ import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -174,40 +173,42 @@ function Graph({
 
   const Actions = (
     <Fragment>
-      <Tooltip title={t('Type of chart displayed in this visualization (ex. line)')}>
-        <CompactSelect
-          trigger={triggerProps => (
-            <OverlayTrigger.Button
-              {...triggerProps}
-              icon={<IconGraph type={chartIcon} />}
-              priority="transparent"
-              showChevron={false}
-              size="xs"
-            />
-          )}
-          value={visualize.chartType}
-          menuTitle="Type"
-          options={EXPLORE_CHART_TYPE_OPTIONS}
-          onChange={option => onChartTypeChange(option.value)}
-        />
-      </Tooltip>
-      <Tooltip title={t('Time interval displayed in this visualization (ex. 5m)')}>
-        <CompactSelect
-          value={interval}
-          onChange={({value}) => setInterval(value)}
-          trigger={triggerProps => (
-            <OverlayTrigger.Button
-              {...triggerProps}
-              icon={<IconClock />}
-              priority="transparent"
-              showChevron={false}
-              size="xs"
-            />
-          )}
-          menuTitle="Interval"
-          options={intervalOptions}
-        />
-      </Tooltip>
+      <CompactSelect
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            tooltipProps={{
+              title: t('Type of chart displayed in this visualization (ex. line)'),
+            }}
+            icon={<IconGraph type={chartIcon} />}
+            priority="transparent"
+            showChevron={false}
+            size="xs"
+          />
+        )}
+        value={visualize.chartType}
+        menuTitle="Type"
+        options={EXPLORE_CHART_TYPE_OPTIONS}
+        onChange={option => onChartTypeChange(option.value)}
+      />
+      <CompactSelect
+        value={interval}
+        onChange={({value}) => setInterval(value)}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            tooltipProps={{
+              title: t('Time interval displayed in this visualization (ex. 5m)'),
+            }}
+            icon={<IconClock />}
+            priority="transparent"
+            showChevron={false}
+            size="xs"
+          />
+        )}
+        menuTitle="Interval"
+        options={intervalOptions}
+      />
       <ContextMenu
         interval={interval}
         visualize={visualize}

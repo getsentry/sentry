@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {uniq} from 'sentry/utils/array/uniq';
 import {type ApiQueryKey, type QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
 import {

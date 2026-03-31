@@ -1,4 +1,4 @@
-import GroupList from 'sentry/components/issues/groupList';
+import {GroupList} from 'sentry/components/issues/groupList';
 import {t} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';

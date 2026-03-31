@@ -1929,14 +1929,15 @@ describe('useWidgetBuilderState', () => {
   });
 
   describe('traceMetric', () => {
-    it('validates and fixes invalid aggregates when trace metric is changed for chart display', () => {
+    it('resets sort when SET_Y_AXIS changes aggregates for trace metrics', () => {
       mockedUsedLocation.mockReturnValue(
         LocationFixture({
           query: {
             dataset: WidgetType.TRACEMETRICS,
             displayType: DisplayType.LINE,
-            yAxis: ['p50(value)', 'p90(value)'],
-            traceMetric: JSON.stringify({name: 'my.metric', type: 'distribution'}),
+            field: ['project'],
+            yAxis: ['sum(value,my.metric,counter,-)'],
+            sort: ['-sum(value,my.metric,counter,-)'],
           },
         })
       );
@@ -1945,91 +1946,40 @@ describe('useWidgetBuilderState', () => {
         wrapper: WidgetBuilderProvider,
       });
 
-      // Initial state should have p50 and p90 from query params
-      expect(result.current.state.yAxis).toEqual([
-        {
-          function: ['p50', 'value', undefined, undefined],
-          alias: undefined,
-          kind: 'function',
-        },
-        {
-          function: ['p90', 'value', undefined, undefined],
-          alias: undefined,
-          kind: 'function',
-        },
-      ]);
-
-      // Change trace metric from distribution to counter, where percentiles are invalid
+      // Dispatch SET_Y_AXIS with a different aggregate (simulating metric change)
       act(() => {
         result.current.dispatch({
-          type: BuilderStateAction.SET_TRACE_METRIC,
-          payload: {name: 'my.metric', type: 'counter'},
+          type: BuilderStateAction.SET_Y_AXIS,
+          payload: [
+            {
+              kind: 'function',
+              function: [
+                'avg' as AggregationKeyWithAlias,
+                'value',
+                'other.metric',
+                'gauge',
+                '-',
+              ],
+            },
+          ] as Column[],
         });
       });
 
-      // p50 and p90 are now invalid for counter, so they should be replaced with per_second
-      expect(result.current.state.yAxis).toEqual([
-        {
-          function: ['per_second', 'value', 'my.metric', 'counter', '-'],
-          kind: 'function',
-        },
-        {
-          function: ['per_second', 'value', 'my.metric', 'counter', '-'],
-          kind: 'function',
-        },
+      // Sort should be updated to the new aggregate
+      expect(result.current.state.sort).toEqual([
+        {kind: 'desc', field: 'avg(value,other.metric,gauge,-)'},
       ]);
     });
 
-    it('validates and fixes invalid aggregates when trace metric is changed for big number display', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            dataset: WidgetType.TRACEMETRICS,
-            displayType: DisplayType.BIG_NUMBER,
-            field: ['avg(value)'],
-            traceMetric: JSON.stringify({name: 'my.metric', type: 'gauge'}),
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
-      });
-
-      // Initial state should have avg (valid for gauge)
-      expect(result.current.state.fields).toEqual([
-        {
-          function: ['avg', 'value', undefined, undefined],
-          alias: undefined,
-          kind: 'function',
-        },
-      ]);
-
-      // Change trace metric to counter which doesn't support avg
-      act(() => {
-        result.current.dispatch({
-          type: BuilderStateAction.SET_TRACE_METRIC,
-          payload: {name: 'my.metric', type: 'counter'},
-        });
-      });
-
-      // Aggregate should be updated to valid one for counter (per_second is the first valid option)
-      expect(result.current.state.fields).toEqual([
-        {
-          function: ['per_second', 'value', 'my.metric', 'counter', '-'],
-          kind: 'function',
-        },
-      ]);
-    });
-
-    it('does not modify aggregates when they are already valid for the trace metric type', () => {
+    it('preserves sort when SET_Y_AXIS keeps the same aggregate string for trace metrics', () => {
       mockedUsedLocation.mockReturnValue(
         LocationFixture({
           query: {
             dataset: WidgetType.TRACEMETRICS,
             displayType: DisplayType.LINE,
-            yAxis: ['sum(value)'],
-            traceMetric: JSON.stringify({name: 'my.metric', type: 'counter'}),
+            field: ['project'],
+            yAxis: ['sum(value,my.metric,counter,-)'],
+            sort: ['-sum(value,my.metric,counter,-)'],
           },
         })
       );
@@ -2038,90 +1988,38 @@ describe('useWidgetBuilderState', () => {
         wrapper: WidgetBuilderProvider,
       });
 
-      // Initial state should have sum (valid for counter)
-      expect(result.current.state.yAxis).toEqual([
-        {
-          function: ['sum', 'value', undefined, undefined],
-          alias: undefined,
-          kind: 'function',
-        },
-      ]);
-
-      // Change trace metric to distribution which also supports sum
+      // Dispatch SET_Y_AXIS with the same aggregate (e.g., adding a second one)
       act(() => {
         result.current.dispatch({
-          type: BuilderStateAction.SET_TRACE_METRIC,
-          payload: {name: 'my.metric', type: 'distribution'},
+          type: BuilderStateAction.SET_Y_AXIS,
+          payload: [
+            {
+              kind: 'function',
+              function: [
+                'sum' as AggregationKeyWithAlias,
+                'value',
+                'my.metric',
+                'counter',
+                '-',
+              ],
+            },
+            {
+              kind: 'function',
+              function: [
+                'avg' as AggregationKeyWithAlias,
+                'value',
+                'my.metric',
+                'counter',
+                '-',
+              ],
+            },
+          ] as Column[],
         });
       });
 
-      // sum is valid for distribution, so it should remain but with updated args
-      expect(result.current.state.yAxis).toEqual([
-        {
-          function: ['sum', 'value', 'my.metric', 'distribution', '-'],
-          kind: 'function',
-        },
-      ]);
-    });
-
-    it('handles mixed valid and invalid aggregates', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            dataset: WidgetType.TRACEMETRICS,
-            displayType: DisplayType.LINE,
-            yAxis: ['sum(value)', 'p99(value)', 'count(value)'],
-            traceMetric: JSON.stringify({name: 'my.metric', type: 'distribution'}),
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
-      });
-
-      // All aggregates are valid for distribution
-      expect(result.current.state.yAxis).toEqual([
-        {
-          function: ['sum', 'value', undefined, undefined],
-          alias: undefined,
-          kind: 'function',
-        },
-        {
-          function: ['p99', 'value', undefined, undefined],
-          alias: undefined,
-          kind: 'function',
-        },
-        {
-          function: ['count', 'value', undefined, undefined],
-          alias: undefined,
-          kind: 'function',
-        },
-      ]);
-
-      // Change to counter which only supports sum and count (not p99)
-      act(() => {
-        result.current.dispatch({
-          type: BuilderStateAction.SET_TRACE_METRIC,
-          payload: {name: 'my.metric', type: 'counter'},
-        });
-      });
-
-      // sum and count should remain, but p99 should be replaced with per_second (first valid option)
-      // All aggregates get updated args for the new trace metric
-      expect(result.current.state.yAxis).toEqual([
-        {
-          function: ['sum', 'value', 'my.metric', 'counter', '-'],
-          kind: 'function',
-        },
-        {
-          function: ['per_second', 'value', 'my.metric', 'counter', '-'],
-          kind: 'function',
-        },
-        {
-          function: ['per_second', 'value', 'my.metric', 'counter', '-'],
-          kind: 'function',
-        },
+      // Sort should remain on sum since it's still present
+      expect(result.current.state.sort).toEqual([
+        {kind: 'desc', field: 'sum(value,my.metric,counter,-)'},
       ]);
     });
 
@@ -2135,7 +2033,6 @@ describe('useWidgetBuilderState', () => {
               'sum(value,my.metric,counter,-)',
               'per_second(value,my.metric,counter,-)',
             ],
-            traceMetric: JSON.stringify({name: 'my.metric', type: 'counter'}),
           },
         })
       );
@@ -2214,47 +2111,6 @@ describe('useWidgetBuilderState', () => {
         }),
         expect.anything()
       );
-    });
-
-    it('only applies validation for trace metrics dataset', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            dataset: WidgetType.ERRORS,
-            displayType: DisplayType.LINE,
-            yAxis: ['count()'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
-      });
-
-      expect(result.current.state.yAxis).toEqual([
-        {
-          function: ['count', '', undefined, undefined],
-          alias: undefined,
-          kind: 'function',
-        },
-      ]);
-
-      // Try to set a trace metric on a non-trace-metrics dataset
-      act(() => {
-        result.current.dispatch({
-          type: BuilderStateAction.SET_TRACE_METRIC,
-          payload: {name: 'my.metric', type: 'counter'},
-        });
-      });
-
-      // yAxis should remain unchanged since dataset is not TRACEMETRICS
-      expect(result.current.state.yAxis).toEqual([
-        {
-          function: ['count', '', undefined, undefined],
-          alias: undefined,
-          kind: 'function',
-        },
-      ]);
     });
   });
 
@@ -2691,6 +2547,142 @@ describe('useWidgetBuilderState', () => {
         }),
         expect.anything()
       );
+    });
+  });
+  describe('text widget actions', () => {
+    it('clears fields, yAxis, query, sort, limit, and dataset when switching to text display type', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.TABLE,
+            dataset: WidgetType.ERRORS,
+            field: ['event.type', 'count()'],
+            query: ['event.type:error'],
+            sort: ['-count()'],
+            limit: '5',
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.fields).toEqual([
+        {field: 'event.type', alias: undefined, kind: FieldValueKind.FIELD},
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: FieldValueKind.FUNCTION,
+        },
+      ]);
+      expect(result.current.state.query).toEqual(['event.type:error']);
+      expect(result.current.state.sort).toEqual([{field: 'count()', kind: 'desc'}]);
+      expect(result.current.state.limit).toBe(5);
+      expect(result.current.state.dataset).toBe(WidgetType.ERRORS);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.TEXT,
+        });
+      });
+
+      expect(result.current.state.displayType).toBe(DisplayType.TEXT);
+      expect(result.current.state.fields).toEqual([]);
+      expect(result.current.state.yAxis).toEqual([]);
+      expect(result.current.state.query).toEqual(['']);
+      expect(result.current.state.sort).toEqual([]);
+      expect(result.current.state.limit).toBeUndefined();
+      expect(result.current.state.dataset).toBeUndefined();
+    });
+
+    it('moves URL description into textContent when switching to text display type', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.TABLE,
+            description: 'existing description',
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.description).toBe('existing description');
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.TEXT,
+        });
+      });
+
+      // The URL description is moved into local textContent state
+      expect(result.current.state.textContent as string).toBe('existing description');
+      // And cleared from the URL-backed description field
+      expect(result.current.state.description).toBeUndefined();
+    });
+
+    it('clears textContent when switching away from text display type', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.TEXT,
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_TEXT_CONTENT,
+          payload: 'text widget content',
+        });
+      });
+
+      expect(result.current.state.textContent as string).toBe('text widget content');
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.TABLE,
+        });
+      });
+
+      expect(result.current.state.textContent).toBeUndefined();
+    });
+
+    it('SET_TEXT_CONTENT updates textContent without navigating', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.TEXT,
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_TEXT_CONTENT,
+          payload: 'new text content',
+        } as any);
+      });
+
+      jest.runAllTimers();
+
+      expect(result.current.state.textContent as string).toBe('new text content');
+      // Text content must not be written to the URL to avoid excessive URL length
+      expect(mockNavigate).not.toHaveBeenCalled();
     });
   });
 });

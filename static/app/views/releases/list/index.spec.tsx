@@ -11,7 +11,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -94,6 +94,11 @@ describe('ReleasesList', () => {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${projects[0]!.slug}/`,
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/validate/`,
+      method: 'POST',
+      body: {attributes: {}},
     });
   });
 

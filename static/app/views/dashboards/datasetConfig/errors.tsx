@@ -20,7 +20,7 @@ import {
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {AggregationKey} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
@@ -148,7 +148,13 @@ function getEventsTableFieldOptions(
   });
 }
 
-function getCustomEventsFieldRenderer(field: string, meta: MetaType, widget?: Widget) {
+function getCustomEventsFieldRenderer(
+  field: string,
+  meta: MetaType,
+  widget?: Widget,
+  _organization?: Organization,
+  dashboardFilters?: DashboardFilters
+) {
   if (field === 'id') {
     return renderEventIdAsLinkable;
   }
@@ -157,7 +163,7 @@ function getCustomEventsFieldRenderer(field: string, meta: MetaType, widget?: Wi
     return renderTraceAsLinkable(widget);
   }
 
-  return getFieldRenderer(field, meta, false);
+  return getFieldRenderer(field, meta, false, widget, dashboardFilters);
 }
 
 // The y-axis options are a strict set of available aggregates

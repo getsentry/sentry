@@ -39,7 +39,7 @@ export function AuthLayoutContent({children}: {children: React.ReactNode}) {
 /**
  * Route component version that renders children via Outlet.
  */
-export default function AuthLayoutRoute() {
+export function AuthLayoutRoute() {
   return (
     <AuthLayoutContent>
       <Outlet />

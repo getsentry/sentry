@@ -1,0 +1,42 @@
+#!/bin/bash
+set -euo pipefail
+
+SENTRY_URL="http://127.0.0.1:8000"
+AUTH_TOKEN="${AUTH_TOKEN:?AUTH_TOKEN environment variable is required}"
+ORG_SLUG="sentry"
+PROJECT_SLUG="internal"
+APP_ID="test-app"
+
+BEFORE_DIR="${BEFORE_DIR:-$HOME/Downloads/base_snapshots_export_small}"
+AFTER_DIR="${AFTER_DIR:-$HOME/Downloads/head_snapshots_export_small}"
+
+TOP_ARGS=(
+  --auth-token "$AUTH_TOKEN"
+  --url "$SENTRY_URL"
+)
+
+SUB_ARGS=(
+  -o "$ORG_SLUG"
+  -p "$PROJECT_SLUG"
+  --app-id "$APP_ID"
+  --no-git-metadata
+  --vcs-provider github
+  --head-repo-name "testing-repo"
+)
+
+echo "=== Uploading: Baseline (main) ==="
+sentry-cli "${TOP_ARGS[@]}" build snapshots "$BEFORE_DIR" \
+  "${SUB_ARGS[@]}" \
+  --head-sha "1111111111111111111111111111111111111111" \
+  --head-ref main
+
+echo ""
+echo "=== Uploading: PR Branch (testing-branch) ==="
+sentry-cli "${TOP_ARGS[@]}" build snapshots "$AFTER_DIR" \
+  "${SUB_ARGS[@]}" \
+  --head-sha "2222222222222222222222222222222222222222" \
+  --base-sha "1111111111111111111111111111111111111111" \
+  --base-repo-name "testing-repo" \
+  --head-ref "testing-branch" \
+  --base-ref main \
+  --pr-number 1

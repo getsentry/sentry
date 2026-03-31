@@ -33,7 +33,7 @@ interface Props extends Partial<SearchQueryBuilderProps> {
   organization: Organization;
 }
 
-function IssueListSearchBar({
+export function IssueListSearchBar({
   searchSource = 'issues',
   initialQuery = '',
   ...props
@@ -55,8 +55,6 @@ function IssueListSearchBar({
     />
   );
 }
-
-export default IssueListSearchBar;
 
 const EXCLUDED_TAGS = [
   'environment',

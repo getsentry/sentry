@@ -39,7 +39,7 @@ class ActionService(RpcService):
     def update_action_status_for_sentry_app_installation(
         self,
         *,
-        region_name: str,
+        cell_name: str,
         status: int,
         organization_id: int,
         sentry_app_id: int,
@@ -51,7 +51,7 @@ class ActionService(RpcService):
     def update_action_status_for_sentry_app_via_sentry_app_id(
         self,
         *,
-        region_name: str,
+        cell_name: str,
         status: int,
         sentry_app_id: int,
     ) -> None:
@@ -62,7 +62,7 @@ class ActionService(RpcService):
     def update_action_status_for_webhook_via_sentry_app_slug(
         self,
         *,
-        region_name: str,
+        cell_name: str,
         status: int,
         sentry_app_slug: str,
     ) -> None:

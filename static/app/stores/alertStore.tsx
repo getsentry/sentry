@@ -1,7 +1,7 @@
 import {createStore} from 'reflux';
 
 import {defined} from 'sentry/utils';
-import localStorageWrapper from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import type {AlertVariant} from 'sentry/utils/theme';
 
 import type {StrictStoreDefinition} from './types';

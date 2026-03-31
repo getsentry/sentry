@@ -5,9 +5,9 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {CheckboxField} from 'sentry/components/forms/fields/checkboxField';
-import SelectField from 'sentry/components/forms/fields/selectField';
-import TextField from 'sentry/components/forms/fields/textField';
-import Form from 'sentry/components/forms/form';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {Form} from 'sentry/components/forms/form';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {NarrowLayout} from 'sentry/components/narrowLayout';

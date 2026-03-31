@@ -16,7 +16,7 @@ import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCre
 import {Redirect} from 'sentry/components/redirect';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {categoryList} from 'sentry/data/platformPickerCategories';
-import platforms from 'sentry/data/platforms';
+import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
@@ -37,11 +37,14 @@ import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar
 import {NewWelcomeUI} from './components/newWelcome';
 import {Stepper} from './components/stepper';
 import {PlatformSelection} from './platformSelection';
+import {ScmConnect} from './scmConnect';
+import {ScmPlatformFeatures} from './scmPlatformFeatures';
+import {ScmProjectDetails} from './scmProjectDetails';
 import {SetupDocs} from './setupDocs';
 import {OnboardingStepId, type StepDescriptor, type StepProps} from './types';
 import {TargetedOnboardingWelcome} from './welcome';
 
-export const onboardingSteps: StepDescriptor[] = [
+const legacyOnboardingSteps: StepDescriptor[] = [
   {
     id: OnboardingStepId.WELCOME,
     title: t('Welcome'),
@@ -53,6 +56,40 @@ export const onboardingSteps: StepDescriptor[] = [
     title: t('Select platform'),
     Component: PlatformSelection,
     hasFooter: true,
+    cornerVariant: 'top-left',
+  },
+  {
+    id: OnboardingStepId.SETUP_DOCS,
+    title: t('Install the Sentry SDK'),
+    Component: SetupDocs,
+    hasFooter: true,
+    cornerVariant: 'top-left',
+  },
+];
+
+const scmOnboardingSteps: StepDescriptor[] = [
+  {
+    id: OnboardingStepId.WELCOME,
+    title: t('Welcome'),
+    Component: WelcomeVariable,
+    cornerVariant: 'top-right',
+  },
+  {
+    id: OnboardingStepId.SCM_CONNECT,
+    title: t('Connect repository'),
+    Component: ScmConnect,
+    cornerVariant: 'top-left',
+  },
+  {
+    id: OnboardingStepId.SCM_PLATFORM_FEATURES,
+    title: t('Platform & features'),
+    Component: ScmPlatformFeatures,
+    cornerVariant: 'top-left',
+  },
+  {
+    id: OnboardingStepId.SCM_PROJECT_DETAILS,
+    title: t('Project details'),
+    Component: ScmProjectDetails,
     cornerVariant: 'top-left',
   },
   {
@@ -123,9 +160,12 @@ export function OnboardingWithoutContext() {
   const {step: stepId} = useParams<{step: string}>();
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
-  const selectedProjectSlug = onboardingContext.selectedPlatform?.key;
+  const selectedProjectSlug =
+    onboardingContext.createdProjectSlug ?? onboardingContext.selectedPlatform?.key;
 
   const hasNewWelcomeUI = useHasNewWelcomeUI();
+  const hasScmOnboarding = organization.features.includes('onboarding-scm');
+  const onboardingSteps = hasScmOnboarding ? scmOnboardingSteps : legacyOnboardingSteps;
 
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
@@ -144,7 +184,7 @@ export function OnboardingWithoutContext() {
   useEffect(() => {
     if (
       normalizeUrl(location.pathname, {forceCustomerDomain: true}) ===
-        `/onboarding/${onboardingSteps[2]!.id}/` &&
+        `/onboarding/${OnboardingStepId.SETUP_DOCS}/` &&
       location.query?.platform &&
       onboardingContext.selectedPlatform === undefined
     ) {
@@ -152,11 +192,12 @@ export function OnboardingWithoutContext() {
         p => p.id === location.query.platform
       );
 
-      // if no platform found, we redirect the user to the platform select page
+      // if no platform found, redirect to the appropriate platform selection step
       if (!platform) {
-        navigate(
-          normalizeUrl(`/onboarding/${organization.slug}/${onboardingSteps[1]!.id}/`)
-        );
+        const fallbackStep = hasScmOnboarding
+          ? OnboardingStepId.SCM_PLATFORM_FEATURES
+          : OnboardingStepId.SELECT_PLATFORM;
+        navigate(normalizeUrl(`/onboarding/${organization.slug}/${fallbackStep}/`));
         return;
       }
 
@@ -174,7 +215,14 @@ export function OnboardingWithoutContext() {
         name: platform.name,
       });
     }
-  }, [location.query, navigate, onboardingContext, organization.slug, location.pathname]);
+  }, [
+    location.query,
+    navigate,
+    onboardingContext,
+    organization.slug,
+    location.pathname,
+    hasScmOnboarding,
+  ]);
 
   const shallProjectBeDeleted =
     stepObj?.id === 'setup-docs' && defined(isProjectActive) && !isProjectActive;
@@ -201,23 +249,33 @@ export function OnboardingWithoutContext() {
 
   const {handleGoBack} = useBackActions({
     stepIndex,
+    onboardingSteps,
     goToStep,
     recentCreatedProject,
     isRecentCreatedProjectActive: isProjectActive,
   });
 
   const goNextStep = useCallback(
-    (step: StepDescriptor, platform?: OnboardingSelectedSDK) => {
+    (
+      step: StepDescriptor,
+      platform?: OnboardingSelectedSDK,
+      query?: Record<string, string[]>
+    ) => {
       const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
       const nextStep = onboardingSteps[currentStepIndex + 1]!;
 
-      if (nextStep.id === 'setup-docs' && !platform) {
+      if (
+        nextStep.id === OnboardingStepId.SETUP_DOCS &&
+        !platform &&
+        !onboardingContext.selectedPlatform
+      ) {
         return;
       }
 
-      navigate(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));
+      const pathname = `/onboarding/${organization.slug}/${nextStep.id}/`;
+      navigate(query ? normalizeUrl({pathname, query}) : normalizeUrl(pathname));
     },
-    [organization.slug, navigate]
+    [organization.slug, navigate, onboardingSteps, onboardingContext.selectedPlatform]
   );
 
   const genSkipOnboardingLink = () => {
@@ -320,9 +378,9 @@ export function OnboardingWithoutContext() {
               <stepObj.Component
                 data-test-id={`onboarding-step-${stepObj.id}`}
                 stepIndex={stepIndex}
-                onComplete={platform => {
+                onComplete={(platform, query) => {
                   if (stepObj) {
-                    goNextStep(stepObj, platform);
+                    goNextStep(stepObj, platform, query);
                   }
                 }}
                 recentCreatedProject={recentCreatedProject}

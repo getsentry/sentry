@@ -27,7 +27,7 @@ type Props = {
   scoreList?: Array<[string, ScoreValue]>;
 };
 
-function SimilarScoreCard({scoreList = []}: Props) {
+export function SimilarScoreCard({scoreList = []}: Props) {
   if (scoreList.length === 0) {
     return null;
   }
@@ -85,5 +85,3 @@ export const SIMILARITY_SCORE_COLORS = [
   '#98b480',
   '#57be8c',
 ] as const;
-
-export default SimilarScoreCard;

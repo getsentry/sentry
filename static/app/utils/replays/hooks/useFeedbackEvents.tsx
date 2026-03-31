@@ -1,4 +1,4 @@
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import {useApiQueries} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';

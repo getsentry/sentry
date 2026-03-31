@@ -65,17 +65,17 @@ RPC service tests must cover:
 
 ### Quick Reference — Decorator & Base Class
 
-| Scenario                           | Decorator                                           | Base Class                       |
-| ---------------------------------- | --------------------------------------------------- | -------------------------------- |
-| Standard RPC service               | `@all_silo_test`                                    | `TestCase`                       |
-| RPC with named regions             | `@all_silo_test(regions=create_test_regions("us"))` | `TestCase`                       |
-| RPC with member mapping assertions | `@all_silo_test`                                    | `TestCase, HybridCloudTestMixin` |
+| Scenario                           | Decorator                                       | Base Class                       |
+| ---------------------------------- | ----------------------------------------------- | -------------------------------- |
+| Standard RPC service               | `@all_silo_test`                                | `TestCase`                       |
+| RPC with named cells               | `@all_silo_test(cells=create_test_cells("us"))` | `TestCase`                       |
+| RPC with member mapping assertions | `@all_silo_test`                                | `TestCase, HybridCloudTestMixin` |
 
 ## Step 4: Generate API Gateway Tests
 
 Load `references/api-gateway-tests.md` for complete templates and patterns.
 
-API gateway tests verify that requests to control-silo endpoints are correctly proxied to the appropriate region. They must cover:
+API gateway tests verify that requests to control-silo endpoints are correctly proxied to the appropriate cell. They must cover:
 
 - **Proxy pass-through**: Requests forwarded with correct params, headers, body
 - **Query parameter forwarding**: Multi-value params preserved
@@ -84,9 +84,9 @@ API gateway tests verify that requests to control-silo endpoints are correctly p
 
 ### Quick Reference — Decorator & Base Class
 
-| Scenario              | Decorator                                                                            | Base Class           |
-| --------------------- | ------------------------------------------------------------------------------------ | -------------------- |
-| Standard gateway test | `@control_silo_test(regions=[ApiGatewayTestCase.REGION], include_monolith_run=True)` | `ApiGatewayTestCase` |
+| Scenario              | Decorator                                                                        | Base Class           |
+| --------------------- | -------------------------------------------------------------------------------- | -------------------- |
+| Standard gateway test | `@control_silo_test(cells=[ApiGatewayTestCase.CELL], include_monolith_run=True)` | `ApiGatewayTestCase` |
 
 ## Step 5: Generate Outbox Pattern Tests
 
@@ -120,12 +120,12 @@ Endpoint silo tests verify that API endpoints work correctly under their declare
 
 ### Quick Reference — Decorator Mapping
 
-| Endpoint Decorator                    | Test Decorator                                          |
-| ------------------------------------- | ------------------------------------------------------- |
-| `@cell_silo_endpoint  `               | `@cell_silo_test`                                       |
-| `@control_silo_endpoint`              | `@control_silo_test`                                    |
-| `@control_silo_endpoint` (with proxy) | `@control_silo_test(regions=create_test_regions("us"))` |
-| No decorator (monolith-only)          | `@no_silo_test`                                         |
+| Endpoint Decorator                    | Test Decorator                                      |
+| ------------------------------------- | --------------------------------------------------- |
+| `@cell_silo_endpoint  `               | `@cell_silo_test`                                   |
+| `@control_silo_endpoint`              | `@control_silo_test`                                |
+| `@control_silo_endpoint` (with proxy) | `@control_silo_test(cells=create_test_cells("us"))` |
+| No decorator (monolith-only)          | `@no_silo_test`                                     |
 
 ## Step 7: Validate
 
@@ -153,7 +153,7 @@ from sentry.testutils.silo import (
     no_silo_test,
     assume_test_silo_mode,
     assume_test_silo_mode_of,
-    create_test_regions,
+    create_test_cells,
 )
 
 # Base classes
@@ -180,12 +180,12 @@ from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 ```python
 # Use ONLY for direct ORM queries — never for factory calls
 assume_test_silo_mode(SiloMode.CONTROL)     # Switch to control silo for ORM access
-assume_test_silo_mode(SiloMode.CELL)       # Switch to cell silo for ORM access
-assume_test_silo_mode_of(ModelClass)         # Switch to silo matching model's silo mode
+assume_test_silo_mode(SiloMode.CELL)        # Switch to cell silo for ORM access
+assume_test_silo_mode_of(ModelClass)        # Switch to silo matching model's silo mode
 
-outbox_runner()                               # Drain all pending outboxes on exit
-outbox_context(flush=False)                   # Create outboxes without flushing
-override_regions(regions)                     # Override active region config
-override_settings(SILO_MODE=SiloMode.X)      # Override Django settings
-override_options({"key": value})              # Override Sentry options
+outbox_runner()                             # Drain all pending outboxes on exit
+outbox_context(flush=False)                 # Create outboxes without flushing
+override_cells(cells)                       # Override active cell config
+override_settings(SILO_MODE=SiloMode.X)     # Override Django settings
+override_options({"key": value})            # Override Sentry options
 ```

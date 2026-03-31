@@ -35,7 +35,7 @@ class RepositoryService(RpcService):
     ) -> Any | None:
         """
         Attempts to serialize a given repository.  Note that this can be None if the repository is already deleted
-        in the corresponding region silo.
+        in the corresponding cell silo.
         """
 
     @cell_rpc_method(resolve=ByOrganizationId())

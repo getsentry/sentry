@@ -437,6 +437,7 @@ describe('NotificationSettingsByType', () => {
     expect(screen.queryByText('UI Profile Hours', {exact: true})).not.toBeInTheDocument();
     expect(screen.queryByText('Spans')).not.toBeInTheDocument();
     expect(screen.getByText('Seer Budget')).toBeInTheDocument();
+    expect(screen.getByText('Size Analysis Builds')).toBeInTheDocument();
   });
 
   it('spend notifications on org with am3 without spend visibility notifications', async () => {

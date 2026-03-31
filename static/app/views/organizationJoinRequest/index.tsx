@@ -3,8 +3,8 @@ import type {MouseEvent} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import EmailField from 'sentry/components/forms/fields/emailField';
-import Form from 'sentry/components/forms/form';
+import {EmailField} from 'sentry/components/forms/fields/emailField';
+import {Form} from 'sentry/components/forms/form';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';

@@ -8,7 +8,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import BillingPlans, {type BillingPlansResponse} from './billingPlans';
+import {BillingPlans, type BillingPlansResponse} from './billingPlans';
 
 // Mock Sentry for error handling
 jest.mock('@sentry/react');

@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {useMutation} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {useApi} from 'sentry/utils/useApi';
 
@@ -37,7 +37,7 @@ import {
   isTeamPlanFamily,
   isTrialPlan,
 } from 'getsentry/utils/billing';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {trackMarketingEvent} from 'getsentry/utils/trackMarketingEvent';
 import type {State as CheckoutState} from 'getsentry/views/amCheckout/';
 import type {

@@ -6,7 +6,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {SnubaQuery} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -149,7 +149,11 @@ export function AttributeComparisonSection({
           </LegendHint>
         </Stack>
         {isLoading ? (
-          <Placeholder height="200px" />
+          <Grid columns="repeat(auto-fill, minmax(min(300px, 100%), 1fr))" gap="md">
+            {Array.from({length: CHARTS_PER_PAGE}).map((_, i) => (
+              <Placeholder key={i} height="200px" />
+            ))}
+          </Grid>
         ) : error ? (
           <AttributeBreakdownsComponent.ErrorState error={error} />
         ) : filteredRankedAttributes.length > 0 ? (

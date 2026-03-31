@@ -142,8 +142,27 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
                 (\d{4}-?[01]\d-?[0-3]\d[\sT][0-2]\d:?[0-5]\d) # no seconds
             )
             |
-            # Kitchen
-            ([1-9]\d?:\d{2}(:\d{2})?(?:\s?[aApP][Mm])?)
+            # Kitchen, 12-hr
+            (
+                (?<!\d) # Negative lookbehind to ensure hour has at most two digits
+                ([1-9]|1[0-2]) # Hour, no leading zero, 1-12 hours
+                :[0-5]\d # Minute
+                (:[0-5]\d)? # Optional second
+                (?![\d:]) # Negative lookahead to ensure second (or minute, if there are no seconds)
+                          # has at most two digits, and to make sure that if there are seconds, they
+                          # get consumed by the optional seconds part of the pattern (and are
+                          # thereby forced to abide by its restrictions on possible values)
+                (?:\s?[aApP][Mm])? # Optional, optionally-space-separated AM/PM
+            )
+            |
+            # Kitchen, 24-hr
+            (
+                (?<!\d) # Negative lookbehind (same logic as 12-hr pattern above)
+                (0?\d|1\d|2[0-3]) # Hour, optional leading zero, 0-23 hours
+                :[0-5]\d # Minute
+                (:[0-5]\d)? # Optional second
+                (?![\d:]) # Negative lookahead (same logic as in 12-hr pattern above)
+            )
             |
             # Date
             (\d{4}-[01]\d-[0-3]\d)
@@ -265,7 +284,13 @@ class Parameterizer:
         # pattern will fall back to the standard pattern.)
         use_experimental_regexes: bool = False,
     ):
-        self._experimental = use_experimental_regexes
+        self._experimental = (
+            use_experimental_regexes
+            # Only mark the parameterizer as experimental if there are actually any experiments
+            # running. If there aren't, then both parameterizers use the default regex patterns, so
+            # the "experimental" parameterizer isn't actually experimental.
+            and EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP != DEFAULT_PARAMETERIZATION_REGEXES_MAP
+        )
         self._parameterization_regex = self._make_regex_from_patterns(
             regex_pattern_keys or DEFAULT_PARAMETERIZATION_REGEXES_MAP.keys()
         )
@@ -310,12 +335,11 @@ class Parameterizer:
                     return f"<{key}>"
             return ""
 
-        parameterized = self._parameterization_regex.sub(_handle_regex_match, input_str)
-
-        metrics.incr(
-            "grouping.parameterizer_called",
-            tags={"changed": parameterized != input_str, "experimental": self._experimental},
-        )
+        with metrics.timer(
+            "grouping.parameterize", tags={"experimental": self._experimental}
+        ) as metric_tags:
+            parameterized = self._parameterization_regex.sub(_handle_regex_match, input_str)
+            metric_tags["changed"] = parameterized != input_str
 
         for key, value in matches_counter.items():
             # Track the kinds of replacements being made

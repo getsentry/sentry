@@ -6,7 +6,7 @@ import {Container, Stack} from '@sentry/scraps/layout';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {KeyValueTable} from 'sentry/components/keyValueTable';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {ReplayTagsTableRow} from 'sentry/components/replays/replayTagsTableRow';
 import {t} from 'sentry/locale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';

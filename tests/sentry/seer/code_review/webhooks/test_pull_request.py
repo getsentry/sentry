@@ -249,9 +249,8 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
     def test_pull_request_opened_filtered_when_trigger_disabled_post_ga(self) -> None:
         triggers = [CodeReviewTrigger.ON_NEW_COMMIT]
         features = {"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"}
-        org_options = {"sentry:enable_pr_review_test_generation": False}
         with (
-            self.code_review_setup(triggers=triggers, features=features, org_options=org_options),
+            self.code_review_setup(triggers=triggers, features=features),
             self.tasks(),
         ):
             event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
@@ -265,9 +264,8 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
     def test_pull_request_synchronize_filtered_when_trigger_disabled_post_ga(self) -> None:
         triggers = [CodeReviewTrigger.ON_READY_FOR_REVIEW]
         features = {"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"}
-        org_options = {"sentry:enable_pr_review_test_generation": False}
         with (
-            self.code_review_setup(triggers=triggers, features=features, org_options=org_options),
+            self.code_review_setup(triggers=triggers, features=features),
             self.tasks(),
         ):
             event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
@@ -281,9 +279,8 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
     def test_pull_request_ready_for_review_filtered_when_trigger_disabled_post_ga(self) -> None:
         triggers = [CodeReviewTrigger.ON_NEW_COMMIT]
         features = {"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"}
-        org_options = {"sentry:enable_pr_review_test_generation": False}
         with (
-            self.code_review_setup(triggers=triggers, features=features, org_options=org_options),
+            self.code_review_setup(triggers=triggers, features=features),
             self.tasks(),
         ):
             event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
@@ -324,9 +321,8 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
         """Test that closed action reaches Seer when at least one trigger is configured."""
         triggers: list[CodeReviewTrigger] = [CodeReviewTrigger.ON_READY_FOR_REVIEW]
         features = {"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"}
-        org_options = {"sentry:enable_pr_review_test_generation": False}
         with (
-            self.code_review_setup(triggers=triggers, features=features, org_options=org_options),
+            self.code_review_setup(triggers=triggers, features=features),
             self.tasks(),
         ):
             event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
@@ -340,9 +336,8 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
     def test_pull_request_opened_works_when_trigger_enabled_post_ga(self) -> None:
         triggers = [CodeReviewTrigger.ON_READY_FOR_REVIEW]
         features = {"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"}
-        org_options = {"sentry:enable_pr_review_test_generation": False}
         with (
-            self.code_review_setup(triggers=triggers, features=features, org_options=org_options),
+            self.code_review_setup(triggers=triggers, features=features),
             self.tasks(),
         ):
             event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
@@ -356,9 +351,8 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
     def test_pull_request_ready_for_review_works_when_trigger_enabled_post_ga(self) -> None:
         triggers = [CodeReviewTrigger.ON_READY_FOR_REVIEW]
         features = {"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"}
-        org_options = {"sentry:enable_pr_review_test_generation": False}
         with (
-            self.code_review_setup(triggers=triggers, features=features, org_options=org_options),
+            self.code_review_setup(triggers=triggers, features=features),
             self.tasks(),
         ):
             event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)

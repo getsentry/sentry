@@ -1,7 +1,8 @@
 import {useCallback} from 'react';
 
-import OnboardingDrawerStore, {
+import {
   OnboardingDrawerKey,
+  OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {QuickStartEventParameters} from 'sentry/utils/analytics/quickStartAnalyticsEvents';

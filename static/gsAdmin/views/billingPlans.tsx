@@ -43,7 +43,7 @@ interface PriceTier {
   volume: number;
 }
 
-function BillingPlans() {
+export function BillingPlans() {
   const {
     data: billingPlansResponse = {
       not_live: [],
@@ -487,5 +487,3 @@ function escapeCsvField(field: string): string {
   }
   return field;
 }
-
-export default BillingPlans;

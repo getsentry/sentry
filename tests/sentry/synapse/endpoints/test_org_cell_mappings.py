@@ -4,9 +4,9 @@ from django.urls import reverse
 
 from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.region import override_regions
+from sentry.testutils.cell import override_cells
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Cell, RegionCategory
+from sentry.types.cell import Cell, RegionCategory
 
 us_region = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
 de_region = Cell("de", 2, "https://de.testserver", RegionCategory.MULTI_TENANT)
@@ -59,7 +59,7 @@ class OrgCellMappingsTest(APITestCase):
         assert "cell_to_locality" in res.data["metadata"]
         assert res.data["metadata"]["has_more"] is False
 
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_get_results_no_next(self) -> None:
         org1 = self.create_organization()
         org2 = self.create_organization()
@@ -75,7 +75,7 @@ class OrgCellMappingsTest(APITestCase):
         assert res.data["metadata"]["cell_to_locality"]
         assert res.data["metadata"]["has_more"] is False
 
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_get_next_page(self) -> None:
         # newest orgs are in next page (ascending order by date_updated).
         org1 = self.create_organization()
@@ -97,7 +97,7 @@ class OrgCellMappingsTest(APITestCase):
         assert res.data["metadata"]["cell_to_locality"]
         assert res.data["metadata"]["has_more"]
 
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_get_multiple_pages_multiple_locales(self) -> None:
         org1 = self.create_organization()
         org2 = self.create_organization()
@@ -133,7 +133,7 @@ class OrgCellMappingsTest(APITestCase):
         assert res.data["metadata"]["cell_to_locality"]
         assert res.data["metadata"]["has_more"] is False
 
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_get_locale_filter(self) -> None:
         # Two orgs in the wrong region to check pagination response data
         self.create_organization()

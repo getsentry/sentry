@@ -20,7 +20,7 @@ import {TextArea} from '@sentry/scraps/textarea';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
-import SelectField from 'sentry/components/forms/fields/selectField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
 import type {Data} from 'sentry/components/forms/types';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';

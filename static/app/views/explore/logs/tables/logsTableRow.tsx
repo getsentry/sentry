@@ -27,15 +27,16 @@ import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FieldValueType} from 'sentry/utils/fields';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useProjects} from 'sentry/utils/useProjects';
-import CellAction, {
+import {
   Actions,
   ActionTriggerType,
+  CellAction,
   copyToClipboard,
 } from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
@@ -183,10 +184,22 @@ export const LogRowContent = memo(function LogRowContent({
   }
 
   function onPointerUp(event: SyntheticEvent) {
-    if (event.target instanceof Element && isInsideButton(event.target)) {
-      // do not expand the context menu if you clicked a button
-      return;
+    // do not expand the context menu if...
+    if (event.target instanceof Element) {
+      // ... you clicked a button
+      if (isInsideButton(event.target)) {
+        return;
+      }
+
+      // ... you clicked outside the row (e.g. a portal button)
+      if (
+        !(event.currentTarget instanceof Node) ||
+        !event.currentTarget.contains(event.target)
+      ) {
+        return;
+      }
     }
+
     if (window.getSelection()?.toString() === '') {
       toggleExpanded();
     }
@@ -599,13 +612,13 @@ function LogRowDetails({
 }
 
 function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowItem}) {
-  const theme = useTheme();
   const addSearchFilter = useAddSearchFilter();
   return (
     <LogDetailTableActionsButtonBar>
       <Button
-        priority="link"
+        priority="transparent"
         size="sm"
+        icon={<IconAdd />}
         onClick={() => {
           addSearchFilter({
             key: OurLogKnownFieldKey.MESSAGE,
@@ -613,12 +626,12 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
           });
         }}
       >
-        <IconAdd size="md" style={{paddingRight: theme.space.xs}} />
         {t('Add to filter')}
       </Button>
       <Button
-        priority="link"
+        priority="transparent"
         size="sm"
+        icon={<IconSubtract />}
         onClick={() => {
           addSearchFilter({
             key: OurLogKnownFieldKey.MESSAGE,
@@ -627,7 +640,6 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
           });
         }}
       >
-        <IconSubtract size="md" style={{paddingRight: theme.space.xs}} />
         {t('Exclude from filter')}
       </Button>
     </LogDetailTableActionsButtonBar>
@@ -641,7 +653,6 @@ function LogRowDetailsActions({
   fullLogDataResult: UseApiQueryResult<TraceItemDetailsResponse, RequestError>;
   tableDataRow: LogTableRowItem;
 }) {
-  const theme = useTheme();
   const {data, isPending, isError} = fullLogDataResult;
   const isFrozen = useLogsFrozenIsFrozen();
   const organization = useOrganization();
@@ -676,12 +687,12 @@ function LogRowDetailsActions({
       )}
       <LogDetailTableActionsButtonBar>
         <Button
-          priority="link"
+          priority="transparent"
           size="sm"
+          icon={<IconJson />}
           onClick={betterCopyToClipboard}
           disabled={isPending || isError || !json}
         >
-          <IconJson size="md" style={{paddingRight: theme.space.xs}} />
           {t('Copy as JSON')}
         </Button>
       </LogDetailTableActionsButtonBar>

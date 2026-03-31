@@ -37,6 +37,12 @@ from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
 
+__all__ = [
+    "AlertRuleSerializer",
+    "CombinedRuleSerializer",
+    "DetailedAlertRuleSerializer",
+]
+
 logger = logging.getLogger(__name__)
 
 

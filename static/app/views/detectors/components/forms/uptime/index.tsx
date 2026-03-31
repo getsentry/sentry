@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Stack} from '@sentry/scraps/layout';
@@ -14,11 +13,13 @@ import {useUptimeAssertionFeatures} from 'sentry/views/alerts/rules/uptime/useUp
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
 import {DescribeSection} from 'sentry/views/detectors/components/forms/common/describeSection';
+import {
+  ProjectEnvironmentSection,
+  type EnvironmentConfig,
+} from 'sentry/views/detectors/components/forms/common/projectEnvironmentSection';
 import {useSetAutomaticName} from 'sentry/views/detectors/components/forms/common/useSetAutomaticName';
-import type {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
-import {ConnectedAssertionSuggestionsButton} from 'sentry/views/detectors/components/forms/uptime/connectedAssertionSuggestionsButton';
 import {ConnectedTestUptimeMonitorButton} from 'sentry/views/detectors/components/forms/uptime/connectedTestUptimeMonitorButton';
 import {UptimeDetectorFormDetectSection} from 'sentry/views/detectors/components/forms/uptime/detect';
 import {
@@ -30,8 +31,10 @@ import {UptimeRegionWarning} from 'sentry/views/detectors/components/forms/uptim
 import {UptimeDetectorResolveSection} from 'sentry/views/detectors/components/forms/uptime/resolve';
 import {UptimeDetectorVerificationSection} from 'sentry/views/detectors/components/forms/uptime/verification';
 
-const ENVIRONMENT_CONFIG: React.ComponentProps<typeof DetectorBaseFields>['environment'] =
-  {includeAllEnvironments: false, fieldProps: {required: true}};
+const ENVIRONMENT_CONFIG: EnvironmentConfig = {
+  includeAllEnvironments: false,
+  fieldProps: {required: true},
+};
 
 function UptimeDetectorForm() {
   const theme = useTheme();
@@ -58,6 +61,7 @@ function UptimeDetectorForm() {
     <Stack gap="2xl" maxWidth={theme.breakpoints.lg}>
       <UptimeRegionWarning />
       <PreviewSection />
+      <ProjectEnvironmentSection environment={ENVIRONMENT_CONFIG} />
       <UptimeDetectorFormDetectSection />
       <UptimeDetectorVerificationSection />
       <UptimeDetectorResolveSection />
@@ -77,7 +81,7 @@ export function NewUptimeDetectorForm() {
 }
 
 function NewUptimeDetectorFormContent() {
-  const {hasRuntimeAssertions, hasAiAssertionSuggestions} = useUptimeAssertionFeatures();
+  const {hasRuntimeAssertions} = useUptimeAssertionFeatures();
   const previewCheckResult = usePreviewCheckResult();
 
   return (
@@ -85,14 +89,8 @@ function NewUptimeDetectorFormContent() {
       detectorType="uptime_domain_failure"
       formDataToEndpointPayload={uptimeFormDataToEndpointPayload}
       initialFormData={{}}
-      environment={ENVIRONMENT_CONFIG}
       extraFooterButton={
-        hasRuntimeAssertions ? (
-          <Fragment>
-            {hasAiAssertionSuggestions && <ConnectedAssertionSuggestionsButton />}
-            <ConnectedTestUptimeMonitorButton />
-          </Fragment>
-        ) : undefined
+        hasRuntimeAssertions ? <ConnectedTestUptimeMonitorButton /> : undefined
       }
       mapFormErrors={createMapFormErrors(previewCheckResult)}
     >
@@ -110,7 +108,7 @@ export function EditExistingUptimeDetectorForm({detector}: {detector: UptimeDete
 }
 
 function EditExistingUptimeDetectorFormContent({detector}: {detector: UptimeDetector}) {
-  const {hasRuntimeAssertions, hasAiAssertionSuggestions} = useUptimeAssertionFeatures();
+  const {hasRuntimeAssertions} = useUptimeAssertionFeatures();
   const previewCheckResult = usePreviewCheckResult();
 
   return (
@@ -118,16 +116,8 @@ function EditExistingUptimeDetectorFormContent({detector}: {detector: UptimeDete
       detector={detector}
       formDataToEndpointPayload={uptimeFormDataToEndpointPayload}
       savedDetectorToFormData={uptimeSavedDetectorToFormData}
-      environment={ENVIRONMENT_CONFIG}
       extraFooterButton={
-        hasRuntimeAssertions ? (
-          <Fragment>
-            {hasAiAssertionSuggestions && (
-              <ConnectedAssertionSuggestionsButton size="sm" />
-            )}
-            <ConnectedTestUptimeMonitorButton size="sm" />
-          </Fragment>
-        ) : undefined
+        hasRuntimeAssertions ? <ConnectedTestUptimeMonitorButton size="sm" /> : undefined
       }
       mapFormErrors={createMapFormErrors(previewCheckResult)}
     >

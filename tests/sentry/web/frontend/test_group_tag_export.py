@@ -8,12 +8,12 @@ from django.utils import timezone
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.silo import cell_silo_test, create_test_regions
+from sentry.testutils.silo import cell_silo_test, create_test_cells
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.web.frontend.group_tag_export import GroupTagExportView
 
 
-@cell_silo_test(regions=create_test_regions("us"))
+@cell_silo_test(cells=create_test_cells("us"))
 class GroupTagExportTest(TestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()

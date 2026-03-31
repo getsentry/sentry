@@ -18,7 +18,7 @@ type Props = ModalRenderProps & {
   screenshots: EventAttachment[];
 };
 
-export default function ScreenshotsModal({
+export function ScreenshotsModal({
   Body,
   Header,
   initialIndex,

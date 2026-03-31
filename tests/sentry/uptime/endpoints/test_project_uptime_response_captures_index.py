@@ -8,7 +8,7 @@ from sentry.uptime.models import UptimeResponseCapture
 class ProjectUptimeResponseCapturesIndexEndpointTest(APITestCase, UptimeTestCase):
     endpoint = "sentry-api-0-project-uptime-response-captures-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.uptime_subscription = self.create_uptime_subscription(url="https://example.com")
@@ -17,7 +17,7 @@ class ProjectUptimeResponseCapturesIndexEndpointTest(APITestCase, UptimeTestCase
             project=self.project,
         )
 
-    def test_delete_all_response_captures(self):
+    def test_delete_all_response_captures(self) -> None:
         files = [
             File.objects.create(name=f"test-response-{i}", type="uptime.response") for i in range(3)
         ]
@@ -50,7 +50,7 @@ class ProjectUptimeResponseCapturesIndexEndpointTest(APITestCase, UptimeTestCase
         assert UptimeResponseCapture.objects.filter(id__in=capture_ids).count() == 0
         assert File.objects.filter(id__in=file_ids).count() == 0
 
-    def test_delete_all_response_captures_empty(self):
+    def test_delete_all_response_captures_empty(self) -> None:
         """Deleting when there are no captures should succeed."""
         response = self.get_success_response(
             self.organization.slug,
@@ -61,7 +61,7 @@ class ProjectUptimeResponseCapturesIndexEndpointTest(APITestCase, UptimeTestCase
         )
         assert response.data["deletedCount"] == 0
 
-    def test_delete_only_affects_own_subscription(self):
+    def test_delete_only_affects_own_subscription(self) -> None:
         """Deleting captures should not affect other subscriptions."""
         file1 = File.objects.create(name="test-response-1", type="uptime.response")
         file1.putfile(BytesIO(b"test content 1"))

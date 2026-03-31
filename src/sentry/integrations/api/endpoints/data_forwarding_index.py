@@ -26,7 +26,7 @@ from sentry.web.decorators import set_referrer_policy
 
 class OrganizationDataForwardingDetailsPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["org:read"],
+        "GET": ["org:write"],
         "POST": ["org:write"],
     }
 

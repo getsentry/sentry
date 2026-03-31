@@ -20,7 +20,7 @@ export function getProcessingInfoTooltip(
   return undefined;
 }
 
-function ProcessingIcon({processingInfo}: Props) {
+export function ProcessingIcon({processingInfo}: Props) {
   switch (processingInfo.status) {
     case CandidateProcessingStatus.OK:
       return <IconCheckmark variant="success" size="xs" />;
@@ -39,5 +39,3 @@ function ProcessingIcon({processingInfo}: Props) {
     }
   }
 }
-
-export default ProcessingIcon;

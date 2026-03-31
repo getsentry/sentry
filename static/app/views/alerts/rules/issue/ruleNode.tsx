@@ -32,7 +32,7 @@ import type {IssueCategory} from 'sentry/types/group';
 import {VALID_ISSUE_CATEGORIES} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import MemberTeamFields from 'sentry/views/alerts/rules/issue/memberTeamFields';
+import {MemberTeamFields} from 'sentry/views/alerts/rules/issue/memberTeamFields';
 import {SentryAppRuleModal} from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
 
 interface FieldProps {
@@ -275,7 +275,7 @@ interface Props {
   node?: IssueAlertConfiguration[keyof IssueAlertConfiguration][number] | null;
 }
 
-function RuleNode({
+export function RuleNode({
   index,
   data,
   node,
@@ -612,8 +612,6 @@ function RuleNode({
     </RuleRowContainer>
   );
 }
-
-export default RuleNode;
 
 const InlineInput = styled(Input)`
   width: auto;

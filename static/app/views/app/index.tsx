@@ -1,4 +1,4 @@
-import {lazy, Suspense, useCallback, useEffect, useRef} from 'react';
+import {lazy, Suspense, useCallback, useEffect} from 'react';
 import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 
@@ -9,8 +9,8 @@ import {
 import {fetchGuides} from 'sentry/actionCreators/guides';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {initApiClientErrorHandling} from 'sentry/api';
-import ErrorBoundary from 'sentry/components/errorBoundary';
-import GlobalModal from 'sentry/components/globalModal';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {GlobalModal} from 'sentry/components/globalModal';
 import Hook from 'sentry/components/hook';
 import Indicators from 'sentry/components/indicators';
 import {UserTimezoneProvider} from 'sentry/components/timezoneProvider';
@@ -33,9 +33,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKIntegrationProvider';
-import LastKnownRouteContextProvider from 'sentry/views/lastKnownRouteContextProvider';
+import {LastKnownRouteContextProvider} from 'sentry/views/lastKnownRouteContextProvider';
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
-import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
+import {RouteAnalyticsContextProvider} from 'sentry/views/routeAnalyticsContextProvider';
 import {ExplorerPanel} from 'sentry/views/seerExplorer/explorerPanel';
 import {ExplorerPanelProvider} from 'sentry/views/seerExplorer/useExplorerPanel';
 
@@ -231,10 +231,6 @@ export function App() {
     [preloadData]
   );
 
-  // Used to restore focus to the container after closing the modal
-  const mainContainerRef = useRef<HTMLDivElement>(null);
-  const handleModalClose = useCallback(() => mainContainerRef.current?.focus?.(), []);
-
   return (
     <Profiler id="App" onRender={onRenderCallback}>
       <UserTimezoneProvider>
@@ -243,10 +239,10 @@ export function App() {
             {renderOrganizationContextProvider(
               <AsyncSDKIntegrationContextProvider>
                 <GlobalFeedbackForm>
-                  <MainContainer tabIndex={-1} ref={mainContainerRef}>
+                  <MainContainer tabIndex={-1}>
                     <DemoToursProvider>
                       <ExplorerPanelProvider>
-                        <GlobalModal onClose={handleModalClose} />
+                        <GlobalModal />
                         <ExplorerPanel />
                         <Indicators className="indicators-container" />
                         <ErrorBoundary>{renderBody()}</ErrorBoundary>

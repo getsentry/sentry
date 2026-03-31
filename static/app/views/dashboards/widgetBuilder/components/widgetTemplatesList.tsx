@@ -17,7 +17,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {getWidgetIcon} from 'sentry/views/dashboards/widgetLibrary/widgetCard';
 
@@ -60,7 +60,7 @@ export function WidgetTemplatesList({
       if (initialWidget) {
         dispatch({
           type: BuilderStateAction.SET_STATE,
-          payload: convertWidgetToBuilderStateParams(initialWidget),
+          payload: convertWidgetToBuilderState(initialWidget),
         });
       }
     }
@@ -103,7 +103,7 @@ export function WidgetTemplatesList({
                 setSelectedWidget(index);
                 dispatch({
                   type: BuilderStateAction.SET_STATE,
-                  payload: convertWidgetToBuilderStateParams(widget),
+                  payload: convertWidgetToBuilderState(widget),
                 });
                 trackAnalytics('dashboards_views.widget_builder.templates.selected', {
                   title: widget.title,

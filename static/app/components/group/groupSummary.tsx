@@ -8,7 +8,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {
   IconChevron,
   IconDocs,
@@ -21,7 +21,7 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';

@@ -1,9 +1,9 @@
 import {Component, lazy, Suspense} from 'react';
 
 import type {Client} from 'sentry/api';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -36,7 +36,7 @@ type State = {
  * having no issues be returned from a query. This component will conditionally
  * render one of those states.
  */
-class NoGroupsHandler extends Component<Props, State> {
+export class NoGroupsHandler extends Component<Props, State> {
   state: State = {
     fetchingSentFirstEvent: true,
     sentFirstEvent: false,
@@ -220,5 +220,3 @@ class NoGroupsHandler extends Component<Props, State> {
     return this.renderEmpty();
   }
 }
-
-export default NoGroupsHandler;

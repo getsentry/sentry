@@ -58,33 +58,31 @@ describe('useDashboardsLimit', () => {
     expect(dashboardsRequest).not.toHaveBeenCalled();
   });
 
-  it('handles no subscription data (defaults to 0)', () => {
+  it('handles no subscription data (defaults to 10)', async () => {
     SubscriptionStore.set(mockOrganization.slug, null as any);
 
     const dashboardsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       body: [],
+      match: [MockApiClient.matchQuery({per_page: 10, filter: 'excludePrebuilt'})],
     });
 
     const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
       organization: mockOrganization,
     });
 
-    expect(result.current.hasReachedDashboardLimit).toBe(true);
-    expect(result.current.dashboardsLimit).toBe(0);
-    expect(result.current.isLoading).toBe(false);
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
-    render(<div>{result.current.limitMessage}</div>);
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(
-          'You have reached the maximum number of Dashboards available on your plan. To add more, upgrade your plan'
-        )
-      )
-    ).toBeInTheDocument();
+    expect(result.current).toEqual({
+      hasReachedDashboardLimit: false,
+      dashboardsLimit: 10,
+      isLoading: false,
+      limitMessage: null,
+    });
 
-    // Should not make the dashboards request when no subscription
-    expect(dashboardsRequest).not.toHaveBeenCalled();
+    expect(dashboardsRequest).toHaveBeenCalledTimes(1);
   });
 
   it('returns under limit when dashboards count is below limit', async () => {
@@ -293,7 +291,7 @@ describe('useDashboardsLimit', () => {
     });
   });
 
-  it('handles missing subscription planDetails gracefully (defaults to 0)', () => {
+  it('handles missing subscription planDetails gracefully (defaults to 10)', async () => {
     const subscription = SubscriptionFixture({
       organization: mockOrganization,
       planDetails: undefined as any,
@@ -304,27 +302,24 @@ describe('useDashboardsLimit', () => {
     const dashboardsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       body: [],
+      match: [MockApiClient.matchQuery({per_page: 10, filter: 'excludePrebuilt'})],
     });
 
     const {result} = renderHookWithProviders(() => useDashboardsLimit(), {
       organization: mockOrganization,
     });
 
-    // Should default to 0 when planDetails is missing
-    expect(result.current.hasReachedDashboardLimit).toBe(true);
-    expect(result.current.dashboardsLimit).toBe(0);
-    expect(result.current.isLoading).toBe(false);
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
-    render(<div>{result.current.limitMessage}</div>);
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(
-          'You have reached the maximum number of Dashboards available on your plan. To add more, upgrade your plan'
-        )
-      )
-    ).toBeInTheDocument();
+    expect(result.current).toEqual({
+      hasReachedDashboardLimit: false,
+      dashboardsLimit: 10,
+      isLoading: false,
+      limitMessage: null,
+    });
 
-    // Should not make dashboards request for unlimited plans
-    expect(dashboardsRequest).not.toHaveBeenCalled();
+    expect(dashboardsRequest).toHaveBeenCalledTimes(1);
   });
 });

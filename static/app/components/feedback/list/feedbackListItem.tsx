@@ -10,7 +10,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {IssueTrackingSignals} from 'sentry/components/feedback/list/issueTrackingSignals';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {TextOverflow} from 'sentry/components/textOverflow';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconChat, IconFatal, IconImage, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';

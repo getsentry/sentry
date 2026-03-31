@@ -8,7 +8,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -37,7 +37,7 @@ type Props = {
   to?: string;
 };
 
-function Pagination({
+export function Pagination({
   to,
   className,
   onCursor,
@@ -106,5 +106,3 @@ const PaginationCaption = styled('span')`
   font-size: ${p => p.theme.font.size.md};
   margin-right: ${p => p.theme.space.xl};
 `;
-
-export default Pagination;

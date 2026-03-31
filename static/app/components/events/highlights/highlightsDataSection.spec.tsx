@@ -54,14 +54,7 @@ describe('HighlightsDataSection', () => {
       url: `/organizations/${organization.slug}/replays/${replayId}/`,
       body: {},
     });
-    render(
-      <HighlightsDataSection
-        event={event}
-        project={project}
-        viewAllRef={{current: null}}
-      />,
-      {organization}
-    );
+    render(<HighlightsDataSection event={event} project={project} />, {organization});
     expect(screen.getByText('Highlights')).toBeInTheDocument();
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(await screen.findByText("There's nothing here...")).toBeInTheDocument();

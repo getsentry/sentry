@@ -11,7 +11,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconSettings} from 'sentry/icons';
 import {IconTelescope} from 'sentry/icons/iconTelescope';
 import {t, tct} from 'sentry/locale';
@@ -32,8 +32,9 @@ import {
 
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import trackSpendVisibilityAnaltyics, {
+import {
   SpendVisibilityEvents,
+  trackSpendVisibilityAnaltyics,
 } from 'getsentry/utils/trackSpendVisibilityAnalytics';
 import {
   SPIKE_PROTECTION_DOCS_LINK,

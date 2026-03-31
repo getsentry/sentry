@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import type {BillingConfig, Plan, Subscription} from 'getsentry/types';

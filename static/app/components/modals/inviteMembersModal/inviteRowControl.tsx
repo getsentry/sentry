@@ -127,7 +127,7 @@ export function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
             DropdownIndicator: () => null,
           }}
           options={mapToOptions(emails)}
-          onBlur={(e: React.ChangeEvent<HTMLInputElement>) => {
+          onBlur={(e: any) => {
             handleInput(e.target.value);
           }}
           styles={getStyles(theme, inviteStatus)}

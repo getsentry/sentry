@@ -48,7 +48,7 @@ export interface RadioGroupProps<C extends string = string>
   name?: string;
 }
 
-function RadioGroup<C extends string>({
+export function RadioGroup<C extends string>({
   name: groupName,
   value,
   disabled: groupDisabled,
@@ -142,5 +142,3 @@ const Description = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
   line-height: 1.4em;
 `;
-
-export default RadioGroup;

@@ -446,7 +446,9 @@ class OrganizationReleaseDetailsEndpoint(
             scope.set_tag("failure_reason", "Release.DoesNotExist")
             raise ResourceDoesNotExist
 
-        if not self.has_release_permission(request, organization, release):
+        if not self.has_release_permission(
+            request, organization, release, require_all_projects=True
+        ):
             scope.set_tag("failure_reason", "no_release_permission")
             raise ResourceDoesNotExist
 
@@ -558,7 +560,9 @@ class OrganizationReleaseDetailsEndpoint(
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if not self.has_release_permission(request, organization, release):
+        if not self.has_release_permission(
+            request, organization, release, require_all_projects=True
+        ):
             raise ResourceDoesNotExist
 
         try:

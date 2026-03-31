@@ -12,10 +12,7 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {ModalChartContainer} from 'sentry/views/insights/common/components/insightsChartContainer';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
-import {
-  getAgentRunsFilter,
-  getHasAiSpansFilter,
-} from 'sentry/views/insights/pages/agents/utils/query';
+import {getAgentAndAIClientFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
@@ -23,7 +20,7 @@ import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 
 export default function OverviewAgentsDurationChartWidget(
-  props: LoadableChartWidgetProps & {hasAgentRuns?: boolean}
+  props: LoadableChartWidgetProps
 ) {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({
@@ -31,9 +28,7 @@ export default function OverviewAgentsDurationChartWidget(
   });
   const releaseBubbleProps = useReleaseBubbleProps(props);
 
-  const fullQuery = useCombinedQuery(
-    props.hasAgentRuns ? getAgentRunsFilter() : getHasAiSpansFilter()
-  );
+  const fullQuery = useCombinedQuery(getAgentAndAIClientFilter());
 
   const {data, isLoading, error} = useFetchSpanTimeSeries(
     {

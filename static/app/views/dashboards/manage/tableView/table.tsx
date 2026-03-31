@@ -7,7 +7,7 @@ import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
+import {Pagination} from 'sentry/components/pagination';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {t} from 'sentry/locale';
 import {useQueryClient} from 'sentry/utils/queryClient';
@@ -19,6 +19,7 @@ import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboa
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import {useResetDashboardLists} from 'sentry/views/dashboards/hooks/useResetDashboardLists';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
+import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 
 export interface DashboardTableProps {
   cursorKey: string;
@@ -136,7 +137,7 @@ export function DashboardTable({
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell data-column="created-by">
               {dashboard.createdBy === null ? (
-                <Tooltip title="Sentry">
+                <Tooltip title={PREBUILT_DASHBOARD_LABEL}>
                   <ActivityAvatar type="system" size={20} />
                 </Tooltip>
               ) : dashboard.createdBy ? (

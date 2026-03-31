@@ -279,6 +279,7 @@ def _merge_full_response(data, response):
     if response["stacktraces"]:
         data["threads"] = {"values": data_threads}
     else:
+        logger.info("minidump has no thread list", extra={"response": response})
         error = SymbolicationFailed(
             message="minidump has no thread list", type=EventErrorType.NATIVE_SYMBOLICATOR_FAILED
         )

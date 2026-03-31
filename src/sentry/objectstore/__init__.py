@@ -9,6 +9,7 @@ from objectstore_client import (
     MetricsBackend,
     Session,
     TimeToLive,
+    TokenGenerator,
     Usecase,
     parse_accept_encoding,
 )
@@ -56,6 +57,16 @@ def create_client() -> Client:
     from sentry import options as options_store
 
     options = options_store.get("objectstore.config")
+
+    # Initialize the `TokenGenerator` if key parameters are found.
+    token_generator = None
+    if signing_key_options := options.get("token_generator"):
+        # We require the `kid` and `secret_key` keys be set, other options are optional
+        if signing_key_options.get("kid") and signing_key_options.get("secret_key"):
+            token_generator = TokenGenerator(
+                **signing_key_options,
+            )
+
     return Client(
         options["base_url"],
         metrics_backend=SentryMetricsBackend(),
@@ -67,6 +78,7 @@ def create_client() -> Client:
             # Workaround for 0.0.14's default read timeout. Can be removed with 0.0.15
             {"timeout": urllib3.Timeout(connect=0.1)},
         ),
+        token=token_generator,
     )
 
 

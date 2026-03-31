@@ -57,7 +57,6 @@ export const HiddenLogDetailFields: OurLogFieldKey[] = [
   'sentry.timestamp_nanos',
   'sentry.observed_timestamp_nanos',
   'tags[sentry.trace_flags,number]',
-  'span_id',
 ];
 
 export const DeprecatedLogDetailFields: OurLogFieldKey[] = [

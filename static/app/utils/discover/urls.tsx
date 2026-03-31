@@ -10,7 +10,7 @@ import type {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import type {EventData} from './eventView';
-import EventView from './eventView';
+import {EventView} from './eventView';
 
 /**
  * Create a slug that can be used with discover details views

@@ -3,7 +3,7 @@ import {useCallback, useMemo, useRef} from 'react';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {
@@ -24,8 +24,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {FilterLoadingIndicator} from 'sentry/views/replays/detail/filterLoadingIndicator';
 import {NetworkDetails} from 'sentry/views/replays/detail/network/details';
 import {NetworkFilters} from 'sentry/views/replays/detail/network/networkFilters';
-import NetworkHeaderCell, {
+import {
   COLUMN_COUNT,
+  NetworkHeaderCell,
 } from 'sentry/views/replays/detail/network/networkHeaderCell';
 import {NetworkTableCell} from 'sentry/views/replays/detail/network/networkTableCell';
 import {useNetworkFilters} from 'sentry/views/replays/detail/network/useNetworkFilters';

@@ -101,8 +101,6 @@ function EditingViewTitle({
       case 'Escape':
         stopEditing();
         break;
-      default:
-        break;
     }
   };
 

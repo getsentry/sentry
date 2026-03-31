@@ -1,13 +1,13 @@
 import {useEffect} from 'react';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackEmptyDetails} from 'sentry/components/feedback/details/feedbackEmptyDetails';
 import {FeedbackErrorDetails} from 'sentry/components/feedback/details/feedbackErrorDetails';
 import {FeedbackItem} from 'sentry/components/feedback/feedbackItem/feedbackItem';
 import {useCurrentFeedbackId} from 'sentry/components/feedback/useCurrentFeedbackId';
 import {useCurrentFeedbackProject} from 'sentry/components/feedback/useCurrentFeedbackProject';
 import {useFetchFeedbackData} from 'sentry/components/feedback/useFetchFeedbackData';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {useSentryAppComponentsData} from 'sentry/stores/useSentryAppComponentsData';
 import {trackAnalytics} from 'sentry/utils/analytics';

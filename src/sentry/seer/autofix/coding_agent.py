@@ -12,7 +12,7 @@ from requests import HTTPError
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
 
 from sentry import features
-from sentry.constants import ObjectStatus
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT, ObjectStatus
 from sentry.integrations.claude_code.integration import (
     ClaudeCodeIntegrationMetadata,
 )
@@ -428,6 +428,9 @@ def launch_coding_agents_for_run(
     except Organization.DoesNotExist:
         raise NotFound("Organization not found")
 
+    if not organization.get_option("sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT):
+        raise PermissionDenied("Code generation is disabled for this organization")
+
     integration = None
     installation: CodingAgentIntegration | None = None
     client: CodingAgentClient | None = None
@@ -558,8 +561,8 @@ def poll_github_copilot_agents(
                         pr_url=pr_url,
                     )
 
-                    # Status: queued, in_progress, completed, failed, timed_out
-                    is_task_done = task_status.status == "completed"
+                    # The Copilot API uses `state` (not `status`) for task lifecycle.
+                    is_task_done = task_status.state == "completed"
                     new_status = (
                         CodingAgentStatus.COMPLETED if is_task_done else CodingAgentStatus.RUNNING
                     )
@@ -575,19 +578,19 @@ def poll_github_copilot_agents(
                         extra={
                             "agent_id": agent_id,
                             "pr_url": pr_url,
-                            "task_status": task_status.status,
+                            "task_state": task_status.state,
                             "is_task_done": is_task_done,
                         },
                     )
 
-            elif task_status.status in ("failed", "timed_out"):
+            elif task_status.state in ("failed", "timed_out"):
                 update_coding_agent_state(
                     agent_id=agent_id,
                     status=CodingAgentStatus.FAILED,
                 )
                 logger.info(
                     "coding_agent.github_copilot.task_failed",
-                    extra={"agent_id": agent_id, "task_status": task_status.status},
+                    extra={"agent_id": agent_id, "task_state": task_status.state},
                 )
 
         except Exception:
@@ -733,8 +736,13 @@ def get_claude_code_client(clients, agent_id, org_id, integration_id: int | None
     return client
 
 
-def extract_result_url_from_events(events: list[ClaudeSessionEvent]) -> str | None:
-    """Extract a GitHub PR or branch URL from session events."""
+def extract_result_from_events(events: list[ClaudeSessionEvent]) -> tuple[str | None, str | None]:
+    """Extract a GitHub PR or branch URL and its surrounding text block from session events.
+
+    Returns:
+        Tuple of (url, text_block). text_block is the full text content of the agent
+        event block that contained the URL, suitable for display as a result description.
+    """
     pr_pattern = re.compile(r"https://github\.com/[^/]+/[^/]+/pull/\d+")
     branch_pattern = re.compile(r"https://github\.com/[^/]+/[^/]+/tree/[-\w./]*[-\w]")
 
@@ -746,12 +754,12 @@ def extract_result_url_from_events(events: list[ClaudeSessionEvent]) -> str | No
                 text = block.get("text", "")
                 pr_match = pr_pattern.search(text)
                 if pr_match:
-                    return pr_match.group(0)
+                    return pr_match.group(0), text
                 branch_match = branch_pattern.search(text)
                 if branch_match:
-                    return branch_match.group(0)
+                    return branch_match.group(0), text
 
-    return None
+    return None, None
 
 
 def build_result_from_events(
@@ -763,8 +771,9 @@ def build_result_from_events(
 ) -> tuple[Any | None, CodingAgentStatus]:
     result = None
     pr_url = None
+    description: str | None = None
     if new_status == CodingAgentStatus.COMPLETED:
-        pr_url = extract_result_url_from_events(events)
+        pr_url, description = extract_result_from_events(events)
         if not pr_url:
             logger.warning(
                 "coding_agent.claude_code.no_result_url_in_response",
@@ -777,6 +786,8 @@ def build_result_from_events(
             agent_name=agent_name,
             pr_url=pr_url,
         )
+        if result:
+            result.description = description or ""
     except Exception:
         logger.exception(
             "coding_agent.claude_code.build_result_error",

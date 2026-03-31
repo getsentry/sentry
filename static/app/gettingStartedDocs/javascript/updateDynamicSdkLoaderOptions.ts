@@ -5,7 +5,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 // Note: LOGS and METRICS are intentionally omitted because they share a single
 // `hasLogsAndMetrics` backend flag. Showing individual messages would be misleading

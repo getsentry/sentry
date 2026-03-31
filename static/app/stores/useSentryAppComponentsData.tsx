@@ -3,7 +3,7 @@ import {useEffect} from 'react';
 import {SentryAppComponentsStore} from 'sentry/stores/sentryAppComponentsStore';
 import {SentryAppInstallationStore} from 'sentry/stores/sentryAppInstallationsStore';
 import type {SentryAppComponent, SentryAppInstallation} from 'sentry/types/integrations';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

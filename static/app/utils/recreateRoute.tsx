@@ -26,7 +26,7 @@ type Options = {
  *
  * See tests for examples
  */
-export default function recreateRoute(to: string | PlainRoute, options: Options): string {
+export function recreateRoute(to: string | PlainRoute, options: Options): string {
   const {routes, params, location, stepBack} = options;
   const paths = routes.map(({path}) => {
     path = path || '';

@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {z} from 'zod';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {AutoSaveField, FieldGroup, FormSearch} from '@sentry/scraps/form';
+import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {Link} from '@sentry/scraps/link';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
@@ -85,7 +85,7 @@ export default function ProjectReplaySettings() {
               <ReplaySettingsAlert />
 
               <FieldGroup title={t('Replay Issues')}>
-                <AutoSaveField
+                <AutoSaveForm
                   name="sentry:replay_rage_click_issues"
                   schema={replaySchema}
                   initialValue={!!project.options?.['sentry:replay_rage_click_issues']}
@@ -105,9 +105,9 @@ export default function ProjectReplaySettings() {
                       />
                     </field.Layout.Row>
                   )}
-                </AutoSaveField>
+                </AutoSaveForm>
 
-                <AutoSaveField
+                <AutoSaveForm
                   name="sentry:replay_hydration_error_issues"
                   schema={replaySchema}
                   initialValue={
@@ -136,7 +136,7 @@ export default function ProjectReplaySettings() {
                       />
                     </field.Layout.Row>
                   )}
-                </AutoSaveField>
+                </AutoSaveForm>
               </FieldGroup>
             </TabPanels.Item>
             <TabPanels.Item key="bulk-delete">

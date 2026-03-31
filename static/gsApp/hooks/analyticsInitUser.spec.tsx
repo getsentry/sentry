@@ -5,7 +5,7 @@ import {UserFixture} from 'sentry-fixture/user';
 import {setWindowLocation} from 'sentry-test/utils';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import sessionStorageWrapper from 'sentry/utils/sessionStorage';
+import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 
 import {analyticsInitUser} from 'getsentry/hooks/analyticsInitUser';
 import {trackMarketingEvent} from 'getsentry/utils/trackMarketingEvent';

@@ -12,7 +12,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {useGroupSummary} from 'sentry/components/group/groupSummary';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {Panel} from 'sentry/components/panels/panel';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconSeer} from 'sentry/icons/iconSeer';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';

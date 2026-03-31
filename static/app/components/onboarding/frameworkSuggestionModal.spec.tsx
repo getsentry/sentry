@@ -7,7 +7,7 @@ import {
   ModalBody,
   ModalFooter,
 } from 'sentry/components/globalModal/components';
-import platforms from 'sentry/data/platforms';
+import {allPlatforms as platforms} from 'sentry/data/platforms';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 
 import {

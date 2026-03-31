@@ -98,8 +98,11 @@ class GithubCopilotAgentClient(CodingAgentClient):
             },
         )
 
-        task_response = GithubCopilotTaskResponse.validate(api_response.json)
-        task = task_response.task
+        response_json = api_response.json
+        if isinstance(response_json, dict) and "task" in response_json:
+            task = GithubCopilotTaskResponse.validate(response_json).task
+        else:
+            task = GithubCopilotTask.validate(response_json)
 
         agent_id = self.encode_agent_id(owner, repo, task.id)
 

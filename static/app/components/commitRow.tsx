@@ -3,20 +3,17 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
-import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {CommitLink} from 'sentry/components/commitLink';
-import {Hovercard} from 'sentry/components/hovercard';
-import {PanelItem} from 'sentry/components/panels/panelItem';
 import {TextOverflow} from 'sentry/components/textOverflow';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {Version} from 'sentry/components/version';
 import {VersionHoverCard} from 'sentry/components/versionHoverCard';
-import {IconQuestion, IconWarning} from 'sentry/icons';
+import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Commit} from 'sentry/types/integrations';
 import type {AvatarProject} from 'sentry/types/project';
@@ -24,7 +21,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {Divider} from 'sentry/views/issueDetails/divider';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 export function formatCommitMessage(message: string | null) {
   if (!message) {
@@ -50,7 +46,6 @@ function CommitRow({
   project,
 }: CommitRowProps) {
   const user = useUser();
-  const hasStreamlinedUI = useHasStreamlinedUI();
   const organization = useOrganization();
   const handleInviteClick = useCallback(() => {
     if (!commit.author?.email) {
@@ -79,7 +74,7 @@ function CommitRow({
 
   const firstRelease = commit.releases?.[0];
 
-  return hasStreamlinedUI ? (
+  return (
     <Stack padding="0 lg lg" data-test-id="commit-row">
       {commit.pullRequest?.externalUrl ? (
         <StyledExternalLink
@@ -97,7 +92,7 @@ function CommitRow({
         ) : commit.author ? (
           <UserAvatar size={16} user={commit.author} />
         ) : null}
-        <Meta hasStreamlinedUI>
+        <Meta>
           <Tooltip
             title={tct(
               'The email [actorEmail] is not a member of your organization. [inviteUser:Invite] them or link additional emails in [accountSettings:account settings].',
@@ -165,103 +160,8 @@ function CommitRow({
         )}
       </MetaWrapper>
     </Stack>
-  ) : (
-    <StyledPanelItem key={commit.id} data-test-id="commit-row">
-      {customAvatar ? (
-        customAvatar
-      ) : commit.author && commit.author.id === undefined ? (
-        <AvatarWrapper>
-          <Hovercard
-            skipWrapper
-            body={
-              <EmailWarning>
-                {tct(
-                  'The email [actorEmail] is not a member of your organization. [inviteUser:Invite] them or link additional emails in [accountSettings:account settings].',
-                  {
-                    actorEmail: <strong>{commit.author.email}</strong>,
-                    accountSettings: (
-                      <StyledLink
-                        to="/settings/account/emails/"
-                        onClick={() =>
-                          trackAnalytics('issue_details.suspect_commits.missing_user', {
-                            organization,
-                            link: 'account_settings',
-                          })
-                        }
-                      />
-                    ),
-                    inviteUser: <StyledLink to="" onClick={handleInviteClick} />,
-                  }
-                )}
-              </EmailWarning>
-            }
-          >
-            {commit.author ? <UserAvatar size={36} user={commit.author} /> : null}
-            <EmailWarningIcon data-test-id="email-warning">
-              <IconWarning size="xs" />
-            </EmailWarningIcon>
-          </Hovercard>
-        </AvatarWrapper>
-      ) : (
-        <div>{commit.author ? <UserAvatar size={36} user={commit.author} /> : null}</div>
-      )}
-
-      <CommitMessage>
-        <Message>{formatCommitMessage(commit.message)}</Message>
-        <Meta>
-          {tct('[author] committed [commitLink] \u2022 [date]', {
-            author: (
-              <strong>
-                {isUser ? t('You') : (commit.author?.name ?? t('Unknown author'))}
-              </strong>
-            ),
-            commitLink: (
-              <CommitLink
-                inline
-                showIcon={false}
-                commitId={commit.id}
-                repository={commit.repository}
-                onClick={onCommitClick ? () => onCommitClick(commit) : undefined}
-              />
-            ),
-            date: (
-              <TimeSince
-                tooltipSuffix={commit.suspectCommitType}
-                date={commit.dateCreated}
-              />
-            ),
-          })}
-        </Meta>
-      </CommitMessage>
-
-      {commit.pullRequest?.externalUrl && (
-        <LinkButton
-          external
-          href={commit.pullRequest.externalUrl}
-          onClick={onPullRequestClick}
-        >
-          {t('View Pull Request')}
-        </LinkButton>
-      )}
-    </StyledPanelItem>
   );
 }
-
-const StyledPanelItem = styled(PanelItem)`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xl};
-`;
-
-const AvatarWrapper = styled('div')`
-  position: relative;
-`;
-
-const EmailWarning = styled('div')`
-  font-size: ${p => p.theme.font.size.sm};
-  line-height: 1.4;
-  margin: -4px;
-`;
 
 const BoldEmail = styled('strong')`
   font-weight: bold;
@@ -277,31 +177,13 @@ const StyledLink = styled(Link)`
   }
 `;
 
-const EmailWarningIcon = styled('span')`
-  position: absolute;
-  bottom: -6px;
-  right: -7px;
-  line-height: 12px;
-  border-radius: 50%;
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  background: ${p => p.theme.colors.yellow200};
-  padding: 1px 2px 3px 2px;
-`;
-
-const CommitMessage = styled('div')`
-  flex: 1;
-  flex-direction: column;
-  min-width: 0;
-  margin-right: ${p => p.theme.space.xl};
-`;
-
 const Message = styled(TextOverflow)`
   font-size: ${p => p.theme.font.size.lg};
   line-height: 1.2;
 `;
 
-const Meta = styled(TextOverflow)<{hasStreamlinedUI?: boolean}>`
-  font-size: ${p => (p.hasStreamlinedUI ? p.theme.font.size.md : '13px')};
+const Meta = styled(TextOverflow)`
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1.5;
   margin: 0;
   color: ${p => p.theme.tokens.content.secondary};

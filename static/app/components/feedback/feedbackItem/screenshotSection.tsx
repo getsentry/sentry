@@ -6,8 +6,9 @@ import {useDeleteEventAttachmentOptimistic} from 'sentry/actionCreators/events';
 import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {FeedbackScreenshot} from 'sentry/components/feedback/feedbackItem/feedbackScreenshot';
-import ScreenshotsModal, {
+import {
   modalCss,
+  ScreenshotsModal,
 } from 'sentry/components/feedback/feedbackItem/screenshotsModal';
 import {useFeedbackScreenshot} from 'sentry/components/feedback/feedbackItem/useFeedbackHasScreenshot';
 import {IconDelete} from 'sentry/icons';

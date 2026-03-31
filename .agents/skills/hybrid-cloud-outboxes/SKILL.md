@@ -176,35 +176,35 @@ class MyControlModel(ReplicatedControlModel):
         app_label = "sentry"
         db_table = "sentry_mycontrolmodel"
 
-    def outbox_region_names(self) -> Collection[str]:
+    def outbox_cell_names(self) -> Collection[str]:
         """
-        Which regions should receive outboxes for this change.
+        Which cells should receive outboxes for this change.
         Default implementation checks organization_id then user_id.
-        Override for custom logic (e.g., all regions, specific regions).
+        Override for custom logic (e.g., all cells, specific cells).
         """
         # Default: auto-detects from organization_id or user_id attributes.
         # Override only if the default doesn't work for your model.
-        return super().outbox_region_names()
+        return super().outbox_cell_names()
 
     @classmethod
     def handle_async_deletion(
         cls,
         identifier: int,
-        region_name: str,
+        cell_name: str,
         shard_identifier: int,
         payload: Mapping[str, Any] | None,
     ) -> None:
-        """Note: receives region_name — one call per target region."""
+        """Note: receives cell_name — one call per target cell."""
         pass
 
-    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
-        """Note: receives region_name — one call per target region."""
+    def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
+        """Note: receives cell_name — one call per target cell."""
         pass
 ```
 
 ### 2.4 Wire Up the Category Connection
 
-The mixin classes auto-connect signal receivers via `OutboxCategory.connect_region_model_updates()` (or `connect_control_model_updates()`). This happens at class definition time when the `category` class variable is set. The connection dispatches to your `handle_async_replication` and `handle_async_deletion` methods automatically.
+The mixin classes auto-connect signal receivers via `OutboxCategory.connect_cell_model_updates()` (or `connect_control_model_updates()`). This happens at class definition time when the `category` class variable is set. The connection dispatches to your `handle_async_replication` and `handle_async_deletion` methods automatically.
 
 **No manual signal receiver is needed** for replicated models — the mixin handles it. Manual receivers are only needed for categories that don't map to a replicated model (see Step 4).
 
@@ -396,7 +396,7 @@ Before submitting your PR, verify:
 - [ ] `payload_for_update()` includes only data needed for deletion recovery (not rapidly-changing fields)
 - [ ] Producing manager (`CellOutboxProducingManager` / `ControlOutboxProducingManager`) is set on the model
 - [ ] Bulk operations go through the producing manager, not raw querysets
-- [ ] `ReplicatedControlModel` has correct `outbox_region_names()` implementation
+- [ ] `ReplicatedControlModel` has correct `outbox_cell_names()` implementation
 - [ ] Tests verify outbox creation (scope, category, identifiers)
 - [ ] Tests verify end-to-end replication (save -> drain -> cross-silo effect)
 - [ ] Tests verify deletion propagation (delete -> drain -> cleanup)

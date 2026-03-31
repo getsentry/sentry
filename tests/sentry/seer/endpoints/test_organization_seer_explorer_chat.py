@@ -1,19 +1,15 @@
 from typing import Any
 from unittest.mock import ANY, MagicMock, patch
 
-from sentry.models.organizationmember import OrganizationMember
-from sentry.seer.explorer.client_utils import collect_user_org_context
-from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.requests import make_request
 
 
 @with_feature("organizations:seer-explorer")
 @with_feature("organizations:gen-ai-features")
 @with_feature("organizations:gen-ai-consent-flow-removal")
 class OrganizationSeerExplorerChatEndpointTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization.flags.allow_joinleave = True
         self.organization.save()
@@ -155,6 +151,80 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
                 enable_coding=feature_enabled and option_enabled,
             )
 
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    def test_get_run_allowed_with_dashboards_ai_generate_flag(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        """GET with run_id should succeed with dashboards-ai-generate flag even without seer-explorer."""
+        from sentry.seer.explorer.client_models import SeerRunState
+
+        mock_state = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+        mock_client = MagicMock()
+        mock_client.get_run.return_value = mock_state
+        mock_client_class.return_value = mock_client
+
+        with self.feature(
+            {
+                "organizations:seer-explorer": False,
+                "organizations:dashboards-ai-generate": True,
+            }
+        ):
+            response = self.client.get(f"{self.url}123/")
+
+        assert response.status_code == 200
+        assert response.data["session"]["run_id"] == 123
+
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    def test_continue_run_allowed_with_dashboards_ai_generate_flag(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        """POST with run_id should succeed with dashboards-ai-generate flag."""
+        mock_client = MagicMock()
+        mock_client.continue_run.return_value = 789
+        mock_client_class.return_value = mock_client
+
+        data = {"query": "Follow up question"}
+        with self.feature(
+            {
+                "organizations:seer-explorer": False,
+                "organizations:dashboards-ai-generate": True,
+            }
+        ):
+            response = self.client.post(f"{self.url}789/", data, format="json")
+
+        assert response.status_code == 200
+        assert response.data == {"run_id": 789}
+
+    def test_new_run_denied_without_seer_explorer_flag(self) -> None:
+        """POST without run_id should be denied with only dashboards-ai-generate flag."""
+        data = {"query": "Start a new conversation"}
+        with self.feature(
+            {
+                "organizations:seer-explorer": False,
+                "organizations:dashboards-ai-generate": True,
+            }
+        ):
+            response = self.client.post(self.url, data, format="json")
+
+        assert response.status_code == 403
+
+    def test_get_denied_without_either_flag(self) -> None:
+        """GET should be denied without seer-explorer or dashboards-ai-generate."""
+        with self.feature(
+            {
+                "organizations:seer-explorer": False,
+                "organizations:dashboards-ai-generate": False,
+            }
+        ):
+            response = self.client.get(self.url)
+
+        assert response.status_code == 403
+
 
 @with_feature("organizations:seer-explorer")
 @with_feature("organizations:gen-ai-features")
@@ -162,7 +232,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
 class OrganizationSeerExplorerChatContextEngineTest(APITestCase):
     """End-to-end tests verifying is_context_engine_enabled reaches make_explorer_chat_request."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-chat/"
@@ -228,105 +298,3 @@ class OrganizationSeerExplorerChatContextEngineTest(APITestCase):
         assert response.status_code == 200
         body = mock_chat_request.call_args[0][0]
         assert body.get("is_context_engine_enabled") is not False
-
-
-class CollectUserOrgContextTest(APITestCase):
-    """Test the collect_user_org_context helper function"""
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.project1 = self.create_project(
-            organization=self.organization, teams=[self.team], slug="project-1"
-        )
-        self.project2 = self.create_project(
-            organization=self.organization, teams=[self.team], slug="project-2"
-        )
-        self.other_team = self.create_team(organization=self.organization, slug="other-team")
-        self.other_project = self.create_project(
-            organization=self.organization, teams=[self.other_team], slug="other-project"
-        )
-
-    def test_collect_context_with_member(self):
-        """Test context collection for a user who is an organization member"""
-        context = collect_user_org_context(self.user, self.organization)
-
-        assert context is not None
-        assert context["org_slug"] == self.organization.slug
-        assert context.get("user_id") == self.user.id
-        assert context.get("user_name") == self.user.name
-        assert context.get("user_email") == self.user.email
-        assert context.get("user_timezone") is None  # No timezone set by default
-        assert context.get("user_ip") is None  # No IP address set by default
-
-        # Should have exactly one team
-        assert "user_teams" in context
-        assert len(context["user_teams"]) == 1
-        assert context["user_teams"][0]["slug"] == self.team.slug
-
-        # User projects should include project1 and project2 (both on self.team)
-        assert "user_projects" in context
-        user_project_slugs = {p["slug"] for p in context["user_projects"]}
-        assert user_project_slugs == {"project-1", "project-2"}
-
-        # All org projects should include all 3 projects
-        assert "all_org_projects" in context
-        all_project_slugs = {p["slug"] for p in context["all_org_projects"]}
-        assert all_project_slugs == {"project-1", "project-2", "other-project"}
-        all_project_ids = {p["id"] for p in context["all_org_projects"]}
-        assert all_project_ids == {self.project1.id, self.project2.id, self.other_project.id}
-
-    def test_collect_context_with_multiple_teams(self):
-        """Test context collection for a user in multiple teams"""
-        team2 = self.create_team(organization=self.organization, slug="team-2")
-        member = OrganizationMember.objects.get(
-            organization=self.organization, user_id=self.user.id
-        )
-        with unguarded_write(using="default"):
-            member.teams.add(team2)
-
-        context = collect_user_org_context(self.user, self.organization)
-
-        assert context is not None
-        assert "user_teams" in context
-        team_slugs = {t["slug"] for t in context["user_teams"]}
-        assert team_slugs == {self.team.slug, "team-2"}
-
-    def test_collect_context_with_no_teams(self):
-        """Test context collection for a member with no team membership"""
-        member = OrganizationMember.objects.get(
-            organization=self.organization, user_id=self.user.id
-        )
-        # Remove user from all teams
-        with unguarded_write(using="default"):
-            member.teams.clear()
-
-        context = collect_user_org_context(self.user, self.organization)
-
-        assert context is not None
-        assert context.get("user_teams") == []
-        assert context.get("user_projects") == []
-        # All org projects should still be present
-        assert "all_org_projects" in context
-        all_project_slugs = {p["slug"] for p in context["all_org_projects"]}
-        assert all_project_slugs == {"project-1", "project-2", "other-project"}
-
-    def test_collect_context_with_timezone(self):
-        """Test context collection includes user's timezone setting"""
-        from sentry.users.services.user_option import user_option_service
-
-        user_option_service.set_option(
-            user_id=self.user.id, key="timezone", value="America/Los_Angeles"
-        )
-
-        context = collect_user_org_context(self.user, self.organization)
-
-        assert context is not None
-        assert context.get("user_timezone") == "America/Los_Angeles"
-
-    def test_collect_context_with_request(self):
-        """Test context collection includes request metadata like IP address"""
-        request, _ = make_request()
-        context = collect_user_org_context(self.user, self.organization, request=request)
-
-        assert context is not None
-        assert context.get("user_ip") == request.META.get("REMOTE_ADDR")

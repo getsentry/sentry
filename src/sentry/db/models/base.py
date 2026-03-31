@@ -397,7 +397,7 @@ def __model_class_prepared(sender: Any, **kwargs: Any) -> None:
     if issubclass(sender, ReplicatedControlModel):
         sender.category.connect_control_model_updates(sender)
     elif issubclass(sender, ReplicatedCellModel):
-        sender.category.connect_region_model_updates(sender)
+        sender.category.connect_cell_model_updates(sender)
 
 
 signals.pre_save.connect(__model_pre_save)

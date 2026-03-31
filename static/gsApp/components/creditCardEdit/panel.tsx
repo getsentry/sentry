@@ -10,12 +10,12 @@ import type {Organization} from 'sentry/types/organization';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-import CreditCardSetup from 'getsentry/components/creditCardEdit/setup';
+import {CreditCardSetup} from 'getsentry/components/creditCardEdit/setup';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {FTCConsentLocation, Subscription} from 'getsentry/types';
 import {getCountryByCode} from 'getsentry/utils/ISO3166codes';
 import type {GetsentryEventKey} from 'getsentry/utils/trackGetsentryAnalytics';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 interface CreditCardPanelProps {
   budgetTerm: string;

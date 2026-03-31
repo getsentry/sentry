@@ -5,6 +5,7 @@ from typing import Any, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.types.actor import Actor
 from sentry.workflow_engine.models import (
     DataConditionGroup,
     DetectorWorkflow,
@@ -52,6 +53,7 @@ class WorkflowSerializerResponse(TypedDict):
     detectorIds: list[str] | None
     enabled: bool
     lastTriggered: datetime | None
+    owner: str | None
 
 
 @register(Workflow)
@@ -100,6 +102,10 @@ class WorkflowSerializer(Serializer):
             )  # The data condition groups for filtering actions
             attrs[item]["detectorIds"] = detectors_map[item.id]
             attrs[item]["lastTriggered"] = last_triggered_map.get(item.id)
+
+            owner_actor = Actor.from_id(user_id=item.owner_user_id, team_id=item.owner_team_id)
+            attrs[item]["owner"] = owner_actor.identifier if owner_actor else None
+
         return attrs
 
     def serialize(
@@ -119,4 +125,5 @@ class WorkflowSerializer(Serializer):
             "detectorIds": attrs.get("detectorIds"),
             "enabled": obj.enabled,
             "lastTriggered": attrs.get("lastTriggered"),
+            "owner": attrs.get("owner"),
         }

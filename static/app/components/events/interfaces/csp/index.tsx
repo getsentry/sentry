@@ -10,7 +10,7 @@ import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import type {HelpProps} from './help';
-import Help from './help';
+import {CSPHelp as Help} from './help';
 
 type View = 'report' | 'raw' | 'help';
 

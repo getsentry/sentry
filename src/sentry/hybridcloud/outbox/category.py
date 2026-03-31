@@ -4,7 +4,7 @@ from collections.abc import Collection, Mapping, Sequence
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any, cast
 
-from sentry.hybridcloud.outbox.signals import process_control_outbox, process_region_outbox
+from sentry.hybridcloud.outbox.signals import process_cell_outbox, process_control_outbox
 
 if TYPE_CHECKING:
     from sentry.db.models import BaseModel
@@ -65,12 +65,13 @@ class OutboxCategory(IntEnum):
     SENTRY_APP_INSTALLATION_DELETE = 42
     IDENTITY_UPDATE = 43
     SENTRY_APP_NORMALIZE_ACTIONS = 44
+    PROJECT_KEY_UPDATE = 45
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, int]]:
         return [(i.value, i.value) for i in cls]
 
-    def connect_region_model_updates(self, model: type[ReplicatedCellModel]) -> None:
+    def connect_cell_model_updates(self, model: type[ReplicatedCellModel]) -> None:
         def receiver(
             object_identifier: int,
             payload: Mapping[str, Any] | None,
@@ -81,7 +82,7 @@ class OutboxCategory(IntEnum):
             from sentry.receivers.outbox import maybe_process_tombstone
 
             maybe_instance: ReplicatedCellModel | None = maybe_process_tombstone(
-                cast(Any, model), object_identifier, region_name=None
+                cast(Any, model), object_identifier, cell_name=None
             )
             if maybe_instance is None:
                 model.handle_async_deletion(
@@ -90,32 +91,32 @@ class OutboxCategory(IntEnum):
             else:
                 maybe_instance.handle_async_replication(shard_identifier=shard_identifier)
 
-        process_region_outbox.connect(receiver, weak=False, sender=self)
+        process_cell_outbox.connect(receiver, weak=False, sender=self)
 
     def connect_control_model_updates(self, model: type[HasControlReplicationHandlers]) -> None:
         def receiver(
             object_identifier: int,
             payload: Mapping[str, Any] | None,
             shard_identifier: int,
-            region_name: str,
+            cell_name: str,
             *args: Any,
             **kwds: Any,
         ) -> None:
             from sentry.receivers.outbox import maybe_process_tombstone
 
             maybe_instance: HasControlReplicationHandlers | None = maybe_process_tombstone(
-                cast(Any, model), object_identifier, region_name=region_name
+                cast(Any, model), object_identifier, cell_name=cell_name
             )
             if maybe_instance is None:
                 model.handle_async_deletion(
                     identifier=object_identifier,
-                    region_name=region_name,
+                    cell_name=cell_name,
                     shard_identifier=shard_identifier,
                     payload=payload,
                 )
             else:
                 maybe_instance.handle_async_replication(
-                    shard_identifier=shard_identifier, region_name=region_name
+                    shard_identifier=shard_identifier, cell_name=cell_name
                 )
 
         process_control_outbox.connect(receiver, weak=False, sender=self)
@@ -279,6 +280,7 @@ class OutboxScope(IntEnum):
             OutboxCategory.ISSUE_COMMENT_UPDATE,
             OutboxCategory.SEND_VERCEL_INVOICE,
             OutboxCategory.FTC_CONSENT,
+            OutboxCategory.PROJECT_KEY_UPDATE,
         },
     )
     USER_SCOPE = scope_categories(

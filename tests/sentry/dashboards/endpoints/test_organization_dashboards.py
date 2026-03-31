@@ -2408,3 +2408,56 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             assert response.status_code == 400, response.data
             assert "widgets" in response.data, response.data
             assert response.data["widgets"][0]["queries"][0] == "Text widgets don't have queries"
+
+    def test_post_validate_only_success_without_creating(self) -> None:
+        data: dict[str, Any] = {
+            "title": "Validated Dashboard",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Transaction count()",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("post", self.url + "?validateOnly=1", data=data)
+        assert response.status_code == 200
+        assert not Dashboard.objects.filter(
+            organization=self.organization, title="Validated Dashboard"
+        ).exists()
+
+    def test_post_validate_only_error_for_invalid_dashboard(self) -> None:
+        data: dict[str, Any] = {
+            "title": "Invalid Dashboard",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "",
+                    "title": "Transaction count()",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("post", self.url + "?validateOnly=1", data=data)
+        assert response.status_code == 400
+        assert response.data["widgets"][0]["interval"][0] == "This field may not be blank."
+        assert not Dashboard.objects.filter(
+            organization=self.organization, title="Invalid Dashboard"
+        ).exists()

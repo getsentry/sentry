@@ -11,5 +11,5 @@ export enum WidgetViewerQueryField {
 }
 
 export function isWidgetViewerPath(pathname: string) {
-  return pathname.match(/\/widget\/[0-9]+\/$/);
+  return pathname.match(/\/widget\/\d+\/$/);
 }

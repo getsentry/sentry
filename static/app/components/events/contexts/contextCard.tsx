@@ -3,7 +3,7 @@ import startCase from 'lodash/startCase';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import type {ContextValue} from 'sentry/components/events/contexts';
 import {
   getContextIcon,
@@ -76,13 +76,7 @@ export function ContextCardContent({
   );
 }
 
-export default function ContextCard({
-  alias,
-  event,
-  type,
-  project,
-  value = {},
-}: ContextCardProps) {
+export function ContextCard({alias, event, type, project, value = {}}: ContextCardProps) {
   const location = useLocation();
   const organization = useOrganization();
   const theme = useTheme();

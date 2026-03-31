@@ -5,7 +5,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
-import AlertContainer from 'sentry/views/settings/organizationIntegrations/integrationAlertContainer';
+import {AlertContainer} from 'sentry/views/settings/organizationIntegrations/integrationAlertContainer';
 
 import {UpsellButton} from 'getsentry/components/upsellButton';
 

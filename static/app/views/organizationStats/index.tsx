@@ -10,7 +10,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
@@ -31,7 +31,10 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate, type ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {canUseMetricsStatsUI} from 'sentry/views/explore/metrics/metricsFlags';
+import {
+  canUseMetricsStatsBytesUI,
+  canUseMetricsStatsUI,
+} from 'sentry/views/explore/metrics/metricsFlags';
 import {StatsHeader as HeaderTabs} from 'sentry/views/organizationStats/header';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
@@ -39,7 +42,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 
 import type {ChartDataTransform} from './usageChart';
 import {CHART_OPTIONS_DATACATEGORY} from './usageChart';
-import UsageStatsOrg from './usageStatsOrg';
+import {UsageStatsOrganization as UsageStatsOrg} from './usageStatsOrg';
 import {UsageStatsProjects} from './usageStatsProjects';
 
 const HookHeader = HookOrDefault({hookName: 'component:org-stats-banner'});
@@ -277,6 +280,9 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
       if ([DataCategory.TRACE_METRICS].includes(opt.value)) {
         return canUseMetricsStatsUI(organization);
       }
+      if ([DataCategory.TRACE_METRIC_BYTE].includes(opt.value)) {
+        return canUseMetricsStatsBytesUI(organization);
+      }
       if (
         [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI].includes(
           opt.value
@@ -286,9 +292,6 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
       }
       if (opt.value === DataCategory.PROFILES) {
         return !hasProfilingStats;
-      }
-      if (opt.value === DataCategory.SIZE_ANALYSIS) {
-        return organization.features.includes('expose-category-size-analysis');
       }
       if (opt.value === DataCategory.INSTALLABLE_BUILD) {
         return organization.features.includes('expose-category-installable-build');

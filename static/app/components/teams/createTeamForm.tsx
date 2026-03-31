@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
-import TextField from 'sentry/components/forms/fields/textField';
-import Form from 'sentry/components/forms/form';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {Form} from 'sentry/components/forms/form';
 import {t} from 'sentry/locale';
 import type {Organization, Team} from 'sentry/types/organization';
 import {slugify} from 'sentry/utils/slugify';

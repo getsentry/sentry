@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import ListItem from 'sentry/components/list/listItem';
+import {ListItem} from 'sentry/components/list/listItem';
 
 type Props = {
   children: React.ReactElement;

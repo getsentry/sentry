@@ -472,6 +472,13 @@ describe('groupEventDetails', () => {
     });
     const transactionEvent = EventFixture({
       entries: [{type: EntryType.SPANS, data: []}],
+      contexts: {
+        trace: {
+          trace_id: TRACE_ID,
+          span_id: 'b0e6f15b45c36b12',
+          type: 'trace',
+        },
+      },
     });
 
     mockGroupApis(props.organization, props.project, group, transactionEvent);

@@ -13,7 +13,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {
   IconChevron,
   IconCopy,
@@ -230,8 +230,6 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
             });
             break;
           }
-          default:
-            break;
         }
       }}
     />

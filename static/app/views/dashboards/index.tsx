@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
 import {Outlet} from 'react-router-dom';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import DashboardDetail from './detail';
+import {DashboardDetailWithInjectedProps as DashboardDetail} from './detail';
 import {OrgDashboards} from './orgDashboards';
 import {DashboardState} from './types';
 import {DashboardBasicFeature} from './view';

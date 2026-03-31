@@ -11,9 +11,9 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconDownload, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -151,7 +151,7 @@ export default function BuildDetails() {
   ) {
     return (
       <SentryDocumentTitle title={title}>
-        <Layout.Page>
+        <Stack flex={1}>
           <BuildError
             title="Build details unavailable"
             message={
@@ -176,14 +176,14 @@ export default function BuildDetails() {
               </Stack>
             )}
           </BuildError>
-        </Layout.Page>
+        </Stack>
       </SentryDocumentTitle>
     );
   }
 
   return (
     <SentryDocumentTitle title={title}>
-      <Layout.Page>
+      <Stack flex={1}>
         <PreprodQuotaAlert system />
         <Layout.Header>
           <BuildDetailsHeaderContent
@@ -217,7 +217,7 @@ export default function BuildDetails() {
             </BuildDetailsMain>
           </UrlParamBatchProvider>
         </BuildDetailsBody>
-      </Layout.Page>
+      </Stack>
     </SentryDocumentTitle>
   );
 }

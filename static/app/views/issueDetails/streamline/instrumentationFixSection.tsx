@@ -20,7 +20,7 @@ import {
 } from 'sentry/components/events/autofix/v2/artifactCards';
 import {ExplorerStatusCard} from 'sentry/components/events/autofix/v2/autofixStatusCard';
 import {ExplorerNextSteps} from 'sentry/components/events/autofix/v2/nextSteps';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconRefresh, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';

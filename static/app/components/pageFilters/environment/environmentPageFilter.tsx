@@ -22,6 +22,8 @@ import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useRouter} from 'sentry/utils/useRouter';
@@ -63,6 +65,8 @@ export function EnvironmentPageFilter({
   ...selectProps
 }: EnvironmentPageFilterProps) {
   const router = useRouter();
+  const location = useLocation();
+  const navigate = useNavigate();
   const organization = useOrganization();
 
   // Ref to break the circular dependency: options need toggleOption, but toggleOption
@@ -132,7 +136,7 @@ export function EnvironmentPageFilter({
       // Wait for the menu to close before calling onChange
       await new Promise(resolve => setTimeout(resolve, 0));
 
-      updateEnvironments(newValue, router, {
+      updateEnvironments(newValue, location, navigate, {
         save: true,
         resetParams: resetParamsOnChange,
         storageNamespace,
@@ -142,6 +146,8 @@ export function EnvironmentPageFilter({
       envPageFilterValue,
       resetParamsOnChange,
       router,
+      location,
+      navigate,
       organization,
       onChange,
       storageNamespace,

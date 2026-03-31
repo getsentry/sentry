@@ -7,7 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {FeedbackItemUsername} from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import {FeedbackTimestampsTooltip} from 'sentry/components/feedback/feedbackItem/feedbackTimestampsTooltip';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';

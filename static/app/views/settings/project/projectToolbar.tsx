@@ -2,7 +2,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {AutoSaveField, FieldGroup, FormSearch} from '@sentry/scraps/form';
+import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -69,7 +69,7 @@ export default function ProjectToolbarSettings() {
         )}
 
         <FieldGroup title={t('Settings')}>
-          <AutoSaveField
+          <AutoSaveForm
             name="sentry:toolbar_allowed_origins"
             schema={toolbarSchema}
             initialValue={initialValue}
@@ -116,7 +116,7 @@ export default function ProjectToolbarSettings() {
                 />
               </field.Layout.Stack>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
         </FieldGroup>
       </SentryDocumentTitle>
     </FormSearch>

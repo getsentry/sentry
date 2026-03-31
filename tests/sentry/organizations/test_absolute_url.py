@@ -68,6 +68,10 @@ from sentry.organizations.absolute_url import customer_domain_path
         ("/prevent/", "/prevent/"),
         ("/prevent/tokens/", "/prevent/tokens/"),
         ("/prevent/tests/", "/prevent/tests/"),
+        # Seer org settings: strip org slug but keep /settings/seer/... paths
+        ("/settings/acme/seer/", "/settings/seer/"),
+        ("/settings/acme/seer/repos/", "/settings/seer/repos/"),
+        ("/settings/seer/repos/", "/settings/seer/repos/"),
     ),
 )
 def test_customer_domain_path(input: str, expected: str) -> None:

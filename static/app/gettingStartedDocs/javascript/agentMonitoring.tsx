@@ -7,7 +7,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {javascriptMetaFrameworks} from 'sentry/data/platformCategories';
-import platforms from 'sentry/data/platforms';
+import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {
   getAgentIntegration,
   getInstallStep,
@@ -115,35 +115,24 @@ Sentry.init({
             label: 'JavaScript',
             language: 'javascript',
             code: `${sentryImport}
-import { ChatOpenAI } from "@langchain/openai";
-import { StateGraph, MessagesAnnotation } from "@langchain/langgraph";
-import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+import { createAgent } from "langchain";
 
-const llm = new ChatOpenAI({
-  modelName: "gpt-4o",
-  // WARNING: Never expose API keys in browser code
-  apiKey: "OPENAI_API_KEY",
+// Setting the agent name helps Sentry identify and group agent activity
+const agent = createAgent({
+  model: "openai:gpt-5.4",
+  tools: [],
+  name: "joke_agent",
 });
 
-const graph = new StateGraph(MessagesAnnotation)
-  .addNode("agent", async (state) => {
-    const response = await llm.invoke(state.messages);
-    return { messages: [response] };
-  })
-  .addEdge("__start__", "agent")
-  .addEdge("agent", "__end__");
-
-Sentry.instrumentLangGraph(graph, {
+Sentry.instrumentLangGraph(agent, {
   recordInputs: true,
   recordOutputs: true,
 });
 
-const agent = graph.compile();
-
 const result = await agent.invoke({
   messages: [
-    new SystemMessage("You are a helpful assistant."),
-    new HumanMessage("Tell me a joke")
+    { role: "system", content: "You are a helpful assistant." },
+    { role: "user", content: "Tell me a joke" },
   ],
 });
 
@@ -194,7 +183,7 @@ const callbackHandler = Sentry.createLangChainCallbackHandler({
 });
 
 const chatModel = new ChatOpenAI({
-  modelName: "gpt-4o",
+  modelName: "gpt-5.4",
   // WARNING: Never expose API keys in browser code
   apiKey: "OPENAI_API_KEY",
 });
@@ -252,9 +241,10 @@ const client = Sentry.instrumentGoogleGenAIClient(genAI, {
 });
 
 const response = await client.models.generateContent({
-  model: 'gemini-2.5-flash-lite',
+  model: 'gemini-3-flash-preview',
   contents: 'Why is the sky blue?',
 });
+console.log(response.text);
             `,
           },
         ],
@@ -299,7 +289,7 @@ const client = Sentry.instrumentAnthropicAiClient(anthropic, {
 });
 
 const msg = await client.messages.create({
- model: "claude-3-5-sonnet",
+ model: "claude-sonnet-4-6",
  messages: [{role: "user", content: "Tell me a joke"}],
 });
             `,
@@ -346,7 +336,7 @@ const client = Sentry.instrumentOpenAiClient(openai, {
 });
 
 const response = await client.responses.create({
-  model: "gpt-4o-mini",
+  model: "gpt-5.4",
   input: "Tell me a joke",
 });
             `,
@@ -381,7 +371,11 @@ export function agentMonitoring({
 } = {}): OnboardingConfig {
   return {
     introduction: params => (
-      <SdkUpdateAlert projectId={params.project.id} minVersion={minVersion} />
+      <SdkUpdateAlert
+        projectId={params.project.id}
+        minVersion={minVersion}
+        packageName={packageName}
+      />
     ),
     install: params =>
       getInstallStep(params, {

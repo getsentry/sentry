@@ -23,6 +23,8 @@ from packaging.version import InvalidVersion
 from packaging.version import parse as parse_version
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
+from taskbroker_client.constants import CompressionType
+from taskbroker_client.retry import Retry
 
 from sentry import features, options, quotas
 from sentry.conf.types.kafka_definition import Topic
@@ -62,9 +64,7 @@ from sentry.search.utils import DEVICE_CLASS
 from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import ingest_profiling_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils import json, metrics
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.eap import hex_to_item_id

@@ -6,7 +6,7 @@ import debounce from 'lodash/debounce';
 import uniqBy from 'lodash/uniqBy';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -14,7 +14,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import SearchBar from 'sentry/components/searchBar';
+import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconAdd, IconUser} from 'sentry/icons';
@@ -307,13 +307,13 @@ function Dashboard() {
 function OrganizationDashboard() {
   const organization = useOrganization();
   return (
-    <Layout.Page>
+    <Stack flex={1}>
       <NoProjectMessage organization={organization}>
         <PageAlertProvider>
           <Dashboard />
         </PageAlertProvider>
       </NoProjectMessage>
-    </Layout.Page>
+    </Stack>
   );
 }
 

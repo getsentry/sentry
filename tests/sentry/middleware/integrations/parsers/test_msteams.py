@@ -12,7 +12,7 @@ from sentry.middleware.integrations.classifications import IntegrationClassifica
 from sentry.middleware.integrations.parsers.msteams import MsTeamsRequestParser
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
-from sentry.testutils.silo import control_silo_test, create_test_regions
+from sentry.testutils.silo import control_silo_test, create_test_cells
 from tests.sentry.integrations.msteams.test_helpers import (
     EXAMPLE_MENTIONED,
     EXAMPLE_PERSONAL_MEMBER_ADDED,
@@ -24,7 +24,7 @@ from tests.sentry.integrations.msteams.test_helpers import (
 )
 
 
-@control_silo_test(regions=create_test_regions("us"))
+@control_silo_test(cells=create_test_cells("us"))
 class MsTeamsRequestParserTest(TestCase):
     factory = RequestFactory()
     path = f"{IntegrationClassification.integration_prefix}msteams/webhook/"

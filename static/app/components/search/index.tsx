@@ -4,7 +4,7 @@ import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import AutoComplete from 'sentry/components/autoComplete';
+import {AutoComplete} from 'sentry/components/autoComplete';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
@@ -16,7 +16,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {ApiSource} from './sources/apiSource';
 import {CommandSource} from './sources/commandSource';
 import {DsnLookupSource} from './sources/dsnLookupSource';
-import FormSource from './sources/formSource';
+import {FormSource} from './sources/formSource';
 import {OrganizationsSource} from './sources/organizationsSource';
 import {RouteSource} from './sources/routeSource';
 import type {Result} from './sources/types';

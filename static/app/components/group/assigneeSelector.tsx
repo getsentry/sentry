@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {AssigneeBadge} from 'sentry/components/assigneeBadge';
-import AssigneeSelectorDropdown, {
+import {
+  AssigneeSelectorDropdown,
   type AssignableEntity,
   type SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';

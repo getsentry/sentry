@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import SearchBar from 'sentry/components/searchBar';
+import {SearchBar} from 'sentry/components/searchBar';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';

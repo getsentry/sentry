@@ -2,7 +2,10 @@ import {t} from 'sentry/locale';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/caches/settings';
-import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {
+  WIDGET_COLUMN_LABELS,
+  TABLE_MIN_HEIGHT,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
@@ -28,7 +31,6 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           ],
           conditions: BASE_CONDITION,
           orderby: `equation|count_if(${SpanFields.CACHE_HIT},equals,false) / count(${SpanFields.SPAN_DURATION})`,
-          fieldMeta: [{valueType: 'percentage', valueUnit: null}],
         },
       ],
     },
@@ -83,15 +85,7 @@ const TRANSACTION_TABLE: Widget = {
         t('Avg Value Size'),
         t('Requests Per Minute'),
         t('Miss Rate'),
-        t('Time Spent'),
-      ],
-      fieldMeta: [
-        null,
-        null,
-        null,
-        null,
-        {valueType: 'percentage', valueUnit: null},
-        null,
+        WIDGET_COLUMN_LABELS.timeSpent,
       ],
       conditions: BASE_CONDITION,
       orderby: `-sum(${SpanFields.SPAN_DURATION})`,

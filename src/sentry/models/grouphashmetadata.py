@@ -135,7 +135,7 @@ class GroupHashMetadata(Model):
     def hash(self) -> str:
         return self.grouphash.hash
 
-    __repr__ = sane_repr("grouphash_id", "group_id", "hash", "seer_matched_grouphash")
+    __repr__ = sane_repr("grouphash_id", "group_id", "hash", "seer_matched_grouphash_id")
     __str__ = __repr__
 
     def get_best_guess_schema_version(self) -> str:

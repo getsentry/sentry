@@ -1,5 +1,5 @@
-import Access from 'sentry/components/acl/access';
-import Placeholder from 'sentry/components/placeholder';
+import {Access} from 'sentry/components/acl/access';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconAdd, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';

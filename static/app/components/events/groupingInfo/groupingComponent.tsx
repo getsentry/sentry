@@ -17,7 +17,7 @@ type Props = {
   showNonContributing: boolean;
 };
 
-function GroupingComponent({component, showNonContributing}: Props) {
+export function GroupingComponent({component, showNonContributing}: Props) {
   const shouldInlineValue = shouldInlineComponentValue(component);
   const GroupingComponentListItems =
     component.id === 'stacktrace'
@@ -107,5 +107,3 @@ const GroupingComponentList = styled('ul')<{hasFold: boolean; isInline: boolean}
       border-left: 1px solid ${p.theme.tokens.border.secondary};
     `}
 `;
-
-export default GroupingComponent;

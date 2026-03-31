@@ -9,7 +9,7 @@ import {Link} from '@sentry/scraps/link';
 import {loadStatsForProject} from 'sentry/actionCreators/projects';
 import {IdBadge} from 'sentry/components/idBadge';
 import {Panel} from 'sentry/components/panels/panel';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {

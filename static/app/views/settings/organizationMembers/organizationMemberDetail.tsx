@@ -15,7 +15,7 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {resendMemberInvite, updateMember} from 'sentry/actionCreators/members';
-import Confirm from 'sentry/components/confirm';
+import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
@@ -30,7 +30,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Member} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isMemberDisabledFromLimit} from 'sentry/utils/isMemberDisabledFromLimit';
 import {
   setApiQueryData,
@@ -39,7 +39,7 @@ import {
   useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {Teams} from 'sentry/utils/teams';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';

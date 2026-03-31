@@ -9,7 +9,7 @@ import {TagStore} from 'sentry/stores/tagStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagValue} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   keepPreviousData,
   useApiQuery,
@@ -190,7 +190,7 @@ export function fetchFeatureFlagValues({
   sort?: '-last_seen' | '-count';
 }): Promise<TagValue[]> {
   // Search syntax may wrap with flags[] or flags[""], but this endpoint doesn't support it.
-  const strippedKey = tagKey.replace(/^flags\[(?:"?)(.*?)(?:"?)\]$/, '$1');
+  const strippedKey = tagKey.replace(/^flags\["?(.*?)"?\]$/, '$1');
 
   const url = `/organizations/${organization.slug}/tags/${strippedKey}/values/`;
 

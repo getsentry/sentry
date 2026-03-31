@@ -4,7 +4,7 @@ import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {AutoSaveField, FieldGroup, FormSearch} from '@sentry/scraps/form';
+import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {Link} from '@sentry/scraps/link';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -16,7 +16,7 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {withOrganizations} from 'sentry/utils/withOrganizations';
 import type {NotificationSettingsType} from 'sentry/views/settings/account/notifications/constants';
@@ -128,7 +128,7 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
         {isPending && <LoadingIndicator />}
         {initialData && (
           <FieldGroup title={t('My Activity')}>
-            <AutoSaveField
+            <AutoSaveForm
               name="personalActivityNotifications"
               schema={notificationSchema}
               initialValue={initialData.personalActivityNotifications}
@@ -145,8 +145,8 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
                   />
                 </field.Layout.Row>
               )}
-            </AutoSaveField>
-            <AutoSaveField
+            </AutoSaveForm>
+            <AutoSaveForm
               name="selfAssignOnResolve"
               schema={notificationSchema}
               initialValue={initialData.selfAssignOnResolve}
@@ -165,7 +165,7 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
                   />
                 </field.Layout.Row>
               )}
-            </AutoSaveField>
+            </AutoSaveForm>
           </FieldGroup>
         )}
       </FormSearch>

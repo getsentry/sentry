@@ -9,7 +9,7 @@ This skill provides patterns for building forms using Sentry's new form system b
 
 ## Core Principle
 
-- Always use the new form system (`useScrapsForm`, `AutoSaveField`) for new forms. Never create new forms with the legacy JsonForm or Reflux-based systems.
+- Always use the new form system (`useScrapsForm`, `AutoSaveForm`) for new forms. Never create new forms with the legacy JsonForm or Reflux-based systems.
 
 - All forms should be schema based. DO NOT create a form without schema validation.
 
@@ -21,7 +21,7 @@ All form components are exported from `@sentry/scraps/form`:
 import {z} from 'zod';
 
 import {
-  AutoSaveField,
+  AutoSaveForm,
   defaultFormOptions,
   setFieldErrors,
   useScrapsForm,
@@ -570,14 +570,14 @@ Validation errors automatically show as a warning icon with tooltip in the field
 
 ## Auto-Save Pattern
 
-For settings pages where each field saves independently, use `AutoSaveField`.
+For settings pages where each field saves independently, use `AutoSaveForm`.
 
-### Basic Auto-Save Field
+### Basic Auto-Save Form
 
 ```tsx
 import {z} from 'zod';
 
-import {AutoSaveField} from '@sentry/scraps/form';
+import {AutoSaveForm} from '@sentry/scraps/form';
 
 import {fetchMutation} from 'sentry/utils/queryClient';
 
@@ -587,7 +587,7 @@ const schema = z.object({
 
 function SettingsForm() {
   return (
-    <AutoSaveField
+    <AutoSaveForm
       name="displayName"
       schema={schema}
       initialValue={user.displayName}
@@ -610,7 +610,7 @@ function SettingsForm() {
           <field.Input value={field.state.value} onChange={field.handleChange} />
         </field.Layout.Row>
       )}
-    </AutoSaveField>
+    </AutoSaveForm>
   );
 }
 ```
@@ -641,7 +641,7 @@ The form system automatically shows:
 For dangerous operations (security settings, permissions), use the `confirm` prop to show a confirmation modal before saving. The `confirm` prop accepts either a string or a function.
 
 ```tsx
-<AutoSaveField
+<AutoSaveForm
   name="require2FA"
   schema={schema}
   initialValue={false}
@@ -657,7 +657,7 @@ For dangerous operations (security settings, permissions), use the `confirm` pro
       <field.Switch checked={field.state.value} onChange={field.handleChange} />
     </field.Layout.Row>
   )}
-</AutoSaveField>
+</AutoSaveForm>
 ```
 
 **Confirm Config Options:**
@@ -731,6 +731,20 @@ function MyForm() {
   // ...
 }
 ```
+
+### Resetting After Save
+
+When a form stays on the page after submission (e.g., settings pages), call `form.reset()` after a successful mutation. This re-syncs the form with updated `defaultValues` so it becomes pristine again — any UI that depends on the form being dirty (like conditionally shown Save/Cancel buttons) will update correctly.
+
+```tsx
+onSubmit: ({value}) =>
+  mutation
+    .mutateAsync(value)
+    .then(() => form.reset())
+    .catch(() => {}),
+```
+
+> **Note**: `AutoSaveForm` handles this automatically. You only need to add this when using `useScrapsForm`.
 
 ### Submit Button
 
@@ -828,7 +842,11 @@ onSubmit: ({value}) => {
   // Return the promise to keep form.isSubmitting working
   // Add .catch(() => {}) to avoid unhandled rejection - error handling
   // is done by TanStack Query (onError callback, mutation.isError state)
-  return mutation.mutateAsync(value).catch(() => {});
+  // Add .then(() => form.reset()) if the form stays on the page after save
+  return mutation
+    .mutateAsync(value)
+    .then(() => form.reset())
+    .catch(() => {});
 };
 ```
 
@@ -868,7 +886,7 @@ mutationOptions={{
   mutationFn: (data) => fetchMutation({url: '/user/', method: 'PUT', data}),
   onSuccess: (data) => {
     queryClient.setQueryData(['user'], old => ({...old, ...data}));
-    // No toast needed - AutoSaveField shows a checkmark automatically
+    // No toast needed - AutoSaveForm shows a checkmark automatically
   },
 }}
 ```
@@ -915,6 +933,23 @@ const opts = mutationOptions({
 
 Make sure the zod schema's types are compatible with the API type. For example, if the API expects a string union like `'off' | 'low' | 'high'`, use `z.enum(['off', 'low', 'high'])` instead of `z.string()`.
 
+### Form Reset After Save
+
+```tsx
+// ❌ Don't forget to reset forms that stay on the page after save
+onSubmit: ({value}) => {
+  return mutation.mutateAsync(value).catch(() => {});
+};
+
+// ✅ Call form.reset() after successful save to sync with updated defaultValues
+onSubmit: ({value}) => {
+  return mutation
+    .mutateAsync(value)
+    .then(() => form.reset())
+    .catch(() => {});
+};
+```
+
 ### Layout Choice
 
 ```tsx
@@ -941,10 +976,11 @@ When creating a new form:
 - [ ] Choose appropriate layout (Stack or Row)
 - [ ] Handle server errors with `setFieldErrors`
 - [ ] Add `<form.SubmitButton>` for submission
+- [ ] Call `form.reset()` after successful mutation if the form stays on the page
 
 When creating auto-save fields:
 
-- [ ] Use `<AutoSaveField>` component
+- [ ] Use `<AutoSaveForm>` component
 - [ ] Pass `schema` for validation
 - [ ] Pass `initialValue` from current data
 - [ ] Configure `mutationOptions` with `mutationFn`
@@ -954,10 +990,10 @@ When creating auto-save fields:
 
 ## File References
 
-| File                                                      | Purpose                     |
-| --------------------------------------------------------- | --------------------------- |
-| `static/app/components/core/form/scrapsForm.tsx`          | Main form hook              |
-| `static/app/components/core/form/field/autoSaveField.tsx` | Auto-save wrapper           |
-| `static/app/components/core/form/field/*.tsx`             | Individual field components |
-| `static/app/components/core/form/layout/index.tsx`        | Layout components           |
-| `static/app/components/core/form/form.stories.tsx`        | Usage examples              |
+| File                                               | Purpose                     |
+| -------------------------------------------------- | --------------------------- |
+| `static/app/components/core/form/scrapsForm.tsx`   | Main form hook              |
+| `static/app/components/core/form/autoSaveForm.tsx` | Auto-save wrapper           |
+| `static/app/components/core/form/field/*.tsx`      | Individual field components |
+| `static/app/components/core/form/layout/index.tsx` | Layout components           |
+| `static/app/components/core/form/form.stories.tsx` | Usage examples              |

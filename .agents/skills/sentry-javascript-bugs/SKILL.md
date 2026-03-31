@@ -1,21 +1,21 @@
 ---
 name: sentry-javascript-bugs
-description: 'Sentry JavaScript frontend bug pattern review based on real production errors. Use when reviewing React/TypeScript frontend code for common bug patterns. Trigger keywords: "javascript bug review", "frontend errors", "react error patterns", "sentry frontend bugs".'
-allowed-tools: Read, Grep, Glob, Bash
+description: 'Review Sentry React and TypeScript changes for bug patterns drawn from real production issues. Use when reviewing a frontend diff or PR, checking Warden findings, auditing the current branch, reviewing production-error patterns, or looking for common regressions in `static/`.'
+allowed-tools: Read Grep Glob Bash
 ---
 
 # Sentry JavaScript Frontend Bug Pattern Review
 
-Find bugs in Sentry frontend code by checking for the patterns that cause real production errors.
+Find bugs in Sentry frontend code by checking for the patterns that cause the most real production errors.
 
 This skill encodes patterns from 428 real production issues (201 resolved, 130 ignored, 97 unresolved) generating over 524,000 error events across 93,000+ affected users. These are not theoretical risks -- they are the actual bugs that ship most often, with known fixes from resolved issues.
 
 ## Scope
 
-You receive scoped code chunks from Warden's diff pipeline. Each chunk is a changed hunk (or coalesced group of nearby hunks) with surrounding context.
+Review the code provided by the user, Warden, or the current branch diff. If the user does not provide a target, review the current branch diff. Start from the changed hunk or file, then read outward only as needed to confirm the behavior.
 
-1. Analyze the chunk against the pattern checks below.
-2. Use `Read` and `Grep` to trace data flow beyond the chunk when needed — follow component props, hook return values, API response shapes.
+1. Analyze the changed code against the pattern checks below.
+2. Use `Read` and `Grep` to trace data flow beyond the initial diff when needed. Follow component props, hook return values, API response shapes, and state transitions until the behavior is confirmed.
 3. Report only **HIGH** and **MEDIUM** confidence findings.
 
 | Confidence | Criteria                                                              | Action                       |
@@ -28,15 +28,15 @@ You receive scoped code chunks from Warden's diff pipeline. Each chunk is a chan
 
 Determine what you are reviewing and load the relevant reference.
 
-| Code Type                                                               | Load Reference                                               |
-| ----------------------------------------------------------------------- | ------------------------------------------------------------ |
-| Null/undefined property access, optional chaining, object destructuring | `${CLAUDE_SKILL_ROOT}/references/null-reference-errors.md`   |
-| Dashboard widgets, chart visualization, widget URL generation           | `${CLAUDE_SKILL_ROOT}/references/dashboard-widget-errors.md` |
-| Trace views, span details, trace tree rendering                         | `${CLAUDE_SKILL_ROOT}/references/trace-view-errors.md`       |
-| API calls, response handling, error states, fetch wrappers              | `${CLAUDE_SKILL_ROOT}/references/api-response-handling.md`   |
-| React hooks, context providers, render loops, component lifecycle       | `${CLAUDE_SKILL_ROOT}/references/react-lifecycle-errors.md`  |
-| AI Insights, LLM prompt parsing, gen_ai span data                       | `${CLAUDE_SKILL_ROOT}/references/ai-insights-parsing.md`     |
-| Array operations, date/time values, numeric formatting                  | `${CLAUDE_SKILL_ROOT}/references/range-and-bounds-errors.md` |
+| Code Type                                                               | Load Reference                          |
+| ----------------------------------------------------------------------- | --------------------------------------- |
+| Null/undefined property access, optional chaining, object destructuring | `references/null-reference-errors.md`   |
+| Dashboard widgets, chart visualization, widget URL generation           | `references/dashboard-widget-errors.md` |
+| Trace views, span details, trace tree rendering                         | `references/trace-view-errors.md`       |
+| API calls, response handling, error states, fetch wrappers              | `references/api-response-handling.md`   |
+| React hooks, context providers, render loops, component lifecycle       | `references/react-lifecycle-errors.md`  |
+| AI Insights, LLM prompt parsing, gen_ai span data                       | `references/ai-insights-parsing.md`     |
+| Array operations, date/time values, numeric formatting                  | `references/range-and-bounds-errors.md` |
 
 If the code spans multiple categories, load all relevant references.
 
@@ -188,14 +188,14 @@ Each code location should be reported once under the most specific matching patt
 
 ## Step 3: Report Findings
 
-For each finding, include:
+For each finding, provide the evidence the review harness needs:
 
-- **Title**: Short description of the bug
-- **Severity**: high, medium, or low
-- **Location**: File path and line number
-- **Description**: Root cause → consequences (2-4 sentences)
-- **Precedent**: A real production issue ID (e.g., "Similar to JAVASCRIPT-2NQW: null charCodeAt in SQL parser, 39K events")
-- **Fix**: A unified diff showing the code fix
+- precise location
+- severity and confidence
+- concrete triggering input or state
+- root cause and consequence
+- a matching production precedent when available
+- a concrete code fix, preferably as a unified diff when the harness supports it
 
 Fix suggestions must include actual code. Never suggest a comment or docstring as a fix.
 

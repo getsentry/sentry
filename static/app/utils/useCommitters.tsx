@@ -1,6 +1,6 @@
 import type {Group} from 'sentry/types/group';
 import type {Committer} from 'sentry/types/integrations';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {usePrevious} from 'sentry/utils/usePrevious';
@@ -9,8 +9,8 @@ import {useOrganization} from './useOrganization';
 
 interface UseCommittersProps {
   eventId: string;
+  group: Group;
   projectSlug: string;
-  group?: Group;
 }
 
 interface CommittersResponse {
@@ -39,7 +39,7 @@ export function useCommitters(
   options: Partial<UseApiQueryOptions<CommittersResponse>> = {}
 ) {
   const org = useOrganization();
-  const previousGroupId = usePrevious(group?.id);
+  const previousGroupId = usePrevious(group.id);
   return useApiQuery<CommittersResponse>(
     makeCommittersQueryKey(org.slug, projectSlug, eventId),
     {
@@ -47,7 +47,7 @@ export function useCommitters(
       retry: false,
       enabled: !!eventId,
       placeholderData: previousData => {
-        return group?.id === previousGroupId ? previousData : undefined;
+        return group.id === previousGroupId ? previousData : undefined;
       },
       ...options,
     }

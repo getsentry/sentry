@@ -82,7 +82,10 @@ type MarkProps = React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTML
  * Given a match object from fuse.js, returns an array of components with
  * "highlighted" (bold) substrings.
  */
-const highlightFuseMatches = (matchObj: Match, Marker: React.ComponentType<MarkProps>) =>
+export const highlightFuseMatches = (
+  matchObj: Match,
+  Marker: React.ComponentType<MarkProps>
+) =>
   getFuseMatches(matchObj).map(({highlight, text}, index) => {
     if (!text) {
       return null;
@@ -95,4 +98,3 @@ const highlightFuseMatches = (matchObj: Match, Marker: React.ComponentType<MarkP
   });
 
 export {getFuseMatches};
-export default highlightFuseMatches;

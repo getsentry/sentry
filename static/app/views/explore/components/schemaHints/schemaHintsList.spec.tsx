@@ -2,7 +2,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 
 import type {TagCollection} from 'sentry/types/group';
 import {AggregationKey, FieldKind} from 'sentry/utils/fields';
-import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
@@ -56,14 +56,26 @@ function Subject(
 }
 
 // Mock getBoundingClientRect for container
-jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
-  this: HTMLElement
-) {
-  // Mock individual hint items
-  if (this.hasAttribute('data-type')) {
+jest
+  .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+  .mockImplementation(function (this: HTMLElement) {
+    // Mock individual hint items
+    if (this.hasAttribute('data-type')) {
+      return {
+        width: 200,
+        right: 200,
+        left: 0,
+        top: 0,
+        bottom: 100,
+        height: 100,
+        x: 0,
+        y: 0,
+        toJSON: () => {},
+      };
+    }
     return {
-      width: 200,
-      right: 200,
+      width: 1000,
+      right: 1000,
       left: 0,
       top: 0,
       bottom: 100,
@@ -72,19 +84,7 @@ jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(fu
       y: 0,
       toJSON: () => {},
     };
-  }
-  return {
-    width: 1000,
-    right: 1000,
-    left: 0,
-    top: 0,
-    bottom: 100,
-    height: 100,
-    x: 0,
-    y: 0,
-    toJSON: () => {},
-  };
-});
+  });
 
 describe('SchemaHintsList', () => {
   beforeEach(() => {

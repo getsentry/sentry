@@ -53,7 +53,7 @@ type Props = {
 /**
  * Component to handle access restrictions.
  */
-function Access({
+export function Access({
   children,
   organization: overrideOrganization,
   isSuperuser,
@@ -103,5 +103,3 @@ export function hasEveryAccess(
 
   return !access.length || hasOrganizationAccess || hasTeamAccess || hasProjectAccess;
 }
-
-export default Access;

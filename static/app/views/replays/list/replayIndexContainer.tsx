@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Pagination from 'sentry/components/pagination';
+import {Pagination} from 'sentry/components/pagination';
 import {useReplayTableSort} from 'sentry/components/replays/table/useReplayTableSort';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useReplayListQueryKey} from 'sentry/utils/replays/hooks/useReplayListQueryKey';

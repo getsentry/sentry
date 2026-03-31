@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {MarkedText} from 'sentry/utils/marked/markedText';

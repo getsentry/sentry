@@ -3,8 +3,8 @@ import {Link} from 'react-router-dom';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';

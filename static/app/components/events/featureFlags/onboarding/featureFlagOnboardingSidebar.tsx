@@ -14,7 +14,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {FeatureFlagOnboardingLayout} from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingLayout';
 import {FeatureFlagOtherPlatformOnboarding} from 'sentry/components/events/featureFlags/onboarding/featureFlagOtherPlatformOnboarding';
 import {SdkProviderEnum} from 'sentry/components/events/featureFlags/utils';
-import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {useDrawer} from 'sentry/components/globalDrawer';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -22,10 +22,11 @@ import {useCurrentProjectState} from 'sentry/components/onboarding/gettingStarte
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
-import platforms, {otherPlatform} from 'sentry/data/platforms';
+import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import OnboardingDrawerStore, {
+import {
   OnboardingDrawerKey,
+  OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {SelectValue} from 'sentry/types/core';

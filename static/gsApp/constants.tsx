@@ -208,7 +208,7 @@ export const BILLED_DATA_CATEGORY_INFO = {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SIZE_ANALYSIS],
     freeEventsMultiple: 1,
     shortenedUnitName: t('build'),
-    adminOnlyProductTrialFeature: 'expose-category-size-analysis',
+    adminOnlyProductTrialFeature: true,
   },
   [DataCategoryExact.INSTALLABLE_BUILD]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.INSTALLABLE_BUILD],

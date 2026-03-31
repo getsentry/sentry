@@ -6,7 +6,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import ArchiveActions from 'sentry/components/actions/archive';
+import {ArchiveActions} from 'sentry/components/actions/archive';
 import {GroupStatus} from 'sentry/types/group';
 
 describe('ArchiveActions', () => {

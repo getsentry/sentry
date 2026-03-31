@@ -1,7 +1,8 @@
 import {useCallback, useEffect} from 'react';
 
-import OnboardingDrawerStore, {
+import {
   OnboardingDrawerKey,
+  OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useSelectedProjectsHaveField} from 'sentry/utils/project/useSelectedProjectsHaveField';

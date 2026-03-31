@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ApiForm} from 'sentry/components/forms/apiForm';
-import SelectField from 'sentry/components/forms/fields/selectField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
 
 import type {Relocation} from 'admin/types';
 import {RelocationSteps} from 'admin/types';
@@ -25,8 +25,8 @@ export function RelocationPauseModal({
   const choices = Object.keys(RelocationSteps)
     // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
     .filter(step => RelocationSteps[step] > currentStep && step !== 'COMPLETED')
-    .map(step => [step, titleCase(step)]);
-  choices.unshift(['ASAP', 'As soon as possible']);
+    .map(step => [step, titleCase(step)] as const);
+  choices.unshift(['ASAP', 'As soon as possible'] as const);
 
   return (
     <Fragment>

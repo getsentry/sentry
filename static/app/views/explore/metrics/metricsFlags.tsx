@@ -21,9 +21,23 @@ export const canUseMetricsAlertsUI = (organization: Organization) => {
   );
 };
 
-export const canUseMetricsMultiAggregateUI = (organization: Organization) => {
+export const canUseMetricsSidePanelUI = (organization: Organization) => {
   return (
     canUseMetricsUI(organization) &&
-    organization.features.includes('tracemetrics-overlay-charts-ui')
+    organization.features.includes('tracemetrics-attributes-dropdown-side-panel')
+  );
+};
+
+export const canUseMetricsUIRefresh = (organization: Organization) => {
+  return (
+    canUseMetricsUI(organization) &&
+    organization.features.includes('tracemetrics-ui-refresh')
+  );
+};
+
+export const canUseMetricsStatsBytesUI = (organization: Organization) => {
+  return (
+    canUseMetricsUI(organization) &&
+    organization.features.includes('tracemetrics-stats-bytes-ui')
   );
 };

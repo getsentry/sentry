@@ -15,7 +15,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Event} from 'sentry/types/event';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
-import localStorageWrapper from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 describe('Threads', () => {
   const organization = OrganizationFixture();

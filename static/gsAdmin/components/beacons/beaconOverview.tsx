@@ -21,7 +21,7 @@ type Props = {
   data: BeaconData;
 };
 
-function BeaconOverview({data}: Props) {
+export function BeaconOverview({data}: Props) {
   return (
     <DetailsContainer>
       <DetailList>
@@ -54,5 +54,3 @@ function BeaconOverview({data}: Props) {
     </DetailsContainer>
   );
 }
-
-export default BeaconOverview;

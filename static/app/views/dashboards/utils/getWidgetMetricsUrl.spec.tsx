@@ -225,6 +225,46 @@ describe('getWidgetMetricsUrl', () => {
       const metricQuery = JSON.parse(metrics[0]!);
       expect(metricQuery.metric.unit).toBe('second');
     });
+
+    it('reads the tracemetric from each aggregate', () => {
+      const widget: Widget = {
+        id: '1',
+        title: 'Multi Aggregate',
+        displayType: DisplayType.LINE,
+        interval: '5m',
+        widgetType: WidgetType.TRACEMETRICS,
+        queries: [
+          {
+            name: 'Query 1',
+            fields: [],
+            aggregates: [
+              'avg(value,test_metric_a,duration,-)',
+              'p95(value,test_metric_b,gauge,-)',
+              'count(value,test_metric_c,counter,-)',
+            ],
+            columns: [],
+            conditions: 'transaction:"/api/users"',
+            orderby: '',
+            fieldAliases: [],
+          },
+        ],
+      };
+
+      const url = getWidgetMetricsUrl(widget, undefined, selection, organization);
+      const {params} = parseMetricsUrl(url);
+
+      // Should have 3 metric query parameters (one for each aggregate)
+      expect(params.metric).toBeDefined();
+      const metrics = Array.isArray(params.metric) ? params.metric : [params.metric];
+
+      const parsedMetrics = metrics.map(metric => JSON.parse(metric as string));
+      expect(parsedMetrics).toHaveLength(3);
+      expect(parsedMetrics.map(m => m.metric)).toEqual([
+        {name: 'test_metric_a', type: 'duration'},
+        {name: 'test_metric_b', type: 'gauge'},
+        {name: 'test_metric_c', type: 'counter'},
+      ]);
+    });
   });
 
   describe('multiple queries', () => {

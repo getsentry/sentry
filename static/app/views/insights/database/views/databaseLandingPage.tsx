@@ -4,7 +4,7 @@ import type {AlertProps} from '@sentry/scraps/alert';
 import {Alert} from '@sentry/scraps/alert';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import SearchBar from 'sentry/components/searchBar';
+import {SearchBar} from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';

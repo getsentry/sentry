@@ -28,6 +28,7 @@ from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderB
 from sentry import features, options
 from sentry.api.paginator import SequencePaginator
 from sentry.api.utils import default_start_end_dates, handle_query_errors
+from sentry.eventstream.item_helpers import format_attr_key
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -186,7 +187,7 @@ class SnubaTagStorage(TagStorage):
         """
         tag_key should be unformatted (i.e. "foo" rather than "tags[foo]")
         """
-        attr_name = f"tags[{tag_key}]"
+        attr_name = format_attr_key(tag_key)
         if limit is None or limit > 100:
             # EAP imposes a limit of 100 buckets max
             limit = 100

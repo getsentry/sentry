@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import PlatformPicker from 'sentry/components/platformPicker';
+import {PlatformPicker} from 'sentry/components/platformPicker';
 import {gaming} from 'sentry/data/platformCategories';
 import {trackAnalytics} from 'sentry/utils/analytics';
 

@@ -6,7 +6,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {TagStore} from 'sentry/stores/tagStore';
 import type {Tag, TagValue} from 'sentry/types/group';
 import {IsFieldValues} from 'sentry/utils/fields';
-import IssueListSearchBar from 'sentry/views/issueList/searchBar';
+import {IssueListSearchBar} from 'sentry/views/issueList/searchBar';
 
 describe('IssueListSearchBar', () => {
   const {organization} = initializeOrg();

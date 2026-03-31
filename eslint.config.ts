@@ -37,6 +37,7 @@ import noRelativeImportPaths from 'eslint-plugin-no-relative-import-paths';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactYouMightNotNeedAnEffect from 'eslint-plugin-react-you-might-not-need-an-effect';
+import regexp from 'eslint-plugin-regexp';
 // @ts-expect-error TS(7016): Could not find a declaration file
 import sentry from 'eslint-plugin-sentry';
 import testingLibrary from 'eslint-plugin-testing-library';
@@ -173,6 +174,11 @@ const restrictedImportPaths = [
     name: '@tanstack/react-form',
     message: 'Use @sentry/scraps/form instead',
   },
+  {
+    name: 'framer-motion',
+    importNames: ['Reorder'],
+    message: "Do not use framer-motion's Reorder. Use @dnd-kit/sortable instead.",
+  },
 ];
 
 // Used by both: `languageOptions` & `parserOptions`
@@ -304,8 +310,6 @@ export default typescript.config([
     rules: {
       'array-callback-return': 'error',
       'block-scoped-var': 'error',
-      'consistent-return': 'error',
-      'default-case': 'error',
       'dot-notation': 'error',
       eqeqeq: 'error',
       'guard-for-in': 'off', // TODO(ryan953): Fix violations and enable this rule
@@ -598,15 +602,33 @@ export default typescript.config([
           '@typescript-eslint/no-for-in-array': 'error',
           '@typescript-eslint/no-unnecessary-template-expression': 'error',
           '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+          '@typescript-eslint/switch-exhaustiveness-check': [
+            'error',
+            {considerDefaultExhaustiveForUnions: true},
+          ],
           '@typescript-eslint/only-throw-error': 'error',
           '@typescript-eslint/prefer-optional-chain': 'error',
           '@typescript-eslint/prefer-promise-reject-errors': 'error',
           '@typescript-eslint/require-await': 'error',
           '@typescript-eslint/no-meaningless-void-operator': 'error',
-          '@sentry/no-default-export-components': 'error',
+          '@sentry/no-default-exports': 'error',
           '@sentry/no-unnecessary-type-annotation': 'error',
         }
       : {},
+  },
+  {
+    name: 'files/allowing default exports',
+    files: [
+      '*.config.*',
+      '**/__mocks__/*',
+      'static/app/stories/*-loader.ts',
+      'static/app/chartcuterie/config.tsx',
+      'tests/js/*-transform.*',
+      'tests/js/test-*/*',
+    ],
+    rules: {
+      '@sentry/no-default-exports': 'off',
+    },
   },
   {
     name: 'plugin/typescript-eslint/custom',
@@ -815,6 +837,20 @@ export default typescript.config([
     ...jestDom.configs['flat/recommended'],
   },
   {
+    extends: [regexp.configs.recommended],
+    name: 'plugin/regexp',
+    rules: {
+      'prefer-regex-literals': 'off', // TODO(JoshuaKGoldberg): do we want this?
+      'regexp/no-misleading-capturing-group': 'off', // TODO(JoshuaKGoldberg): do we want this?
+      'regexp/no-obscure-range': 'off', // TODO(JoshuaKGoldberg): do we want this?
+      'regexp/no-super-linear-backtracking': 'off', // TODO(JoshuaKGoldberg): do we want this?
+      'regexp/no-unused-capturing-group': 'off', // TODO(JoshuaKGoldberg): do we want this?
+      'regexp/optimal-quantifier-concatenation': 'off', // TODO(JoshuaKGoldberg): do we want this?
+      'regexp/strict': 'off', // TODO(JoshuaKGoldberg): do we want this?
+      'regexp/use-ignore-case': 'off', // TODO(JoshuaKGoldberg): do we want this?
+    },
+  },
+  {
     name: 'plugin/testing-library',
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     // https://github.com/testing-library/eslint-plugin-testing-library/tree/main/docs/rules
@@ -827,14 +863,14 @@ export default typescript.config([
     },
   },
   {
+    // turn off features that conflict with formatter
     name: 'plugin/prettier',
     ...prettier,
     rules: {
-      // import sorting is handled with prettier-plugin-sort-imports
+      // import sorting is handled by oxfmt
       'import/order': 'off',
       'sort-imports': 'off',
       'import/newline-after-import': 'off',
-      // prettier-plugin-sort-imports always combines imports
       'import/no-duplicates': 'off',
     },
   },
@@ -894,6 +930,7 @@ export default typescript.config([
     name: 'files/jest related',
     files: [
       'tests/js/jest-pegjs-transform.js',
+      'tests/js/sentry-test/jest-environment.js',
       'tests/js/sentry-test/mocks/*',
       'tests/js/sentry-test/loadFixtures.ts',
       'tests/js/setup.ts',

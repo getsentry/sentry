@@ -17,12 +17,12 @@ from sentry.middleware.integrations.parsers.discord import DiscordRequestParser
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.outbox import assert_no_webhook_payloads
-from sentry.testutils.silo import control_silo_test, create_test_regions
+from sentry.testutils.silo import control_silo_test, create_test_cells
 from sentry.utils import json
 from sentry.utils.signing import sign
 
 
-@control_silo_test(regions=create_test_regions("us"))
+@control_silo_test(cells=create_test_cells("us"))
 class DiscordRequestParserTest(TestCase):
     factory = RequestFactory()
     discord_id = "808"

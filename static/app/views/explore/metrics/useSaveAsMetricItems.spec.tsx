@@ -28,7 +28,7 @@ const mockOpenSaveQueryModal = jest.mocked(modal.openSaveQueryModal);
 
 describe('useSaveAsMetricItems', () => {
   const organization = OrganizationFixture({
-    features: ['tracemetrics-enabled', 'tracemetrics-overlay-charts-ui'],
+    features: ['tracemetrics-enabled'],
   });
   const project = ProjectFixture({id: '1'});
   const queryClient = makeTestQueryClient();

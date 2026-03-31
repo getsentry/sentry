@@ -13,7 +13,7 @@ import {
   addOrganizationFeaturesHandler,
   buildSentryFeaturesHandler,
 } from 'sentry/utils/featureFlags';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {queryOptions, skipToken, useQuery} from 'sentry/utils/queryClient';
 
 // 30 second stale time

@@ -9,7 +9,7 @@ import {Select} from '@sentry/scraps/select';
 
 import {openProjectCreationModal} from 'sentry/actionCreators/modal';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
-import FormField from 'sentry/components/forms/formField';
+import {FormField} from 'sentry/components/forms/formField';
 import {FormFieldControlState} from 'sentry/components/forms/formField/controlState';
 import type {FormModel} from 'sentry/components/forms/model';
 import type {ProjectMapperType} from 'sentry/components/forms/types';
@@ -303,7 +303,7 @@ export class RenderField extends Component<RenderProps, State> {
   }
 }
 
-function ProjectMapperField(props: InputFieldProps) {
+export function ProjectMapperField(props: InputFieldProps) {
   return (
     <StyledFormField
       {...props}
@@ -316,8 +316,6 @@ function ProjectMapperField(props: InputFieldProps) {
     </StyledFormField>
   );
 }
-
-export default ProjectMapperField;
 
 const Item = styled('div')`
   min-height: 60px;

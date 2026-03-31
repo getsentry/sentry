@@ -94,6 +94,13 @@ export const ARTIFACT_TYPE_OPTIONS: Array<{label: string; value: ArtifactType}> 
     value,
   }));
 
+export const STATUS_CHECK_ALLOWED_FILTER_KEYS = [
+  'app_id',
+  'git_head_ref',
+  'build_configuration_name',
+  'platform_name',
+];
+
 export function guessPlatformForProject(project: Project): Platform | undefined {
   const platform = project.platform;
   if (!platform) {
@@ -117,10 +124,10 @@ export function getMetricLabelForPlatform(
   platform: Platform | undefined
 ): string {
   if (platform === 'android' && metric === 'install_size') {
-    return 'Uncompressed size';
+    return 'Uncompressed Size';
   }
   if (platform === 'apple' && metric === 'install_size') {
-    return 'Install size';
+    return 'Install Size';
   }
   return getMetricLabel(metric);
 }

@@ -27,12 +27,9 @@ export function WidgetError({error}: WidgetErrorProps) {
   );
 }
 
-const Panel = styled('div')<{height?: string}>`
-  container-type: size;
+const Panel = styled('div')`
+  container-type: inline-size;
   container-name: error-panel;
-
-  position: absolute;
-  inset: 0;
 
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 

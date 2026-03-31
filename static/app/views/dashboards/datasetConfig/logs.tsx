@@ -212,8 +212,8 @@ export const LogsConfig: DatasetConfig<
   transformTable: transformEventsResponseToTable,
   transformSeries: transformEventsResponseToSeries,
   filterAggregateParams,
-  getCustomFieldRenderer: (field, meta, _organization) => {
-    return getFieldRenderer(field, meta, false);
+  getCustomFieldRenderer: (field, meta, widget, _organization, dashboardFilters) => {
+    return getFieldRenderer(field, meta, false, widget, dashboardFilters);
   },
 };
 

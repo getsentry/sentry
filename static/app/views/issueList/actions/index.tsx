@@ -152,7 +152,7 @@ function ActionsBarPriority({
   );
 }
 
-function IssueListActions({
+export function IssueListActions({
   allResultsVisible,
   displayReprocessingActions,
   groupIds,
@@ -486,7 +486,3 @@ const AnimatedHeaderItemsContainer = styled(motion.div)`
   display: flex;
   align-items: center;
 `;
-
-export {IssueListActions};
-
-export default IssueListActions;

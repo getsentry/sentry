@@ -34,7 +34,7 @@ from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamp
 from sentry.apidocs.parameters import DetectorParams, GlobalParams, OrganizationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.exceptions import InvalidSearchQuery
 from sentry.incidents.grouptype import MetricIssue
 from sentry.issues import grouptype
@@ -57,13 +57,15 @@ from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id, to_valid
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     BulkDetectorWorkflowsValidator,
-    can_delete_detectors,
-    can_edit_detectors,
 )
 from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
     DetectorWorkflowMutationValidator,
 )
-from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
+from sentry.workflow_engine.endpoints.validators.utils import (
+    can_delete_detectors,
+    can_edit_detectors,
+    get_unknown_detector_type_error,
+)
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 
@@ -524,7 +526,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
         for detector in queryset:
             with transaction.atomic(router.db_for_write(Detector)):
-                RegionScheduledDeletion.schedule(detector, days=0, actor=request.user)
+                CellScheduledDeletion.schedule(detector, days=0, actor=request.user)
                 create_audit_entry(
                     request=request,
                     organization=organization,

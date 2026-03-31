@@ -10,7 +10,7 @@ import {Client} from 'sentry/api';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {IssueOwnership} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';

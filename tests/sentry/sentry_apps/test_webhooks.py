@@ -169,7 +169,7 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
             self.installation_1.id, "issue.created", payload
         )
 
-    def test_valid_event_types_accepted(self):
+    def test_valid_event_types_accepted(self) -> None:
         """Test that all valid SentryAppEventType values are accepted."""
         valid_combinations = [
             ("error", "created"),
@@ -305,7 +305,7 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
         # Verify installations were fetched for the correct organization
         mock_installations.assert_called_once_with(organization_id=different_org.id)
 
-    def test_event_type_construction(self):
+    def test_event_type_construction(self) -> None:
         """Test that event types are constructed correctly."""
         test_cases = [
             ("issue", "created", "issue.created"),

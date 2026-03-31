@@ -39,7 +39,7 @@ from sentry.uptime.subscriptions.subscriptions import (
     get_auto_monitored_detectors_for_project,
     is_url_auto_monitored_for_project,
 )
-from sentry.uptime.types import UptimeMonitorMode
+from sentry.uptime.types import DEFAULT_2XX_STATUS_ASSERTION, UptimeMonitorMode
 from sentry.uptime.utils import get_cluster
 from sentry.workflow_engine.models import Detector
 
@@ -362,6 +362,8 @@ class TestMonitorUrlForProject(UptimeTestCase):
         detector = monitor_url_for_project(self.project, url)
         assert is_url_auto_monitored_for_project(self.project, url)
         assert detector.name == f"Uptime Monitoring for {url}"
+        uptime_subscription = get_uptime_subscription(detector)
+        assert uptime_subscription.assertion == DEFAULT_2XX_STATUS_ASSERTION
 
     def test_existing(self) -> None:
         url = make_unique_test_url()

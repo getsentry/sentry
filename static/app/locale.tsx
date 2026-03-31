@@ -5,14 +5,14 @@ import Jed from 'jed';
 import {sprintf} from 'sprintf-js';
 
 import {toArray} from 'sentry/utils/array/toArray';
-import localStorage from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 const markerStyles = {
   background: '#ff801790',
   outline: '2px solid #ff801790',
 };
 
-const LOCALE_DEBUG = localStorage.getItem('localeDebug') === '1';
+const LOCALE_DEBUG = localStorageWrapper.getItem('localeDebug') === '1';
 
 export const DEFAULT_LOCALE_DATA = {
   '': {
@@ -23,7 +23,7 @@ export const DEFAULT_LOCALE_DATA = {
 };
 
 function setLocaleDebug(value: boolean) {
-  localStorage.setItem('localeDebug', value ? '1' : '0');
+  localStorageWrapper.setItem('localeDebug', value ? '1' : '0');
   // eslint-disable-next-line no-console
   console.log(`Locale debug is: ${value ? 'on' : 'off'}. Reload page to apply changes!`);
 }
@@ -33,7 +33,7 @@ function setLocaleDebug(value: boolean) {
  * page. The caller should do this.
  */
 export function toggleLocaleDebug() {
-  const currentValue = localStorage.getItem('localeDebug');
+  const currentValue = localStorageWrapper.getItem('localeDebug');
   setLocaleDebug(currentValue !== '1');
 }
 

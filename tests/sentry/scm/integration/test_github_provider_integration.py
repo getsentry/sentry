@@ -1,5 +1,6 @@
 from datetime import timedelta
 from unittest import mock
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
@@ -85,6 +86,25 @@ class TestGitHubProviderIntegration(TestCase):
         assert comments["data"][0]["author"] is not None
         assert comments["data"][0]["author"]["id"] == "1"
         assert comments["data"][0]["author"]["username"] == "octocat"
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_issue_comments_uses_query_params_for_pagination(self, mock_get_jwt):
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{REPO_NAME}/issues/1347/comments?page=3&per_page=25",
+            json=[],
+        )
+
+        self.provider.get_issue_comments("1347", pagination={"cursor": "3", "per_page": 25})
+
+        assert len(responses.calls) == 1
+        request_url = urlparse(responses.calls[0].request.url)
+        assert request_url.scheme == "https"
+        assert request_url.netloc == "api.github.com"
+        assert request_url.path == f"/repos/{REPO_NAME}/issues/1347/comments"
+        assert parse_qs(request_url.query) == {"page": ["3"], "per_page": ["25"]}
+        assert responses.calls[0].request.headers["Accept"] == "application/vnd.github+json"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -207,7 +227,7 @@ class TestGitHubProviderIntegration(TestCase):
     def test_get_issue_comment_reactions(self, mock_get_jwt):
         responses.add(
             method=responses.GET,
-            url=f"https://api.github.com/repos/{REPO_NAME}/issues/comments/42/reactions?per_page=100",
+            url=f"https://api.github.com/repos/{REPO_NAME}/issues/comments/42/reactions",
             json=[
                 {
                     "id": 1,
@@ -271,7 +291,7 @@ class TestGitHubProviderIntegration(TestCase):
     def test_get_issue_reactions(self, mock_get_jwt):
         responses.add(
             method=responses.GET,
-            url=f"https://api.github.com/repos/{REPO_NAME}/issues/42/reactions?per_page=100",
+            url=f"https://api.github.com/repos/{REPO_NAME}/issues/42/reactions",
             json=[
                 {
                     "id": 1,
@@ -437,6 +457,7 @@ class TestGitHubProviderIntegration(TestCase):
         assert commit["message"] == "Fix bug"
         assert commit["author"] is not None
         assert commit["author"]["name"] == "Test User"
+        assert commit["files"] is not None
         assert len(commit["files"]) == 1
         assert commit["files"][0]["filename"] == "src/main.py"
         assert commit["files"][0]["status"] == "modified"
@@ -516,7 +537,7 @@ class TestGitHubProviderIntegration(TestCase):
         )
 
         pr = result["data"]
-        assert pr["number"] == 42
+        assert pr["number"] == "42"
         assert pr["title"] == "New Feature"
         assert pr["state"] == "open"
         assert pr["head"]["ref"] == "feature"
@@ -568,7 +589,7 @@ class TestGitHubProviderIntegration(TestCase):
 
         assert len(responses.calls) == 1
 
-    def test_repository_conversion_preserves_fields(self):
+    def test_repository_conversion_preserves_fields(self) -> None:
         assert self.repository["name"] == REPO_NAME
         assert self.repository["organization_id"] == self.organization.id
         assert self.repository["integration_id"] == self.integration.id

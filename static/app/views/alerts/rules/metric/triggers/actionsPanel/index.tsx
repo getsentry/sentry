@@ -9,7 +9,7 @@ import {Select} from '@sentry/scraps/select';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import ListItem from 'sentry/components/list/listItem';
+import {ListItem} from 'sentry/components/list/listItem';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconAdd, IconSettings} from 'sentry/icons';

@@ -5,6 +5,7 @@ from typing import Any
 
 from django.db import router, transaction
 from google.api_core.exceptions import RetryError
+from taskbroker_client.retry import Retry, retry_task
 
 from sentry.eventstream.base import GroupState
 from sentry.locks import locks
@@ -16,7 +17,6 @@ from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker import namespaces
-from sentry.taskworker.retry import Retry, retry_task
 from sentry.utils import metrics
 from sentry.utils.exceptions import quiet_redis_noise
 from sentry.utils.locking import UnableToAcquireLock

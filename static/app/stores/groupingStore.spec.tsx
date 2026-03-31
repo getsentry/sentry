@@ -1,5 +1,5 @@
 import * as GroupActionCreators from 'sentry/actionCreators/group';
-import GroupingStore from 'sentry/stores/groupingStore';
+import {GroupingStore} from 'sentry/stores/groupingStore';
 
 describe('Grouping Store', () => {
   let trigger!: jest.SpyInstance;

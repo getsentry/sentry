@@ -5,11 +5,11 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import Access from 'sentry/components/acl/access';
+import {Access} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
-import Confirm from 'sentry/components/confirm';
+import {Confirm} from 'sentry/components/confirm';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
-import Form from 'sentry/components/forms/form';
+import {Form} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {Field, JsonFormObject} from 'sentry/components/forms/types';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -25,7 +25,7 @@ import type {Scope} from 'sentry/types/core';
 import {IssueTitle, IssueType} from 'sentry/types/group';
 import type {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -178,7 +178,7 @@ const getPerformanceIssueSettingsQueryKey = (
   ),
 ];
 
-function ProjectPerformance() {
+export function ProjectPerformance() {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const {projectId: projectSlug} = useParams<{projectId: string}>();
@@ -1299,5 +1299,3 @@ const StyledPanelFooter = styled(PanelFooter)`
 const LoadingIndicatorContainer = styled('div')`
   margin: 18px 18px 0;
 `;
-
-export default ProjectPerformance;

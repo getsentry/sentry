@@ -23,7 +23,7 @@ from sentry.auth.access import SystemAccess
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.db.models import Model
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.incidents import tasks
 from sentry.incidents.events import IncidentCreatedEvent, IncidentStatusUpdatedEvent
 from sentry.incidents.models.alert_rule import (
@@ -1126,7 +1126,7 @@ def delete_alert_rule(
                 type=AlertRuleActivityType.DELETED.value,
             )
         else:
-            RegionScheduledDeletion.schedule(instance=alert_rule, days=0, actor=user)
+            CellScheduledDeletion.schedule(instance=alert_rule, days=0, actor=user)
 
         bulk_delete_snuba_subscriptions(subscriptions)
         schedule_update_project_config(alert_rule, [sub.project for sub in subscriptions])
@@ -1748,7 +1748,7 @@ def delete_alert_rule_trigger_action(trigger_action: AlertRuleTriggerAction) -> 
     Schedules a deletion for a AlertRuleTriggerAction, and marks it as pending deletion.
     Marking it as pending deletion should filter out the object through the manager when querying.
     """
-    RegionScheduledDeletion.schedule(instance=trigger_action, days=0)
+    CellScheduledDeletion.schedule(instance=trigger_action, days=0)
     trigger_action.update(status=ObjectStatus.PENDING_DELETION)
 
 

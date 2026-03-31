@@ -7,7 +7,8 @@ import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
-import transformTransaction, {
+import {
+  transformTransaction,
   type BreakpointTransaction,
 } from 'sentry/views/performance/utils/transformTransaction';
 

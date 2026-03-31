@@ -1,7 +1,7 @@
 import type {ReactElement} from 'react';
 
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import type {Plan, PreviewData, Subscription} from 'getsentry/types';

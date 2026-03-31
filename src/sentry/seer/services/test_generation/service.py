@@ -28,7 +28,13 @@ class TestGenerationService(RpcService):
     @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def start_unit_test_generation(
-        self, *, region_name: str, github_org: str, repo: str, pr_id: int, external_id: str
+        self,
+        *,
+        cell_name: str,
+        github_org: str,
+        repo: str,
+        pr_id: int,
+        external_id: str,
     ) -> CreateUnitTestResponse:
         pass
 

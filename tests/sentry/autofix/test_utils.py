@@ -37,6 +37,7 @@ class TestGetRepoFromCodeMappings(TestCase):
         repos = get_autofix_repos_from_project_code_mappings(project)
         expected_repos = [
             {
+                "repository_id": repo.id,
                 "integration_id": str(repo.integration_id),
                 "organization_id": project.organization.id,
                 "provider": repo.provider,

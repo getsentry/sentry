@@ -20,7 +20,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Panel} from 'sentry/components/panels/panel';
-import platforms from 'sentry/data/platforms';
+import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';

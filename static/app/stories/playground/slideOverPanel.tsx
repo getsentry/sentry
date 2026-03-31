@@ -6,7 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 
 export function SlideOverPanelPlayground() {
   const [isPanelOpen, setIsPanelOpen] = useState<boolean>(false);

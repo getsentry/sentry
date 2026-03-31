@@ -270,7 +270,6 @@ export function InviteMissingMembersModal({
                 isInsideModal
               />
               <TeamSelector
-                organization={organization}
                 aria-label={t('Add to Team')}
                 data-test-id="select-teams"
                 disabled={!isTeamRolesAllowed}

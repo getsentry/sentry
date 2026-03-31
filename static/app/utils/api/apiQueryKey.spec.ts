@@ -3,7 +3,7 @@ import {
   type ApiQueryKey,
   type InfiniteApiQueryKey,
 } from 'sentry/utils/api/apiQueryKey';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
 describe('apiQueryKey', () => {
   describe('parseQueryKey', () => {

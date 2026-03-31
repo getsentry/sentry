@@ -1,4 +1,4 @@
-import platforms from 'sentry/data/platforms';
+import {allPlatforms as platforms} from 'sentry/data/platforms';
 
 export function getPlatformName(platform: string | null) {
   const platformData: {name: string} | undefined = platforms.find(

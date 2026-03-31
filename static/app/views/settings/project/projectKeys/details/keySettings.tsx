@@ -7,13 +7,13 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import Access from 'sentry/components/acl/access';
-import Confirm from 'sentry/components/confirm';
+import {Access} from 'sentry/components/acl/access';
+import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
-import BooleanField from 'sentry/components/forms/fields/booleanField';
-import TextField from 'sentry/components/forms/fields/textField';
-import Form from 'sentry/components/forms/form';
+import {BooleanField} from 'sentry/components/forms/fields/booleanField';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {Form} from 'sentry/components/forms/form';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {PanelBody} from 'sentry/components/panels/panelBody';

@@ -6,7 +6,7 @@ import type {ApiResult} from 'sentry/api';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DEFAULT_RELEASES_SORT, ReleasesSortOption} from 'sentry/constants/releases';
 import type {Release} from 'sentry/types/release';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {

@@ -2,6 +2,7 @@ from rest_framework.views import APIView
 
 from sentry.api.permissions import (
     DemoSafePermission,
+    DisallowImpersonatedTokenCreation,
     SentryIsAuthenticated,
     StaffPermission,
     SuperuserOrStaffFeatureFlaggedPermission,
@@ -44,6 +45,32 @@ class PermissionsTest(DRFPermissionTestCase):
         assert self.superuser_staff_flagged_permission.has_permission(
             self.superuser_request, APIView()
         )
+
+
+class DisallowImpersonatedTokenCreationTest(DRFPermissionTestCase):
+    permission = DisallowImpersonatedTokenCreation()
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.normal_user = self.create_user()
+        self.impersonator = self.create_user(is_superuser=True)
+
+    def test_safe_methods_allowed_during_impersonation(self) -> None:
+        for method in ("GET", "HEAD", "OPTIONS"):
+            request = self.make_request(user=self.normal_user, method=method)
+            request.actual_user = self.impersonator  # type: ignore[attr-defined]
+            assert self.permission.has_permission(request, APIView())
+
+    def test_unsafe_methods_blocked_during_impersonation(self) -> None:
+        for method in ("POST", "PUT", "DELETE"):
+            request = self.make_request(user=self.normal_user, method=method)
+            request.actual_user = self.impersonator  # type: ignore[attr-defined]
+            assert not self.permission.has_permission(request, APIView())
+
+    def test_unsafe_methods_allowed_without_impersonation(self) -> None:
+        for method in ("POST", "PUT", "DELETE"):
+            request = self.make_request(user=self.normal_user, method=method)
+            assert self.permission.has_permission(request, APIView())
 
 
 class IsAuthenticatedPermissionsTest(DRFPermissionTestCase):

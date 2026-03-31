@@ -4,7 +4,7 @@ import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {

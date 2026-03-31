@@ -2,18 +2,22 @@ import logging
 import posixpath
 import re
 import uuid
-from collections.abc import Sequence
+from collections.abc import Iterable, Mapping, Sequence, Set
+from typing import TYPE_CHECKING, TypedDict, TypeGuard
 
 import jsonschema
 import orjson
 from django.db import IntegrityError, router
-from django.db.models import Exists, Q
+from django.db.models import Case, Exists, IntegerField, Q, QuerySet, Value, When
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
+
+if TYPE_CHECKING:
+    from django_stubs_ext import WithAnnotations
 
 from sentry import ratelimits
 from sentry.api.api_owners import ApiOwner
@@ -29,10 +33,14 @@ from sentry.auth.system import is_system_auth
 from sentry.constants import DEBUG_FILES_ROLE_DEFAULT, KNOWN_DIF_FORMATS
 from sentry.debug_files.debug_files import maybe_renew_debug_files
 from sentry.debug_files.upload import find_missing_chunks
+from sentry.lang.native.sources import record_last_upload
 from sentry.models.debugfile import (
     ProguardArtifactRelease,
     ProjectDebugFile,
+    build_proguard_reupload_dif_meta,
+    create_dif_from_id,
     create_files_from_dif_zip,
+    get_debug_id_from_dif_request,
 )
 from sentry.models.files.file import File
 from sentry.models.organizationmember import OrganizationMember
@@ -414,14 +422,10 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
         return Response({"associatedDsymFiles": []})
 
 
-def get_file_info(files, checksum):
+def get_file_info(file) -> tuple[str | None, str | None, list[str]]:
     """
-    Extracts file information from files given a checksum.
+    Extracts file information from one assemble payload.
     """
-    file = files.get(checksum)
-    if file is None:
-        return None
-
     name = file.get("name")
     debug_id = file.get("debug_id")
     chunks = file.get("chunks", [])
@@ -433,71 +437,88 @@ def batch_assemble(project, files):
     """
     Performs assembling in a batch fashion, issuing queries that span multiple files.
     """
-    # We build a set of all the checksums that still need checks.
-    checksums_to_check = {checksum for checksum in files.keys()}
+    files_to_check = files.copy()
     file_response = {}
 
-    # 1. Exclude all files that have already an assemble status.
-    checksums_with_status = set()
-    for checksum in checksums_to_check:
+    # 1. Exclude all files that already have an assemble status.
+    for checksum, file in list(files_to_check.items()):
         # First, check the cached assemble status. During assembling, a
         # `ProjectDebugFile` will be created, and we need to prevent a race
         # condition.
         state, detail = get_assemble_status(AssembleTask.DIF, project.id, checksum)
-        if state == ChunkFileState.OK:
+        requested_debug_id = _get_requested_debug_id(file)
+        cached_debug_id = detail.get("uuid") if isinstance(detail, Mapping) else None
+
+        if state == ChunkFileState.OK and not _is_proguard_reupload_clone_request(
+            file=file,
+            requested_debug_id=requested_debug_id,
+            selected_debug_id=cached_debug_id,
+        ):
             file_response[checksum] = {
                 "state": state,
                 "detail": None,
                 "missingChunks": [],
                 "dif": detail,
             }
-            checksums_with_status.add(checksum)
-        elif state is not None:
+            files_to_check.pop(checksum)
+        elif state is not None and state != ChunkFileState.OK:
             file_response[checksum] = {"state": state, "detail": detail, "missingChunks": []}
-            checksums_with_status.add(checksum)
+            files_to_check.pop(checksum)
 
-    checksums_to_check -= checksums_with_status
+    # 2. Check if this project already owns the `ProjectDebugFile` for each file,
+    # also create ProGuard reupload clones if applicable.
+    requested_debug_ids_by_checksum = {
+        checksum: _get_requested_debug_id(file) for checksum, file in files_to_check.items()
+    }
+    existing_debug_files = _find_existing_debug_files(
+        project=project,
+        checksums=files_to_check.keys(),
+        requested_debug_ids_by_checksum=requested_debug_ids_by_checksum,
+    )
 
-    # 2. Check if this project already owns the `ProjectDebugFile` for each file.
-    debug_files = ProjectDebugFile.objects.filter(
-        project_id=project.id,
-        checksum__in=checksums_to_check,
-    ).select_related("file")
+    for debug_file in existing_debug_files:
+        checksum = debug_file.checksum
+        file = files_to_check.pop(checksum)
+        requested_debug_id = requested_debug_ids_by_checksum[checksum]
 
-    checksums_with_debug_files = set()
-    for debug_file in debug_files:
-        file_response[debug_file.checksum] = {
+        if _is_proguard_reupload_clone_request(
+            requested_debug_id=requested_debug_id,
+            file=file,
+            selected_debug_id=debug_file.debug_id,
+        ):
+            file_response[checksum] = _clone_proguard_debug_file_for_reupload(
+                project=project,
+                debug_file=debug_file,
+                requested_debug_id=requested_debug_id,
+                is_proguard_clone_source=bool(debug_file.proguard_clone_source_match),
+            )
+            continue
+
+        file_response[checksum] = {
             "state": ChunkFileState.OK,
             "detail": None,
             "missingChunks": [],
             "dif": serialize(debug_file),
         }
-        checksums_with_debug_files.add(debug_file.checksum)
-
-    checksums_to_check -= checksums_with_debug_files
 
     # 3. Compute all the chunks that have to be checked for existence.
     chunks_to_check = {}
-    checksums_without_chunks = set()
-    for checksum in checksums_to_check:
-        file_info = get_file_info(files, checksum)
-        name, debug_id, chunks = file_info or (None, None, None)
+    for checksum, file in list(files_to_check.items()):
+        name, debug_id, chunks = get_file_info(file)
 
         # If we don't have any chunks, this is likely a poll request
         # checking for file status, so return NOT_FOUND.
         if not chunks:
             file_response[checksum] = {"state": ChunkFileState.NOT_FOUND, "missingChunks": []}
-            checksums_without_chunks.add(checksum)
+            files_to_check.pop(checksum)
             continue
 
         # Map each chunk back to its source file checksum.
         for chunk in chunks:
             chunks_to_check[chunk] = checksum
 
-    checksums_to_check -= checksums_without_chunks
-
     # 4. Find missing chunks and group them per checksum.
-    all_missing_chunks = find_missing_chunks(project.organization.id, set(chunks_to_check.keys()))
+    all_missing_chunks = find_missing_chunks(project.organization.id, chunks_to_check.keys())
 
     missing_chunks_per_checksum: dict[str, set[str]] = {}
     for chunk in all_missing_chunks:
@@ -506,29 +527,22 @@ def batch_assemble(project, files):
         missing_chunks_per_checksum.setdefault(chunks_to_check[chunk], set()).add(chunk)
 
     # 5. Report missing chunks per checksum.
-    checksums_with_missing_chunks = set()
     for checksum, missing_chunks in missing_chunks_per_checksum.items():
         file_response[checksum] = {
             "state": ChunkFileState.NOT_FOUND,
             "missingChunks": list(missing_chunks),
         }
-        checksums_with_missing_chunks.add(checksum)
-
-    checksums_to_check -= checksums_with_missing_chunks
+        files_to_check.pop(checksum, None)
 
     from sentry.tasks.assemble import assemble_dif
 
     # 6. Kickstart async assembling for all remaining chunks that have passed all checks.
-    for checksum in checksums_to_check:
-        file_info = get_file_info(files, checksum)
-        if file_info is None:
-            continue
-
+    for checksum, file in files_to_check.items():
         # We don't have a state yet, this means we can now start an assemble job in the background and mark
         # this in the state.
         set_assemble_status(AssembleTask.DIF, project.id, checksum, ChunkFileState.CREATED)
 
-        name, debug_id, chunks = file_info
+        name, debug_id, chunks = get_file_info(file)
         assemble_dif.apply_async(
             kwargs={
                 "project_id": project.id,
@@ -542,6 +556,173 @@ def batch_assemble(project, files):
         file_response[checksum] = {"state": ChunkFileState.CREATED, "missingChunks": []}
 
     return file_response
+
+
+def _get_requested_debug_id(file) -> str | None:
+    """Returns the effective requested debug ID for one assemble payload.
+
+    This normalizes an explicit ``debug_id`` when present, or derives one from a
+    ProGuard-style request name such as ``/proguard/mapping-<uuid>.txt``.
+    """
+    return get_debug_id_from_dif_request(name=file.get("name"), debug_id=file.get("debug_id"))
+
+
+def _is_requested_proguard(file) -> bool:
+    """Returns whether one assemble payload should be treated as a ProGuard request.
+
+    This is true only when the request's effective debug ID comes from a
+    ProGuard-style filename, rather than merely from an explicit ``debug_id``.
+    """
+    name = file.get("name")
+    requested_debug_id = _get_requested_debug_id(file)
+    return (
+        requested_debug_id is not None
+        and get_debug_id_from_dif_request(name=name, debug_id=None) == requested_debug_id
+    )
+
+
+def _is_proguard_reupload_clone_request(
+    requested_debug_id: str | None,
+    file,
+    selected_debug_id: str | None,
+) -> TypeGuard[str]:
+    """Return whether the assemble request should clone a ProGuard debug file."""
+    return (
+        requested_debug_id is not None
+        and requested_debug_id != selected_debug_id
+        and _is_requested_proguard(file)
+    )
+
+
+class _DebugFileAnnotations(TypedDict):
+    requested_debug_id_match: int
+    proguard_clone_source_match: int
+
+
+def _find_existing_debug_files(
+    project: Project,
+    checksums: Set[str],
+    requested_debug_ids_by_checksum: dict[str, str | None],
+) -> "QuerySet[WithAnnotations[ProjectDebugFile, _DebugFileAnnotations]]":
+    """Find up to one existing `ProjectDebugFile` row per requested checksum.
+
+    This query is used to determine whether assemble can be satisfied from rows
+    that already exist for the project, or whether the request must continue to
+    chunk lookup and async assembly.
+
+    It only considers `ProjectDebugFile` rows in the same project and for the
+    requested checksums. The result contains at most one row per checksum,
+    chosen by SQL ordering plus `distinct("checksum")`.
+
+    Two annotations are added and preserved on the returned rows:
+
+    - `requested_debug_id_match`: `1` when the row exactly matches the
+      effective requested debug ID for that checksum, else `0`.
+    - `proguard_clone_source_match`: `1` when the row points at a stored
+      ProGuard `project.dif` file that is safe to reuse as the source for a
+      ProGuard reupload clone, else `0`.
+
+    Rows are ordered so each checksum prefers:
+
+    1. an exact requested debug ID match,
+    2. otherwise a valid ProGuard clone source,
+    3. otherwise the newest remaining row.
+
+    If no result is returned for a given checksum, no `ProjectDebugFile` rows
+    with that checksum exist in the given project.
+
+    Downstream, `batch_assemble` uses that selected row to decide whether the
+    checksum is already satisfied, whether a ProGuard alias row should be
+    created, or whether the request still needs upload work.
+    """
+    return (
+        ProjectDebugFile.objects.filter(
+            project_id=project.id,
+            checksum__in=checksums,
+        )
+        .annotate(
+            requested_debug_id_match=_build_requested_debug_id_match_annotation(
+                requested_debug_ids_by_checksum.items()
+            ),
+            proguard_clone_source_match=_build_proguard_clone_source_annotation(checksums),
+        )
+        .select_related("file")
+        .order_by("checksum", "-requested_debug_id_match", "-proguard_clone_source_match", "-id")
+        .distinct("checksum")
+    )
+
+
+def _build_requested_debug_id_match_annotation(
+    requested_debug_ids: Iterable[tuple[str, str | None]],
+) -> Case:
+    """Builds a per-row match score for exact requested debug ID matches.
+
+    The annotation returns ``1`` when a row's ``checksum`` and ``debug_id`` match
+    the effective requested debug ID for that checksum, and ``0`` otherwise.
+    """
+    return Case(
+        *[
+            When(checksum=checksum, debug_id=debug_id, then=Value(1))
+            for checksum, debug_id in requested_debug_ids
+            if debug_id is not None
+        ],
+        default=Value(0),
+        output_field=IntegerField(),
+    )
+
+
+def _build_proguard_clone_source_annotation(checksums: Iterable[str]) -> Case:
+    """Builds a per-row match score for ProGuard clone-source selection.
+
+    The annotation returns ``1`` when a row belongs to one of the requested
+    checksums, points at a ``project.dif`` file, and its linked ``File`` has
+    headers exactly matching the stored ProGuard content type. It returns ``0``
+    for all other rows.
+    """
+    return Case(
+        When(
+            checksum__in=checksums,
+            file__type="project.dif",
+            file__headers={"Content-Type": DIF_MIMETYPES["proguard"]},
+            then=Value(1),
+        ),
+        default=Value(0),
+        output_field=IntegerField(),
+    )
+
+
+def _clone_proguard_debug_file_for_reupload(
+    project: Project,
+    debug_file: ProjectDebugFile,
+    requested_debug_id: str,
+    is_proguard_clone_source: bool,
+) -> dict[str, object]:
+    """Clone a ProGuard debug file row for a reupload and return a batch response.
+
+    ``is_proguard_clone_source`` must reflect the caller's annotation-based
+    selection result for whether ``debug_file`` is a valid ProGuard clone source.
+    If it is false, this returns an error response payload. Otherwise it creates
+    or reuses the ``ProjectDebugFile`` row for ``requested_debug_id`` and
+    returns an OK response payload.
+    """
+    if not is_proguard_clone_source:
+        return {
+            "state": ChunkFileState.ERROR,
+            "detail": "This file is not a ProGuard mapping.",
+            "missingChunks": [],
+        }
+
+    meta = build_proguard_reupload_dif_meta(debug_file, requested_debug_id)
+    dif, created = create_dif_from_id(project, meta, file=debug_file.file)
+    if created:
+        record_last_upload(project)
+
+    return {
+        "state": ChunkFileState.OK,
+        "detail": None,
+        "missingChunks": [],
+        "dif": serialize(dif),
+    }
 
 
 @cell_silo_endpoint

@@ -42,13 +42,5 @@ class ProjectKeyService(RpcService):
     ) -> RpcProjectKey | None:
         pass
 
-    # TODO(cells): Deprecated in favor of get_project_key_by_cell
-    @cell_rpc_method(resolve=ByCellName())
-    @abstractmethod
-    def get_project_key_by_region(
-        self, *, region_name: str, project_id: int, role: ProjectKeyRole
-    ) -> RpcProjectKey | None:
-        pass
-
 
 project_key_service = ProjectKeyService.create_delegation()

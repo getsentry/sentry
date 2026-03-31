@@ -32,8 +32,7 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {toArray} from 'sentry/utils/array/toArray';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import type EventView from 'sentry/utils/discover/eventView';
-import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
+import type {EventData, EventView, MetaType} from 'sentry/utils/discover/eventView';
 import type {RateUnit} from 'sentry/utils/discover/fields';
 import {
   ABYTE_UNITS,
@@ -55,7 +54,8 @@ import {formatApdex} from 'sentry/utils/number/formatApdex';
 import {formatFloat} from 'sentry/utils/number/formatFloat';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {toPercent} from 'sentry/utils/number/toPercent';
-import Projects from 'sentry/utils/projects';
+import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {Projects} from 'sentry/utils/projects';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {type DashboardFilters, type Widget} from 'sentry/views/dashboards/types';
@@ -63,6 +63,11 @@ import {
   findLinkedDashboardForField,
   getLinkedDashboardUrl,
 } from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
+import {
+  NUMBER_MAX_FRACTION_DIGITS,
+  NUMBER_MIN_VALUE,
+} from 'sentry/views/dashboards/widgets/common/settings';
+import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -301,15 +306,30 @@ export const FIELD_FORMATTERS: FieldFormatters = {
   },
   number: {
     isSortable: true,
-    renderFunc: (field, data) => (
-      <NumberContainer>
-        {typeof data[field] === 'number'
-          ? formatFloat(data[field], 4).toLocaleString(undefined, {
-              maximumFractionDigits: 4,
-            })
-          : emptyValue}
-      </NumberContainer>
-    ),
+    renderFunc: (field, data) => {
+      if (typeof data[field] !== 'number') {
+        return <NumberContainer>{emptyValue}</NumberContainer>;
+      }
+      if (data[field] > 0 && data[field] < NUMBER_MIN_VALUE) {
+        return (
+          <NumberContainer>
+            <Tooltip title={formatTooltipValue(data[field], 'number')}>
+              <span>{`<${NUMBER_MIN_VALUE}`}</span>
+            </Tooltip>
+          </NumberContainer>
+        );
+      }
+      return (
+        <NumberContainer>
+          {formatFloat(data[field], NUMBER_MAX_FRACTION_DIGITS).toLocaleString(
+            undefined,
+            {
+              maximumFractionDigits: NUMBER_MAX_FRACTION_DIGITS,
+            }
+          )}
+        </NumberContainer>
+      );
+    },
   },
   percentage: {
     isSortable: true,
@@ -595,35 +615,52 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
   },
   replayId: {
     sortField: 'replayId',
-    renderFunc: (data, {organization}) => {
+    renderFunc: (data, baggage) => {
       const replayId = data?.replayId;
       if (typeof replayId !== 'string' || !replayId) {
         return emptyValue;
       }
-
-      const target = makeReplaysPathname({
-        path: `/${replayId}/`,
-        organization,
-      });
-
-      return (
-        <Container>
-          <ViewReplayLink replayId={replayId} to={target}>
-            {getShortEventId(replayId)}
-          </ViewReplayLink>
-        </Container>
-      );
+      return renderReplayIdAsLink(replayId, baggage);
+    },
+  },
+  'replay.id': {
+    sortField: 'replay.id',
+    renderFunc: (data, baggage) => {
+      const replayId = data?.['replay.id'];
+      if (typeof replayId !== 'string' || !replayId) {
+        return emptyValue;
+      }
+      return renderReplayIdAsLink(replayId, baggage);
     },
   },
   'profile.id': {
     sortField: 'profile.id',
-    renderFunc: data => {
-      const id: string | unknown = data?.['profile.id'];
-      if (typeof id !== 'string' || id === '') {
+    renderFunc: (data, {organization, projects}) => {
+      const profileId: string | unknown = data?.['profile.id'];
+      if (typeof profileId !== 'string' || profileId === '') {
         return emptyValue;
       }
 
-      return <Container>{getShortEventId(id)}</Container>;
+      const projectSlug = data.project ?? data['project.name'];
+      const projectMatch = projects?.find(p => p.slug === projectSlug);
+
+      if (!projectMatch) {
+        return <Container>{getShortEventId(profileId)}</Container>;
+      }
+
+      const target = generateProfileFlamechartRouteWithQuery({
+        organization,
+        projectSlug: projectMatch.slug,
+        profileId,
+      });
+
+      return (
+        <Link to={target}>
+          <StyledTooltip title={t('View Profile')}>
+            <Container>{getShortEventId(profileId)}</Container>
+          </StyledTooltip>
+        </Link>
+      );
     },
   },
   issue: {
@@ -906,7 +943,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     renderFunc: data => {
       const score = data['performance_score(measurements.score.total)'];
       if (typeof score !== 'number') {
-        return <Container>{emptyValue}</Container>;
+        return <RightAlignedContainer>{emptyValue}</RightAlignedContainer>;
       }
       return (
         <RightAlignedContainer>
@@ -1349,6 +1386,21 @@ const StyledTooltip = styled(Tooltip)`
   overflow: hidden;
   text-overflow: ellipsis;
 `;
+
+function renderReplayIdAsLink(replayId: string, {organization}: RenderFunctionBaggage) {
+  const target = makeReplaysPathname({
+    path: `/${replayId}/`,
+    organization,
+  });
+
+  return (
+    <Container>
+      <ViewReplayLink replayId={replayId} to={target}>
+        {getShortEventId(replayId)}
+      </ViewReplayLink>
+    </Container>
+  );
+}
 
 export function getFieldRenderer(
   field: string,

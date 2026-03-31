@@ -4,14 +4,13 @@ import styled from '@emotion/styled';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
-import type {ControlProps} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import NewBooleanField from 'sentry/components/forms/fields/booleanField';
-import SelectField from 'sentry/components/forms/fields/selectField';
+import {BooleanField as NewBooleanField} from 'sentry/components/forms/fields/booleanField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconChevron} from 'sentry/icons';
@@ -28,7 +27,7 @@ import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
 } from 'getsentry/utils/dataCategory';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
 import {bigNumFormatter, BigNumUnits} from 'getsentry/views/spendAllocations/utils';
 
@@ -161,10 +160,6 @@ function AllocationForm({
     setAllocationVolume(quantity);
   };
 
-  const onTargetChange: ControlProps['onChange'] = selection => {
-    setTargetId(selection!.value);
-  };
-
   const spendToVolume = (spend: unknown) => {
     return costPerItem ? Math.ceil(Math.max(Number(spend), 0) / (costPerItem / 100)) : 0; // costPerItem is in cents while spend is in $
   };
@@ -291,7 +286,9 @@ function AllocationForm({
                     : allocatedTargetIds[AllocationTargetTypes.PROJECT]!
                 }
                 value={targetId || ''}
-                onChange={onTargetChange}
+                onChange={selection => {
+                  setTargetId(selection.value);
+                }}
                 disabled={!!initializedData}
               />
             </HalvedGrid>

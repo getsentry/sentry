@@ -6,7 +6,7 @@ import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';

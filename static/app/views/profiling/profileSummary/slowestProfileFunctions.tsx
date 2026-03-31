@@ -9,7 +9,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Count} from 'sentry/components/count';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
+import {Pagination} from 'sentry/components/pagination';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {TextTruncateOverflow} from 'sentry/components/profiling/textTruncateOverflow';
 import {t, tn} from 'sentry/locale';

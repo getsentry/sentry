@@ -115,7 +115,7 @@ class WebhookPayload(Model):
         cls,
         *,
         destination_type: DestinationType,
-        region: str | None,
+        cell: str | None,
         provider: str,
         identifier: int | str,
         request: HttpRequest,
@@ -126,7 +126,7 @@ class WebhookPayload(Model):
             mailbox_name=f"{provider}:{identifier}",
             provider=provider,
             destination_type=destination_type,
-            cell_name=region,
+            cell_name=cell,
             integration_id=integration_id,
             **cls.get_attributes_from_request(request),
         )

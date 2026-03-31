@@ -188,10 +188,15 @@ class NodeStorage(local, Service):
             if subkey is None:
                 cache_items = self._get_cache_items(id_list)
                 if len(cache_items) == len(id_list):
+                    metrics.incr("nodestore.get_multi", amount=len(id_list), tags={"cache": "hit"})
                     span.set_tag("result", "from_cache")
                     return cache_items
 
                 uncached_ids = [id for id in id_list if id not in cache_items]
+                metrics.incr("nodestore.get_multi", amount=len(cache_items), tags={"cache": "hit"})
+                metrics.incr(
+                    "nodestore.get_multi", amount=len(uncached_ids), tags={"cache": "miss"}
+                )
             else:
                 uncached_ids = id_list
 
@@ -288,12 +293,12 @@ class NodeStorage(local, Service):
 
     def _set_cache_item(self, item_id: str, data: Any) -> None:
         if self.cache and data:
-            self.cache.set(item_id, data)
+            self.cache.set(item_id, data, timeout=options.get("nodestore.cache-ttl"))
 
     @sentry_sdk.tracing.trace
     def _set_cache_items(self, items: dict[Any, Any]) -> None:
         if self.cache:
-            self.cache.set_many(items)
+            self.cache.set_many(items, timeout=options.get("nodestore.cache-ttl"))
 
     def _delete_cache_item(self, item_id: str) -> None:
         if self.cache:

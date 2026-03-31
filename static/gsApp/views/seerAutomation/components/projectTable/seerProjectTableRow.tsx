@@ -10,19 +10,19 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import type {AutofixAutomationSettings} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
 import {
   useAgentOptions,
   useMutateCreatePr,
   useMutateSelectedAgent,
   useSelectedAgentFromBulkSettings,
-} from 'getsentry/views/seerAutomation/components/seerAgentHooks';
+} from 'sentry/views/settings/seer/seerAgentHooks';
+
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
@@ -88,7 +88,6 @@ export function SeerProjectTableRow({
           <Stack align="stretch" flex="1">
             <Select
               size="xs"
-              width="100%"
               disabled={!canWrite}
               name="autofixAgent"
               options={options}

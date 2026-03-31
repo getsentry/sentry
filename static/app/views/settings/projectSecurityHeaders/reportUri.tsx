@@ -22,7 +22,7 @@ type Props = {
   projectId: string;
 };
 
-export default function ReportUri({keyList, orgId, projectId}: Props) {
+export function ReportUri({keyList, orgId, projectId}: Props) {
   return (
     <Panel>
       <PanelHeader>{t('Report URI')}</PanelHeader>

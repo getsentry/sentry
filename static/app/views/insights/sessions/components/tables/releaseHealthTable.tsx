@@ -14,7 +14,7 @@ import type {
   GridColumnHeader,
   GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
-import GridEditable from 'sentry/components/tables/gridEditable';
+import {GridEditable} from 'sentry/components/tables/gridEditable';
 import {useQueryBasedColumnResize} from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {useQueryBasedSorting} from 'sentry/components/tables/gridEditable/useQueryBasedSorting';
 import {t} from 'sentry/locale';

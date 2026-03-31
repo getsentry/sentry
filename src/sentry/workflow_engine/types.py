@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from logging import Logger
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypeAlias, TypedDict, TypeVar
 
 from django.db.models import Q
 from sentry_sdk import logger as sentry_logger
@@ -40,6 +40,10 @@ T = TypeVar("T")
 
 ERROR_DETECTOR_NAME = "Error Monitor"
 ISSUE_STREAM_DETECTOR_NAME = "Issue Stream"
+
+GroupId: TypeAlias = int
+DataConditionGroupId: TypeAlias = int
+WorkflowId: TypeAlias = int
 
 
 class DetectorException(Exception):

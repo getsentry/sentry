@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import InputField from 'sentry/components/forms/fields/inputField';
-import Form from 'sentry/components/forms/form';
+import {InputField} from 'sentry/components/forms/fields/inputField';
+import {Form} from 'sentry/components/forms/form';
 
 type Props = {
   onAction: (effectiveAt: string) => void;

@@ -36,7 +36,7 @@ from sentry.seer.similarity.utils import (
 )
 from sentry.services.eventstore.models import Event
 from sentry.utils import metrics
-from sentry.utils.circuit_breaker2 import CircuitBreaker
+from sentry.utils.circuit_breaker2 import CircuitBreaker, CountBasedTripStrategy
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger("sentry.events.grouping")
@@ -246,7 +246,11 @@ def _ratelimiting_enabled(event: Event, project: Project, training_mode: bool = 
 
 def _circuit_breaker_broken(event: Event, project: Project, training_mode: bool = False) -> bool:
     breaker_config = options.get("seer.similarity.circuit-breaker-config")
-    circuit_breaker = CircuitBreaker(settings.SEER_SIMILARITY_CIRCUIT_BREAKER_KEY, breaker_config)
+    circuit_breaker = CircuitBreaker(
+        settings.SEER_SIMILARITY_CIRCUIT_BREAKER_KEY,
+        breaker_config,
+        CountBasedTripStrategy.from_config(breaker_config),
+    )
     circuit_broken = not circuit_breaker.should_allow_request()
 
     if circuit_broken:
@@ -315,6 +319,7 @@ def _build_seer_request(
         "use_reranking": options.get("seer.similarity.ingest.use_reranking"),
         "model": model_version,
         "training_mode": training_mode,
+        "platform": event.platform or "unknown",
     }
     event.data.pop("stacktrace_string", None)
 
@@ -332,10 +337,11 @@ def get_seer_similar_issues(
     event: Event,
     event_grouphash: GroupHash,
     variants: dict[str, BaseVariant],
-) -> tuple[float | None, GroupHash | None]:
+) -> tuple[float | None, GroupHash | None, str | None]:
     """
-    Ask Seer for the given event's nearest neighbor(s) and return the stacktrace distance and
-    matching GroupHash of the closest match (if any), or `(None, None)` if no match found.
+    Ask Seer for the given event's nearest neighbor(s) and return the stacktrace distance,
+    matching GroupHash of the closest match (if any), and the model Seer actually used,
+    or `(None, None, None)` if no match found.
 
     Args:
         event: The event being grouped
@@ -349,7 +355,7 @@ def get_seer_similar_issues(
     request_data, seer_request_metric_tags = _build_seer_request(event, variants)
 
     viewer_context = SeerViewerContext(organization_id=event.project.organization_id)
-    seer_results = get_similarity_data_from_seer(
+    seer_results, model_used = get_similarity_data_from_seer(
         request_data,
         {**seer_request_metric_tags, "hybrid_fingerprint": event_has_hybrid_fingerprint},
         viewer_context=viewer_context,
@@ -476,7 +482,7 @@ def get_seer_similar_issues(
         },
     )
 
-    return (stacktrace_distance, winning_parent_grouphash)
+    return (stacktrace_distance, winning_parent_grouphash, model_used)
 
 
 def _should_use_seer_match_for_grouping(
@@ -554,8 +560,8 @@ def maybe_check_seer_for_matching_grouphash(
         record_did_call_seer_metric(event, call_made=True, blocker="none")
 
         try:
-            # If no matching group is found in Seer, these will both be None
-            seer_match_distance, seer_matched_grouphash = get_seer_similar_issues(
+            # If no matching group is found in Seer, these will all be None
+            seer_match_distance, seer_matched_grouphash, seer_model_used = get_seer_similar_issues(
                 event, event_grouphash, variants
             )
         except Exception as e:  # Insurance - in theory we shouldn't ever land here
@@ -605,7 +611,7 @@ def maybe_check_seer_for_matching_grouphash(
                 date_added=gh_metadata.date_added or timestamp,
                 seer_date_sent=gh_metadata.date_added or timestamp,
                 seer_event_sent=event.event_id,
-                seer_model=model_version.value,
+                seer_model=seer_model_used or model_version.value,
                 seer_matched_grouphash=seer_matched_grouphash,
                 seer_match_distance=seer_match_distance,
                 seer_latest_training_model=model_version.value,

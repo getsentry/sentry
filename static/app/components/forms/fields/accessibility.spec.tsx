@@ -7,21 +7,21 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import Form from 'sentry/components/forms/form';
+import {Form} from 'sentry/components/forms/form';
 import {FormModel} from 'sentry/components/forms/model';
 
-import BooleanField from './booleanField';
+import {BooleanField} from './booleanField';
 import {CheckboxField} from './checkboxField';
-import EmailField from './emailField';
-import HiddenField from './hiddenField';
-import NumberField from './numberField';
-import RadioField from './radioField';
-import RangeField from './rangeField';
-import SecretField from './secretField';
-import SelectField from './selectField';
+import {EmailField} from './emailField';
+import {HiddenField} from './hiddenField';
+import {NumberField} from './numberField';
+import {RadioField} from './radioField';
+import {RangeField} from './rangeField';
+import {SecretField} from './secretField';
+import {SelectField} from './selectField';
 import {SeparatorField} from './separatorField';
-import TextareaField from './textareaField';
-import TextField from './textField';
+import {TextareaField} from './textareaField';
+import {TextField} from './textField';
 
 describe('Field accessibility', () => {
   it('has appropriate aria attributes on all fields', async () => {

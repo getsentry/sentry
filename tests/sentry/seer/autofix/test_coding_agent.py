@@ -1,6 +1,9 @@
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
+import pytest
+from rest_framework.exceptions import PermissionDenied
+
 from sentry.integrations.claude_code.utils import ClaudeSessionEvent
 from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.integrations.github_copilot.models import (
@@ -10,7 +13,7 @@ from sentry.integrations.github_copilot.models import (
 )
 from sentry.seer.autofix.coding_agent import (
     _launch_agents_for_repos,
-    extract_result_url_from_events,
+    extract_result_from_events,
     poll_claude_code_agents,
     poll_github_copilot_agents,
 )
@@ -28,7 +31,7 @@ from sentry.testutils.cases import TestCase
 
 
 class TestLaunchAgentsForRepos(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
@@ -410,7 +413,7 @@ class TestLaunchAgentsForRepos(TestCase):
 
 
 class TestPollGithubCopilotAgents(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
@@ -441,14 +444,14 @@ class TestPollGithubCopilotAgents(TestCase):
             coding_agents=agents,
         )
 
-    def test_poll_skips_when_no_coding_agents(self):
+    def test_poll_skips_when_no_coding_agents(self) -> None:
         """Test that polling does nothing when there are no coding agents"""
         autofix_state = self._create_autofix_state_with_agents({})
 
         # Should not raise and should not call any external services
         poll_github_copilot_agents(autofix_state, user_id=self.user.id)
 
-    def test_poll_skips_non_github_copilot_agents(self):
+    def test_poll_skips_non_github_copilot_agents(self) -> None:
         """Test that polling skips agents that are not GitHub Copilot agents"""
         agents = {
             "cursor-agent-123": CodingAgentState(
@@ -464,7 +467,7 @@ class TestPollGithubCopilotAgents(TestCase):
         # Should not raise and should not call any external services
         poll_github_copilot_agents(autofix_state, user_id=self.user.id)
 
-    def test_poll_skips_completed_agents(self):
+    def test_poll_skips_completed_agents(self) -> None:
         """Test that polling skips agents that are already completed"""
         agents = {
             "getsentry:sentry:task-123": CodingAgentState(
@@ -513,7 +516,7 @@ class TestPollGithubCopilotAgents(TestCase):
         mock_client = MagicMock()
         mock_client.get_task_status.return_value = GithubCopilotTask(
             id="task-123",
-            status="completed",
+            state="completed",
             artifacts=[
                 GithubCopilotArtifact(
                     provider="github",
@@ -572,7 +575,7 @@ class TestPollGithubCopilotAgents(TestCase):
         mock_get_task_status = MagicMock(
             return_value=GithubCopilotTask(
                 id="task-123",
-                status="failed",
+                state="failed",
             )
         )
 
@@ -609,7 +612,7 @@ class TestPollGithubCopilotAgents(TestCase):
         mock_get_task_status = MagicMock(
             return_value=GithubCopilotTask(
                 id="task-123",
-                status="running",
+                state="in_progress",
                 artifacts=[
                     GithubCopilotArtifact(
                         provider="github",
@@ -676,7 +679,7 @@ class TestPollGithubCopilotAgents(TestCase):
         # State should not be updated when there's an error
         mock_update_state.assert_not_called()
 
-    def test_poll_skips_invalid_agent_id(self):
+    def test_poll_skips_invalid_agent_id(self) -> None:
         """Test that polling skips agents with invalid IDs"""
         agents = {
             "invalid-agent-id": CodingAgentState(
@@ -703,68 +706,71 @@ def _make_agent_event(text: str) -> ClaudeSessionEvent:
     return ClaudeSessionEvent(type="agent", content=[{"type": "text", "text": text}])
 
 
-class TestExtractResultUrlFromEvents(TestCase):
-    def test_extracts_pr_url(self):
-        events = [_make_agent_event("PR created: https://github.com/org/repo/pull/123")]
-        assert extract_result_url_from_events(events) == "https://github.com/org/repo/pull/123"
+class TestExtractResultFromEvents(TestCase):
+    def test_extracts_pr_url(self) -> None:
+        text = "PR created: https://github.com/org/repo/pull/123"
+        events = [_make_agent_event(text)]
+        url, block = extract_result_from_events(events)
+        assert url == "https://github.com/org/repo/pull/123"
+        assert block == text
 
-    def test_extracts_branch_url(self):
-        events = [_make_agent_event("Pushed to https://github.com/org/repo/tree/my-branch")]
-        assert (
-            extract_result_url_from_events(events) == "https://github.com/org/repo/tree/my-branch"
-        )
+    def test_extracts_branch_url(self) -> None:
+        text = "Pushed to https://github.com/org/repo/tree/my-branch"
+        events = [_make_agent_event(text)]
+        url, block = extract_result_from_events(events)
+        assert url == "https://github.com/org/repo/tree/my-branch"
+        assert block == text
 
-    def test_strips_trailing_period(self):
+    def test_strips_trailing_period(self) -> None:
         events = [_make_agent_event("See https://github.com/org/repo/tree/my-branch.")]
-        assert (
-            extract_result_url_from_events(events) == "https://github.com/org/repo/tree/my-branch"
-        )
+        url, _ = extract_result_from_events(events)
+        assert url == "https://github.com/org/repo/tree/my-branch"
 
-    def test_strips_trailing_comma(self):
+    def test_strips_trailing_comma(self) -> None:
         events = [_make_agent_event("https://github.com/org/repo/tree/my-branch, ready")]
-        assert (
-            extract_result_url_from_events(events) == "https://github.com/org/repo/tree/my-branch"
-        )
+        url, _ = extract_result_from_events(events)
+        assert url == "https://github.com/org/repo/tree/my-branch"
 
-    def test_branch_with_slashes(self):
+    def test_branch_with_slashes(self) -> None:
         events = [_make_agent_event("https://github.com/org/repo/tree/feat/sub/thing")]
-        assert (
-            extract_result_url_from_events(events)
-            == "https://github.com/org/repo/tree/feat/sub/thing"
-        )
+        url, _ = extract_result_from_events(events)
+        assert url == "https://github.com/org/repo/tree/feat/sub/thing"
 
-    def test_branch_with_dots_in_name(self):
+    def test_branch_with_dots_in_name(self) -> None:
         events = [_make_agent_event("https://github.com/org/repo/tree/v1.2.3-fix")]
-        assert (
-            extract_result_url_from_events(events) == "https://github.com/org/repo/tree/v1.2.3-fix"
-        )
+        url, _ = extract_result_from_events(events)
+        assert url == "https://github.com/org/repo/tree/v1.2.3-fix"
 
-    def test_pr_preferred_over_branch(self):
+    def test_pr_preferred_over_branch(self) -> None:
         events = [
             _make_agent_event(
                 "Branch https://github.com/org/repo/tree/my-branch "
                 "and PR https://github.com/org/repo/pull/42"
             )
         ]
-        assert extract_result_url_from_events(events) == "https://github.com/org/repo/pull/42"
+        url, _ = extract_result_from_events(events)
+        assert url == "https://github.com/org/repo/pull/42"
 
-    def test_returns_none_when_no_url(self):
+    def test_returns_none_when_no_url(self) -> None:
         events = [_make_agent_event("All done, no link.")]
-        assert extract_result_url_from_events(events) is None
+        url, block = extract_result_from_events(events)
+        assert url is None
+        assert block is None
 
-    def test_returns_none_for_empty_events(self):
-        assert extract_result_url_from_events([]) is None
+    def test_returns_none_for_empty_events(self) -> None:
+        url, block = extract_result_from_events([])
+        assert url is None
+        assert block is None
 
-    def test_searches_most_recent_event_first(self):
+    def test_searches_most_recent_event_first(self) -> None:
         events = [
             _make_agent_event("https://github.com/org/repo/tree/old-branch"),
             _make_agent_event("https://github.com/org/repo/tree/new-branch"),
         ]
-        assert (
-            extract_result_url_from_events(events) == "https://github.com/org/repo/tree/new-branch"
-        )
+        url, _ = extract_result_from_events(events)
+        assert url == "https://github.com/org/repo/tree/new-branch"
 
-    def test_skips_non_agent_events(self):
+    def test_skips_non_agent_events(self) -> None:
         events = [
             ClaudeSessionEvent(
                 type="tool_result",
@@ -772,11 +778,13 @@ class TestExtractResultUrlFromEvents(TestCase):
             ),
             _make_agent_event("No URL here"),
         ]
-        assert extract_result_url_from_events(events) is None
+        url, block = extract_result_from_events(events)
+        assert url is None
+        assert block is None
 
 
 class TestPollClaudeCodeAgents(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
@@ -1091,3 +1099,17 @@ class TestPollClaudeCodeAgents(TestCase):
 
         mock_integration_service.get_integration.assert_called_once()
         assert mock_client.list_session_events.call_count == 2
+
+
+class TestLaunchCodingAgentsForRunCodingDisabled(TestCase):
+    def test_raises_permission_denied_when_coding_disabled(self):
+        from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
+
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        with pytest.raises(PermissionDenied, match="Code generation is disabled"):
+            launch_coding_agents_for_run(
+                organization_id=self.organization.id,
+                run_id=123,
+                integration_id=1,
+            )

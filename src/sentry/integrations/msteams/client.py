@@ -103,7 +103,7 @@ class MsTeamsClient(MsTeamsClientABC, IntegrationProxyClient):
         access_token = self.metadata["access_token"]
         expires_at = self.metadata["expires_at"]
 
-        # We don't refresh the access token in region silos.
+        # We don't refresh the access token in cell silos.
         if SiloMode.get_current_mode() != SiloMode.CELL:
             # if the token is expired, refresh it and save  it
             if expires_at <= int(time.time()):

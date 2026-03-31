@@ -10,7 +10,7 @@ import {Text} from '@sentry/scraps/text';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconPause} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import PRWidget from 'sentry/views/seerExplorer/prWidget';
+import {PRWidget} from 'sentry/views/seerExplorer/prWidget';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
 
 interface FileApprovalActions {

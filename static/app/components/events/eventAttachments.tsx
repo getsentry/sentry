@@ -23,7 +23,6 @@ import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {EventAttachmentsCrashReportsNotice} from './eventAttachmentsCrashReportsNotice';
 
@@ -83,7 +82,6 @@ function EventAttachmentsContent({
   const [attachmentPreviews, setAttachmentPreviews] = useState<AttachmentPreviewOpenMap>(
     {}
   );
-  const hasStreamlinedUI = useHasStreamlinedUI();
   const crashFileStripped = event.metadata.stripped_crash;
 
   if (isError) {
@@ -118,9 +116,7 @@ function EventAttachmentsContent({
     <InterimSection
       type={SectionKey.ATTACHMENTS}
       title={title}
-      actions={
-        hasStreamlinedUI && project && group ? <ViewAllGroupAttachmentsButton /> : null
-      }
+      actions={project && group ? <ViewAllGroupAttachmentsButton /> : null}
       disableCollapsePersistence={disableCollapsePersistence}
     >
       {crashFileStripped && (

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
@@ -11,9 +11,10 @@ import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {PerformanceScoreRingWithTooltips} from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
-import type {
-  ProjectScore,
-  WebVitals,
+import {
+  ORDER,
+  type ProjectScore,
+  type WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
 import PerformanceScoreBreakdownChartWidget from 'sentry/views/insights/common/components/widgets/performanceScoreBreakdownChartWidget';
 
@@ -22,8 +23,6 @@ type Props = {
   projectScore?: ProjectScore;
   webVital?: WebVitals | null;
 };
-
-export const ORDER: WebVitals[] = ['lcp', 'fcp', 'inp', 'cls', 'ttfb'];
 
 export function PerformanceScoreChart({
   projectScore,
@@ -134,7 +133,7 @@ const PerformanceScoreLabel = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
-export const PerformanceScoreSubtext = styled('div')`
+const PerformanceScoreSubtext = styled('div')`
   width: 100%;
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};

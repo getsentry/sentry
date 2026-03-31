@@ -1,6 +1,6 @@
 import {useEffect} from 'react';
 
-import localStorageWrapper from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {domainViews, useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';

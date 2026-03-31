@@ -4,12 +4,12 @@ import styled from '@emotion/styled';
 import {Observer} from 'mobx-react-lite';
 
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
-import NumberField from 'sentry/components/forms/fields/numberField';
-import SelectField from 'sentry/components/forms/fields/selectField';
+import {NumberField} from 'sentry/components/forms/fields/numberField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {SentryMemberTeamSelectorField} from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
-import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
-import TextField from 'sentry/components/forms/fields/textField';
-import Form from 'sentry/components/forms/form';
+import {SentryProjectSelectorField} from 'sentry/components/forms/fields/sentryProjectSelectorField';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {Form} from 'sentry/components/forms/form';
 import {FormModel} from 'sentry/components/forms/model';
 import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -75,7 +75,7 @@ export function MonitorCreateForm() {
     };
     navigate(
       normalizeUrl({
-        pathname: `/organizations/${organization.slug}/alerts/rules/crons/${data.project.slug}/${data.slug}/details/`,
+        pathname: `/organizations/${organization.slug}/issues/alerts/rules/crons/${data.project.slug}/${data.slug}/details/`,
         query: endpointOptions.query,
       })
     );

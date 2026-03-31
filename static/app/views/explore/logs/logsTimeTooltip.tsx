@@ -114,7 +114,7 @@ function TimestampTooltipBody({
 
 export {TimestampTooltipBody};
 
-export default function LogsTimestampTooltip({
+export function LogsTimestampTooltip({
   timestamp,
   attributes,
   children,

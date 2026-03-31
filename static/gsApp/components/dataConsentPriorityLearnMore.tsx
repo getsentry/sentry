@@ -15,7 +15,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {openDataConsentModal} from 'getsentry/actionCreators/modal';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 function DataConsentPriorityLearnMore({subscription}: {subscription?: Subscription}) {
   const organization = useOrganization();

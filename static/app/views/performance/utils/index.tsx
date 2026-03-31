@@ -11,10 +11,10 @@ import type {
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {ReleaseProject} from 'sentry/types/release';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {toArray} from 'sentry/utils/array/toArray';
 import type {EventData} from 'sentry/utils/discover/eventView';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {TRACING_FIELDS} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
@@ -28,7 +28,6 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-import {DEFAULT_MAX_DURATION} from 'sentry/views/performance/trends/utils';
 
 export const QUERY_KEYS = [
   'environment',
@@ -226,32 +225,7 @@ export function trendsTargetRoute({
     ...additionalQuery,
   };
 
-  const query = decodeScalar(location.query.query, '');
-  const conditions = new MutableSearch(query);
-
   const modifiedConditions = initialConditions ?? new MutableSearch([]);
-
-  // Trends on metrics don't need these conditions
-  if (!organization.features.includes('performance-new-trends')) {
-    // No need to carry over tpm filters to transaction summary
-    if (conditions.hasFilter('tpm()')) {
-      modifiedConditions.setFilterValues('tpm()', conditions.getFilterValues('tpm()'));
-    } else {
-      modifiedConditions.setFilterValues('tpm()', ['>0.01']);
-    }
-
-    if (conditions.hasFilter('transaction.duration')) {
-      modifiedConditions.setFilterValues(
-        'transaction.duration',
-        conditions.getFilterValues('transaction.duration')
-      );
-    } else {
-      modifiedConditions.setFilterValues('transaction.duration', [
-        '>0',
-        `<${DEFAULT_MAX_DURATION}`,
-      ]);
-    }
-  }
   newQuery.query = modifiedConditions.formatString();
 
   return {pathname: getPerformanceTrendsUrl(organization, view), query: {...newQuery}};

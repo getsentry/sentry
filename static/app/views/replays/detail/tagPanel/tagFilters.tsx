@@ -1,4 +1,4 @@
-import SearchBar from 'sentry/components/searchBar';
+import {SearchBar} from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {FiltersGrid} from 'sentry/views/replays/detail/filtersGrid';
 import type {useTagFilters} from 'sentry/views/replays/detail/tagPanel/useTagFilters';

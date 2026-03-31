@@ -6,7 +6,7 @@ import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
-import SearchBar from 'sentry/components/searchBar';
+import {SearchBar} from 'sentry/components/searchBar';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 

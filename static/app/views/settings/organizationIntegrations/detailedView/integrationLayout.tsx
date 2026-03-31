@@ -10,7 +10,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Access from 'sentry/components/acl/access';
+import {Access} from 'sentry/components/acl/access';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {Panel} from 'sentry/components/panels/panel';
 import {IconClose} from 'sentry/icons/iconClose';
@@ -296,7 +296,7 @@ function ResourceIcon({title}: {title: string}) {
   }
 }
 
-const IntegrationLayout = {
+export const IntegrationLayout = {
   TopSection,
   Tabs: IntegrationTabs,
   Body,
@@ -306,8 +306,6 @@ const IntegrationLayout = {
   InformationCard,
   ResourceIcon,
 };
-
-export default IntegrationLayout;
 
 const IntegrationDescription = styled('div')`
   flex-grow: 1;

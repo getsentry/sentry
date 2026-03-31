@@ -72,7 +72,8 @@ class GithubCopilotTask(BaseModel):
     agent_collaborators: list[GithubCopilotAgentCollaborator] | None = None
     owner_id: int | None = None
     repo_id: int | None = None
-    status: str | None = None  # queued, in_progress, completed, failed, timed_out
+    status: str | None = None
+    state: str | None = None  # queued, in_progress, completed, failed, timed_out
     session_count: int | None = None
     artifacts: list[GithubCopilotArtifact] | None = None
     archived_at: str | None = None

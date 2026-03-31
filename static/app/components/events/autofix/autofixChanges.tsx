@@ -288,6 +288,7 @@ export function AutofixChanges({
                 onClick={handleSelectFirstChange}
                 analyticsEventName="Autofix: Changes Chat"
                 analyticsEventKey="autofix.changes.chat"
+                analyticsParams={{group_id: groupId}}
               >
                 <IconChat />
               </Button>

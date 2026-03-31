@@ -3,13 +3,13 @@ from collections import defaultdict
 from datetime import timedelta
 
 from django.utils import timezone
+from taskbroker_client.retry import Retry
 
 from sentry.api.helpers.group_index.delete import schedule_group_deletion_tasks
 from sentry.models.group import Group, GroupStatus
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import deletion_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)

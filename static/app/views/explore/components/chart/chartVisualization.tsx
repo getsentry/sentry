@@ -3,6 +3,8 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import type {ChartXRangeSelectionProps} from 'sentry/components/charts/useChartXRangeSelection';
 import {t} from 'sentry/locale';
@@ -94,14 +96,22 @@ export function ChartVisualization({
   }
 
   if (chartInfo.timeseriesResult.error) {
-    return <Widget.WidgetError error={chartInfo.timeseriesResult.error} />;
+    return (
+      <Container position="absolute" inset={0}>
+        <Widget.WidgetError error={chartInfo.timeseriesResult.error} />
+      </Container>
+    );
   }
 
   if (plottables.length === 0) {
     // This happens when the `/events-stats/` endpoint returns a blank
     // response. This is a rare error condition that happens when
     // proxying to RPC. Adding explicit handling with a "better" message
-    return <Widget.WidgetError error={t('No data')} />;
+    return (
+      <Container position="absolute" inset={0}>
+        <Widget.WidgetError error={t('No data')} />
+      </Container>
+    );
   }
 
   return (

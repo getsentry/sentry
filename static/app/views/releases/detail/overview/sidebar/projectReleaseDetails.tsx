@@ -11,7 +11,7 @@ import {DateTime} from 'sentry/components/dateTime';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {TextOverflow} from 'sentry/components/textOverflow';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {Version} from 'sentry/components/version';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct, tn} from 'sentry/locale';

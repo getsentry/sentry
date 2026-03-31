@@ -17,7 +17,6 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {WebVital} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {VITAL_DESCRIPTIONS} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
 import {WEB_VITALS_METERS_CONFIG} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
@@ -26,6 +25,7 @@ import {
   useWebVitalsIssuesQuery,
 } from 'sentry/views/insights/browser/webVitals/queries/useWebVitalsIssuesQuery';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
+import {ORDER} from 'sentry/views/insights/browser/webVitals/types';
 import {
   WEB_VITAL_PERFORMANCE_ISSUES,
   type ProjectScore,
@@ -48,7 +48,7 @@ type Props = {
   transaction?: string;
 };
 
-export default function WebVitalMetersWithIssues({
+export function WebVitalMetersWithIssues({
   onClick,
   projectData,
   projectScore,

@@ -1,4 +1,4 @@
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {hasActiveIncident} from 'sentry/views/alerts/list/rules/utils';
@@ -79,7 +79,6 @@ function LastMetricAlertIncident({rule}: {rule: MetricAlert}) {
 }
 
 export function AlertLastIncidentActivationInfo({rule}: Props) {
-  // eslint-disable-next-line default-case
   switch (rule.type) {
     case CombinedAlertType.UPTIME:
       return <LastUptimeIncident rule={rule} />;

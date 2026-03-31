@@ -19,7 +19,7 @@ import {
 } from 'sentry/components/events/autofix/utils';
 import {AutofixSummary} from 'sentry/components/group/groupSummaryWithAutofix';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';

@@ -5,7 +5,7 @@ import debounce from 'lodash/debounce';
 import {NoteInput} from 'sentry/components/activity/note/input';
 import type {MentionChangeEvent} from 'sentry/components/activity/note/types';
 import type {NoteType} from 'sentry/types/alerts';
-import localStorageWrapper from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {StreamlinedNoteInput} from 'sentry/views/issueDetails/streamline/sidebar/note';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 

@@ -5,7 +5,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
   aggregateFunctionOutputType,

@@ -4,7 +4,7 @@ import {Link} from '@sentry/scraps/link';
 
 import {deleteMonitor, updateMonitor} from 'sentry/actionCreators/monitors';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import Confirm from 'sentry/components/confirm';
+import {Confirm} from 'sentry/components/confirm';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconDelete, IconEdit, IconSubscribed, IconUnsubscribed} from 'sentry/icons';

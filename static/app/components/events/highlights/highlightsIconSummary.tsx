@@ -14,8 +14,9 @@ import {
   getContextSummary,
   getContextTitle,
 } from 'sentry/components/events/contexts/utils';
-import ScreenshotModal, {
+import {
   modalCss,
+  ScreenshotModal,
 } from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
 import {getRuntimeLabelAndTooltip} from 'sentry/components/events/highlights/util';
 import {Text} from 'sentry/components/replays/virtualizedGrid/bodyCell';

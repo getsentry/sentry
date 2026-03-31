@@ -222,7 +222,7 @@ export function EAPMetricsField({
           onInputChange={debouncedSetSearch}
           placeholder={t('Select a metric')}
           noOptionsMessage={() => t('No metrics found')}
-          onChange={(option: MetricSelectOption) => handleMetricChange(option)}
+          onChange={option => handleMetricChange(option as MetricSelectOption)}
           disabled={hasNoMetrics}
         />
       </FlexWrapper>

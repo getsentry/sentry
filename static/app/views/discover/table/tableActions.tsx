@@ -6,14 +6,14 @@ import {Button} from '@sentry/scraps/button';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
-import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
+import {DataExport, ExportQueryType} from 'sentry/components/dataExport';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconDownload, IconSliders, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {downloadAsCsv} from 'sentry/views/discover/utils';
 

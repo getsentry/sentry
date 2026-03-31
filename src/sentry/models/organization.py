@@ -280,7 +280,7 @@ class Organization(ReplicatedCellModel):
         from sentry.hybridcloud.services.organization_mapping.service import (
             organization_mapping_service,
         )
-        from sentry.types.region import get_local_cell
+        from sentry.types.cell import get_local_cell
 
         update = update_organization_mapping_from_instance(self, get_local_cell())
         organization_mapping_service.upsert(organization_id=self.id, update=update)

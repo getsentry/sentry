@@ -3,8 +3,9 @@ from unittest.mock import Mock, patch
 
 from sentry.seer.autofix.autofix import TIMEOUT_SECONDS
 from sentry.seer.autofix.autofix_agent import AutofixStep
-from sentry.seer.autofix.constants import AutofixStatus
+from sentry.seer.autofix.constants import AutofixReferrer, AutofixStatus
 from sentry.seer.autofix.utils import AutofixState, AutofixStoppingPoint, CodebaseState
+from sentry.seer.explorer.client_models import SeerRunState
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -313,7 +314,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.autofix._get_profile_from_trace_tree")
     @patch("sentry.seer.autofix.autofix._call_autofix")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
-    @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
+    @patch("sentry.tasks.seer.autofix.check_autofix_status.apply_async")
     def test_ai_autofix_post_endpoint(
         self,
         mock_check_autofix_status,
@@ -399,7 +400,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.autofix._get_profile_from_trace_tree")
     @patch("sentry.seer.autofix.autofix._call_autofix")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
-    @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
+    @patch("sentry.tasks.seer.autofix.check_autofix_status.apply_async")
     def test_ai_autofix_post_without_code_mappings(
         self,
         mock_check_autofix_status,
@@ -468,7 +469,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.autofix._get_profile_from_trace_tree")
     @patch("sentry.seer.autofix.autofix._call_autofix")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
-    @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
+    @patch("sentry.tasks.seer.autofix.check_autofix_status.apply_async")
     def test_ai_autofix_post_without_event_id(
         self,
         mock_check_autofix_status,
@@ -552,7 +553,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     @patch("sentry.seer.explorer.utils.get_from_profiling_service")
     @patch("sentry.seer.autofix.autofix._call_autofix")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
-    @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
+    @patch("sentry.tasks.seer.autofix.check_autofix_status.apply_async")
     def test_ai_autofix_post_without_event_id_no_recommended_event(
         self,
         mock_check_autofix_status,
@@ -807,7 +808,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
         mock_cache.set.assert_called_once_with(f"autofix_access_check:{group.id}", True, timeout=60)
 
-    def test_ai_autofix_post_invalid_stopping_point_string(self):
+    def test_ai_autofix_post_invalid_stopping_point_string(self) -> None:
         group = self.create_group()
 
         self.login_as(user=self.user)
@@ -821,7 +822,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert "stoppingPoint" in response.data
         assert "not a valid choice" in str(response.data["stoppingPoint"])
 
-    def test_ai_autofix_post_invalid_stopping_point_type(self):
+    def test_ai_autofix_post_invalid_stopping_point_type(self) -> None:
         group = self.create_group()
 
         self.login_as(user=self.user)
@@ -836,9 +837,13 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert "not a valid choice" in str(response.data["stoppingPoint"])
 
 
+EXPLORER_FLAGS = [
+    "organizations:seer-explorer",
+    "organizations:autofix-on-explorer",
+]
+
+
 @with_feature("organizations:gen-ai-features")
-@with_feature("organizations:seer-explorer")
-@with_feature("organizations:autofix-on-explorer")
 class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
     """Tests for feature flag routing to Explorer-based autofix."""
 
@@ -855,20 +860,23 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
         self.organization.save()
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_explorer_state")
-    def test_get_routes_to_explorer_with_both_flags(self, mock_get_explorer_state):
-        """GET routes to explorer when both seer-explorer and autofix-on-explorer flags are enabled."""
-        group = self.create_group()
-        mock_get_explorer_state.return_value = None
+    def test_get_routes_to_explorer_with_explorer_flag(self, mock_get_explorer_state):
+        """GET routes to explorer when any individual explorer flag is enabled."""
+        for flag in EXPLORER_FLAGS:
+            mock_get_explorer_state.reset_mock()
+            group = self.create_group()
+            mock_get_explorer_state.return_value = None
 
-        self.login_as(user=self.user)
-        response = self.client.get(self._get_url(group.id, mode="explorer"), format="json")
+            self.login_as(user=self.user)
+            with self.feature(flag):
+                response = self.client.get(self._get_url(group.id, mode="explorer"), format="json")
 
-        assert response.status_code == 200, response.data
-        mock_get_explorer_state.assert_called_once_with(group.organization, group.id)
+            assert response.status_code == 200, f"Failed for {flag}: {response.data}"
+            mock_get_explorer_state.assert_called_once_with(group.organization, group.id)
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_state")
     def test_get_routes_to_legacy_with_mode_param(self, mock_get_autofix_state):
-        """GET routes to legacy when mode=legacy is in query params even with both flags enabled."""
+        """GET routes to legacy when no explorer flag is enabled."""
         group = self.create_group()
         mock_get_autofix_state.return_value = None
 
@@ -879,48 +887,56 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
         mock_get_autofix_state.assert_called_once()
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_explorer")
-    def test_post_routes_to_explorer_with_both_flags(self, mock_trigger_explorer):
-        """POST routes to explorer when both seer-explorer and autofix-on-explorer flags are enabled."""
-        group = self.create_group()
-        mock_trigger_explorer.return_value = 123
+    def test_post_routes_to_explorer_with_explorer_flag(self, mock_trigger_explorer):
+        """POST routes to explorer when any individual explorer flag is enabled."""
+        for flag in EXPLORER_FLAGS:
+            mock_trigger_explorer.reset_mock()
+            group = self.create_group()
+            mock_trigger_explorer.return_value = 123
 
-        self.login_as(user=self.user)
-        response = self.client.post(
-            self._get_url(group.id, mode="explorer"),
-            data={"step": "root_cause"},
-            format="json",
-        )
+            self.login_as(user=self.user)
+            with self.feature(flag):
+                response = self.client.post(
+                    self._get_url(group.id, mode="explorer"),
+                    data={"step": "root_cause"},
+                    format="json",
+                )
 
-        assert response.status_code == 202, response.data
-        assert response.data["run_id"] == 123
-        mock_trigger_explorer.assert_called_once()
+            assert response.status_code == 202, f"Failed for {flag}: {response.data}"
+            assert response.data["run_id"] == 123
+            mock_trigger_explorer.assert_called_once()
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_explorer")
     def test_stopping_point(self, mock_trigger_explorer):
-        """POST routes to explorer and stopping point forces the step to be root_caues"""
-        group = self.create_group()
-        mock_trigger_explorer.return_value = 123
+        """POST routes to explorer and stopping point forces the step to be root_cause"""
+        for flag in EXPLORER_FLAGS:
+            mock_trigger_explorer.reset_mock()
+            group = self.create_group()
+            mock_trigger_explorer.return_value = 123
 
-        self.login_as(user=self.user)
-        response = self.client.post(
-            self._get_url(group.id, mode="explorer"),
-            data={"step": "coding_agent_handoff", "stopping_point": "code_changes"},
-            format="json",
-        )
+            self.login_as(user=self.user)
+            with self.feature(flag):
+                response = self.client.post(
+                    self._get_url(group.id, mode="explorer"),
+                    data={"step": "coding_agent_handoff", "stopping_point": "code_changes"},
+                    format="json",
+                )
 
-        assert response.status_code == 202, response.data
-        assert response.data["run_id"] == 123
-        mock_trigger_explorer.assert_called_once_with(
-            group=group,
-            step=AutofixStep.ROOT_CAUSE,
-            stopping_point=AutofixStoppingPoint.CODE_CHANGES,
-            run_id=None,
-            intelligence_level="low",
-        )
+            assert response.status_code == 202, f"Failed for {flag}: {response.data}"
+            assert response.data["run_id"] == 123
+            mock_trigger_explorer.assert_called_once_with(
+                group=group,
+                step=AutofixStep.ROOT_CAUSE,
+                referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+                stopping_point=AutofixStoppingPoint.CODE_CHANGES,
+                run_id=None,
+                intelligence_level="low",
+                user_context=None,
+            )
 
     @patch("sentry.seer.autofix.autofix._call_autofix")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
-    @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
+    @patch("sentry.tasks.seer.autofix.check_autofix_status.apply_async")
     def test_post_routes_to_legacy_with_mode_param(
         self,
         mock_check_autofix_status,
@@ -955,24 +971,217 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
         assert response.status_code == 202, response.data
         mock_call_autofix.assert_called_once()
 
-    def test_post_coding_agent_handoff_errors_with_both_provider_and_integration_id(self):
+    def test_post_coding_agent_handoff_errors_with_both_provider_and_integration_id(self) -> None:
         """POST returns 400 when both provider and integration_id are specified for coding_agent_handoff."""
+        for flag in EXPLORER_FLAGS:
+            group = self.create_group()
+
+            self.login_as(user=self.user)
+            with self.feature(flag):
+                response = self.client.post(
+                    self._get_url(group.id, mode="explorer"),
+                    data={
+                        "step": "coding_agent_handoff",
+                        "run_id": 123,
+                        "integration_id": 456,
+                        "provider": "github_copilot",
+                    },
+                    format="json",
+                )
+
+            assert response.status_code == 400, f"Failed for {flag}: {response.data}"
+            assert response.data["detail"] == "Cannot specify both integration_id and provider"
+
+    @patch("sentry.seer.explorer.client_utils.make_explorer_state_request")
+    @patch("sentry.seer.explorer.client.make_explorer_update_request")
+    def test_open_pr(self, mock_explorer_update_request, mock_explorer_state_request):
+        self.login_as(user=self.user)
         group = self.create_group()
 
-        self.login_as(user=self.user)
-        response = self.client.post(
-            self._get_url(group.id, mode="explorer"),
-            data={
-                "step": "coding_agent_handoff",
-                "run_id": 123,
-                "integration_id": 456,
-                "provider": "github_copilot",
-            },
-            format="json",
-        )
+        mock_explorer_update_response = Mock()
+        mock_explorer_update_response.status = 200
+        mock_explorer_update_request.return_value = mock_explorer_update_response
 
-        assert response.status_code == 400
-        assert response.data["detail"] == "Cannot specify both integration_id and provider"
+        mock_explorer_state_response = Mock()
+        mock_explorer_state_response.status = 200
+        mock_explorer_state_response.json = Mock(
+            return_value={
+                "session": SeerRunState(
+                    run_id=123,
+                    blocks=[],
+                    status="completed",
+                    updated_at="2023-07-18T12:00:00Z",
+                    metadata={"group_id": group.id},
+                ).dict()
+            }
+        )
+        mock_explorer_state_request.return_value = mock_explorer_state_response
+
+        for flag in EXPLORER_FLAGS:
+            with self.feature(flag):
+                response = self.client.post(
+                    self._get_url(group.id, mode="explorer"),
+                    data={
+                        "step": "open_pr",
+                        "run_id": 123,
+                    },
+                    format="json",
+                )
+
+            assert response.status_code == 202, f"Failed for {flag}: {response.data}"
+            assert response.data == {"run_id": 123}
+
+    @patch("sentry.seer.explorer.client_utils.make_explorer_state_request")
+    @patch("sentry.seer.explorer.client.make_explorer_update_request")
+    def test_open_pr_with_repo_name(
+        self, mock_explorer_update_request, mock_explorer_state_request
+    ):
+        self.login_as(user=self.user)
+        group = self.create_group()
+
+        mock_explorer_update_response = Mock()
+        mock_explorer_update_response.status = 200
+        mock_explorer_update_request.return_value = mock_explorer_update_response
+
+        mock_explorer_state_response = Mock()
+        mock_explorer_state_response.status = 200
+        mock_explorer_state_response.json = Mock(
+            return_value={
+                "session": SeerRunState(
+                    run_id=123,
+                    blocks=[],
+                    status="completed",
+                    updated_at="2023-07-18T12:00:00Z",
+                    metadata={"group_id": group.id},
+                ).dict()
+            }
+        )
+        mock_explorer_state_request.return_value = mock_explorer_state_response
+
+        for flag in EXPLORER_FLAGS:
+            with self.feature(flag):
+                response = self.client.post(
+                    self._get_url(group.id, mode="explorer"),
+                    data={
+                        "step": "open_pr",
+                        "run_id": 123,
+                        "repo_name": "my-org/my-repo",
+                    },
+                    format="json",
+                )
+
+            assert response.status_code == 202, f"Failed for {flag}: {response.data}"
+            call_body = mock_explorer_update_request.call_args[0][0]
+            assert call_body["payload"]["type"] == "create_pr"
+            assert call_body["payload"]["repo_name"] == "my-org/my-repo"
+
+    @patch("sentry.seer.explorer.client_utils.make_explorer_state_request")
+    @patch("sentry.seer.explorer.client.make_explorer_update_request")
+    def test_open_pr_without_repo_name(
+        self, mock_explorer_update_request, mock_explorer_state_request
+    ):
+        self.login_as(user=self.user)
+        group = self.create_group()
+
+        mock_explorer_update_response = Mock()
+        mock_explorer_update_response.status = 200
+        mock_explorer_update_request.return_value = mock_explorer_update_response
+
+        mock_explorer_state_response = Mock()
+        mock_explorer_state_response.status = 200
+        mock_explorer_state_response.json = Mock(
+            return_value={
+                "session": SeerRunState(
+                    run_id=123,
+                    blocks=[],
+                    status="completed",
+                    updated_at="2023-07-18T12:00:00Z",
+                    metadata={"group_id": group.id},
+                ).dict()
+            }
+        )
+        mock_explorer_state_request.return_value = mock_explorer_state_response
+
+        for flag in EXPLORER_FLAGS:
+            with self.feature(flag):
+                response = self.client.post(
+                    self._get_url(group.id, mode="explorer"),
+                    data={
+                        "step": "open_pr",
+                        "run_id": 123,
+                    },
+                    format="json",
+                )
+
+            assert response.status_code == 202, f"Failed for {flag}: {response.data}"
+            call_body = mock_explorer_update_request.call_args[0][0]
+            assert call_body["payload"]["type"] == "create_pr"
+            assert "repo_name" not in call_body["payload"]
+
+    def test_open_pr_no_run_id(self) -> None:
+        self.login_as(user=self.user)
+
+        for flag in EXPLORER_FLAGS:
+            group = self.create_group()
+            with self.feature(flag):
+                response = self.client.post(
+                    self._get_url(group.id, mode="explorer"),
+                    data={"step": "open_pr"},
+                    format="json",
+                )
+
+            assert response.status_code == 400, f"Failed for {flag}: {response.data}"
+            assert response.data["detail"] == "run_id is required for open_pr"
+
+    @patch("sentry.seer.explorer.client_utils.make_explorer_state_request")
+    def test_open_pr_permission_error(self, mock_explorer_state_request):
+        self.login_as(user=self.user)
+        group = self.create_group()
+
+        mock_explorer_state_response = Mock()
+        mock_explorer_state_response.status = 200
+        mock_explorer_state_response.json = Mock(
+            return_value={
+                "session": SeerRunState(
+                    run_id=123,
+                    blocks=[],
+                    status="completed",
+                    updated_at="2023-07-18T12:00:00Z",
+                ).dict()
+            }
+        )
+        mock_explorer_state_request.return_value = mock_explorer_state_response
+
+        for flag in EXPLORER_FLAGS:
+            with self.feature(flag):
+                response = self.client.post(
+                    self._get_url(group.id, mode="explorer"),
+                    data={
+                        "step": "open_pr",
+                        "run_id": 123,
+                    },
+                    format="json",
+                )
+
+            assert response.status_code == 404, f"Failed for {flag}: {response.data}"
+
+    def test_open_pr_coding_disabled(self):
+        self.login_as(user=self.user)
+        group = self.create_group()
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        for flag in EXPLORER_FLAGS:
+            with self.feature(flag):
+                response = self.client.post(
+                    self._get_url(group.id, mode="explorer"),
+                    data={
+                        "step": "open_pr",
+                        "run_id": 123,
+                    },
+                    format="json",
+                )
+
+            assert response.status_code == 403, f"Failed for {flag}: {response.data}"
 
 
 @with_feature("organizations:gen-ai-features")

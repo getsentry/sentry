@@ -12,7 +12,7 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import Confirm from 'sentry/components/confirm';
+import {Confirm} from 'sentry/components/confirm';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';

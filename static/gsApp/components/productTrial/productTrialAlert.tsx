@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 import {sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
@@ -22,7 +22,7 @@ import type {ProductTrial, Subscription} from 'getsentry/types';
 import {isBizPlanFamily, UsageAction} from 'getsentry/utils/billing';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 import {titleCase} from 'getsentry/utils/titleCase';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 function shouldUseOnDemandCta(category: DataCategory): boolean {
   // TODO: other categories that use on demand is still missing here

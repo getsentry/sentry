@@ -8,7 +8,7 @@ import type {
   IntegrationProvider,
   OrganizationIntegration,
 } from 'sentry/types/integrations';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getIntegrationFeatureGate} from 'sentry/utils/integrationUtil';
 import {useApiQueries, useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -25,7 +25,7 @@ type Props = {
   refetchConfigs?: () => void;
 };
 
-function SetupMessagingIntegrationButton({
+export function SetupMessagingIntegrationButton({
   refetchConfigs,
   analyticsView,
   projectId,
@@ -135,5 +135,3 @@ function SetupMessagingIntegrationButton({
     </IntegrationFeatures>
   );
 }
-
-export default SetupMessagingIntegrationButton;

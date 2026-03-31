@@ -1,7 +1,8 @@
 import {useState} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import BooleanField, {
+import {
+  BooleanField,
   type BooleanFieldProps,
 } from 'sentry/components/forms/fields/booleanField';
 import {Panel} from 'sentry/components/panels/panel';

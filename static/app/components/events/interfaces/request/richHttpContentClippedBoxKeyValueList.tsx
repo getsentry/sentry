@@ -1,5 +1,5 @@
 import {ClippedBox} from 'sentry/components/clippedBox';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import type {EntryRequest} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';

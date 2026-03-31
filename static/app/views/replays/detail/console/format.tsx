@@ -22,7 +22,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import StructuredEventData from 'sentry/components/structuredEventData';
+import {StructuredEventData} from 'sentry/components/structuredEventData';
 import type {OnExpandCallback} from 'sentry/views/replays/detail/useVirtualizedInspector';
 
 const formatRegExp = /%[csdj%]/g;

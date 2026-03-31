@@ -14,7 +14,7 @@ from sentry.testutils.cases import APITestCase
 class TestCursorWebhook(APITestCase):
     endpoint = "sentry-extensions-cursor-webhook"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         # Create a Cursor integration linked to this organization
         self.integration = self.create_integration(
@@ -86,23 +86,23 @@ class TestCursorWebhook(APITestCase):
         assert result.repo_provider == "github"
         assert result.pr_url == "https://github.com/testorg/testrepo/pull/1"
 
-    def test_invalid_method(self):
+    def test_invalid_method(self) -> None:
         with pytest.raises(MethodNotAllowed):
             self.client.get(self._url())
 
-    def test_invalid_json(self):
+    def test_invalid_json(self) -> None:
         body = b"{bad json}"
         headers = self._signed_headers(body)
         response = self._post_with_headers(body, headers)
         assert response.status_code == 400
 
-    def test_missing_signature(self):
+    def test_missing_signature(self) -> None:
         payload = self._build_status_payload()
         body = orjson.dumps(payload)
         response = self.client.post(self._url(), data=body, content_type="application/json")
         assert response.status_code == 403
 
-    def test_invalid_signature(self):
+    def test_invalid_signature(self) -> None:
         payload = self._build_status_payload()
         body = orjson.dumps(payload)
         headers = {"HTTP_X_WEBHOOK_SIGNATURE": "sha256=deadbeef"}
@@ -146,7 +146,7 @@ class TestCursorWebhook(APITestCase):
         args, kwargs = mock_update_state.call_args
         assert kwargs["status"].name == "FAILED"
 
-    def test_missing_agent_id_or_status(self):
+    def test_missing_agent_id_or_status(self) -> None:
         # Missing id
         body = orjson.dumps(self._build_status_payload(id=None))
         headers = self._signed_headers(body)

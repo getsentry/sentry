@@ -2,7 +2,9 @@ import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {Stack} from '@sentry/scraps/layout';
+
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -264,7 +266,7 @@ function ScreensLandingPage() {
       moduleName={ModuleName.MOBILE_VITALS}
       maxPickableDays={maxPickableDays.maxPickableDays}
     >
-      <Layout.Page>
+      <Stack flex={1}>
         <PageAlertProvider>
           <ModuleFeature moduleName={moduleName}>
             <Layout.Body>
@@ -323,7 +325,7 @@ function ScreensLandingPage() {
             </Layout.Body>
           </ModuleFeature>
         </PageAlertProvider>
-      </Layout.Page>
+      </Stack>
     </ModulePageProviders>
   );
 }

@@ -3,14 +3,15 @@ import styled from '@emotion/styled';
 
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {MEPDataProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {useApi} from 'sentry/utils/useApi';
-import getPerformanceWidgetContainer, {
+import {
+  getPerformanceWidgetContainer,
   type PerformanceWidgetContainerTypes,
 } from 'sentry/views/performance/landing/widgets/components/performanceWidgetContainer';
 import type {

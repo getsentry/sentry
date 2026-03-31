@@ -5,7 +5,7 @@ import responses
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.auditlogentry import AuditLogEntry
@@ -91,6 +91,32 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         assert response.status_code == 200
         assert updated_workflow.name == "Updated Workflow"
+
+    def test_update_owner(self) -> None:
+        assert self.workflow.owner_team_id is None
+        assert self.workflow.owner_user_id is None
+
+        # update owner to user
+        self.valid_workflow["owner"] = f"user:{self.user.id}"
+        response = self.get_success_response(
+            self.organization.slug, self.workflow.id, raw_data=self.valid_workflow
+        )
+        updated_workflow = Workflow.objects.get(id=response.data.get("id"))
+        assert response.status_code == 200
+        assert response.data == serialize(updated_workflow)
+        assert response.data["owner"] == f"user:{self.user.id}"
+        assert updated_workflow.owner_user_id == self.user.id
+
+        # update owner to team
+        self.valid_workflow["owner"] = f"team:{self.team.id}"
+        response = self.get_success_response(
+            self.organization.slug, self.workflow.id, raw_data=self.valid_workflow
+        )
+        updated_workflow = Workflow.objects.get(id=response.data.get("id"))
+        assert response.status_code == 200
+        assert response.data == serialize(updated_workflow)
+        assert response.data["owner"] == f"team:{self.team.id}"
+        assert updated_workflow.owner_team_id == self.team.id
 
     def test_update_add_environment(self) -> None:
         assert self.workflow.environment_id is None
@@ -773,7 +799,7 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         with outbox_runner():
             self.get_success_response(self.organization.slug, self.workflow.id)
 
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Workflow",
             object_id=self.workflow.id,
         ).exists()
@@ -797,7 +823,7 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             assert response.status_code == 404
 
         # Ensure it wasn't deleted
-        assert not RegionScheduledDeletion.objects.filter(
+        assert not CellScheduledDeletion.objects.filter(
             model_name="Workflow",
             object_id=self.workflow.id,
         ).exists()
@@ -809,7 +835,7 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             self.get_success_response(self.organization.slug, self.workflow.id)
 
         # Ensure the workflow is scheduled for deletion
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Workflow",
             object_id=self.workflow.id,
         ).exists()
@@ -828,7 +854,7 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             self.get_success_response(self.organization.slug, self.workflow.id)
 
         # Ensure the workflow is scheduled for deletion
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Workflow",
             object_id=self.workflow.id,
         ).exists()

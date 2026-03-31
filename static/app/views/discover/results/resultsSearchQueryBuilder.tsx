@@ -47,7 +47,7 @@ import {
   FieldKind,
   isDeviceClass,
 } from 'sentry/utils/fields';
-import type Measurements from 'sentry/utils/measurements/measurements';
+import type {Measurements} from 'sentry/utils/measurements/measurements';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -129,7 +129,7 @@ function ErrorsSearchBar({
   );
 }
 
-function ResultsSearchQueryBuilder(props: Props) {
+export function ResultsSearchQueryBuilder(props: Props) {
   const {
     placeholder,
     portalTarget,
@@ -142,8 +142,6 @@ function ResultsSearchQueryBuilder(props: Props) {
     dataset,
     includeTransactions = true,
   } = props;
-
-  const organization = useOrganization();
 
   const placeholderText = useMemo(() => {
     return placeholder ?? t('Search for events, users, tags, and more');
@@ -160,13 +158,12 @@ function ResultsSearchQueryBuilder(props: Props) {
       includeTransactions,
     });
 
-  // AI search is only enabled for Errors dataset
+  // AI search is only enabled for Errors dataset if translate endpoint is enabled
   const isErrorsDataset = dataset === DiscoverDatasets.ERRORS;
-  const areAiFeaturesAllowed =
-    isErrorsDataset &&
-    !organization?.hideAiFeatures &&
-    organization.features.includes('gen-ai-features') &&
-    organization.features.includes('gen-ai-search-agent-translate');
+  const organization = useOrganization();
+  const hasTranslateEndpoint = organization.features.includes(
+    'gen-ai-search-agent-translate'
+  );
 
   const searchBarProps = {
     placeholderText,
@@ -187,7 +184,7 @@ function ResultsSearchQueryBuilder(props: Props) {
     return (
       <SearchQueryBuilderProvider
         initialQuery={props.query ?? ''}
-        enableAISearch={areAiFeaturesAllowed}
+        enableAISearch={hasTranslateEndpoint}
         aiSearchBadgeType="alpha"
         disabled={disabled}
         fieldDefinitionGetter={undefined}
@@ -223,8 +220,6 @@ function ResultsSearchQueryBuilder(props: Props) {
     />
   );
 }
-
-export default ResultsSearchQueryBuilder;
 
 const EXCLUDED_FILTER_KEYS = [FieldKey.ENVIRONMENT, FieldKey.TOTAL_COUNT];
 

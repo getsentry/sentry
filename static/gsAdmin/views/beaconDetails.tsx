@@ -1,12 +1,12 @@
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useParams} from 'sentry/utils/useParams';
 
 import {BeaconCheckins} from 'admin/components/beacons/beaconCheckins';
 import type {BeaconData} from 'admin/components/beacons/beaconOverview';
-import BeaconOverview from 'admin/components/beacons/beaconOverview';
+import {BeaconOverview} from 'admin/components/beacons/beaconOverview';
 import {RelatedBeacons} from 'admin/components/beacons/relatedBeacons';
 import {DetailsPage} from 'admin/components/detailsPage';
 

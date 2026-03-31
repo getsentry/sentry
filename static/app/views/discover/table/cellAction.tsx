@@ -317,8 +317,6 @@ function getInternalLinkActionLabel(field: string): string {
       return t('Open issue');
     case FieldKey.REPLAY_ID:
       return t('Open replay');
-    default:
-      break;
   }
   return t('Open link');
 }
@@ -337,7 +335,7 @@ type Props = React.PropsWithoutRef<Omit<CellActionsOpts, 'to'>> & {
   usePortalOnDropdown?: boolean;
 };
 
-function CellAction({
+export function CellAction({
   triggerType = ActionTriggerType.BOLD_HOVER,
   allowActions,
   usePortalOnDropdown,
@@ -450,8 +448,6 @@ function CellAction({
     </Container>
   );
 }
-
-export default CellAction;
 
 const Container = styled('div')`
   position: relative;

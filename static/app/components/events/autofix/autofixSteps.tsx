@@ -285,6 +285,7 @@ export function AutofixSteps({data, groupId, runId, event}: AutofixStepsProps) {
         <CodingAgentCard
           key={`coding-agent-${codingAgentState.id}`}
           codingAgentState={codingAgentState}
+          groupId={groupId}
           repo={repo}
         />
       ))}

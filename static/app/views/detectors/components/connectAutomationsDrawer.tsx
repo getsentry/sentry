@@ -2,7 +2,7 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {getApiQueryData, setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';

@@ -16,15 +16,15 @@ import {LineChart} from 'sentry/components/charts/lineChart';
 import {Count} from 'sentry/components/count';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import Pagination from 'sentry/components/pagination';
+import {Pagination} from 'sentry/components/pagination';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {ScoreBar} from 'sentry/components/scoreBar';
 import {TextOverflow} from 'sentry/components/textOverflow';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -42,12 +42,11 @@ import {useProfileTopEventsStats} from 'sentry/utils/profiling/hooks/useProfileT
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useRouter} from 'sentry/utils/useRouter';
 import type {DataState} from 'sentry/views/profiling/useLandingAnalytics';
 import {getProfileTargetId} from 'sentry/views/profiling/utils';
 
@@ -88,7 +87,6 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
   onDataState,
 }: SlowestFunctionsWidgetProps<F>) {
   const navigate = useNavigate();
-  const router = useRouter();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -219,11 +217,14 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
                   onChange={option => {
                     setSortFunction(option.value as SortOption);
                     setExpandedIndex(0);
-                    const newQuery = omit(router.location.query, [cursorName]);
-                    router.replace({
-                      pathname: router.location.pathname,
-                      query: newQuery,
-                    });
+                    const newQuery = omit(location.query, [cursorName]);
+                    navigate(
+                      {
+                        pathname: location.pathname,
+                        query: newQuery,
+                      },
+                      {replace: true}
+                    );
                   }}
                   trigger={triggerProps => (
                     <OverlayTrigger.Button

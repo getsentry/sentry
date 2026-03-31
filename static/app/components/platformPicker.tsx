@@ -7,8 +7,8 @@ import {Button} from '@sentry/scraps/button';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
-import LoadingMask from 'sentry/components/loadingMask';
-import SearchBar from 'sentry/components/searchBar';
+import {LoadingMask} from 'sentry/components/loadingMask';
+import {SearchBar} from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {consoles, gaming} from 'sentry/data/platformCategories';
 import {
@@ -16,7 +16,7 @@ import {
   createablePlatforms,
   filterAliases,
 } from 'sentry/data/platformPickerCategories';
-import platforms, {otherPlatform} from 'sentry/data/platforms';
+import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {IconClose, IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -41,7 +41,7 @@ const selectablePlatforms = platforms.filter(platform =>
 );
 
 function startsWithPunctuation(name: string) {
-  return /^[\p{P}]/u.test(name);
+  return /^\p{P}/u.test(name);
 }
 
 export type Category = (typeof categoryList)[number]['id'];
@@ -70,7 +70,7 @@ interface PlatformPickerProps {
   visibleSelection?: boolean;
 }
 
-function PlatformPicker({
+export function PlatformPicker({
   defaultCategory,
   noAutoFilter,
   platform,
@@ -393,5 +393,3 @@ const PlatformCard = styled(
     line-height: 1.2;
   }
 `;
-
-export default PlatformPicker;

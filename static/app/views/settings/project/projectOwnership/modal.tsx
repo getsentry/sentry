@@ -10,7 +10,7 @@ import type {Event, Frame} from 'sentry/types/event';
 import type {TagWithTopValues} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {uniq} from 'sentry/utils/array/uniq';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {safeURL} from 'sentry/utils/url/safeURL';

@@ -12,7 +12,7 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import MonitorForm from 'sentry/views/insights/crons/components/monitorForm';
+import {MonitorForm} from 'sentry/views/insights/crons/components/monitorForm';
 import type {Monitor} from 'sentry/views/insights/crons/types';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/insights/crons/utils';
 

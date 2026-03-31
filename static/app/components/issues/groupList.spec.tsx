@@ -12,7 +12,7 @@ import {MemberListStore} from 'sentry/stores/memberListStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 
-import GroupList from './groupList';
+import {GroupList} from './groupList';
 
 describe('GroupList', () => {
   const organization = OrganizationFixture();

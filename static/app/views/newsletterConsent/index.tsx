@@ -4,7 +4,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {ApiForm} from 'sentry/components/forms/apiForm';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
-import RadioField from 'sentry/components/forms/fields/radioField';
+import {RadioField} from 'sentry/components/forms/fields/radioField';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 

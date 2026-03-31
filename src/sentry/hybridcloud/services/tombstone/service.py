@@ -42,7 +42,12 @@ class CellTombstoneService(RpcService):
 
     @cell_rpc_method(resolve=ByCellName())
     @abstractmethod
-    def record_remote_tombstone(self, *, region_name: str, tombstone: RpcTombstone) -> None:
+    def record_remote_tombstone(
+        self,
+        *,
+        cell_name: str,
+        tombstone: RpcTombstone,
+    ) -> None:
         pass
 
 

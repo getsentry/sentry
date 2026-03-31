@@ -87,7 +87,7 @@ export function HeaderCell({
   );
 }
 
-function DetectorListTable({
+export function DetectorListTable({
   detectors,
   isPending,
   isError,
@@ -518,5 +518,3 @@ const VisualizationExpandButton = styled('div')`
     justify-content: center;
   }
 `;
-
-export default DetectorListTable;

@@ -16,7 +16,7 @@ from sentry.db.models import Model
 from sentry.models.files.control_file import ControlFile
 from sentry.models.files.file import File
 from sentry.silo.base import SiloMode
-from sentry.types.region import get_local_locality
+from sentry.types.cell import get_local_locality
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
 

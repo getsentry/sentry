@@ -7,7 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
 import type {InputFieldProps, OnEvent} from 'sentry/components/forms/fields/inputField';
-import FormField from 'sentry/components/forms/formField';
+import {FormField} from 'sentry/components/forms/formField';
 
 interface SegmentedRadioFieldProps<Choices extends string = string> extends Omit<
   InputFieldProps,

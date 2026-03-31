@@ -176,7 +176,13 @@ class UnsupportedResponseType(ApiError):
 
 
 class IntegrationError(Exception):
-    pass
+    message: Any | None = None
+    error_code: int | None = None
+
+    def __init__(self, message: Any | None = None, error_code: int | None = None) -> None:
+        self.message = message
+        self.error_code = error_code
+        super().__init__(message)
 
 
 class IntegrationConfigurationError(IntegrationError):

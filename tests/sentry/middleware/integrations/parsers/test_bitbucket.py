@@ -7,10 +7,10 @@ from sentry.middleware.integrations.parsers.bitbucket import BitbucketRequestPar
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.cell import override_cells
 from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
-from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Cell, RegionCategory
+from sentry.types.cell import Cell, RegionCategory
 
 region = Cell("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)
 region_config = (region,)
@@ -31,7 +31,7 @@ class BitbucketRequestParserTest(TestCase):
         )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_routing_endpoints(self) -> None:
         self.get_integration()
         control_routes = [
@@ -57,7 +57,7 @@ class BitbucketRequestParserTest(TestCase):
             assert_no_webhook_payloads()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_routing_webhook_no_regions(self) -> None:
         region_route = reverse(
             "sentry-extensions-bitbucket-webhook", kwargs={"organization_id": self.organization.id}
@@ -75,7 +75,7 @@ class BitbucketRequestParserTest(TestCase):
         assert_no_webhook_payloads()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_routing_webhook_with_regions(self) -> None:
         self.get_integration()
         region_route = reverse(

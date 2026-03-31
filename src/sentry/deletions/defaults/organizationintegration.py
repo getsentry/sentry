@@ -4,7 +4,7 @@ from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.repository import repository_service
 from sentry.organizations.services.organization import organization_service
-from sentry.types.region import CellMappingNotFound
+from sentry.types.cell import CellMappingNotFound
 from sentry.workflow_engine.service.action import action_service
 
 

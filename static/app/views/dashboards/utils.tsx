@@ -22,7 +22,7 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {
   ABYTE_UNITS,
@@ -514,6 +514,19 @@ export function getCurrentPageFilters(
     end: defined(end) ? normalizeDateTimeString(end as string) : undefined,
     utc: defined(utc) ? utc === 'true' : undefined,
   };
+}
+
+/**
+ * Merges saved dashboard filters with any overrides from the URL.
+ * URL filters take precedence per-key, but saved filters fill in
+ * keys that aren't present in the URL (e.g. globalFilter when only
+ * release is in the URL).
+ */
+export function getMergedDashboardFilters(
+  savedFilters: DashboardFilters | undefined,
+  location: Location
+): DashboardFilters {
+  return {...savedFilters, ...getDashboardFiltersFromURL(location)};
 }
 
 export function getDashboardFiltersFromURL(location: Location): DashboardFilters | null {

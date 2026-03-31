@@ -8,7 +8,7 @@ import {FormFieldControlState} from 'sentry/components/forms/formField/controlSt
 import type {FormModel} from 'sentry/components/forms/model';
 
 import type {InputFieldProps, OnEvent} from './inputField';
-import InputField from './inputField';
+import {InputField} from './inputField';
 
 export interface NumberFieldProps extends Omit<InputFieldProps, 'type'> {
   /**
@@ -17,7 +17,7 @@ export interface NumberFieldProps extends Omit<InputFieldProps, 'type'> {
   suffix?: React.ReactNode;
 }
 
-function NumberField({suffix, ...props}: NumberFieldProps) {
+export function NumberField({suffix, ...props}: NumberFieldProps) {
   return (
     <InputField
       field={suffix ? createFieldWithSuffix({suffix}) : undefined}
@@ -26,8 +26,6 @@ function NumberField({suffix, ...props}: NumberFieldProps) {
     />
   );
 }
-
-export default NumberField;
 
 /**
  * Custom field factory which can render an inline suffix

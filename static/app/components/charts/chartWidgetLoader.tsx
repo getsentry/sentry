@@ -1,7 +1,7 @@
 import {captureException} from '@sentry/core';
 import {useQuery} from '@tanstack/react-query';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
@@ -93,6 +93,8 @@ const CHART_MAP = {
     import('sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget'),
   overviewAgentsDurationChartWidget: () =>
     import('sentry/views/insights/common/components/widgets/overviewAgentsDurationChartWidget'),
+  overviewLLMCallsChartWidget: () =>
+    import('sentry/views/insights/common/components/widgets/overviewLLMCallsChartWidget'),
   overviewApiLatencyChartWidget: () =>
     import('sentry/views/insights/common/components/widgets/overviewApiLatencyChartWidget'),
   overviewCacheMissChartWidget: () =>

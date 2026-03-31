@@ -8,7 +8,7 @@ import {
 } from 'sentry/components/search/sources/dsnLookupUtils';
 import type {DsnLookupResponse} from 'sentry/components/search/sources/dsnLookupUtils';
 import {IconIssues, IconList, IconSettings} from 'sentry/icons';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -42,7 +42,6 @@ export function useDsnLookupActions(query: string): void {
     }
 
     return getDsnNavTargets(data).map((target, i) => ({
-      type: 'navigate' as const,
       to: target.to,
       display: {
         label: target.label,

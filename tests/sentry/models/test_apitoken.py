@@ -215,7 +215,7 @@ class ApiTokenTest(TestCase):
             assert not ApiTokenReplica.objects.filter(apitoken_id=token.id).exists()
 
     @mock.patch(
-        "sentry.hybridcloud.services.replica.region_replica_service.delete_replicated_api_token"
+        "sentry.hybridcloud.services.replica.cell_replica_service.delete_replicated_api_token"
     )
     def test_handle_async_deletion_called(self, mock_delete_replica: mock.MagicMock) -> None:
         user = self.create_user()

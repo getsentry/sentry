@@ -100,7 +100,7 @@ class Test{Feature}OutboxProcessing(TestCase):
 ## Template: Outbox Signal Verification
 
 ```python
-    @patch("sentry.hybridcloud.models.outbox.process_region_outbox.send")
+    @patch("sentry.hybridcloud.models.outbox.process_cell_outbox.send")
     def test_outbox_sends_correct_signal(self, mock_send):
         """Verify the outbox signal fires with correct arguments."""
         org = self.create_organization()

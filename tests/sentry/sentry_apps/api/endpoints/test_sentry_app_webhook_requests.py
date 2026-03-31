@@ -7,7 +7,7 @@ from requests.models import Response
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import control_silo_test, create_test_regions
+from sentry.testutils.silo import control_silo_test, create_test_cells
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
@@ -15,7 +15,7 @@ from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 pytestmark = [requires_snuba]
 
 
-@control_silo_test(regions=create_test_regions("us"))
+@control_silo_test(cells=create_test_cells("us"))
 class SentryAppWebhookRequestsGetTest(APITestCase):
     def setUp(self) -> None:
         self.superuser = self.create_user(email="superuser@example.com", is_superuser=True)

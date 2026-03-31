@@ -7,7 +7,7 @@ import {
   NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE,
   NAVIGATION_SIDEBAR_RESET_DELAY_MS,
 } from 'sentry/views/navigation/constants';
-import {useNavigation} from 'sentry/views/navigation/navigationContext';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 
 /**
  * Resets the active nav group when the user moves their mouse away from the
@@ -15,7 +15,7 @@ import {useNavigation} from 'sentry/views/navigation/navigationContext';
  * to prevent accidental dismissals.
  */
 export function useResetActiveNavigationGroup(): DOMAttributes<FocusableElement> {
-  const {layout, setActiveGroup} = useNavigation();
+  const {layout, setActiveGroup} = usePrimaryNavigation();
   const resetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const resetActiveNavigationGroup = useCallback(() => {

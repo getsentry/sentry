@@ -5,7 +5,7 @@ import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSe
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import SearchBar from 'sentry/components/searchBar';
+import {SearchBar} from 'sentry/components/searchBar';
 import {t, tn} from 'sentry/locale';
 
 type Props = {

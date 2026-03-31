@@ -5,10 +5,10 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
+import {WidgetBuilderV2} from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 
 const organization = OrganizationFixture({
   features: ['open-membership', 'visibility-explore-view'],
@@ -180,7 +180,14 @@ describe('NewWidgetBuilder', () => {
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/dashboard/1/',
-            query: {project: '-1', displayType: 'line'},
+            query: {
+              project: '-1',
+              displayType: 'line',
+              dataset: 'error-events',
+              yAxis: ['count_unique(user)'],
+              sort: ['-count_unique(user)'],
+              query: ['is:unresolved'],
+            },
           },
         },
       }
@@ -243,7 +250,14 @@ describe('NewWidgetBuilder', () => {
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/dashboard/1/',
-            query: {project: '-1', displayType: 'line'},
+            query: {
+              project: '-1',
+              displayType: 'line',
+              dataset: 'error-events',
+              yAxis: ['count_unique(user)'],
+              sort: ['-count_unique(user)'],
+              query: [''],
+            },
           },
         },
       }

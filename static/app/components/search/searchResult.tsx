@@ -7,7 +7,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {IdBadge} from 'sentry/components/idBadge';
 import {IconInput, IconLink, IconSettings} from 'sentry/icons';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import highlightFuseMatches from 'sentry/utils/highlightFuseMatches';
+import {highlightFuseMatches} from 'sentry/utils/highlightFuseMatches';
 import {useParams} from 'sentry/utils/useParams';
 
 import type {Result} from './sources/types';

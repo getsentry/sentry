@@ -32,7 +32,7 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {ContinuousProfilingBillingRequirementBanner} from 'sentry/components/profiling/billing/alerts';
 import {BodyTitle, SetupTitle} from 'sentry/components/updatedEmptyState';
 import {profiling as profilingPlatforms} from 'sentry/data/platformCategories';
-import platforms, {otherPlatform} from 'sentry/data/platforms';
+import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';

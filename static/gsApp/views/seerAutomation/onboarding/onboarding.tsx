@@ -1,4 +1,4 @@
-import AnalyticsArea from 'sentry/components/analyticsArea';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

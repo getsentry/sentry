@@ -12,7 +12,7 @@ import {sendTrialRequest, sendUpgradeRequest} from 'getsentry/actionCreators/ups
 import {StartTrialButton} from 'getsentry/components/startTrialButton';
 import type {Subscription} from 'getsentry/types';
 import {getTrialLength} from 'getsentry/utils/billing';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type ChildRenderProps = {
   action: 'upgrade' | 'trial';

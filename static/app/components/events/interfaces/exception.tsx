@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 
-import {CommitRow} from 'sentry/components/commitRow';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {StacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {TraceEventDataSection} from 'sentry/components/events/traceEventDataSection';
@@ -120,7 +119,6 @@ export function Exception({
                     projectSlug={projectSlug}
                     eventId={event.id}
                     group={group}
-                    commitRow={CommitRow}
                   />
                 </ErrorBoundary>
               </Fragment>

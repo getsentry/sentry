@@ -6,7 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {useFeedbackCategories} from 'sentry/components/feedback/list/useFeedbackCategories';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';

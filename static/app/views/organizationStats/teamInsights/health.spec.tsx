@@ -11,7 +11,7 @@ import {TeamStore} from 'sentry/stores/teamStore';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import localStorageWrapper from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import TeamStatsHealth from 'sentry/views/organizationStats/teamInsights/health';
 
 jest.mock('sentry/utils/localStorage');

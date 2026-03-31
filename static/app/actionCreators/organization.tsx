@@ -14,8 +14,8 @@ import {
   addOrganizationFeaturesHandler,
   buildSentryFeaturesHandler,
 } from 'sentry/utils/featureFlags';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 async function fetchOrg(api: Client, slug: string): Promise<Organization> {
   const [org] = await api.requestPromise(`/organizations/${slug}/`, {

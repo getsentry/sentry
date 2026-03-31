@@ -8,12 +8,12 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import Feature from 'sentry/components/acl/feature';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import GroupList from 'sentry/components/issues/groupList';
-import Placeholder from 'sentry/components/placeholder';
+import {GroupList} from 'sentry/components/issues/groupList';
+import {Placeholder} from 'sentry/components/placeholder';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';

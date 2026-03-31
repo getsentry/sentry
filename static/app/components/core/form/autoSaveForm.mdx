@@ -1,0 +1,163 @@
+---
+title: AutoSaveForm
+description: A field component that automatically saves changes individually, for settings pages and forms where each field persists independently.
+category: forms
+source: '@sentry/scraps/form'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/form/autoSaveForm.tsx
+---
+
+import {Container} from '@sentry/scraps/layout';
+
+import {BasicAutoSaveDemo, FullAutoSaveDemo} from './__stories__/formDemos';
+
+import * as Storybook from 'sentry/stories';
+
+`AutoSaveForm` is for settings pages where each field saves independently. Unlike `useScrapsForm`, each `AutoSaveForm` creates its own form instance internally — there's no shared form, no submit button, and no form-level submission.
+
+For traditional submit-based forms, see [Form](./form.mdx).
+
+## Basic Usage
+
+<Storybook.Demo>
+  <Container width="80%">
+    <BasicAutoSaveDemo />
+  </Container>
+</Storybook.Demo>
+
+```jsx
+import {z} from 'zod';
+
+import {AutoSaveForm} from '@sentry/scraps/form';
+
+import {fetchMutation} from 'sentry/utils/queryClient';
+
+const schema = z.object({
+  displayName: z.string().min(1, 'Display name is required'),
+});
+
+<AutoSaveForm
+  name="displayName"
+  schema={schema}
+  initialValue={user.displayName}
+  mutationOptions={{
+    mutationFn: (data: Partial<User>) => fetchMutation({url: '/user/', method: 'PUT', data}),
+    onSuccess: data => {
+      queryClient.setQueryData(['user'], old => ({...old, ...data}));
+    },
+  }}
+>
+  {field => (
+    <field.Layout.Row label="Display Name">
+      <field.Input value={field.state.value} onChange={field.handleChange} />
+    </field.Layout.Row>
+  )}
+</AutoSaveForm>;
+```
+
+## Props
+
+| Prop              | Type                                       | Required | Description                                                                                   |
+| ----------------- | ------------------------------------------ | -------- | --------------------------------------------------------------------------------------------- |
+| `name`            | `string`                                   | Yes      | The field name — must be a key in the schema.                                                 |
+| `schema`          | `ZodObject`                                | Yes      | Zod schema for validation.                                                                    |
+| `initialValue`    | `SchemaType[name]`                         | Yes      | The current value from server data.                                                           |
+| `mutationOptions` | `UseMutationOptions`                       | Yes      | TanStack Query mutation options. `mutationFn` receives `{[name]: value}`.                     |
+| `children`        | `(field) => ReactNode`                     | Yes      | Render prop receiving the field API with all bound field components.                          |
+| `confirm`         | `string \| (value) => string \| undefined` | No       | Confirmation dialog message before saving. See [Confirmation Dialogs](#confirmation-dialogs). |
+
+## Save Behavior by Field Type
+
+| Field Type        | When It Saves                                                   |
+| ----------------- | --------------------------------------------------------------- |
+| Input, TextArea   | On blur (when user leaves the field)                            |
+| Select (single)   | Immediately when selection changes                              |
+| Select (multiple) | When menu closes, or when clear is clicked while menu is closed |
+| Switch            | Immediately when toggled                                        |
+| Radio             | Immediately when selection changes                              |
+| Range             | When user releases the slider, or immediately with keyboard     |
+
+## Status Indicators
+
+`AutoSaveForm` automatically shows inline status indicators:
+
+- **Spinner** — while saving (mutation pending)
+- **Checkmark** — on success (fades after 2 seconds)
+- **Warning icon** — on validation or mutation error (with tooltip showing the error message)
+
+> [!NOTE]
+> Do NOT use toasts to communicate auto-save status. The built-in inline indicators are the correct feedback mechanism. Toasts are noisy and disruptive for fields that save frequently.
+
+## Confirmation Dialogs
+
+For dangerous operations (security settings, permissions), use the `confirm` prop to show a confirmation modal before saving. It accepts a string (always shown) or a function (conditionally shown).
+
+```jsx
+// Always confirm
+<AutoSaveForm
+  confirm="Are you sure you want to change this setting?"
+  {...otherProps}
+>
+
+// Conditional — only confirm when enabling
+<AutoSaveForm
+  confirm={value => value ? t('Are you sure you want to enable this?') : undefined}
+  {...otherProps}
+>
+
+// Different messages per direction
+<AutoSaveForm
+  confirm={value =>
+    value
+      ? t('Enable 2FA requirement for all members?')
+      : t('Allow members without 2FA?')
+  }
+  {...otherProps}
+>
+```
+
+> [!NOTE]
+> Confirmation dialogs always focus the Cancel button for safety, preventing accidental confirmation of dangerous operations.
+
+## Typing Mutations
+
+Type the `mutationFn` with the API's data type, **not** the zod schema type. The schema is for client-side field validation only — the mutation should accept whatever the API endpoint accepts.
+
+```jsx
+// ❌ Don't tie mutation type to the zod schema
+mutationFn: (data: Partial<z.infer<typeof schema>>) =>
+  fetchMutation({url: '/user/', method: 'PUT', data})
+
+// ✅ Use the API's data type
+mutationFn: (data: Partial<UserDetails>) =>
+  fetchMutation({url: '/user/', method: 'PUT', data})
+```
+
+Make sure the zod schema's types are compatible with the API type. For example, if the API expects a string union like `'off' | 'low' | 'high'`, use `z.enum(['off', 'low', 'high'])` instead of `z.string()`.
+
+## Cache Updates
+
+Always update the data store or React Query cache in `onSuccess` so the UI stays in sync. This is critical for `AutoSaveForm` — without it, toggling a field back to its original value won't trigger a save, because TanStack Form compares against `defaultValues` (derived from `initialValue`) to determine if the value has changed.
+
+```jsx
+mutationOptions={{
+  mutationFn: data =>
+    fetchMutation({url: '/user/', method: 'PUT', data}),
+  onSuccess: data => {
+    queryClient.setQueryData(['user'], old => ({...old, ...data}));
+  },
+}}
+```
+
+## Full Example
+
+A settings page with multiple field types.
+
+<Storybook.Demo maxHeight={undefined}>
+  <FullAutoSaveDemo />
+</Storybook.Demo>
+
+## See Also
+
+- [Form](./form.mdx) — Submit-based forms with `useScrapsForm`
+- [Fields Reference](./fields.mdx) — All available field components

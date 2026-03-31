@@ -65,6 +65,8 @@ export interface Organization extends OrganizationSummary {
   dataScrubberDefaults: boolean;
   debugFilesRole: string;
   defaultCodeReviewTriggers: CodeReviewTrigger[];
+  defaultCodingAgent: string | null | undefined;
+  defaultCodingAgentIntegrationId: number | null | undefined;
   defaultRole: string;
   enhancedPrivacy: boolean;
   eventsMemberAdmin: boolean;
@@ -109,7 +111,6 @@ export interface Organization extends OrganizationSummary {
     | null;
   defaultSeerScannerAutomation?: boolean;
   desiredSampleRate?: number | null;
-  enablePrReviewTestGeneration?: boolean;
   enableSeerCoding?: boolean;
   enableSeerEnhancedAlerts?: boolean;
   enabledConsolePlatforms?: string[];
@@ -237,12 +238,14 @@ export interface MissingMember {
 }
 
 /**
- * Minimal organization shape used on shared issue views.
+ * Minimal organization shape from SharedProjectSerializer.
+ * Backend provides {slug, name}. Features is added client-side
+ * for compatibility with OrganizationContext.
  */
 export type SharedViewOrganization = {
   slug: string;
   features?: string[];
-  id?: string;
+  name?: string;
 };
 
 export type AuditLog = {

@@ -18,7 +18,7 @@ export function SeerDrawerHeader({onCopyMarkdown, onReset}: SeerDrawerHeaderProp
     <DrawerHeader>
       <Flex justify="between" width="100%">
         <Flex align="center" gap="xs">
-          <Text>{t('Autofix')}</Text>
+          <Text>{t('Seer Autofix')}</Text>
           <Button
             size="xs"
             icon={<IconCopy />}

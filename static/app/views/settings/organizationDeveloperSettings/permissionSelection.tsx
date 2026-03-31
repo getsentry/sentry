@@ -1,6 +1,6 @@
 import {Component, Fragment} from 'react';
 
-import SelectField from 'sentry/components/forms/fields/selectField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {FormContext} from 'sentry/components/forms/formContext';
 import {SENTRY_APP_PERMISSIONS, type PermissionObj} from 'sentry/constants';
 import {t} from 'sentry/locale';

@@ -10,7 +10,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {openModal} from 'sentry/actionCreators/modal';
 import {useStacktraceCoverage} from 'sentry/components/events/interfaces/frame/useStacktraceCoverage';
 import {hasFileExtension} from 'sentry/components/events/interfaces/frame/utils';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconCopy, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';

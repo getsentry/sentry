@@ -1,6 +1,6 @@
 import {Component} from 'react';
 
-import TextField from 'sentry/components/forms/fields/textField';
+import {TextField} from 'sentry/components/forms/fields/textField';
 import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 

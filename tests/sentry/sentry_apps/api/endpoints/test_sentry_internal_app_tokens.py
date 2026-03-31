@@ -1,4 +1,5 @@
 from django.test import override_settings
+from django.urls import reverse
 from rest_framework import status
 
 from sentry import audit_log
@@ -6,6 +7,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.models.sentry_app import MASKED_VALUE
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.impersonation import simulate_impersonation
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 
@@ -172,3 +174,31 @@ class GetSentryInternalAppTokenTest(SentryInternalAppTokenTest):
 
         self.add_user_permission(self.superuser, "superuser.write")
         self.get_success_response(self.internal_sentry_app.slug)
+
+
+@control_silo_test
+class SentryInternalAppTokenImpersonationTest(SentryInternalAppTokenTest):
+    def test_impersonated_post_blocked(self) -> None:
+        self.login_as(self.user)
+        token_count = ApiToken.objects.filter(
+            application_id=self.internal_sentry_app.application_id
+        ).count()
+        url = reverse(
+            "sentry-api-0-sentry-internal-app-tokens", args=[self.internal_sentry_app.slug]
+        )
+        with simulate_impersonation(self.superuser):
+            response = self.client.post(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert (
+            ApiToken.objects.filter(application_id=self.internal_sentry_app.application_id).count()
+            == token_count
+        )
+
+    def test_impersonated_get_allowed(self) -> None:
+        self.login_as(self.user)
+        url = reverse(
+            "sentry-api-0-sentry-internal-app-tokens", args=[self.internal_sentry_app.slug]
+        )
+        with simulate_impersonation(self.superuser):
+            response = self.client.get(url)
+        assert response.status_code == status.HTTP_200_OK

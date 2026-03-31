@@ -2,12 +2,13 @@ import logging
 from smtplib import SMTPDataError
 from typing import Any
 
+from taskbroker_client.retry import Retry
+
 from sentry.auth import access
 from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import notifications_control_tasks, notifications_tasks
-from sentry.taskworker.retry import Retry
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.email import send_messages

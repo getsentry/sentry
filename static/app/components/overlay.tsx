@@ -13,7 +13,7 @@ import {testableTransition} from 'sentry/utils/testableTransition';
 
 type OriginPoint = Partial<{x: number; y: number}>;
 
-interface OverlayProps
+export interface OverlayProps
   extends HTMLMotionProps<'div'>, React.RefAttributes<HTMLDivElement> {
   /**
    * Whether the overlay should animate in/out. If true, we'll also need

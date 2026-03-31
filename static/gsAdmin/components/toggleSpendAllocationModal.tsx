@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import Form from 'sentry/components/forms/form';
+import {Form} from 'sentry/components/forms/form';
 import {withApi} from 'sentry/utils/withApi';
 
 type Props = {

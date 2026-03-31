@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, NotRequired, TypeAlias, TypedDict
 from uuid import uuid4
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.issues.grouptype import GroupCategory, GroupType
+from sentry.issues.grouptype import GroupCategory, GroupType, NotificationConfig
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.preprod.artifact_search import artifact_matches_query
 from sentry.types.group import PriorityLevel
@@ -55,7 +55,86 @@ def _artifact_to_tags(artifact: PreprodArtifact) -> dict[str, str]:
         tags["build_configuration"] = artifact.build_configuration.name
     if artifact.artifact_type is not None:
         tags["artifact_type"] = PreprodArtifactModel.ArtifactType(artifact.artifact_type).to_str()
+
+    tags["artifact_id"] = str(artifact.id)
+
     return tags
+
+
+_THRESHOLD_TYPE_LABELS: dict[str, str] = {
+    "absolute_diff": "Absolute Diff",
+    "relative_diff": "Relative Diff",
+    "absolute": "Absolute Size",
+}
+
+
+def _get_measurement_label(measurement: str, platform: str) -> str:
+    """Get platform-aware display label for a measurement type.
+
+    On Android, install_size is called "Uncompressed Size".
+    On iOS/apple, install_size is called "Install Size".
+    """
+    if measurement == "install_size":
+        return "Uncompressed Size" if platform == "android" else "Install Size"
+    if measurement == "download_size":
+        return "Download Size"
+    return measurement.replace("_", " ").title()
+
+
+def _build_evidence_text(
+    detector_config: dict[str, Any],
+    evaluation_result: ProcessedDataConditionGroup,
+    data_packet: SizeAnalysisDataPacket,
+    platform: str,
+) -> str:
+    """Build a single-line evidence string for Slack/Jira notifications.
+
+    Format: {measurement}, {threshold_type} > {threshold_value} ({actual_value})
+    Example: Install Size, Absolute Diff > 1.0 MB (+1.0 MB)
+    """
+    from sentry.preprod.utils import format_bytes_base10
+
+    measurement = detector_config["measurement"]
+    threshold_type = detector_config["threshold_type"]
+    measurement_label = _get_measurement_label(measurement, platform)
+
+    # Threshold: type > value
+    threshold_part = ""
+    if evaluation_result.condition_results:
+        condition = evaluation_result.condition_results[0].condition
+        threshold_label = _THRESHOLD_TYPE_LABELS.get(threshold_type, threshold_type)
+
+        if threshold_type == "relative_diff":
+            formatted_threshold = f"{condition.comparison}%"
+        else:
+            formatted_threshold = format_bytes_base10(int(condition.comparison))
+
+        threshold_part = f", {threshold_label} > {formatted_threshold}"
+
+    # Actual value
+    match measurement:
+        case "install_size":
+            head_bytes = data_packet.packet["head_install_size_bytes"]
+            base_bytes = data_packet.packet.get("base_install_size_bytes")
+        case "download_size":
+            head_bytes = data_packet.packet["head_download_size_bytes"]
+            base_bytes = data_packet.packet.get("base_download_size_bytes")
+        case _:
+            head_bytes = 0
+            base_bytes = None
+
+    if threshold_type == "absolute" or base_bytes is None:
+        actual_value = format_bytes_base10(head_bytes)
+    elif threshold_type == "relative_diff":
+        pct = ((head_bytes - base_bytes) / base_bytes) * 100 if base_bytes else 0
+        actual_value = f"+{pct:.1f}%"
+    else:
+        delta = head_bytes - base_bytes
+        delta_formatted = format_bytes_base10(abs(delta))
+        sign = "+" if delta >= 0 else "-"
+        actual_value = f"{sign}{delta_formatted}"
+
+    return f"{measurement_label}{threshold_part} ({actual_value})"
 
 
 class SizeAnalysisMetadata(TypedDict):
@@ -63,11 +142,11 @@ class SizeAnalysisMetadata(TypedDict):
 
     platform: str  # "android", "apple", or "unknown"
     head_metric_id: int
-    base_metric_id: int
+    base_metric_id: NotRequired[int]
     head_artifact_id: int
-    base_artifact_id: int
+    base_artifact_id: NotRequired[int]
     head_artifact: PreprodArtifact
-    base_artifact: PreprodArtifact
+    base_artifact: NotRequired[PreprodArtifact]
 
 
 class SizeAnalysisValue(TypedDict):
@@ -190,7 +269,7 @@ class PreprodSizeAnalysisDetectorHandler(
                 return self._extract_head(data_packet) - self._extract_base(data_packet)
             case "relative_diff":
                 base = self._extract_base(data_packet)
-                return (self._extract_head(data_packet) - base) / base
+                return ((self._extract_head(data_packet) - base) / base) * 100
             case _:
                 raise ValueError(f"Unknown threshold_type: {threshold_type}")
 
@@ -219,17 +298,39 @@ class PreprodSizeAnalysisDetectorHandler(
         }
         if metadata:
             evidence_data["head_artifact_id"] = metadata["head_artifact_id"]
-            evidence_data["base_artifact_id"] = metadata["base_artifact_id"]
+            if "base_artifact_id" in metadata:
+                evidence_data["base_artifact_id"] = metadata["base_artifact_id"]
             evidence_data["head_size_metric_id"] = metadata["head_metric_id"]
-            evidence_data["base_size_metric_id"] = metadata["base_metric_id"]
+            if "base_metric_id" in metadata:
+                evidence_data["base_size_metric_id"] = metadata["base_metric_id"]
 
         tags: dict[str, str] = {}
         if metadata:
             tags["regression_kind"] = measurement.replace("_size", "")
             for key, value in _artifact_to_tags(metadata["head_artifact"]).items():
                 tags[f"head.{key}"] = value
-            for key, value in _artifact_to_tags(metadata["base_artifact"]).items():
-                tags[f"base.{key}"] = value
+            if "base_artifact" in metadata:
+                for key, value in _artifact_to_tags(metadata["base_artifact"]).items():
+                    tags[f"base.{key}"] = value
+
+            commit_comparison = metadata["head_artifact"].commit_comparison
+            if commit_comparison is not None:
+                if (head_sha := commit_comparison.head_sha) is not None:
+                    tags["git.sha"] = head_sha
+                if (head_ref := commit_comparison.head_ref) is not None:
+                    tags["git.branch"] = head_ref
+                if (head_repo := commit_comparison.head_repo_name) is not None:
+                    tags["git.repo"] = head_repo
+                if (base_sha := commit_comparison.base_sha) is not None:
+                    tags["git.base_sha"] = base_sha
+                if (base_ref := commit_comparison.base_ref) is not None:
+                    tags["git.base_branch"] = base_ref
+                if commit_comparison.pr_number is not None:
+                    tags["git.pr_number"] = str(commit_comparison.pr_number)
+
+        evidence_text = _build_evidence_text(
+            self.detector.config, evaluation_result, data_packet, platform
+        )
 
         occurrence = DetectorOccurrence(
             issue_title=issue_title,
@@ -237,8 +338,8 @@ class PreprodSizeAnalysisDetectorHandler(
             evidence_data=evidence_data,
             evidence_display=[
                 IssueEvidence(
-                    name="Source",
-                    value=data_packet.source_id,
+                    name="Size Analysis",
+                    value=evidence_text,
                     important=True,
                 )
             ],
@@ -278,6 +379,10 @@ class PreprodSizeAnalysisGroupType(GroupType):
     released = False
     enable_auto_resolve = True
     enable_escalation_detection = False
+    notification_config = NotificationConfig(
+        context=[],
+        text_code_formatted=False,
+    )
     detector_settings = DetectorSettings(
         handler=PreprodSizeAnalysisDetectorHandler,
         validator=PreprodSizeAnalysisDetectorValidator,

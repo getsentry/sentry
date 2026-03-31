@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import omit from 'lodash/omit';
 
-import PlatformPicker from 'sentry/components/platformPicker';
+import {PlatformPicker} from 'sentry/components/platformPicker';
 import {t} from 'sentry/locale';
 import {testableTransition} from 'sentry/utils/testableTransition';
 import {useOrganization} from 'sentry/utils/useOrganization';

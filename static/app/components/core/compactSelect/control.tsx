@@ -590,6 +590,7 @@ export const TriggerLabel = styled('span')`
 `;
 
 const StyledBadge = styled(Badge)`
+  margin-left: ${p => p.theme.space.xs};
   flex-shrink: 0;
   top: auto;
 `;

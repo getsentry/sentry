@@ -138,7 +138,7 @@ function formatHintOperator(hint: Tag) {
   return 'is';
 }
 
-function SchemaHintsList({
+export function SchemaHintsList({
   supportedAggregates,
   booleanTags = {},
   numberTags,
@@ -468,8 +468,6 @@ function SchemaHintsList({
     </SchemaHintsContainer>
   );
 }
-
-export default SchemaHintsList;
 
 const SchemaHintsContainer = styled('div')`
   display: flex;

@@ -38,7 +38,7 @@ from sentry.notifications.additional_attachment_manager import get_additional_at
 from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
-from sentry.seer.entrypoints.operator import SeerOperator
+from sentry.seer.entrypoints.operator import SeerAutofixOperator
 from sentry.seer.entrypoints.slack.entrypoint import prepare_slack_thread_for_autofix_updates
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.services.eventstore.models import GroupEvent
@@ -282,7 +282,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         organization = self.project.organization
         cache_thread_ts = thread_ts or message_ts
         if (
-            SeerOperator.has_access(
+            SeerAutofixOperator.has_access(
                 organization=organization, entrypoint_key=SeerEntrypointKey.SLACK
             )
             and cache_thread_ts

@@ -43,7 +43,7 @@ from sentry.search.events.constants import (
 from sentry.search.events.types import SnubaParams
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.silo.base import SiloMode
-from sentry.types.region import get_local_locality, get_locality_name_for_cell
+from sentry.types.cell import get_local_locality, get_locality_name_for_cell
 from sentry.utils import json
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.sdk import capture_exception, merge_context_into_scope, set_span_attribute
@@ -302,12 +302,6 @@ def is_member_disabled_from_limit(
         return False
     else:
         return member.flags.member_limit__restricted
-
-
-def generate_region_url() -> str:
-    # Deprecated. Use generate_locality_url.
-    # This shim exists temporarily for getsentry compatibility.
-    return generate_locality_url()
 
 
 def generate_locality_url(locality_name: str | None = None) -> str:

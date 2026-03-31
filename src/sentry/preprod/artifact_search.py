@@ -315,3 +315,49 @@ def apply_filters(
             q = ~q
         queryset = queryset.filter(q)
     return queryset
+
+
+def get_sequential_base_artifact(
+    artifact: PreprodArtifact,
+    query: str,
+    organization: Organization,
+) -> PreprodArtifact | None:
+    """
+    Find the most recent prior artifact matching the given query and structural
+    identity fields, with completed size metrics.
+
+    Used by sequential (n-1) monitors to resolve the base artifact for diff
+    comparisons. Unlike the git-based lookup (get_base_artifact_for_commit),
+    this orders by date_added rather than commit ancestry.
+
+    Args:
+        artifact: The current (head) artifact to find a base for.
+        query: The detector's query string (e.g. "app_name:MyApp"). May be empty.
+        organization: The organization for scoping query filters.
+
+    Returns:
+        The most recent prior PreprodArtifact matching the criteria, or None.
+    """
+    queryset = PreprodArtifact.objects.get_queryset()
+
+    if query and query.strip():
+        search_filters = parse_search_query(
+            query, config=search_config, get_field_type=get_field_type
+        )
+        queryset = apply_filters(queryset, search_filters, organization)
+
+    queryset = queryset.filter(
+        project_id=artifact.project_id,
+        app_id=artifact.app_id,
+        artifact_type=artifact.artifact_type,
+        build_configuration=artifact.build_configuration,
+    )
+
+    queryset = queryset.filter(
+        preprodartifactsizemetrics__state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+        preprodartifactsizemetrics__metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+    )
+
+    queryset = queryset.exclude(pk=artifact.pk)
+
+    return queryset.order_by("-date_added").first()

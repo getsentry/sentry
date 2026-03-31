@@ -18,10 +18,11 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
   parseJsonWithFix,
-  tryParseJson,
+  tryParseJsonRecursive,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
@@ -105,7 +106,7 @@ function parseAIMessages(messages: string): AIMessage[] | string {
         if (!message.role || !message.content) {
           return null;
         }
-        const parsedContent = tryParseJson(message.content);
+        const parsedContent = tryParseJsonRecursive(message.content);
         return {
           role: message.role,
           content:
@@ -488,12 +489,8 @@ export function AIInputSection({
       disableCollapsePersistence
       initialCollapse={initialCollapse}
     >
-      {/* If parsing fails, we'll just show the raw string */}
       {typeof messages === 'string' ? (
-        // We set the key to the node id to ensure the internal collapse state is reset when the user switches between nodes
-        <TraceDrawerComponents.MultilineText key={node.id}>
-          {messages}
-        </TraceDrawerComponents.MultilineText>
+        <AIContentRenderer key={node.id} text={messages} />
       ) : null}
       {Array.isArray(messages) ? (
         <MessagesArrayRenderer
@@ -585,9 +582,7 @@ function MessagesArrayRenderer({
       <Fragment key={index}>
         <RoleLabel>{message.role}</RoleLabel>
         {typeof message.content === 'string' ? (
-          <TraceDrawerComponents.MultilineText>
-            {message.content}
-          </TraceDrawerComponents.MultilineText>
+          <AIContentRenderer text={message.content} />
         ) : (
           <TraceDrawerComponents.MultilineJSON
             value={message.content}

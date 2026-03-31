@@ -1,6 +1,6 @@
 import {createContext, useContext, type Dispatch, type SetStateAction} from 'react';
 
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 export const AutomationBuilderErrorContext = createContext<{
   errors: Record<string, any>;

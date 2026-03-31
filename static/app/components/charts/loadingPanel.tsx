@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import LoadingMask from 'sentry/components/loadingMask';
+import {LoadingMask} from 'sentry/components/loadingMask';
 
 interface Props extends React.HTMLAttributes<HTMLDivElement> {
   /**

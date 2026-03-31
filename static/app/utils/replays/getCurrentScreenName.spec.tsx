@@ -2,7 +2,8 @@ import {ReplayNavFrameFixture} from 'sentry-fixture/replay/replayBreadcrumbFrame
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {getCurrentScreenName} from 'sentry/utils/replays/getCurrentScreenName';
-import hydrateBreadcrumbs, {
+import {
+  hydrateBreadcrumbs,
   replayInitBreadcrumb,
 } from 'sentry/utils/replays/hydrateBreadcrumbs';
 import type {BreadcrumbFrame} from 'sentry/utils/replays/types';

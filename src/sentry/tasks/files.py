@@ -2,11 +2,11 @@ from datetime import timedelta
 
 from django.db import DatabaseError, IntegrityError, router
 from django.utils import timezone
+from taskbroker_client.retry import Retry
 
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import deletion_control_tasks, deletion_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils.db import atomic_transaction
 
 MAX_RETRIES = 5

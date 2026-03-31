@@ -19,7 +19,7 @@ from sentry.models.projectkey import ProjectKey
 from sentry.models.userreport import UserReport
 from sentry.services import eventstore
 from sentry.signals import user_feedback_received
-from sentry.types.region import get_local_locality
+from sentry.types.cell import get_local_locality
 from sentry.utils import json
 from sentry.utils.db import atomic_transaction
 from sentry.utils.http import is_valid_origin, origin_from_request

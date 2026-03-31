@@ -4,8 +4,8 @@ import {Alert} from '@sentry/scraps/alert';
 
 import {tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {

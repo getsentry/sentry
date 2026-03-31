@@ -6,12 +6,12 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 
-import GlobalModal from 'sentry/components/globalModal';
+import {GlobalModal} from 'sentry/components/globalModal';
 import Indicators from 'sentry/components/indicators';
 import {ListLink} from 'sentry/components/links/listLink';
 import {IconSentry, IconSliders} from 'sentry/icons';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
-import localStorageWrapper from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import SystemAlerts from 'sentry/views/app/systemAlerts';

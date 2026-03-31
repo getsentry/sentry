@@ -5,7 +5,7 @@ import {TeamReleaseCountsFixture} from 'sentry-fixture/teamReleaseCounts';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import TeamReleases from './teamReleases';
+import {TeamReleases} from './teamReleases';
 
 describe('TeamReleases', () => {
   beforeEach(() => {

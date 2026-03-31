@@ -2638,6 +2638,24 @@ describe('SearchQueryBuilder', () => {
         expect(within(valueButton).getAllByText('or')).toHaveLength(2);
       });
 
+      it('renders and between negated multi-value filters', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="!browser.name:[one,two,three]"
+          />
+        );
+
+        const valueButton = await screen.findByRole('button', {
+          name: 'Edit value for filter: browser.name',
+        });
+        expect(within(valueButton).getByText('one')).toBeInTheDocument();
+        expect(within(valueButton).getByText('two')).toBeInTheDocument();
+        expect(within(valueButton).getByText('three')).toBeInTheDocument();
+        expect(within(valueButton).getAllByText('and')).toHaveLength(2);
+        expect(within(valueButton).queryByText('or')).not.toBeInTheDocument();
+      });
+
       it('moves selected values to the top when opening a predefined multi-select', async () => {
         render(
           <SearchQueryBuilder
@@ -2715,6 +2733,28 @@ describe('SearchQueryBuilder', () => {
           .getAllByRole('option')
           .map(option => option.textContent);
         expect(optionsAfterToggle).toEqual(initialOptions);
+      });
+
+      it('sorts value suggestions by fuzzy match relevance', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(input);
+        // "e" matches Chrome, Firefox, and Edge, but Edge should rank
+        // highest as a prefix match
+        await userEvent.keyboard('e');
+
+        const options = within(screen.getByRole('listbox'))
+          .getAllByRole('option')
+          .map(option => option.textContent);
+        expect(options.indexOf('Edge')).toBeLessThan(options.indexOf('Chrome'));
+        expect(options.indexOf('Edge')).toBeLessThan(options.indexOf('Firefox'));
       });
 
       it('recomputes the initial ordering when reopened with new suggestion values', async () => {

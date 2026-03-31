@@ -458,7 +458,7 @@ const MAPPER_DEFAULT = (frame: any): Details => ({
   icon: <IconTerminal size="xs" />,
 });
 
-export default function getFrameDetails(frame: ReplayFrame): Details {
+export function getFrameDetails(frame: ReplayFrame): Details {
   const key = getFrameOpOrCategory(frame);
   const fn = MAPPER_FOR_FRAME[key] ?? MAPPER_DEFAULT;
   try {

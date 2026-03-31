@@ -7,7 +7,7 @@ from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.services.app_request import RpcSentryAppRequest, SentryAppRequestFilterArgs
 from sentry.sentry_apps.services.app_request.serial import serialize_rpc_sentry_app_request
 from sentry.sentry_apps.services.app_request.service import app_request_service
-from sentry.types.region import find_all_cell_names
+from sentry.types.cell import find_all_cell_names
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
@@ -89,9 +89,9 @@ def get_buffer_requests_from_cells(
 ) -> list[BufferedRequest]:
     requests: list[RpcSentryAppRequest] = []
     for cell_name in find_all_cell_names():
-        buffer_requests = app_request_service.get_buffer_requests_for_region(
+        buffer_requests = app_request_service.get_buffer_requests_for_cell(
             sentry_app_id=sentry_app_id,
-            region_name=cell_name,
+            cell_name=cell_name,
             filter=filter,
         )
         if buffer_requests:

@@ -10,7 +10,7 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {Field} from 'sentry/components/forms/types';
 import {Hovercard} from 'sentry/components/hovercard';
-import platforms from 'sentry/data/platforms';
+import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct, tn} from 'sentry/locale';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 import {getDynamicText} from 'sentry/utils/getDynamicText';

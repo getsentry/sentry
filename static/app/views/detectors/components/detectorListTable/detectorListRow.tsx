@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Container, Flex} from '@sentry/scraps/layout';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
@@ -52,7 +52,10 @@ export function DetectorListRow({detector, selected, onSelect}: DetectorListRowP
         <DetectorAssigneeCell assignee={detector.owner} />
       </SimpleTable.RowCell>
       <SimpleTable.RowCell data-column-name="connected-automations">
-        <DetectorListConnectedAutomations automationIds={detector.workflowIds} />
+        <DetectorListConnectedAutomations
+          automationIds={detector.workflowIds}
+          projectId={detector.projectId}
+        />
       </SimpleTable.RowCell>
       {additionalColumns.map(col => (
         <Fragment key={col.id}>{col.renderCell(detector)}</Fragment>

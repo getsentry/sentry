@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import contextlib
+import contextvars
 import functools
 import inspect
 import os
 import re
 import sys
-import threading
 import typing
 from collections.abc import Callable, Collection, Generator, Iterable, Mapping, MutableSet, Sequence
 from contextlib import contextmanager, nullcontext
@@ -22,8 +22,8 @@ from django.test import override_settings
 
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.silo.safety import match_fence_query
-from sentry.testutils.region import get_test_env_directory, override_regions
-from sentry.types.region import Cell, RegionCategory
+from sentry.testutils.cell import get_test_env_directory, override_cells
+from sentry.types.cell import Cell, RegionCategory
 from sentry.utils.snowflake import uses_snowflake_id
 
 if typing.TYPE_CHECKING:
@@ -35,54 +35,51 @@ SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
 
 
 def monkey_patch_single_process_silo_mode_state():
-    class LocalSiloModeState(threading.local):
-        mode: SiloMode | None = None
-        region: Cell | None = None
-
-    state = LocalSiloModeState()
+    _silo_mode_var: contextvars.ContextVar[SiloMode | None] = contextvars.ContextVar(
+        "silo_mode", default=None
+    )
+    _silo_cell_var: contextvars.ContextVar[Cell | None] = contextvars.ContextVar(
+        "silo_cell", default=None
+    )
 
     @contextlib.contextmanager
-    def enter(mode: SiloMode, region: Cell | None = None) -> Generator[None]:
-        assert state.mode is None, (
+    def enter(mode: SiloMode, cell: Cell | None = None) -> Generator[None]:
+        assert _silo_mode_var.get() is None, (
             "Re-entrant invariant broken! Use exit_single_process_silo_context "
             "to explicit pass 'fake' RPC boundaries."
         )
 
-        old_mode = state.mode
-        old_region = state.region
-        state.mode = mode
-        state.region = region
+        mode_token = _silo_mode_var.set(mode)
+        cell_token = _silo_cell_var.set(cell)
         try:
             yield
         finally:
-            state.mode = old_mode
-            state.region = old_region
+            _silo_mode_var.reset(mode_token)
+            _silo_cell_var.reset(cell_token)
 
     @contextlib.contextmanager
     def exit() -> Generator[None]:
-        old_mode = state.mode
-        old_region = state.region
-        state.mode = None
-        state.region = None
+        mode_token = _silo_mode_var.set(None)
+        cell_token = _silo_cell_var.set(None)
         try:
             yield
         finally:
-            state.mode = old_mode
-            state.region = old_region
+            _silo_mode_var.reset(mode_token)
+            _silo_cell_var.reset(cell_token)
 
     def get_mode() -> SiloMode | None:
-        return state.mode
+        return _silo_mode_var.get()
 
-    def get_region() -> Cell | None:
-        return state.region
+    def get_cell() -> Cell | None:
+        return _silo_cell_var.get()
 
     SingleProcessSiloModeState.enter = staticmethod(enter)  # type: ignore[method-assign]
     SingleProcessSiloModeState.exit = staticmethod(exit)  # type: ignore[method-assign]
     SingleProcessSiloModeState.get_mode = staticmethod(get_mode)  # type: ignore[method-assign]
-    SingleProcessSiloModeState.get_region = staticmethod(get_region)  # type: ignore[method-assign]
+    SingleProcessSiloModeState.get_cell = staticmethod(get_cell)  # type: ignore[method-assign]
 
 
-def create_test_regions(*names: str, single_tenants: Iterable[str] = ()) -> tuple[Cell, ...]:
+def create_test_cells(*names: str, single_tenants: Iterable[str] = ()) -> tuple[Cell, ...]:
     from sentry.api.utils import generate_locality_url
 
     single_tenants = frozenset(single_tenants)
@@ -135,7 +132,7 @@ class SiloModeTestDecorator:
     A test marked with a single silo mode runs only in that mode by default. An
     `include_monolith_run=True` will add a secondary run in monolith mode.
 
-    If a test is marked with both control and region modes, then the primary run will
+    If a test is marked with both control and cell modes, then the primary run will
     be in monolith mode and a secondary run will be generated in each silo mode.
 
     When testing on more than one mode, if the decorator is on a test case class,
@@ -166,21 +163,24 @@ class SiloModeTestDecorator:
             Callable[..., Any],
         )
     ](
-        self, *, regions: Sequence[Cell] = (), include_monolith_run: bool = False
+        self,
+        *,
+        cells: Sequence[Cell] = (),
+        include_monolith_run: bool = False,
     ) -> Callable[[T], T]: ...
 
     def __call__(
         self,
         decorated_obj: Any = None,
         *,
-        regions: Sequence[Cell] = (),
+        cells: Sequence[Cell] = (),
         include_monolith_run: bool = False,
     ) -> Any:
         silo_modes = self.silo_modes
         if include_monolith_run:
             silo_modes |= frozenset([SiloMode.MONOLITH])
 
-        mod = _SiloModeTestModification(silo_modes=silo_modes, regions=tuple(regions))
+        mod = _SiloModeTestModification(silo_modes=silo_modes, cells=tuple(cells))
         return mod.apply if decorated_obj is None else mod.apply(decorated_obj)
 
 
@@ -189,7 +189,7 @@ class _SiloModeTestModification:
     """Encapsulate the set of changes made to a test class by a SiloModeTestDecorator."""
 
     silo_modes: frozenset[SiloMode]
-    regions: tuple[Cell, ...]
+    cells: tuple[Cell, ...]
 
     def __post_init__(self) -> None:
         if not self.silo_modes:
@@ -198,7 +198,7 @@ class _SiloModeTestModification:
     @contextmanager
     def test_config(self, silo_mode: SiloMode):
         with (
-            override_regions(self.regions) if self.regions else nullcontext(),
+            override_cells(self.cells) if self.cells else nullcontext(),
             assume_test_silo_mode(silo_mode, can_be_monolith=False),
         ):
             yield
@@ -340,9 +340,6 @@ Apply to test functions/classes to indicate that tests are
 expected to pass with the current silo mode set to REGION.
 """
 
-# TODO(cells): Remove alias once no longer used in getsentry
-region_silo_test = cell_silo_test
-
 
 # assume_test_silo_mode vs assume_test_silo_mode_of: What's the difference?
 #
@@ -354,7 +351,7 @@ region_silo_test = cell_silo_test
 
 @contextmanager
 def assume_test_silo_mode(
-    desired_silo: SiloMode, can_be_monolith: bool = True, region_name: str | None = None
+    desired_silo: SiloMode, can_be_monolith: bool = True, cell_name: str | None = None
 ) -> Any:
     """Potential swap the silo mode in a test class or factory, useful for creating multi SiloMode models and executing
     test code in a special silo context.
@@ -373,12 +370,12 @@ def assume_test_silo_mode(
 
     with override_settings(SILO_MODE=desired_silo):
         if desired_silo == SiloMode.CELL:
-            region_dir = get_test_env_directory()
-            if region_name is None:
-                with region_dir.swap_to_default_region():
+            cell_dir = get_test_env_directory()
+            if cell_name is None:
+                with cell_dir.swap_to_default_cell():
                     yield
             else:
-                with region_dir.swap_to_region_by_name(region_name):
+                with cell_dir.swap_to_cell_by_name(cell_name):
                     yield
         else:
             with override_settings(SENTRY_REGION=None):

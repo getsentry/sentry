@@ -33,7 +33,7 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.hybridcloud.models.outbox import ControlOutboxBase
 from sentry.hybridcloud.outbox.base import ControlOutboxProducingModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
-from sentry.types.region import find_cells_for_user
+from sentry.types.cell import find_cells_for_user
 
 if TYPE_CHECKING:
     from sentry.users.models.user import User
@@ -184,9 +184,9 @@ class Authenticator(ControlOutboxProducingModel):
         unique_together = (("user", "type"),)
 
     def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
-        regions = find_cells_for_user(self.user_id)
+        cells = find_cells_for_user(self.user_id)
         return OutboxCategory.USER_UPDATE.as_control_outboxes(
-            cell_names=regions,
+            cell_names=cells,
             shard_identifier=self.user_id,
             object_identifier=self.user_id,
         )

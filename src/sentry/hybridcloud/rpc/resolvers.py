@@ -7,7 +7,7 @@ from typing import Any
 from django.conf import settings
 
 from sentry.hybridcloud.rpc import ArgumentDict
-from sentry.types.region import (
+from sentry.types.cell import (
     Cell,
     CellMappingNotFound,
     CellResolutionError,
@@ -37,17 +37,14 @@ class CellResolutionStrategy(ABC):
 
 @dataclass(frozen=True)
 class ByCellName(CellResolutionStrategy):
-    """Resolve from a `str` parameter representing a cell's name.
-
-    Accepts either ``cell_name`` or ``region_name`` to ease the migration of
-    service method parameters from the old name to the new one.
+    """
+    Resolve from a `str` parameter representing a cell's name.
     """
 
     parameter_name: str = "cell_name"
 
     def resolve(self, arguments: ArgumentDict) -> Cell:
-        # TODO(cells): Temporary fall back to "region_name" while service methods are being migrated.
-        cell_name = arguments.get("region_name") or arguments[self.parameter_name]
+        cell_name = arguments[self.parameter_name]
         return get_cell_by_name(cell_name)
 
 

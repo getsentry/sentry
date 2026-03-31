@@ -3,7 +3,7 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
@@ -16,13 +16,11 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
-import ArchiveActions, {getArchiveActions} from 'sentry/components/actions/archive';
+import {ArchiveActions} from 'sentry/components/actions/archive';
 import {ResolveActions} from 'sentry/components/actions/resolve';
 import {renderArchiveReason} from 'sentry/components/archivedBox';
-import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {renderResolutionReason} from 'sentry/components/resolutionBox';
 import {
   IconCheckmark,
@@ -37,12 +35,9 @@ import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupStatusResolution, MarkReviewed} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
-import type {SavedQueryVersions} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
-import EventView from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {uniqueId} from 'sentry/utils/guid';
@@ -53,17 +48,12 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
-import ShareIssueModal from 'sentry/views/issueDetails/actions/shareModal';
+import {ShareIssueModal} from 'sentry/views/issueDetails/actions/shareModal';
 import {SubscribeAction} from 'sentry/views/issueDetails/actions/subscribeAction';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {useProjectReleaseVersionIsSemver} from 'sentry/views/issueDetails/useProjectReleaseVersionIsSemver';
-import {
-  useEnvironmentsFromUrl,
-  useHasStreamlinedUI,
-} from 'sentry/views/issueDetails/utils';
+import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 import {isVersionInfoSemver} from 'sentry/views/releases/utils';
 
 type UpdateData =
@@ -89,7 +79,6 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
-  const hasStreamlinedUI = useHasStreamlinedUI();
   const queryClient = useQueryClient();
   const environments = useEnvironmentsFromUrl();
 
@@ -129,31 +118,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
       share: shareCap,
     },
     customCopy: {resolution: resolvedCopyCap},
-    discover: discoverCap,
   } = config;
-
-  const getDiscoverUrl = () => {
-    const {title, type, shortId} = group;
-
-    const discoverQuery = {
-      id: undefined,
-      name: title || type,
-      fields: ['title', 'release', 'environment', 'user.display', 'timestamp'],
-      orderby: '-timestamp',
-      query: `issue:${shortId}`,
-      projects: [Number(project.id)],
-      version: 2 as SavedQueryVersions,
-      range: '90d',
-      dataset: config.usesIssuePlatform ? DiscoverDatasets.ISSUE_PLATFORM : undefined,
-    };
-
-    const discoverView = EventView.fromSavedQuery(discoverQuery);
-    return discoverView.getResultsViewUrlTarget(
-      organization,
-      false,
-      hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
-    );
-  };
 
   const trackIssueAction = (
     action:
@@ -163,7 +128,6 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
       | 'subscribed'
       | 'mark_reviewed'
       | 'discarded'
-      | 'open_in_discover'
       | GroupStatus,
     substatus?: GroupSubstatus | null,
     statusDetailsKey?: string
@@ -393,134 +357,113 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     };
   };
 
-  const {dropdownItems: archiveDropdownItems} = getArchiveActions({
-    onUpdate,
-  });
   return (
     <Flex align="center" gap="xs">
-      {hasStreamlinedUI &&
-        (isResolved || isIgnored ? (
-          <Flex align="center" gap="md">
-            <ResolvedWrapper>
-              <IconCheckmark size="md" />
-              <Flex direction="column">
-                {isResolved ? resolvedCopyCap || t('Resolved') : t('Archived')}
-                <ReasonBanner>
-                  {group.status === 'resolved'
-                    ? renderResolutionReason({
-                        statusDetails: group.statusDetails,
-                        activities: group.activity,
-                        hasStreamlinedUI,
-                        project,
-                        organization,
-                      })
-                    : null}
-                  {group.status === 'ignored'
-                    ? renderArchiveReason({
-                        substatus: group.substatus,
-                        statusDetails: group.statusDetails,
-                        organization,
-                        hasStreamlinedUI,
-                      })
-                    : null}
-                </ReasonBanner>
-              </Flex>
-            </ResolvedWrapper>
+      {isResolved || isIgnored ? (
+        <Flex align="center" gap="md">
+          <ResolvedWrapper>
+            <IconCheckmark size="md" />
+            <Flex direction="column">
+              {isResolved ? resolvedCopyCap || t('Resolved') : t('Archived')}
+              <ReasonBanner>
+                {group.status === 'resolved'
+                  ? renderResolutionReason({
+                      statusDetails: group.statusDetails,
+                      activities: group.activity,
+                      hasStreamlinedUI: true,
+                      project,
+                      organization,
+                    })
+                  : null}
+                {group.status === 'ignored'
+                  ? renderArchiveReason({
+                      substatus: group.substatus,
+                      statusDetails: group.statusDetails,
+                      organization,
+                      hasStreamlinedUI: true,
+                    })
+                  : null}
+              </ReasonBanner>
+            </Flex>
+          </ResolvedWrapper>
 
-            <Divider />
-            {resolveCap.enabled && isResolved && (
-              <Button
-                size="sm"
-                disabled={disabled || isAutoResolved}
-                onClick={() =>
-                  onUpdate({
-                    status: GroupStatus.UNRESOLVED,
-                    statusDetails: {},
-                    substatus: GroupSubstatus.ONGOING,
-                  })
-                }
-              >
-                {t('Unresolve')}
-              </Button>
-            )}
-            {isIgnored && (
-              <Button
-                size="sm"
-                disabled={disabled || isAutoResolved}
-                onClick={() =>
-                  onUpdate({
-                    status: GroupStatus.UNRESOLVED,
-                    statusDetails: {},
-                    substatus: GroupSubstatus.ONGOING,
-                  })
-                }
-              >
-                {t('Unarchive')}
-              </Button>
-            )}
-          </Flex>
-        ) : (
-          <Fragment>
-            {resolveCap.enabled && (
-              <ResolveActions
-                disableResolveInRelease={!resolveInReleaseCap.enabled}
-                disabled={disabled}
-                disableDropdown={disabled}
-                hasRelease={hasRelease}
-                latestRelease={project.latestRelease}
-                hasSemverReleaseFeature={hasSemverReleaseFeature}
-                onUpdate={onUpdate}
-                projectSlug={project.slug}
-                isResolved={isResolved}
-                isAutoResolved={isAutoResolved}
-                size="sm"
-                priority="primary"
-              />
-            )}
-            <ArchiveActions
-              className={hasStreamlinedUI ? undefined : 'hidden-xs'}
+          <Divider />
+          {resolveCap.enabled && isResolved && (
+            <Button
               size="sm"
-              isArchived={isIgnored}
-              onUpdate={onUpdate}
-              disabled={disabled}
-              disableArchiveUntilOccurrence={!archiveUntilOccurrenceCap.enabled}
-            />
-            {!hasStreamlinedUI && (
-              <SubscribeAction
-                className={hasStreamlinedUI ? undefined : 'hidden-xs'}
-                disabled={disabled}
-                disablePriority
-                group={group}
-                onClick={handleClick(onToggleSubscribe)}
-                icon={group.isSubscribed ? <IconSubscribed /> : <IconUnsubscribed />}
-                size="sm"
-              />
-            )}
-          </Fragment>
-        ))}
-      {hasStreamlinedUI && (
+              disabled={disabled || isAutoResolved}
+              onClick={() =>
+                onUpdate({
+                  status: GroupStatus.UNRESOLVED,
+                  statusDetails: {},
+                  substatus: GroupSubstatus.ONGOING,
+                })
+              }
+            >
+              {t('Unresolve')}
+            </Button>
+          )}
+          {isIgnored && (
+            <Button
+              size="sm"
+              disabled={disabled || isAutoResolved}
+              onClick={() =>
+                onUpdate({
+                  status: GroupStatus.UNRESOLVED,
+                  statusDetails: {},
+                  substatus: GroupSubstatus.ONGOING,
+                })
+              }
+            >
+              {t('Unarchive')}
+            </Button>
+          )}
+        </Flex>
+      ) : (
         <Fragment>
-          <SubscribeAction
-            className={hasStreamlinedUI ? undefined : 'hidden-xs'}
-            disabled={disabled}
-            disablePriority
-            group={group}
-            onClick={handleClick(onToggleSubscribe)}
-            icon={group.isSubscribed ? <IconSubscribed /> : <IconUnsubscribed />}
+          {resolveCap.enabled && (
+            <ResolveActions
+              disableResolveInRelease={!resolveInReleaseCap.enabled}
+              disabled={disabled}
+              disableDropdown={disabled}
+              hasRelease={hasRelease}
+              latestRelease={project.latestRelease}
+              hasSemverReleaseFeature={hasSemverReleaseFeature}
+              onUpdate={onUpdate}
+              projectSlug={project.slug}
+              isResolved={isResolved}
+              isAutoResolved={isAutoResolved}
+              size="sm"
+              priority="primary"
+            />
+          )}
+          <ArchiveActions
             size="sm"
-          />
-          <Button
-            size="sm"
-            onClick={openShareModal}
-            icon={<IconUpload />}
-            aria-label={t('Share')}
-            tooltipProps={{title: t('Share Issue')}}
+            isArchived={isIgnored}
+            onUpdate={onUpdate}
             disabled={disabled}
-            analyticsEventKey="issue_details.share_action_clicked"
-            analyticsEventName="Issue Details: Share Action Clicked"
+            disableArchiveUntilOccurrence={!archiveUntilOccurrenceCap.enabled}
           />
         </Fragment>
       )}
+      <SubscribeAction
+        disabled={disabled}
+        disablePriority
+        group={group}
+        onClick={handleClick(onToggleSubscribe)}
+        icon={group.isSubscribed ? <IconSubscribed /> : <IconUnsubscribed />}
+        size="sm"
+      />
+      <Button
+        size="sm"
+        onClick={openShareModal}
+        icon={<IconUpload />}
+        aria-label={t('Share')}
+        tooltipProps={{title: t('Share Issue')}}
+        disabled={disabled}
+        analyticsEventKey="issue_details.share_action_clicked"
+        analyticsEventName="Issue Details: Share Action Clicked"
+      />
       <DropdownMenu
         triggerProps={{
           'aria-label': t('More Actions'),
@@ -529,46 +472,6 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
           size: 'sm',
         }}
         items={[
-          // XXX: Never show for streamlined UI
-          ...(isIgnored || hasStreamlinedUI
-            ? []
-            : [
-                {
-                  key: 'Archive',
-                  className: hasStreamlinedUI
-                    ? undefined
-                    : 'hidden-sm hidden-md hidden-lg',
-                  label: t('Archive'),
-                  isSubmenu: true,
-                  disabled,
-                  children: archiveDropdownItems,
-                },
-              ]),
-          // We don't hide the subscribe or discover button for streamlined UI
-          ...(hasStreamlinedUI
-            ? []
-            : [
-                {
-                  key: 'share',
-                  label: t('Share'),
-                  onAction: openShareModal,
-                  disabled,
-                },
-                {
-                  key: group.isSubscribed ? 'unsubscribe' : 'subscribe',
-                  className: 'hidden-sm hidden-md hidden-lg',
-                  label: group.isSubscribed ? t('Unsubscribe') : t('Subscribe'),
-                  disabled: disabled || group.subscriptionDetails?.disabled,
-                  onAction: onToggleSubscribe,
-                },
-                {
-                  key: 'open-in-discover',
-                  className: 'hidden-sm hidden-md hidden-lg',
-                  label: t('Open in Discover'),
-                  to: disabled ? '' : getDiscoverUrl(),
-                  onAction: () => trackIssueAction('open_in_discover'),
-                },
-              ]),
           {
             key: 'mark-review',
             label: t('Mark reviewed'),
@@ -608,92 +511,6 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
           },
         ]}
       />
-      {!hasStreamlinedUI && (
-        <Fragment>
-          <NewIssueExperienceButton />
-          <SubscribeAction
-            className="hidden-xs"
-            disabled={disabled}
-            disablePriority
-            group={group}
-            onClick={handleClick(onToggleSubscribe)}
-            icon={group.isSubscribed ? <IconSubscribed /> : <IconUnsubscribed />}
-            size="sm"
-          />
-          <div className="hidden-xs">
-            <EnvironmentPageFilter position="bottom-end" size="sm" />
-          </div>
-          {discoverCap.enabled && (
-            <Feature
-              hookName="feature-disabled:open-in-discover"
-              features="discover-basic"
-              organization={organization}
-            >
-              <LinkButton
-                className="hidden-xs"
-                disabled={disabled}
-                to={disabled ? '' : getDiscoverUrl()}
-                onClick={() => trackIssueAction('open_in_discover')}
-                size="sm"
-              >
-                {t('Open in Discover')}
-              </LinkButton>
-            </Feature>
-          )}
-          {isResolved || isIgnored ? (
-            <Button
-              priority="primary"
-              tooltipProps={{
-                title: isAutoResolved
-                  ? t(
-                      'This event is resolved due to the Auto Resolve configuration for this project'
-                    )
-                  : t('Change status to unresolved'),
-              }}
-              size="sm"
-              disabled={disabled || isAutoResolved || !resolveCap.enabled}
-              onClick={() =>
-                onUpdate({
-                  status: GroupStatus.UNRESOLVED,
-                  statusDetails: {},
-                  substatus: GroupSubstatus.ONGOING,
-                })
-              }
-            >
-              {isIgnored ? t('Archived') : t('Resolved')}
-            </Button>
-          ) : (
-            <Fragment>
-              <ArchiveActions
-                className="hidden-xs"
-                size="sm"
-                isArchived={isIgnored}
-                onUpdate={onUpdate}
-                disabled={disabled}
-                disableArchiveUntilOccurrence={!archiveUntilOccurrenceCap.enabled}
-              />
-              {resolveCap.enabled && (
-                <GuideAnchor target="resolve" position="bottom" offset={20}>
-                  <ResolveActions
-                    disableResolveInRelease={!resolveInReleaseCap.enabled}
-                    hasSemverReleaseFeature={hasSemverReleaseFeature}
-                    disabled={disabled}
-                    disableDropdown={disabled}
-                    hasRelease={hasRelease}
-                    latestRelease={project.latestRelease}
-                    onUpdate={onUpdate}
-                    projectSlug={project.slug}
-                    isResolved={isResolved}
-                    isAutoResolved={isAutoResolved}
-                    size="sm"
-                    priority="primary"
-                  />
-                </GuideAnchor>
-              )}
-            </Fragment>
-          )}
-        </Fragment>
-      )}
     </Flex>
   );
 }

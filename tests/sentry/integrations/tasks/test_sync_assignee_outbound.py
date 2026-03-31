@@ -1,6 +1,7 @@
 from unittest import mock
 
 import pytest
+from taskbroker_client.retry import RetryTaskError
 
 from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.example import ExampleIntegration
@@ -10,7 +11,6 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.tasks import sync_assignee_outbound
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
-from sentry.taskworker.retry import RetryTaskError
 from sentry.testutils.asserts import assert_halt_metric, assert_success_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode_of

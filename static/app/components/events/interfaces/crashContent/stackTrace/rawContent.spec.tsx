@@ -1,7 +1,8 @@
 import {ExceptionValueFixture} from 'sentry-fixture/exceptionValue';
 import {FrameFixture} from 'sentry-fixture/frame';
 
-import displayRawContent, {
+import {
+  displayRawContent,
   getJavaFrame,
 } from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import type {StacktraceType} from 'sentry/types/stacktrace';

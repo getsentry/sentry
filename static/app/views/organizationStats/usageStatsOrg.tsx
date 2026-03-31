@@ -28,13 +28,13 @@ import type {
 } from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -47,10 +47,11 @@ import {
 import {mapSeriesToChart} from './mapSeriesToChart';
 import type {UsageSeries} from './types';
 import type {ChartStats, UsageChartProps} from './usageChart';
-import UsageChart, {
+import {
   CHART_OPTIONS_DATA_TRANSFORM,
   ChartDataTransform,
   SeriesTypes,
+  UsageChart,
 } from './usageChart';
 import {UsageStatsPerMin} from './usageStatsPerMin';
 import {isDisplayUtc} from './utils';
@@ -341,7 +342,7 @@ type CardMetadata = Record<
   }
 >;
 
-function UsageStatsOrganization({
+export function UsageStatsOrganization({
   dataDatetime,
   projectIds,
   dataCategoryApiName,
@@ -636,8 +637,6 @@ function UsageStatsOrganization({
     </PageGrid>
   );
 }
-
-export default UsageStatsOrganization;
 
 const PageGrid = styled('div')`
   display: grid;

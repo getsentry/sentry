@@ -40,9 +40,7 @@ const spendVisibilityEventMap: Record<SpendVisibilityEvents, string> = {
 };
 
 // The type-safe analytics function generated
-const trackSpendVisibilityAnaltyics = makeAnalyticsFunction<
+export const trackSpendVisibilityAnaltyics = makeAnalyticsFunction<
   SpendVisibilityEventParameters,
   {organization: Organization}
 >(spendVisibilityEventMap);
-
-export default trackSpendVisibilityAnaltyics;

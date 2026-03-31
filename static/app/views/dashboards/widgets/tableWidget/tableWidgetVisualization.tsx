@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {defined} from 'sentry/utils';
 import {getSortField} from 'sentry/utils/dashboards/issueFieldRenderers';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -30,8 +30,9 @@ import type {
   TabularMeta,
   TabularRow,
 } from 'sentry/views/dashboards/widgets/common/types';
-import CellAction, {
+import {
   Actions,
+  CellAction,
   copyToClipboard,
 } from 'sentry/views/discover/table/cellAction';
 

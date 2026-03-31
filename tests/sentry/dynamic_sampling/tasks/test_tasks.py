@@ -29,7 +29,7 @@ from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
 from sentry.dynamic_sampling.tasks.recalibrate_orgs import recalibrate_orgs
 from sentry.dynamic_sampling.tasks.sliding_window_org import sliding_window_org
 from sentry.dynamic_sampling.types import DynamicSamplingMode
-from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import freeze_time
@@ -66,7 +66,9 @@ class TasksTestCase(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
 
     def create_project_and_add_metrics(self, name, count, org, tags=None, is_old=True):
         if tags is None:
-            tags = {"transaction": "foo_transaction"}
+            tags = {"transaction": "foo_transaction", "is_segment": "true"}
+        elif "is_segment" not in tags:
+            tags = {**tags, "is_segment": "true"}
 
         if is_old:
             proj = self.create_old_project(name=name, organization=org)
@@ -76,7 +78,7 @@ class TasksTestCase(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
         self.disable_all_biases(project=proj)
 
         self.store_performance_metric(
-            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
             tags=tags,
             minutes_before_now=30,
             value=count,
@@ -99,7 +101,7 @@ class TasksTestCase(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     def create_project_and_add_span_metrics(self, name, count, org, tags=None, is_old=True):
         """Create a project with span metrics for SPANS measure (AM3/project mode).
 
-        Also stores a TransactionMRI metric for org discovery (GetActiveOrgs uses this).
+        Also stores a segment metric for org discovery (GetActiveOrgs uses SEGMENTS).
         """
         if tags is None:
             tags = {"transaction": "foo_transaction"}
@@ -111,10 +113,10 @@ class TasksTestCase(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
 
         self.disable_all_biases(project=proj)
 
-        # Store TransactionMRI metric for org discovery (GetActiveOrgs uses this)
+        # Store segment metric for org discovery (GetActiveOrgs uses SEGMENTS)
         self.store_performance_metric(
-            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags=tags,
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={**tags, "is_segment": "true"},
             minutes_before_now=30,
             value=count,
             project_id=proj.id,
@@ -422,14 +424,6 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
                     idx = org_idx * num_orgs + proj_idx
                     num_transactions = self.get_count_for_transaction(idx, name)
                     self.store_performance_metric(
-                        name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-                        tags={"transaction": name},
-                        minutes_before_now=30,
-                        value=num_transactions,
-                        project_id=p.id,
-                        org_id=org.id,
-                    )
-                    self.store_performance_metric(
                         name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
                         tags={"transaction": name, "is_segment": "true"},
                         minutes_before_now=30,
@@ -653,61 +647,36 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
                 self.add_metrics(org, p, org_rate)
 
     def add_metrics(self, org, project, sample_rate):
-        for mri in [TransactionMRI.COUNT_PER_ROOT_PROJECT, SpanMRI.COUNT_PER_ROOT_PROJECT]:
-            base_tags = {"transaction": "trans-x"}
-            if mri == SpanMRI.COUNT_PER_ROOT_PROJECT:
-                base_tags["is_segment"] = "true"
+        base_tags = {"transaction": "trans-x", "is_segment": "true"}
 
-            if sample_rate < 100:
-                self.store_performance_metric(
-                    name=mri.value,
-                    tags={**base_tags, "decision": "drop"},
-                    minutes_before_now=2,
-                    value=100 - sample_rate,
-                    project_id=project.id,
-                    org_id=org.id,
-                )
-            if sample_rate > 0:
-                self.store_performance_metric(
-                    name=mri.value,
-                    tags={**base_tags, "decision": "keep"},
-                    minutes_before_now=2,
-                    value=sample_rate,
-                    project_id=project.id,
-                    org_id=org.id,
-                )
+        if sample_rate < 100:
+            self.store_performance_metric(
+                name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+                tags={**base_tags, "decision": "drop"},
+                minutes_before_now=2,
+                value=100 - sample_rate,
+                project_id=project.id,
+                org_id=org.id,
+            )
+        if sample_rate > 0:
+            self.store_performance_metric(
+                name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+                tags={**base_tags, "decision": "keep"},
+                minutes_before_now=2,
+                value=sample_rate,
+                project_id=project.id,
+                org_id=org.id,
+            )
 
     def add_measure_metrics(
         self,
         org,
         project,
         *,
-        transaction_keep: int,
-        transaction_drop: int,
         segment_keep: int,
         segment_drop: int,
     ) -> None:
-        base_tags = {"transaction": "trans-x"}
-        if transaction_drop:
-            self.store_performance_metric(
-                name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-                tags={**base_tags, "decision": "drop"},
-                minutes_before_now=2,
-                value=transaction_drop,
-                project_id=project.id,
-                org_id=org.id,
-            )
-        if transaction_keep:
-            self.store_performance_metric(
-                name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-                tags={**base_tags, "decision": "keep"},
-                minutes_before_now=2,
-                value=transaction_keep,
-                project_id=project.id,
-                org_id=org.id,
-            )
-
-        segment_tags = {**base_tags, "is_segment": "true"}
+        segment_tags = {"transaction": "trans-x", "is_segment": "true"}
         if segment_drop:
             self.store_performance_metric(
                 name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
@@ -919,39 +888,32 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
 
     @with_feature("organizations:dynamic-sampling")
     @patch("sentry.quotas.backend.get_blended_sample_rate")
-    def test_recalibrate_orgs_with_span_metric_option(
+    def test_recalibrate_orgs_uses_segments_measure(
         self, get_blended_sample_rate: MagicMock
     ) -> None:
         """
-        Test that orgs in the segment-metric-orgs option use segment metrics (SEGMENTS measure).
-
-        Both transaction metrics and segment metrics (SpanMRI with is_segment=true) are stored,
-        so the results should be the same regardless of which measure is used.
+        Test that all orgs use segment metrics (SEGMENTS measure) for recalibration.
         """
         get_blended_sample_rate.return_value = 0.1
         self.set_sliding_window_org_sample_rate_for_all(0.2)
 
         redis_client = get_redis_client_for_ds()
 
-        # Enable segment metrics for first org only
-        with self.options(
-            {"dynamic-sampling.recalibrate_orgs.segment-metric-orgs": [self.orgs[0].id]}
-        ):
-            with self.tasks():
-                recalibrate_orgs()
+        with self.tasks():
+            recalibrate_orgs()
 
-        # First org should be recalibrated using segment metrics (SEGMENTS measure)
+        # First org should be recalibrated (sampled at 10%, target 20% -> factor 2.0)
         cache_key = generate_recalibrate_orgs_cache_key(self.orgs[0].id)
         val = redis_client.get(cache_key)
         assert val is not None
         assert float(val) == 2.0
 
-        # Second org should also be recalibrated (using transaction metrics - TRANSACTIONS measure)
+        # Second org sampled at 20%, target 20% -> no adjustment needed
         cache_key = generate_recalibrate_orgs_cache_key(self.orgs[1].id)
         val = redis_client.get(cache_key)
-        assert val is None  # sampled at 20%, no adjustment needed
+        assert val is None
 
-        # Third org should be recalibrated (using transaction metrics)
+        # Third org sampled at 40%, target 20% -> factor 0.5
         cache_key = generate_recalibrate_orgs_cache_key(self.orgs[2].id)
         val = redis_client.get(cache_key)
         assert val is not None
@@ -959,51 +921,42 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
 
     @with_feature("organizations:dynamic-sampling")
     @patch("sentry.quotas.backend.get_blended_sample_rate")
-    def test_recalibrate_orgs_uses_segment_option(self, get_blended_sample_rate: MagicMock) -> None:
+    def test_recalibrate_orgs_multiple_orgs_with_different_volumes(
+        self, get_blended_sample_rate: MagicMock
+    ) -> None:
         get_blended_sample_rate.return_value = 0.2
-        segment_org = self.create_old_organization("segment-org")
-        transaction_org = self.create_old_organization("transaction-org")
-        segment_project = self.create_old_project(name="segment-project", organization=segment_org)
-        transaction_project = self.create_old_project(
-            name="transaction-project", organization=transaction_org
-        )
+        org1 = self.create_old_organization("org-1")
+        org2 = self.create_old_organization("org-2")
+        project1 = self.create_old_project(name="project-1", organization=org1)
+        project2 = self.create_old_project(name="project-2", organization=org2)
 
         self.add_measure_metrics(
-            segment_org,
-            segment_project,
-            transaction_keep=10,
-            transaction_drop=90,
+            org1,
+            project1,
             segment_keep=10,
             segment_drop=90,
         )
         self.add_measure_metrics(
-            transaction_org,
-            transaction_project,
-            transaction_keep=50,
-            transaction_drop=50,
+            org2,
+            project2,
             segment_keep=50,
             segment_drop=50,
         )
 
-        self.set_sliding_window_org_sample_rate(segment_org.id, 0.2)
-        self.set_sliding_window_org_sample_rate(transaction_org.id, 0.2)
+        self.set_sliding_window_org_sample_rate(org1.id, 0.2)
+        self.set_sliding_window_org_sample_rate(org2.id, 0.2)
 
-        with self.options(
-            {"dynamic-sampling.recalibrate_orgs.segment-metric-orgs": [segment_org.id]}
-        ):
-            with self.tasks():
-                recalibrate_orgs()
+        with self.tasks():
+            recalibrate_orgs()
 
         redis_client = get_redis_client_for_ds()
-        segment_value = redis_client.get(generate_recalibrate_orgs_cache_key(segment_org.id))
-        transaction_value = redis_client.get(
-            generate_recalibrate_orgs_cache_key(transaction_org.id)
-        )
+        org1_value = redis_client.get(generate_recalibrate_orgs_cache_key(org1.id))
+        org2_value = redis_client.get(generate_recalibrate_orgs_cache_key(org2.id))
 
-        assert segment_value is not None
-        assert transaction_value is not None
-        assert float(segment_value) == pytest.approx(2.0)
-        assert float(transaction_value) == pytest.approx(0.4)
+        assert org1_value is not None
+        assert org2_value is not None
+        assert float(org1_value) == pytest.approx(2.0)
+        assert float(org2_value) == pytest.approx(0.4)
 
 
 @freeze_time(MOCK_DATETIME)
@@ -1023,20 +976,14 @@ class TestSlidingWindowOrgTask(TasksTestCase):
             self.orgs.append(org)
             project = self.create_old_project(name=f"test-project-{i}", organization=org)
 
-            # Store both TransactionMRI and SpanMRI (with is_segment=true) metrics
-            for mri in [TransactionMRI.COUNT_PER_ROOT_PROJECT, SpanMRI.COUNT_PER_ROOT_PROJECT]:
-                tags = {"transaction": "foo"}
-                if mri == SpanMRI.COUNT_PER_ROOT_PROJECT:
-                    tags["is_segment"] = "true"
-
-                self.store_performance_metric(
-                    name=mri.value,
-                    tags=tags,
-                    minutes_before_now=30,
-                    value=volume,
-                    project_id=project.id,
-                    org_id=org.id,
-                )
+            self.store_performance_metric(
+                name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+                tags={"transaction": "foo", "is_segment": "true"},
+                minutes_before_now=30,
+                value=volume,
+                project_id=project.id,
+                org_id=org.id,
+            )
 
     @with_feature("organizations:dynamic-sampling")
     @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
@@ -1047,7 +994,7 @@ class TestSlidingWindowOrgTask(TasksTestCase):
         extrapolate_monthly_volume: MagicMock,
     ) -> None:
         """
-        Test that sliding_window_org processes all orgs using TRANSACTIONS measure by default.
+        Test that sliding_window_org processes all orgs using SEGMENTS measure by default.
         """
         extrapolate_monthly_volume.side_effect = lambda volume, hours: volume
         get_transaction_sampling_tier_for_volume.return_value = (1000, 0.25)
@@ -1057,73 +1004,6 @@ class TestSlidingWindowOrgTask(TasksTestCase):
             sliding_window_org()
 
         # All orgs should have cache entries
-        for org in self.orgs:
-            cache_key = generate_sliding_window_org_cache_key(org.id)
-            val = redis_client.get(cache_key)
-            assert val is not None, f"Org {org.id} should have sliding window cache entry"
-
-    @with_feature("organizations:dynamic-sampling")
-    @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
-    @patch("sentry.quotas.backend.get_transaction_sampling_tier_for_volume")
-    def test_sliding_window_org_with_span_metric_option(
-        self,
-        get_transaction_sampling_tier_for_volume: MagicMock,
-        extrapolate_monthly_volume: MagicMock,
-    ) -> None:
-        """
-        Test that orgs in the segment-metric-orgs option use segment metrics (SEGMENTS measure).
-
-        Both transaction metrics and segment metrics are stored with same values,
-        so results should be equivalent regardless of which measure is used.
-        """
-        extrapolate_monthly_volume.side_effect = lambda volume, hours: volume
-        get_transaction_sampling_tier_for_volume.return_value = (1000, 0.25)
-        redis_client = get_redis_client_for_ds()
-
-        # Enable segment metrics for first org only
-        with self.options(
-            {"dynamic-sampling.sliding_window_org.segment-metric-orgs": [self.orgs[0].id]}
-        ):
-            with self.tasks():
-                sliding_window_org()
-
-        # All orgs should have cache entries (first using SEGMENTS, others using TRANSACTIONS)
-        for org in self.orgs:
-            cache_key = generate_sliding_window_org_cache_key(org.id)
-            val = redis_client.get(cache_key)
-            assert val is not None, f"Org {org.id} should have sliding window cache entry"
-
-    @with_feature("organizations:dynamic-sampling")
-    @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
-    @patch("sentry.quotas.backend.get_transaction_sampling_tier_for_volume")
-    def test_sliding_window_org_partitions_orgs_by_measure(
-        self,
-        get_transaction_sampling_tier_for_volume: MagicMock,
-        extrapolate_monthly_volume: MagicMock,
-    ) -> None:
-        """
-        Test that orgs are correctly partitioned by measure based on the option.
-
-        When an org is in the segment-metric-orgs option, it should be processed
-        with SEGMENTS measure (and skipped by TRANSACTIONS measure processing).
-        """
-        extrapolate_monthly_volume.side_effect = lambda volume, hours: volume
-        get_transaction_sampling_tier_for_volume.return_value = (1000, 0.25)
-        redis_client = get_redis_client_for_ds()
-
-        # Enable segment metrics for first two orgs
-        with self.options(
-            {
-                "dynamic-sampling.sliding_window_org.segment-metric-orgs": [
-                    self.orgs[0].id,
-                    self.orgs[1].id,
-                ]
-            }
-        ):
-            with self.tasks():
-                sliding_window_org()
-
-        # All orgs should still be processed (first two with SEGMENTS, third with TRANSACTIONS)
         for org in self.orgs:
             cache_key = generate_sliding_window_org_cache_key(org.id)
             val = redis_client.get(cache_key)

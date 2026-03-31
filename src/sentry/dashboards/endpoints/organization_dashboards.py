@@ -638,6 +638,9 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
+        if request.GET.get("validateOnly"):
+            return Response(status=200)
+
         # We need to acquire a lock so that a burst of concurrent create requests doesn't read
         # stale count data and bypass the dashboard limit for an org.
         dashboard_create_lock = locks.get(

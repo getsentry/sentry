@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {
@@ -15,8 +15,9 @@ import {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import {ErrorFilters} from 'sentry/views/replays/detail/errorList/errorFilters';
-import ErrorHeaderCell, {
+import {
   COLUMN_COUNT,
+  ErrorHeaderCell,
 } from 'sentry/views/replays/detail/errorList/errorHeaderCell';
 import {ErrorTableCell} from 'sentry/views/replays/detail/errorList/errorTableCell';
 import {useErrorFilters} from 'sentry/views/replays/detail/errorList/useErrorFilters';

@@ -29,6 +29,7 @@ import type {
   DashboardListItem,
   DashboardPermissions,
 } from 'sentry/views/dashboards/types';
+import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 
 interface EditAccessSelectorProps {
   dashboard: DashboardDetails | DashboardListItem;
@@ -165,7 +166,7 @@ export function EditAccessSelector({
     return null;
   };
 
-  const renderCollapsedAvatars = (avatarSize: number, numCollapsedAvatars: number) => {
+  const renderCollapsedAvatars = (_avatarSize: number, numCollapsedAvatars: number) => {
     return (
       <Tooltip
         title={renderCollapsedAvatarTooltip()}
@@ -179,7 +180,7 @@ export function EditAccessSelector({
           onMouseEnter={() => setIsCollapsedAvatarTooltipOpen(true)}
           onMouseLeave={() => setIsCollapsedAvatarTooltipOpen(false)}
         >
-          <CollapsedAvatars size={avatarSize}>
+          <CollapsedAvatars>
             {numCollapsedAvatars < 99 && <Plus>+</Plus>}
             {numCollapsedAvatars}
           </CollapsedAvatars>
@@ -374,7 +375,7 @@ export function EditAccessSelector({
   );
 
   const tooltipTitle = disabled
-    ? t('Prebuilt dashboards cannot be edited')
+    ? tct('[label] dashboards cannot be edited', {label: PREBUILT_DASHBOARD_LABEL})
     : t('Only the creator of this dashboard can manage editor access');
 
   return (

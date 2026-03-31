@@ -9,8 +9,8 @@ import {Grid, type GridProps} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import type {Client} from 'sentry/api';
-import GroupList from 'sentry/components/issues/groupList';
-import Pagination from 'sentry/components/pagination';
+import {GroupList} from 'sentry/components/issues/groupList';
+import {Pagination} from 'sentry/components/pagination';
 import {QueryCount} from 'sentry/components/queryCount';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';

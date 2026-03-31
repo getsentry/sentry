@@ -6,7 +6,7 @@ import {Text} from '@sentry/scraps/text';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {ApiForm} from 'sentry/components/forms/apiForm';
-import TextField from 'sentry/components/forms/fields/textField';
+import {TextField} from 'sentry/components/forms/fields/textField';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';

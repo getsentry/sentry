@@ -32,7 +32,7 @@ type Props = {
   activeProvider?: AuthProvider;
 };
 
-function OrganizationAuthList({providerList, activeProvider}: Props) {
+export function OrganizationAuthList({providerList, activeProvider}: Props) {
   const organization = useOrganization();
   const features = organization.features;
 
@@ -117,8 +117,3 @@ function OrganizationAuthList({providerList, activeProvider}: Props) {
     </div>
   );
 }
-
-export default OrganizationAuthList;
-
-// For tests
-export {OrganizationAuthList};
