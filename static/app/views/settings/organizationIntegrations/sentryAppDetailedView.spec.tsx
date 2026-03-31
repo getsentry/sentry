@@ -24,11 +24,7 @@ describe('SentryAppDetailedView', () => {
     jest.clearAllMocks();
   });
 
-  async function renderSentryAppDetailedView({
-    integrationSlug,
-  }: {
-    integrationSlug: string;
-  }) {
+  function renderSentryAppDetailedView({integrationSlug}: {integrationSlug: string}) {
     render(<SentryAppDetailedView />, {
       initialRouterConfig: {
         route: '/settings/:orgId/integrations/:integrationSlug/',
@@ -112,7 +108,7 @@ describe('SentryAppDetailedView', () => {
     });
 
     it('renders a published sentry app', async () => {
-      await renderSentryAppDetailedView({integrationSlug: 'clickup'});
+      renderSentryAppDetailedView({integrationSlug: 'clickup'});
 
       expect(sentryAppInteractionRequest).toHaveBeenCalledWith(
         `/sentry-apps/clickup/interaction/`,
@@ -133,7 +129,7 @@ describe('SentryAppDetailedView', () => {
     });
 
     it('installs and uninstalls', async () => {
-      await renderSentryAppDetailedView({integrationSlug: 'clickup'});
+      renderSentryAppDetailedView({integrationSlug: 'clickup'});
 
       await userEvent.click(
         await screen.findByRole('button', {name: 'Accept & Install'})
@@ -210,7 +206,7 @@ describe('SentryAppDetailedView', () => {
     });
 
     it('should get redirected to Developer Settings', async () => {
-      await renderSentryAppDetailedView({integrationSlug: 'my-headband-washer-289499'});
+      renderSentryAppDetailedView({integrationSlug: 'my-headband-washer-289499'});
 
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenLastCalledWith(
@@ -288,13 +284,13 @@ describe('SentryAppDetailedView', () => {
       });
     });
     it('shows the Integration name and install status', async () => {
-      await renderSentryAppDetailedView({integrationSlug: 'la-croix-monitor'});
+      renderSentryAppDetailedView({integrationSlug: 'la-croix-monitor'});
       expect(await screen.findByText('La Croix Monitor')).toBeInTheDocument();
       expect(screen.getByText('Not Installed')).toBeInTheDocument();
     });
 
     it('installs and uninstalls', async () => {
-      await renderSentryAppDetailedView({integrationSlug: 'la-croix-monitor'});
+      renderSentryAppDetailedView({integrationSlug: 'la-croix-monitor'});
       await userEvent.click(
         await screen.findByRole('button', {name: 'Accept & Install'})
       );
@@ -362,7 +358,7 @@ describe('SentryAppDetailedView', () => {
       });
     });
     it('shows the Integration name and install status', async () => {
-      await renderSentryAppDetailedView({integrationSlug: 'go-to-google'});
+      renderSentryAppDetailedView({integrationSlug: 'go-to-google'});
       expect(await screen.findByText('Go to Google')).toBeInTheDocument();
       expect(screen.getByText('Not Installed')).toBeInTheDocument();
 
@@ -370,7 +366,7 @@ describe('SentryAppDetailedView', () => {
       expect(screen.getByRole('button', {name: 'Accept & Install'})).toBeEnabled();
     });
     it('onClick: redirects url', async () => {
-      await renderSentryAppDetailedView({integrationSlug: 'go-to-google'});
+      renderSentryAppDetailedView({integrationSlug: 'go-to-google'});
 
       await userEvent.click(
         await screen.findByRole('button', {name: 'Accept & Install'})
