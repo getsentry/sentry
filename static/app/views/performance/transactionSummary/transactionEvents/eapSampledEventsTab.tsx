@@ -46,11 +46,9 @@ import {useTransactionSummaryContext} from 'sentry/views/performance/transaction
 
 import {
   decodeEventsDisplayFilterFromLocation,
-  EAP_PERCENTILE_FIELDS,
   EventsDisplayFilterName,
-  filterEventsDisplayToEAPLocationQuery,
   getEventsFilterOptions,
-  mapEAPPercentileValues,
+  type PercentileValues,
 } from './utils';
 
 export function EAPSampledEventsTab() {
@@ -324,4 +322,33 @@ function useMaxDuration(
     ? percentileValues?.[eventsDisplayFilterName]
     : undefined;
   return {maxDuration, isLoading};
+}
+
+const EAP_PERCENTILE_FIELDS = [
+  'p50(span.duration)',
+  'p75(span.duration)',
+  'p95(span.duration)',
+  'p99(span.duration)',
+  'p100(span.duration)',
+] as const;
+
+function mapEAPPercentileValues(data: Array<Record<string, number>>): PercentileValues {
+  const row = data[0];
+  return {
+    p50: row?.['p50(span.duration)'] ?? 0,
+    p75: row?.['p75(span.duration)'] ?? 0,
+    p95: row?.['p95(span.duration)'] ?? 0,
+    p99: row?.['p99(span.duration)'] ?? 0,
+    p100: row?.['p100(span.duration)'] ?? 0,
+  };
+}
+
+function filterEventsDisplayToEAPLocationQuery(option: EventsDisplayFilterName) {
+  const query: Record<string, string> = {
+    showTransactions: option,
+  };
+  if (option !== EventsDisplayFilterName.P100) {
+    query[QueryParameterNames.SPANS_SORT] = '-span.duration';
+  }
+  return query;
 }
