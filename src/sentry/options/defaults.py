@@ -1248,20 +1248,6 @@ register(
 )
 
 register(
-    "seer.similarity.ingest.use_reranking",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "seer.similarity.similar_issues.use_reranking",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "seer.similarity.ingest.num_matches_to_request",
     type=Int,
     default=1,
@@ -3563,11 +3549,6 @@ register(
 )
 register(
     "similarity.new_project_seer_grouping.enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "similarity.backfill_use_reranking",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
