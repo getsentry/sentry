@@ -36,6 +36,11 @@ export function getFeedbackItemQueryKey({feedbackId, organization}: Props): {
               },
             }
           ),
+          {
+            query: {
+              collapse: ['fullRelease'],
+            },
+          },
         ]
       : undefined,
   };
