@@ -9,42 +9,42 @@ from sentry.testutils.requests import make_request
 
 
 class TestHasSeerExplorerAccessWithDetail(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization(owner=self.user)
         self.org.flags.allow_joinleave = True
         self.org.save()
 
-    def test_gen_ai_features_disabled(self):
+    def test_gen_ai_features_disabled(self) -> None:
         result = has_seer_explorer_access_with_detail(self.org, self.user)
         assert result == (False, "Feature flag not enabled")
 
-    def test_hide_ai_features_option_set(self):
+    def test_hide_ai_features_option_set(self) -> None:
         self.org.update_option("sentry:hide_ai_features", True)
         with self.feature("organizations:gen-ai-features"):
             result = has_seer_explorer_access_with_detail(self.org, self.user)
         assert result == (False, "AI features are disabled for this organization.")
 
-    def test_no_explorer_flags_enabled(self):
+    def test_no_explorer_flags_enabled(self) -> None:
         with self.feature("organizations:gen-ai-features"):
             result = has_seer_explorer_access_with_detail(self.org, self.user)
         assert result == (False, "Feature flag not enabled")
 
-    def test_only_seer_explorer_flag(self):
+    def test_only_seer_explorer_flag(self) -> None:
         with self.feature(
             {"organizations:gen-ai-features": True, "organizations:seer-explorer": True}
         ):
             result = has_seer_explorer_access_with_detail(self.org, self.user)
         assert result == (True, None)
 
-    def test_only_autofix_on_explorer_flag(self):
+    def test_only_autofix_on_explorer_flag(self) -> None:
         with self.feature(
             {"organizations:gen-ai-features": True, "organizations:autofix-on-explorer": True}
         ):
             result = has_seer_explorer_access_with_detail(self.org, self.user)
         assert result == (True, None)
 
-    def test_all_explorer_flags_enabled(self):
+    def test_all_explorer_flags_enabled(self) -> None:
         with self.feature(
             {
                 "organizations:gen-ai-features": True,
@@ -55,7 +55,7 @@ class TestHasSeerExplorerAccessWithDetail(TestCase):
             result = has_seer_explorer_access_with_detail(self.org, self.user)
         assert result == (True, None)
 
-    def test_allow_joinleave_disabled(self):
+    def test_allow_joinleave_disabled(self) -> None:
         self.org.flags.allow_joinleave = False
         self.org.save()
         with self.feature(
@@ -88,7 +88,7 @@ class CollectUserOrgContextTest(TestCase):
             organization=self.organization, teams=[self.other_team], slug="other-project"
         )
 
-    def test_collect_context_with_member(self):
+    def test_collect_context_with_member(self) -> None:
         """Test context collection for a user who is an organization member"""
         context = collect_user_org_context(self.user, self.organization)
 
@@ -117,7 +117,7 @@ class CollectUserOrgContextTest(TestCase):
         all_project_ids = {p["id"] for p in context["all_org_projects"]}
         assert all_project_ids == {self.project1.id, self.project2.id, self.other_project.id}
 
-    def test_collect_context_with_multiple_teams(self):
+    def test_collect_context_with_multiple_teams(self) -> None:
         """Test context collection for a user in multiple teams"""
         team2 = self.create_team(organization=self.organization, slug="team-2")
         member = OrganizationMember.objects.get(
@@ -133,7 +133,7 @@ class CollectUserOrgContextTest(TestCase):
         team_slugs = {t["slug"] for t in context["user_teams"]}
         assert team_slugs == {self.team.slug, "team-2"}
 
-    def test_collect_context_with_no_teams(self):
+    def test_collect_context_with_no_teams(self) -> None:
         """Test context collection for a member with no team membership"""
         member = OrganizationMember.objects.get(
             organization=self.organization, user_id=self.user.id
@@ -152,7 +152,7 @@ class CollectUserOrgContextTest(TestCase):
         all_project_slugs = {p["slug"] for p in context["all_org_projects"]}
         assert all_project_slugs == {"project-1", "project-2", "other-project"}
 
-    def test_collect_context_with_non_member_returns_default(self):
+    def test_collect_context_with_non_member_returns_default(self) -> None:
         """Test context collection for a user who is not an organization member"""
         other_user = self.create_user()
         context = collect_user_org_context(other_user, self.organization)
@@ -164,7 +164,7 @@ class CollectUserOrgContextTest(TestCase):
         }
         assert all_project_slugs == {"project-1", "project-2", "other-project"}
 
-    def test_collect_context_with_timezone(self):
+    def test_collect_context_with_timezone(self) -> None:
         """Test context collection includes user's timezone setting"""
         from sentry.users.services.user_option import user_option_service
 
@@ -177,7 +177,7 @@ class CollectUserOrgContextTest(TestCase):
         assert context is not None
         assert context.get("user_timezone") == "America/Los_Angeles"
 
-    def test_collect_context_with_request(self):
+    def test_collect_context_with_request(self) -> None:
         """Test context collection includes request metadata like IP address"""
         request, _ = make_request()
         context = collect_user_org_context(self.user, self.organization, request=request)

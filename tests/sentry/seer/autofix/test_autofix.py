@@ -1540,7 +1540,7 @@ class TestPreResolveStacktraceFrames(TestCase):
             ],
         }
 
-    def test_resolves_frames_with_code_mapping(self):
+    def test_resolves_frames_with_code_mapping(self) -> None:
         project = self.create_project()
         repo = self.create_repo(
             name="getsentry/sentry", provider="github", external_id="123", integration_id=234
@@ -1567,7 +1567,7 @@ class TestPreResolveStacktraceFrames(TestCase):
         # Non in-app frames should not be resolved
         assert "repo_name" not in frames[2]
 
-    def test_no_code_mappings_is_noop(self):
+    def test_no_code_mappings_is_noop(self) -> None:
         event = self._make_serialized_event([{"filename": "src/utils.py", "inApp": True}])
 
         _pre_resolve_stacktrace_frames(event, [])
@@ -1575,7 +1575,7 @@ class TestPreResolveStacktraceFrames(TestCase):
         frames = event["entries"][0]["data"]["values"][0]["stacktrace"]["frames"]
         assert "repo_name" not in frames[0]
 
-    def test_unmatched_frames_left_unresolved(self):
+    def test_unmatched_frames_left_unresolved(self) -> None:
         project = self.create_project()
         repo = self.create_repo(
             name="getsentry/sentry", provider="github", external_id="123", integration_id=234
@@ -1597,7 +1597,7 @@ class TestPreResolveStacktraceFrames(TestCase):
         assert frames[0]["repo_name"] == "getsentry/sentry"
         assert "repo_name" not in frames[1]
 
-    def test_multiple_repos(self):
+    def test_multiple_repos(self) -> None:
         project = self.create_project()
         repo1 = self.create_repo(
             name="getsentry/sentry", provider="github", external_id="123", integration_id=234
@@ -1627,7 +1627,7 @@ class TestPreResolveStacktraceFrames(TestCase):
         assert frames[1]["repo_name"] == "getsentry/seer"
         assert frames[1]["filename"] == "src/seer/models.py"
 
-    def test_resolves_thread_frames(self):
+    def test_resolves_thread_frames(self) -> None:
         project = self.create_project()
         repo = self.create_repo(
             name="getsentry/sentry", provider="github", external_id="123", integration_id=234

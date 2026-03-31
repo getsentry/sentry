@@ -255,8 +255,13 @@ export default function CreateFromSeer() {
   useEffect(() => {
     if (sessionStatus === 'error' || isError) {
       addErrorMessage(t('Failed to generate dashboard'));
+      Sentry.metrics.count('dashboards.seer.generation.session.error', 1, {
+        attributes: {
+          organization_slug: organization.slug,
+        },
+      });
     }
-  }, [sessionStatus, isError]);
+  }, [sessionStatus, isError, organization.slug]);
 
   const sendMessage = useCallback(
     async (message: string) => {

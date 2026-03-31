@@ -35,7 +35,7 @@ class TestControlOrganizationProvisioningBase(TestCase):
             name="sentry", slug="sentry", user_id=self.provision_user.id, default_team=True
         )
 
-        self.region_name = (
+        self.cell_name = (
             "us" if SiloMode.get_current_mode() == SiloMode.CONTROL else get_local_cell().name
         )
 
@@ -60,9 +60,9 @@ class TestControlOrganizationProvisioningBase(TestCase):
             post_provision_options=PostProvisionOptions(),
         )
 
-    def provision_organization(self, region_name: str = "us") -> RpcOrganizationSlugReservation:
+    def provision_organization(self, cell_name: str = "us") -> RpcOrganizationSlugReservation:
         slug_reservation = control_organization_provisioning_rpc_service.provision_organization(
-            cell_name=region_name, org_provision_args=self.provisioning_args
+            cell_name=cell_name, org_provision_args=self.provisioning_args
         )
         return slug_reservation
 
@@ -122,7 +122,7 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
 
         with assume_test_silo_mode(SiloMode.CELL):
             owner_of_conflicting_org = self.create_user()
-            region_only_organization = self.create_organization(
+            cell_only_organization = self.create_organization(
                 name="conflicting_org", slug=conflicting_slug, owner=owner_of_conflicting_org
             )
 
@@ -134,7 +134,7 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
             ),
         ):
             OrganizationSlugReservation.objects.filter(
-                organization_id=region_only_organization.id
+                organization_id=cell_only_organization.id
             ).delete()
 
         if SiloMode.get_current_mode() == SiloMode.CELL:
@@ -148,7 +148,7 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
             assert not OrganizationSlugReservation.objects.filter(slug=conflicting_slug).exists()
             assert not OrganizationSlugReservation.objects.filter(user_id=user.id).exists()
 
-        self.assert_organization_has_not_changed(region_only_organization)
+        self.assert_organization_has_not_changed(cell_only_organization)
         # TODO(Gabe): Add testing for slug replica status during this failure case
         #  and ensure that no replica exists for the slug post-deletion
 
@@ -179,7 +179,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
                 organization_id=org_slug_res.organization_id,
                 desired_slug="newsantry",
                 require_exact=True,
-                cell_name=self.region_name,
+                cell_name=self.cell_name,
             )
         )
 
@@ -195,7 +195,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
                 organization_id=org_slug_res.organization_id,
                 desired_slug="newsantry",
                 require_exact=False,
-                cell_name=self.region_name,
+                cell_name=self.cell_name,
             )
         )
 
@@ -222,7 +222,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
                 organization_id=test_org_slug_reservation.organization_id,
                 desired_slug=conflicting_slug,
                 require_exact=False,
-                cell_name=self.region_name,
+                cell_name=self.cell_name,
             )
         )
 
@@ -253,7 +253,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
                 organization_id=test_org_slug_reservation.organization_id,
                 desired_slug=conflicting_slug,
                 require_exact=True,
-                cell_name=self.region_name,
+                cell_name=self.cell_name,
             )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -265,7 +265,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
             rpc_org_slug=org_with_conflicting_slug, user_id=new_user.id
         )
 
-    def test_updates_exact_slug_collision_in_other_region(self) -> None:
+    def test_updates_exact_slug_collision_in_other_cell(self) -> None:
         org_reservation = self.provision_organization()
         original_slug = org_reservation.slug
 
@@ -273,14 +273,14 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
         conflicting_slug = "conflicty"
         self.provisioning_args.provision_options.owning_user_id = conflicting_owner.id
         self.provisioning_args.provision_options.slug = conflicting_slug
-        conflicting_slug_reservation = self.provision_organization(region_name="de")
+        conflicting_slug_reservation = self.provision_organization(cell_name="de")
 
         with pytest.raises(RpcValidationException):
             control_organization_provisioning_rpc_service.update_organization_slug(
                 organization_id=org_reservation.organization_id,
                 desired_slug=conflicting_slug,
                 require_exact=True,
-                cell_name=org_reservation.region_name,
+                cell_name=org_reservation.cell_name,
             )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -314,7 +314,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
                 organization_id=test_org_slug_reservation.organization_id,
                 desired_slug=conflicting_slug,
                 require_exact=True,
-                cell_name=self.region_name,
+                cell_name=self.cell_name,
             )
 
         slug_reservations = self.get_slug_reservations_for_organization(
@@ -348,7 +348,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
             organization_id=unregistered_org.id,
             desired_slug=desired_primary_slug,
             require_exact=True,
-            cell_name=self.region_name,
+            cell_name=self.cell_name,
         )
 
         slug_reservations = self.get_slug_reservations_for_organization(
@@ -368,7 +368,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
             organization_id=org.id,
             desired_slug=desired_slug,
             require_exact=True,
-            cell_name=self.region_name,
+            cell_name=self.cell_name,
         )
 
         slug_reservations = self.get_slug_reservations_for_organization(organization_id=org.id)
@@ -401,7 +401,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
                 organization_id=self.organization.id,
                 desired_slug="new-slug",
                 require_exact=True,
-                cell_name=self.region_name,
+                cell_name=self.cell_name,
             )
 
             token.refresh_from_db()

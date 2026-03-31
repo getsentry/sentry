@@ -41,7 +41,7 @@ def _sourcemap_config():
 
 
 class TestDetectSourcemapIssues(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         config = _sourcemap_config()
         cache.delete(_cache_key_triggered(config.slug, self.project.id))

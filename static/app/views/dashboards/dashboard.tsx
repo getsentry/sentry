@@ -49,7 +49,7 @@ import {
 import {SortableWidget} from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
 import {DashboardFilterKeys, WidgetType} from './types';
-import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
+import {connectDashboardCharts, getMergedDashboardFilters} from './utils';
 import type {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
@@ -446,7 +446,7 @@ export function Dashboard({
               isPreview={isPreview}
               isPrebuiltDashboard={defined(dashboard.prebuiltId)}
               isGeneratedDashboard={isGeneratedDashboard}
-              dashboardFilters={getDashboardFiltersFromURL(location) ?? dashboard.filters}
+              dashboardFilters={getMergedDashboardFilters(dashboard.filters, location)}
               dashboardPermissions={dashboard.permissions}
               dashboardCreator={dashboard.createdBy}
               isMobile={isMobile}
