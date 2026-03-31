@@ -40,8 +40,10 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.replays.query import query_replays_dataset_tagkey_values
+from sentry.search.eap.columns import datetime_processor
 from sentry.search.eap.occurrences.common_queries import count_occurrences
 from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
+from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
@@ -143,6 +145,23 @@ def _reasonable_user_counts_match(control: dict[int, int], experimental: dict[in
     if not set(experimental.keys()).issubset(set(control.keys())):
         return False
     return all(experimental[group_id] <= control[group_id] for group_id in experimental)
+
+
+def _reasonable_release_tags_match(control: set[TagValue], experimental: set[TagValue]) -> bool:
+    exp_by_value: dict[str | None, TagValue] = {tv.value: tv for tv in experimental}
+    ctrl_by_value: dict[str | None, TagValue] = {}
+    for tv in control:
+        existing = ctrl_by_value.get(tv.value)
+        if existing is None or (tv.times_seen or 0) > (existing.times_seen or 0):
+            ctrl_by_value[tv.value] = tv
+
+    if not set(exp_by_value.keys()).issubset(set(ctrl_by_value.keys())):
+        return False
+
+    return all(
+        (exp_tv.times_seen or 0) <= (ctrl_by_value[value].times_seen or 0)
+        for value, exp_tv in exp_by_value.items()
+    )
 
 
 class _OptimizeKwargs(TypedDict, total=False):
@@ -1136,7 +1155,7 @@ class SnubaTagStorage(TagStorage):
             ["max", SEEN_COLUMN, "last_seen"],
         ]
         start = self.get_min_start_date(organization_id, project_ids, environment_id, versions)
-        result = snuba.query(
+        snuba_result_raw = snuba.query(
             dataset=Dataset.Events,
             start=start,
             groupby=["project_id", col],
@@ -1144,16 +1163,130 @@ class SnubaTagStorage(TagStorage):
             filter_keys=filters,
             aggregations=aggregations,
             orderby="-times_seen",
-            referrer="tagstore.get_release_tags",
+            referrer=Referrer.TAGSTORE_GET_RELEASE_TAGS.value,
             tenant_ids={"organization_id": organization_id},
         )
 
         values = []
-        for project_data in result.values():
+        for project_data in snuba_result_raw.values():
             for value, data in project_data.items():
                 values.append(TagValue(key=tag, value=value, **fix_tag_value_data(data)))
 
-        return set(values)
+        snuba_result = set(values)
+        result = snuba_result
+
+        callsite = "SnubaTagStorage::get_release_tags"
+        if EAPOccurrencesComparator.should_check_experiment(callsite):
+            eap_result = self._eap_get_release_tags(
+                organization_id, project_ids, environment_id, versions, start
+            )
+            result = EAPOccurrencesComparator.check_and_choose(
+                control_data=snuba_result,
+                experimental_data=eap_result,
+                callsite=callsite,
+                is_experimental_data_a_null_result=len(eap_result) == 0,
+                reasonable_match_comparator=_reasonable_release_tags_match,
+                debug_context={
+                    "organization_id": organization_id,
+                    "project_ids": list(project_ids),
+                    "environment_id": environment_id,
+                    "versions": list(versions),
+                },
+            )
+
+        return result
+
+    def _eap_get_release_tags(
+        self,
+        organization_id: int,
+        project_ids: Sequence[int],
+        environment_id: int | None,
+        versions: Sequence[str],
+        start: datetime | None,
+    ) -> set[TagValue]:
+        try:
+            organization = Organization.objects.get_from_cache(id=organization_id)
+        except Organization.DoesNotExist:
+            return set()
+
+        projects = list(Project.objects.filter(id__in=project_ids, organization_id=organization_id))
+        if not projects:
+            return set()
+
+        environments = list(Environment.objects.filter(id=environment_id)) if environment_id else []
+
+        now = datetime.now(tz=timezone.utc)
+        resolved_start = start if start is not None else now - timedelta(days=90)
+
+        query_string = build_escaped_term_filter("release", [str(v) for v in versions])
+
+        snuba_params = SnubaParams(
+            start=resolved_start,
+            end=now,
+            organization=organization,
+            projects=projects,
+            environments=environments,
+        )
+
+        try:
+            result = Occurrences.run_table_query(
+                params=snuba_params,
+                query_string=query_string,
+                selected_columns=[
+                    "project_id",
+                    "release",
+                    "count()",
+                    "min(timestamp)",
+                    "last_seen()",
+                ],
+                orderby=["-count()"],
+                offset=0,
+                limit=len(versions) * len(project_ids),
+                referrer=Referrer.TAGSTORE_GET_RELEASE_TAGS.value,
+                config=SearchResolverConfig(),
+                occurrence_category=OccurrenceCategory.ERROR,
+            )
+
+            tag = "sentry:release"
+            tag_values = []
+            for row in result.get("data", []):
+                release_val = row.get("release")
+                if release_val is None:
+                    continue
+                first_seen_raw = row.get("min(timestamp)")
+                last_seen_raw = row.get("last_seen()")
+                tag_values.append(
+                    TagValue(
+                        key=tag,
+                        value=release_val,
+                        times_seen=int(row.get("count()", 0)),
+                        first_seen=(
+                            parse_datetime(datetime_processor(first_seen_raw)).replace(
+                                tzinfo=timezone.utc
+                            )
+                            if first_seen_raw is not None
+                            else None
+                        ),
+                        last_seen=(
+                            parse_datetime(datetime_processor(last_seen_raw)).replace(
+                                tzinfo=timezone.utc
+                            )
+                            if last_seen_raw is not None
+                            else None
+                        ),
+                    )
+                )
+            return set(tag_values)
+        except Exception:
+            logger.exception(
+                "EAP get_release_tags query failed",
+                extra={
+                    "organization_id": organization_id,
+                    "project_ids": list(project_ids),
+                    "versions": list(versions),
+                },
+            )
+            return set()
 
     def get_min_start_date(
         self, organization_id, project_ids, environment_id, versions
