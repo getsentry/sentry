@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 from typing import NamedTuple
 
 import orjson
@@ -27,6 +28,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
 from sentry.utils import metrics
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -353,15 +355,30 @@ def compare_snapshots(
                 batch_names: list[str] = []
                 batch_hashes: list[tuple[str, str]] = []
 
+                unique_hashes: set[str] = set()
                 for candidate in batch:
+                    unique_hashes.add(candidate.head_hash)
+                    unique_hashes.add(candidate.base_hash)
+
+                fetch_cache: dict[str, bytes] = {}
+                failed_hashes: set[str] = set()
+                cache_lock = threading.Lock()
+
+                def _fetch_hash(h: str) -> None:
                     try:
-                        head_data = session.get(
-                            f"{image_key_prefix}/{candidate.head_hash}"
-                        ).payload.read()
-                        base_data = session.get(
-                            f"{image_key_prefix}/{candidate.base_hash}"
-                        ).payload.read()
+                        data = session.get(f"{image_key_prefix}/{h}").payload.read()
+                        with cache_lock:
+                            fetch_cache[h] = data
                     except Exception:
+                        with cache_lock:
+                            failed_hashes.add(h)
+
+                # Fetch unique hashes in parallel; session.get() is thread-safe
+                with ContextPropagatingThreadPoolExecutor(max_workers=8) as executor:
+                    list(executor.map(_fetch_hash, unique_hashes))
+
+                for candidate in batch:
+                    if candidate.head_hash in failed_hashes or candidate.base_hash in failed_hashes:
                         logger.warning(
                             "compare_snapshots: failed to fetch images for %s",
                             candidate.name,
@@ -379,6 +396,8 @@ def compare_snapshots(
                             "reason": "image_fetch_failed",
                         }
                         continue
+                    head_data = fetch_cache[candidate.head_hash]
+                    base_data = fetch_cache[candidate.base_hash]
                     total_fetched_bytes += len(head_data) + len(base_data)
                     total_fetched_count += 2
                     diff_pairs.append((base_data, head_data))
@@ -386,8 +405,9 @@ def compare_snapshots(
                     batch_hashes.append((candidate.head_hash, candidate.base_hash))
 
                 logger.info(
-                    "compare_snapshots: running batch of %d pairs",
+                    "compare_snapshots: running batch of %d pairs (%d unique hashes fetched)",
                     len(diff_pairs),
+                    len(fetch_cache),
                     extra={"head_artifact_id": head_artifact_id, "names": batch_names},
                 )
                 diff_results = compare_images_batch(diff_pairs, server=server)

@@ -310,8 +310,6 @@ export default typescript.config([
     rules: {
       'array-callback-return': 'error',
       'block-scoped-var': 'error',
-      'consistent-return': 'error',
-      'default-case': 'error',
       'dot-notation': 'error',
       eqeqeq: 'error',
       'guard-for-in': 'off', // TODO(ryan953): Fix violations and enable this rule
@@ -604,6 +602,10 @@ export default typescript.config([
           '@typescript-eslint/no-for-in-array': 'error',
           '@typescript-eslint/no-unnecessary-template-expression': 'error',
           '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+          '@typescript-eslint/switch-exhaustiveness-check': [
+            'error',
+            {considerDefaultExhaustiveForUnions: true},
+          ],
           '@typescript-eslint/only-throw-error': 'error',
           '@typescript-eslint/prefer-optional-chain': 'error',
           '@typescript-eslint/prefer-promise-reject-errors': 'error',
@@ -928,6 +930,7 @@ export default typescript.config([
     name: 'files/jest related',
     files: [
       'tests/js/jest-pegjs-transform.js',
+      'tests/js/sentry-test/jest-environment.js',
       'tests/js/sentry-test/mocks/*',
       'tests/js/sentry-test/loadFixtures.ts',
       'tests/js/setup.ts',

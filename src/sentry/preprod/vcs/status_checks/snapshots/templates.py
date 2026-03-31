@@ -18,6 +18,7 @@ def format_snapshot_status_check_messages(
     comparisons_map: dict[int, PreprodSnapshotComparison],
     overall_status: StatusCheckStatus,
     base_artifact_map: dict[int, PreprodArtifact],
+    changes_map: dict[int, bool],
 ) -> tuple[str, str, str]:
     if not artifacts:
         raise ValueError("Cannot format messages for empty artifact list")
@@ -108,6 +109,7 @@ def format_snapshot_status_check_messages(
         snapshot_metrics_map,
         comparisons_map,
         base_artifact_map,
+        changes_map,
     )
 
     return str(title), str(subtitle), str(summary)
@@ -219,6 +221,7 @@ def _format_snapshot_summary(
     snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
     comparisons_map: dict[int, PreprodSnapshotComparison],
     base_artifact_map: dict[int, PreprodArtifact],
+    changes_map: dict[int, bool],
 ) -> str:
     table_rows = []
 
@@ -264,7 +267,7 @@ def _format_snapshot_summary(
             modified = comparison.images_changed
             renamed = comparison.images_renamed
             unchanged = comparison.images_unchanged
-            has_changes = modified > 0 or added > 0 or removed > 0 or renamed > 0
+            has_changes = changes_map.get(artifact.id, False)
             status = "⏳ Needs approval" if has_changes else "✅ Unchanged"
 
             def _section_cell(count: int, section: str) -> str:

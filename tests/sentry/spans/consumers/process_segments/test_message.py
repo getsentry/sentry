@@ -261,7 +261,7 @@ class TestSpansTask(TestCase):
         signals = [args[0][1] for args in mock_track.call_args_list]
         assert signals == ["has_transactions", "has_insights_agent_monitoring"]
 
-    def test_segment_name_propagation(self):
+    def test_segment_name_propagation(self) -> None:
         child_span, segment_span = self.generate_basic_spans()
         segment_span["name"] = "my segment name"
 
@@ -280,7 +280,7 @@ class TestSpansTask(TestCase):
             "value": "my segment name",
         }
 
-    def test_segment_name_propagation_when_name_missing(self):
+    def test_segment_name_propagation_when_name_missing(self) -> None:
         child_span, segment_span = self.generate_basic_spans()
         del segment_span["name"]
 
@@ -321,7 +321,7 @@ class TestSpansTask(TestCase):
         )
         mock_record_segment_name.assert_not_called()
 
-    def test_segment_name_normalization_checks_source(self):
+    def test_segment_name_normalization_checks_source(self) -> None:
         _, segment_span = self.generate_basic_spans()
         segment_span["name"] = "/foo/2fd4e1c67a2d28fced849ee1bb76e7391b93eb12/user/123/0"
         segment_span["attributes"][ATTRIBUTE_NAMES.SENTRY_SPAN_SOURCE] = {
@@ -337,7 +337,7 @@ class TestSpansTask(TestCase):
         )
 
 
-def test_verify_compatibility():
+def test_verify_compatibility() -> None:
     spans: list[dict[str, Any]] = [
         # regular span:
         {"data": {"foo": 1}},

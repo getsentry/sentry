@@ -157,15 +157,12 @@ export const LogDetailTableActionsCell = styled(TableBodyCell)`
     padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
   }
   &:last-child {
-    padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
+    padding: ${p => p.theme.space.xs} 0;
   }
 `;
 export const LogDetailTableActionsButtonBar = styled('div')`
   display: flex;
   gap: ${p => p.theme.space.md};
-  & button {
-    font-weight: ${p => p.theme.font.weight.sans.regular};
-  }
 `;
 
 export const DetailsWrapper = styled('tr')`

@@ -154,6 +154,53 @@ def validate_workflows_exist(
     return workflows
 
 
+def connect_workflows_to_detectors(
+    request: Request,
+    organization: Organization,
+    workflow_id: int,
+    detector_ids: list[int] | None,
+    update: bool = False,
+) -> None:
+    if detector_ids is not None:
+        validate_detectors_exist_and_have_permissions(detector_ids, organization, request)
+
+        def get_detector_workflows_to_add(
+            workflow_id: int, detector_ids: set[int]
+        ) -> list[dict[Literal["detector_id", "workflow_id"], int]]:
+            detector_workflows_to_add: list[dict[Literal["detector_id", "workflow_id"], int]] = [
+                {"detector_id": detector_id, "workflow_id": workflow_id}
+                for detector_id in detector_ids
+            ]
+            return detector_workflows_to_add
+
+        if update:
+            existing_detector_workflows = list(
+                DetectorWorkflow.objects.filter(
+                    workflow_id=workflow_id,
+                )
+            )
+            new_detector_ids = set(detector_ids) - {
+                dw.detector_id for dw in existing_detector_workflows
+            }
+
+            detector_workflows_to_add = get_detector_workflows_to_add(workflow_id, new_detector_ids)
+            detector_workflows_to_remove = [
+                dw for dw in existing_detector_workflows if dw.detector_id not in detector_ids
+            ]
+        else:
+            detector_workflows_to_add = get_detector_workflows_to_add(
+                workflow_id, set(detector_ids)
+            )
+            detector_workflows_to_remove = []
+
+        perform_bulk_detector_workflow_operations(
+            detector_workflows_to_add=detector_workflows_to_add,
+            detector_workflows_to_remove=detector_workflows_to_remove,
+            request=request,
+            organization=organization,
+        )
+
+
 def perform_bulk_detector_workflow_operations(
     detector_workflows_to_add: list[dict[Literal["detector_id", "workflow_id"], int]],
     detector_workflows_to_remove: Sequence[DetectorWorkflow],
