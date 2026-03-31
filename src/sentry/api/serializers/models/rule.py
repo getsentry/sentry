@@ -459,7 +459,11 @@ class WorkflowEngineRuleSerializer(Serializer):
 
     def _fetch_actions_by_dcg(self, condition_group_ids: Sequence[int]) -> dict[int, list[Action]]:
         dcg_actions = DataConditionGroupAction.objects.filter(
-            condition_group_id__in=condition_group_ids
+            condition_group_id__in=condition_group_ids,
+            action__status__not_in=[
+                ObjectStatus.DELETION_IN_PROGRESS,
+                ObjectStatus.PENDING_DELETION,
+            ],
         ).select_related("action")
         result: dict[int, list[Action]] = defaultdict(list)
         for dcg_action in dcg_actions:
