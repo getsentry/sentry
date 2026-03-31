@@ -393,7 +393,7 @@ def default_seer_project_preference(project: Project) -> SeerProjectPreference:
         organization_id=project.organization.id,
         project_id=project.id,
         repositories=[],
-        automated_run_stopping_point=AutofixStoppingPoint.ROOT_CAUSE.value,
+        automated_run_stopping_point=AutofixStoppingPoint.CODE_CHANGES.value,
         automation_handoff=None,
     )
 
