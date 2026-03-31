@@ -614,10 +614,10 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
     def test_trigger_coding_agent_handoff_clears_preference_on_not_found(
         self, mock_trigger, mock_get_prefs, mock_set_pref
     ):
-        """When NotFound is raised, automation_handoff is cleared from preferences."""
-        from rest_framework.exceptions import NotFound
+        """When IntegrationNotFound is raised, automation_handoff is cleared from preferences."""
+        from sentry.seer.autofix.coding_agent import IntegrationNotFound
 
-        mock_trigger.side_effect = NotFound()
+        mock_trigger.side_effect = IntegrationNotFound()
         handoff_config = self._make_handoff_config()
         mock_get_prefs.return_value = self._make_preference_response(handoff_config=handoff_config)
 
@@ -638,12 +638,11 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
     def test_trigger_coding_agent_handoff_not_found_seer_api_error_does_not_raise(
         self, mock_trigger, mock_get_prefs, mock_set_pref
     ):
-        """A SeerApiError during preference-clearing after NotFound should not propagate."""
-        from rest_framework.exceptions import NotFound
-
+        """A SeerApiError during preference-clearing after IntegrationNotFound should not propagate."""
+        from sentry.seer.autofix.coding_agent import IntegrationNotFound
         from sentry.seer.models import SeerApiError
 
-        mock_trigger.side_effect = NotFound()
+        mock_trigger.side_effect = IntegrationNotFound()
         mock_get_prefs.side_effect = SeerApiError("seer unavailable", 503)
         handoff_config = self._make_handoff_config()
 
