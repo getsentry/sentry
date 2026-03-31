@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import zstandard
 from objectstore_client import TimeToLive
 
-from sentry.objectstore import ATTACHMENT_RETENTION, get_attachments_session
+from sentry.objectstore import default_attachment_retention, get_attachments_session
 from sentry.utils import metrics
 from sentry.utils.json import prune_empty_keys
 
@@ -49,7 +49,7 @@ class CachedAttachment:
         self.type = type or "event.attachment"
         assert isinstance(self.type, str), self.type
         self.rate_limited = rate_limited
-        self.retention_days = retention_days or ATTACHMENT_RETENTION
+        self.retention_days = retention_days or default_attachment_retention()
 
         if size is not None:
             self.size = size
