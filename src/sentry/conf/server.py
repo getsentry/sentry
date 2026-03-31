@@ -3273,6 +3273,9 @@ if SILO_DEVSERVER:
     ]
     SENTRY_MONOLITH_REGION = SENTRY_CELLS[0]["name"]
 
+    # TODO(cells): remove after getsentry updated
+    SENTRY_REGION_CONFIG = SENTRY_CELLS
+
     # Cross region RPC authentication
     RPC_SHARED_SECRET = [
         "a-long-value-that-is-shared-but-also-secret",
