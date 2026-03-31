@@ -426,12 +426,10 @@ function useSuggestionItems({
   allowedFunctions,
   filterValue,
   nextAllowedTokenKinds,
-  references,
 }: {
   allowedFunctions: string[];
   filterValue: string;
   nextAllowedTokenKinds: TokenKind[];
-  references?: Record<string, string>;
 }): Array<SelectSectionWithKey<string>> {
   const parenthesisItems = useParenthesisItems({
     nextAllowedTokenKinds,
@@ -448,11 +446,11 @@ function useSuggestionItems({
 
   return useMemo(() => {
     const items = [...parenthesisItems, ...operatorItems, ...functionItems];
-    if (references) {
+    if (referenceItems.length > 0) {
       items.push(...referenceItems);
     }
     return items;
-  }, [parenthesisItems, operatorItems, functionItems, referenceItems, references]);
+  }, [parenthesisItems, operatorItems, functionItems, referenceItems]);
 }
 
 function useParenthesisItems({

@@ -15,7 +15,6 @@ interface ArithmeticBuilderContextData {
   functionArguments: FunctionArgument[];
   getFieldDefinition: (key: string) => FieldDefinition | null;
   getSuggestedKey?: (key: string) => string | null;
-  mode?: 'references' | 'aggregates';
   references?: Record<string, string>;
 }
 
@@ -26,7 +25,6 @@ export const ArithmeticBuilderContext = createContext<ArithmeticBuilderContextDa
   functionArguments: [],
   getFieldDefinition: () => null,
   references: {},
-  mode: 'aggregates',
 });
 
 export function useArithmeticBuilder() {
