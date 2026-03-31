@@ -1911,3 +1911,153 @@ class TestEAPTagStorageQueries(TestCase, SnubaTestCase, OccurrenceTestCase):
         assert snuba_by_value["1.0"].last_seen == eap_by_value["1.0"].last_seen
         assert snuba_by_value["2.0"].first_seen == eap_by_value["2.0"].first_seen
         assert snuba_by_value["2.0"].last_seen == eap_by_value["2.0"].last_seen
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_and_snuba_group_list_tag_value_match_multiple_groups(self) -> None:
+        ts = (self.FROZEN_TIME - timedelta(minutes=5)).timestamp()
+        env = self.create_environment(project=self.project, name="production")
+
+        # Group A: 2 events in "production"
+        self.store_events_to_snuba_and_eap(
+            "group-a", count=1, timestamp=ts, extra_event_data={"environment": env.name}
+        )
+        events_a = self.store_events_to_snuba_and_eap(
+            "group-a", count=1, timestamp=ts, extra_event_data={"environment": env.name}
+        )
+        group_a = events_a[0].group
+        assert group_a is not None
+
+        # Group B: 1 event in "production"
+        events_b = self.store_events_to_snuba_and_eap(
+            "group-b", count=1, timestamp=ts, extra_event_data={"environment": env.name}
+        )
+        group_b = events_b[0].group
+        assert group_b is not None
+
+        group_ids = [group_a.id, group_b.id]
+
+        snuba_result = self.ts.get_group_list_tag_value(
+            [self.project.id],
+            group_ids,
+            [env.id],
+            "environment",
+            env.name,
+            tenant_ids={"referrer": "r", "organization_id": self.project.organization_id},
+        )
+        eap_result = self.ts._eap_get_group_list_tag_value(
+            [self.project.id],
+            group_ids,
+            [env.id],
+            "environment",
+            env.name,
+            referrer="tagstore.get_group_list_tag_value",
+            occurrence_category=OccurrenceCategory.ERROR,
+        )
+
+        assert set(snuba_result.keys()) == {group_a.id, group_b.id}
+        assert set(eap_result.keys()) == set(snuba_result.keys())
+        assert snuba_result[group_a.id].times_seen == eap_result[group_a.id].times_seen == 2
+        assert snuba_result[group_b.id].times_seen == eap_result[group_b.id].times_seen == 1
+        assert snuba_result[group_a.id].first_seen == eap_result[group_a.id].first_seen
+        assert snuba_result[group_a.id].last_seen == eap_result[group_a.id].last_seen
+        assert snuba_result[group_b.id].first_seen == eap_result[group_b.id].first_seen
+        assert snuba_result[group_b.id].last_seen == eap_result[group_b.id].last_seen
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_and_snuba_group_list_tag_value_with_environment_filter(self) -> None:
+        ts = (self.FROZEN_TIME - timedelta(minutes=5)).timestamp()
+        env_prod = self.create_environment(project=self.project, name="production")
+        env_staging = self.create_environment(project=self.project, name="staging")
+
+        # 2 events in "production", 1 event in "staging"
+        self.store_events_to_snuba_and_eap(
+            "group-a", count=1, timestamp=ts, extra_event_data={"environment": env_prod.name}
+        )
+        self.store_events_to_snuba_and_eap(
+            "group-a", count=1, timestamp=ts, extra_event_data={"environment": env_prod.name}
+        )
+        events = self.store_events_to_snuba_and_eap(
+            "group-a", count=1, timestamp=ts, extra_event_data={"environment": env_staging.name}
+        )
+        group_a = events[0].group
+        assert group_a is not None
+
+        # Filter by production only
+        snuba_result = self.ts.get_group_list_tag_value(
+            [self.project.id],
+            [group_a.id],
+            [env_prod.id],
+            "environment",
+            env_prod.name,
+            tenant_ids={"referrer": "r", "organization_id": self.project.organization_id},
+        )
+        eap_result = self.ts._eap_get_group_list_tag_value(
+            [self.project.id],
+            [group_a.id],
+            [env_prod.id],
+            "environment",
+            env_prod.name,
+            referrer="tagstore.get_group_list_tag_value",
+            occurrence_category=OccurrenceCategory.ERROR,
+        )
+
+        assert group_a.id in snuba_result
+        assert group_a.id in eap_result
+        assert snuba_result[group_a.id].times_seen == eap_result[group_a.id].times_seen == 2
+        assert snuba_result[group_a.id].first_seen == eap_result[group_a.id].first_seen
+        assert snuba_result[group_a.id].last_seen == eap_result[group_a.id].last_seen
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_group_list_tag_value_issue_platform(self) -> None:
+        ts = self.FROZEN_TIME - timedelta(minutes=5)
+        env = self.create_environment(project=self.project, name="production")
+
+        group = self.create_group(project=self.project)
+
+        eap_item_1 = self.create_eap_occurrence(
+            group_id=group.id,
+            timestamp=ts,
+            environment=env.name,
+            issue_occurrence_id=uuid4().hex,
+        )
+        eap_item_2 = self.create_eap_occurrence(
+            group_id=group.id,
+            timestamp=ts + timedelta(minutes=1),
+            environment=env.name,
+            issue_occurrence_id=uuid4().hex,
+        )
+        self.store_eap_items([eap_item_1, eap_item_2])
+
+        eap_result = self.ts._eap_get_group_list_tag_value(
+            [self.project.id],
+            [group.id],
+            [env.id],
+            "environment",
+            env.name,
+            referrer="tagstore.get_generic_group_list_tag_value",
+            occurrence_category=OccurrenceCategory.ISSUE_PLATFORM,
+        )
+
+        assert group.id in eap_result
+        assert eap_result[group.id].times_seen == 2
+        assert eap_result[group.id].key == "environment"
+        assert eap_result[group.id].value == env.name
+        assert eap_result[group.id].first_seen is not None
+        assert eap_result[group.id].last_seen is not None
+        assert eap_result[group.id].first_seen <= eap_result[group.id].last_seen
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_group_list_tag_value_empty_result(self) -> None:
+        group = self.create_group(project=self.project)
+
+        eap_result = self.ts._eap_get_group_list_tag_value(
+            [self.project.id],
+            [group.id],
+            None,
+            "environment",
+            "nonexistent",
+            referrer="tagstore.get_group_list_tag_value",
+            occurrence_category=OccurrenceCategory.ERROR,
+        )
+
+        assert eap_result == {}
