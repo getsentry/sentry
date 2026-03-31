@@ -47,6 +47,7 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
             AlertRule,
             Release,
             Project,
+            Workflow,
             Environment,
             Dashboard,
             TeamKeyTransaction,
@@ -64,7 +65,6 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
                 task=DiscoverSavedQueryDeletionTask,
             )
         )
-        relations.append(ModelRelation(Workflow, {"organization_id": instance.id}))
 
         return relations
 

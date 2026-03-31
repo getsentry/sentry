@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+from contextlib import contextmanager
+from typing import Any
+from unittest.mock import patch
 from urllib.parse import parse_qs
 
-import responses
+import httpx
 from django.conf import settings
 from django.http import HttpResponseRedirect
 from django.test import override_settings
@@ -75,14 +79,98 @@ urlpatterns = [
 ] + api_urls.urlpatterns
 
 
-def verify_request_body(body, headers):
-    """Wrapper for a callback function for responses.add_callback"""
+# Type for httpx mock callback: receives httpx.Request, returns (status, headers, body)
+HttpxCallback = Callable[[httpx.Request], tuple[int, dict[str, str], str | bytes]]
 
-    def request_callback(request):
+
+class HttpxMockRouter:
+    """Mock HTTP router for httpx, replacing the `responses` library for async proxy tests."""
+
+    def __init__(self) -> None:
+        self._routes: list[dict[str, Any]] = []
+
+    def add(
+        self,
+        method: str,
+        url: str,
+        body: str | bytes = b"",
+        status_code: int = 200,
+        headers: dict[str, str] | None = None,
+        json_data: Any | None = None,
+        content_type: str | None = None,
+    ) -> None:
+        if json_data is not None:
+            body = json.dumps(json_data).encode()
+            content_type = content_type or "application/json"
+        elif isinstance(body, str):
+            body = body.encode()
+        resp_headers = dict(headers or {})
+        if content_type:
+            resp_headers["Content-Type"] = content_type
+        self._routes.append(
+            {
+                "method": method.upper(),
+                "url": url,
+                "body": body,
+                "status_code": status_code,
+                "headers": resp_headers,
+            }
+        )
+
+    def add_callback(self, method: str, url: str, callback: HttpxCallback) -> None:
+        self._routes.append(
+            {
+                "method": method.upper(),
+                "url": url,
+                "callback": callback,
+            }
+        )
+
+    def handler(self, request: httpx.Request) -> httpx.Response:
+        url_str = str(request.url)
+        # Strip query params for matching
+        url_path = url_str.split("?")[0]
+        for route in self._routes:
+            if request.method != route["method"]:
+                continue
+            route_url = route["url"].split("?")[0]
+            if url_path != route_url:
+                continue
+
+            if "callback" in route:
+                status_code, headers, body = route["callback"](request)
+                if isinstance(body, str):
+                    body = body.encode()
+                return httpx.Response(
+                    status_code, headers=dict(headers), content=body, request=request
+                )
+            else:
+                return httpx.Response(
+                    route["status_code"],
+                    headers=route["headers"],
+                    content=route["body"],
+                    request=request,
+                )
+
+        raise ValueError(f"No mock route matched: {request.method} {url_str}")
+
+
+@contextmanager
+def mock_proxy_client(router: HttpxMockRouter):
+    """Patch the proxy_client with a mock httpx.AsyncClient using the given router."""
+    mock_client = httpx.AsyncClient(transport=httpx.MockTransport(router.handler))
+    with patch("sentry.hybridcloud.apigateway_async.proxy.proxy_client", mock_client):
+        yield mock_client
+
+
+def verify_request_body(body, headers):
+    """Wrapper for a callback function for HttpxMockRouter.add_callback."""
+
+    def request_callback(request: httpx.Request):
         if request.headers.get("content-type") == "application/json":
-            assert json.load(request.body) == body
+            assert json.loads(request.content) == body
         else:
-            assert request.body.read() == body
+            assert request.content == (body if isinstance(body, bytes) else body.encode())
         assert (request.headers[key] == headers[key] for key in headers)
         return 200, {}, json.dumps({"proxy": True})
 
@@ -90,9 +178,9 @@ def verify_request_body(body, headers):
 
 
 def verify_request_headers(headers):
-    """Wrapper for a callback function for responses.add_callback"""
+    """Wrapper for a callback function for HttpxMockRouter.add_callback."""
 
-    def request_callback(request):
+    def request_callback(request: httpx.Request):
         assert (request.headers[key] == headers[key] for key in headers)
         return 200, {}, json.dumps({"proxy": True})
 
@@ -100,10 +188,10 @@ def verify_request_headers(headers):
 
 
 def verify_request_params(params, headers):
-    """Wrapper for a callback function for responses.add_callback"""
+    """Wrapper for a callback function for HttpxMockRouter.add_callback."""
 
-    def request_callback(request):
-        request_params = parse_qs(request.url.split("?")[1])
+    def request_callback(request: httpx.Request):
+        request_params = parse_qs(str(request.url).split("?")[1])
         assert (request.headers[key] == headers[key] for key in headers)
         for key in params:
             assert key in request_params
@@ -117,10 +205,10 @@ def verify_request_params(params, headers):
 
 
 def verify_file_body(file_body, headers):
-    """Wrapper for a callback function for responses.add_callback"""
+    """Wrapper for a callback function for HttpxMockRouter.add_callback."""
 
-    def request_callback(request):
-        assert file_body in request.body.read()
+    def request_callback(request: httpx.Request):
+        assert file_body in request.content
         assert (request.headers[key] == headers[key] for key in headers)
         return 200, {}, json.dumps({"proxy": True})
 
@@ -129,8 +217,10 @@ def verify_file_body(file_body, headers):
 
 def provision_middleware():
     middleware = list(settings.MIDDLEWARE)
-    if "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware" not in middleware:
-        middleware = ["sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware"] + middleware
+    if "sentry.hybridcloud.apigateway_async.middleware.ApiGatewayMiddleware" not in middleware:
+        middleware = [
+            "sentry.hybridcloud.apigateway_async.middleware.ApiGatewayMiddleware"
+        ] + middleware
     return middleware
 
 
@@ -148,34 +238,42 @@ class ApiGatewayTestCase(APITestCase):
 
     def setUp(self):
         super().setUp()
-        responses.add(
-            responses.GET,
+        self.httpx_router = HttpxMockRouter()
+        self.httpx_router.add(
+            "GET",
             f"{self.CELL.address}/get",
             body=json.dumps({"proxy": True}),
             content_type="application/json",
-            adding_headers={"test": "header"},
+            headers={"test": "header"},
         )
-        responses.add(
-            responses.GET,
+        self.httpx_router.add(
+            "GET",
             f"{self.CELL.address}/error",
             body=json.dumps({"proxy": True}),
-            status=400,
+            status_code=400,
             content_type="application/json",
-            adding_headers={"test": "header"},
+            headers={"test": "header"},
         )
 
         self.organization = self.create_organization(region=self.CELL)
 
         # Echos the request body and header back for verification
-        def return_request_body(request):
-            return (200, request.headers, request.body)
+        def return_request_body(request: httpx.Request):
+            return (200, dict(request.headers), request.content)
 
         # Echos the query params and header back for verification
-        def return_request_params(request):
-            params = parse_qs(request.url.split("?")[1])
-            return (200, request.headers, json.dumps(params).encode())
+        def return_request_params(request: httpx.Request):
+            params = parse_qs(str(request.url).split("?")[1])
+            return (200, dict(request.headers), json.dumps(params).encode())
 
-        responses.add_callback(responses.GET, f"{self.CELL.address}/echo", return_request_params)
-        responses.add_callback(responses.POST, f"{self.CELL.address}/echo", return_request_body)
+        self.httpx_router.add_callback("GET", f"{self.CELL.address}/echo", return_request_params)
+        self.httpx_router.add_callback("POST", f"{self.CELL.address}/echo", return_request_body)
 
         self.middleware = provision_middleware()
+        # Enter the mock proxy client context for the duration of the test
+        self._mock_proxy_ctx = mock_proxy_client(self.httpx_router)
+        self._mock_proxy_ctx.__enter__()
+
+    def tearDown(self):
+        self._mock_proxy_ctx.__exit__(None, None, None)
+        super().tearDown()

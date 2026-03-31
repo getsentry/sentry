@@ -317,8 +317,6 @@ function getInternalLinkActionLabel(field: string): string {
       return t('Open issue');
     case FieldKey.REPLAY_ID:
       return t('Open replay');
-    default:
-      break;
   }
   return t('Open link');
 }
