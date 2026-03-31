@@ -4,6 +4,10 @@ import type {FlexProps} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 
+interface ViewportConstrainedPageProps extends FlexProps<'main'> {
+  constrained?: boolean;
+}
+
 /**
  * A page layout that constrains itself to the viewport height to prevent
  * window-level scrolling. Uses CSS size containment so that the page's
@@ -12,7 +16,14 @@ import * as Layout from 'sentry/components/layouts/thirds';
  * (TopBar, Footer, etc.), and content within must manage its own
  * overflow (e.g. via scrollable table bodies).
  */
-export function ViewportConstrainedPage(props: FlexProps<'main'>) {
+export function ViewportConstrainedPage({
+  constrained = true,
+  ...props
+}: ViewportConstrainedPageProps) {
+  if (!constrained) {
+    return <Layout.Page {...props} />;
+  }
+
   return <ConstrainedPage minHeight="0" overflow="hidden" {...props} />;
 }
 
