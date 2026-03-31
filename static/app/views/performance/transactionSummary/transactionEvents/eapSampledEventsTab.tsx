@@ -299,10 +299,6 @@ const FilterActions = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto 1fr auto auto;
   }
-
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    grid-template-columns: auto 1fr auto auto;
-  }
 `;
 
 const StyledSearchBarWrapper = styled('div')`
