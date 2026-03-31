@@ -7,9 +7,9 @@ export class Expression {
   readonly tokens: Token[];
   readonly isValid: boolean;
 
-  constructor(text: string) {
+  constructor(text: string, references?: Record<string, string>) {
     this.text = text;
-    this.tokens = tokenizeExpression(this.text);
+    this.tokens = tokenizeExpression(this.text, references);
     this.isValid = validateTokens(this.tokens);
   }
 }

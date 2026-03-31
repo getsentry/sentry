@@ -28,6 +28,7 @@ interface ArithmeticBuilderProps {
    * to a known column.
    */
   getSuggestedKey?: (key: string) => string | null;
+  references?: Record<string, string>;
   setExpression?: (expression: Expression) => void;
 }
 
@@ -41,9 +42,11 @@ export function ArithmeticBuilder({
   getSuggestedKey,
   className,
   disabled,
+  references,
 }: ArithmeticBuilderProps) {
   const {state, dispatch} = useArithmeticBuilderAction({
     initialExpression: expression || '',
+    references,
     updateExpression: setExpression,
   });
 
@@ -57,6 +60,7 @@ export function ArithmeticBuilder({
       functionArguments,
       getFieldDefinition,
       getSuggestedKey,
+      references,
     };
   }, [
     state,
@@ -65,6 +69,7 @@ export function ArithmeticBuilder({
     functionArguments,
     getFieldDefinition,
     getSuggestedKey,
+    references,
   ]);
 
   return (

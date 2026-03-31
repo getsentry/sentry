@@ -51,11 +51,13 @@ function isArithmeticBuilderReplaceAction(
 
 interface UseArithmeticBuilderActionOptions {
   initialExpression: string;
+  references?: Record<string, string>;
   updateExpression?: (expression: Expression) => void;
 }
 
 export function useArithmeticBuilderAction({
   initialExpression,
+  references,
   updateExpression,
 }: UseArithmeticBuilderActionOptions): {
   dispatch: (action: ArithmeticBuilderAction) => void;
@@ -64,7 +66,9 @@ export function useArithmeticBuilderAction({
     focusOverride: FocusOverride | null;
   };
 } {
-  const [expression, setExpression] = useState(() => new Expression(initialExpression));
+  const [expression, setExpression] = useState(
+    () => new Expression(initialExpression, references)
+  );
   const [focusOverride, setFocusOverride] = useState<FocusOverride | null>(null);
 
   const dispatch = useCallback(
@@ -72,14 +76,14 @@ export function useArithmeticBuilderAction({
       if (isArithmeticBuilderUpdateResetFocusOverrideAction(action)) {
         setFocusOverride(null);
       } else if (isArithmeticBuilderDeleteAction(action)) {
-        const newExpression = deleteToken(expression.text, action);
+        const newExpression = deleteToken(expression.text, action, references);
         updateExpression?.(newExpression);
         setExpression(newExpression);
         if (defined(action.focusOverride)) {
           setFocusOverride(action.focusOverride);
         }
       } else if (isArithmeticBuilderReplaceAction(action)) {
-        const newExpression = replaceToken(expression.text, action);
+        const newExpression = replaceToken(expression.text, action, references);
         updateExpression?.(newExpression);
         setExpression(newExpression);
         if (defined(action.focusOverride)) {
@@ -87,7 +91,7 @@ export function useArithmeticBuilderAction({
         }
       }
     },
-    [expression.text, updateExpression]
+    [expression.text, references, updateExpression]
   );
 
   const state = useMemo(
@@ -101,14 +105,25 @@ export function useArithmeticBuilderAction({
   return {state, dispatch};
 }
 
-function deleteToken(text: string, action: ArithmeticBuilderDeleteAction) {
+function deleteToken(
+  text: string,
+  action: ArithmeticBuilderDeleteAction,
+  references?: Record<string, string>
+) {
   const [head, tail] = queryHeadTail(text, action.token);
-  return new Expression(removeExcessWhitespaceFromParts(head, tail));
+  return new Expression(removeExcessWhitespaceFromParts(head, tail), references);
 }
 
-function replaceToken(text: string, action: ArithmeticBuilderReplaceAction) {
+function replaceToken(
+  text: string,
+  action: ArithmeticBuilderReplaceAction,
+  references?: Record<string, string>
+) {
   const [head, tail] = queryHeadTail(text, action.token);
-  return new Expression(removeExcessWhitespaceFromParts(head, action.text, tail));
+  return new Expression(
+    removeExcessWhitespaceFromParts(head, action.text, tail),
+    references
+  );
 }
 
 function queryHeadTail(expression: string, token: Token): [string, string] {

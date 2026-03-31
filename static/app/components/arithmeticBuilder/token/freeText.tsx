@@ -426,10 +426,12 @@ function useSuggestionItems({
   allowedFunctions,
   filterValue,
   nextAllowedTokenKinds,
+  references,
 }: {
   allowedFunctions: string[];
   filterValue: string;
   nextAllowedTokenKinds: TokenKind[];
+  references?: Record<string, string>;
 }): Array<SelectSectionWithKey<string>> {
   const parenthesisItems = useParenthesisItems({
     nextAllowedTokenKinds,
@@ -442,10 +444,15 @@ function useSuggestionItems({
     filterValue,
     nextAllowedTokenKinds,
   });
+  const referenceItems = useReferenceItems();
 
   return useMemo(() => {
-    return [...parenthesisItems, ...operatorItems, ...functionItems];
-  }, [parenthesisItems, operatorItems, functionItems]);
+    const items = [...parenthesisItems, ...operatorItems, ...functionItems];
+    if (references) {
+      items.push(...referenceItems);
+    }
+    return items;
+  }, [parenthesisItems, operatorItems, functionItems, referenceItems, references]);
 }
 
 function useParenthesisItems({
@@ -577,6 +584,29 @@ function useFunctionItems({
       },
     ];
   }, [allowedFunctions, filterValue, nextAllowedTokenKinds]);
+}
+
+function useReferenceItems(): Array<SelectSectionWithKey<string>> {
+  const {references} = useArithmeticBuilder();
+  return useMemo(() => {
+    if (!references) {
+      return [];
+    }
+
+    return [
+      {
+        key: 'references',
+        label: t('references'),
+        options: Object.keys(references).map(key => ({
+          key: `${TokenKind.REFERENCE}:${key}`,
+          label: key,
+          value: key,
+          textValue: key,
+          hideCheck: true,
+        })),
+      },
+    ];
+  }, [references]);
 }
 
 function stopPropagation(evt: MouseEvent<HTMLElement>) {

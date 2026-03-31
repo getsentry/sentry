@@ -280,6 +280,8 @@ function toTokenKind(kind: string): TokenKind {
       return TokenKind.FUNCTION;
     case TokenKind.LITERAL:
       return TokenKind.LITERAL;
+    case TokenKind.REFERENCE:
+      return TokenKind.REFERENCE;
     default:
       throw new ArithmeticError(`Unknown token kind: ${kind}`);
   }
