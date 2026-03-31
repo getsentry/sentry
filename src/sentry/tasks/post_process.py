@@ -22,7 +22,6 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import initialize_replays_publisher
-from sentry.seer.autofix.constants import AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD
 from sentry.signals import event_processed, issue_unignored
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -1555,29 +1554,28 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             metrics.incr(
                 "seer.automation.filtered", tags={"reason": skip_reason, "tier": "seat_based"}
             )
+            if skip_reason == "below_occurrence_threshold":
+                generate_issue_summary_only.delay(group.id)
             return
 
-        if group.times_seen_with_pending < AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD:
-            generate_issue_summary_only.delay(group.id)
+        # Check if summary exists in cache
+        cache_key = get_issue_summary_cache_key(group.id)
+        if cache.get(cache_key) is not None:
+            # Summary exists, run automation directly
+            run_automation_only_task.delay(group.id)
         else:
-            # Check if summary exists in cache
-            cache_key = get_issue_summary_cache_key(group.id)
-            if cache.get(cache_key) is not None:
-                # Summary exists, run automation directly
-                run_automation_only_task.delay(group.id)
-            else:
-                # Rate limit check before generating summary
-                if is_seer_scanner_rate_limited(group.project, group.organization):
-                    metrics.incr(
-                        "seer.automation.filtered",
-                        tags={"reason": "rate_limited", "tier": "seat_based"},
-                    )
-                    return
-
-                # No summary yet, generate summary + run automation in one go
-                generate_summary_and_run_automation.delay(
-                    group.id, trigger_path="seat_based_seer_automation"
+            # Rate limit check before generating summary
+            if is_seer_scanner_rate_limited(group.project, group.organization):
+                metrics.incr(
+                    "seer.automation.filtered",
+                    tags={"reason": "rate_limited", "tier": "seat_based"},
                 )
+                return
+
+            # No summary yet, generate summary + run automation in one go
+            generate_summary_and_run_automation.delay(
+                group.id, trigger_path="seat_based_seer_automation"
+            )
 
 
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {

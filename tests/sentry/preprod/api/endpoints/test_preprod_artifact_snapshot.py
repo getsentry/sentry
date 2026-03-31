@@ -10,7 +10,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class ProjectPreprodSnapshotTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
@@ -28,7 +28,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             args=[self.org.slug, snapshot_id],
         )
 
-    def test_successful_snapshot_upload(self):
+    def test_successful_snapshot_upload(self) -> None:
         url = self._get_create_url()
         data = {
             "app_id": "com.example.app",
@@ -60,7 +60,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
         assert snapshot_metrics.preprod_artifact == artifact
         assert snapshot_metrics.image_count == 1
 
-    def test_snapshot_upload_creates_commit_comparison(self):
+    def test_snapshot_upload_creates_commit_comparison(self) -> None:
         url = self._get_create_url()
         data = {
             "app_id": "com.example.app",
@@ -96,7 +96,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
         assert commit_comparison.head_repo_name == "owner/repo"
         assert commit_comparison.pr_number == 123
 
-    def test_snapshot_upload_stores_manifest_key(self):
+    def test_snapshot_upload_stores_manifest_key(self) -> None:
         url = self._get_create_url()
         data = {
             "app_id": "com.example.app",
@@ -125,7 +125,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
         )
         assert snapshot_metrics.extras["manifest_key"] == expected_key
 
-    def test_snapshot_with_empty_images(self):
+    def test_snapshot_with_empty_images(self) -> None:
         url = self._get_create_url()
         data = {
             "app_id": "com.example.app",
@@ -138,7 +138,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
         assert response.status_code == 200
         assert response.data["imageCount"] == 0
 
-    def test_snapshot_missing_required_field(self):
+    def test_snapshot_missing_required_field(self) -> None:
         url = self._get_create_url()
         data: dict[str, str] = {}
 
@@ -148,7 +148,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
         assert response.status_code == 400
         assert "detail" in response.data
 
-    def test_snapshot_invalid_image_schema(self):
+    def test_snapshot_invalid_image_schema(self) -> None:
         url = self._get_create_url()
         data = {
             "app_id": "com.example.app",
@@ -166,7 +166,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
         assert response.status_code == 400
         assert "detail" in response.data
 
-    def test_snapshot_negative_dimensions(self):
+    def test_snapshot_negative_dimensions(self) -> None:
         url = self._get_create_url()
         data = {
             "app_id": "com.example.app",
@@ -186,7 +186,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
         assert response.status_code == 400
         assert "detail" in response.data
 
-    def test_snapshot_without_feature_flag(self):
+    def test_snapshot_without_feature_flag(self) -> None:
         url = self._get_create_url()
         data = {
             "app_id": "com.example.app",
@@ -198,7 +198,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
         assert response.status_code == 403
         assert response.data["detail"] == "Feature not enabled"
 
-    def test_snapshot_invalid_json(self):
+    def test_snapshot_invalid_json(self) -> None:
         url = self._get_create_url()
 
         with self.feature("organizations:preprod-snapshots"):
@@ -207,7 +207,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
         assert response.status_code == 400
         assert "detail" in response.data
 
-    def test_snapshot_requires_authentication(self):
+    def test_snapshot_requires_authentication(self) -> None:
         from rest_framework.test import APIClient
 
         unauthenticated_client = APIClient()
@@ -222,7 +222,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
 
         assert response.status_code == 401
 
-    def test_snapshot_requires_project_access(self):
+    def test_snapshot_requires_project_access(self) -> None:
         other_user = self.create_user()
         self.login_as(user=other_user)
 
@@ -237,7 +237,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
 
         assert response.status_code == 403
 
-    def test_snapshot_invalid_sha_format(self):
+    def test_snapshot_invalid_sha_format(self) -> None:
         url = self._get_create_url()
         data = {
             "app_id": "com.example.app",
@@ -252,7 +252,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
 
 
 class ProjectPreprodSnapshotGetTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
@@ -375,7 +375,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert response.data["images"][0]["key"] == "img000"
         assert response.data["images"][9]["key"] == "img009"
 
-    def test_get_snapshot_not_found(self):
+    def test_get_snapshot_not_found(self) -> None:
         url = self._get_detail_url(99999)
         with self.feature("organizations:preprod-snapshots"):
             response = self.client.get(url)
@@ -383,7 +383,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert response.status_code == 404
         assert response.data["detail"] == "Snapshot not found"
 
-    def test_get_snapshot_wrong_organization(self):
+    def test_get_snapshot_wrong_organization(self) -> None:
         """Artifact belonging to a different organization should return 404 (IDOR protection)."""
         other_org = self.create_organization()
         other_project = self.create_project(organization=other_org)
@@ -399,7 +399,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
 
         assert response.status_code == 404
 
-    def test_get_snapshot_without_feature_flag(self):
+    def test_get_snapshot_without_feature_flag(self) -> None:
         artifact, _, _, _, _ = self._create_artifact_with_manifest()
 
         url = self._get_detail_url(artifact.id)
@@ -422,7 +422,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert response.status_code == 500
         assert response.data["detail"] == "Internal server error"
 
-    def test_get_snapshot_no_metrics(self):
+    def test_get_snapshot_no_metrics(self) -> None:
         """Artifact without snapshot metrics should return 404."""
         artifact = PreprodArtifact.objects.create(
             project=self.project,

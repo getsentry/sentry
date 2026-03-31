@@ -6,7 +6,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class ProjectPreprodUploadOptionsTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
@@ -16,7 +16,7 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
             args=[self.org.slug, self.project.slug],
         )
 
-    def test_returns_upload_options(self):
+    def test_returns_upload_options(self) -> None:
         with self.feature("organizations:preprod-snapshots"):
             response = self.client.get(self.url)
 
@@ -29,7 +29,7 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
 
         assert data["expirationPolicy"] == "ttl:30 days"
 
-    def test_objectstore_url_uses_region_endpoint(self):
+    def test_objectstore_url_uses_region_endpoint(self) -> None:
         with (
             self.feature("organizations:preprod-snapshots"),
             self.options({"system.region-api-url-template": "https://{region}.testserver"}),
@@ -42,13 +42,13 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
         assert url.startswith(f"https://{region}.testserver/")
         assert url.endswith(f"/api/0/organizations/{self.org.id}/objectstore")
 
-    def test_without_feature_flag(self):
+    def test_without_feature_flag(self) -> None:
         response = self.client.get(self.url)
 
         assert response.status_code == 403
         assert response.data["detail"] == "Feature not enabled"
 
-    def test_requires_authentication(self):
+    def test_requires_authentication(self) -> None:
         unauthenticated_client = APIClient()
 
         with self.feature("organizations:preprod-snapshots"):
@@ -56,7 +56,7 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
 
         assert response.status_code == 401
 
-    def test_requires_project_access(self):
+    def test_requires_project_access(self) -> None:
         other_user = self.create_user()
         self.login_as(user=other_user)
 

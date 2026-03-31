@@ -49,6 +49,10 @@ class NotificationServiceError(Exception):
     pass
 
 
+class NotificationRenderError(NotificationServiceError):
+    pass
+
+
 class NotificationService[T: NotificationData]:
     def __init__(self, *, data: T):
         self.data: Final[T] = data
@@ -94,9 +98,15 @@ class NotificationService[T: NotificationData]:
 
             # Update the lifecycle with the notification category now that we know it
             event_lifecycle.notification_category = template.category
-            renderable = NotificationService.render_template(
-                data=self.data, template=template, provider=provider
-            )
+            try:
+                renderable = NotificationService.render_template(
+                    data=self.data, template=template, provider=provider
+                )
+            except Exception as e:
+                lifecycle.record_failure(failure_reason=e, create_issue=True)
+                raise NotificationRenderError(
+                    f"Failed to render notification for source={self.data.source}"
+                ) from e
 
             # Step 3: Resolve thread if threading requested
             thread_context: ThreadContext | None = None
@@ -321,9 +331,15 @@ def notify_target_async(
         template_cls = template_registry.get(notification_data.source)
         template = template_cls()
         lifecycle_metric.notification_category = template.category
-        renderable = NotificationService.render_template(
-            data=notification_data, template=template, provider=provider
-        )
+        try:
+            renderable = NotificationService.render_template(
+                data=notification_data, template=template, provider=provider
+            )
+        except Exception as e:
+            lifecycle.record_failure(failure_reason=e, create_issue=True)
+            raise NotificationRenderError(
+                f"Failed to render notification for source={notification_data.source}"
+            ) from e
 
         # Step 4: Resolve thread if threading requested
         thread_context: ThreadContext | None = None

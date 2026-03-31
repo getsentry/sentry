@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -15,6 +16,14 @@ import type {Organization} from 'sentry/types/organization';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {
+  AutofixOverviewSection,
+  useAutofixOverviewData,
+} from 'sentry/views/settings/seer/overview/autofixOverviewSection';
+import {
+  CodeReviewOverviewSection,
+  useCodeReviewOverviewSection,
+} from 'sentry/views/settings/seer/overview/codeReviewOverviewSection';
 import {
   SCMOverviewSection,
   useSCMOverviewSection,
@@ -37,7 +46,11 @@ export function SeerAutomationSettings() {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
 
+  const showSeerOverview = organization.features.includes('seer-overview');
+
   const scmOverviewData = useSCMOverviewSection();
+  const autofixOverviewData = useAutofixOverviewData();
+  const codeReviewOverviewData = useCodeReviewOverviewSection();
 
   const orgEndpoint = `/organizations/${organization.slug}/`;
   const orgMutationOpts = mutationOptions({
@@ -82,179 +95,202 @@ export function SeerAutomationSettings() {
       />
       <SeerSettingsPageContent>
         <SCMOverviewSection
-          organizationSlug={organization.slug}
-          canWrite={canWrite}
           {...scmOverviewData}
+          canWrite={canWrite}
+          organizationSlug={organization.slug}
         />
-        <FieldGroup
-          title={
-            <Flex gap="md">
-              <span>{t('Default automations for new projects')}</span>
-              <QuestionTooltip
-                isHoverable
-                title={tct(
-                  'These settings apply as new projects are created. Any [link:existing projects] will not be affected.',
-                  {
-                    link: <Link to={`/settings/${organization.slug}/seer/projects/`} />,
-                  }
-                )}
-                size="xs"
-                icon="info"
-              />
-            </Flex>
-          }
-        >
-          <AutoSaveForm
-            name="defaultAutofixAutomationTuning"
-            schema={schema}
-            initialValue={Boolean(
-              organization.defaultAutofixAutomationTuning &&
-              organization.defaultAutofixAutomationTuning !== 'off'
-            )}
-            mutationOptions={autofixTuningMutationOpts}
-          >
-            {field => (
-              <field.Layout.Row
-                label={t('Auto-Trigger Fixes by Default')}
-                hintText={tct(
-                  'For all new projects, Seer will automatically create a root cause analysis for [docs:highly actionable] issues and propose a solution without a user needing to prompt it.',
-                  {
-                    docs: (
-                      <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works" />
-                    ),
-                  }
-                )}
-              >
-                <field.Switch
-                  checked={field.state.value}
-                  onChange={field.handleChange}
-                  disabled={!canWrite}
-                />
-              </field.Layout.Row>
-            )}
-          </AutoSaveForm>
-          <AutoSaveForm
-            name="autoOpenPrs"
-            schema={schema}
-            initialValue={organization.autoOpenPrs ?? false}
-            mutationOptions={orgMutationOpts}
-          >
-            {field => (
-              <field.Layout.Row
-                label={t('Allow Autofix to create PRs by Default')}
-                hintText={
-                  <Stack gap="sm">
-                    <span>
-                      {tct(
-                        'For all new projects with connected repos, Seer will be able to make pull requests for [docs:highly actionable] issues.',
-                        {
-                          docs: (
-                            <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works" />
-                          ),
-                        }
-                      )}
-                    </span>
-                    {organization.enableSeerCoding === false && (
-                      <Alert variant="warning">
-                        {tct(
-                          '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
-                          {
-                            settings: (
-                              <Link
-                                to={`/settings/${organization.slug}/seer/#enableSeerCoding`}
-                              />
-                            ),
-                          }
-                        )}
-                      </Alert>
+
+        {showSeerOverview ? (
+          <Fragment>
+            <AutofixOverviewSection
+              {...autofixOverviewData}
+              canWrite={canWrite}
+              organization={organization}
+            />
+            <CodeReviewOverviewSection
+              {...codeReviewOverviewData}
+              canWrite={canWrite}
+              organization={organization}
+            />
+          </Fragment>
+        ) : (
+          <Fragment>
+            <FieldGroup
+              title={
+                <Flex gap="md">
+                  <span>{t('Default automations for new projects')}</span>
+                  <QuestionTooltip
+                    isHoverable
+                    title={tct(
+                      'These settings apply as new projects are created. Any [link:existing projects] will not be affected.',
+                      {
+                        link: (
+                          <Link to={`/settings/${organization.slug}/seer/projects/`} />
+                        ),
+                      }
                     )}
-                  </Stack>
+                    size="xs"
+                    icon="info"
+                  />
+                </Flex>
+              }
+            >
+              <AutoSaveForm
+                name="defaultAutofixAutomationTuning"
+                schema={schema}
+                initialValue={Boolean(
+                  organization.defaultAutofixAutomationTuning &&
+                  organization.defaultAutofixAutomationTuning !== 'off'
+                )}
+                mutationOptions={autofixTuningMutationOpts}
+              >
+                {field => (
+                  <field.Layout.Row
+                    label={t('Auto-Trigger Fixes by Default')}
+                    hintText={tct(
+                      'For all new projects, Seer will automatically create a root cause analysis for [docs:highly actionable] issues and propose a solution without a user needing to prompt it.',
+                      {
+                        docs: (
+                          <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works" />
+                        ),
+                      }
+                    )}
+                  >
+                    <field.Switch
+                      checked={field.state.value}
+                      onChange={field.handleChange}
+                      disabled={!canWrite}
+                    />
+                  </field.Layout.Row>
+                )}
+              </AutoSaveForm>
+              <AutoSaveForm
+                name="autoOpenPrs"
+                schema={schema}
+                initialValue={organization.autoOpenPrs ?? false}
+                mutationOptions={orgMutationOpts}
+              >
+                {field => (
+                  <field.Layout.Row
+                    label={t('Allow Autofix to create PRs by Default')}
+                    hintText={
+                      <Stack gap="sm">
+                        <span>
+                          {tct(
+                            'For all new projects with connected repos, Seer will be able to make pull requests for [docs:highly actionable] issues.',
+                            {
+                              docs: (
+                                <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works" />
+                              ),
+                            }
+                          )}
+                        </span>
+                        {organization.enableSeerCoding === false && (
+                          <Alert variant="warning">
+                            {tct(
+                              '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
+                              {
+                                settings: (
+                                  <Link
+                                    to={`/settings/${organization.slug}/seer/#enableSeerCoding`}
+                                  />
+                                ),
+                              }
+                            )}
+                          </Alert>
+                        )}
+                      </Stack>
+                    }
+                  >
+                    <field.Switch
+                      checked={
+                        organization.enableSeerCoding === false
+                          ? false
+                          : field.state.value
+                      }
+                      onChange={field.handleChange}
+                      disabled={
+                        organization.enableSeerCoding === false
+                          ? t('Enable Code Generation to allow Autofix to create PRs.')
+                          : !canWrite
+                      }
+                    />
+                  </field.Layout.Row>
+                )}
+              </AutoSaveForm>
+            </FieldGroup>
+
+            <FieldGroup
+              title={
+                <Flex gap="md">
+                  <span>{t('Default Code Review for New Repos')}</span>
+                  <QuestionTooltip
+                    isHoverable
+                    title={tct(
+                      'These settings apply as repos are newly connected. Any [link:existing repos] will not be affected.',
+                      {
+                        link: <Link to={`/settings/${organization.slug}/seer/repos/`} />,
+                      }
+                    )}
+                    size="xs"
+                    icon="info"
+                  />
+                </Flex>
+              }
+            >
+              <AutoSaveForm
+                name="autoEnableCodeReview"
+                schema={schema}
+                initialValue={organization.autoEnableCodeReview ?? true}
+                mutationOptions={orgMutationOpts}
+              >
+                {field => (
+                  <field.Layout.Row
+                    label={t('Enable Code Review by Default')}
+                    hintText={t(
+                      'For all new repos connected, Seer will review your PRs and flag potential bugs.'
+                    )}
+                  >
+                    <field.Switch
+                      checked={field.state.value}
+                      onChange={field.handleChange}
+                      disabled={!canWrite}
+                    />
+                  </field.Layout.Row>
+                )}
+              </AutoSaveForm>
+              <AutoSaveForm
+                name="defaultCodeReviewTriggers"
+                schema={schema}
+                initialValue={
+                  organization.defaultCodeReviewTriggers ?? DEFAULT_CODE_REVIEW_TRIGGERS
                 }
+                mutationOptions={orgMutationOpts}
               >
-                <field.Switch
-                  checked={
-                    organization.enableSeerCoding === false ? false : field.state.value
-                  }
-                  onChange={field.handleChange}
-                  disabled={
-                    organization.enableSeerCoding === false
-                      ? t('Enable Code Generation to allow Autofix to create PRs.')
-                      : !canWrite
-                  }
-                />
-              </field.Layout.Row>
-            )}
-          </AutoSaveForm>
-        </FieldGroup>
-        <FieldGroup
-          title={
-            <Flex gap="md">
-              <span>{t('Default Code Review for New Repos')}</span>
-              <QuestionTooltip
-                isHoverable
-                title={tct(
-                  'These settings apply as repos are newly connected. Any [link:existing repos] will not be affected.',
-                  {
-                    link: <Link to={`/settings/${organization.slug}/seer/repos/`} />,
-                  }
+                {field => (
+                  <field.Layout.Row
+                    label={t('Code Review Triggers')}
+                    hintText={tct(
+                      'Reviews can always run on demand by calling [code:@sentry review], whenever a PR is opened, or after each commit is pushed to a PR.',
+                      {code: <code />}
+                    )}
+                  >
+                    <field.Select
+                      multiple
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      disabled={!canWrite}
+                      options={[
+                        {value: 'on_ready_for_review', label: t('On Ready for Review')},
+                        {value: 'on_new_commit', label: t('On New Commit')},
+                      ]}
+                    />
+                  </field.Layout.Row>
                 )}
-                size="xs"
-                icon="info"
-              />
-            </Flex>
-          }
-        >
-          <AutoSaveForm
-            name="autoEnableCodeReview"
-            schema={schema}
-            initialValue={organization.autoEnableCodeReview ?? true}
-            mutationOptions={orgMutationOpts}
-          >
-            {field => (
-              <field.Layout.Row
-                label={t('Enable Code Review by Default')}
-                hintText={t(
-                  'For all new repos connected, Seer will review your PRs and flag potential bugs.'
-                )}
-              >
-                <field.Switch
-                  checked={field.state.value}
-                  onChange={field.handleChange}
-                  disabled={!canWrite}
-                />
-              </field.Layout.Row>
-            )}
-          </AutoSaveForm>
-          <AutoSaveForm
-            name="defaultCodeReviewTriggers"
-            schema={schema}
-            initialValue={
-              organization.defaultCodeReviewTriggers ?? DEFAULT_CODE_REVIEW_TRIGGERS
-            }
-            mutationOptions={orgMutationOpts}
-          >
-            {field => (
-              <field.Layout.Row
-                label={t('Code Review Triggers')}
-                hintText={tct(
-                  'Reviews can always run on demand by calling [code:@sentry review], whenever a PR is opened, or after each commit is pushed to a PR.',
-                  {code: <code />}
-                )}
-              >
-                <field.Select
-                  multiple
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  disabled={!canWrite}
-                  options={[
-                    {value: 'on_ready_for_review', label: t('On Ready for Review')},
-                    {value: 'on_new_commit', label: t('On New Commit')},
-                  ]}
-                />
-              </field.Layout.Row>
-            )}
-          </AutoSaveForm>
-        </FieldGroup>
+              </AutoSaveForm>
+            </FieldGroup>
+          </Fragment>
+        )}
 
         <FieldGroup title={t('Advanced Settings')}>
           <AutoSaveForm

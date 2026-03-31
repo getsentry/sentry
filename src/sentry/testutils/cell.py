@@ -100,7 +100,3 @@ def override_cells(cells: Sequence[Cell], local_cell: Cell | None = None) -> Gen
     """
     with get_test_env_directory().swap_state(cells, local_cell=local_cell):
         yield
-
-
-# TODO(cells): Remove alias once no longer used in getsentry
-override_regions = override_cells

@@ -2,14 +2,10 @@ import {useCallback} from 'react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
-import {
-  makeCommandPaletteCallback,
-  makeCommandPaletteGroup,
-  makeCommandPaletteLink,
-} from 'sentry/components/commandPalette/makeCommandPaletteAction';
 import type {
   CommandPaletteAction,
-  CommandPaletteActionWithKey,
+  CommandPaletteActionCallbackWithKey,
+  CommandPaletteActionLinkWithKey,
 } from 'sentry/components/commandPalette/types';
 import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
 import {useCommandPaletteActions} from 'sentry/components/commandPalette/useCommandPaletteActions';
@@ -25,8 +21,8 @@ export function CommandPaletteDemo() {
   const navigate = useNavigate();
 
   const handleAction = useCallback(
-    (action: Exclude<CommandPaletteActionWithKey, {type: 'group'}>) => {
-      if (action.type === 'navigate') {
+    (action: CommandPaletteActionLinkWithKey | CommandPaletteActionCallbackWithKey) => {
+      if ('to' in action) {
         navigate(normalizeUrl(action.to));
       } else {
         action.onAction();
@@ -35,31 +31,31 @@ export function CommandPaletteDemo() {
     [navigate]
   );
 
-  const demoActions = [
-    makeCommandPaletteLink({
+  const demoActions: CommandPaletteAction[] = [
+    {
       display: {label: 'Go to Flex story'},
       to: '/stories/layout/flex/',
       groupingKey: 'navigate',
-    }),
-    makeCommandPaletteCallback({
+    },
+    {
       display: {label: 'Execute an action'},
       groupingKey: 'help',
       onAction: () => {
         addSuccessMessage('Action executed');
       },
-    }),
-    makeCommandPaletteGroup({
+    },
+    {
       groupingKey: 'add',
       display: {label: 'Parent action'},
       actions: [
-        makeCommandPaletteCallback({
+        {
           display: {label: 'Child action'},
           onAction: () => {
             addSuccessMessage('Child action executed');
           },
-        }),
+        },
       ],
-    }),
+    },
   ];
 
   return (

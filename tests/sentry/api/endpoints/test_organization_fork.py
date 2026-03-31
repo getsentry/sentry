@@ -25,7 +25,7 @@ SAAS_TO_SAAS_TEST_REGIONS = create_test_cells(REQUESTING_TEST_REGION, EXPORTING_
 
 @patch("sentry.analytics.record")
 @patch("sentry.relocation.tasks.process.uploading_start.apply_async")
-@cell_silo_test(regions=SAAS_TO_SAAS_TEST_REGIONS)
+@cell_silo_test(cells=SAAS_TO_SAAS_TEST_REGIONS)
 class OrganizationForkTest(APITestCase):
     endpoint = "sentry-api-0-organization-fork"
     method = "POST"
@@ -45,7 +45,7 @@ class OrganizationForkTest(APITestCase):
         self.existing_org = self.create_organization(
             name=self.requested_org_slug,
             owner=self.existing_org_owner,
-            region=EXPORTING_TEST_REGION,
+            cell=EXPORTING_TEST_REGION,
         )
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})

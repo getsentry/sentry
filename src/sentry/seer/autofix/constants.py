@@ -1,5 +1,7 @@
 import enum
 
+CODING_PAYLOAD_TYPES = frozenset({"select_solution", "create_branch", "create_pr"})
+
 # An issue group must have >= this number of occurrences in order to be
 # a target for 'workflow' autofix.
 AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD = 10

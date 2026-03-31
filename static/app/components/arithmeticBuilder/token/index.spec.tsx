@@ -878,6 +878,28 @@ describe('token', () => {
       expect(await screen.findByRole('row', {name: '10'})).toBeInTheDocument();
       expect(screen.getByTestId(dataTestId)).toBeInTheDocument();
     });
+
+    it('completes literal on blur', async () => {
+      const dispatch = jest.fn();
+      render(<Tokens expression="1" dispatch={dispatch} />);
+
+      expect(await screen.findByRole('row', {name: '1'})).toBeInTheDocument();
+
+      const input = screen.getByRole('textbox', {
+        name: 'Add a literal',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+      expect(input).toHaveFocus();
+      expect(input).toHaveValue('1');
+      await userEvent.type(input, '00');
+
+      // Tab away to trigger blur without pressing Enter
+      await userEvent.tab();
+
+      expect(await screen.findByRole('row', {name: '100'})).toBeInTheDocument();
+    });
   });
 
   describe('ArithmeticTokenOperator', () => {

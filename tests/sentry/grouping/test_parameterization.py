@@ -11,8 +11,6 @@ from sentry.grouping.component import (
 )
 from sentry.grouping.context import GroupingContext
 from sentry.grouping.parameterization import (
-    DEFAULT_PARAMETERIZATION_REGEXES_MAP,
-    EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP,
     experimental_parameterizer,
     parameterizer,
 )
@@ -26,9 +24,16 @@ standard_cases = [
     ("email", "test@email.com", "<email>"),
     ("url", "http://some.email.com", "<url>"),
     ("url - existing behavior", "tcp://user:pass@email.com:10", "tcp://user:<email>:<int>"),
+    ("url - ipv4", "http://11.21.12.31", "<url>"),
+    ("url - ipv4 with port", "http://11.21.12.31:12", "<url>"),
+    ("url - ipv6", "http://2001:db8::1", "<url>"),
+    ("url - ipv6 with port", "http://[2001:db8::1]:80", "<url>"),
     ("hostname - tld", "example.com", "<hostname>"),
     ("hostname - subdomain", "www.example.net", "<hostname>"),
     ("ip", "0.0.0.0", "<ip>"),
+    ("ip - v6 unspecified", "::", "<ip>"),
+    ("ip - v6 loopback", "::1", "<ip>"),
+    ("ip - v6 full", "1121:0c03:1231:130d:0000:16da:0908:da07", "<ip>"),
     ("ip - double colon object property", "Option::unwrap()", "Option::unwrap()"),
     ("ip - double colon object property including hex", "Bee::buzz()", "Bee::buzz()"),
     (
@@ -36,11 +41,13 @@ standard_cases = [
         "traceparent: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01",
         "traceparent: <traceparent>",
     ),
+    ("ip - too many initial characters", "12345:6:789", "<int>:<int>:<int>"),
+    ("ip - too many final characters", "123:4:56789", "<int>:<int>:<int>"),
     ("traceparent - aws", "1-67891233-abcdef012345678912345678", "<traceparent>"),
     (
         "traceparent - aws, but not word boundary",
         "abc1-67891233-abcdef012345678912345678",
-        "abc1<int>-<hex>",
+        "abc1-<hex>-<hex>",
     ),
     ("uuid", "7c1811ed-e98f-4c9c-a9f9-58c757ff494f", "<uuid>"),
     (
@@ -81,11 +88,25 @@ standard_cases = [
     ("date - datetime compressed T-separated", "20060102T150405", "<date>"),
     ("date - datetime compressed T-separated UTC", "20060102T150405Z", "<date>"),
     ("date - datetime compressed T-separated w offset", "20060102T150405+0100", "<date>"),
+    ("date - kitchen", "11:21", "<date>"),
+    ("date - kitchen with seconds", "12:31:12", "<date>"),
+    ("date - kitchen with seconds uppercase", "11:21:12 AM", "<date>"),
+    ("date - kitchen with seconds lowercase", "12:31:12 pm", "<date>"),
     ("date - kitchen uppercase without space", "11:21PM", "<date>"),
     ("date - kitchen uppercase with space", "12:31 PM", "<date>"),
     ("date - kitchen lowercase without space", "11:21pm", "<date>"),
     ("date - kitchen lowercase with space", "12:31 pm", "<date>"),
     ("date - kitchen 24-hour", "23:21", "<date>"),
+    ("date - kitchen 24-hour with seconds", "23:21:12", "<date>"),
+    ("date - kitchen 24-hour with leading zero", "09:08", "<date>"),
+    ("date - kitchen 24-hour no leading zero", "9:08", "<date>"),
+    ("date - kitchen 24-hour midnight with leading zero", "00:31", "<date>"),
+    ("date - kitchen 24-hour midnight no leading zero", "0:12", "<date>"),
+    ("date - kitchen too many initial digits", "908:31", "<int>:<int>"),
+    ("date - kitchen too many final digits", "11:2112", "<int>:<int>"),
+    ("date - kitchen hour too big", "31:21", "<int>:<int>"),
+    ("date - kitchen minute too big", "12:99", "<int>:<int>"),
+    ("date - kitchen second too big", "12:31:99", "<int>:<int>:<int>"),
     ("date - time", "15:04:05", "<date>"),
     ("date - basic", "Mon Jan 02, 1999", "<date>"),
     ("date - datetime compressed date", "20240220 11:55:33.546593", "<date>"),
@@ -136,19 +157,25 @@ standard_cases = [
     ("hex without prefix - uppercase, no numbers", "DEADBEEF", "DEADBEEF"),
     ("hex without prefix - lowercase, no numbers until later", "deadbeef 123", "deadbeef <int>"),
     ("hex without prefix - uppercase, no numbers until later", "DEADBEEF 123", "DEADBEEF <int>"),
-    ("hex without prefix - no letters, < 8 digits", "1234567", "<int>"),
-    ("hex without prefix - no letters, 8+ digits", "12345678", "<hex>"),
+    ("hex without prefix - no letters, < 8 digits, positive", "1234567", "<int>"),
+    ("hex without prefix - no letters, < 8 digits, negative", "-1234567", "<int>"),
+    ("hex without prefix - no letters, 8+ digits, positive", "12345678", "<hex>"),
     ("git sha", "commit a93c7d2", "commit <git_sha>"),
     ("git sha - all letters", "commit deadbeef", "commit deadbeef"),
     ("git sha - all numbers", "commit 4150908", "commit <int>"),
     ("float", "0.23", "<float>"),
     ("int", "23", "<int>"),
+    ("int - negative", "-23", "<int>"),
     ("int - separator", "0:17502", "<int>:<int>"),
+    ("int - separator negative no space", "value:-17502", "value:<int>"),
+    ("int - separator negative with space", "value: -17502", "value: <int>"),
+    ("int - in dashed string with numbers", "415-908", "<int>-<int>"),
+    ("int - in dashed string with letters", "maisey-908", "maisey-<int>"),
     ("int - parens", '{"msg" => "(#239323)', '{"msg" => "(#<int>)'),
-    ("int - date - invalid day", "2006-01-40", "<int><int><int>"),
-    ("int - date - invalid month", "2006-20-02", "<int><int><int>"),
-    ("int - date - invalid year", "10000-01-02", "<int><int><int>"),
-    ("int - date - missing day", "2006-01", "<int><int>"),
+    ("int - date - invalid day", "2006-01-40", "<int>-<int>-<int>"),
+    ("int - date - invalid month", "2006-20-02", "<int>-<int>-<int>"),
+    ("int - date - invalid year", "10000-01-02", "<int>-<int>-<int>"),
+    ("int - date - missing day", "2006-01", "<int>-<int>"),
     ("int - quoted_str whitespace", "b = '1'", "b = '<int>'"),
     ("int - quoted_str whitespace", 'b = "1"', 'b = "<int>"'),
     ("quoted_str - single", "b='1'", "b=<quoted_str>"),
@@ -192,8 +219,7 @@ def test_default_parameterizer_misses_experimental_cases(
 
 
 @pytest.mark.skipif(
-    EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP == DEFAULT_PARAMETERIZATION_REGEXES_MAP,
-    reason="no experimental regexes to test",
+    not experimental_parameterizer.is_experimental, reason="no experimental regexes to test"
 )
 @pytest.mark.parametrize(("name", "input", "expected"), standard_cases + experimental_cases)
 def test_experimental_parameterization(name: str, input: str, expected: str) -> None:
@@ -215,16 +241,46 @@ def test_experimental_parameterization(name: str, input: str, expected: str) -> 
 incorrect_cases = [
     # ("name", "input", "desired", "actual")
     (
+        "hex without prefix - no letters, 8+ digits, negative",
+        "-12345678",
+        "<hex>",
+        "-<hex>",
+    ),
+    (
         "int - number in word",
         "Encoding: utf-8",
         "Encoding: utf-8",
-        "Encoding: utf<int>",
+        "Encoding: utf-<int>",
     ),
     (
         "int - with commas",
         "4,150,908",
         "<int>",
         "<int>,<int>,<int>",
+    ),
+    (
+        "ip - short double colon object property including only hex",
+        "Fee::add() called too early",
+        "Fee::add() called too early",
+        "<ip>() called too early",
+    ),
+    (
+        "ip - v4 mapped to v6",
+        "::ffff:192.168.1.1",
+        "<ip>",
+        "<ip>.<float>.<int>",
+    ),
+    (
+        "ip - v6 compressed",
+        "2012:d157::cbe:908:2013",
+        "<ip>",
+        "<ip>:<int>:<int>",
+    ),
+    (
+        "ip - v6 ULA",
+        "fc00::/7",
+        "<ip>",
+        "<ip>/<int>",
     ),
     (
         "json - double quotes",

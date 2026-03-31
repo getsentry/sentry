@@ -11,6 +11,13 @@ from sentry.seer.autofix.constants import (
 )
 from sentry.utils.cache import cache
 
+# This timeout should be longer than what we expect the seer agents to take.
+# This is because we do not want to trigger another run while the previous
+# run is still running.
+#
+# NOTE: The timeout on the seer job is 5 minutes.
+SEER_AUTOMATION_TIMEOUT_SECONDS = 30 * 60
+
 if TYPE_CHECKING:
     from sentry.models.group import Group
     from sentry.utils.locking.manager import LockManager
@@ -29,6 +36,7 @@ SeerAutomationSkipReason = Union[
         "already_triggered",
         "already_triggered_explorer",
         "automation_already_dispatched",
+        "below_occurrence_threshold",
         "fixability_too_low",
         "issue_too_old",
         "lock_already_held",
@@ -141,7 +149,7 @@ def get_seat_based_seer_automation_skip_reason(
         if is_seer_scanner_rate_limited(group.project, group.organization):
             return "rate_limited"
 
-        return None
+        return "below_occurrence_threshold"
 
     # Event count >= threshold: run automation
     # Long-term check to avoid re-running
@@ -170,7 +178,7 @@ def get_seat_based_seer_automation_skip_reason(
 
     # Atomically set cache to prevent duplicate dispatches (returns False if key exists)
     automation_dispatch_cache_key = f"seer-automation-dispatched:{group.id}"
-    if not cache.add(automation_dispatch_cache_key, True, timeout=300):
+    if not cache.add(automation_dispatch_cache_key, True, timeout=SEER_AUTOMATION_TIMEOUT_SECONDS):
         return "automation_already_dispatched"  # Another process already dispatched automation
 
     # Check if project has connected repositories - requirement for new pricing

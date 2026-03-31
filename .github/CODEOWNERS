@@ -35,6 +35,7 @@
 /src/sentry/projectoptions/                             @getsentry/app-backend
 /src/sentry/receivers/                                  @getsentry/app-backend
 /src/sentry/ratelimits/                                 @getsentry/app-backend
+/src/sentry/asgi.py                                     @getsentry/app-backend
 
 /tests/js/sentry-test/                                  @getsentry/app-frontend
 /static/app/utils/                                      @getsentry/app-frontend
@@ -294,6 +295,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 /src/sentry/search/events/                                                  @getsentry/data-browsing
 /src/sentry/search/eap/                                                     @getsentry/data-browsing
+/src/sentry/search/exceptions.py                                            @getsentry/data-browsing
 
 /src/sentry/issue_detection/                                             @getsentry/issue-detection-backend
 /tests/sentry/issue_detection/                                           @getsentry/issue-detection-backend
@@ -446,6 +448,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/sentry_apps/                                             @getsentry/product-owners-settings-integrations @getsentry/ecosystem
 /tests/sentry/sentry_apps/                                           @getsentry/product-owners-settings-integrations @getsentry/ecosystem
 /src/sentry/utils/sentry_apps/                                       @getsentry/ecosystem
+/tests/sentry/utils/sentry_apps/                                     @getsentry/ecosystem
 /src/sentry/middleware/integrations/                                 @getsentry/ecosystem
 /src/sentry/api/endpoints/project_rule*.py                           @getsentry/alerts-notifications
 /src/sentry/api/serializers/models/rule.py                           @getsentry/alerts-notifications
@@ -487,6 +490,11 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 *sentry_app*.py                                                      @getsentry/product-owners-settings-integrations @getsentry/ecosystem
 *sentryapp*.py                                                       @getsentry/product-owners-settings-integrations @getsentry/ecosystem
 *doc_integration*.py                                                 @getsentry/ecosystem
+
+/src/sentry/runner/commands/createproject.py                         @getsentry/ecosystem
+/src/sentry/runner/commands/createorg.py                             @getsentry/ecosystem
+/tests/sentry/runner/commands/test_createproject.py                  @getsentry/ecosystem
+/tests/sentry/runner/commands/test_createorg.py                      @getsentry/ecosystem
 
 ## End of Integrations
 
@@ -672,12 +680,14 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/components/events/highlights/                   @getsentry/issue-workflow
 /static/app/components/issues/                              @getsentry/issue-workflow
 /static/app/components/stackTrace/                          @getsentry/issue-workflow
+/static/app/components/stream/supergroupRow.tsx             @getsentry/issue-detection-frontend
 /static/app/views/issueList/                                @getsentry/issue-workflow
 /static/app/views/issueList/issueListSeerComboBox.tsx       @getsentry/issue-workflow @getsentry/machine-learning-ai
 /static/app/views/issueList/pages/supergroups.tsx           @getsentry/issue-detection-frontend
 /static/app/views/issueList/supergroups/                    @getsentry/issue-detection-frontend
 /static/app/views/issueDetails/                             @getsentry/issue-workflow
 /static/app/views/nav/secondary/sections/issues/            @getsentry/issue-workflow
+/static/app/views/sharedGroupDetails/                       @getsentry/issue-workflow
 /static/app/components/events/interfaces/performance/spanEvidenceKeyValueList.tsx @getsentry/issue-detection-frontend
 /static/app/components/events/interfaces/crashContent/exception/actionableItems.tsx   @getsentry/issue-workflow
 /tests/sentry/deletions/test_group.py                       @getsentry/issue-detection-backend
@@ -778,6 +788,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 # Span buffer + process-segments are co-owned by streaming platform and vis for now.
 /src/sentry/spans/                                @getsentry/data-browsing @getsentry/streaming-platform
+/src/sentry/scripts/spans/                        @getsentry/data-browsing @getsentry/streaming-platform
 /tests/sentry/spans/                              @getsentry/data-browsing @getsentry/streaming-platform
 
 # Streaming platform
@@ -804,6 +815,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/utils/theme/                              @getsentry/design-engineering
 /static/app/components/commandPalette/                @getsentry/design-engineering
 /static/app/components/core/                          @getsentry/design-engineering
+/static/app/components/dnd/                           @getsentry/design-engineering
 /static/app/components/pageFilters/                   @getsentry/design-engineering
 /static/app/icons/                                    @getsentry/design-engineering
 /static/app/stories/                                  @getsentry/design-engineering
@@ -866,6 +878,10 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/scm/                                                      @getsentry/scm
 ## End of SCM
 
+## SCM Frontend
+/static/app/components/repositories                                   @getsentry/coding-workflows-sentry-frontend @getsentry/scm
+## End of SCM Frontend
+
 # End of Coding Workflows
 
 # Conduit
@@ -875,6 +891,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 # Cell architecture
 /.agents/skills/cell-architecture                    @getsentry/sre-infrastructure-engineering
+tests/sentry/core/endpoints/test_organization_cell.py @getsentry/sre-infrastructure-engineering
 # End of cell architecture
 
 # Foundational Storage

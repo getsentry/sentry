@@ -7,7 +7,7 @@ from sentry.testutils.cases import APITestCase
 class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-preprod-artifact-public-install-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.organization)
@@ -41,18 +41,18 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
             args=[self.organization.slug, artifact_id],
         )
 
-    def test_feature_flag_disabled(self):
+    def test_feature_flag_disabled(self) -> None:
         with self.feature({"organizations:preprod-frontend-routes": False}):
             response = self.client.get(self._get_url())
             assert response.status_code == 403
             assert response.json()["detail"] == "Feature not enabled"
 
-    def test_artifact_not_found(self):
+    def test_artifact_not_found(self) -> None:
         response = self.client.get(self._get_url(artifact_id=999999))
         assert response.status_code == 404
         assert "The requested preprod artifact does not exist" in response.json()["detail"]
 
-    def test_cross_org_artifact_access(self):
+    def test_cross_org_artifact_access(self) -> None:
         other_org = self.create_organization(owner=self.user)
         other_project = self.create_project(organization=other_org)
         other_file = self.create_file(name="other.apk", type="application/octet-stream")
@@ -66,7 +66,7 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         response = self.client.get(self._get_url(artifact_id=other_artifact.id))
         assert response.status_code == 404
 
-    def test_not_installable_artifact(self):
+    def test_not_installable_artifact(self) -> None:
         response = self.client.get(self._get_url())
         assert response.status_code == 200
         data = response.json()
@@ -93,7 +93,7 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         assert data["profileName"] is None
         assert data["codesigningType"] is None
 
-    def test_installable_android_artifact(self):
+    def test_installable_android_artifact(self) -> None:
         artifact = self.create_preprod_artifact(
             project=self.project,
             file_id=self.file.id,
@@ -114,7 +114,7 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         assert data["releaseNotes"] == "Bug fixes and improvements"
         assert data["isCodeSignatureValid"] is None
 
-    def test_installable_ios_artifact_valid_signature(self):
+    def test_installable_ios_artifact_valid_signature(self) -> None:
         ios_file = self.create_file(name="test.xcarchive", type="application/octet-stream")
         installable_file = self.create_file(name="test.ipa", type="application/octet-stream")
         artifact = self.create_preprod_artifact(
@@ -142,7 +142,7 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
         assert data["profileName"] == "iOS Team Provisioning Profile"
         assert data["codesigningType"] == "development"
 
-    def test_ios_artifact_invalid_signature(self):
+    def test_ios_artifact_invalid_signature(self) -> None:
         ios_file = self.create_file(name="test.xcarchive", type="application/octet-stream")
         installable_file = self.create_file(name="test.ipa", type="application/octet-stream")
         artifact = self.create_preprod_artifact(

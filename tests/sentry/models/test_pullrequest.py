@@ -77,7 +77,7 @@ class FindReferencedGroupsTest(TestCase):
 
 
 class PullRequestRetentionTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.now = timezone.now()
         self.old_date = self.now - timedelta(days=100)
@@ -109,17 +109,17 @@ class PullRequestRetentionTest(TestCase):
         pr.refresh_from_db()
         return pr
 
-    def test_old_pr_with_no_references_is_unused(self):
+    def test_old_pr_with_no_references_is_unused(self) -> None:
         """An old PR with no references should be marked as unused"""
         pr = self.create_pr(date_added=self.old_date)
         assert pr.is_unused(self.cutoff_date)
 
-    def test_recent_pr_is_not_unused(self):
+    def test_recent_pr_is_not_unused(self) -> None:
         """A PR created after cutoff date should not be unused (though this shouldn't be queried)"""
         pr = self.create_pr(date_added=self.recent_date)
         assert not pr.is_unused(self.cutoff_date)
 
-    def test_pr_with_recent_comment_is_not_unused(self):
+    def test_pr_with_recent_comment_is_not_unused(self) -> None:
         """PR with a comment created after cutoff should not be unused"""
         pr = self.create_pr(date_added=self.old_date)
 
@@ -131,7 +131,7 @@ class PullRequestRetentionTest(TestCase):
 
         assert not pr.is_unused(self.cutoff_date)
 
-    def test_pr_with_recently_updated_comment_is_not_unused(self):
+    def test_pr_with_recently_updated_comment_is_not_unused(self) -> None:
         """PR with a comment updated after cutoff should not be unused"""
         pr = self.create_pr(date_added=self.old_date)
 
@@ -143,7 +143,7 @@ class PullRequestRetentionTest(TestCase):
 
         assert not pr.is_unused(self.cutoff_date)
 
-    def test_pr_with_old_commit_only_is_unused(self):
+    def test_pr_with_old_commit_only_is_unused(self) -> None:
         """PR with only an old commit (not in release) should be unused"""
         pr = self.create_pr(date_added=self.old_date)
         commit = self.create_commit(
@@ -155,7 +155,7 @@ class PullRequestRetentionTest(TestCase):
         self.create_pull_request_commit(pr, commit)
         assert pr.is_unused(self.cutoff_date)
 
-    def test_pr_with_recent_commit_is_not_unused(self):
+    def test_pr_with_recent_commit_is_not_unused(self) -> None:
         """PR with a commit created after cutoff should not be unused"""
         pr = self.create_pr(date_added=self.old_date)
         commit = self.create_commit(
@@ -169,7 +169,7 @@ class PullRequestRetentionTest(TestCase):
         self.create_pull_request_commit(pr, commit)
         assert not pr.is_unused(self.cutoff_date)
 
-    def test_pr_with_commit_in_release_is_not_unused(self):
+    def test_pr_with_commit_in_release_is_not_unused(self) -> None:
         """PR with a commit that's part of a release should not be unused"""
         pr = self.create_pr(date_added=self.old_date)
         commit = self.create_commit(
@@ -188,7 +188,7 @@ class PullRequestRetentionTest(TestCase):
         )
         assert not pr.is_unused(self.cutoff_date)
 
-    def test_pr_with_commit_as_release_head_is_not_unused(self):
+    def test_pr_with_commit_as_release_head_is_not_unused(self) -> None:
         """PR with a commit that's a release head should not be unused"""
         pr = self.create_pr(date_added=self.old_date)
         commit = self.create_commit(
@@ -207,7 +207,7 @@ class PullRequestRetentionTest(TestCase):
         )
         assert not pr.is_unused(self.cutoff_date)
 
-    def test_pr_linked_to_existing_group_is_not_unused(self):
+    def test_pr_linked_to_existing_group_is_not_unused(self) -> None:
         """PR linked to an existing group via GroupLink should not be unused"""
         pr = self.create_pr(date_added=self.old_date)
         group = self.create_group(project=self.project)
@@ -220,7 +220,7 @@ class PullRequestRetentionTest(TestCase):
         )
         assert not pr.is_unused(self.cutoff_date)
 
-    def test_pr_linked_to_deleted_group_is_unused(self):
+    def test_pr_linked_to_deleted_group_is_unused(self) -> None:
         """PR linked to a non-existent group should be unused"""
         pr = self.create_pr(date_added=self.old_date)
         GroupLink.objects.create(
@@ -232,7 +232,7 @@ class PullRequestRetentionTest(TestCase):
         )
         assert pr.is_unused(self.cutoff_date)
 
-    def test_pr_comment_with_existing_group_is_not_unused(self):
+    def test_pr_comment_with_existing_group_is_not_unused(self) -> None:
         """PR with a comment referencing an existing group should not be unused"""
         pr = self.create_pr(date_added=self.old_date)
         group = self.create_group(project=self.project)
@@ -244,7 +244,7 @@ class PullRequestRetentionTest(TestCase):
         )
         assert not pr.is_unused(self.cutoff_date)
 
-    def test_pr_comment_with_deleted_group_is_unused(self):
+    def test_pr_comment_with_deleted_group_is_unused(self) -> None:
         """PR with a comment referencing only non-existent groups should be unused"""
         pr = self.create_pr(date_added=self.old_date)
         self.create_pull_request_comment(
@@ -255,7 +255,7 @@ class PullRequestRetentionTest(TestCase):
         )
         assert pr.is_unused(self.cutoff_date)
 
-    def test_pr_comment_with_mixed_groups_is_not_unused(self):
+    def test_pr_comment_with_mixed_groups_is_not_unused(self) -> None:
         """PR with comment referencing both existing and non-existent groups should not be unused"""
         pr = self.create_pr(date_added=self.old_date)
         group = self.create_group(project=self.project)
@@ -267,7 +267,7 @@ class PullRequestRetentionTest(TestCase):
         )
         assert not pr.is_unused(self.cutoff_date)
 
-    def test_pr_comment_with_empty_groups_is_unused(self):
+    def test_pr_comment_with_empty_groups_is_unused(self) -> None:
         """PR with comment that has empty group_ids should be unused"""
         pr = self.create_pr(date_added=self.old_date)
         self.create_pull_request_comment(
@@ -278,7 +278,7 @@ class PullRequestRetentionTest(TestCase):
         )
         assert pr.is_unused(self.cutoff_date)
 
-    def test_pr_with_deleted_commit_is_unused(self):
+    def test_pr_with_deleted_commit_is_unused(self) -> None:
         """PR with a PullRequestCommit pointing to non-existent commit should be unused"""
         pr = self.create_pr(date_added=self.old_date)
         # Create PullRequestCommit with non-existent commit_id. This simulates a commit that was deleted
@@ -288,7 +288,7 @@ class PullRequestRetentionTest(TestCase):
         )
         assert pr.is_unused(self.cutoff_date)
 
-    def test_complex_pr_with_multiple_references(self):
+    def test_complex_pr_with_multiple_references(self) -> None:
         """Test a complex scenario with multiple types of references"""
         pr = self.create_pr(date_added=self.old_date)
         # Add old comment with deleted group
