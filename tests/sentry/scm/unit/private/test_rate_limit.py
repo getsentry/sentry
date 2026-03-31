@@ -48,7 +48,7 @@ def make_limiter(
 
 
 class TestIsRateLimited:
-    def test_allocated_referrer_with_excess_quota(self):
+    def test_allocated_referrer_with_excess_quota(self) -> None:
         """Referrer with remaining quota is not rate limited."""
         limiter, _ = make_limiter(
             get_and_set_return=(100, 10),
@@ -56,7 +56,7 @@ class TestIsRateLimited:
         )
         assert limiter.is_rate_limited("my_referrer") is False
 
-    def test_allocated_referrer_exhausted_quota(self):
+    def test_allocated_referrer_exhausted_quota(self) -> None:
         """Referrer at quota limit is rate limited."""
         limiter, _ = make_limiter(
             get_and_set_return=(10, 10),
@@ -64,23 +64,23 @@ class TestIsRateLimited:
         )
         assert limiter.is_rate_limited("my_referrer") is True
 
-    def test_shared_referrer_with_excess_quota(self):
+    def test_shared_referrer_with_excess_quota(self) -> None:
         """Shared referrer with remaining quota is not rate limited."""
         limiter, _ = make_limiter(get_and_set_return=(100, 10))
         assert limiter.is_rate_limited("shared") is False
 
-    def test_shared_referrer_exhausted_quota(self):
+    def test_shared_referrer_exhausted_quota(self) -> None:
         """Shared referrer at quota limit is rate limited."""
         limiter, _ = make_limiter(get_and_set_return=(10, 10))
         assert limiter.is_rate_limited("shared") is True
 
-    def test_unregistered_referrer_raises(self):
+    def test_unregistered_referrer_raises(self) -> None:
         """A referrer not in the allocation pool must not be passed."""
         limiter, _ = make_limiter(get_and_set_return=(10, 10))
         with pytest.raises(AssertionError):
             limiter.is_rate_limited("other")
 
-    def test_fails_open_when_limit_not_set(self):
+    def test_fails_open_when_limit_not_set(self) -> None:
         """Rate limit fails open if no limit is cached."""
         limiter, _ = make_limiter(
             get_and_set_return=(None, 100_000_000),
@@ -88,13 +88,13 @@ class TestIsRateLimited:
         )
         assert limiter.is_rate_limited("my_referrer") is False
 
-    def test_caches_recorded_capacity_after_check(self):
+    def test_caches_recorded_capacity_after_check(self) -> None:
         """is_rate_limited stores the service capacity on the instance."""
         limiter, _ = make_limiter(get_and_set_return=(500, 1))
         limiter.is_rate_limited("shared")
         assert limiter.recorded_capacity == 500
 
-    def test_fully_reserved_quota(self):
+    def test_fully_reserved_quota(self) -> None:
         """Assert fully allocated referrer pool exhausts shared referrer by default."""
         limiter, _ = make_limiter(
             get_and_set_return=(100, 10),
@@ -104,7 +104,7 @@ class TestIsRateLimited:
 
 
 class TestUpdateRateLimitMeta:
-    def test_updates_limit_and_shared_usage(self):
+    def test_updates_limit_and_shared_usage(self) -> None:
         """Limit and shared usage are written when provider reports new values."""
         limiter, provider = make_limiter(
             accounted_usage=40,
@@ -124,7 +124,7 @@ class TestUpdateRateLimitMeta:
             usage_count_key("github", 1, 0, "shared"): (10, 3527),
         }, provider.set_kvs
 
-    def test_accounted_keys_include_all_allocated_referrers(self):
+    def test_accounted_keys_include_all_allocated_referrers(self) -> None:
         """get_accounted_usage is called with all allocated referrer keys."""
         limiter, provider = make_limiter(
             accounted_usage=40,
@@ -142,14 +142,14 @@ class TestUpdateRateLimitMeta:
             usage_count_key("github", 1, 0, "shared"): (10, 3527),
         }, provider.set_kvs
 
-    def test_shared_usage_floored_at_zero(self):
+    def test_shared_usage_floored_at_zero(self) -> None:
         """Shared usage is never negative when accounted exceeds reported."""
         limiter, provider = make_limiter(accounted_usage=100, recorded_capacity=100)
         limiter.update_rate_limit_meta(capacity=110, consumed=50, next_window_start=3601)
 
         assert provider.set_kvs[usage_count_key("github", 1, 0, "shared")] == (0, 3527)
 
-    def test_window_miss_skips_shared_usage_update(self):
+    def test_window_miss_skips_shared_usage_update(self) -> None:
         """Shared usage is not written when provider window does not match."""
         limiter, provider = make_limiter(recorded_capacity=100)
         limiter.update_rate_limit_meta(capacity=110, consumed=50, next_window_start=0)
@@ -157,7 +157,7 @@ class TestUpdateRateLimitMeta:
         # Only the new capacity value was written.
         assert provider.set_kvs == {total_limit_key("github", 1): (110, None)}
 
-    def test_matching_limits_skips_total_key_write(self):
+    def test_matching_limits_skips_total_key_write(self) -> None:
         """Capacity key is not written when recorded and specified capacities match."""
         limiter, provider = make_limiter(recorded_capacity=110, accounted_usage=0)
         limiter.update_rate_limit_meta(capacity=110, consumed=50, next_window_start=3601)
@@ -165,7 +165,7 @@ class TestUpdateRateLimitMeta:
         # Service limit not overwritten.
         assert provider.set_kvs == {usage_count_key("github", 1, 0, "shared"): (50, 3527)}
 
-    def test_matching_limits_and_window_miss_writes_nothing(self):
+    def test_matching_limits_and_window_miss_writes_nothing(self) -> None:
         """No writes when capacities match and windows differ."""
         limiter, provider = make_limiter(accounted_usage=50, recorded_capacity=110)
         limiter.update_rate_limit_meta(capacity=110, consumed=50, next_window_start=0)

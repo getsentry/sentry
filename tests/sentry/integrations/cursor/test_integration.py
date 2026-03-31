@@ -143,7 +143,7 @@ def test_build_integration_stores_api_key_and_webhook_secret(provider):
 class CursorIntegrationTest(IntegrationTestCase):
     provider = CursorAgentIntegrationProvider
 
-    def test_build_integration(self):
+    def test_build_integration(self) -> None:
         state: Mapping[str, Any] = {"config": {"api_key": "test_api_key_123"}}
         fake_uuid = UUID("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
 
@@ -167,21 +167,21 @@ class CursorIntegrationTest(IntegrationTestCase):
         assert metadata["api_key"] == "test_api_key_123"
         assert metadata["webhook_secret"] == "secret123"
 
-    def test_build_integration_missing_config(self):
+    def test_build_integration_missing_config(self) -> None:
         """Test that build_integration raises error when config is missing"""
         state: Mapping[str, Any] = {}
 
         with pytest.raises(IntegrationConfigurationError, match="Missing configuration data"):
             self.provider().build_integration(state)
 
-    def test_build_integration_empty_config(self):
+    def test_build_integration_empty_config(self) -> None:
         """Test that build_integration raises error when config is empty"""
         state: Mapping[str, Any] = {"config": {}}
 
         with pytest.raises(IntegrationConfigurationError, match="Missing configuration data"):
             self.provider().build_integration(state)
 
-    def test_get_client(self):
+    def test_get_client(self) -> None:
         metadata = {
             "api_key": "test_api_key_123",
             "webhook_secret": "test_secret_123",
@@ -299,7 +299,7 @@ class CursorIntegrationTest(IntegrationTestCase):
             )
             assert org_integration.config == {}
 
-    def test_update_organization_config_missing_api_key_raises(self):
+    def test_update_organization_config_missing_api_key_raises(self) -> None:
         integration = self.create_integration(
             organization=self.organization,
             provider="cursor",
@@ -367,7 +367,7 @@ class CursorIntegrationTest(IntegrationTestCase):
         integration.refresh_from_db()
         assert integration.metadata["api_key"] == "old_key"
 
-    def test_property_getters(self):
+    def test_property_getters(self) -> None:
         """Test that api_key and webhook_secret property getters return correct values"""
         integration = self.create_integration(
             organization=self.organization,
@@ -422,7 +422,7 @@ class CursorIntegrationTest(IntegrationTestCase):
         webhook_secrets = {webhook_secret_1, webhook_secret_2, webhook_secret_3}
         assert len(webhook_secrets) == 3, "Each integration should have a unique webhook secret"
 
-    def test_get_dynamic_display_information(self):
+    def test_get_dynamic_display_information(self) -> None:
         """Test that get_dynamic_display_information returns metadata"""
         integration = self.create_integration(
             organization=self.organization,
@@ -449,7 +449,7 @@ class CursorIntegrationTest(IntegrationTestCase):
         assert display_info["api_key_name"] == "Production Key"
         assert display_info["user_email"] == "dev@example.com"
 
-    def test_get_dynamic_display_information_returns_none_when_no_metadata(self):
+    def test_get_dynamic_display_information_returns_none_when_no_metadata(self) -> None:
         """Test that get_dynamic_display_information returns None when metadata is missing"""
         integration = self.create_integration(
             organization=self.organization,

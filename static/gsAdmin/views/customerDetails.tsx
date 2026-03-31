@@ -34,7 +34,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-import {addBillingMetricUsage} from 'admin/components/addBillingMetricUsage';
 import {addGiftBudgetAction} from 'admin/components/addGiftBudgetAction';
 import {AddGiftEventsAction} from 'admin/components/addGiftEventsAction';
 import {triggerAddToStartupProgramModal} from 'admin/components/addToStartupProgramAction';
@@ -813,18 +812,6 @@ export function CustomerDetails() {
                 subscription,
               });
             },
-          },
-          {
-            key: 'addBillingMetricUsage',
-            name: 'Add Billing Metric Usage',
-            help: 'Create and add Billing Metric Usage.',
-            skipConfirmModal: true,
-            visible: hasAdminTestFeatures,
-            onAction: () =>
-              addBillingMetricUsage({
-                onSuccess: reloadData,
-                organization,
-              }),
           },
           {
             key: 'deleteBillingMetricHistory',

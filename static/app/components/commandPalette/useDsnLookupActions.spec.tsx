@@ -19,7 +19,9 @@ function DsnLookupHarness({query}: {query: string}) {
       {actions.map(action => (
         <li
           key={action.key}
-          data-type={action.type}
+          data-type={
+            'to' in action ? 'navigate' : 'actions' in action ? 'group' : 'callback'
+          }
           data-to={'to' in action ? action.to : undefined}
         >
           {action.display.label}

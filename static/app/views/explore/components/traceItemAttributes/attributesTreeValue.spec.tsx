@@ -233,4 +233,52 @@ describe('AttributesTreeValue', () => {
       .closest('pre');
     expect(pre).not.toHaveClass('compact');
   });
+
+  it('renders inline JSON highlighting for text containing a JSON object', () => {
+    const content = {
+      ...defaultProps.content,
+      value: 'msg: {"level": "info"}',
+    };
+
+    render(<AttributesTreeValue {...defaultProps} content={content} />);
+
+    const wrapper = screen.getByText(/msg/);
+    expect(wrapper.querySelector('code.language-json')).toBeInTheDocument();
+  });
+
+  it('renders inline JSON highlighting for text containing a JSON array', () => {
+    const content = {
+      ...defaultProps.content,
+      value: 'tags: [1, 2, 3]',
+    };
+
+    render(<AttributesTreeValue {...defaultProps} content={content} />);
+
+    const wrapper = screen.getByText(/tags/);
+    expect(wrapper.querySelector('code.language-json')).toBeInTheDocument();
+  });
+
+  it('renders URL with brackets as a link, not inline JSON', () => {
+    const content = {
+      ...defaultProps.content,
+      value: 'https://example.com/api?filter=[1,2]',
+    };
+
+    render(<AttributesTreeValue {...defaultProps} content={content} />);
+
+    const link = screen.getByText('https://example.com/api?filter=[1,2]').closest('a');
+    expect(link).toBeInTheDocument();
+  });
+
+  it('renders URL with braces as a link, not inline JSON', () => {
+    const content = {
+      ...defaultProps.content,
+      value: 'https://example.com/api/{id}',
+    };
+
+    render(<AttributesTreeValue {...defaultProps} content={content} />);
+
+    const link = screen.getByText('https://example.com/api/{id}').closest('a');
+    expect(link).toBeInTheDocument();
+  });
 });

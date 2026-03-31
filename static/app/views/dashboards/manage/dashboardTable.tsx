@@ -146,13 +146,6 @@ function DashboardTable({
     {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
   ];
 
-  // TODO(__SENTRY_USING_REACT_ROUTER_SIX): We can remove this later, react
-  // router 6 handles empty query objects without appending a trailing ?
-  const {query: _searchQuery, ...queryWithoutSearch} = location.query;
-  const queryLocation = {
-    ...(Object.keys(queryWithoutSearch).length > 0 ? {query: queryWithoutSearch} : {}),
-  };
-
   function renderHeadCell(column: GridColumnOrder<string>) {
     if (column.key in SortKeys) {
       const urlSort = decodeScalar(location.query.sort, 'mydashboards');
@@ -212,12 +205,7 @@ function DashboardTable({
     if (column.key === ResponseKeys.NAME) {
       return (
         <Text ellipsis variant="accent">
-          <Link
-            to={{
-              pathname: `/organizations/${organization.slug}/dashboard/${dataRow.id}/`,
-              ...queryLocation,
-            }}
-          >
+          <Link to={`/organizations/${organization.slug}/dashboard/${dataRow.id}/`}>
             {dataRow[ResponseKeys.NAME]}
           </Link>
         </Text>

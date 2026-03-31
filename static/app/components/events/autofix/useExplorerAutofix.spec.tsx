@@ -1,3 +1,6 @@
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {DiffFileType, DiffLineType} from 'sentry/components/events/autofix/types';
 import {
   isCodeChangesArtifact,
@@ -5,10 +8,13 @@ import {
   isPullRequestsArtifact,
   isRootCauseArtifact,
   isSolutionArtifact,
+  useExplorerAutofix,
   type RootCauseArtifact,
   type SolutionArtifact,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import type {Artifact} from 'sentry/views/seerExplorer/types';
+
+jest.mock('sentry/actionCreators/indicator');
 
 function makeValidArtifact<T>(data: T): Artifact<T> {
   return {
@@ -231,5 +237,78 @@ describe('isCodingAgentsArtifact', () => {
 
   it('returns false when array contains invalid items', () => {
     expect(isCodingAgentsArtifact([{not_an: 'agent'}])).toBe(false);
+  });
+});
+
+describe('useExplorerAutofix - createPR', () => {
+  const GROUP_ID = '123';
+  const AUTOFIX_URL = `/organizations/org-slug/issues/${GROUP_ID}/autofix/`;
+
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {autofix: null},
+    });
+  });
+
+  it('sends correct POST request without repoName', async () => {
+    const mockPost = MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      body: {},
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(GROUP_ID));
+
+    await act(() => result.current.createPR(42));
+
+    expect(mockPost).toHaveBeenCalledWith(
+      AUTOFIX_URL,
+      expect.objectContaining({
+        method: 'POST',
+        query: {mode: 'explorer'},
+        data: {step: 'open_pr', run_id: 42},
+      })
+    );
+  });
+
+  it('includes repo_name when repoName is provided', async () => {
+    const mockPost = MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      body: {},
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(GROUP_ID));
+
+    await act(() => result.current.createPR(42, 'org/repo'));
+
+    expect(mockPost).toHaveBeenCalledWith(
+      AUTOFIX_URL,
+      expect.objectContaining({
+        method: 'POST',
+        query: {mode: 'explorer'},
+        data: {step: 'open_pr', run_id: 42, repo_name: 'org/repo'},
+      })
+    );
+  });
+
+  it('calls addErrorMessage and throws on API error', async () => {
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      statusCode: 500,
+      body: {detail: 'Server error'},
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(GROUP_ID));
+
+    await expect(act(() => result.current.createPR(42))).rejects.toThrow();
+
+    await waitFor(() => {
+      expect(addErrorMessage).toHaveBeenCalledWith('Server error');
+    });
   });
 });

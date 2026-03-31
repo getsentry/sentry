@@ -170,7 +170,7 @@ class GithubRequestParserTest(TestCase):
         }
     )
     @override_cells(region_config)
-    def test_webhook_for_codecov(self):
+    def test_webhook_for_codecov(self) -> None:
         integration = self.get_integration()
         request = self.factory.post(
             self.path,
@@ -206,7 +206,7 @@ class GithubRequestParserTest(TestCase):
         }
     )
     @override_cells(region_config)
-    def test_webhook_for_codecov_no_regions(self):
+    def test_webhook_for_codecov_no_regions(self) -> None:
         integration = self.get_integration()
         request = self.factory.post(
             self.path,
@@ -246,7 +246,7 @@ class GithubRequestParserTest(TestCase):
         }
     )
     @override_cells(region_config)
-    def test_webhook_no_codecov_payload_when_forwarding_disabled(self):
+    def test_webhook_no_codecov_payload_when_forwarding_disabled(self) -> None:
         """When codecov.forward-webhooks.disabled is True, only region payload is created."""
         integration = self.get_integration()
         request = self.factory.post(

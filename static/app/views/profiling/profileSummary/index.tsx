@@ -773,7 +773,7 @@ const ProfileDigestLabel = styled('span')`
 
 export default function ProfileSummaryPageToggle() {
   return (
-    <LayoutPageWithHiddenFooter>
+    <LayoutPageWithHiddenFooter flex={1}>
       <ProfileSummaryContainer data-test-id="profile-summary-redesign">
         <ErrorBoundary>
           <ProfileSummaryPage />
