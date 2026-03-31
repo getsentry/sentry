@@ -243,8 +243,14 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
                 #     aren't included because those are classified as git SHAs)
                 (?=[a-f]*[0-9])(?=[0-9]*[a-f])[0-9a-f]{4,6} |
                 (?=[A-F]*[0-9])(?=[0-9]*[A-F])[0-9A-F]{4,6} |
-                ((?=[a-f]*[0-9])[0-9a-f]{8,128}) |
-                ((?=[A-F]*[0-9])[0-9A-F]{8,128})
+                # The patterns for hex strings 8-128 characters long are less restrictive. We don't
+                # require a number because exceedingly few 8+-letter words consist of only the
+                # letters A-E - the string 'fabaceae' is much more likely to be hex than the Latin
+                # name for the plant family which includes legumes. And we don't require a letter
+                # because long strings of digits are probably more likely to be hex than to be giant
+                # integers.
+                [0-9a-f]{8,128} |
+                [0-9A-F]{8,128}
             )
             \b
         """,
