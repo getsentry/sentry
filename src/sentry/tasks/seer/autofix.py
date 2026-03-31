@@ -258,9 +258,7 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
             "handoff_point": "root_cause",
             "target": coding_agent,
             "integration_id": coding_agent_integration_id,
-            "auto_create_pr": bool(
-                organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT)
-            ),
+            "auto_create_pr": auto_open_prs,
         }
     # If Seer agent and auto open PRs, we can run up to open_pr.
     elif auto_open_prs:
