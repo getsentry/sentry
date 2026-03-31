@@ -577,30 +577,36 @@ def set_default_project_seer_preferences(organization: Organization, project: Pr
     if not is_seer_seat_based_tier_enabled(organization):
         return
 
+    stopping_point = organization.get_option(
+        "sentry:default_automated_run_stopping_point", SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+    )
+    auto_open_prs = organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT)
+
+    automation_handoff: SeerAutomationHandoffConfiguration | None = None
     coding_agent = organization.get_option("sentry:seer_default_coding_agent")
     coding_agent_integration_id = organization.get_option(
         "sentry:seer_default_coding_agent_integration_id"
     )
-    automation_handoff: SeerAutomationHandoffConfiguration | None = None
     if coding_agent and coding_agent != "seer" and coding_agent_integration_id is not None:
         automation_handoff = SeerAutomationHandoffConfiguration(
             handoff_point=AutofixHandoffPoint.ROOT_CAUSE,
             target=coding_agent,
             integration_id=coding_agent_integration_id,
-            auto_create_pr=bool(
-                organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT)
-            ),
+            auto_create_pr=auto_open_prs,
         )
+    # If Seer agent and auto open PRs, we can run up to open_pr.
+    elif auto_open_prs:
+        stopping_point = "open_pr"
+    # If Seer agent and no auto open PRs, we shouldn't go past code_changes.
+    elif stopping_point == "open_pr":
+        stopping_point = "code_changes"
 
     # We need to make an API call to Seer to set this preference
     preference = SeerProjectPreference(
         organization_id=organization.id,
         project_id=project.id,
         repositories=[],
-        automated_run_stopping_point=organization.get_option(
-            "sentry:default_automated_run_stopping_point",
-            SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
-        ),
+        automated_run_stopping_point=stopping_point,
         automation_handoff=automation_handoff,
     )
 
