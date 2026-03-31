@@ -241,7 +241,16 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
     ParameterizationRegex(
         name="int",
         raw_pattern=r"""
-            (\b|-)
+            (
+                # Regular word boundary for positive ints
+                \b
+                |
+                # Alphanumeric negative lookbehind for negative ints to ensure a dash is only
+                # considered a minus sign if it doesn't connect two alphanumeric strings. (No word
+                # boundary here because the dash serves as the word boundary, since it's not a word
+                # character.)
+                (?<!\w)-
+            )
             \d+
             \b
         """,
