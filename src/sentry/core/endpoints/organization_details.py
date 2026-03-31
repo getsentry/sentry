@@ -255,7 +255,6 @@ ORG_OPTIONS = (
         None,
     ),
     (
-        # Informs UI default for automated_run_stopping_point in project preferences
         "autoOpenPrs",
         "sentry:auto_open_prs",
         bool,
