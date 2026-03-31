@@ -134,6 +134,11 @@ def main() -> int:
         required=True,
         help="Space-separated changed files relative to sentry repo root",
     )
+    parser.add_argument(
+        "--previous-filenames",
+        default="",
+        help="Space-separated previous filenames for renamed files (queried against coverage DB)",
+    )
     parser.add_argument("--output", help="Output file path for selected test files (one per line)")
     parser.add_argument("--github-output", action="store_true", help="Write to GITHUB_OUTPUT")
     args = parser.parse_args()
@@ -144,6 +149,7 @@ def main() -> int:
         return 1
 
     changed = [f.strip() for f in args.changed_files.split() if f.strip()]
+    previous_filenames = [f.strip() for f in args.previous_filenames.split() if f.strip()]
 
     selective_applied = False
 
@@ -160,8 +166,12 @@ def main() -> int:
         else:
             selective_applied = True
 
-            # Map repo-relative paths to DB format (add ../sentry/ prefix)
+            # Map repo-relative paths to DB format (add ../sentry/ prefix).
+            # Include previous filenames for renames so the coverage DB
+            # (which still stores the old path) can find the right tests.
             db_paths = [DB_PREFIX + f for f in changed]
+            for old_name in previous_filenames:
+                db_paths.append(DB_PREFIX + old_name)
 
             print(f"Computing selected tests for {len(changed)} changed files...")
             try:
