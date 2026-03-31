@@ -46,7 +46,7 @@ function addKeysToChildActions(
     return {
       ...action,
       key: actionKey,
-    } as CommandPaletteActionLinkWithKey | CommandPaletteActionCallbackWithKey;
+    };
   });
 }
 
