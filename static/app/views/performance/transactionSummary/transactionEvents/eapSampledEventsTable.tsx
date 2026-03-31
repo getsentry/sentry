@@ -174,6 +174,7 @@ export function SampledEventsTable({
       search: countQuery,
       fields: ['count()'],
       pageFilters: selection,
+      enabled: !isMaxDurationLoading,
     },
     'api.insights.segment-spans-table-count'
   );
@@ -202,6 +203,7 @@ export function SampledEventsTable({
       limit: LIMIT,
       cursor,
       pageFilters: selection,
+      enabled: !isMaxDurationLoading,
     },
     'api.insights.segment-spans-table'
   );
