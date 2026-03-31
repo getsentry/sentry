@@ -49,8 +49,9 @@ logger = logging.getLogger(__name__)
 class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
     query_type = serializers.ChoiceField(choices=ExportQueryType.as_str_choices(), required=True)
     query_info = serializers.JSONField(required=True)
-    format = serializers.ChoiceField(choices=OutputMode.supported_values(), required=False, default=OutputMode.CSV.value)
-
+    format = serializers.ChoiceField(
+        choices=OutputMode.supported_values(), required=False, default=OutputMode.CSV.value
+    )
 
     def _validate_dataset(self, query_type: str, query_info: dict[str, Any]) -> dict[str, Any]:
         dataset = query_info.get("dataset")
@@ -68,8 +69,6 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
                 raise serializers.ValidationError(f"{dataset} is not supported for exports")
         query_info["dataset"] = dataset
         return query_info
-
-
 
     def _validate_query_info(self, query_type: str, query_info: dict[str, Any]) -> dict[str, Any]:
         base_fields = query_info.get("field", [])
@@ -121,8 +120,6 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
                         f"sampling mode: {sampling_mode} is not supported"
                     )
         return query_info
-
-
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         organization = self.context["organization"]
@@ -296,7 +293,7 @@ class DataExportEndpoint(OrganizationEndpoint):
                     "dataexport.enqueue",
                     tags={
                         "query_type": validated_data["query_type"],
-                        "format": export_format.value,
+                        "format": export_format,
                         "dataset": str(dataset) if dataset is not None else "none",
                     },
                     sample_rate=1.0,
@@ -311,7 +308,9 @@ class DataExportEndpoint(OrganizationEndpoint):
         except ValidationError as e:
             # This will handle invalid JSON requests
             metrics.incr(
-                "dataexport.invalid", tags={"query_type": validated_data.get("query_type")}, sample_rate=1.0
+                "dataexport.invalid",
+                tags={"query_type": validated_data.get("query_type")},
+                sample_rate=1.0,
             )
             logger.exception("API Request failed", extra=extra)
             return Response({"detail": str(e)}, status=400)

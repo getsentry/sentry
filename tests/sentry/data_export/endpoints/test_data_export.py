@@ -98,7 +98,7 @@ class DataExportTest(APITestCase):
             "dateExpired": None,
             "query": {
                 "type": payload["query_type"],
-                "info": payload["query_info"],
+                "info": data_export.query_info,
             },
             "status": ExportStatus.Early,
             "checksum": None,
@@ -505,6 +505,13 @@ class DataExportTest(APITestCase):
         query_info = data_export.query_info
         assert query_info["field"] == ["message", "timestamp"]
         assert query_info["dataset"] == "logs"
+
+    def test_explore_valid_jsonl_format(self) -> None:
+        payload = self.make_payload("explore", {"format": "jsonl"})
+        with self.feature("organizations:discover-query"):
+            response = self.get_success_response(self.org.slug, status_code=201, **payload)
+        data_export = ExportedData.objects.get(id=response.data["id"])
+        assert data_export.query_info["format"] == "jsonl"
 
     @freeze_time("2020-02-27 12:07:37")
     def test_explore_export_invalid_date_params(self) -> None:

@@ -5,6 +5,7 @@ from django.db import IntegrityError
 from sentry.data_export.base import ExportQueryType
 from sentry.data_export.models import ExportedData
 from sentry.data_export.tasks import assemble_download, merge_export_blobs
+from sentry.data_export.writers import OutputMode
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.files.file import File
 from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
@@ -796,13 +797,24 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
             self.create_ourlog(
                 {"body": "jsonl log message", "severity_text": "INFO"},
                 timestamp=before_now(minutes=10),
-                attributes={"custom.field": "test_value"},
+                organization=self.org,
+                project=self.project,
+                attributes={"custom.field": "test_value 1"},
             ),
             self.create_ourlog(
                 {"body": "jsonl log message two", "severity_text": "INFO"},
-                timestamp=before_now(minutes=5),
-                attributes={"custom.field": "test_value"},
-            )
+                timestamp=before_now(minutes=8),
+                organization=self.org,
+                project=self.project,
+                attributes={"custom.field": "test_value 2"},
+            ),
+            self.create_ourlog(
+                {"body": "jsonl log message three", "severity_text": "INFO"},
+                timestamp=before_now(minutes=4),
+                organization=self.org,
+                project=self.project,
+                attributes={"custom.field": "test_value 3"},
+            ),
         ]
         self.store_eap_items(logs)
 
@@ -815,14 +827,15 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
                 "field": ["log.body", "severity_text"],
                 "query": "",
                 "dataset": "logs",
-                "format": "jsonl",
                 "start": before_now(minutes=15).isoformat(),
-                "end": before_now(minutes=5).isoformat(),
+                "end": before_now(seconds=30).isoformat(),
             },
+            export_format=OutputMode.JSONL.value,
         )
 
+        rows_exported = len(logs) - 1
         with self.tasks():
-            assemble_download(de.id, batch_size=1)
+            assemble_download(de.id, batch_size=len(logs), export_limit=rows_exported)
 
         de = ExportedData.objects.get(id=de.id)
         assert de.date_finished is not None
@@ -838,10 +851,12 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
             content = f.read().strip()
 
         lines = [ln for ln in content.split(b"\n") if ln]
-        assert len(lines) >= 1
-        row = json.loads(lines[0].decode("utf-8"))
-        assert row["log.body"] == "jsonl log message"
-        assert row["severity_text"] == "INFO"
+        assert len(lines) == rows_exported
+        bodies = {json.loads(ln.decode("utf-8"))["log.body"] for ln in lines}
+        assert bodies == {
+            "jsonl log message",
+            "jsonl log message two",
+        }
         assert emailer.called
 
     @patch("sentry.data_export.models.ExportedData.email_success")

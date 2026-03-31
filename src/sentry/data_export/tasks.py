@@ -17,6 +17,7 @@ from sentry.data_export.processors.issues_by_tag import IssuesByTagProcessor
 from sentry.data_export.utils import handle_snuba_errors
 from sentry.data_export.writers import (
     FileWriter,
+    OutputMode,
     get_content_type,
     get_file_type,
 )
@@ -45,7 +46,7 @@ logger = logging.getLogger(__name__)
 def _export_metric_tags(data_export: ExportedData) -> dict[str, str]:
     dataset = data_export.query_info.get("dataset", "None")
     return {
-        "format": data_export.export_format.value,
+        "format": data_export.export_format,
         "query_type": ExportQueryType.as_str(data_export.query_type),
         "dataset": dataset,
     }
@@ -109,7 +110,7 @@ def assemble_download(
                 export_limit = min(export_limit, EXPORTED_ROWS_LIMIT)
 
             processor = get_processor(data_export, environment_id)
-            output_mode = data_export.export_format
+            output_mode = OutputMode(data_export.export_format)
 
             with tempfile.TemporaryFile(mode="w+b") as tf:
                 writer = FileWriter(
@@ -357,7 +358,6 @@ def merge_export_blobs(data_export_id: int, **kwargs: Any) -> None:
 
         # adapted from `putfile` in  `src/sentry/models/file.py`
         try:
-
             with atomic_transaction(
                 using=(
                     router.db_for_write(File),
@@ -366,8 +366,10 @@ def merge_export_blobs(data_export_id: int, **kwargs: Any) -> None:
             ):
                 file = File.objects.create(
                     name=data_export.file_name,
-                    type=get_file_type(data_export.export_format),
-                    headers={"Content-Type": get_content_type(data_export.export_format)},
+                    type=get_file_type(OutputMode(data_export.export_format)),
+                    headers={
+                        "Content-Type": get_content_type(OutputMode(data_export.export_format))
+                    },
                 )
                 size = 0
                 file_checksum = sha1(b"")
@@ -435,7 +437,7 @@ def _set_data_on_scope(data_export: ExportedData) -> None:
         scope.set_user(user)
     scope.set_tag("organization.slug", data_export.organization.slug)
     scope.set_tag("export.type", ExportQueryType.as_str(data_export.query_type))
-    scope.set_tag("export.format", data_export.export_format.value)
+    scope.set_tag("export.format", data_export.export_format)
     qi = data_export.query_info
     if qi.get("dataset") is not None:
         scope.set_tag("export.dataset", str(qi.get("dataset")))
