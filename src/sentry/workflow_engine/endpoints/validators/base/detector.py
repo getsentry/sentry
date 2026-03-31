@@ -25,7 +25,7 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionValidator,
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
-    connect_workflows_to_detectors,
+    connect_detectors_to_workflows,
     get_unknown_detector_type_error,
     log_alerting_quota_hit,
     toggle_detector,
@@ -228,7 +228,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
             workflow_ids = None
             if "workflow_ids" in validated_data:
                 workflow_ids = validated_data.pop("workflow_ids")
-            connect_workflows_to_detectors(
+            connect_detectors_to_workflows(
                 request,
                 organization,
                 instance.id,
@@ -324,7 +324,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
 
             # connect workflows
             workflow_ids = validated_data.get("workflow_ids")
-            connect_workflows_to_detectors(request, organization, detector.id, workflow_ids)
+            connect_detectors_to_workflows(request, organization, detector.id, workflow_ids)
 
             create_audit_entry(
                 request=request,
