@@ -204,7 +204,6 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
     ) -> None:
         """Project with no existing prefs gets stopping point and no handoff (seer coding agent) from org defaults."""
         project = self.create_project(organization=self.organization)
-        self.organization.update_option("sentry:default_automated_run_stopping_point", "open_pr")
 
         mock_bulk_get.return_value = {}
 
@@ -213,7 +212,7 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         mock_bulk_set.assert_called_once()
         prefs = mock_bulk_set.call_args[0][1]
         prefs_by_project = {p["project_id"]: p for p in prefs}
-        assert prefs_by_project[project.id]["automated_run_stopping_point"] == "open_pr"
+        assert prefs_by_project[project.id]["automated_run_stopping_point"] == "code_changes"
         assert prefs_by_project[project.id]["automation_handoff"] is None
 
     @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
@@ -242,6 +241,11 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
             "integration_id": 42,
             "auto_create_pr": True,
         }
+        # auto_open_prs should NOT override stopping point for external agents
+        assert (
+            prefs_by_project[project.id]["automated_run_stopping_point"]
+            == SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+        )
 
     @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
     @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
@@ -371,6 +375,50 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         configure_seer_for_existing_org(organization_id=self.organization.id)
 
         mock_bulk_set.assert_not_called()
+
+    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
+    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
+    def test_seer_agent_auto_open_prs_overrides_stopping_point_to_open_pr(
+        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
+    ) -> None:
+        """When Seer agent (no external handoff) and auto_open_prs=True,
+        stopping point is forced to open_pr regardless of org default."""
+        project = self.create_project(organization=self.organization)
+        self.organization.update_option(
+            "sentry:default_automated_run_stopping_point", "code_changes"
+        )
+        self.organization.update_option("sentry:auto_open_prs", True)
+
+        mock_bulk_get.return_value = {}
+
+        configure_seer_for_existing_org(organization_id=self.organization.id)
+
+        mock_bulk_set.assert_called_once()
+        prefs = mock_bulk_set.call_args[0][1]
+        prefs_by_project = {p["project_id"]: p for p in prefs}
+        assert prefs_by_project[project.id]["automated_run_stopping_point"] == "open_pr"
+        assert prefs_by_project[project.id]["automation_handoff"] is None
+
+    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
+    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
+    def test_seer_agent_no_auto_open_prs_caps_open_pr_to_code_changes(
+        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
+    ) -> None:
+        """When Seer agent (no external handoff) and auto_open_prs=False,
+        org default of open_pr is capped to code_changes."""
+        project = self.create_project(organization=self.organization)
+        self.organization.update_option("sentry:default_automated_run_stopping_point", "open_pr")
+        self.organization.update_option("sentry:auto_open_prs", False)
+
+        mock_bulk_get.return_value = {}
+
+        configure_seer_for_existing_org(organization_id=self.organization.id)
+
+        mock_bulk_set.assert_called_once()
+        prefs = mock_bulk_set.call_args[0][1]
+        prefs_by_project = {p["project_id"]: p for p in prefs}
+        assert prefs_by_project[project.id]["automated_run_stopping_point"] == "code_changes"
+        assert prefs_by_project[project.id]["automation_handoff"] is None
 
     @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
     def test_raises_on_bulk_get_api_failure(self, mock_bulk_get: MagicMock) -> None:

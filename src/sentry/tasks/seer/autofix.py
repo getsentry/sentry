@@ -243,11 +243,16 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
                 "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
             )
 
+    default_stopping_point = organization.get_option(
+        "sentry:default_automated_run_stopping_point", SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+    )
+    auto_open_prs = organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT)
+
+    default_handoff: dict[str, Any] | None = None
     coding_agent = organization.get_option("sentry:seer_default_coding_agent")
     coding_agent_integration_id = organization.get_option(
         "sentry:seer_default_coding_agent_integration_id"
     )
-    default_handoff: dict[str, Any] | None = None
     if coding_agent and coding_agent != "seer" and coding_agent_integration_id is not None:
         default_handoff = {
             "handoff_point": "root_cause",
@@ -257,11 +262,13 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
                 organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT)
             ),
         }
+    # If Seer agent and auto open PRs, we can run up to open_pr.
+    elif auto_open_prs:
+        default_stopping_point = "open_pr"
+    # If Seer agent and no auto open PRs, we shouldn't go past code_changes.
+    elif default_stopping_point == "open_pr":
+        default_stopping_point = "code_changes"
 
-    default_stopping_point = organization.get_option(
-        "sentry:default_automated_run_stopping_point",
-        SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
-    )
     valid_stopping_points = {"open_pr", "code_changes"}
     if features.has("organizations:seer-overview", organization):
         valid_stopping_points.add("root_cause")
