@@ -5,22 +5,31 @@ import {Button} from '@sentry/scraps/button';
 
 import {IconContract, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {TableActionButton} from 'sentry/views/explore/components/tableActionButton';
 
 interface Expando {
   button: React.ReactNode;
-  expanded: boolean;
+  enabled: boolean;
+  expanded: boolean | undefined;
 }
 
 export function useExpando(): Expando {
-  const [expanded, setExpanded] = useState(false);
+  const organization = useOrganization();
+  const location = useLocation();
+  const enabled =
+    organization.features.includes('ourlogs-table-expando') ||
+    location.query.logsTableExpando === 'true';
 
-  const [Icon, text] = expanded
+  const [expandedState, setExpandedState] = useState(false);
+
+  const [Icon, text] = expandedState
     ? [IconContract, t('Collapse')]
     : [IconExpand, t('Expand')];
 
   const toggleExpanded = useCallback(() => {
-    setExpanded(previousExpanded => !previousExpanded);
+    setExpandedState(previousExpanded => !previousExpanded);
   }, []);
 
   const buttonProps = {
@@ -37,7 +46,8 @@ export function useExpando(): Expando {
         mobile={<ExpandoButton {...buttonProps} />}
       />
     ),
-    expanded,
+    enabled,
+    expanded: enabled ? expandedState : undefined,
   };
 }
 

@@ -15,7 +15,6 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -26,6 +25,7 @@ import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
+import {useExpando} from 'sentry/views/explore/logs/tables/useExpando';
 import {
   useQueryParamsId,
   useQueryParamsTitle,
@@ -35,10 +35,7 @@ import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnbo
 
 export default function LogsContent() {
   const organization = useOrganization();
-  const location = useLocation();
-  const hasExpando =
-    organization.features.includes('ourlogs-table-expando') ||
-    location.query.logsTableExpando === 'true';
+  const {enabled: hasExpando} = useExpando();
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.LOG_BYTE],
   });
