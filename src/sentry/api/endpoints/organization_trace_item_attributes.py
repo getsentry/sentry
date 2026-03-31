@@ -1078,10 +1078,14 @@ def _extract_function_keys(aggregate_filter: event_search.AggregateFilter) -> li
     arguments = fields.parse_arguments(match.group("function"), match.group("columns"))
     keys: list[str] = []
     for arg in arguments:
-        # Skip numeric literals and quoted strings
-        stripped = arg.strip('"').strip("'")
+        # Skip quoted strings
+        if (arg.startswith('"') and arg.endswith('"')) or (
+            arg.startswith("'") and arg.endswith("'")
+        ):
+            continue
+        # Skip numeric literals
         try:
-            float(stripped)
+            float(arg)
             continue
         except ValueError:
             pass

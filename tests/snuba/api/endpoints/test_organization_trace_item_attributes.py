@@ -2749,3 +2749,17 @@ class OrganizationTraceItemQueryValidatorEndpointTest(APITestCase, BaseSpansTest
             assert f["key"] == "span.duration"
             assert f["valid"] is True
             assert f["type"] == "number"
+
+    def test_count_if_with_quoted_string_args(self):
+        response = self.do_request(
+            query={
+                "itemType": "spans",
+                "query": 'count_if(span.duration, ">", 100):>5',
+            },
+        )
+        assert response.status_code == 200
+        functions = response.data["functions"]
+        assert len(functions) == 1
+        assert functions[0]["key"] == "span.duration"
+        assert functions[0]["valid"] is True
+        assert functions[0]["type"] == "number"
