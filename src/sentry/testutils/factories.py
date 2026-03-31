@@ -393,7 +393,7 @@ class Factories:
                     region_name = region_obj.name
 
                 ctx.enter_context(
-                    override_settings(SILO_MODE=SiloMode.CELL, SENTRY_REGION=region_name)
+                    override_settings(SILO_MODE=SiloMode.CELL, SENTRY_LOCAL_CELL=region_name)
                 )
 
             with outbox_context(flush=False):

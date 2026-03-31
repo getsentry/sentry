@@ -53,7 +53,7 @@ class TestEnvCellDirectory(CellDirectory):
             monolith_cell = cells[0]
             with override_settings(SENTRY_MONOLITH_REGION=monolith_cell.name):
                 if local_cell:
-                    with override_settings(SENTRY_REGION=local_cell.name):
+                    with override_settings(SENTRY_LOCAL_CELL=local_cell.name):
                         yield
                 else:
                     yield
@@ -70,7 +70,7 @@ class TestEnvCellDirectory(CellDirectory):
     @contextmanager
     def swap_to_default_cell(self) -> Generator[None]:
         """Swap to the monolith cell when entering cell mode."""
-        with override_settings(SENTRY_REGION=self._default_cell.name):
+        with override_settings(SENTRY_LOCAL_CELL=self._default_cell.name):
             yield
 
     @contextmanager
@@ -79,7 +79,7 @@ class TestEnvCellDirectory(CellDirectory):
         cell = self.get_cell_by_name(cell_name)
         if cell is None:
             raise Exception("specified swap cell not found")
-        with override_settings(SENTRY_REGION=cell.name):
+        with override_settings(SENTRY_LOCAL_CELL=cell.name):
             yield
 
 

@@ -433,12 +433,12 @@ def get_local_cell() -> Cell:
     if single_process_cell is not None:
         return single_process_cell
 
-    if not settings.SENTRY_REGION:
+    if not settings.SENTRY_LOCAL_CELL:
         if in_test_environment():
             return get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
         else:
-            raise Exception("SENTRY_REGION must be set when server is in REGION silo mode")
-    return get_cell_by_name(settings.SENTRY_REGION)
+            raise Exception("SENTRY_LOCAL_CELL must be set when server is in CELL silo mode")
+    return get_cell_by_name(settings.SENTRY_LOCAL_CELL)
 
 
 @control_silo_function
