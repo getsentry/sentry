@@ -13,6 +13,7 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionType,
 )
 from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
     RepositoryInputConfig,
@@ -78,11 +79,16 @@ def sync_repos_on_install_change(
 
     for oi in org_integrations:
         organization_id = oi.organization_id
+        rpc_org = organization_service.get(id=organization_id)
 
-        if not features.has(
-            "organizations:github-repo-auto-sync",
-            organization_service.get(id=organization_id),
-        ):
+        if rpc_org is None:
+            logger.info(
+                "sync_repos_on_install_change.missing_organization",
+                extra={"organization_id": organization_id},
+            )
+            continue
+
+        if not features.has("organizations:github-repo-auto-sync", rpc_org):
             continue
 
         with SCMIntegrationInteractionEvent(
@@ -93,7 +99,7 @@ def sync_repos_on_install_change(
         ).capture():
             _sync_repos_for_org(
                 integration=integration,
-                organization_id=organization_id,
+                rpc_org=rpc_org,
                 provider=provider,
                 repos_added=repos_added,
                 repos_removed=repos_removed,
@@ -103,19 +109,11 @@ def sync_repos_on_install_change(
 def _sync_repos_for_org(
     *,
     integration: RpcIntegration,
-    organization_id: int,
+    rpc_org: RpcOrganization,
     provider: str,
     repos_added: list[GitHubRepo],
     repos_removed: list[GitHubRepo],
 ) -> None:
-    rpc_org = organization_service.get(id=organization_id)
-    if rpc_org is None:
-        logger.info(
-            "sync_repos_on_install_change.missing_organization",
-            extra={"organization_id": organization_id},
-        )
-        return
-
     if repos_added:
         integration_repo_provider = get_integration_repository_provider(integration)
         repo_configs: list[RepositoryInputConfig] = []
@@ -137,7 +135,7 @@ def _sync_repos_for_org(
     if repos_removed:
         external_ids = [str(repo["id"]) for repo in repos_removed]
         repository_service.disable_repositories_by_external_ids(
-            organization_id=organization_id,
+            organization_id=rpc_org.id,
             integration_id=integration.id,
             provider=provider,
             external_ids=external_ids,
