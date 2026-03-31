@@ -154,13 +154,18 @@ export const LogTableBody = styled(TableBody)<{
     padding-bottom: ${p.theme.space.md};
     `}
   overflow-x: hidden;
-  overflow-y: auto;
   overflow-anchor: none;
 
   /* If a parent renderer bails out, the element might default to 0px: which causes Tanstack Virtual to stay at 0. */
   min-height: 1px;
 
-  height: 100%;
+  ${p =>
+    p.expanded === undefined
+      ? ''
+      : `
+    overflow-y: auto;
+    height: 100%;
+    `}
 `;
 
 export const LogDetailTableBodyCell = styled(TableBodyCell)`
