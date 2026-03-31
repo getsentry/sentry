@@ -222,8 +222,12 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             #     (?=[a-f]*[0-9])     The lookahead - there must be a digit, which may or may not be
             #                         preceded by some number of hex letters
             #     [0-9a-f]{8,128}     The matcher itself - between 8 and 128 hex characters
-            (\b(?=[a-f]*[0-9])[0-9a-f]{8,128}\b) |
-            (\b(?=[A-F]*[0-9])[0-9A-F]{8,128}\b)
+            \b
+            (
+                ((?=[a-f]*[0-9])[0-9a-f]{8,128}) |
+                ((?=[A-F]*[0-9])[0-9A-F]{8,128})
+            )
+            \b
         """,
     ),
     ParameterizationRegex(
