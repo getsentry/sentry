@@ -40,7 +40,7 @@ export function MetricToolbar({traceMetric, queryIndex}: MetricToolbarProps) {
         width="100%"
         align="center"
         gap="md"
-        columns={`24px 2fr 3fr 6fr ${canRemoveMetric ? '24px' : '0'}`}
+        columns={`auto 2fr 3fr 6fr ${canRemoveMetric ? '24px' : '0'}`}
         data-test-id="metric-toolbar"
         paddingLeft="lg"
         paddingRight="lg"

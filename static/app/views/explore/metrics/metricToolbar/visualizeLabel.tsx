@@ -1,10 +1,10 @@
 import type {MouseEventHandler} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconShow} from 'sentry/icons';
+import {IconChevron, IconShow} from 'sentry/icons';
 import {IconHide} from 'sentry/icons/iconHide';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
@@ -21,18 +21,22 @@ export function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps)
   const organization = useOrganization();
 
   if (canUseMetricsUIRefresh(organization)) {
-    const label = visualize.visible ? (
-      <Text as="span" bold variant="accent">
-        {getVisualizeLabel(index)}
-      </Text>
-    ) : (
-      <IconHide />
-    );
-
     return (
-      <RefreshLabel onClick={onClick} justify="center" align="center">
-        {label}
-      </RefreshLabel>
+      <Container
+        display="flex"
+        cursor="pointer"
+        onClick={onClick}
+        style={{userSelect: 'none', WebkitTapHighlightColor: 'transparent'}}
+      >
+        <Flex align="center" gap="xs">
+          <IconChevron size="md" direction={visualize.visible ? 'down' : 'right'} />
+          <RefreshLabel justify="center" align="center">
+            <Text as="span" bold variant="accent">
+              {getVisualizeLabel(index)}
+            </Text>
+          </RefreshLabel>
+        </Flex>
+      </Container>
     );
   }
 
@@ -52,7 +56,6 @@ export function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps)
 }
 
 const RefreshLabel = styled(Flex)`
-  cursor: pointer;
   background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
   color: ${p => p.theme.tokens.content.accent};
   width: 24px;
