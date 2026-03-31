@@ -36,6 +36,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, StrArray
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
@@ -571,6 +572,7 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
 def trigger_coding_agent_launch(
     *,
     organization_id: int,
+    project_id: int,
     integration_id: int,
     run_id: int,
     trigger_source: str = "solution",
@@ -604,6 +606,23 @@ def trigger_coding_agent_launch(
                 "run_id": run_id,
             },
         )
+        try:
+            project = Project.objects.get_from_cache(id=project_id)
+            organization = Organization.objects.get_from_cache(id=organization_id)
+            if features.has("organizations:seer-project-settings-dual-write", organization):
+                project.delete_option("sentry:seer_automation_handoff_point")
+                project.delete_option("sentry:seer_automation_handoff_target")
+                project.delete_option("sentry:seer_automation_handoff_integration_id")
+                project.delete_option("sentry:seer_automation_handoff_auto_create_pr")
+        except Exception:
+            logger.exception(
+                "coding_agent.clear_handoff_preference_failed",
+                extra={
+                    "project_id": project_id,
+                    "organization_id": organization_id,
+                    "run_id": run_id,
+                },
+            )
         return {"success": False, "error_code": "integration_not_found"}
     except (
         OrganizationNotFound,
