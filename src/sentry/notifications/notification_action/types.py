@@ -507,7 +507,7 @@ class BaseMetricAlertHandler(ABC):
                 "notification_context": asdict(notification_context),
                 "alert_context": asdict(alert_context),
                 "metric_issue_context": asdict(metric_issue_context),
-                "open_period_context": asdict(open_period_context),
+                "open_period_context": open_period_context.dict(),
                 "trigger_status": trigger_status,
             },
         )

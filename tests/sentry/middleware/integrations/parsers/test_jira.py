@@ -17,12 +17,12 @@ from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_p
 from sentry.testutils.silo import control_silo_test
 from sentry.types.cell import Cell, Locality, RegionCategory
 
-region = Cell("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)
-eu_region = Cell("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT)
+cell = Cell("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)
+eu_cell = Cell("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT)
 locality = Locality("us", frozenset(["us"]), RegionCategory.MULTI_TENANT, new_org_cell="us")
 eu_locality = Locality("eu", frozenset(["eu"]), RegionCategory.MULTI_TENANT, new_org_cell="eu")
 
-region_config = (region, eu_region)
+cell_config = (cell, eu_cell)
 
 
 @control_silo_test
@@ -40,7 +40,7 @@ class JiraRequestParserTest(TestCase):
         )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_cells(region_config)
+    @override_cells(cell_config)
     def test_get_integration_from_request(self) -> None:
         request = self.factory.post(path=f"{self.path_base}/issue-updated/")
         parser = JiraRequestParser(request, self.get_response)
@@ -54,7 +54,7 @@ class JiraRequestParserTest(TestCase):
             assert parser.get_integration_from_request() == integration
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_cells(region_config)
+    @override_cells(cell_config)
     def test_get_response_routing_to_control(self) -> None:
         paths = [
             "/ui-hook/",
@@ -76,12 +76,12 @@ class JiraRequestParserTest(TestCase):
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_cells(region_config)
-    def test_get_response_routing_to_region_sync(self) -> None:
+    @override_cells(cell_config)
+    def test_get_response_routing_to_cell_sync(self) -> None:
         responses.add(
             responses.POST,
             locality.to_url("/extensions/jira/issue/LR-123/"),
-            body="region response",
+            body="cell response",
             status=200,
         )
         request = self.factory.post(path=f"{self.path_base}/issue/LR-123/")
@@ -93,17 +93,17 @@ class JiraRequestParserTest(TestCase):
 
         assert isinstance(response, HttpResponse)
         assert response.status_code == status.HTTP_200_OK
-        assert response.content == b"region response"
+        assert response.content == b"cell response"
         assert_no_webhook_payloads()
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_cells(region_config)
-    def test_get_response_routing_to_region_sync_retry_errors(self) -> None:
+    @override_cells(cell_config)
+    def test_get_response_routing_to_cell_sync_retry_errors(self) -> None:
         responses.add(
             responses.POST,
             locality.to_url("/extensions/jira/issue/LR-123/"),
-            body="region response",
+            body="cell response",
             status=503,
         )
         request = self.factory.post(path=f"{self.path_base}/issue/LR-123/")
@@ -122,8 +122,8 @@ class JiraRequestParserTest(TestCase):
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_cells(region_config)
-    def test_get_response_routing_to_region_async(self) -> None:
+    @override_cells(cell_config)
+    def test_get_response_routing_to_cell_async(self) -> None:
         request = self.factory.post(path=f"{self.path_base}/issue-updated/")
         parser = JiraRequestParser(request, self.get_response)
 
@@ -139,12 +139,12 @@ class JiraRequestParserTest(TestCase):
 
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
-            mailbox_name=f"jira:{integration.id}", region_names=[region.name], request=request
+            mailbox_name=f"jira:{integration.id}", cell_names=[cell.name], request=request
         )
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_cells(region_config)
+    @override_cells(cell_config)
     def test_get_response_missing_org_integration(self) -> None:
         request = self.factory.post(path=f"{self.path_base}/issue-updated/")
         parser = JiraRequestParser(request, self.get_response)
@@ -165,7 +165,7 @@ class JiraRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()
 
-    @override_cells(region_config)
+    @override_cells(cell_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @responses.activate
     def test_get_response_invalid_path(self) -> None:
@@ -183,9 +183,9 @@ class JiraRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()
 
-    @override_cells(region_config)
+    @override_cells(cell_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_get_response_multiple_regions(self) -> None:
+    def test_get_response_multiple_cells(self) -> None:
         # Use GET — the view only handles GET, and Jira sends GET for issue hooks.
         request = self.factory.get(path=f"{self.path_base}/issue/LR-123/")
         parser = JiraRequestParser(request, self.get_response)

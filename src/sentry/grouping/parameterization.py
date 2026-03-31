@@ -1,7 +1,7 @@
 import dataclasses
 import re
 from collections import defaultdict
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 
 from sentry.utils import metrics
 
@@ -142,8 +142,27 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
                 (\d{4}-?[01]\d-?[0-3]\d[\sT][0-2]\d:?[0-5]\d) # no seconds
             )
             |
-            # Kitchen
-            ([1-9]\d?:\d{2}(:\d{2})?(?:\s?[aApP][Mm])?)
+            # Kitchen, 12-hr
+            (
+                (?<!\d) # Negative lookbehind to ensure hour has at most two digits
+                ([1-9]|1[0-2]) # Hour, no leading zero, 1-12 hours
+                :[0-5]\d # Minute
+                (:[0-5]\d)? # Optional second
+                (?![\d:]) # Negative lookahead to ensure second (or minute, if there are no seconds)
+                          # has at most two digits, and to make sure that if there are seconds, they
+                          # get consumed by the optional seconds part of the pattern (and are
+                          # thereby forced to abide by its restrictions on possible values)
+                (?:\s?[aApP][Mm])? # Optional, optionally-space-separated AM/PM
+            )
+            |
+            # Kitchen, 24-hr
+            (
+                (?<!\d) # Negative lookbehind (same logic as 12-hr pattern above)
+                (0?\d|1\d|2[0-3]) # Hour, optional leading zero, 0-23 hours
+                :[0-5]\d # Minute
+                (:[0-5]\d)? # Optional second
+                (?![\d:]) # Negative lookahead (same logic as in 12-hr pattern above)
+            )
             |
             # Date
             (\d{4}-[01]\d-[0-3]\d)
@@ -219,7 +238,23 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         """,
     ),
     ParameterizationRegex(name="float", raw_pattern=r"""-\d+\.\d+\b | \b\d+\.\d+\b"""),
-    ParameterizationRegex(name="int", raw_pattern=r"""-\d+\b | \b\d+\b"""),
+    ParameterizationRegex(
+        name="int",
+        raw_pattern=r"""
+            (
+                # Regular word boundary for positive ints
+                \b
+                |
+                # Alphanumeric negative lookbehind for negative ints to ensure a dash is only
+                # considered a minus sign if it doesn't connect two alphanumeric strings. (No word
+                # boundary here because the dash serves as the word boundary, since it's not a word
+                # character.)
+                (?<!\w)-
+            )
+            \d{1,7} # Anything 8 digits and up is considered hex
+            \b
+        """,
+    ),
     ParameterizationRegex(
         name="quoted_str",
         raw_pattern=r"""
@@ -244,57 +279,45 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
 ]
 
 
-# Patterns to use for each match type when not in experimental mode.
-DEFAULT_PARAMETERIZATION_REGEXES_MAP = {r.name: r.pattern for r in DEFAULT_PARAMETERIZATION_REGEXES}
-
-# Patterns to use when in experimental mode. If no experimental pattern exists for a given type of
-# match, falls back to the default pattern.
-EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP = {
-    r.name: r.experimental_pattern if r.experimental_pattern else r.pattern
-    for r in DEFAULT_PARAMETERIZATION_REGEXES
-}
-
-
 class Parameterizer:
     def __init__(
         self,
+        # List of `ParameterizationRegex` objects defining the regexes to use. If nothing is passed,
+        # the default set will be used.
+        regexes: Sequence[ParameterizationRegex] = DEFAULT_PARAMETERIZATION_REGEXES,
         # List of `ParameterizationRegex.name` values, used to selectively enable pattern types. To
         # use all available parameterization, omit this argument.
-        regex_pattern_keys: Sequence[str] | None = None,
+        regex_keys: Sequence[str] | None = None,
         # Whether to use experimental patterns, if available. (Pattern types without an experimental
         # pattern will fall back to the standard pattern.)
         use_experimental_regexes: bool = False,
     ):
-        self._experimental = (
+        # Filter regexes by the specified keys, if given
+        if regex_keys:
+            regexes = [r for r in regexes if r.name in regex_keys]
+
+        self.is_experimental = (
             use_experimental_regexes
             # Only mark the parameterizer as experimental if there are actually any experiments
             # running. If there aren't, then both parameterizers use the default regex patterns, so
             # the "experimental" parameterizer isn't actually experimental.
-            and EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP != DEFAULT_PARAMETERIZATION_REGEXES_MAP
-        )
-        self._parameterization_regex = self._make_regex_from_patterns(
-            regex_pattern_keys or DEFAULT_PARAMETERIZATION_REGEXES_MAP.keys()
+            and any(r.experimental_pattern is not None for r in regexes)
         )
 
-    def _make_regex_from_patterns(self, pattern_keys: Iterable[str]) -> re.Pattern[str]:
-        """
-        Takes list of pattern keys and returns a compiled regex pattern that matches any of them.
+        if self.is_experimental:
+            pattern_strings = [
+                r.experimental_pattern if r.experimental_pattern else r.pattern for r in regexes
+            ]
+        else:
+            pattern_strings = [r.pattern for r in regexes]
 
-        @param pattern_keys: A list of keys to match in the _parameterization_regex_components dict.
-        @returns: A compiled regex pattern that matches any of the given keys.
-        @raises: KeyError on pattern key not in the _parameterization_regex_components dict
-
-        The `(?x)` tells the regex compiler to ignore comments and unescaped whitespace,
-        so we can use newlines and indentation for better legibility in patterns above.
-        """
-
-        regexes_map = (
-            EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP
-            if self._experimental
-            else DEFAULT_PARAMETERIZATION_REGEXES_MAP
+        # Combine the individual patterns into one giant regex to check against. (This is faster
+        # than checking each pattern individually because it entails less overhead.)
+        self.combined_regex = re.compile(
+            # The `(?x)` tells the regex compiler to ignore comments and unescaped whitespace, so we
+            # can use newlines and indentation for better legibility when defining regexes
+            rf"(?x){'|'.join(pattern_strings)}"
         )
-
-        return re.compile(rf"(?x){'|'.join(regexes_map[k] for k in pattern_keys)}")
 
     def parameterize(self, input_str: str) -> str:
         """
@@ -307,24 +330,32 @@ class Parameterizer:
         matches_counter: defaultdict[str, int] = defaultdict(int)
 
         def _handle_regex_match(match: re.Match[str]) -> str:
-            # Find the first (should be only) non-None match entry, and sub in the placeholder. For
-            # example, given the groupdict item `('hex', '0x40000015')`, this returns '<hex>' as a
-            # replacement for the original value in the string.
-            for key, value in match.groupdict().items():
-                if value is not None:
-                    matches_counter[key] += 1
-                    return f"<{key}>"
-            return ""
+            # Since
+            #   a) our regex consists of a bunch of named capturing groups separated by `|`,
+            #   b) no other capturing groups in the regex are named, and
+            #   c) there's nothing else in the regex,
+            # there should be exactly one named matching group, making the last matching group also
+            # the only matching group.
+            matched_key = match.lastgroup
+            orig_value = match.groupdict().get(
+                matched_key or ""  # Empty string for mypy appeasment
+            )
+
+            if not matched_key or not orig_value:  # Insurance - shouldn't happen IRL
+                return ""
+
+            matches_counter[matched_key] += 1
+            return f"<{matched_key}>"
 
         with metrics.timer(
-            "grouping.parameterize", tags={"experimental": self._experimental}
+            "grouping.parameterize", tags={"experimental": self.is_experimental}
         ) as metric_tags:
-            parameterized = self._parameterization_regex.sub(_handle_regex_match, input_str)
+            parameterized = self.combined_regex.sub(_handle_regex_match, input_str)
             metric_tags["changed"] = parameterized != input_str
 
-        for key, value in matches_counter.items():
+        for regex_key, count in matches_counter.items():
             # Track the kinds of replacements being made
-            metrics.incr("grouping.value_parameterized", amount=value, tags={"key": key})
+            metrics.incr("grouping.value_parameterized", amount=count, tags={"key": regex_key})
 
         return parameterized
 

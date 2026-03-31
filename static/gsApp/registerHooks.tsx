@@ -52,7 +52,6 @@ import DisabledMemberTooltip from 'getsentry/hooks/disabledMemberTooltip';
 import DisabledMemberView from 'getsentry/hooks/disabledMemberView';
 import {FirstPartyIntegrationAdditionalCTA} from 'getsentry/hooks/firstPartyIntegrationAdditionalCTA';
 import {FirstPartyIntegrationAlertHook} from 'getsentry/hooks/firstPartyIntegrationAlertHook';
-import GithubInstallationSelectInstallButton from 'getsentry/hooks/githubInstallationSelectInstall';
 import {handleGuideUpdate} from 'getsentry/hooks/handleGuideUpdate';
 import {handleMonitorCreated} from 'getsentry/hooks/handleMonitorCreated';
 import {hookIntegrationFeatures} from 'getsentry/hooks/integrationFeatures';
@@ -260,7 +259,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:data-consent-priority-learn-more': () => DataConsentPriorityLearnMore,
   'component:data-consent-org-creation-checkbox': () => DataConsentOrgCreationCheckbox,
   'component:organization-membership-settings': () => OrganizationMembershipSettingsForm,
-  'component:scm-multi-org-install-button': () => GithubInstallationSelectInstallButton,
   'component:metric-alert-quota-message': MetricAlertQuotaMessage,
   'component:metric-alert-quota-icon': MetricAlertQuotaIcon,
 

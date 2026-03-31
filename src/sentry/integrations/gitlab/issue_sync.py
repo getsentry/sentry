@@ -6,6 +6,7 @@ from typing import Any
 from urllib.parse import quote
 
 from sentry import features
+from sentry.integrations.gitlab.types import GitLabIssueAction
 from sentry.integrations.mixins.issues import IssueSyncIntegration, ResolveSyncAction
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -22,6 +23,8 @@ class GitlabIssueSyncSpec(IssueSyncIntegration):
     comment_key = "sync_comments"
     outbound_assignee_key = "sync_forward_assignment"
     inbound_assignee_key = "sync_reverse_assignment"
+    inbound_status_key = "sync_status_reverse"
+    resolution_strategy_key = "resolution_strategy"
 
     def check_feature_flag(self) -> bool:
         """
@@ -169,6 +172,16 @@ class GitlabIssueSyncSpec(IssueSyncIntegration):
         Given webhook data, check whether the GitLab issue status changed.
         GitLab issues have opened/closed state.
         """
+        if not self.check_feature_flag():
+            return ResolveSyncAction.NOOP
+
+        action = data.get("action")
+
+        if action == GitLabIssueAction.CLOSE:
+            return ResolveSyncAction.RESOLVE
+        elif action == GitLabIssueAction.REOPEN:
+            return ResolveSyncAction.UNRESOLVE
+
         return ResolveSyncAction.NOOP
 
     def get_config_data(self):

@@ -9,6 +9,8 @@ import isEqualWith from 'lodash/isEqualWith';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {
   createDashboard,
   deleteDashboard,
@@ -986,7 +988,7 @@ class DashboardDetail extends Component<Props, State> {
           },
         }}
       >
-        <Layout.Page withPadding>
+        <Stack flex={1} padding="2xl 3xl">
           <OnDemandControlProvider location={location}>
             <MetricsResultsMetaProvider>
               <NoProjectMessage organization={organization}>
@@ -1061,7 +1063,7 @@ class DashboardDetail extends Component<Props, State> {
               </NoProjectMessage>
             </MetricsResultsMetaProvider>
           </OnDemandControlProvider>
-        </Layout.Page>
+        </Stack>
       </PageFiltersContainer>
     );
   }
@@ -1108,7 +1110,7 @@ class DashboardDetail extends Component<Props, State> {
     );
 
     const pageContent = (
-      <Layout.Page>
+      <Stack flex={1}>
         <OnDemandControlProvider location={location}>
           <MetricsResultsMetaProvider>
             <NoProjectMessage organization={organization}>
@@ -1319,7 +1321,7 @@ class DashboardDetail extends Component<Props, State> {
             </NoProjectMessage>
           </MetricsResultsMetaProvider>
         </OnDemandControlProvider>
-      </Layout.Page>
+      </Stack>
     );
 
     return (

@@ -429,6 +429,22 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
             assert len(integrations) == 0
 
 
+class OrganizationCodingAgentsPostCodingDisabledTest(BaseOrganizationCodingAgentsTest):
+    """Test that the endpoint returns 403 when code generation is disabled.
+
+    The check lives in launch_coding_agents_for_run() which raises PermissionDenied.
+    """
+
+    def test_post_blocked_when_coding_disabled(self):
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        data = {"integration_id": str(self.integration.id), "run_id": 123}
+        response = self.get_error_response(
+            self.organization.slug, method="post", status_code=403, **data
+        )
+        assert response.data["detail"] == "Code generation is disabled for this organization"
+
+
 class OrganizationCodingAgentsPostParameterValidationTest(BaseOrganizationCodingAgentsTest):
     """Test class for POST endpoint parameter validation."""
 
