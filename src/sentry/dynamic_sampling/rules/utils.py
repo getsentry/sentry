@@ -3,13 +3,13 @@ from __future__ import annotations
 from enum import Enum
 from typing import Literal, NotRequired, TypedDict, Union
 
+import orjson
 from django.conf import settings
 from redis import StrictRedis
 
+from sentry.models.dynamicsampling import CUSTOM_RULE_START
 from sentry.relay.types import RuleCondition
 from sentry.utils import redis
-
-CUSTOM_RULE_START = 3000
 
 BOOSTED_RELEASES_LIMIT = 10
 
@@ -115,6 +115,23 @@ class DecayingRule(Rule):
 
 # Type defining the all the possible rules types that can exist.
 PolymorphicRule = Union[Rule, DecayingRule]
+
+
+def get_rule_hash(rule: PolymorphicRule) -> int:
+    # We want to be explicit in what we use for computing the hash. In addition, we need to remove certain fields like
+    # the sampleRate.
+    return (
+        orjson.dumps(
+            {
+                "id": rule["id"],
+                "type": rule["type"],
+                "condition": rule["condition"],
+            },
+            option=orjson.OPT_SORT_KEYS,
+        )
+        .decode()
+        .__hash__()
+    )
 
 
 def get_user_biases(user_set_biases: list[ActivatableBias] | None) -> list[ActivatableBias]:

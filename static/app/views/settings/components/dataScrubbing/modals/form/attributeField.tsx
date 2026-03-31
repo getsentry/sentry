@@ -181,8 +181,6 @@ export function AttributeField({
         case 'Escape':
           setShowSuggestions(false);
           break;
-        default:
-          break;
       }
     },
     [showSuggestions, filteredSuggestions, activeSuggestion, handleClickSuggestion]
