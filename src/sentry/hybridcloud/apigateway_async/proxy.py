@@ -41,7 +41,7 @@ from .circuitbreaker import (
 
 logger = logging.getLogger(__name__)
 
-proxy_client = httpx.AsyncClient()
+proxy_client = httpx.AsyncClient(timeout=httpx.Timeout(5.0, read=60.0))
 circuitbreakers = CircuitBreakerManager()
 
 # Endpoints that handle uploaded files have higher timeouts configured
