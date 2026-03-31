@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+import logging
 import os
 import re
 from collections import defaultdict
@@ -30,6 +31,7 @@ from sentry.api.paginator import SequencePaginator
 from sentry.api.utils import default_start_end_dates, handle_query_errors
 from sentry.eventstream.item_helpers import format_attr_key
 from sentry.issues.grouptype import GroupCategory
+from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -56,6 +58,7 @@ from sentry.search.events.filter import _flip_field_sort
 from sentry.search.events.types import SnubaParams
 from sentry.services.eventstore.query_preprocessing import translate_environment_ids_to_names
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.snuba.referrer import Referrer
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT, TagKeyStatus, TagStorage
 from sentry.tagstore.exceptions import GroupTagKeyNotFound, TagKeyNotFound
@@ -69,6 +72,8 @@ from sentry.utils.snuba import (
     nest_groups,
     raw_snql_query,
 )
+
+logger = logging.getLogger(__name__)
 
 _max_unsampled_projects = 50
 if os.environ.get("SENTRY_SINGLE_TENANT"):
@@ -131,6 +136,12 @@ def _translate_filter_keys(
 
     forward, reverse = get_snuba_translators(filter_keys, is_grouprelease=False)
     return forward(filter_keys)
+
+
+def _reasonable_user_counts_match(control: dict[int, int], experimental: dict[int, int]) -> bool:
+    if not set(experimental.keys()).issubset(set(control.keys())):
+        return False
+    return all(experimental[group_id] <= control[group_id] for group_id in experimental)
 
 
 class _OptimizeKwargs(TypedDict, total=False):
@@ -1166,7 +1177,7 @@ class SnubaTagStorage(TagStorage):
         tenant_ids: dict[str, str | int] | None = None,
         referrer: str = "tagstore.get_groups_user_counts",
     ) -> dict[int, int]:
-        return self.__get_groups_user_counts(
+        snuba_result = self.__get_groups_user_counts(
             project_ids,
             group_ids,
             environment_ids,
@@ -1177,6 +1188,99 @@ class SnubaTagStorage(TagStorage):
             referrer,
             tenant_ids=tenant_ids,
         )
+        result = snuba_result
+
+        callsite = "SnubaTagStorage::get_groups_user_counts"
+        if EAPOccurrencesComparator.should_check_experiment(callsite):
+            eap_result = self._eap_get_groups_user_counts(
+                project_ids, group_ids, environment_ids, start, end, referrer
+            )
+            result = EAPOccurrencesComparator.check_and_choose(
+                control_data=snuba_result,
+                experimental_data=eap_result,
+                callsite=callsite,
+                is_experimental_data_a_null_result=len(eap_result) == 0,
+                reasonable_match_comparator=_reasonable_user_counts_match,
+                debug_context={
+                    "project_ids": list(project_ids),
+                    "group_ids": list(group_ids),
+                    "environment_ids": list(environment_ids) if environment_ids else None,
+                    "start": start.isoformat() if start else None,
+                    "end": end.isoformat() if end else None,
+                },
+            )
+
+        return result
+
+    def _eap_get_groups_user_counts(
+        self,
+        project_ids: Sequence[int],
+        group_ids: Sequence[int],
+        environment_ids: Sequence[int] | None,
+        start: datetime | None,
+        end: datetime | None,
+        referrer: str,
+    ) -> dict[int, int]:
+        organization_id = get_organization_id_from_project_ids(project_ids)
+
+        now = datetime.now(tz=timezone.utc)
+        resolved_start = start if start else now - timedelta(days=90)
+        resolved_end = end if end else now
+
+        try:
+            organization = Organization.objects.get_from_cache(id=organization_id)
+        except Organization.DoesNotExist:
+            return defaultdict(int)
+
+        projects = list(Project.objects.filter(id__in=project_ids))
+        if not projects:
+            return defaultdict(int)
+
+        environments = (
+            list(Environment.objects.filter(id__in=environment_ids)) if environment_ids else []
+        )
+
+        query_string = f"group_id:[{','.join(str(gid) for gid in group_ids)}]"
+
+        snuba_params = SnubaParams(
+            start=resolved_start,
+            end=resolved_end,
+            organization=organization,
+            projects=projects,
+            environments=environments,
+        )
+
+        try:
+            result = Occurrences.run_table_query(
+                params=snuba_params,
+                query_string=query_string,
+                selected_columns=["group_id", "count_unique(user)"],
+                orderby=["-count_unique(user)"],
+                offset=0,
+                limit=len(group_ids),
+                referrer=referrer,
+                config=SearchResolverConfig(),
+                occurrence_category=OccurrenceCategory.ERROR,
+            )
+
+            return defaultdict(
+                int,
+                {
+                    int(row["group_id"]): int(row["count_unique(user)"])
+                    for row in result.get("data", [])
+                    if row.get("group_id") is not None and row.get("count_unique(user)") is not None
+                },
+            )
+        except Exception:
+            logger.exception(
+                "EAP get_groups_user_counts query failed",
+                extra={
+                    "organization_id": organization_id,
+                    "project_ids": list(project_ids),
+                    "group_ids": list(group_ids),
+                },
+            )
+            return defaultdict(int)
 
     def get_generic_groups_user_counts(
         self,
