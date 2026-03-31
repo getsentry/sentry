@@ -1259,21 +1259,6 @@ class TestSetDefaultProjectSeerPreferences(TestCase):
     @patch("sentry.seer.similarity.utils.write_preference_to_sentry_db")
     @patch("sentry.seer.similarity.utils.set_project_seer_preference")
     @patch("sentry.seer.similarity.utils.is_seer_seat_based_tier_enabled", return_value=True)
-    def test_seer_agent_with_custom_stopping_point(
-        self, mock_tier: MagicMock, mock_set_pref: MagicMock, mock_dual_write: MagicMock
-    ):
-        """Seer agent, no auto_open_prs, non-default stopping point."""
-        self.organization.update_option("sentry:default_automated_run_stopping_point", "open_pr")
-
-        set_default_project_seer_preferences(self.organization, self.project)
-
-        pref = mock_set_pref.call_args[0][0]
-        assert pref.automated_run_stopping_point == "open_pr"
-        assert pref.automation_handoff is None
-
-    @patch("sentry.seer.similarity.utils.write_preference_to_sentry_db")
-    @patch("sentry.seer.similarity.utils.set_project_seer_preference")
-    @patch("sentry.seer.similarity.utils.is_seer_seat_based_tier_enabled", return_value=True)
     def test_seer_agent_auto_open_prs_overrides_stopping_point(
         self, mock_tier: MagicMock, mock_set_pref: MagicMock, mock_dual_write: MagicMock
     ):

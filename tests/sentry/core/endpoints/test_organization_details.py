@@ -1627,6 +1627,12 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                 response = self.get_success_response(self.organization.slug, **data)
                 assert response.data["defaultAutomatedRunStoppingPoint"] == choice
 
+    @with_feature("organizations:seer-overview-project-creation")
+    def test_default_automated_run_stopping_point_root_cause_with_flag(self) -> None:
+        data = {"defaultAutomatedRunStoppingPoint": "root_cause"}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert response.data["defaultAutomatedRunStoppingPoint"] == "root_cause"
+
     def test_default_automated_run_stopping_point_rejects_invalid(self) -> None:
         for invalid in ("root_cause", "solution", "invalid_point"):
             with self.subTest(value=invalid):
