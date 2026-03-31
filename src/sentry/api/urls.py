@@ -44,7 +44,6 @@ from sentry.api.endpoints.organization_trace_item_attributes import (
     OrganizationTraceItemAttributesEndpoint,
     OrganizationTraceItemAttributeValidateEndpoint,
     OrganizationTraceItemAttributeValuesEndpoint,
-    OrganizationTraceItemQueryValidatorEndpoint,
 )
 from sentry.api.endpoints.organization_trace_item_attributes_ranked import (
     OrganizationTraceItemsAttributesRankedEndpoint,
@@ -71,6 +70,9 @@ from sentry.api.endpoints.release_thresholds.release_threshold_status_index impo
 from sentry.api.endpoints.secret_scanning.github import SecretScanningGitHubEndpoint
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
+)
+from sentry.api.endpoints.trace_item_attributes import (
+    OrganizationTraceItemQueryValidatorEndpoint,
 )
 from sentry.auth_v2.urls import AUTH_V2_URLS
 from sentry.codecov.endpoints.branches.branches import RepositoryBranchesEndpoint
