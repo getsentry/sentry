@@ -242,7 +242,7 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
             )
 
     default_stopping_point, default_handoff = get_org_default_seer_automation_handoff(organization)
-    default_handoff = default_handoff.dict() if default_handoff else None
+    default_handoff_dict = default_handoff.dict() if default_handoff else None
 
     valid_stopping_points = {"open_pr", "code_changes"}
     if features.has("organizations:seer-overview", organization):
@@ -255,7 +255,7 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     projects_by_id = {p.id: p for p in projects}
     for project_id in project_ids:
         stopping_point = default_stopping_point
-        handoff = default_handoff
+        handoff = default_handoff_dict
 
         existing_pref = preferences_by_id.get(str(project_id))
         if not existing_pref:
@@ -270,7 +270,7 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
             # Skip projects that a) already have an acceptable stopping point configured
             # AND b) already have a handoff configured or no org default handoff.
             if existing_stopping_point in valid_stopping_points and (
-                existing_handoff or default_handoff is None
+                existing_handoff or default_handoff_dict is None
             ):
                 continue
 
