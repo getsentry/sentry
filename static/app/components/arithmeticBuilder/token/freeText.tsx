@@ -281,9 +281,12 @@ function InternalInput({
       type: 'REPLACE_TOKEN',
       token,
       text: inputValue.trim(),
+      focusOverride: {
+        itemKey: getNextFocusOverride(),
+      },
     });
     resetInputValue();
-  }, [dispatch, inputValue, token, resetInputValue]);
+  }, [dispatch, inputValue, token, resetInputValue, getNextFocusOverride]);
 
   const onInputEscape = useCallback(() => {
     dispatch({
