@@ -41,7 +41,7 @@ from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.release import Release
 from sentry.models.releaseenvironment import ReleaseEnvironment
@@ -1137,8 +1137,7 @@ class OrganizationTraceItemQueryValidatorEndpoint(OrganizationTraceItemAttribute
                 ),
                 params=snuba_params.filter_params,
             )
-        except InvalidSearchQuery as e:
-            # InvalidSearchQuery contains user-facing validation messages, not stack traces
+        except (InvalidSearchQuery, IncompatibleMetricsQuery) as e:
             return Response({"detail": str(e)}, status=400)
 
         # Step 2: Extract tokens
