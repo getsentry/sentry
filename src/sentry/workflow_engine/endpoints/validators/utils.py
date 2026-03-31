@@ -214,7 +214,7 @@ def connect_workflows_to_detectors(
             for dw in existing_detector_workflows:
                 if workflow_base and dw.detector_id not in connector_ids:
                     detector_workflows_to_remove.append(dw)
-                elif dw.workflow_id not in connector_ids:
+                elif not workflow_base and dw.workflow_id not in connector_ids:
                     detector_workflows_to_remove.append(dw)
 
         else:
