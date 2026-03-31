@@ -203,7 +203,7 @@ def connect_workflows_to_detectors(
                 )
 
             new_connector_ids = set(connector_ids) - {
-                dw.workflow if workflow_base else dw.detector_id
+                dw.detector_id if workflow_base else dw.workflow_id
                 for dw in existing_detector_workflows
             }
 
@@ -212,9 +212,9 @@ def connect_workflows_to_detectors(
             )
             detector_workflows_to_remove = []
             for dw in existing_detector_workflows:
-                if workflow_base and dw.workflow_id not in connector_ids:
+                if workflow_base and dw.detector_id not in connector_ids:
                     detector_workflows_to_remove.append(dw)
-                elif dw.detector_id not in connector_ids:
+                elif dw.workflow_id not in connector_ids:
                     detector_workflows_to_remove.append(dw)
 
         else:

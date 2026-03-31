@@ -69,7 +69,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
     type = serializers.CharField(help_text="The type of monitor - `metric_issue`.")
     workflow_ids = serializers.ListField(
         child=serializers.IntegerField(),
-        required=True,
+        required=False,
         help_text="The IDs of the alerts to connect this monitor to. Use the 'Fetch Alerts' endpoint to find the IDs.",
     )
     data_sources = serializers.ListField(
