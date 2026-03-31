@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Stack} from '@sentry/scraps/layout';
@@ -19,6 +18,7 @@ import {
   type EnvironmentConfig,
 } from 'sentry/views/detectors/components/forms/common/projectEnvironmentSection';
 import {useSetAutomaticName} from 'sentry/views/detectors/components/forms/common/useSetAutomaticName';
+import {useStepCounter} from 'sentry/views/detectors/components/forms/common/useStepCounter';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 import {ConnectedTestUptimeMonitorButton} from 'sentry/views/detectors/components/forms/uptime/connectedTestUptimeMonitorButton';
@@ -37,26 +37,10 @@ const ENVIRONMENT_CONFIG: EnvironmentConfig = {
   fieldProps: {required: true},
 };
 
-// hasRuntimeAssertions will change the step ordering, so we need to calculate the step numbers dynamically.
-function useUptimeStepNumbers() {
-  const {hasRuntimeAssertions} = useUptimeAssertionFeatures();
-  return useMemo(() => {
-    let s = 1;
-    return {
-      projectEnvironment: s++,
-      detect: s++,
-      verification: hasRuntimeAssertions ? s++ : undefined,
-      resolve: s++,
-      assign: s++,
-      describe: s++,
-      automate: s++,
-    };
-  }, [hasRuntimeAssertions]);
-}
-
 function UptimeDetectorForm() {
   const theme = useTheme();
-  const steps = useUptimeStepNumbers();
+  const {hasRuntimeAssertions} = useUptimeAssertionFeatures();
+  const nextStep = useStepCounter();
 
   useSetAutomaticName(form => {
     const url = form.getValue('url');
@@ -80,16 +64,13 @@ function UptimeDetectorForm() {
     <Stack gap="2xl" maxWidth={theme.breakpoints.lg}>
       <UptimeRegionWarning />
       <PreviewSection />
-      <ProjectEnvironmentSection
-        step={steps.projectEnvironment}
-        environment={ENVIRONMENT_CONFIG}
-      />
-      <UptimeDetectorFormDetectSection step={steps.detect} />
-      <UptimeDetectorVerificationSection step={steps.verification} />
-      <UptimeDetectorResolveSection step={steps.resolve} />
-      <AssignSection step={steps.assign} />
-      <DescribeSection step={steps.describe} />
-      <AutomateSection step={steps.automate} />
+      <ProjectEnvironmentSection step={nextStep()} environment={ENVIRONMENT_CONFIG} />
+      <UptimeDetectorFormDetectSection step={nextStep()} />
+      {hasRuntimeAssertions && <UptimeDetectorVerificationSection step={nextStep()} />}
+      <UptimeDetectorResolveSection step={nextStep()} />
+      <AssignSection step={nextStep()} />
+      <DescribeSection step={nextStep()} />
+      <AutomateSection step={nextStep()} />
     </Stack>
   );
 }

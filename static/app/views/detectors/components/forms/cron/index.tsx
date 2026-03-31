@@ -29,6 +29,15 @@ function useIsShowingPlatformGuide() {
   return platformKey && guideKey !== 'manual';
 }
 
+const FORM_SECTIONS = [
+  ProjectSection,
+  CronDetectorFormDetectSection,
+  CronDetectorFormResolveSection,
+  AssignSection,
+  DescribeSection,
+  AutomateSection,
+];
+
 function CronDetectorForm({detector}: {detector?: CronDetector}) {
   const dataSource = detector?.dataSources[0];
   const theme = useTheme();
@@ -44,12 +53,9 @@ function CronDetectorForm({detector}: {detector?: CronDetector}) {
         </Alert>
       )}
       <PreviewSection />
-      <ProjectSection step={1} />
-      <CronDetectorFormDetectSection step={2} />
-      <CronDetectorFormResolveSection step={3} />
-      <AssignSection step={4} />
-      <DescribeSection step={5} />
-      <AutomateSection step={6} />
+      {FORM_SECTIONS.map((FormSection, index) => (
+        <FormSection key={index} step={index + 1} />
+      ))}
     </Fragment>
   );
 
