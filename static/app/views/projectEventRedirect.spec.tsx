@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {IssueCategory} from 'sentry/types/group';
 import {ProjectEventRedirect} from 'sentry/views/projectEventRedirect';
 
 describe('ProjectEventRedirect', () => {
@@ -146,6 +147,7 @@ describe('ProjectEventRedirect', () => {
       eventID: 'abc123',
       groupID: '456',
       projectSlug: 'my-project',
+      issueCategory: IssueCategory.FEEDBACK,
       contexts: {
         feedback: {message: 'some feedback'},
       },
@@ -183,6 +185,7 @@ describe('ProjectEventRedirect', () => {
       eventID: 'abc123',
       groupID: '456',
       projectSlug: undefined,
+      issueCategory: IssueCategory.FEEDBACK,
       contexts: {
         feedback: {message: 'some feedback'},
       },
