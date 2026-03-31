@@ -10,9 +10,7 @@ from tokenizers import Tokenizer
 
 from sentry import features, options
 from sentry.constants import (
-    AUTO_OPEN_PRS_DEFAULT,
     DATA_ROOT,
-    SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
 )
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
@@ -22,13 +20,12 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
+    get_org_default_seer_automation_handoff,
     is_seer_seat_based_tier_enabled,
     set_project_seer_preference,
     write_preference_to_sentry_db,
 )
 from sentry.seer.models import (
-    AutofixHandoffPoint,
-    SeerAutomationHandoffConfiguration,
     SeerProjectPreference,
 )
 from sentry.seer.similarity.types import GroupingVersion
@@ -577,34 +574,7 @@ def set_default_project_seer_preferences(organization: Organization, project: Pr
     if not is_seer_seat_based_tier_enabled(organization):
         return
 
-    stopping_point = organization.get_option(
-        "sentry:default_automated_run_stopping_point", SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
-    )
-    if stopping_point == "root_cause" and not features.has(
-        "organizations:seer-overview", organization
-    ):
-        stopping_point = SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
-
-    auto_open_prs = organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT)
-
-    automation_handoff: SeerAutomationHandoffConfiguration | None = None
-    coding_agent = organization.get_option("sentry:seer_default_coding_agent")
-    coding_agent_integration_id = organization.get_option(
-        "sentry:seer_default_coding_agent_integration_id"
-    )
-    if coding_agent and coding_agent != "seer" and coding_agent_integration_id is not None:
-        automation_handoff = SeerAutomationHandoffConfiguration(
-            handoff_point=AutofixHandoffPoint.ROOT_CAUSE,
-            target=coding_agent,
-            integration_id=coding_agent_integration_id,
-            auto_create_pr=auto_open_prs,
-        )
-    # If Seer agent and auto open PRs, we can run up to open_pr.
-    elif auto_open_prs:
-        stopping_point = "open_pr"
-    # If Seer agent and no auto open PRs, we shouldn't go past code_changes.
-    elif stopping_point == "open_pr":
-        stopping_point = "code_changes"
+    stopping_point, automation_handoff = get_org_default_seer_automation_handoff(organization)
 
     # We need to make an API call to Seer to set this preference
     preference = SeerProjectPreference(

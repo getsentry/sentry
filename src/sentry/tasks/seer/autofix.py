@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Any
 
 import sentry_sdk
 from django.utils import timezone
@@ -10,8 +9,6 @@ from taskbroker_client.state import current_task
 from sentry import analytics, features
 from sentry.analytics.events.autofix_automation_events import AiAutofixAutomationEvent
 from sentry.constants import (
-    AUTO_OPEN_PRS_DEFAULT,
-    SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     ObjectStatus,
 )
 from sentry.models.group import Group
@@ -29,6 +26,7 @@ from sentry.seer.autofix.utils import (
     deduplicate_repositories,
     get_autofix_repos_from_project_code_mappings,
     get_autofix_state,
+    get_org_default_seer_automation_handoff,
     get_seer_seat_based_tier_cache_key,
     resolve_repository_ids,
 )
@@ -243,34 +241,8 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
                 "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
             )
 
-    default_stopping_point = organization.get_option(
-        "sentry:default_automated_run_stopping_point", SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
-    )
-    if default_stopping_point == "root_cause" and not features.has(
-        "organizations:seer-overview", organization
-    ):
-        default_stopping_point = SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
-
-    auto_open_prs = organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT)
-
-    default_handoff: dict[str, Any] | None = None
-    coding_agent = organization.get_option("sentry:seer_default_coding_agent")
-    coding_agent_integration_id = organization.get_option(
-        "sentry:seer_default_coding_agent_integration_id"
-    )
-    if coding_agent and coding_agent != "seer" and coding_agent_integration_id is not None:
-        default_handoff = {
-            "handoff_point": "root_cause",
-            "target": coding_agent,
-            "integration_id": coding_agent_integration_id,
-            "auto_create_pr": auto_open_prs,
-        }
-    # If Seer agent and auto open PRs, we can run up to open_pr.
-    elif auto_open_prs:
-        default_stopping_point = "open_pr"
-    # If Seer agent and no auto open PRs, we shouldn't go past code_changes.
-    elif default_stopping_point == "open_pr":
-        default_stopping_point = "code_changes"
+    default_stopping_point, default_handoff = get_org_default_seer_automation_handoff(organization)
+    default_handoff = default_handoff.dict() if default_handoff else None
 
     valid_stopping_points = {"open_pr", "code_changes"}
     if features.has("organizations:seer-overview", organization):
