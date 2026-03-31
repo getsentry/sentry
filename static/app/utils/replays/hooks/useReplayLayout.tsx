@@ -1,11 +1,10 @@
-import {useCallback} from 'react';
+import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import type {Theme} from '@emotion/react';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {useWindowSize} from 'sentry/utils/window/useWindowSize';
 import {
   NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
   PRIMARY_SIDEBAR_WIDTH,
@@ -68,17 +67,15 @@ export enum LayoutKey {
   SIDEBAR_LEFT = 'sidebar_left',
 }
 
-function isLayout(val: string): val is LayoutKey {
-  return val in LayoutKey;
-}
-
 function getDefaultLayout(
   collapsed: boolean,
   theme: Theme,
-  secondarySidebarWidth: number
+  secondarySidebarWidth: number,
+  {innerWidth, innerHeight} = {
+    innerWidth: window.innerWidth,
+    innerHeight: window.innerHeight,
+  }
 ): LayoutKey {
-  const {innerWidth, innerHeight} = window;
-
   const sidebarWidth = collapsed
     ? PRIMARY_SIDEBAR_WIDTH
     : PRIMARY_SIDEBAR_WIDTH + secondarySidebarWidth;
@@ -95,42 +92,32 @@ function getDefaultLayout(
   return LayoutKey.SIDEBAR_LEFT;
 }
 
-export function useReplayLayout() {
+export function useDefaultReplayLayout(): LayoutKey {
   const theme = useTheme();
   const {view} = useSecondaryNavigation();
   const [secondarySidebarWidth] = useSyncedLocalStorageState(
     NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
     SECONDARY_SIDEBAR_WIDTH
   );
-  const defaultLayout = getDefaultLayout(
-    view !== 'expanded',
-    theme,
-    secondarySidebarWidth
-  );
+  const windowSize = useWindowSize();
+  return getDefaultLayout(view !== 'expanded', theme, secondarySidebarWidth, windowSize);
+}
 
-  const organization = useOrganization();
+export function useReplayLayout() {
+  const defaultLayout = useDefaultReplayLayout();
 
-  const [layoutValue, setLayoutValue] = useQueryState(
-    'l_page',
-    parseAsStringLiteral(Object.values(LayoutKey))
+  const parser = useMemo(() => {
+    return parseAsStringLiteral(Object.values(LayoutKey))
       .withDefault(defaultLayout)
-      .withOptions({history: 'push', throttleMs: 0})
-  );
+      .withOptions({history: 'push', throttleMs: 0});
+  }, [defaultLayout]);
 
-  return {
-    getLayout: useCallback((): LayoutKey => layoutValue, [layoutValue]),
-    setLayout: useCallback(
-      (value: string) => {
-        const chosenLayout = isLayout(value) ? value : defaultLayout;
+  const [layout, setLayout] = useQueryState('l_page', parser);
 
-        setLayoutValue(chosenLayout);
-        trackAnalytics('replay.details-layout-changed', {
-          organization,
-          default_layout: defaultLayout,
-          chosen_layout: chosenLayout,
-        });
-      },
-      [organization, defaultLayout, setLayoutValue]
-    ),
-  };
+  // We need to override the layout if the window resizes, because nuqs will
+  // cache the value if we switched from video-only back to default.
+  if (layout !== defaultLayout && layout !== LayoutKey.VIDEO_ONLY) {
+    return [defaultLayout, setLayout] as const;
+  }
+  return [layout, setLayout] as const;
 }
