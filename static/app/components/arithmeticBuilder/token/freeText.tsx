@@ -18,6 +18,7 @@ import {
   isTokenLiteral,
   isTokenOperator,
   isTokenParenthesis,
+  isTokenReference,
   TokenKind,
 } from 'sentry/components/arithmeticBuilder/token';
 import {
@@ -129,7 +130,7 @@ function InternalInput({
     updateSelectionIndex();
   }, [trimmedTokenValue, updateSelectionIndex]);
 
-  const {dispatch, aggregations, getFieldDefinition} = useArithmeticBuilder();
+  const {dispatch, aggregations, getFieldDefinition, references} = useArithmeticBuilder();
 
   const getNextFocusOverride = useCallback(
     (focusToken?: FocusToken): string => {
@@ -192,10 +193,23 @@ function InternalInput({
     (evt: ChangeEvent<HTMLInputElement>) => {
       const text = evt.target.value;
 
-      const tokens = tokenizeExpression(text);
+      const tokens = tokenizeExpression(text, references);
 
       for (const tok of tokens) {
         if (isTokenParenthesis(tok) || isTokenOperator(tok)) {
+          dispatch({
+            type: 'REPLACE_TOKEN',
+            token,
+            text,
+            focusOverride: {
+              itemKey: getNextFocusOverride(),
+            },
+          });
+          resetInputValue();
+          return;
+        }
+
+        if (isTokenReference(tok)) {
           dispatch({
             type: 'REPLACE_TOKEN',
             token,
@@ -271,6 +285,7 @@ function InternalInput({
       dispatch,
       getNextFocusOverride,
       getFunctionDefault,
+      references,
       resetInputValue,
       token,
     ]
