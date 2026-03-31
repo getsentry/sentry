@@ -27,6 +27,7 @@ import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useProjects} from 'sentry/utils/useProjects';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -43,6 +44,10 @@ import {
   ZOOM_START,
 } from 'sentry/views/performance/transactionSummary/transactionOverview/latencyChart/utils';
 import {useTransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
+import {
+  platformToPerformanceType,
+  ProjectPerformanceType,
+} from 'sentry/views/performance/utils';
 
 import {
   decodeEventsDisplayFilterFromLocation,
@@ -238,12 +243,15 @@ function OpenInExploreButton({
   organization,
   transactionName,
   maxDuration,
+  eventView,
 }: {
+  eventView: EventView;
   location: Location;
   organization: Organization;
   transactionName: string;
   maxDuration?: number;
 }) {
+  const {projects} = useProjects();
   const {selection} = usePageFilters();
 
   if (!organization.features.includes('visibility-explore-view')) {
@@ -263,12 +271,20 @@ function OpenInExploreButton({
     kind: 'desc' as const,
   };
 
+  const field = ['span_id', 'span.duration', 'trace', 'timestamp'];
+  const isBackend =
+    platformToPerformanceType(projects, eventView.project) ===
+    ProjectPerformanceType.BACKEND;
+  if (isBackend) {
+    field.splice(1, 0, 'request.method');
+  }
+
   const exploreUrl = getExploreUrl({
     organization,
     selection,
     mode: Mode.SAMPLES,
     query: query.formatString(),
-    field: ['span_id', 'request.method', 'span.duration', 'trace', 'timestamp'],
+    field,
     sort: encodeSort(sort),
   });
 

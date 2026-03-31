@@ -43,6 +43,10 @@ import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParam
 import {ModuleName, type SpanProperty} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {
+  platformToPerformanceType,
+  ProjectPerformanceType,
+} from 'sentry/views/performance/utils';
 
 const LIMIT = 50;
 
@@ -54,7 +58,6 @@ const BASE_FIELDS = [
   'user.email',
   'user.username',
   'user.ip',
-  'request.method',
   'span.duration',
   'trace',
   'timestamp',
@@ -82,7 +85,7 @@ type SampledEventsColumn = GridColumnHeader<
   | typeof SPAN_OPS_BREAKDOWN_COLUMN_KEY
 >;
 
-const BASE_COLUMN_ORDER: SampledEventsColumn[] = [
+const COLUMN_ORDER: SampledEventsColumn[] = [
   {key: 'span_id', name: t('Span ID'), width: COL_WIDTH_UNDEFINED},
   {key: 'user.display', name: t('User'), width: COL_WIDTH_UNDEFINED},
   {key: 'request.method', name: t('HTTP Method'), width: COL_WIDTH_UNDEFINED},
@@ -94,19 +97,9 @@ const BASE_COLUMN_ORDER: SampledEventsColumn[] = [
   {key: 'span.duration', name: t('Total Duration'), width: COL_WIDTH_UNDEFINED},
   {key: 'trace', name: t('Trace ID'), width: COL_WIDTH_UNDEFINED},
   {key: 'timestamp', name: t('Timestamp'), width: COL_WIDTH_UNDEFINED},
+  {key: 'replayId', name: t('Replay'), width: COL_WIDTH_UNDEFINED},
+  {key: 'profile.id', name: t('Profile'), width: COL_WIDTH_UNDEFINED},
 ];
-
-const REPLAY_COLUMN: SampledEventsColumn = {
-  key: 'replayId',
-  name: t('Replay'),
-  width: COL_WIDTH_UNDEFINED,
-};
-
-const PROFILE_COLUMN: SampledEventsColumn = {
-  key: 'profile.id',
-  name: t('Profile'),
-  width: COL_WIDTH_UNDEFINED,
-};
 
 type Props = {
   eventView: EventView;
@@ -134,18 +127,27 @@ export function SampledEventsTable({
   const project = projects.find(p => p.id === String(eventView.project[0]));
   const projectSlug = project?.slug;
 
+  const isBackend =
+    platformToPerformanceType(projects, eventView.project) ===
+    ProjectPerformanceType.BACKEND;
   const showReplayColumn =
     organization.features.includes('session-replay') &&
     project !== undefined &&
     projectSupportsReplay(project);
+  const hiddenColumns = new Set<string>();
+  if (!isBackend) {
+    hiddenColumns.add('request.method');
+  }
+  if (!showReplayColumn) {
+    hiddenColumns.add('replayId');
+  }
+  const fields = [
+    ...BASE_FIELDS,
+    ...(isBackend ? ['request.method'] : []),
+    ...(showReplayColumn ? ['replayId'] : []),
+  ] as SpanProperty[];
 
-  const fields = showReplayColumn ? BASE_FIELDS.concat('replayId') : BASE_FIELDS;
-
-  const columnOrder: SampledEventsColumn[] = [
-    ...BASE_COLUMN_ORDER,
-    ...(showReplayColumn ? [REPLAY_COLUMN] : []),
-    PROFILE_COLUMN,
-  ];
+  const columnOrder = COLUMN_ORDER.filter(col => !hiddenColumns.has(col.key));
 
   const searchQuery = decodeScalar(location.query.query, '');
   const sort = decodeSorts(location.query?.[QueryParameterNames.SPANS_SORT])[0] ?? {
@@ -195,7 +197,7 @@ export function SampledEventsTable({
   } = useSpans(
     {
       search: defaultQuery,
-      fields: fields as SpanProperty[],
+      fields,
       sorts: [sort],
       limit: LIMIT,
       cursor,
