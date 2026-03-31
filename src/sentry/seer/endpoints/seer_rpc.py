@@ -707,7 +707,7 @@ def get_repo_installation_id(
     elif integration.provider == IntegrationProviderSlug.GITHUB.value:
         installation_id = integration.external_id
     else:
-        raise NotImplementedError(f"{integration.provider} is not supported.")
+        return {"error": "unsupported_provider"}
 
     if not installation_id:
         return {"error": "installation_id_not_found"}
