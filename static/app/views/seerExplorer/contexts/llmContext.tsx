@@ -159,6 +159,8 @@ export function LLMContextProvider({children}: LLMContextProviderProps) {
 
   const updateNodeData = useCallback((nodeId: string, data: unknown) => {
     nodeDataRef.current.set(nodeId, data);
+    // Bump version so consumers using it as a change token detect data updates.
+    stateRef.current = {...stateRef.current, version: stateRef.current.version + 1};
   }, []);
 
   // Memoize so that the context value reference is stable across re-renders.
@@ -213,19 +215,20 @@ export function useLLMContext(
       return;
     }
     let serialized: string | null;
+    let safeData: unknown = data;
     try {
       serialized = JSON.stringify(data);
     } catch {
-      // Non-serializable value (e.g. circular reference) — skip dedup,
-      // always write. Use null sentinel so this branch never matches
-      // prevDataRef and we don't skip future writes.
+      // Non-serializable value (e.g. circular reference) — store a
+      // placeholder so getSnapshot() remains JSON-serializable.
       serialized = null;
+      safeData = {error: 'non-serializable value'};
     }
     if (serialized === null || serialized !== prevDataRef.current) {
       if (serialized !== null) {
         prevDataRef.current = serialized;
       }
-      ctx.updateNodeData(nodeId, data);
+      ctx.updateNodeData(nodeId, safeData);
     }
   });
 
