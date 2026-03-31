@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import logging
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, TypedDict
@@ -14,7 +13,6 @@ from sentry.issues.auto_source_code_config.code_mapping import (
 )
 from sentry.lang.javascript.utils import LINES_OF_CONTEXT, get_source_context
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
-from sentry.utils.cache import cache
 from sentry.utils.event_frames import EventFrame
 
 if TYPE_CHECKING:
@@ -25,19 +23,11 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Cache file contents for 1 hour
-SOURCE_CONTEXT_CACHE_TTL = 3600
-
 
 class SourceContextResult(TypedDict):
     context: list[list[int | str]]  # [[lineNo, content], ...]
     error: str | None
     source_url: str | None
-
-
-def _make_cache_key(org_integration_id: int, repo_id: int, src_path: str, ref: str | None) -> str:
-    path_hash = hashlib.md5(f"{src_path}:{ref or ''}".encode()).hexdigest()
-    return f"scm-src-ctx:{org_integration_id}:{repo_id}:{path_hash}"
 
 
 def _format_context(
@@ -89,18 +79,13 @@ def _fetch_file_from_scm(
     repository: Repository,
     src_path: str,
     ref: str,
-    cache_key: str,
 ) -> tuple[str | None, str | None]:
     """
-    Fetch file content from SCM, using cache when available.
+    Fetch file content from SCM.
 
     Returns (file_content, error). If error is "rate_limited", the caller
     should stop iterating entirely.
     """
-    file_content: str | None = cache.get(cache_key)
-    if file_content is not None:
-        return file_content, None
-
     try:
         client = install.get_client()
     except Exception:
@@ -136,9 +121,6 @@ def _fetch_file_from_scm(
             )
             return None, "integration_error"
 
-    if file_content is not None:
-        cache.set(cache_key, file_content, SOURCE_CONTEXT_CACHE_TTL)
-
     return file_content, None
 
 
@@ -173,7 +155,7 @@ def fetch_source_context_from_scm(
 
     Iterates code mappings to resolve the frame file path to a repository path,
     then fetches the file content via the integration client and extracts the
-    surrounding lines. File content is cached for 1 hour.
+    surrounding lines.
     """
     result: SourceContextResult = {
         "context": [],
@@ -221,15 +203,8 @@ def fetch_source_context_from_scm(
 
         ref = ctx.get("commit_id") or str(config.default_branch or "")
 
-        cache_key = _make_cache_key(
-            org_integration_id,
-            config.repository_id,
-            src_path,
-            ref,
-        )
-
         file_content, fetch_error = _fetch_file_from_scm(
-            install, integration.id, config.repository, src_path, ref, cache_key
+            install, integration.id, config.repository, src_path, ref
         )
 
         if fetch_error:
