@@ -11,7 +11,7 @@ import {
   guessPlatformForProject,
 } from 'sentry/views/settings/project/preprod/types';
 
-export function MobileBuildPreviewSection({step}: {step?: number}) {
+export function MobileBuildPreviewSection({step}: {step: number}) {
   const measurement =
     usePreprodDetectorFormField(PREPROD_DETECTOR_FORM_FIELDS.measurement) ??
     'install_size';

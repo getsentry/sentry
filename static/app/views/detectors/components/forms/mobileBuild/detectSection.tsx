@@ -44,7 +44,7 @@ function getThresholdTypeOptions(): Array<[string, string, string]> {
   ]);
 }
 
-export function MobileBuildDetectSection({step}: {step?: number}) {
+export function MobileBuildDetectSection() {
   const thresholdType =
     usePreprodDetectorFormField(PREPROD_DETECTOR_FORM_FIELDS.thresholdType) ?? 'absolute';
   const projectId = usePreprodDetectorFormField(PREPROD_DETECTOR_FORM_FIELDS.projectId);
@@ -59,7 +59,7 @@ export function MobileBuildDetectSection({step}: {step?: number}) {
   return (
     <Fragment>
       <Container>
-        <Section step={step} title={t('Choose Your Measurement')}>
+        <Section step={2} title={t('Choose Your Measurement')}>
           <MetricField
             name={PREPROD_DETECTOR_FORM_FIELDS.measurement}
             choices={metricOptions}
@@ -71,10 +71,7 @@ export function MobileBuildDetectSection({step}: {step?: number}) {
       </Container>
 
       <Container>
-        <Section
-          step={step === undefined ? undefined : step + 1}
-          title={t('Issue Detection')}
-        >
+        <Section step={3} title={t('Issue Detection')}>
           <MeasurementField
             name={PREPROD_DETECTOR_FORM_FIELDS.thresholdType}
             choices={thresholdTypeOptions}

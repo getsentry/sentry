@@ -42,7 +42,7 @@ function MobileBuildDetectorForm() {
   return (
     <Stack gap="2xl" maxWidth={theme.breakpoints.lg}>
       <ProjectSection step={1} />
-      <MobileBuildDetectSection step={2} />
+      <MobileBuildDetectSection />
       <Container>
         <Section
           step={4}
