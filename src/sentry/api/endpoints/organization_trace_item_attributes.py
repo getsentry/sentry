@@ -1053,6 +1053,18 @@ def _extract_tokens(
     return search_filters, aggregate_filters
 
 
+def _format_token(
+    filter: event_search.SearchFilter | event_search.AggregateFilter,
+) -> str:
+    """Format a filter token as a query string, omitting the redundant '=' operator."""
+    token = filter.to_query_string()
+    key_name = filter.key.name
+    prefix = f"{key_name}:="
+    if token.startswith(prefix):
+        return f"{key_name}:{token[len(prefix) :]}"
+    return token
+
+
 def _extract_function_keys(aggregate_filter: event_search.AggregateFilter) -> list[str]:
     """Extract attribute keys from an aggregate function's arguments.
 
@@ -1181,7 +1193,7 @@ class OrganizationTraceItemQueryValidatorEndpoint(OrganizationTraceItemAttribute
         for sf in search_filters:
             result = key_results.get(sf.key.name, {"valid": False, "error": "Unknown attribute"})
             entry: dict[str, Any] = {
-                "token": sf.to_query_string(),
+                "token": _format_token(sf),
                 "key": sf.key.name,
                 "valid": result["valid"],
             }
@@ -1198,7 +1210,7 @@ class OrganizationTraceItemQueryValidatorEndpoint(OrganizationTraceItemAttribute
                 # No-arg function like count()
                 functions_response.append(
                     {
-                        "token": af.to_query_string(),
+                        "token": _format_token(af),
                         "key": None,
                         "valid": True,
                         "type": None,
@@ -1219,7 +1231,7 @@ class OrganizationTraceItemQueryValidatorEndpoint(OrganizationTraceItemAttribute
                         func_type = result.get("type")
 
                 entry = {
-                    "token": af.to_query_string(),
+                    "token": _format_token(af),
                     "key": func_keys[0],
                     "valid": all_valid,
                 }
