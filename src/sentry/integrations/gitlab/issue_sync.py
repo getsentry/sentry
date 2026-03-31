@@ -6,6 +6,7 @@ from typing import Any
 from urllib.parse import quote
 
 from sentry import features
+from sentry.integrations.gitlab.types import GitLabIssueAction
 from sentry.integrations.mixins.issues import IssueSyncIntegration, ResolveSyncAction
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -176,9 +177,9 @@ class GitlabIssueSyncSpec(IssueSyncIntegration):
 
         action = data.get("action")
 
-        if action == "close":
+        if action == GitLabIssueAction.CLOSE:
             return ResolveSyncAction.RESOLVE
-        elif action == "reopen":
+        elif action == GitLabIssueAction.REOPEN:
             return ResolveSyncAction.UNRESOLVE
 
         return ResolveSyncAction.NOOP
