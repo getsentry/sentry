@@ -122,7 +122,6 @@ class GithubCopilotAgentClientTest(TestCase):
         mock_response.json = {
             "id": "task-123",
             "state": "in_progress",
-            "status": "in_progress",
             "created_at": "2024-06-01T12:00:00Z",
         }
         mock_response.status_code = 200
@@ -145,7 +144,6 @@ class GithubCopilotAgentClientTest(TestCase):
         mock_response.json = {
             "id": "task-456",
             "state": "in_progress",
-            "status": "in_progress",
         }
         mock_response.status_code = 200
         mock_post.return_value = mock_response

@@ -91,7 +91,6 @@ class GithubCopilotTask(BaseModel):
     user_collaborators: list[Any] | None = None
     agent_collaborators: list[GithubCopilotAgentCollaborator] | None = None
     repository: GithubCopilotRepository | None = None
-    status: str | None = None  # deprecated, use state
     state: str | None = None  # queued, in_progress, completed, failed, timed_out
     session_count: int | None = None
     artifacts: list[GithubCopilotArtifact] | None = None
