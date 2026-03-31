@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Text} from '@sentry/scraps/text';
 
+import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import {GroupStatusChart} from 'sentry/components/charts/groupStatusChart';
 import {Count} from 'sentry/components/count';
 import {useDrawer} from 'sentry/components/globalDrawer';
@@ -21,12 +22,14 @@ interface SupergroupRowProps {
   matchedGroupIds: string[];
   supergroup: SupergroupDetail;
   aggregatedStats?: AggregatedSupergroupStats | null;
+  memberList?: IndexedMembersByProject;
 }
 
 export function SupergroupRow({
   supergroup,
   matchedGroupIds,
   aggregatedStats,
+  memberList,
 }: SupergroupRowProps) {
   const matchedCount = matchedGroupIds.length;
   const {openDrawer, isDrawerOpen} = useDrawer();
@@ -38,6 +41,7 @@ export function SupergroupRow({
         <SupergroupDetailDrawer
           supergroup={supergroup}
           matchedGroupIds={matchedGroupIds}
+          memberList={memberList}
         />
       ),
       {

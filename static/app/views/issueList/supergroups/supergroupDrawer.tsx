@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -7,7 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
+import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import {
   CrumbContainer,
   NavigationCrumbs,
@@ -30,7 +30,6 @@ import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {StyledMarkedText} from 'sentry/views/issueList/pages/supergroups';
 import {SupergroupFeedback} from 'sentry/views/issueList/supergroups/supergroupFeedback';
@@ -49,11 +48,13 @@ const DRAWER_COLUMNS: GroupListColumn[] = [
 interface SupergroupDetailDrawerProps {
   matchedGroupIds: string[];
   supergroup: SupergroupDetail;
+  memberList?: IndexedMembersByProject;
 }
 
 export function SupergroupDetailDrawer({
   supergroup,
   matchedGroupIds,
+  memberList,
 }: SupergroupDetailDrawerProps) {
   return (
     <Fragment>
@@ -126,6 +127,7 @@ export function SupergroupDetailDrawer({
             <SupergroupIssueList
               groupIds={supergroup.group_ids}
               matchedGroupIds={matchedGroupIds}
+              memberList={memberList}
             />
           </Container>
         )}
@@ -137,11 +139,12 @@ export function SupergroupDetailDrawer({
 function SupergroupIssueList({
   groupIds,
   matchedGroupIds,
+  memberList,
 }: {
   groupIds: number[];
   matchedGroupIds: string[];
+  memberList?: IndexedMembersByProject;
 }) {
-  const api = useApi();
   const organization = useOrganization();
   const [page, setPage] = useState(0);
 
@@ -176,16 +179,6 @@ function SupergroupIssueList({
     () => pageGroupIds.filter(id => !loadedGroupMap.has(String(id))),
     [pageGroupIds, loadedGroupMap]
   );
-
-  const [memberList, setMemberList] = useState<
-    ReturnType<typeof indexMembersByProject> | undefined
-  >(undefined);
-
-  useEffect(() => {
-    fetchOrgMembers(api, organization.slug).then(members => {
-      setMemberList(indexMembersByProject(members));
-    });
-  }, [api, organization.slug]);
 
   const queryKey: ApiQueryKey = useMemo(
     () => [

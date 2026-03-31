@@ -239,6 +239,7 @@ function GroupList({
             supergroup={supergroup}
             matchedGroupIds={matchingIds}
             aggregatedStats={stats}
+            memberList={memberList}
           />
         );
       })}
