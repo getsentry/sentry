@@ -325,7 +325,7 @@ def get_global_directory() -> CellDirectory:
     # For now, assume that all cell configs can be taken in through Django
     # settings. We may investigate other ways of delivering those configs in
     # production.
-    _global_directory = load_from_config(settings.SENTRY_REGION_CONFIG, settings.SENTRY_LOCALITIES)
+    _global_directory = load_from_config(settings.SENTRY_CELLS, settings.SENTRY_LOCALITIES)
     return _global_directory
 
 

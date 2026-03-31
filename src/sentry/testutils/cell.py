@@ -93,9 +93,9 @@ def get_test_env_directory() -> TestEnvCellDirectory:
 def override_cells(cells: Sequence[Cell], local_cell: Cell | None = None) -> Generator[None]:
     """Override the global set of existing cells.
 
-    The overriding value takes the place of the `SENTRY_REGION_CONFIG` setting and
+    The overriding value takes the place of the `SENTRY_CELLS` setting and
     changes the behavior of the module-level functions in `sentry.types.cell`. This
-    is preferable to overriding the `SENTRY_REGION_CONFIG` setting value directly
+    is preferable to overriding the `SENTRY_CELLS` setting value directly
     because the cell mapping may already be cached.
     """
     with get_test_env_directory().swap_state(cells, local_cell=local_cell):
