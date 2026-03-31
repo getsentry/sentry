@@ -891,3 +891,35 @@ class CodeReviewExperimentAssignmentTest(TestCase):
     def test_disabled(self) -> None:
         org = self.create_organization(slug="test-org")
         assert not is_org_enabled_for_code_review_experiments(org)
+
+
+class TestBuildRepoDefinition:
+    def _make_repo(self) -> MagicMock:
+        repo = MagicMock()
+        repo.name = "owner/seer"
+        repo.external_id = "456"
+        repo.organization_id = 1
+        repo.integration_id = 123
+        return repo
+
+    def test_provider_is_github_for_cloud_integration(self) -> None:
+        from sentry.seer.code_review.utils import _build_repo_definition
+
+        result = _build_repo_definition(
+            repo=self._make_repo(),
+            target_commit_sha="abc123",
+            event_payload={"repository": {"private": False}},
+            integration_provider="github",
+        )
+        assert result["provider"] == "github"
+
+    def test_provider_is_github_enterprise_for_ghe_integration(self) -> None:
+        from sentry.seer.code_review.utils import _build_repo_definition
+
+        result = _build_repo_definition(
+            repo=self._make_repo(),
+            target_commit_sha="abc123",
+            event_payload={"repository": {"private": False}},
+            integration_provider="github_enterprise",
+        )
+        assert result["provider"] == "github_enterprise"
