@@ -332,7 +332,6 @@ function AvatarCropper({maxDimension, minDimension, updateDataUrlState, dataUrl}
     document.addEventListener('mousemove', updateSize);
     document.addEventListener('mouseup', stopResize);
 
-    // eslint-disable-next-line consistent-return
     return () => {
       document.removeEventListener('mousemove', updateSize);
       document.removeEventListener('mouseup', stopResize);

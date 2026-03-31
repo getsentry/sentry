@@ -37,7 +37,7 @@ from sentry.utils.cache import cache
 
 
 class TestGetAutofixPrompt(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.run_id = 12345
         self.mock_response_data = {
@@ -247,7 +247,7 @@ class TestGetCodingAgentPrompt(TestCase):
 
 
 class TestAutofixStateParsing(TestCase):
-    def test_autofix_state_validate_parses_nested_structures(self):
+    def test_autofix_state_validate_parses_nested_structures(self) -> None:
         state_data = {
             "run_id": 1,
             "request": {
@@ -302,13 +302,13 @@ class TestAutofixStateParsing(TestCase):
 class TestIsIssueEligibleForSeerAutomation(TestCase):
     """Test the is_issue_eligible_for_seer_automation function."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(name="test-org")
         self.project = self.create_project(organization=self.organization)
         self.group = self.create_group(project=self.project)
 
-    def test_returns_false_for_unsupported_issue_categories(self):
+    def test_returns_false_for_unsupported_issue_categories(self) -> None:
         """Test returns False for unsupported issue categories like REPLAY and FEEDBACK."""
         from sentry.issues.grouptype import FeedbackGroup, ReplayRageClickType
 
@@ -319,7 +319,7 @@ class TestIsIssueEligibleForSeerAutomation(TestCase):
         assert is_issue_eligible_for_seer_automation(replay_group) is False
         assert is_issue_eligible_for_seer_automation(feedback_group) is False
 
-    def test_returns_true_for_supported_issue_categories(self):
+    def test_returns_true_for_supported_issue_categories(self) -> None:
         """Test returns True for supported issue categories when all conditions are met."""
         with self.feature("organizations:gen-ai-features"):
             with patch("sentry.quotas.backend.check_seer_quota") as mock_budget:
@@ -331,19 +331,19 @@ class TestIsIssueEligibleForSeerAutomation(TestCase):
 
                 assert result is True
 
-    def test_returns_false_when_gen_ai_features_not_enabled(self):
+    def test_returns_false_when_gen_ai_features_not_enabled(self) -> None:
         """Test returns False when organizations:gen-ai-features feature flag is not enabled."""
         result = is_issue_eligible_for_seer_automation(self.group)
         assert result is False
 
-    def test_returns_false_when_ai_features_hidden(self):
+    def test_returns_false_when_ai_features_hidden(self) -> None:
         """Test returns False when sentry:hide_ai_features option is enabled."""
         with self.feature("organizations:gen-ai-features"):
             self.organization.update_option("sentry:hide_ai_features", True)
             result = is_issue_eligible_for_seer_automation(self.group)
             assert result is False
 
-    def test_returns_false_when_scanner_automation_disabled_and_not_always_trigger(self):
+    def test_returns_false_when_scanner_automation_disabled_and_not_always_trigger(self) -> None:
         """Test returns False when scanner automation is disabled and issue type doesn't always trigger."""
         with self.feature("organizations:gen-ai-features"):
             self.project.update_option("sentry:seer_scanner_automation", False)
@@ -401,7 +401,7 @@ class TestIsIssueEligibleForSeerAutomation(TestCase):
 class TestIsSeerSeatBasedTierEnabled(TestCase):
     """Test the is_seer_seat_based_tier_enabled function."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(name="test-org")
 
@@ -427,7 +427,7 @@ class TestIsSeerSeatBasedTierEnabled(TestCase):
         cache_key = f"seer:seat-based-tier:{self.organization.id}"
         assert cache.get(cache_key) is True
 
-    def test_returns_false_when_no_flags_enabled(self):
+    def test_returns_false_when_no_flags_enabled(self) -> None:
         """Test returns False when neither feature flag is enabled and caches the result."""
         result = is_seer_seat_based_tier_enabled(self.organization)
         assert result is False
@@ -436,7 +436,7 @@ class TestIsSeerSeatBasedTierEnabled(TestCase):
         cache_key = f"seer:seat-based-tier:{self.organization.id}"
         assert cache.get(cache_key) is False
 
-    def test_returns_cached_value(self):
+    def test_returns_cached_value(self) -> None:
         """Test returns cached value without checking feature flags."""
         cache_key = f"seer:seat-based-tier:{self.organization.id}"
         cache.set(cache_key, True, timeout=60)
@@ -449,7 +449,7 @@ class TestIsSeerSeatBasedTierEnabled(TestCase):
 class TestHasProjectConnectedRepos(TestCase):
     """Test the has_project_connected_repos function."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
@@ -609,7 +609,7 @@ class TestHasProjectConnectedRepos(TestCase):
 class TestSetProjectSeerPreference(TestCase):
     """Test the set_project_seer_preference function."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
@@ -680,7 +680,7 @@ class TestSetProjectSeerPreference(TestCase):
 
 
 class TestResolveRepositoryIds(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
@@ -697,7 +697,7 @@ class TestResolveRepositoryIds(TestCase):
             name="test-org/test-repo-2",
         )
 
-    def test_resolves_when_input_and_stored_providers_are_bare(self):
+    def test_resolves_when_input_and_stored_providers_are_bare(self) -> None:
         preferences = [
             SeerProjectPreference(
                 organization_id=self.organization.id,
@@ -714,7 +714,7 @@ class TestResolveRepositoryIds(TestCase):
 
         assert result[0].repositories[0].repository_id == self.repo_bare_provider.id
 
-    def test_resolves_when_input_and_stored_providers_are_prefixed(self):
+    def test_resolves_when_input_and_stored_providers_are_prefixed(self) -> None:
         preferences = [
             SeerProjectPreference(
                 organization_id=self.organization.id,
@@ -734,7 +734,7 @@ class TestResolveRepositoryIds(TestCase):
 
         assert result[0].repositories[0].repository_id == self.repo_prefixed_provider.id
 
-    def test_resolves_when_input_provider_is_bare_and_stored_provider_is_prefixed(self):
+    def test_resolves_when_input_provider_is_bare_and_stored_provider_is_prefixed(self) -> None:
         preferences = [
             SeerProjectPreference(
                 organization_id=self.organization.id,
@@ -754,7 +754,7 @@ class TestResolveRepositoryIds(TestCase):
 
         assert result[0].repositories[0].repository_id == self.repo_prefixed_provider.id
 
-    def test_resolves_when_input_provider_is_prefixed_and_stored_provider_is_bare(self):
+    def test_resolves_when_input_provider_is_prefixed_and_stored_provider_is_bare(self) -> None:
         preferences = [
             SeerProjectPreference(
                 organization_id=self.organization.id,
@@ -774,7 +774,7 @@ class TestResolveRepositoryIds(TestCase):
 
         assert result[0].repositories[0].repository_id == self.repo_bare_provider.id
 
-    def test_skips_unresolvable_repos(self):
+    def test_skips_unresolvable_repos(self) -> None:
         """Repos with empty provider, empty external_id, existing repository_id, or inactive status are skipped."""
         from sentry.constants import ObjectStatus
 
@@ -821,7 +821,7 @@ class TestResolveRepositoryIds(TestCase):
 
 
 class TestDeduplicateRepositories(TestCase):
-    def test_keys_by_provider_and_external_id(self):
+    def test_keys_by_provider_and_external_id(self) -> None:
         repositories: list[dict[str, Any]] = [
             {
                 "provider": "github",
@@ -851,7 +851,7 @@ class TestDeduplicateRepositories(TestCase):
             }
         ]
 
-    def test_also_keys_by_org_id(self):
+    def test_also_keys_by_org_id(self) -> None:
         repositories: list[dict[str, Any]] = [
             {
                 "provider": "github",
@@ -888,7 +888,7 @@ class TestDeduplicateRepositories(TestCase):
             },
         ]
 
-    def test_normalizes_provider_alias_in_key(self):
+    def test_normalizes_provider_alias_in_key(self) -> None:
         repositories: list[dict[str, Any]] = [
             {
                 "provider": "github",
@@ -920,7 +920,7 @@ class TestWritePreferencesToSentryDb(TestCase):
     """Tests for _write_preferences_to_sentry_db via write_preference_to_sentry_db
     and bulk_write_preferences_to_sentry_db."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
@@ -931,7 +931,7 @@ class TestWritePreferencesToSentryDb(TestCase):
             name="test-org/test-repo",
         )
 
-    def test_writes_project_options(self):
+    def test_writes_project_options(self) -> None:
         preference = SeerProjectPreference(
             organization_id=self.organization.id,
             project_id=self.project.id,
@@ -957,7 +957,7 @@ class TestWritePreferencesToSentryDb(TestCase):
         assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
         assert SeerProjectRepository.objects.filter(project=self.project).count() == 0
 
-    def test_deletes_project_options_when_defaults(self):
+    def test_deletes_project_options_when_defaults(self) -> None:
         preference = SeerProjectPreference(
             organization_id=self.organization.id, project_id=self.project.id, repositories=[]
         )
@@ -970,7 +970,7 @@ class TestWritePreferencesToSentryDb(TestCase):
         assert self.project.get_option("sentry:seer_automation_handoff_integration_id") is None
         assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
 
-    def test_creates_seer_project_repository_with_branch_overrides(self):
+    def test_creates_seer_project_repository_with_branch_overrides(self) -> None:
         preference = SeerProjectPreference(
             organization_id=self.organization.id,
             project_id=self.project.id,
@@ -1017,7 +1017,7 @@ class TestWritePreferencesToSentryDb(TestCase):
         assert overrides[1].tag_value == "staging"
         assert overrides[1].branch_name == "staging"
 
-    def test_replaces_existing_preference_on_write(self):
+    def test_replaces_existing_preference_on_write(self) -> None:
         preference_to_replace = SeerProjectPreference(
             organization_id=self.organization.id,
             project_id=self.project.id,
@@ -1080,7 +1080,7 @@ class TestWritePreferencesToSentryDb(TestCase):
             == 0
         )
 
-    def test_multiple_repos_for_one_project(self):
+    def test_multiple_repos_for_one_project(self) -> None:
         repo2 = self.create_repo(
             project=self.project,
             provider="integrations:github",
@@ -1120,7 +1120,7 @@ class TestWritePreferencesToSentryDb(TestCase):
         assert repos[1].repository_id == repo2.id
         assert repos[1].instructions == "Deploy carefully"
 
-    def test_bulk_write_multiple_projects(self):
+    def test_bulk_write_multiple_projects(self) -> None:
         project2 = self.create_project(organization=self.organization)
         repo2 = self.create_repo(
             project=project2,
@@ -1176,7 +1176,7 @@ class TestWritePreferencesToSentryDb(TestCase):
         assert p2_repos[0].instructions == "Be careful"
         assert project2.get_option("sentry:seer_automated_run_stopping_point") == "code_changes"
 
-    def test_bulk_write_replaces_per_project(self):
+    def test_bulk_write_replaces_per_project(self) -> None:
         project2 = self.create_project(organization=self.organization)
         repo2 = self.create_repo(
             project=project2,

@@ -21,7 +21,7 @@ export default function ErrorDetectorsList() {
   return (
     <SentryDocumentTitle title={TITLE}>
       <WorkflowEngineListLayout
-        actions={<DetectorListActions detectorType="error" />}
+        actions={<DetectorListActions />}
         title={TITLE}
         description={DESCRIPTION}
         docsUrl={DOCS_URL}

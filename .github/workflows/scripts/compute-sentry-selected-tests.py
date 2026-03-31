@@ -43,6 +43,7 @@ TEST_DIRS = (
 
 FULL_SUITE_TRIGGERS: list[str | re.Pattern[str]] = [
     "src/sentry/testutils/pytest/sentry.py",
+    "src/sentry/constants.py",
     "pyproject.toml",
     "src/sentry/conf/server.py",
     "src/sentry/web/urls.py",

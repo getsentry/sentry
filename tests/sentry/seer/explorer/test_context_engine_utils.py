@@ -14,14 +14,14 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 @django_db_all
 class TestGetInstrumentationTypes(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
 
-    def test_returns_empty_for_no_flags(self):
+    def test_returns_empty_for_no_flags(self) -> None:
         assert get_instrumentation_types(self.project) == []
 
-    def test_returns_correct_flags(self):
+    def test_returns_correct_flags(self) -> None:
         self.project.flags.has_transactions = True
         self.project.flags.has_profiles = True
         self.project.flags.has_replays = True
@@ -31,7 +31,7 @@ class TestGetInstrumentationTypes(TestCase):
         result = get_instrumentation_types(self.project)
         assert result == ["transactions", "spans", "profiles", "replays", "sessions"]
 
-    def test_returns_partial_flags(self):
+    def test_returns_partial_flags(self) -> None:
         self.project.flags.has_transactions = True
         self.project.flags.has_sessions = True
         self.project.save()
@@ -42,14 +42,14 @@ class TestGetInstrumentationTypes(TestCase):
 
 @django_db_all
 class TestGetEventCountsForOrgProjects(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization()
         self.project = self.create_project(organization=self.org)
         self.end = datetime.now(UTC)
         self.start = self.end - timedelta(days=7)
 
-    def test_returns_high_volume_projects_only(self):
+    def test_returns_high_volume_projects_only(self) -> None:
         raw_data = [
             {"project_id": self.project.id, "category": 1, "total": 800},  # error
             {"project_id": self.project.id, "category": 2, "total": 500},  # transaction
@@ -65,7 +65,7 @@ class TestGetEventCountsForOrgProjects(TestCase):
         # 800 + 500 = 1300 >= HIGH_VOLUME_THRESHOLD
         assert self.project.id in result
 
-    def test_excludes_low_volume_projects(self):
+    def test_excludes_low_volume_projects(self) -> None:
         raw_data = [
             {"project_id": self.project.id, "category": 1, "total": 100},
             {"project_id": self.project.id, "category": 2, "total": 200},
@@ -81,7 +81,7 @@ class TestGetEventCountsForOrgProjects(TestCase):
         # 100 + 200 = 300 < HIGH_VOLUME_THRESHOLD
         assert self.project.id not in result
 
-    def test_returns_empty_on_query_exception(self):
+    def test_returns_empty_on_query_exception(self) -> None:
         with mock.patch(
             "sentry.seer.explorer.context_engine_utils.raw_snql_query",
             side_effect=Exception("snuba error"),
@@ -95,18 +95,18 @@ class TestGetEventCountsForOrgProjects(TestCase):
 
 @django_db_all
 class TestGetTopTransactionsForOrgProjects(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization()
         self.project = self.create_project(organization=self.org)
         self.end = datetime.now(UTC)
         self.start = self.end - timedelta(days=7)
 
-    def test_returns_empty_for_no_projects(self):
+    def test_returns_empty_for_no_projects(self) -> None:
         result = get_top_transactions_for_org_projects([], self.start, self.end)
         assert result == {}
 
-    def test_returns_transaction_names_by_project(self):
+    def test_returns_transaction_names_by_project(self) -> None:
         span_data = [
             {
                 "project.id": self.project.id,
@@ -122,7 +122,7 @@ class TestGetTopTransactionsForOrgProjects(TestCase):
 
         assert result == {self.project.id: ["GET /api/0/projects/"]}
 
-    def test_returns_empty_on_query_exception(self):
+    def test_returns_empty_on_query_exception(self) -> None:
         with mock.patch(
             "sentry.seer.explorer.context_engine_utils.Spans.run_table_query",
             side_effect=Exception("eap error"),
@@ -131,7 +131,7 @@ class TestGetTopTransactionsForOrgProjects(TestCase):
 
         assert result == {}
 
-    def test_returns_empty_dict_when_no_transactions(self):
+    def test_returns_empty_dict_when_no_transactions(self) -> None:
         with mock.patch(
             "sentry.seer.explorer.context_engine_utils.Spans.run_table_query",
             return_value={"data": []},
@@ -143,18 +143,18 @@ class TestGetTopTransactionsForOrgProjects(TestCase):
 
 @django_db_all
 class TestGetTopSpanOpsForOrgProjects(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization()
         self.project = self.create_project(organization=self.org)
         self.end = datetime.now(UTC)
         self.start = self.end - timedelta(days=7)
 
-    def test_returns_empty_for_no_projects(self):
+    def test_returns_empty_for_no_projects(self) -> None:
         result = get_top_span_ops_for_org_projects([], self.start, self.end)
         assert result == {}
 
-    def test_returns_ops_by_project(self):
+    def test_returns_ops_by_project(self) -> None:
         span_data = [
             {
                 "project.id": self.project.id,
@@ -182,7 +182,7 @@ class TestGetTopSpanOpsForOrgProjects(TestCase):
             ]
         }
 
-    def test_returns_empty_on_query_exception(self):
+    def test_returns_empty_on_query_exception(self) -> None:
         with mock.patch(
             "sentry.seer.explorer.context_engine_utils.Spans.run_table_query",
             side_effect=Exception("eap error"),
@@ -197,14 +197,14 @@ MOCK_RUN_TABLE = "sentry.seer.explorer.context_engine_utils.Spans.run_table_quer
 
 @django_db_all
 class TestGetSdkNamesForOrgProjects(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization()
         self.project = self.create_project(organization=self.org)
         self.end = datetime.now(UTC)
         self.start = self.end - timedelta(days=7)
 
-    def test_returns_empty_for_no_projects(self):
+    def test_returns_empty_for_no_projects(self) -> None:
         assert get_sdk_names_for_org_projects([], self.start, self.end) == {}
 
     @mock.patch(MOCK_RUN_TABLE, return_value={"data": []})
@@ -215,13 +215,13 @@ class TestGetSdkNamesForOrgProjects(TestCase):
     def test_returns_empty_on_query_exception(self, _mock):
         assert get_sdk_names_for_org_projects([self.project], self.start, self.end) == {}
 
-    def test_returns_sdk_name_by_project(self):
+    def test_returns_sdk_name_by_project(self) -> None:
         data = [{"project.id": self.project.id, "sdk.name": "sentry.python", "count()": 500}]
         with mock.patch(MOCK_RUN_TABLE, return_value={"data": data}):
             result = get_sdk_names_for_org_projects([self.project], self.start, self.end)
         assert result == {self.project.id: "sentry.python"}
 
-    def test_keeps_first_sdk_name_per_project(self):
+    def test_keeps_first_sdk_name_per_project(self) -> None:
         data = [
             {"project.id": self.project.id, "sdk.name": "sentry.python", "count()": 500},
             {"project.id": self.project.id, "sdk.name": "sentry.javascript", "count()": 100},
@@ -230,7 +230,7 @@ class TestGetSdkNamesForOrgProjects(TestCase):
             result = get_sdk_names_for_org_projects([self.project], self.start, self.end)
         assert result == {self.project.id: "sentry.python"}
 
-    def test_skips_empty_sdk_name(self):
+    def test_skips_empty_sdk_name(self) -> None:
         data = [{"project.id": self.project.id, "sdk.name": "", "count()": 500}]
         with mock.patch(MOCK_RUN_TABLE, return_value={"data": data}):
             assert get_sdk_names_for_org_projects([self.project], self.start, self.end) == {}

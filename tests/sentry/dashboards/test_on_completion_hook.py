@@ -94,7 +94,7 @@ INVALID_SERIALIZER_ARTIFACT = {
 
 
 class DashboardOnCompletionHookTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project
 

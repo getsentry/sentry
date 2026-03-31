@@ -24,7 +24,7 @@ def _make_cache(reconnect_age=300):
     return cache
 
 
-def test_each_thread_gets_own_client():
+def test_each_thread_gets_own_client() -> None:
     """Plain ThreadPoolExecutor workers should each get their own client."""
     cache = _make_cache()
     parent_client = cache._cache
@@ -44,7 +44,7 @@ def test_each_thread_gets_own_client():
     assert results == [False, False, False]
 
 
-def test_context_propagating_executor_isolates_clients():
+def test_context_propagating_executor_isolates_clients() -> None:
     """ContextPropagatingThreadPoolExecutor must not share the parent's
     pymemcache client across threads, even though it copies contextvars."""
     cache = _make_cache()
@@ -65,7 +65,7 @@ def test_context_propagating_executor_isolates_clients():
     assert results == [False, False, False]
 
 
-def test_same_thread_reuses_client():
+def test_same_thread_reuses_client() -> None:
     """Repeated accesses on the same thread should return the same client."""
     cache = _make_cache()
 
@@ -77,7 +77,7 @@ def test_same_thread_reuses_client():
     assert cache._class.call_count == 1
 
 
-def test_reconnects_after_age():
+def test_reconnects_after_age() -> None:
     """Client should be replaced after reconnect_age seconds."""
     cache = _make_cache(reconnect_age=10)
 
@@ -94,7 +94,7 @@ def test_reconnects_after_age():
     client1.close.assert_called_once()
 
 
-def test_workers_in_same_context_run_get_own_clients():
+def test_workers_in_same_context_run_get_own_clients() -> None:
     """Multiple workers spawned from the same context should each get
     independent clients (not share one via the copied contextvar)."""
     cache = _make_cache()

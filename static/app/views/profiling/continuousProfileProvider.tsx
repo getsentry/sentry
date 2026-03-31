@@ -66,7 +66,7 @@ export default function ProfileAndTransactionProvider(): React.ReactElement {
       setProfile={setProfile}
     >
       <ProfileTransactionContext value={profileTransaction}>
-        <LayoutPageWithHiddenFooter>
+        <LayoutPageWithHiddenFooter flex={1}>
           <ContinuousProfileHeader
             transaction={
               profileTransaction.type === 'resolved' ? profileTransaction.data : null

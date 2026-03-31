@@ -1,4 +1,4 @@
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -62,9 +62,9 @@ export default function MultiQueryMode() {
             </Grid>
           </Layout.HeaderActions>
         </Layout.Header>
-        <Layout.Page>
+        <Stack flex={1}>
           <MultiQueryModeContent />
-        </Layout.Page>
+        </Stack>
       </SentryDocumentTitle>
     </Feature>
   );

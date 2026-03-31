@@ -42,7 +42,7 @@ class SearchAgentStartSerializer(serializers.Serializer):
     strategy = serializers.CharField(
         required=False,
         default="Traces",
-        help_text="Search strategy to use (Traces, Issues, Logs, Errors).",
+        help_text="Search strategy to use (Traces, Issues, Logs, Errors, Metrics).",
     )
     options = serializers.DictField(
         required=False,

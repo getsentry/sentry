@@ -17,6 +17,7 @@ from sentry.testutils.asserts import assert_status_code
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.cell import override_cells
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import cell_silo_test
 from sentry.types.cell import Cell
 from sentry.utils import json
@@ -69,6 +70,6 @@ class EndToEndAPIProxyTest(TransactionTestCase):
                 )
 
         assert_status_code(resp, 201)
-        result = json.loads(resp.getvalue())
+        result = json.loads(close_streaming_response(resp))
         team = Team.objects.get(id=result["id"])
         assert team.idp_provisioned

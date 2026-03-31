@@ -612,13 +612,13 @@ function LogRowDetails({
 }
 
 function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowItem}) {
-  const theme = useTheme();
   const addSearchFilter = useAddSearchFilter();
   return (
     <LogDetailTableActionsButtonBar>
       <Button
-        priority="link"
+        priority="transparent"
         size="sm"
+        icon={<IconAdd />}
         onClick={() => {
           addSearchFilter({
             key: OurLogKnownFieldKey.MESSAGE,
@@ -626,12 +626,12 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
           });
         }}
       >
-        <IconAdd size="md" style={{paddingRight: theme.space.xs}} />
         {t('Add to filter')}
       </Button>
       <Button
-        priority="link"
+        priority="transparent"
         size="sm"
+        icon={<IconSubtract />}
         onClick={() => {
           addSearchFilter({
             key: OurLogKnownFieldKey.MESSAGE,
@@ -640,7 +640,6 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
           });
         }}
       >
-        <IconSubtract size="md" style={{paddingRight: theme.space.xs}} />
         {t('Exclude from filter')}
       </Button>
     </LogDetailTableActionsButtonBar>
@@ -654,7 +653,6 @@ function LogRowDetailsActions({
   fullLogDataResult: UseApiQueryResult<TraceItemDetailsResponse, RequestError>;
   tableDataRow: LogTableRowItem;
 }) {
-  const theme = useTheme();
   const {data, isPending, isError} = fullLogDataResult;
   const isFrozen = useLogsFrozenIsFrozen();
   const organization = useOrganization();
@@ -689,12 +687,12 @@ function LogRowDetailsActions({
       )}
       <LogDetailTableActionsButtonBar>
         <Button
-          priority="link"
+          priority="transparent"
           size="sm"
+          icon={<IconJson />}
           onClick={betterCopyToClipboard}
           disabled={isPending || isError || !json}
         >
-          <IconJson size="md" style={{paddingRight: theme.space.xs}} />
           {t('Copy as JSON')}
         </Button>
       </LogDetailTableActionsButtonBar>

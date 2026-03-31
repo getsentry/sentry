@@ -17,8 +17,10 @@ from django.views.decorators.csrf import csrf_exempt
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, cell_silo_endpoint
+from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.gitlab.types import GitLabIssueAction
+from sentry.integrations.mixins.issues import IssueSyncIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.source_code_management.webhook import SCMWebhook
@@ -129,6 +131,7 @@ class IssuesEventWebhook(GitlabWebhook):
     def __call__(self, event: Mapping[str, Any], **kwargs):
         if not (integration := kwargs.get("integration")):
             raise ValueError("Integration must be provided")
+        organization: RpcOrganization | None = kwargs.get("organization")
 
         external_issue_key = self._extract_issue_key(event, integration)
         if not external_issue_key:
@@ -144,9 +147,13 @@ class IssuesEventWebhook(GitlabWebhook):
         object_attributes = event.get("object_attributes", {})
         action = object_attributes.get("action")
 
-        # Handle assignment changes
-        if action in GitLabIssueAction.values():
+        # Handle assignment changes — CLOSE does not affect assignment
+        if action in GitLabIssueAction.values() and action != GitLabIssueAction.CLOSE:
             self._handle_assignment(integration, event, external_issue_key)
+
+        # Handle status changes (CLOSE and REOPEN)
+        if action in [GitLabIssueAction.CLOSE, GitLabIssueAction.REOPEN] and organization:
+            self._handle_status_change(integration, external_issue_key, action, organization.id)
 
     def _handle_assignment(
         self,
@@ -215,6 +222,40 @@ class IssuesEventWebhook(GitlabWebhook):
                 "total_assignees": len(assignees),
             },
         )
+
+    def _handle_status_change(
+        self,
+        integration: RpcIntegration,
+        external_issue_key: str,
+        action: str,
+        organization_id: int,
+    ) -> None:
+        """
+        Handle issue status changes (close/reopen).
+
+        Triggers the sync_status_inbound task to update linked Sentry issues.
+        """
+        org_integrations = integration_service.get_organization_integrations(
+            integration_id=integration.id,
+            organization_id=organization_id,
+            providers=[integration.provider],
+            status=ObjectStatus.ACTIVE,
+        )
+        for org_integration in org_integrations:
+            installation = integration.get_installation(org_integration.organization_id)
+            if isinstance(installation, IssueSyncIntegration):
+                installation.sync_status_inbound(
+                    external_issue_key,
+                    {"action": action},
+                )
+                logger.info(
+                    "gitlab.webhook.status.synced",
+                    extra={
+                        "integration_id": integration.id,
+                        "external_issue_key": external_issue_key,
+                        "action": action,
+                    },
+                )
 
     def _extract_issue_key(
         self, event: Mapping[str, Any], integration: RpcIntegration

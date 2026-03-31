@@ -9,9 +9,10 @@ import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
 import * as qs from 'query-string';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {CursorHandler} from 'sentry/components/pagination';
@@ -37,6 +38,7 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useSuperGroups} from 'sentry/utils/supergroup/useSuperGroups';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -162,6 +164,9 @@ function IssueListOverview({
   }, [groups]);
 
   useIssuesINPObserver();
+
+  const {data: supergroupLookup, isLoading: supergroupsLoading} =
+    useSuperGroups(groupIds);
 
   const onRealtimePoll = useCallback(
     (data: any, {queryCount: newQueryCount}: {queryCount: number}) => {
@@ -869,7 +874,7 @@ function IssueListOverview({
   const {numPreviousIssues, numIssuesOnPage} = getPageCounts();
 
   return (
-    <Layout.Page>
+    <Stack flex={1}>
       <IssueViewsHeader
         selectedProjectIds={selection.projects}
         title={title}
@@ -900,8 +905,9 @@ function IssueListOverview({
             displayReprocessingActions={displayReprocessingActions}
             memberList={memberList}
             selectedProjectIds={selection.projects}
-            issuesLoading={issuesLoading}
+            issuesLoading={issuesLoading || supergroupsLoading}
             statsLoading={statsLoading}
+            supergroupLookup={supergroupLookup}
             error={error}
             refetchGroups={fetchData}
             paginationCaption={
@@ -928,7 +934,7 @@ function IssueListOverview({
           />
         </StyledMain>
       </StyledBody>
-    </Layout.Page>
+    </Stack>
   );
 }
 
