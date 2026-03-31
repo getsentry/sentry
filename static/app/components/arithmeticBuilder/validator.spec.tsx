@@ -56,23 +56,60 @@ describe('vaidateTokens', () => {
     const tokens = tokenizeExpression(expression);
     expect(validateTokens(tokens)).toBe(true);
   });
+
+  it.each([
+    ['A + B', {A: '1', B: '2'}],
+    ['A + 1', {A: '1', B: '2'}],
+    ['(A + B) - 1', {A: '1', B: '2'}],
+    ['(A + B) * (A - B)', {A: '1', B: '2'}],
+    ['(A + B) * (A - B) / 100', {A: '1', B: '2'}],
+    ['((A + B) * (A - B)) / 100', {A: '1', B: '2'}],
+  ])('passes with references `%s`', (expression, references) => {
+    const tokens = tokenizeExpression(expression, references);
+    expect(validateTokens(tokens)).toBe(true);
+  });
 });
 
 describe('computeNextAllowedTokenKinds', () => {
   it.each([
-    ['', [[TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION, TokenKind.LITERAL]]],
+    [
+      '',
+      [
+        [
+          TokenKind.OPEN_PARENTHESIS,
+          TokenKind.FUNCTION,
+          TokenKind.LITERAL,
+          TokenKind.REFERENCE,
+        ],
+      ],
+    ],
     [
       '(',
       [
-        [TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION, TokenKind.LITERAL],
+        [
+          TokenKind.OPEN_PARENTHESIS,
+          TokenKind.FUNCTION,
+          TokenKind.LITERAL,
+          TokenKind.REFERENCE,
+        ],
         [],
-        [TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION, TokenKind.LITERAL],
+        [
+          TokenKind.OPEN_PARENTHESIS,
+          TokenKind.FUNCTION,
+          TokenKind.LITERAL,
+          TokenKind.REFERENCE,
+        ],
       ],
     ],
     [
       'avg(span.duration)',
       [
-        [TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION, TokenKind.LITERAL],
+        [
+          TokenKind.OPEN_PARENTHESIS,
+          TokenKind.FUNCTION,
+          TokenKind.LITERAL,
+          TokenKind.REFERENCE,
+        ],
         [],
         [TokenKind.OPERATOR],
       ],
@@ -80,9 +117,19 @@ describe('computeNextAllowedTokenKinds', () => {
     [
       '(avg(span.duration)',
       [
-        [TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION, TokenKind.LITERAL],
+        [
+          TokenKind.OPEN_PARENTHESIS,
+          TokenKind.FUNCTION,
+          TokenKind.LITERAL,
+          TokenKind.REFERENCE,
+        ],
         [],
-        [TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION, TokenKind.LITERAL],
+        [
+          TokenKind.OPEN_PARENTHESIS,
+          TokenKind.FUNCTION,
+          TokenKind.LITERAL,
+          TokenKind.REFERENCE,
+        ],
         [],
         [TokenKind.CLOSE_PARENTHESIS, TokenKind.OPERATOR],
       ],
@@ -90,17 +137,32 @@ describe('computeNextAllowedTokenKinds', () => {
     [
       'avg(span.duration) (',
       [
-        [TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION, TokenKind.LITERAL],
+        [
+          TokenKind.OPEN_PARENTHESIS,
+          TokenKind.FUNCTION,
+          TokenKind.LITERAL,
+          TokenKind.REFERENCE,
+        ],
         [],
         [TokenKind.OPERATOR],
         [],
-        [TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION, TokenKind.LITERAL],
+        [
+          TokenKind.OPEN_PARENTHESIS,
+          TokenKind.FUNCTION,
+          TokenKind.LITERAL,
+          TokenKind.REFERENCE,
+        ],
       ],
     ],
     [
       '1 1',
       [
-        [TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION, TokenKind.LITERAL],
+        [
+          TokenKind.OPEN_PARENTHESIS,
+          TokenKind.FUNCTION,
+          TokenKind.LITERAL,
+          TokenKind.REFERENCE,
+        ],
         [],
         [TokenKind.OPERATOR],
         [],
