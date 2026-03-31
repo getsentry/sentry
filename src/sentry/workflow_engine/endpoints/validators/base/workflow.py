@@ -293,7 +293,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
 
             # Update detector connections
             connect_workflows_to_detectors(
-                request, organization, instance.id, detector_ids, update=True
+                request, organization, instance.id, detector_ids, update=True, workflow_base=True
             )
 
             instance.save()
@@ -360,7 +360,9 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
             )
             # connect detectors
             detector_ids = validated_value.get("detector_ids")
-            connect_workflows_to_detectors(request, organization, workflow.id, detector_ids)
+            connect_workflows_to_detectors(
+                request, organization, workflow.id, detector_ids, workflow_base=True
+            )
 
             # TODO -- can we bulk create: actions, dcga's and the workflow dcg?
             # Create actions and action filters, then associate them to the workflow

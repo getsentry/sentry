@@ -157,39 +157,69 @@ def validate_workflows_exist(
 def connect_workflows_to_detectors(
     request: Request,
     organization: Organization,
-    workflow_id: int,
-    detector_ids: list[int] | None,
+    base_id: int,
+    connector_ids: list[int],
+    workflow_base: bool = False,
     update: bool = False,
 ) -> None:
-    if detector_ids is not None:
-        validate_detectors_exist_and_have_permissions(detector_ids, organization, request)
+    def get_detector_workflows_to_add(
+        base_id: int | None,
+        connector_ids: set[int] | None,
+        workflow_base: bool = False,
+    ) -> list[dict[Literal["detector_id", "workflow_id"], int]]:
+        detector_workflows_to_add: list[dict[Literal["detector_id", "workflow_id"], int]] = []
 
-        def get_detector_workflows_to_add(
-            workflow_id: int, detector_ids: set[int]
-        ) -> list[dict[Literal["detector_id", "workflow_id"], int]]:
-            detector_workflows_to_add: list[dict[Literal["detector_id", "workflow_id"], int]] = [
-                {"detector_id": detector_id, "workflow_id": workflow_id}
-                for detector_id in detector_ids
-            ]
-            return detector_workflows_to_add
+        if workflow_base:
+            for detector_id in connector_ids:
+                detector_workflows_to_add.append(
+                    {"detector_id": detector_id, "workflow_id": base_id}
+                )
+        else:
+            for workflow_id in connector_ids:
+                detector_workflows_to_add.append(
+                    {"detector_id": base_id, "workflow_id": workflow_id}
+                )
+
+        return detector_workflows_to_add
+
+    if connector_ids is not None:
+        if workflow_base:
+            validate_detectors_exist_and_have_permissions(connector_ids, organization, request)
+        else:
+            validate_workflows_exist(connector_ids, organization)
 
         if update:
-            existing_detector_workflows = list(
-                DetectorWorkflow.objects.filter(
-                    workflow_id=workflow_id,
+            if workflow_base:
+                existing_detector_workflows = list(
+                    DetectorWorkflow.objects.filter(
+                        workflow_id=base_id,
+                    )
                 )
-            )
-            new_detector_ids = set(detector_ids) - {
-                dw.detector_id for dw in existing_detector_workflows
+            else:
+                existing_detector_workflows = list(
+                    DetectorWorkflow.objects.filter(
+                        detector_id=base_id,
+                    )
+                )
+
+            new_connector_ids = set(connector_ids) - {
+                dw.workflow if workflow_base else dw.detector_id
+                for dw in existing_detector_workflows
             }
 
-            detector_workflows_to_add = get_detector_workflows_to_add(workflow_id, new_detector_ids)
-            detector_workflows_to_remove = [
-                dw for dw in existing_detector_workflows if dw.detector_id not in detector_ids
-            ]
+            detector_workflows_to_add = get_detector_workflows_to_add(
+                base_id, new_connector_ids, workflow_base
+            )
+            detector_workflows_to_remove = []
+            for dw in existing_detector_workflows:
+                if workflow_base and dw.workflow_id not in connector_ids:
+                    detector_workflows_to_remove.append(dw)
+                elif dw.detector_id not in connector_ids:
+                    detector_workflows_to_remove.append(dw)
+
         else:
             detector_workflows_to_add = get_detector_workflows_to_add(
-                workflow_id, set(detector_ids)
+                base_id, set(connector_ids), workflow_base
             )
             detector_workflows_to_remove = []
 
