@@ -297,7 +297,7 @@ class Parameterizer:
 
         # Combine the individual patterns into one giant regex to check against. (This is faster
         # than checking each pattern individually because it entails less overhead.)
-        self._parameterization_regex = re.compile(
+        self.combined_regex = re.compile(
             # The `(?x)` tells the regex compiler to ignore comments and unescaped whitespace, so we
             # can use newlines and indentation for better legibility when defining regexes
             rf"(?x){'|'.join(pattern_strings)}"
@@ -334,7 +334,7 @@ class Parameterizer:
         with metrics.timer(
             "grouping.parameterize", tags={"experimental": self.is_experimental}
         ) as metric_tags:
-            parameterized = self._parameterization_regex.sub(_handle_regex_match, input_str)
+            parameterized = self.combined_regex.sub(_handle_regex_match, input_str)
             metric_tags["changed"] = parameterized != input_str
 
         for regex_key, count in matches_counter.items():
