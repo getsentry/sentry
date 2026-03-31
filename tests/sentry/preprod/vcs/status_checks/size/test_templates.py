@@ -18,7 +18,7 @@ from sentry.testutils.silo import cell_silo_test
 class StatusCheckTestBase(TestCase):
     """Base test class with common setup for status check formatting tests."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.organization)
@@ -31,7 +31,7 @@ class StatusCheckTestBase(TestCase):
 class ProcessingStateFormattingTest(StatusCheckTestBase):
     """Tests for formatting artifacts in processing/loading states."""
 
-    def test_processing_state_formatting(self):
+    def test_processing_state_formatting(self) -> None:
         """Test formatting for processing (uploading/uploaded) states."""
         for state in [
             PreprodArtifact.ArtifactState.UPLOADING,
@@ -56,7 +56,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
                 assert "com.example.app" in summary
                 assert "1.0.0 (1)" in summary
 
-    def test_processed_state_without_metrics(self):
+    def test_processed_state_without_metrics(self) -> None:
         """Test that processed state without size metrics raises an error."""
         artifact = self.create_preprod_artifact(
             project=self.project,
@@ -71,7 +71,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
                 [artifact], {}, StatusCheckStatus.SUCCESS, self.project, {}, {}
             )
 
-    def test_processed_state_with_metrics_no_previous(self):
+    def test_processed_state_with_metrics_no_previous(self) -> None:
         """Test formatting for processed state with metrics but no previous build."""
         artifact = self.create_preprod_artifact(
             project=self.project,
@@ -104,7 +104,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         assert "N/A" in summary
         assert "com.example.app" in summary
 
-    def test_version_string_formatting(self):
+    def test_version_string_formatting(self) -> None:
         """Test version string formatting with different combinations."""
         test_cases = [
             ("1.0.0", None, "1.0.0"),
@@ -129,7 +129,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
 
                 assert expected in summary
 
-    def test_multiple_artifacts_all_processing(self):
+    def test_multiple_artifacts_all_processing(self) -> None:
         """Test formatting for multiple artifacts all in processing states."""
         artifacts = []
         for i, state in enumerate(
@@ -158,7 +158,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         assert "com.example.app0" in summary
         assert "com.example.app1" in summary
 
-    def test_mixed_processing_and_completed_metric_states_per_artifact(self):
+    def test_mixed_processing_and_completed_metric_states_per_artifact(self) -> None:
         """Test formatting when one metric is completed and another is processing."""
         artifact = self.create_preprod_artifact(
             project=self.project,
@@ -204,7 +204,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         assert "1.0 MB" in summary  # Main app completed
         assert "Processing..." in summary  # Watch app processing
 
-    def test_size_metrics_still_processing(self):
+    def test_size_metrics_still_processing(self) -> None:
         """Test formatting when size metrics are in processing states (PENDING/RUNNING)."""
         artifact = self.create_preprod_artifact(
             project=self.project,
@@ -249,7 +249,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
 class ErrorStateFormattingTest(StatusCheckTestBase):
     """Tests for formatting artifacts in error/failure states."""
 
-    def test_failed_state_formatting(self):
+    def test_failed_state_formatting(self) -> None:
         """Test formatting for failed state."""
         artifact = self.create_preprod_artifact(
             project=self.project,
@@ -271,7 +271,7 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
         assert "1.0.0 (1)" in summary
         assert "Error" in summary  # Column header
 
-    def test_error_message_handling(self):
+    def test_error_message_handling(self) -> None:
         """Test error message handling including None case."""
         test_cases = [
             ("Custom error message", "Custom error message"),
@@ -294,7 +294,7 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
 
                 assert expected_error in summary
 
-    def test_multiple_artifacts_mixed_states(self):
+    def test_multiple_artifacts_mixed_states(self) -> None:
         """Test formatting for mixed states (some analyzed, some processing, some failed)."""
         artifacts = []
         size_metrics_map = {}
@@ -355,7 +355,7 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
 class SuccessStateFormattingTest(StatusCheckTestBase):
     """Tests for formatting artifacts in successful/analyzed states."""
 
-    def test_multiple_artifacts_all_analyzed(self):
+    def test_multiple_artifacts_all_analyzed(self) -> None:
         """Test formatting for multiple artifacts all analyzed."""
         artifacts = []
         size_metrics_map = {}
@@ -392,7 +392,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         assert "com.example.app0" in summary
         assert "com.example.app1" in summary
 
-    def test_multiple_metric_types_per_artifact(self):
+    def test_multiple_metric_types_per_artifact(self) -> None:
         """Test formatting with multiple metric types per artifact (main app + watch)."""
         artifact = self.create_preprod_artifact(
             project=self.project,
@@ -449,7 +449,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         assert watch_row_idx is not None
         assert abs(main_row_idx - watch_row_idx) == 1  # Should be adjacent rows
 
-    def test_android_dynamic_feature_metrics(self):
+    def test_android_dynamic_feature_metrics(self) -> None:
         """Test formatting with Android dynamic features."""
         artifact = self.create_preprod_artifact(
             project=self.project,
@@ -496,7 +496,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         assert "8.4 MB" in summary  # Main app install
         assert "2.1 MB" in summary  # Dynamic feature install (note: rounds to 2.1 not 2.0)
 
-    def test_app_clip_metrics(self):
+    def test_app_clip_metrics(self) -> None:
         """Test formatting with App Clip metrics."""
         artifact = self.create_preprod_artifact(
             project=self.project,
@@ -540,7 +540,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         assert "4.2 MB" in summary
         assert "1.0 MB" in summary
 
-    def test_size_changes_with_base_artifacts(self):
+    def test_size_changes_with_base_artifacts(self) -> None:
         """Test size change calculations when base artifacts exist for comparison."""
         head_commit_comparison = CommitComparison.objects.create(
             head_repo_name="test/repo",
@@ -619,7 +619,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         assert "com.example.android" in summary
         assert "1.0.3 (42)" in summary
 
-    def test_size_changes_no_base_artifacts(self):
+    def test_size_changes_no_base_artifacts(self) -> None:
         """Test that N/A is shown when no base artifacts exist for comparison."""
         artifact = self.create_preprod_artifact(
             project=self.project,
@@ -654,7 +654,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         data_line = next(line for line in lines if "com.example.app" in line)
         assert "N/A" in data_line  # Change columns show N/A
 
-    def test_size_changes_with_different_artifact_types(self):
+    def test_size_changes_with_different_artifact_types(self) -> None:
         """Test that size changes only compare the same artifact types (Watch-to-Watch, Main-to-Main)."""
 
         head_commit_comparison = CommitComparison.objects.create(
@@ -746,7 +746,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         na_count = watch_line.count("N/A")
         assert na_count == 2  # 2 N/A for the change columns
 
-    def test_size_changes_with_watch_base_metrics(self):
+    def test_size_changes_with_watch_base_metrics(self) -> None:
         """Test that Watch-to-Watch comparison works when base Watch metrics exist."""
 
         head_commit_comparison = CommitComparison.objects.create(
@@ -844,7 +844,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         assert "+114.7 KB" in watch_line
         assert "+229.4 KB" in watch_line
 
-    def test_android_app_shows_uncompressed_label(self):
+    def test_android_app_shows_uncompressed_label(self) -> None:
         """Test that Android apps show 'Uncompressed' instead of 'Install' in column header."""
         # Test Android app
         android_artifact = self.create_preprod_artifact(
@@ -911,7 +911,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         assert "Install" in ios_summary
         assert "Uncompressed" not in ios_summary
 
-    def test_mixed_platforms_render_separate_tables(self):
+    def test_mixed_platforms_render_separate_tables(self) -> None:
         """Mixed Android/iOS artifacts should render separate tables with platform-specific labels."""
         android_artifact = self.create_preprod_artifact(
             project=self.project,
@@ -990,7 +990,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
 class BuildConfigurationComparisonTest(StatusCheckTestBase):
     """Tests for ensuring artifacts with different build configurations are not compared."""
 
-    def test_different_build_configurations_not_compared(self):
+    def test_different_build_configurations_not_compared(self) -> None:
         """Test that artifacts with different build configurations (Debug vs Release) don't get compared."""
         debug_config = PreprodBuildConfiguration.objects.create(project=self.project, name="Debug")
         release_config = PreprodBuildConfiguration.objects.create(
@@ -1103,7 +1103,7 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
         assert "+3.4 MB" not in summary  # This would indicate wrong comparison to release base
         assert "+6.6 MB" not in summary  # This would indicate wrong comparison to release base
 
-    def test_same_build_configuration_comparison_works(self):
+    def test_same_build_configuration_comparison_works(self) -> None:
         """Test that artifacts with same build configuration are properly compared."""
         release_config = PreprodBuildConfiguration.objects.create(
             project=self.project, name="Release"
@@ -1182,7 +1182,7 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
         assert "+104.9 KB" in summary  # 3.3MB - 3.1MB = 104.9KB
         assert "+209.7 KB" in summary  # 6.5MB - 6.3MB = 209.7KB
 
-    def test_no_matching_build_configuration_shows_na(self):
+    def test_no_matching_build_configuration_shows_na(self) -> None:
         """Test that when no matching build configuration exists, N/A is shown for changes."""
         debug_config = PreprodBuildConfiguration.objects.create(project=self.project, name="Debug")
         release_config = PreprodBuildConfiguration.objects.create(
@@ -1265,7 +1265,7 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
 class TriggeredRulesFormattingTest(StatusCheckTestBase):
     """Tests for formatting status checks with triggered rules."""
 
-    def test_single_triggered_rule_shows_details_section(self):
+    def test_single_triggered_rule_shows_details_section(self) -> None:
         """Test that a single triggered rule shows a details section with rule info."""
         artifact = self.create_preprod_artifact(
             project=self.project,
@@ -1339,7 +1339,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
         assert subtitle == ""
         assert summary == expected
 
-    def test_triggered_rule_includes_artifact_type_details(self):
+    def test_triggered_rule_includes_artifact_type_details(self) -> None:
         artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -1388,7 +1388,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 
         assert "— Watch App" in summary
 
-    def test_multiple_triggered_rules_url_formatting(self):
+    def test_multiple_triggered_rules_url_formatting(self) -> None:
         """Test that multiple triggered rules format the URL correctly with expanded params."""
         artifact = self.create_preprod_artifact(
             project=self.project,
@@ -1490,7 +1490,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
         assert subtitle == ""
         assert summary == expected
 
-    def test_multiple_apps_with_triggered_rules(self):
+    def test_multiple_apps_with_triggered_rules(self) -> None:
         """Test formatting when multiple apps fail with different rules."""
         artifact1 = self.create_preprod_artifact(
             project=self.project,
@@ -1609,7 +1609,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
         assert subtitle == ""
         assert summary == expected
 
-    def test_mixed_pass_fail_with_triggered_rules(self):
+    def test_mixed_pass_fail_with_triggered_rules(self) -> None:
         """Test formatting when some apps pass and some fail due to triggered rules."""
         failed_artifact = self.create_preprod_artifact(
             project=self.project,
@@ -1713,7 +1713,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
         assert subtitle == ""
         assert summary == expected
 
-    def test_single_triggered_rule_with_build_configuration(self):
+    def test_single_triggered_rule_with_build_configuration(self) -> None:
         """Test that a triggered rule with build_configuration shows config in header."""
         artifact = self.create_preprod_artifact(
             project=self.project,
@@ -1762,7 +1762,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
         assert "`com.example.app` | Release (iOS)" in summary
         assert "<summary>1 Failed Check</summary>" in summary
 
-    def test_same_app_different_configurations_grouped_separately(self):
+    def test_same_app_different_configurations_grouped_separately(self) -> None:
         """Test that same app with different build configs shows separate groups."""
         artifact1 = self.create_preprod_artifact(
             project=self.project,
@@ -1847,7 +1847,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
         assert "`com.emergetools.hackernews` | AdHoc (iOS)" in summary
         assert "<summary>2 Failed Checks</summary>" in summary
 
-    def test_triggered_rule_without_build_configuration_unchanged(self):
+    def test_triggered_rule_without_build_configuration_unchanged(self) -> None:
         """Test that None build_configuration renders header same as before."""
         artifact = self.create_preprod_artifact(
             project=self.project,

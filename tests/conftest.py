@@ -9,6 +9,9 @@ import pytest_rerunfailures
 import responses
 import sentry_sdk
 
+# Set async apigateway as soon as possible
+os.environ["SENTRY_APIGW_ASYNC"] = "true"
+
 # Disable crash recovery server in pytest-rerunfailures. Under xdist, Sentry's
 # global socket.setdefaulttimeout(5) causes the server's per-worker recv threads
 # to die during Django init (~10s), silently breaking crash recovery anyway.

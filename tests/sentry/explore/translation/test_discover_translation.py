@@ -26,7 +26,7 @@ class DiscoverToExploreTranslationTest(TestCase):
 
         return discover_saved_query
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.org = self.create_organization(owner=self.user)
@@ -58,7 +58,7 @@ class DiscoverToExploreTranslationTest(TestCase):
             query=self.existing_explore_query,
         )
 
-    def test_translate_simple_discover_to_explore_query(self):
+    def test_translate_simple_discover_to_explore_query(self) -> None:
         self.simple_query = {
             "query": "event.type:transaction",
             "range": "14d",
@@ -93,7 +93,7 @@ class DiscoverToExploreTranslationTest(TestCase):
         assert query["aggregateOrderby"] is None
         assert query["orderby"] == "-timestamp"
 
-    def test_translate_multiple_axis_discover_to_explore_query(self):
+    def test_translate_multiple_axis_discover_to_explore_query(self) -> None:
         self.multiple_axis_query = {
             "query": "",
             "range": "14d",
@@ -123,7 +123,7 @@ class DiscoverToExploreTranslationTest(TestCase):
         assert query["aggregateOrderby"] is None
         assert query["orderby"] == "-timestamp"
 
-    def test_translate_function_orderby_discover_to_explore_query(self):
+    def test_translate_function_orderby_discover_to_explore_query(self) -> None:
         self.function_orderby_query = {
             "query": "",
             "range": "14d",
@@ -154,7 +154,7 @@ class DiscoverToExploreTranslationTest(TestCase):
         assert query["aggregateOrderby"] == "-p50(span.duration)"
         assert query["orderby"] is None
 
-    def test_translate_filter_swap_discover_to_explore_query(self):
+    def test_translate_filter_swap_discover_to_explore_query(self) -> None:
         self.filter_swap_query = {
             "query": "geo.country_code:CA AND geo.city:Toronto",
             "range": "14d",
@@ -184,7 +184,9 @@ class DiscoverToExploreTranslationTest(TestCase):
         assert query["aggregateOrderby"] is None
         assert query["orderby"] == "-timestamp"
 
-    def test_translate_drop_swap_function_field_orderby_filter_discover_to_explore_query(self):
+    def test_translate_drop_swap_function_field_orderby_filter_discover_to_explore_query(
+        self,
+    ) -> None:
         self.drop_swap_function_field_orderby_filter_query = {
             "query": "platform.name:python AND count_miserable(users):>100",
             "range": "14d",
@@ -241,7 +243,7 @@ class DiscoverToExploreTranslationTest(TestCase):
         assert query["aggregateOrderby"] is None
         assert query["orderby"] is None
 
-    def test_translate_non_default_display_discover_to_explore_query(self):
+    def test_translate_non_default_display_discover_to_explore_query(self) -> None:
         self.non_default_display_query = {
             "query": "",
             "range": "14d",
@@ -271,7 +273,7 @@ class DiscoverToExploreTranslationTest(TestCase):
         assert query["aggregateOrderby"] is None
         assert query["orderby"] == "-timestamp"
 
-    def test_translate_start_end_time_discover_to_explore_query(self):
+    def test_translate_start_end_time_discover_to_explore_query(self) -> None:
         self.start_end_time_query = {
             "query": "",
             "start": "2025-01-01",
@@ -294,7 +296,7 @@ class DiscoverToExploreTranslationTest(TestCase):
         assert new_explore_query.query["end"] == "2025-01-20"
         assert new_explore_query.query["environment"] == [self.env.name]
 
-    def test_translate_equation_indexed_orderby_discover_to_explore_query(self):
+    def test_translate_equation_indexed_orderby_discover_to_explore_query(self) -> None:
         self.equation_indexed_orderby_query = {
             "query": "",
             "range": "14d",
@@ -317,7 +319,7 @@ class DiscoverToExploreTranslationTest(TestCase):
         assert query["aggregateOrderby"] == "-equation|count(span.duration) + 5"
         assert query["orderby"] is None
 
-    def test_translate_discover_query_to_explore_query_with_existing_explore_query(self):
+    def test_translate_discover_query_to_explore_query_with_existing_explore_query(self) -> None:
         self.existing_explore_discover_query = {
             "query": "event.type:transaction",
             "range": "14d",
@@ -348,7 +350,7 @@ class DiscoverToExploreTranslationTest(TestCase):
         assert query["aggregateOrderby"] is None
         assert query["orderby"] == "-timestamp"
 
-    def test_translate_dicover_query_with_count_web_vitals_orderby(self):
+    def test_translate_dicover_query_with_count_web_vitals_orderby(self) -> None:
         self.count_web_vitals_query = {
             "query": "",
             "range": "14d",

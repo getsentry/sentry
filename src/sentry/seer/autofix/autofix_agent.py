@@ -5,7 +5,6 @@ from collections.abc import Callable
 from enum import StrEnum
 from typing import TYPE_CHECKING, Literal
 
-from django.utils import timezone
 from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
 
@@ -249,8 +248,6 @@ def trigger_autofix_explorer(
             artifact_key=artifact_key,
             artifact_schema=artifact_schema,
         )
-
-    group.update(seer_explorer_autofix_last_triggered=timezone.now())
 
     payload = {
         "run_id": run_id,
@@ -516,6 +513,7 @@ def trigger_push_changes(
     run_id: int,
     referrer: AutofixReferrer,
     state: SeerRunState | None = None,
+    repo_name: str | None = None,
 ):
     if not group.organization.get_option(
         "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
@@ -534,7 +532,14 @@ def trigger_push_changes(
     if group_id != group.id:
         raise SeerPermissionError("Unknown run id for group")
 
-    client.push_changes(run_id, blocking=False)
+    client.push_changes(
+        run_id,
+        repo_name=repo_name,
+        pr_description_suffix=(
+            f"Fixes {group.qualified_short_id}" if group.qualified_short_id else None
+        ),
+        blocking=False,
+    )
 
     metrics.incr(
         "autofix.explorer.trigger",
