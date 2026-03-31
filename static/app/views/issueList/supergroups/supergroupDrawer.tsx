@@ -29,7 +29,7 @@ import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {StyledMarkedText} from 'sentry/views/issueList/pages/supergroups';
 import {SupergroupFeedback} from 'sentry/views/issueList/supergroups/supergroupFeedback';
@@ -148,40 +148,36 @@ function SupergroupIssueList({
   const organization = useOrganization();
   const [page, setPage] = useState(0);
 
-  const matchedSet = useMemo(() => new Set(matchedGroupIds), [matchedGroupIds]);
-
-  // Place groups already in GroupStore first so the user sees them immediately
-  const {sortedGroupIds, loadedGroupMap} = useMemo(() => {
+  // Sort: matched first, then other loaded groups, then unloaded
+  const {sortedGroupIds, loadedIds} = useMemo(() => {
+    const matched: number[] = [];
     const loaded: number[] = [];
-    const map = new Map<string, Group>();
+    const cachedIds = new Set<string>();
     const unloaded: number[] = [];
 
     for (const id of groupIds) {
-      const group = GroupStore.get(String(id)) as Group | undefined;
-      if (group) {
-        loaded.push(id);
-        map.set(group.id, group);
+      const strId = String(id);
+      if (GroupStore.get(strId)) {
+        cachedIds.add(strId);
+        if (matchedGroupIds.includes(strId)) {
+          matched.push(id);
+        } else {
+          loaded.push(id);
+        }
       } else {
         unloaded.push(id);
       }
     }
 
-    return {sortedGroupIds: [...loaded, ...unloaded], loadedGroupMap: map};
-  }, [groupIds]);
+    return {sortedGroupIds: [...matched, ...loaded, ...unloaded], loadedIds: cachedIds};
+  }, [groupIds, matchedGroupIds]);
 
   const totalPages = Math.ceil(sortedGroupIds.length / PAGE_SIZE);
-  const pageGroupIds = useMemo(
-    () => sortedGroupIds.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
-    [sortedGroupIds, page]
-  );
+  const pageGroupIds = sortedGroupIds.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const pageUnloadedIds = pageGroupIds.filter(id => !loadedIds.has(String(id)));
 
-  const pageUnloadedIds = useMemo(
-    () => pageGroupIds.filter(id => !loadedGroupMap.has(String(id))),
-    [pageGroupIds, loadedGroupMap]
-  );
-
-  const queryKey: ApiQueryKey = useMemo(
-    () => [
+  const {data: fetchedGroups, isPending} = useApiQuery<Group[]>(
+    [
       getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
@@ -192,21 +188,11 @@ function SupergroupIssueList({
         },
       },
     ],
-    [organization.slug, pageUnloadedIds]
-  );
-
-  const {data: fetchedGroups, isPending} = useApiQuery<Group[]>(queryKey, {
-    staleTime: 30_000,
-    enabled: pageUnloadedIds.length > 0,
-  });
-
-  const groupMap = useMemo(() => {
-    const map = new Map(loadedGroupMap);
-    for (const group of fetchedGroups ?? []) {
-      map.set(group.id, group);
+    {
+      staleTime: 30_000,
+      enabled: pageUnloadedIds.length > 0,
     }
-    return map;
-  }, [loadedGroupMap, fetchedGroups]);
+  );
 
   return (
     <Fragment>
@@ -214,7 +200,7 @@ function SupergroupIssueList({
         <Flex align="center" gap="xs" padding="0 0 md 0">
           <MatchedIndicator />
           <Text size="sm" variant="muted">
-            {t('Matched your search filters')}
+            {t('Visible in current results')}
           </Text>
         </Flex>
       )}
@@ -223,14 +209,19 @@ function SupergroupIssueList({
         <PanelBody>
           {pageGroupIds.map(id => {
             const strId = String(id);
-            const group = groupMap.get(strId);
+            const group =
+              (GroupStore.get(strId) as Group | undefined) ??
+              fetchedGroups?.find(g => g.id === strId);
 
             if (group) {
               const members = memberList?.[group.project?.slug]
                 ? memberList[group.project.slug]
                 : undefined;
               return (
-                <HighlightableRow key={group.id} highlighted={matchedSet.has(group.id)}>
+                <HighlightableRow
+                  key={group.id}
+                  highlighted={matchedGroupIds.includes(group.id)}
+                >
                   <StreamGroup
                     group={group}
                     canSelect={false}
