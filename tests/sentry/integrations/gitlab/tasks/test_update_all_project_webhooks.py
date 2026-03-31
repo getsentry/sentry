@@ -17,7 +17,7 @@ from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 class UpdateAllProjectWebhooksTest(GitLabTestCase):
     """Tests for the main orchestration task that spawns individual webhook update tasks"""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         # Create repositories with webhook config
         with assume_test_silo_mode(SiloMode.CELL):
@@ -213,7 +213,7 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
 class UpdateProjectWebhookTest(GitLabTestCase):
     """Tests for the individual webhook update task"""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         with assume_test_silo_mode(SiloMode.CELL):
             self.repo = self.create_gitlab_repo(

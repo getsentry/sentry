@@ -223,7 +223,7 @@ class RelocationTaskTestCase(TestCase):
 @patch("sentry.backup.crypto.KeyManagementServiceClient")
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.uploading_complete.apply_async")
-@cell_silo_test(regions=SAAS_TO_SAAS_TEST_REGIONS)
+@cell_silo_test(cells=SAAS_TO_SAAS_TEST_REGIONS)
 class UploadingStartTest(RelocationTaskTestCase):
     def setUp(self) -> None:
         self.owner = self.create_user(

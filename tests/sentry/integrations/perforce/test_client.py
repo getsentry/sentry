@@ -11,7 +11,7 @@ from sentry.testutils.cases import TestCase
 
 
 class PerforceClientTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             organization=self.organization,
@@ -561,7 +561,7 @@ class PerforceClientTest(TestCase):
         # Should return None when no depotFile in result
         assert result is None
 
-    def test_build_depot_path_relative(self):
+    def test_build_depot_path_relative(self) -> None:
         """Test build_depot_path with relative path"""
         # Test with simple relative path
         path = self.p4_client.build_depot_path(self.repo, "app/services/processor.py")
@@ -571,19 +571,19 @@ class PerforceClientTest(TestCase):
         path = self.p4_client.build_depot_path(self.repo, "depot/app/services/processor.py")
         assert path == "//depot/app/services/processor.py"
 
-    def test_build_depot_path_absolute(self):
+    def test_build_depot_path_absolute(self) -> None:
         """Test build_depot_path with absolute path"""
         path = self.p4_client.build_depot_path(self.repo, "//depot/app/services/processor.py")
         assert path == "//depot/app/services/processor.py"
 
-    def test_build_depot_path_with_stream(self):
+    def test_build_depot_path_with_stream(self) -> None:
         """Test build_depot_path with stream parameter"""
         path = self.p4_client.build_depot_path(
             self.repo, "app/services/processor.py", stream="main"
         )
         assert path == "//depot/main/app/services/processor.py"
 
-    def test_build_depot_path_with_revision(self):
+    def test_build_depot_path_with_revision(self) -> None:
         """Test build_depot_path preserves #revision syntax"""
         # Test with relative path
         path = self.p4_client.build_depot_path(self.repo, "app/services/processor.py#42")
@@ -597,7 +597,7 @@ class PerforceClientTest(TestCase):
         path = self.p4_client.build_depot_path(self.repo, "app/main.cpp#5", stream="dev")
         assert path == "//depot/dev/app/main.cpp#5"
 
-    def test_build_depot_path_nested_depot(self):
+    def test_build_depot_path_nested_depot(self) -> None:
         """Test build_depot_path with nested depot paths"""
         nested_repo = Repository.objects.create(
             organization_id=self.organization.id,
@@ -686,7 +686,7 @@ class PerforceClientTest(TestCase):
 
         mock_p4.set_env.assert_not_called()
 
-    def test_p4config_isolates_p4trust_per_instance(self):
+    def test_p4config_isolates_p4trust_per_instance(self) -> None:
         """Verify P4CONFIG + p4.cwd gives each P4 instance its own P4TRUST."""
         import shutil
         import tempfile
@@ -714,6 +714,6 @@ class PerforceClientTest(TestCase):
             shutil.rmtree(dir_a)
             shutil.rmtree(dir_b)
 
-    def test_module_level_p4config_is_set(self):
+    def test_module_level_p4config_is_set(self) -> None:
         """Verify that importing the client module sets P4CONFIG."""
         assert os.environ.get("P4CONFIG") == ".p4config"
