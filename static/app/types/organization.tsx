@@ -99,6 +99,7 @@ export interface Organization extends OrganizationSummary {
   teamRoleList: TeamRole[];
   trustedRelays: Relay[];
   consoleSdkInviteQuota?: number;
+  dashboardsAsyncQueueParallelLimit?: number;
   defaultAutofixAutomationTuning?:
     | 'off'
     | 'super_low'
