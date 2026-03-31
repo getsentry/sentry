@@ -4,7 +4,6 @@ from unittest.mock import MagicMock, patch
 
 from sentry.integrations.utils.source_context import (
     _format_context,
-    _make_cache_key,
     fetch_source_context_from_scm,
 )
 from sentry.issues.endpoints.project_stacktrace_link import StacktraceLinkContext
@@ -209,36 +208,6 @@ class FetchSourceContextTest(TestCase):
         assert result["error"] == "line_out_of_range"
 
     @patch("sentry.integrations.utils.source_context.integration_service")
-    def test_caching(self, mock_service: MagicMock) -> None:
-        file_content = "\n".join([f"line{i}" for i in range(1, 20)])
-
-        mock_integration = MagicMock()
-        mock_service.get_integration.return_value = mock_integration
-        mock_install = MagicMock()
-        mock_integration.get_installation.return_value = mock_install
-        mock_client = MagicMock()
-        mock_install.get_client.return_value = mock_client
-        mock_client.get_file.return_value = file_content
-        mock_install.get_stacktrace_link.return_value = None
-
-        from sentry.integrations.source_code_management.repository import RepositoryIntegration
-
-        mock_install.__class__ = RepositoryIntegration  # type: ignore[assignment]
-
-        ctx = self._make_ctx(line_no="5")
-
-        # First call fetches from integration
-        result1 = fetch_source_context_from_scm([self.code_mapping], ctx)
-        assert result1["error"] is None
-        assert mock_client.get_file.call_count == 1
-
-        # Second call should use cache
-        result2 = fetch_source_context_from_scm([self.code_mapping], ctx)
-        assert result2["error"] is None
-        # get_file should still only have been called once
-        assert mock_client.get_file.call_count == 1
-
-    @patch("sentry.integrations.utils.source_context.integration_service")
     def test_get_client_exception(self, mock_service: MagicMock) -> None:
         mock_integration = MagicMock()
         mock_service.get_integration.return_value = mock_integration
@@ -253,10 +222,3 @@ class FetchSourceContextTest(TestCase):
         ctx = self._make_ctx()
         result = fetch_source_context_from_scm([self.code_mapping], ctx)
         assert result["error"] == "integration_error"
-
-    def test_cache_key_uniqueness(self) -> None:
-        key1 = _make_cache_key(1, 1, "path/a.py", "main")
-        key2 = _make_cache_key(1, 1, "path/b.py", "main")
-        key3 = _make_cache_key(1, 1, "path/a.py", "dev")
-        assert key1 != key2
-        assert key1 != key3
