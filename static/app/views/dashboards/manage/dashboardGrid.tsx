@@ -1,6 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {Button} from '@sentry/scraps/button';
@@ -36,7 +35,6 @@ type Props = {
   api: Client;
   columnCount: number;
   dashboards: DashboardListItem[] | undefined;
-  location: Location;
   onDashboardsChange: () => void;
   organization: Organization;
   rowCount: number;
@@ -46,7 +44,6 @@ type Props = {
 function DashboardGrid({
   api,
   organization,
-  location,
   dashboards,
   onDashboardsChange,
   rowCount,
@@ -167,13 +164,6 @@ function DashboardGrid({
     return <GridPreview widgetPreview={dashboard.widgetPreview} />;
   }
 
-  // TODO(__SENTRY_USING_REACT_ROUTER_SIX): We can remove this later, react
-  // router 6 handles empty query objects without appending a trailing ?
-  const {query: _searchQuery, ...queryWithoutSearch} = location.query;
-  const queryLocation = {
-    ...(Object.keys(queryWithoutSearch).length > 0 ? {query: queryWithoutSearch} : {}),
-  };
-
   function renderMiniDashboards() {
     // on pagination, render no dashboards to show placeholders while loading
     if (
@@ -189,10 +179,7 @@ function DashboardGrid({
           {dashboardLimitData => (
             <DashboardCard
               title={dashboard.title}
-              to={{
-                pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
-                ...queryLocation,
-              }}
+              to={`/organizations/${organization.slug}/dashboard/${dashboard.id}/`}
               detail={tn('%s widget', '%s widgets', dashboard.widgetPreview.length)}
               dateStatus={
                 dashboard.dateCreated ? (

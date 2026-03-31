@@ -663,6 +663,61 @@ def validate_repo(
     return {"valid": True, "integration_id": repo.integration_id}
 
 
+def get_repo_installation_id(
+    *,
+    organization_id: int,
+    provider: str,
+    external_id: str,
+    owner: str,
+    name: str,
+) -> dict[str, Any]:
+    """
+    Look up a repository and return the external_id of its associated integration (the installation ID).
+
+    Args:
+        organization_id: The Sentry organization ID
+        provider: The SCM provider (e.g., "github", "github_enterprise")
+        external_id: The repository's external ID in the provider's system
+        owner: The repository owner (e.g., "getsentry")
+        name: The repository name (e.g., "sentry")
+
+    Returns:
+        {"installation_id": <str>} if found
+        {"error": <str>} if not found or unsupported
+    """
+    repo = filter_repo_by_provider(organization_id, provider, external_id, owner, name).first()
+
+    if not repo:
+        return {"error": "repository_not_found"}
+
+    if repo.provider not in SEER_SUPPORTED_SCM_PROVIDERS:
+        return {"error": "unsupported_provider"}
+
+    if repo.integration_id is None:
+        return {"error": "no_integration"}
+
+    integration = integration_service.get_integration(integration_id=repo.integration_id)
+    if integration is None:
+        return {"error": "integration_not_found"}
+
+    # GitHub stores the installation ID as the integration's external_id,
+    # while GitHub Enterprise stores it in metadata["installation_id"].
+    if integration.provider == IntegrationProviderSlug.GITHUB_ENTERPRISE.value:
+        installation_id = integration.metadata.get("installation_id")
+    elif integration.provider == IntegrationProviderSlug.GITHUB.value:
+        installation_id = integration.external_id
+    else:
+        return {"error": "unsupported_provider"}
+
+    if not installation_id:
+        return {"error": "installation_id_not_found"}
+
+    return {
+        "installation_id": installation_id,
+        "permissions": integration.metadata.get("permissions"),
+    }
+
+
 def check_repository_integrations_status(*, repository_integrations: list[dict[str, Any]]) -> dict:
     """
     Check whether repository integrations exist and are active.
@@ -760,6 +815,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_organization_project_ids": get_organization_project_ids,
     "check_repository_integrations_status": check_repository_integrations_status,
     "validate_repo": validate_repo,
+    "get_repo_installation_id": get_repo_installation_id,
     #
     # Autofix
     "get_organization_slug": get_organization_slug,
