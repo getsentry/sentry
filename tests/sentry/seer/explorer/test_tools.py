@@ -74,7 +74,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         "trace",
     ]
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.ten_mins_ago = before_now(minutes=10)
         self.two_mins_ago = before_now(minutes=2)
@@ -118,7 +118,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
 
         self.store_spans(spans)
 
-    def test_spans_timeseries_count_metric(self):
+    def test_spans_timeseries_count_metric(self) -> None:
         """Test timeseries query with count() metric using real data"""
         result = execute_timeseries_query(
             org_id=self.organization.id,
@@ -140,7 +140,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         total_count = sum(point[1][0]["count"] for point in data_points if point[1])
         assert total_count == 4
 
-    def test_spans_timeseries_count_metric_start_end_filter(self):
+    def test_spans_timeseries_count_metric_start_end_filter(self) -> None:
         """Test timeseries query with count() metric using real data, filtered by start and end"""
         # Since this is a small range, we need to specify the interval. The event endpoint's
         # get_rollup fx doesn't go below 15m when calculating from date range.
@@ -166,7 +166,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         total_count = sum(point[1][0]["count"] for point in data_points if point[1])
         assert total_count == 3  # Should exclude the span created at 1 minute ago
 
-    def test_spans_timeseries_multiple_metrics(self):
+    def test_spans_timeseries_multiple_metrics(self) -> None:
         """Test timeseries query with multiple metrics"""
         result = execute_timeseries_query(
             org_id=self.organization.id,
@@ -198,7 +198,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         ]
         assert len(duration_values) > 0
 
-    def test_spans_table_basic_query(self):
+    def test_spans_table_basic_query(self) -> None:
         """Test table query returns actual span data"""
         result = execute_table_query(
             org_id=self.organization.id,
@@ -226,7 +226,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         cache_rows = [row for row in rows if row.get("span.op") == "cache.get"]
         assert len(cache_rows) == 1  # One cache span
 
-    def test_spans_table_query_start_end_filter(self):
+    def test_spans_table_query_start_end_filter(self) -> None:
         result = execute_table_query(
             org_id=self.organization.id,
             dataset="spans",
@@ -251,7 +251,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         http_rows = [row for row in rows if row.get("span.op") == "http.client"]
         assert len(http_rows) == 1  # One HTTP span
 
-    def test_spans_table_specific_operation(self):
+    def test_spans_table_specific_operation(self) -> None:
         """Test table query filtering by specific operation"""
         result = execute_table_query(
             org_id=self.organization.id,
@@ -274,7 +274,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         descriptions = [row.get("span.description", "") for row in http_rows]
         assert any("api.external.com" in desc for desc in descriptions)
 
-    def test_spans_timeseries_empty_results(self):
+    def test_spans_timeseries_empty_results(self) -> None:
         """Test timeseries query with query that returns no results"""
         result = execute_timeseries_query(
             org_id=self.organization.id,
@@ -294,7 +294,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
             total_count = sum(point[1][0]["count"] for point in data_points if point[1])
             assert total_count == 0
 
-    def test_spans_table_empty_results(self):
+    def test_spans_table_empty_results(self) -> None:
         """Test table query with query that returns no results"""
         result = execute_table_query(
             org_id=self.organization.id,
@@ -310,7 +310,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         assert "data" in result
         assert len(result["data"]) == 0
 
-    def test_spans_timeseries_duration_filtering(self):
+    def test_spans_timeseries_duration_filtering(self) -> None:
         """Test timeseries query with duration filter"""
         result = execute_timeseries_query(
             org_id=self.organization.id,
@@ -330,7 +330,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         total_count = sum(point[1][0]["count"] for point in data_points if point[1])
         assert total_count == 3
 
-    def test_spans_table_duration_stats(self):
+    def test_spans_table_duration_stats(self) -> None:
         """Test table query with duration statistics"""
         result = execute_table_query(
             org_id=self.organization.id,
@@ -356,7 +356,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
             # Allow for some tolerance in duration matching
             assert any(abs(d - expected) < 10 for d in durations)
 
-    def test_spans_table_appends_sort(self):
+    def test_spans_table_appends_sort(self) -> None:
         """Test sort is automatically appended to selected fields if not provided."""
         for sort in ["timestamp", "-timestamp"]:
             result = execute_table_query(
@@ -373,7 +373,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
             assert "id" in rows[0]
             assert "timestamp" in rows[0]
 
-    def test_spans_query_nonexistent_organization(self):
+    def test_spans_query_nonexistent_organization(self) -> None:
         """Test queries handle nonexistent organization gracefully"""
         timeseries_result = execute_timeseries_query(
             org_id=99999,
@@ -452,7 +452,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
 
         assert exc_info.value.status_code == 500
 
-    def test_spans_timeseries_with_groupby(self):
+    def test_spans_timeseries_with_groupby(self) -> None:
         """Test timeseries query with group_by parameter for aggregates"""
         result = execute_timeseries_query(
             org_id=self.organization.id,
@@ -483,7 +483,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
             data_points = metrics["count()"]["data"]
             assert isinstance(data_points, list)
 
-    def test_spans_table_aggregates_groupby(self):
+    def test_spans_table_aggregates_groupby(self) -> None:
         """Test table query with group_by for aggregates mode"""
         result = execute_table_query(
             org_id=self.organization.id,
@@ -507,7 +507,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
             assert "span.op" in row
             assert "count()" in row
 
-    def test_spans_table_aggregates_basic(self):
+    def test_spans_table_aggregates_basic(self) -> None:
         """Test table query in aggregates mode without group_by"""
         result = execute_table_query(
             org_id=self.organization.id,
@@ -531,7 +531,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
             assert "count()" in row
             assert "avg(span.duration)" in row
 
-    def test_spans_table_aggregates_multiple_functions(self):
+    def test_spans_table_aggregates_multiple_functions(self) -> None:
         """Test table query in aggregates mode with multiple aggregate functions"""
         result = execute_table_query(
             org_id=self.organization.id,
@@ -556,7 +556,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
             assert "sum(span.duration)" in row
             assert "avg(span.duration)" in row
 
-    def test_get_organization_project_ids(self):
+    def test_get_organization_project_ids(self) -> None:
         """Test the get_organization_project_ids RPC method"""
         # Test with valid organization
         result = get_organization_project_ids(org_id=self.organization.id)
@@ -1318,12 +1318,12 @@ class TestGetIssueAndEventDetailsV2(
         _SentryEventData.parse_obj(event_dict)
         assert result["event_id"] == event_dict["id"]
 
-    def test_get_ie_details_from_event_id_with_issue(self):
+    def test_get_ie_details_from_event_id_with_issue(self) -> None:
         self._test_get_ie_details_from_event_id(
             include_issue=True,
         )
 
-    def test_get_ie_details_from_event_id_without_issue(self):
+    def test_get_ie_details_from_event_id_without_issue(self) -> None:
         self._test_get_ie_details_from_event_id(
             include_issue=False,
         )
@@ -1746,7 +1746,7 @@ class TestGetEventDetails(
 
     # --- both params / neither param ---
 
-    def test_raises_if_both_event_id_and_issue_id(self):
+    def test_raises_if_both_event_id_and_issue_id(self) -> None:
         with pytest.raises(BadRequest):
             get_event_details(
                 organization_id=self.organization.id,
@@ -1754,13 +1754,13 @@ class TestGetEventDetails(
                 issue_id="123",
             )
 
-    def test_raises_if_neither_event_id_nor_issue_id(self):
+    def test_raises_if_neither_event_id_nor_issue_id(self) -> None:
         with pytest.raises(BadRequest):
             get_event_details(organization_id=self.organization.id)
 
     # --- fetch by event_id ---
 
-    def test_by_event_id_single_project(self):
+    def test_by_event_id_single_project(self) -> None:
         """Fetching by event_id with project_slug hits the single-project code path."""
         event = self._make_error_event()
 
@@ -1772,7 +1772,7 @@ class TestGetEventDetails(
 
         self._assert_event_response_shape(result, expected_event_id=event.event_id)
 
-    def test_by_event_id_multi_project(self):
+    def test_by_event_id_multi_project(self) -> None:
         """Fetching by event_id without project_slug hits the multi-project code path."""
         self.create_project(organization=self.organization)  # second project → multi-project path
         event = self._make_error_event()
@@ -1784,7 +1784,7 @@ class TestGetEventDetails(
 
         self._assert_event_response_shape(result, expected_event_id=event.event_id)
 
-    def test_by_event_id_not_found_returns_none(self):
+    def test_by_event_id_not_found_returns_none(self) -> None:
         result = get_event_details(
             organization_id=self.organization.id,
             event_id=uuid.uuid4().hex,
@@ -1792,7 +1792,7 @@ class TestGetEventDetails(
         )
         assert result is None
 
-    def test_by_event_id_invalid_uuid_raises(self):
+    def test_by_event_id_invalid_uuid_raises(self) -> None:
         with pytest.raises(ValueError):
             get_event_details(
                 organization_id=self.organization.id,
@@ -1800,7 +1800,7 @@ class TestGetEventDetails(
                 project_slug=self.project.slug,
             )
 
-    def test_by_event_id_wrong_project_returns_none(self):
+    def test_by_event_id_wrong_project_returns_none(self) -> None:
         """Event in a different project should not be visible when project_slug is specified."""
         other_project = self.create_project(organization=self.organization)
         data = load_data("python", timestamp=before_now(minutes=5))
@@ -1814,7 +1814,7 @@ class TestGetEventDetails(
         )
         assert result is None
 
-    def test_by_event_id_occurrence(self):
+    def test_by_event_id_occurrence(self) -> None:
         """Occurrence data is included when fetching an issue-platform event by event_id."""
         occurrence, _ = self.process_occurrence(
             event_data={
@@ -1923,7 +1923,7 @@ class TestGetEventDetails(
         assert args[1].id == self.organization.id
         assert result is None
 
-    def test_no_projects_returns_none(self):
+    def test_no_projects_returns_none(self) -> None:
         """Returns None when the given project_slug doesn't exist."""
         event = self._make_error_event()
 
@@ -2141,7 +2141,7 @@ class TestGetIssueEventTimeseries(APITransactionTestCase, SnubaTestCase):
 
 
 class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.max_date_range = timedelta(days=14)
 
@@ -2163,7 +2163,7 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
             }
         return self.store_event(data=data, project_id=project_id)
 
-    def test_get_recommended_event_start_clamped_to_retention(self):
+    def test_get_recommended_event_start_clamped_to_retention(self) -> None:
         """
         Start is clamped to retention boundary. Spans query should also be clamped.
         """
@@ -2206,7 +2206,7 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
                 spans_start = datetime.fromisoformat(mock_execute_table_query.call_args[1]["start"])
                 assert abs(spans_start - retention_boundary) < timedelta(minutes=1)
 
-    def test_get_recommended_event_end_outside_retention(self):
+    def test_get_recommended_event_end_outside_retention(self) -> None:
         """
         Raises error if both start and end are outside retention.
         """
@@ -2230,7 +2230,7 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
                     end=end,
                 )
 
-    def test_get_recommended_event_fallback_if_no_events_in_clamped_range(self):
+    def test_get_recommended_event_fallback_if_no_events_in_clamped_range(self) -> None:
         """Falls back to most recent event in full range if no events in clamped range."""
         project = self.create_project()
         now = datetime.now(UTC)
@@ -2259,7 +2259,7 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
         assert isinstance(result, GroupEvent)
         assert result.event_id == event2.event_id
 
-    def test_get_recommended_event_fallback_if_no_events_with_spans_in_clamped_range(self):
+    def test_get_recommended_event_fallback_if_no_events_with_spans_in_clamped_range(self) -> None:
         """Falls back to most recent event if no events with spans in clamped range."""
         project = self.create_project()
         now = datetime.now(UTC)
@@ -2294,7 +2294,7 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
 
 
 class TestGetRepositoryDefinition(APITransactionTestCase):
-    def test_get_repository_definition_success(self):
+    def test_get_repository_definition_success(self) -> None:
         """Test successful repository lookup"""
         Repository.objects.create(
             organization_id=self.organization.id,
@@ -2318,7 +2318,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         assert result["name"] == "seer"
         assert result["external_id"] == "12345678"
 
-    def test_get_repository_definition_invalid_format(self):
+    def test_get_repository_definition_invalid_format(self) -> None:
         """Test that invalid repo name format returns None"""
         result = get_repository_definition(
             organization_id=self.organization.id,
@@ -2327,7 +2327,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
 
         assert result is None
 
-    def test_get_repository_definition_not_found(self):
+    def test_get_repository_definition_not_found(self) -> None:
         """Test that nonexistent repository returns None"""
         result = get_repository_definition(
             organization_id=self.organization.id,
@@ -2336,7 +2336,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
 
         assert result is None
 
-    def test_get_repository_definition_wrong_org(self):
+    def test_get_repository_definition_wrong_org(self) -> None:
         """Test that repository from different org returns None"""
         other_org = self.create_organization()
         Repository.objects.create(
@@ -2355,7 +2355,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
 
         assert result is None
 
-    def test_get_repository_definition_inactive_repo(self):
+    def test_get_repository_definition_inactive_repo(self) -> None:
         """Test that inactive repository returns None"""
         Repository.objects.create(
             organization_id=self.organization.id,
@@ -2373,7 +2373,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
 
         assert result is None
 
-    def test_get_repository_definition_no_integration_id(self):
+    def test_get_repository_definition_no_integration_id(self) -> None:
         """Test repository without integration_id"""
         Repository.objects.create(
             organization_id=self.organization.id,
@@ -2392,7 +2392,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         assert result is not None
         assert result["integration_id"] is None
 
-    def test_get_repository_definition_unsupported_provider(self):
+    def test_get_repository_definition_unsupported_provider(self) -> None:
         """Test that repositories with unsupported providers are filtered out"""
         # Create a GitLab repo (unsupported provider)
         Repository.objects.create(
@@ -2412,7 +2412,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         # Should return None since GitLab is not a supported provider
         assert result is None
 
-    def test_get_repository_definition_github_enterprise(self):
+    def test_get_repository_definition_github_enterprise(self) -> None:
         """Test that GitHub Enterprise provider is supported"""
         Repository.objects.create(
             organization_id=self.organization.id,
@@ -2431,7 +2431,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         assert result is not None
         assert result["provider"] == "integrations:github_enterprise"
 
-    def test_get_repository_definition_multiple_providers(self):
+    def test_get_repository_definition_multiple_providers(self) -> None:
         """Test that when multiple repos with different supported providers exist, first one is returned"""
         # Create two repos with same name but different providers
         Repository.objects.create(
@@ -2466,7 +2466,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         assert result["owner"] == "getsentry"
         assert result["name"] == "seer"
 
-    def test_get_repository_definition_filters_unsupported_with_supported(self):
+    def test_get_repository_definition_filters_unsupported_with_supported(self) -> None:
         """Test that unsupported providers are ignored even when a supported one exists"""
         # Create unsupported provider repo
         Repository.objects.create(
@@ -2497,7 +2497,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         assert result["provider"] == "integrations:github"
         assert result["external_id"] == "12345678"
 
-    def test_get_repository_definition_multipart_name(self):
+    def test_get_repository_definition_multipart_name(self) -> None:
         """Test repository with multi-part name (e.g., owner/project/repo)"""
         Repository.objects.create(
             organization_id=self.organization.id,
@@ -2517,7 +2517,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         assert result["owner"] == "getsentry"
         assert result["name"] == "project/seer"
 
-    def test_get_repository_definition_by_external_id(self):
+    def test_get_repository_definition_by_external_id(self) -> None:
         """Test lookup by external_id when repo has been renamed."""
         Repository.objects.create(
             organization_id=self.organization.id,
@@ -2542,7 +2542,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
 
 
 class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.ten_mins_ago = before_now(minutes=10)
 
@@ -2712,7 +2712,7 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
         assert "execution_tree" in result
         assert result["metadata"]["profile_id"] == full_profile_id
 
-    def test_rpc_get_profile_flamegraph_not_found_in_90_days(self):
+    def test_rpc_get_profile_flamegraph_not_found_in_90_days(self) -> None:
         """Test when profile ID doesn't match any spans in 90-day window"""
         # Create a span without the profile we're looking for
         span = self.create_span(

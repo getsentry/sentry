@@ -17,7 +17,7 @@ from sentry.utils.sentry_apps.webhooks import WebhookTimeoutError, send_and_save
 
 @cell_silo_test
 class WebhookTimeoutTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization()
         self.sentry_app = self.create_sentry_app(
             name="TestApp",

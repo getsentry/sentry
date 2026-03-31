@@ -35,17 +35,30 @@
 
 ### Frontend API Calls
 
-```typescript
-import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
+Prefer `apiOptions` with `useQuery` from TanStack Query for type-safe, consistent API calls:
 
-const appSizeQuery: UseApiQueryResult<ResponseType, RequestError> = useApiQuery<ResponseType>(
-  [`/projects/${organization.slug}/pull-requests/size-analysis/${selectedBuildId}/`],
-  {
-    staleTime: <int>, // Optional, amount of time before data is considered stale (in ms)
-    enabled: <enabled criteria>, // Optional, whether the query is enabled
-  }
+```typescript
+import {skipToken, useQuery} from '@tanstack/react-query';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+
+// Basic usage
+const query = useQuery(
+  apiOptions.as<ResponseType>()('/organizations/$organizationIdOrSlug/endpoint/', {
+    path: {organizationIdOrSlug: organization.slug},
+    staleTime: 30_000,
+  })
+);
+
+// Conditional fetching — pass skipToken as path to disable the query
+const query = useQuery(
+  apiOptions.as<ResponseType>()('/organizations/$organizationIdOrSlug/items/$itemId/', {
+    path: itemId ? {organizationIdOrSlug: organization.slug, itemId} : skipToken,
+    staleTime: 30_000,
+  })
 );
 ```
+
+Existing code might use `useApiQuery` from `sentry/utils/queryClient` — prefer `apiOptions` for new code.
 
 ## General Frontend Rules
 

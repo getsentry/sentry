@@ -125,6 +125,10 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
         help_text="Optional user context to append to the step prompt.",
         allow_blank=True,
     )
+    repo_name = serializers.CharField(
+        required=False,
+        help_text="Optional repository name for which to create the pull request. Do not pass a repository name to create pull requests in all relevant repositories.",
+    )
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         stopping_point = data.get("stopping_point", None)
@@ -168,7 +172,6 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             "organizations:seer-explorer",
             # Access to seer explorer powered autofix
             "organizations:autofix-on-explorer",
-            "organizations:autofix-on-explorer-v2",
         ]
 
         batch_features = features.batch_has(
@@ -252,6 +255,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             result = trigger_coding_agent_handoff(
                 group=group,
                 run_id=run_id,
+                referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
                 integration_id=integration_id,
                 provider=provider,
                 user_id=request.user.id if request.user else None,
@@ -263,8 +267,14 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 return Response(
                     {"detail": "run_id is required for open_pr"}, status=status.HTTP_400_BAD_REQUEST
                 )
+            repo_name = data.get("repo_name")
             try:
-                trigger_push_changes(group, run_id)
+                trigger_push_changes(
+                    group,
+                    run_id,
+                    referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+                    repo_name=repo_name,
+                )
             except SeerPermissionError:
                 return Response(status=status.HTTP_404_NOT_FOUND)
             return Response({"run_id": run_id}, status=status.HTTP_202_ACCEPTED)

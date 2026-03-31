@@ -405,6 +405,7 @@ register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR
 #  - retries: int | None = None,
 #  - timeout_ms: float | None = None,
 #  - connection_kwargs: Mapping[str, Any] | None = None,
+#  - token_generator: Mapping[str, Any] | None = None,
 #
 # For an always up-to-date list, see:
 # https://getsentry.github.io/objectstore/python/objectstore_client.html#objectstore_client.Client
@@ -2393,63 +2394,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# List of organization IDs that should be using segment metrics for boost low volume transactions.
-register(
-    "dynamic-sampling.transactions.segment-metric-orgs",
-    default=[],
-    type=Sequence,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# When enabled, use segment metrics for ALL orgs in boost low volume transactions.
-register(
-    "dynamic-sampling.transactions.segment-metric.enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# List of organization IDs that should be using segment metrics for recalibrate_orgs.
-register(
-    "dynamic-sampling.recalibrate_orgs.segment-metric-orgs",
-    default=[],
-    type=Sequence,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# When enabled, use segment metrics for ALL orgs in recalibrate_orgs.
-register(
-    "dynamic-sampling.recalibrate_orgs.segment-metric.enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# List of organization IDs that should be using segment metrics for sliding_window_org.
-register(
-    "dynamic-sampling.sliding_window_org.segment-metric-orgs",
-    default=[],
-    type=Sequence,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# When enabled, use segment metrics for ALL orgs in sliding_window_org.
-register(
-    "dynamic-sampling.sliding_window_org.segment-metric.enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# List of organization IDs that should be using segment metrics for boost_low_volume_projects.
-register(
-    "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs",
-    default=[],
-    type=Sequence,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# When enabled, use segment metrics for ALL orgs in boost_low_volume_projects.
-register(
-    "dynamic-sampling.boost_low_volume_projects.segment-metric.enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-
 # === Hybrid cloud subsystem options ===
 # UI rollout
 register(
@@ -3308,27 +3252,6 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Write payload sets to per-span distributed keys AND merged keys.
-# Flusher reads merged keys as before.
-register(
-    "spans.buffer.write-distributed-payloads",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Switch flusher to read from distributed keys instead of merged.
-register(
-    "spans.buffer.read-distributed-payloads",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Set to False to stop writing merged keys and skip set merges.
-# Disable after read-distributed-payloads is stable. Rollback: re-enable
-# this flag to resume merged writes before reverting read-distributed-payloads.
-register(
-    "spans.buffer.write-merged-payloads",
-    default=True,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # List of trace_ids to enable debug logging for. Empty = debug off.
 # When set, logs detailed metrics about zunionstore set sizes, key existence, and trace structure.
 register(
@@ -4187,6 +4110,13 @@ register(
 # TODO(telkins): Remove once we no longer need integration_id on SLO metrics
 register(
     "integrations.slo.integration-id-tag-enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "integrations.jira.multi-cell-enabled",
     default=False,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,

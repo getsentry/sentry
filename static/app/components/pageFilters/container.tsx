@@ -1,7 +1,8 @@
 import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import isEqual from 'lodash/isEqual';
 
-import * as Layout from 'sentry/components/layouts/thirds';
+import {Stack} from '@sentry/scraps/layout';
+
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {InitializeUrlStateParams} from 'sentry/components/pageFilters/actions';
 import {
@@ -252,9 +253,9 @@ export function PageFiltersContainer({
   // would speed up orgs with tons of projects
   if (!isReady || !hasInitialized) {
     return (
-      <Layout.Page withPadding>
+      <Stack flex={1} padding="2xl 3xl">
         <LoadingIndicator />
-      </Layout.Page>
+      </Stack>
     );
   }
 

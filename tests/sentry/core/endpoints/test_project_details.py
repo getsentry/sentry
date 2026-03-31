@@ -262,7 +262,7 @@ class ProjectDetailsTest(APITestCase):
             resp = self.get_success_response(self.project.organization.slug, self.project.slug)
             assert resp.data["isDynamicallySampled"]
 
-    def test_filter_options(self):
+    def test_filter_options(self) -> None:
         self.project.update_option("sentry:releases", ["1.*", "2.1.*"])
         self.project.update_option(
             "sentry:error_messages", ["TypeError*", "*: integer division by modulo or zero"]

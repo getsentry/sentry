@@ -36,7 +36,7 @@ class PipelineProvider[P](abc.ABC):
         >>> return [OAuthInitView(), OAuthCallbackView()]
         """
 
-    def get_pipeline_api_steps(self) -> ApiPipelineSteps[P]:
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[P] | None:
         """
         Return API step objects for this provider's pipeline, or None if API
         mode is not supported. Override to enable the pipeline API.

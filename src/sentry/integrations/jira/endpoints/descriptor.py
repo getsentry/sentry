@@ -68,7 +68,7 @@ class JiraDescriptorEndpoint(Endpoint):
                             "content": {"type": "label", "label": {"value": "Linked Issues"}},
                             "target": {
                                 "type": "web_panel",
-                                "url": "/extensions/jira/issue/{issue.key}/",
+                                "url": "/extensions/jira/issue-details/{issue.key}/",
                             },
                             "name": {"value": "Sentry "},
                             "key": "sentry-issues-glance",
