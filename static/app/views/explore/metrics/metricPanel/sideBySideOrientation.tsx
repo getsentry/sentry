@@ -1,6 +1,6 @@
 import {useRef} from 'react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {SplitPanel} from 'sentry/components/splitPanel';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -40,6 +40,25 @@ export function SideBySideOrientation({
   const measureRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: measureRef});
 
+  if (hasMetricsUIRefresh) {
+    return (
+      <Grid columns="1fr 1fr" gap="sm">
+        <MetricsGraph
+          timeseriesResult={timeseriesResult}
+          orientation={orientation}
+          isMetricOptionsEmpty={isMetricOptionsEmpty}
+        />
+        <div>
+          <MetricInfoTabs
+            traceMetric={traceMetric}
+            orientation={orientation}
+            isMetricOptionsEmpty={isMetricOptionsEmpty}
+          />
+        </div>
+      </Grid>
+    );
+  }
+
   const hasSize = width > 0;
   // Default split is 65% of the available width but not less than MIN_LEFT_WIDTH
   // while also accommodating the desired right panel width.
@@ -49,7 +68,7 @@ export function SideBySideOrientation({
     width - (rightPanelDesiredWidth + PADDING_SIZE + DIVIDER_WIDTH)
   );
 
-  const additionalActions = (
+  const additionalActions = canUseMetricsUIRefresh(organization) ? undefined : (
     <Flex direction="row" marginTop={infoContentHidden ? undefined : 'md'}>
       <PanelPositionSelector
         orientation={orientation}
