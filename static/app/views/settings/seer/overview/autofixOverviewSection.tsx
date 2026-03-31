@@ -9,6 +9,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {
   bulkAutofixAutomationSettingsInfiniteOptions,
@@ -235,12 +236,17 @@ function AgentNameForm({
                 !canWrite ||
                 isBulkMutatingAgent ||
                 isBulkMutatingCreatePr ||
+                !preferredAgentIntegration ||
                 projectsWithPreferredAgent.length === projects.length
               }
               onClick={async () => {
-                setIsBulkMutatingAgent(true);
-                await bulkMutateSelectedAgent(preferredAgentIntegration, {});
-                setIsBulkMutatingAgent(false);
+                if (preferredAgentIntegration) {
+                  setIsBulkMutatingAgent(true);
+                  await bulkMutateSelectedAgent(preferredAgentIntegration, {});
+                  setIsBulkMutatingAgent(false);
+                } else {
+                  addErrorMessage(t('No coding agent integration found'));
+                }
               }}
             >
               {tn(
