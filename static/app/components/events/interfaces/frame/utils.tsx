@@ -66,7 +66,7 @@ export function isExpandable({
   isOnlyFrame?: boolean;
   platform?: string;
 }) {
-  return (
+  return !!(
     (!isOnlyFrame && emptySourceNotation) ||
     hasContextSource(frame) ||
     hasContextVars(frame) ||
