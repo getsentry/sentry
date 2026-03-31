@@ -59,6 +59,7 @@ type CommandPaletteActionMenuItem = MenuListItemProps & {
 };
 
 type CommandPaletteActionWithPriority = CommandPaletteActionWithKey & {
+  listItemType: 'action' | 'section';
   priority: number;
 };
 
@@ -80,7 +81,7 @@ export function CommandPalette(props: CommandPaletteProps) {
     preload(errorIllustration, {as: 'image'});
   }
 
-  const displayedActions = useMemo<CommandPaletteActionWithPriority[]>(() => {
+  const actions = useMemo<CommandPaletteActionWithPriority[]>(() => {
     const virtualRoot: CommandPaletteActionGroupWithKey = {
       key: 'virtual-root',
       type: 'group',
@@ -96,7 +97,7 @@ export function CommandPalette(props: CommandPaletteProps) {
     };
 
     if (!state.query) {
-      return flattenActions(virtualRoot.actions);
+      return flattenActions(virtualRoot.actions, 1);
     }
 
     const scores = new Map<
@@ -104,30 +105,38 @@ export function CommandPalette(props: CommandPaletteProps) {
       {matched: boolean; score: number}
     >();
     scoreTree(virtualRoot, scores, state.query);
-    filterTree(virtualRoot, scores);
-    sortTree(virtualRoot, scores);
 
-    return flattenActions(virtualRoot.actions);
+    return flattenActions(filterAndSortTree(virtualRoot.actions, scores));
   }, [allActions, state.action, state.query]);
 
-  const filteredActions = useMemo(() => displayedActions, [displayedActions]);
-
-  const analytics = useCommandPaletteAnalytics(filteredActions.length);
-
-  const sections = useMemo(
-    () => groupActionsBySection(filteredActions),
-    [filteredActions]
-  );
-
-  const sectionHeaderKeys = useMemo(
-    () => new Set(sections.map(({key}) => `section-${key}`)),
-    [sections]
-  );
-
   const treeState = useTreeState({
-    disabledKeys: [...sectionHeaderKeys],
-    children: displayedActions.map(action => {
+    disabledKeys: new Set(
+      actions
+        .filter(action => action.listItemType === 'section')
+        .map(action => action.key)
+    ),
+    children: actions.map(action => {
       const menuItem = makeMenuItemFromAction(action);
+
+      if (action.listItemType === 'section') {
+        return (
+          <Item<CommandPaletteActionMenuItem & {hideCheck: boolean; label: string}>
+            {...menuItem}
+            key={action.key}
+            textValue={action.display.label}
+            {...{
+              leadingItems: null,
+              label: (
+                <Text size="sm" bold variant="primary">
+                  {action.display.label}
+                </Text>
+              ),
+              hideCheck: true,
+              children: [],
+            }}
+          />
+        );
+      }
 
       return (
         <Item<CommandPaletteActionMenuItem>
@@ -143,12 +152,12 @@ export function CommandPalette(props: CommandPaletteProps) {
 
   const firstFocusableKey = useMemo(() => {
     for (const item of treeState.collection) {
-      if (!sectionHeaderKeys.has(String(item.key))) {
+      if (item.type === 'action') {
         return item;
       }
     }
     return undefined;
-  }, [treeState.collection, sectionHeaderKeys]);
+  }, [treeState.collection]);
 
   useLayoutEffect(() => {
     if (treeState.selectionManager.focusedKey !== null) {
@@ -179,23 +188,20 @@ export function CommandPalette(props: CommandPaletteProps) {
 
   const onActionSelection = useCallback(
     (key: ReturnType<typeof treeState.collection.getFirstKey> | null) => {
-      const resultIndex = filteredActions.findIndex(a => a.key === key);
-      const action = resultIndex >= 0 ? filteredActions[resultIndex] : undefined;
+      const action = actions.find(a => a.key === key);
       if (!action) {
         return;
       }
 
       if ('actions' in action) {
-        analytics.recordGroupAction(action, resultIndex);
         dispatch({type: 'push action', action});
         return;
       }
 
-      analytics.recordAction(action, resultIndex, action.groupingKey ?? '');
       dispatch({type: 'trigger action'});
       props.onAction(action);
     },
-    [filteredActions, dispatch, props, analytics, treeState]
+    [actions, dispatch, props, treeState, organization, state.query]
   );
 
   return (
@@ -325,20 +331,6 @@ export function CommandPalette(props: CommandPaletteProps) {
   );
 }
 
-// **Current order of operations:**
-// Flatten actions
-// Search
-// Group actions by section (performs action to meny item mapping)
-
-// Desired order of operations:
-// Search and Score
-// - Score action
-// Filter and Sort
-// - Filter actions by score
-// - Sort actions by score
-// Flatten Tree
-// Flatten Actions
-
 function score(
   query: string,
   action: CommandPaletteActionWithKey
@@ -369,93 +361,19 @@ function scoreTree(
   }
 }
 
-function filterTree(
-  root: CommandPaletteActionGroupWithKey,
+function filterAndSortTree(
+  actions: CommandPaletteActionWithKey[],
   scores: Map<CommandPaletteActionWithKey, {matched: boolean; score: number}>
-): void {
-  const queue = 'actions' in root ? [...root.actions] : [];
-
-  while (queue.length > 0) {
-    const node = queue.pop()!;
-
-    if ('actions' in node) {
-      queue.push(...node.actions);
-      node.actions = [...node.actions].filter(a => scores.get(a)?.matched);
-    }
-  }
-}
-
-function sortTree(
-  root: CommandPaletteActionGroupWithKey,
-  scores: Map<CommandPaletteActionWithKey, {matched: boolean; score: number}>
-): void {
-  const queue = 'actions' in root ? [...root.actions] : [];
-  while (queue.length > 0) {
-    const node = queue.pop()!;
-
-    if ('actions' in node) {
-      queue.push(...node.actions);
-      node.actions = [...node.actions].sort(
-        (a, b) => (scores.get(b)?.score ?? 0) - (scores.get(a)?.score ?? 0)
-      );
-    }
-  }
-}
-
-function groupActionsBySection(
-  actions: CommandPaletteActionWithPriority[]
-): CommandPaletteActionMenuItem[] {
-  const itemsBySection = new Map<string, CommandPaletteActionMenuItem[]>();
-  for (const action of actions) {
-    const sectionLabel = action.display.label;
-    const list = itemsBySection.get(sectionLabel) ?? [];
-    list.push(makeMenuItemFromAction(action));
-    itemsBySection.set(sectionLabel, list);
-  }
-  return Array.from(itemsBySection.keys())
-    .map(sectionKey => ({
-      key: sectionKey,
-      label: sectionKey,
-      children: itemsBySection.get(sectionKey) ?? [],
-    }))
-    .filter(section => section.children.length > 0);
-}
-
-function search(
-  query: string,
-  actions: CommandPaletteActionWithPriority[]
-): CommandPaletteActionWithPriority[] {
-  if (query.length === 0) {
-    return actions.filter(a => a.priority === 0);
-  }
-
-  const normalizedQuery = query.toLowerCase();
-
-  const scored = actions.map(action => {
-    const label = typeof action.display.label === 'string' ? action.display.label : '';
-    const details =
-      typeof action.display.details === 'string' ? action.display.details : '';
-    const keywords = action.keywords?.join(' ') ?? '';
-    const searchText = [label, details, keywords].filter(Boolean).join(' ');
-    const result = fzf(searchText, normalizedQuery, false);
-    return {action, score: result.score, matched: result.end !== -1};
-  });
-
-  const matched = scored.filter(r => r.matched);
-  const unmatchedSearchResults = scored.filter(
-    r => !r.matched && r.action.groupingKey === 'search-result'
-  );
-
-  const sortedMatches = matched.toSorted((a, b) => {
-    const priorityDiff = a.action.priority - b.action.priority;
-    if (priorityDiff !== 0) return priorityDiff;
-    return b.score - a.score;
-  });
-
-  return [
-    ...sortedMatches.map(r => r.action),
-    ...unmatchedSearchResults.map(r => r.action),
-  ];
+): CommandPaletteActionWithKey[] {
+  return actions
+    .filter(a => scores.get(a)?.matched)
+    .sort((a, b) => (scores.get(b)?.score ?? 0) - (scores.get(a)?.score ?? 0))
+    .map(a => {
+      if (a.type === 'group') {
+        return {...a, actions: filterAndSortTree(a.actions, scores)};
+      }
+      return a;
+    });
 }
 
 function makeMenuItemFromAction(
@@ -485,7 +403,8 @@ function makeMenuItemFromAction(
 
 function flattenActions(
   actions: CommandPaletteActionWithKey[],
-  parentLabel?: string
+  maxDepth?: number,
+  currentDepth = 0
 ): CommandPaletteActionWithPriority[] {
   const flattened: CommandPaletteActionWithPriority[] = [];
 
@@ -494,25 +413,23 @@ function flattenActions(
       continue;
     }
 
-    if (parentLabel) {
-      flattened.push({
-        ...action,
-        display: {
-          ...action.display,
-          label: `${parentLabel} → ${action.display.label}`,
-        },
-        priority: 1,
-      });
-    } else {
-      flattened.push({...action, priority: 0});
+    flattened.push({
+      ...action,
+      priority: 0,
+      listItemType:
+        'actions' in action
+          ? currentDepth === maxDepth
+            ? 'action'
+            : 'section'
+          : 'action',
+    });
+
+    if (currentDepth === maxDepth) {
+      continue;
     }
 
-    if ('actions' in action && action.actions.length > 0) {
-      const childParentLabel = parentLabel
-        ? `${parentLabel} → ${action.display.label}`
-        : action.display.label;
-
-      flattened.push(...flattenActions(action.actions, childParentLabel));
+    if (action.type === 'group' && action.actions.length > 0) {
+      flattened.push(...flattenActions(action.actions, maxDepth, currentDepth + 1));
     }
   }
 

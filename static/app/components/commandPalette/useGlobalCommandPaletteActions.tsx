@@ -11,7 +11,6 @@ import type {CommandPaletteAction} from 'sentry/components/commandPalette/types'
 import {useCommandPaletteActions} from 'sentry/components/commandPalette/useCommandPaletteActions';
 import {
   IconAdd,
-  IconChevron,
   IconCompass,
   IconDashboard,
   IconDiscord,
@@ -23,7 +22,7 @@ import {
   IconSettings,
   IconStar,
   IconUser,
-  IconQuestion,
+  IconPanel,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
@@ -217,8 +216,7 @@ function useNavigationActions(): CommandPaletteAction[] {
   return [
     makeCommandPaletteGroup({
       display: {
-        label: t('Navigate'),
-        icon: <IconChevron />,
+        label: t('Go to...'),
       },
       actions: [
         makeCommandPaletteGroup({
@@ -295,7 +293,7 @@ function useNavigationToggleCollapsed(): CommandPaletteAction {
       label: isCollapsed
         ? t('Expand Navigation Sidebar')
         : t('Collapse Navigation Sidebar'),
-      icon: <IconChevron isDouble direction={isCollapsed ? 'right' : 'left'} />,
+      icon: <IconPanel direction={isCollapsed ? 'right' : 'left'} />,
     },
     onAction: () => {
       setView(view === 'expanded' ? 'collapsed' : 'expanded');
@@ -320,7 +318,6 @@ export function useGlobalCommandPaletteActions() {
     makeCommandPaletteGroup({
       display: {
         label: t('Add'),
-        icon: <IconAdd />,
       },
       actions: [
         makeCommandPaletteLink({
@@ -358,7 +355,6 @@ export function useGlobalCommandPaletteActions() {
     makeCommandPaletteGroup({
       display: {
         label: t('Help'),
-        icon: <IconQuestion />,
       },
       actions: [
         makeCommandPaletteCallback({
@@ -395,44 +391,51 @@ export function useGlobalCommandPaletteActions() {
       ],
     }),
     // END HELP ACTIONS
-    navigationToggleAction,
-    {
+    makeCommandPaletteGroup({
       display: {
-        label: t('Change Color Theme'),
-        icon: <IconSettings />,
+        label: t('Interface'),
       },
       actions: [
-        {
+        navigationToggleAction,
+        makeCommandPaletteGroup({
           display: {
-            label: t('System'),
+            label: t('Change Color Theme'),
+            icon: <IconSettings />,
           },
-          onAction: async () => {
-            addLoadingMessage(t('Saving…'));
-            await mutateUserOptions({theme: 'system'});
-            addSuccessMessage(t('Theme preference saved: System'));
-          },
-        },
-        {
-          display: {
-            label: t('Light'),
-          },
-          onAction: async () => {
-            addLoadingMessage(t('Saving…'));
-            await mutateUserOptions({theme: 'light'});
-            addSuccessMessage(t('Theme preference saved: Light'));
-          },
-        },
-        {
-          display: {
-            label: t('Dark'),
-          },
-          onAction: async () => {
-            addLoadingMessage(t('Saving…'));
-            await mutateUserOptions({theme: 'dark'});
-            addSuccessMessage(t('Theme preference saved: Dark'));
-          },
-        },
+          actions: [
+            makeCommandPaletteCallback({
+              display: {
+                label: t('System'),
+              },
+              onAction: async () => {
+                addLoadingMessage(t('Saving…'));
+                await mutateUserOptions({theme: 'system'});
+                addSuccessMessage(t('Theme preference saved: System'));
+              },
+            }),
+            makeCommandPaletteCallback({
+              display: {
+                label: t('Light'),
+              },
+              onAction: async () => {
+                addLoadingMessage(t('Saving…'));
+                await mutateUserOptions({theme: 'light'});
+                addSuccessMessage(t('Theme preference saved: Light'));
+              },
+            }),
+            makeCommandPaletteCallback({
+              display: {
+                label: t('Dark'),
+              },
+              onAction: async () => {
+                addLoadingMessage(t('Saving…'));
+                await mutateUserOptions({theme: 'dark'});
+                addSuccessMessage(t('Theme preference saved: Dark'));
+              },
+            }),
+          ],
+        }),
       ],
-    },
+    }),
   ]);
 }
