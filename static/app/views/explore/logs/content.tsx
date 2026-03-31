@@ -38,7 +38,7 @@ export default function LogsContent() {
   const location = useLocation();
   const hasExpando =
     organization.features.includes('ourlogs-table-expando') ||
-    location.query.logsTableExpand === 'true';
+    location.query.logsTableExpando === 'true';
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.LOG_BYTE],
   });
