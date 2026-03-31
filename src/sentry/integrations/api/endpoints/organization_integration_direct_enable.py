@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-import logging
 from typing import Any
 
+from django.db import transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
@@ -19,9 +20,8 @@ from sentry.exceptions import NotRegistered
 from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.services.integration import integration_service
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
-
-logger = logging.getLogger(__name__)
 
 
 @control_silo_endpoint
@@ -51,6 +51,14 @@ class OrganizationIntegrationDirectEnableEndpoint(ControlSiloOrganizationEndpoin
                 {"detail": "Direct enable is not supported for this integration."}, status=400
             )
 
+        if provider.requires_feature_flag:
+            flag = (
+                provider.feature_flag_name
+                or "organizations:integrations-%s" % provider.key.replace("_", "-")
+            )
+            if not features.has(flag, organization, actor=request.user):
+                return Response({"detail": "Provider not found."}, status=404)
+
         if not provider.allow_multiple:
             existing = integration_service.get_integrations(
                 organization_id=organization.id,
@@ -60,12 +68,26 @@ class OrganizationIntegrationDirectEnableEndpoint(ControlSiloOrganizationEndpoin
             if existing:
                 return Response({"detail": "Integration is already enabled."}, status=400)
 
-        data = provider.build_integration({})
-        integration = ensure_integration(provider.key, data)
+        with transaction.atomic(using="default"):
+            if not provider.allow_multiple:
+                OrganizationMapping.objects.select_for_update().filter(
+                    organization_id=organization.id
+                ).exists()
 
-        user = request.user if request.user.is_authenticated else None
-        org_integration = integration.add_organization(organization, user)
-        if org_integration is None:
-            return Response({"detail": "Could not create the integration."}, status=400)
+                existing = integration_service.get_integrations(
+                    organization_id=organization.id,
+                    providers=[provider_key],
+                    status=ObjectStatus.ACTIVE,
+                )
+                if existing:
+                    return Response({"detail": "Integration is already enabled."}, status=400)
+
+            data = provider.build_integration({})
+            integration = ensure_integration(provider.key, data)
+
+            user = request.user if request.user.is_authenticated else None
+            org_integration = integration.add_organization(organization, user)
+            if org_integration is None:
+                return Response({"detail": "Could not create the integration."}, status=400)
 
         return Response(serialize(org_integration, request.user))

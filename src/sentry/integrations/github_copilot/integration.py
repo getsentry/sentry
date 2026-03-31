@@ -53,7 +53,7 @@ class GithubCopilotIntegrationProvider(CodingAgentIntegrationProvider):
     name = "GitHub Copilot"
     metadata = metadata
     integration_cls = GithubCopilotIntegration
-    requires_feature_flag = False
+    feature_flag_name = "organizations:integrations-github-copilot-agent"
 
     def get_agent_name(self) -> str:
         return "GitHub Copilot"

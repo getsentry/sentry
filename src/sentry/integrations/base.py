@@ -256,6 +256,9 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
     requires_feature_flag = False
     """if this is hidden without the feature flag"""
 
+    feature_flag_name: str | None = None
+    """override the feature flag checked when requires_feature_flag is True"""
+
     @classmethod
     def get_installation(
         cls, model: RpcIntegration | Integration, organization_id: int, **kwargs: Any

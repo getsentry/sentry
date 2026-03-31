@@ -22,6 +22,8 @@ class OrganizationIntegrationDirectEnableTest(APITestCase):
             integration_id=integration.id,
         ).exists()
         assert response.data["provider"]["key"] == "github_copilot"
+        assert response.data["organizationIntegration"]["id"] == integration.id
+        assert response.data["organizationIntegration"]["organizationId"] == self.organization.id
 
     def test_returns_404_for_unknown_provider(self):
         self.get_error_response(self.organization.slug, "nonexistent_provider", status_code=404)
