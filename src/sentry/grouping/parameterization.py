@@ -238,7 +238,7 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         """,
     ),
     ParameterizationRegex(name="float", raw_pattern=r"""-\d+\.\d+\b | \b\d+\.\d+\b"""),
-    ParameterizationRegex(name="int", raw_pattern=r"""-\d+\b | \b\d+\b"""),
+    ParameterizationRegex(name="int", raw_pattern=r"""(\b|-)\d+\b"""),
     ParameterizationRegex(
         name="quoted_str",
         raw_pattern=r"""
