@@ -119,6 +119,7 @@ class ProcessMentionForSlackTest(TestCase):
         assert_halt_metric(mock_record, ProcessMentionHaltReason.IDENTITY_NOT_LINKED)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.seer.entrypoints.slack.tasks._send_not_org_member_message")
     @patch("sentry.seer.entrypoints.slack.tasks.SeerExplorerOperator")
     @patch("sentry.seer.entrypoints.slack.tasks.SlackExplorerEntrypoint")
     @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
@@ -127,9 +128,10 @@ class ProcessMentionForSlackTest(TestCase):
         mock_resolve_user,
         mock_explorer_cls,
         mock_operator_cls,
+        mock_send_not_member,
         mock_record,
     ):
-        other_org = self.create_organization()
+        other_org = self.create_organization(name="Other Org")
         mock_user = MagicMock(id=self.create_user().id)
         mock_resolve_user.return_value = mock_user
 
@@ -140,6 +142,11 @@ class ProcessMentionForSlackTest(TestCase):
         self._run_task(organization_id=other_org.id)
 
         mock_operator_cls.assert_not_called()
+        mock_send_not_member.assert_called_once_with(
+            entrypoint=mock_entrypoint,
+            thread_ts="1234567890.123456",
+            org_name="Other Org",
+        )
         mock_entrypoint.install.set_thread_status.assert_called_once_with(
             channel_id="C1234567890",
             thread_ts="1234567890.123456",
