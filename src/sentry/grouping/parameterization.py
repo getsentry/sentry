@@ -251,7 +251,7 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
                 # character.)
                 (?<!\w)-
             )
-            \d+
+            \d{1,7} # Anything 8 digits and up is considered hex
             \b
         """,
     ),
