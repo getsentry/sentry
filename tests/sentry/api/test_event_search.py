@@ -991,7 +991,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         assert isinstance(search_filter, SearchFilter)
         assert search_filter.value.value == 'a"b'
 
-    def test_has_in_filter(self):
+    def test_has_in_filter(self) -> None:
         assert parse_search_query("release:['some_text', 'some_other_text']") == [
             SearchFilter(
                 key=SearchKey(name="release"),

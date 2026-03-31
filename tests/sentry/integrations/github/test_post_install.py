@@ -9,7 +9,7 @@ from sentry.testutils.silo import control_silo_test
 class GitHubIntegrationPostInstallTest(IntegrationTestCase):
     provider = GitHubIntegrationProvider
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             organization=self.organization,

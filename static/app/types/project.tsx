@@ -88,6 +88,9 @@ export type Project = {
   preprodSizeEnabledQuery?: string | null;
   preprodSizeStatusChecksEnabled?: boolean;
   preprodSizeStatusChecksRules?: unknown[];
+  preprodSnapshotStatusChecksEnabled?: boolean;
+  preprodSnapshotStatusChecksFailOnAdded?: boolean;
+  preprodSnapshotStatusChecksFailOnRemoved?: boolean;
   securityToken?: string;
   securityTokenHeader?: string;
   seerScannerAutomation?: boolean;

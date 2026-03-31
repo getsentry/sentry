@@ -7,6 +7,7 @@ from typing import Any
 
 import orjson
 import sentry_sdk
+from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 from slack_sdk.errors import SlackApiError
@@ -23,6 +24,7 @@ from sentry.integrations.messaging.metrics import (
 )
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.analytics import SlackIntegrationChartUnfurl
+from sentry.integrations.slack.integration import SlackIntegration
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.message_builder.prompt import SlackPromptLinkMessageBuilder
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
@@ -334,47 +336,86 @@ class SlackEventEndpoint(SlackDMEndpoint):
             organization_id = ois[0].organization_id
             lifecycle.add_extra("organization_id", organization_id)
 
-            organization_context = organization_service.get_organization_by_id(
-                id=organization_id,
-                user_id=None,
-                include_projects=False,
-                include_teams=False,
+            installation = slack_request.integration.get_installation(
+                organization_id=organization_id
             )
-            if not organization_context:
+            assert isinstance(installation, SlackIntegration)
+            try:
+                organization = installation.organization
+            except NotFound:
                 lifecycle.record_halt(AppMentionHaltReason.ORGANIZATION_NOT_FOUND)
                 return self.respond()
 
-            if organization_context.organization.status != OrganizationStatus.ACTIVE:
-                lifecycle.add_extra("status", organization_context.organization.status)
+            if organization.status != OrganizationStatus.ACTIVE:
+                lifecycle.add_extra("status", organization.status)
                 lifecycle.record_halt(AppMentionHaltReason.ORGANIZATION_NOT_ACTIVE)
                 return self.respond()
 
-            if not features.has(
-                "organizations:seer-slack-explorer", organization_context.organization
-            ):
+            if not features.has("organizations:seer-slack-explorer", organization):
                 lifecycle.record_halt(AppMentionHaltReason.FEATURE_NOT_ENABLED)
                 return self.respond()
 
             channel_id = data.get("channel")
             text = data.get("text")
-            thread_ts = data.get("ts")
+            ts = data.get("ts")
+            thread_ts = data.get("thread_ts")  # None for top-level messages
 
-            if not channel_id or not text or not thread_ts:
-                lifecycle.record_halt(AppMentionHaltReason.MISSING_CHANNEL_OR_TEXT)
+            lifecycle.add_extras(
+                {
+                    "channel_id": channel_id,
+                    "text": text,
+                    "ts": ts,
+                    "thread_ts": thread_ts,
+                    "user_id": slack_request.user_id,
+                }
+            )
+
+            if not channel_id or not text or not ts or not slack_request.user_id:
+                lifecycle.record_halt(AppMentionHaltReason.MISSING_EVENT_DATA)
                 return self.respond()
+
+            try:
+                installation.set_thread_status(
+                    channel_id=channel_id,
+                    thread_ts=thread_ts or ts,
+                    status="Thinking...",
+                    loading_messages=[
+                        "Digging through your errors...",
+                        "Sifting through stack traces...",
+                        "Blaming the right code...",
+                        "Following the breadcrumbs...",
+                        "Asking the stack trace nicely...",
+                        "Reading between the stack frames...",
+                        "Hold on, I've seen this one before...",
+                        "It worked on my machine...",
+                    ],
+                )
+            except Exception:
+                _logger.exception(
+                    "slack.assistant_threads_setStatus.failed",
+                    extra={
+                        "integration_id": slack_request.integration.id,
+                        "channel_id": channel_id,
+                        "thread_ts": thread_ts or ts,
+                    },
+                )
+
+            authorizations = slack_request.data.get("authorizations") or []
+            bot_user_id = authorizations[0].get("user_id", "") if authorizations else ""
 
             process_mention_for_slack.apply_async(
                 kwargs={
                     "integration_id": slack_request.integration.id,
                     "organization_id": organization_id,
                     "channel_id": channel_id,
+                    "ts": ts,
                     "thread_ts": thread_ts,
                     "text": text,
                     "slack_user_id": slack_request.user_id,
+                    "bot_user_id": bot_user_id,
                 }
             )
-
-        return self.respond()
+            return self.respond()
 
     # TODO(dcramer): implement app_uninstalled and tokens_revoked
     def post(self, request: Request) -> Response:

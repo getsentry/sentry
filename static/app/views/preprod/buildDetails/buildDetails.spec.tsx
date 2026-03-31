@@ -64,7 +64,6 @@ describe('BuildDetails', () => {
       initialRouterConfig,
     });
 
-    expect(screen.getByRole('main')).toBeInTheDocument();
     expect(screen.getByRole('banner')).toBeInTheDocument();
 
     const loadingPlaceholders = screen.getAllByTestId('loading-placeholder');

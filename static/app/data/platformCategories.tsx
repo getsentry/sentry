@@ -394,6 +394,7 @@ export const withLoggingOnboarding = new Set<PlatformKey>([
   'python-tornado',
   'python-tryton',
   'python-wsgi',
+  'elixir',
   'react-native',
   'ruby',
   'ruby-rack',
@@ -404,7 +405,7 @@ export const withLoggingOnboarding = new Set<PlatformKey>([
 ]);
 
 // List of platforms that do not have logging support. We make use of this list in the product to not provide any Logging
-export const withoutLoggingSupport = new Set<PlatformKey>(['elixir', 'dotnet-xamarin']);
+export const withoutLoggingSupport = new Set<PlatformKey>(['dotnet-xamarin']);
 
 // List of platforms that have metrics onboarding checklist content
 export const withMetricsOnboarding = new Set<PlatformKey>([

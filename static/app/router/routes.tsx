@@ -1742,6 +1742,19 @@ function buildRoutes(): RouteObject[] {
     children: discoverChildren,
   };
 
+  const errorsChildren: SentryRouteObject[] = [
+    {
+      index: true,
+      component: make(() => import('sentry/views/explore/errors/content')),
+    },
+  ];
+  const errorsRoutes: SentryRouteObject = {
+    path: '/errors/',
+    component: make(() => import('sentry/views/explore/errors')),
+    withOrgPath: true,
+    children: errorsChildren,
+  };
+
   // Redirects for old LLM monitoring routes
   const llmMonitoringRedirects: SentryRouteObject = {
     children: [
@@ -2325,6 +2338,11 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
+      path: 'errors/',
+      component: make(() => import('sentry/views/explore/errors')),
+      children: errorsChildren,
+    },
+    {
       path: 'saved-queries/',
       component: make(() => import('sentry/views/explore/savedQueries')),
     },
@@ -2523,6 +2541,10 @@ function buildRoutes(): RouteObject[] {
       component: make(
         () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')
       ),
+    },
+    {
+      path: 'autofix/recent/',
+      component: make(() => import('sentry/views/issueList/pages/autofix/recentlyRun')),
     },
     {
       path: 'supergroups/',
@@ -2782,6 +2804,7 @@ function buildRoutes(): RouteObject[] {
       releasesRoutes,
       statsRoutes,
       discoverRoutes,
+      errorsRoutes,
       performanceRoutes,
       domainViewRoutes,
       tracesRoutes,

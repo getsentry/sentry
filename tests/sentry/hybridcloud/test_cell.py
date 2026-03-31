@@ -21,7 +21,7 @@ _TEST_CELLS = (
 )
 
 
-@control_silo_test(regions=_TEST_CELLS)
+@control_silo_test(cells=_TEST_CELLS)
 class CellResolutionTest(TestCase):
     def setUp(self) -> None:
         self.target_cell = _TEST_CELLS[0]

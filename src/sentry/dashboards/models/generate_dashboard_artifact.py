@@ -32,7 +32,7 @@ WidgetType = Literal[
 Intervals = Literal["5m", "15m", "30m", "1h", "4h", "12h", "24h"]
 
 # Blocklist for frequently hallucinated functions or functions we want to avoid using
-FUNCTION_BLOCKLIST: set[str] = {"spm", "apdex"}
+FUNCTION_BLOCKLIST: set[str] = {"spm", "apdex", "http_error_count"}
 
 
 class GeneratedWidgetQuery(BaseModel):

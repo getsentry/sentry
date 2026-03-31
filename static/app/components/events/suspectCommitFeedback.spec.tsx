@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RepositoryFixture} from 'sentry-fixture/repository';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -13,15 +12,7 @@ jest.mock('sentry/utils/analytics');
 describe('SuspectCommitFeedback', () => {
   const organization = OrganizationFixture();
   const user = UserFixture();
-  const mockCommit = {
-    id: 'abc123',
-    message: 'fix: resolve test issue',
-    group_owner_id: 12345,
-    author: UserFixture({name: 'Test Author', id: 'author1'}),
-    dateCreated: '2023-01-01T00:00:00Z',
-    repository: RepositoryFixture({id: 'repo1', name: 'test-repo'}),
-    releases: [],
-  };
+  const groupOwnerId = 12345;
 
   beforeEach(() => {
     jest.mocked(trackAnalytics).mockClear();
@@ -32,7 +23,9 @@ describe('SuspectCommitFeedback', () => {
   });
 
   it('tracks analytics and shows thank you message when thumbs up is clicked', async () => {
-    render(<SuspectCommitFeedback commit={mockCommit} organization={organization} />);
+    render(
+      <SuspectCommitFeedback groupOwnerId={groupOwnerId} organization={organization} />
+    );
 
     expect(screen.getByText('Is this correct?')).toBeInTheDocument();
     expect(
@@ -66,7 +59,9 @@ describe('SuspectCommitFeedback', () => {
   });
 
   it('tracks analytics and shows thank you message when thumbs down is clicked', async () => {
-    render(<SuspectCommitFeedback commit={mockCommit} organization={organization} />);
+    render(
+      <SuspectCommitFeedback groupOwnerId={groupOwnerId} organization={organization} />
+    );
 
     expect(screen.getByText('Is this correct?')).toBeInTheDocument();
     expect(

@@ -755,14 +755,14 @@ class TestInvokeFutureWithErrorHandling(BaseWorkflowTest):
         self.mock_callback = mock.Mock()
         self.mock_futures = [mock.Mock()]
 
-    def test_happy_path(self):
+    def test_happy_path(self) -> None:
         from sentry.notifications.notification_action.types import invoke_future_with_error_handling
 
         invoke_future_with_error_handling(self.event_data, self.mock_callback, self.mock_futures)
 
         self.mock_callback.assert_called_once_with(self.group_event, self.mock_futures)
 
-    def test_invalid_event_data(self):
+    def test_invalid_event_data(self) -> None:
         from sentry.notifications.notification_action.types import invoke_future_with_error_handling
         from sentry.workflow_engine.types import WorkflowEventData
 
@@ -777,7 +777,7 @@ class TestInvokeFutureWithErrorHandling(BaseWorkflowTest):
 
         assert "Expected a GroupEvent" in str(excinfo.value)
 
-    def test_ignores_integration_form_error(self):
+    def test_ignores_integration_form_error(self) -> None:
         from sentry.notifications.notification_action.types import invoke_future_with_error_handling
         from sentry.shared_integrations.exceptions import IntegrationFormError
 
@@ -789,7 +789,7 @@ class TestInvokeFutureWithErrorHandling(BaseWorkflowTest):
 
         self.mock_callback.assert_called_once()
 
-    def test_ignores_integration_configuration_error(self):
+    def test_ignores_integration_configuration_error(self) -> None:
         from sentry.notifications.notification_action.types import invoke_future_with_error_handling
         from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 
@@ -799,7 +799,7 @@ class TestInvokeFutureWithErrorHandling(BaseWorkflowTest):
 
         self.mock_callback.assert_called_once()
 
-    def test_reraises_processing_deadline_exceeded(self):
+    def test_reraises_processing_deadline_exceeded(self) -> None:
         from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
         from sentry.notifications.notification_action.types import invoke_future_with_error_handling
@@ -813,7 +813,7 @@ class TestInvokeFutureWithErrorHandling(BaseWorkflowTest):
 
         self.mock_callback.assert_called_once()
 
-    def test_raises_retry_error_for_api_error(self):
+    def test_raises_retry_error_for_api_error(self) -> None:
         from taskbroker_client.retry import RetryTaskError
 
         from sentry.notifications.notification_action.types import invoke_future_with_error_handling

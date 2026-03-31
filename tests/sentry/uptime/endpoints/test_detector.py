@@ -297,11 +297,11 @@ class OrganizationDetectorIndexPostTest(APITestCase):
     endpoint = "sentry-api-0-organization-detector-index"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
-    def test_create_detector_validation_error(self):
+    def test_create_detector_validation_error(self) -> None:
         invalid_data = _get_valid_data(
             self.project.id, self.environment.name, dataSources=[{"timeout_ms": 80000}]
         )
@@ -317,7 +317,7 @@ class OrganizationDetectorIndexPostTest(APITestCase):
             response.data["dataSources"]
         )
 
-    def test_create_detector(self):
+    def test_create_detector(self) -> None:
         valid_data = _get_valid_data(
             self.project.id,
             self.environment.name,
@@ -340,7 +340,7 @@ class OrganizationDetectorIndexPostTest(APITestCase):
         assert created_sub.url == "https://www.google.com"
         assert created_sub.interval_seconds == UptimeSubscription.IntervalSeconds.ONE_MINUTE
 
-    def test_create_detector_optional_fields(self):
+    def test_create_detector_optional_fields(self) -> None:
         valid_data = _get_valid_data(
             self.project.id,
             self.environment.name,
@@ -378,7 +378,7 @@ class OrganizationDetectorIndexPostTest(APITestCase):
         assert created_sub.body == "<html/>"
         assert created_sub.trace_sampling is True
 
-    def test_create_detector_non_superuser_cannot_set_auto_detected_mode(self):
+    def test_create_detector_non_superuser_cannot_set_auto_detected_mode(self) -> None:
         """Integration test: non-superuser cannot create with AUTO_DETECTED mode via API."""
         invalid_data = _get_valid_data(
             self.project.id,
@@ -407,7 +407,7 @@ class OrganizationDetectorIndexGetFilterTest(UptimeDetectorBaseTest):
 
     endpoint = "sentry-api-0-organization-detector-index"
 
-    def test_filters_onboarding_detectors_from_list(self):
+    def test_filters_onboarding_detectors_from_list(self) -> None:
         """Test that AUTO_DETECTED_ONBOARDING detectors are not returned in the list."""
         # Create a manual detector (should be visible)
         manual_detector = self.create_uptime_detector(
@@ -449,7 +449,7 @@ class OrganizationDetectorIndexGetFilterTest(UptimeDetectorBaseTest):
         # Verify the count is correct (5 = base detector + manual + active + default [issue stream + error])
         assert len(response.data) == 5
 
-    def test_filters_onboarding_detectors_with_query(self):
+    def test_filters_onboarding_detectors_with_query(self) -> None:
         """Test that AUTO_DETECTED_ONBOARDING detectors are filtered even when using query filters."""
         # Create an onboarding detector with a searchable name
         self.create_uptime_detector(
@@ -468,7 +468,7 @@ class OrganizationDetectorIndexGetFilterTest(UptimeDetectorBaseTest):
         # Should not find it because it's filtered out
         assert len(response.data) == 0
 
-    def test_filters_onboarding_detectors_by_id(self):
+    def test_filters_onboarding_detectors_by_id(self) -> None:
         """Test that AUTO_DETECTED_ONBOARDING detectors cannot be accessed via ID filtering."""
         # Create an onboarding detector
         onboarding_detector = self.create_uptime_detector(
@@ -504,7 +504,7 @@ class OrganizationDetectorDetailsGetFilterTest(UptimeDetectorBaseTest):
 
     endpoint = "sentry-api-0-organization-detector-details"
 
-    def test_onboarding_detector_returns_404(self):
+    def test_onboarding_detector_returns_404(self) -> None:
         """Test that accessing an AUTO_DETECTED_ONBOARDING detector by ID returns 404."""
         onboarding_detector = self.create_uptime_detector(
             project=self.project,
@@ -520,7 +520,7 @@ class OrganizationDetectorDetailsGetFilterTest(UptimeDetectorBaseTest):
             status_code=status.HTTP_404_NOT_FOUND,
         )
 
-    def test_active_auto_detected_is_accessible(self):
+    def test_active_auto_detected_is_accessible(self) -> None:
         """Test that AUTO_DETECTED_ACTIVE detectors are accessible via details endpoint."""
         active_detector = self.create_uptime_detector(
             project=self.project,

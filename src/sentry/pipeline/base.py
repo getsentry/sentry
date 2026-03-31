@@ -81,7 +81,10 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
         provider_model = None
         if state.provider_model_id:
             assert cls.provider_model_cls is not None
-            provider_model = cls.provider_model_cls.objects.get(id=state.provider_model_id)
+            try:
+                provider_model = cls.provider_model_cls.objects.get(id=state.provider_model_id)
+            except cls.provider_model_cls.DoesNotExist:
+                return None
 
         organization: RpcOrganization | None = None
         if state.org_id:
@@ -257,7 +260,7 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
             return nested_pipeline.fetch_state(key)
         return self._fetch_state(key)
 
-    def get_pipeline_api_steps(self) -> ApiPipelineSteps[Self]:
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[Self] | None:
         """
         Return API step objects for this pipeline, or None if API mode is not
         supported. Steps may be callables for late binding (resolved when the
@@ -271,6 +274,14 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
     def is_api_ready(self) -> bool:
         """Returns True if this pipeline supports API mode."""
         return self.get_pipeline_api_steps() is not None
+
+    @property
+    def is_api_mode(self) -> bool:
+        """Returns True if this pipeline session was initiated via the API."""
+        return bool(self._fetch_state("api_mode"))
+
+    def set_api_mode(self, enabled: bool = True) -> None:
+        self.bind_state("api_mode", enabled)
 
     def _assert_user_authorization(self) -> None:
         assert not (self.state.uid is not None and self.state.uid != self.request.user.id), (
