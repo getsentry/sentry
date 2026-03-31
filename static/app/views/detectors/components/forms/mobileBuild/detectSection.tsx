@@ -82,21 +82,21 @@ export function MobileBuildDetectSection({step}: {step?: number}) {
             flexibleControlStateSize
             preserveOnUnmount
           />
-            {(thresholdType === 'absolute_diff' || thresholdType === 'relative_diff') && (
-              <Flex align="center" gap="sm">
-                <IconInfo size="xs" />
-                <Text variant="muted" size="sm">
-                  {tct(
-                    "Compares against the previous build matching this monitor's filters, [platform], [packageName], and [buildConfiguration].",
-                    {
-                      platform: <InlineCode>platform</InlineCode>,
-                      packageName: <InlineCode>package_name</InlineCode>,
-                      buildConfiguration: <InlineCode>build_configuration</InlineCode>,
-                    }
-                  )}
-                </Text>
-              </Flex>
-            )}
+          {(thresholdType === 'absolute_diff' || thresholdType === 'relative_diff') && (
+            <Flex align="center" gap="sm">
+              <IconInfo size="xs" />
+              <Text variant="muted" size="sm">
+                {tct(
+                  "Compares against the previous build matching this monitor's filters, [platform], [packageName], and [buildConfiguration].",
+                  {
+                    platform: <InlineCode>platform</InlineCode>,
+                    packageName: <InlineCode>package_name</InlineCode>,
+                    buildConfiguration: <InlineCode>build_configuration</InlineCode>,
+                  }
+                )}
+              </Text>
+            </Flex>
+          )}
           <ThresholdSection thresholdType={thresholdType} />
         </Section>
       </Container>
