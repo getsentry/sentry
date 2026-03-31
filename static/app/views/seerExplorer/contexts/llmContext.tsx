@@ -75,7 +75,7 @@ function buildTree(
     if (node.parentId === parentId) {
       children.push({
         nodeType: node.nodeType,
-        data: nodeData.get(id) ?? {},
+        data: nodeData.has(id) ? nodeData.get(id) : {},
         children: buildTree(nodes, nodeData, id),
       });
     }
@@ -98,7 +98,7 @@ function serializeState(
       nodes: [
         {
           nodeType: node.nodeType,
-          data: nodeData.get(fromNodeId) ?? {},
+          data: nodeData.has(fromNodeId) ? nodeData.get(fromNodeId) : {},
           children: buildTree(state.nodes, nodeData, fromNodeId),
         },
       ],
