@@ -7,7 +7,7 @@ from sentry.preprod.pull_request.comment_types import (
 
 
 class TestPullRequestCommentTypes:
-    def test_parse_github_issue_comments_real_data(self):
+    def test_parse_github_issue_comments_real_data(self) -> None:
         """Test parsing real GitHub issue comments from actual PR data."""
         raw_comments = [
             {
@@ -163,7 +163,7 @@ class TestPullRequestCommentTypes:
         )
         assert comment2.author_association == AuthorAssociation.MEMBER
 
-    def test_parse_github_review_comments_real_data(self):
+    def test_parse_github_review_comments_real_data(self) -> None:
         """Test parsing real GitHub review comments from test-org/test-repo PR."""
         raw_comments = [
             {

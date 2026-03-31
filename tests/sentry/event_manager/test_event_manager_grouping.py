@@ -584,7 +584,7 @@ class GroupHashCachingTest(TestCase):
             cache_use_expected=False,
         )
 
-    def test_cache_invalidation_error_handling(self):
+    def test_cache_invalidation_error_handling(self) -> None:
         # We don't want the cache invalidation triggered by saving, updating, or deleting a
         # grouphash to ever make those processes crash
 

@@ -489,6 +489,11 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 *sentryapp*.py                                                       @getsentry/product-owners-settings-integrations @getsentry/ecosystem
 *doc_integration*.py                                                 @getsentry/ecosystem
 
+/src/sentry/runner/commands/createproject.py                         @getsentry/ecosystem
+/src/sentry/runner/commands/createorg.py                             @getsentry/ecosystem
+/tests/sentry/runner/commands/test_createproject.py                  @getsentry/ecosystem
+/tests/sentry/runner/commands/test_createorg.py                      @getsentry/ecosystem
+
 ## End of Integrations
 
 
@@ -673,12 +678,14 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/components/events/highlights/                   @getsentry/issue-workflow
 /static/app/components/issues/                              @getsentry/issue-workflow
 /static/app/components/stackTrace/                          @getsentry/issue-workflow
+/static/app/components/stream/supergroupRow.tsx             @getsentry/issue-detection-frontend
 /static/app/views/issueList/                                @getsentry/issue-workflow
 /static/app/views/issueList/issueListSeerComboBox.tsx       @getsentry/issue-workflow @getsentry/machine-learning-ai
 /static/app/views/issueList/pages/supergroups.tsx           @getsentry/issue-detection-frontend
 /static/app/views/issueList/supergroups/                    @getsentry/issue-detection-frontend
 /static/app/views/issueDetails/                             @getsentry/issue-workflow
 /static/app/views/nav/secondary/sections/issues/            @getsentry/issue-workflow
+/static/app/views/sharedGroupDetails/                       @getsentry/issue-workflow
 /static/app/components/events/interfaces/performance/spanEvidenceKeyValueList.tsx @getsentry/issue-detection-frontend
 /static/app/components/events/interfaces/crashContent/exception/actionableItems.tsx   @getsentry/issue-workflow
 /tests/sentry/deletions/test_group.py                       @getsentry/issue-detection-backend
@@ -806,6 +813,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/utils/theme/                              @getsentry/design-engineering
 /static/app/components/commandPalette/                @getsentry/design-engineering
 /static/app/components/core/                          @getsentry/design-engineering
+/static/app/components/dnd/                           @getsentry/design-engineering
 /static/app/components/pageFilters/                   @getsentry/design-engineering
 /static/app/icons/                                    @getsentry/design-engineering
 /static/app/stories/                                  @getsentry/design-engineering

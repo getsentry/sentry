@@ -8,7 +8,7 @@ from sentry.testutils.cases import APITestCase
 class OrganizationAttributeMappingsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-attribute-mappings"
 
-    def test_get_all_mappings(self):
+    def test_get_all_mappings(self) -> None:
         """Test that endpoint returns all attribute mappings when no filter is provided."""
         self.login_as(user=self.user)
         url = reverse(self.endpoint, kwargs={"organization_id_or_slug": self.organization.slug})
@@ -41,7 +41,7 @@ class OrganizationAttributeMappingsEndpointTest(APITestCase):
             assert "internalName" in item
             assert "searchType" in item
 
-    def test_known_span_mapping(self):
+    def test_known_span_mapping(self) -> None:
         """Test that a known span mapping is returned correctly."""
         self.login_as(user=self.user)
         url = reverse(self.endpoint, kwargs={"organization_id_or_slug": self.organization.slug})
@@ -64,7 +64,7 @@ class OrganizationAttributeMappingsEndpointTest(APITestCase):
         assert id_mapping["internalName"] == SPAN_ATTRIBUTE_DEFINITIONS["id"].internal_name
         assert id_mapping["searchType"] == SPAN_ATTRIBUTE_DEFINITIONS["id"].search_type
 
-    def test_known_log_mapping(self):
+    def test_known_log_mapping(self) -> None:
         """Test that a known log mapping is returned correctly."""
         self.login_as(user=self.user)
         url = reverse(self.endpoint, kwargs={"organization_id_or_slug": self.organization.slug})
@@ -89,7 +89,7 @@ class OrganizationAttributeMappingsEndpointTest(APITestCase):
         )
         assert message_mapping["searchType"] == OURLOG_ATTRIBUTE_DEFINITIONS["message"].search_type
 
-    def test_single_type_filter(self):
+    def test_single_type_filter(self) -> None:
         """Test filtering by a single type."""
         self.login_as(user=self.user)
         url = reverse(self.endpoint, kwargs={"organization_id_or_slug": self.organization.slug})
@@ -103,7 +103,7 @@ class OrganizationAttributeMappingsEndpointTest(APITestCase):
         for item in data:
             assert item["type"] == "spans"
 
-    def test_multiple_type_filter(self):
+    def test_multiple_type_filter(self) -> None:
         """Test filtering by multiple types using repeated query params."""
         self.login_as(user=self.user)
         url = reverse(self.endpoint, kwargs={"organization_id_or_slug": self.organization.slug})
@@ -117,7 +117,7 @@ class OrganizationAttributeMappingsEndpointTest(APITestCase):
         types_present = {item["type"] for item in data}
         assert types_present == {"spans", "logs"}
 
-    def test_invalid_type_returns_400(self):
+    def test_invalid_type_returns_400(self) -> None:
         """Test that an invalid type returns a 400 error."""
         self.login_as(user=self.user)
         url = reverse(self.endpoint, kwargs={"organization_id_or_slug": self.organization.slug})
@@ -128,7 +128,7 @@ class OrganizationAttributeMappingsEndpointTest(APITestCase):
         assert "detail" in data
         assert "invalid_type" in data["detail"]
 
-    def test_mixed_valid_invalid_types_returns_400(self):
+    def test_mixed_valid_invalid_types_returns_400(self) -> None:
         """Test that mixing valid and invalid types returns a 400 error."""
         self.login_as(user=self.user)
         url = reverse(self.endpoint, kwargs={"organization_id_or_slug": self.organization.slug})
@@ -139,7 +139,7 @@ class OrganizationAttributeMappingsEndpointTest(APITestCase):
         assert "detail" in data
         assert "invalid_type" in data["detail"]
 
-    def test_includes_secondary_aliases(self):
+    def test_includes_secondary_aliases(self) -> None:
         """Test that secondary aliases are included in the response."""
         self.login_as(user=self.user)
         url = reverse(self.endpoint, kwargs={"organization_id_or_slug": self.organization.slug})
@@ -164,7 +164,7 @@ class OrganizationAttributeMappingsEndpointTest(APITestCase):
             == SPAN_ATTRIBUTE_DEFINITIONS["description"].internal_name
         )
 
-    def test_camelcase_keys(self):
+    def test_camelcase_keys(self) -> None:
         """Test that response uses camelCase keys."""
         self.login_as(user=self.user)
         url = reverse(self.endpoint, kwargs={"organization_id_or_slug": self.organization.slug})
@@ -183,7 +183,7 @@ class OrganizationAttributeMappingsEndpointTest(APITestCase):
         assert "internal_name" not in item
         assert "search_type" not in item
 
-    def test_excludes_private_attributes(self):
+    def test_excludes_private_attributes(self) -> None:
         """Test that private attributes are not included in the response."""
         self.login_as(user=self.user)
         url = reverse(self.endpoint, kwargs={"organization_id_or_slug": self.organization.slug})
@@ -214,7 +214,7 @@ class OrganizationAttributeMappingsEndpointTest(APITestCase):
         )
         assert item_type_mapping is None
 
-    def test_duplicate_type_parameters_deduplicated(self):
+    def test_duplicate_type_parameters_deduplicated(self) -> None:
         """Test that duplicate type parameters are deduplicated."""
         self.login_as(user=self.user)
         url = reverse(self.endpoint, kwargs={"organization_id_or_slug": self.organization.slug})
