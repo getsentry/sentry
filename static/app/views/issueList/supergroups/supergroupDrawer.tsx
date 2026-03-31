@@ -147,27 +147,23 @@ function SupergroupIssueList({
 
   const matchedSet = useMemo(() => new Set(matchedGroupIds), [matchedGroupIds]);
 
-  // Split group IDs into those already in GroupStore and those that need fetching.
-  // Place loaded groups first so the user sees them immediately.
-  const {sortedGroupIds, loadedGroups} = useMemo(() => {
-    const loaded: Group[] = [];
-    const loadedIdSet = new Set<string>();
+  // Place groups already in GroupStore first so the user sees them immediately
+  const {sortedGroupIds, loadedGroupMap} = useMemo(() => {
+    const loaded: number[] = [];
+    const map = new Map<string, Group>();
     const unloaded: number[] = [];
 
     for (const id of groupIds) {
       const group = GroupStore.get(String(id)) as Group | undefined;
       if (group) {
-        loaded.push(group);
-        loadedIdSet.add(String(id));
+        loaded.push(id);
+        map.set(group.id, group);
       } else {
         unloaded.push(id);
       }
     }
 
-    // Loaded IDs first, then unloaded
-    const sorted = [...groupIds.filter(id => loadedIdSet.has(String(id))), ...unloaded];
-
-    return {sortedGroupIds: sorted, loadedGroups: loaded};
+    return {sortedGroupIds: [...loaded, ...unloaded], loadedGroupMap: map};
   }, [groupIds]);
 
   const totalPages = Math.ceil(sortedGroupIds.length / PAGE_SIZE);
@@ -176,16 +172,6 @@ function SupergroupIssueList({
     [sortedGroupIds, page]
   );
 
-  // Build a map of already-loaded groups for quick lookup
-  const loadedGroupMap = useMemo(() => {
-    const map = new Map<string, Group>();
-    for (const group of loadedGroups) {
-      map.set(group.id, group);
-    }
-    return map;
-  }, [loadedGroups]);
-
-  // Determine which IDs on the current page still need fetching
   const pageUnloadedIds = useMemo(
     () => pageGroupIds.filter(id => !loadedGroupMap.has(String(id))),
     [pageGroupIds, loadedGroupMap]
@@ -201,7 +187,6 @@ function SupergroupIssueList({
     });
   }, [api, organization.slug]);
 
-  // Only fetch groups that aren't already loaded
   const queryKey: ApiQueryKey = useMemo(
     () => [
       getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
@@ -222,35 +207,13 @@ function SupergroupIssueList({
     enabled: pageUnloadedIds.length > 0,
   });
 
-  // Build a combined map of all available groups (loaded + fetched)
-  const fetchedGroupMap = useMemo(() => {
-    const map = new Map<string, Group>();
+  const groupMap = useMemo(() => {
+    const map = new Map(loadedGroupMap);
     for (const group of fetchedGroups ?? []) {
       map.set(group.id, group);
     }
     return map;
-  }, [fetchedGroups]);
-
-  const renderGroupRow = (group: Group) => {
-    const members = memberList?.[group.project?.slug]
-      ? memberList[group.project.slug]
-      : undefined;
-    const isMatched = matchedSet.has(group.id);
-
-    return (
-      <HighlightableRow key={group.id} highlighted={isMatched}>
-        <StreamGroup
-          group={group}
-          canSelect={false}
-          withChart={false}
-          withColumns={DRAWER_COLUMNS}
-          memberList={members}
-          statsPeriod={DEFAULT_STREAM_GROUP_STATS_PERIOD}
-          source="supergroup-drawer"
-        />
-      </HighlightableRow>
-    );
-  };
+  }, [loadedGroupMap, fetchedGroups]);
 
   return (
     <Fragment>
@@ -267,13 +230,27 @@ function SupergroupIssueList({
         <PanelBody>
           {pageGroupIds.map(id => {
             const strId = String(id);
-            const group = loadedGroupMap.get(strId) ?? fetchedGroupMap.get(strId);
+            const group = groupMap.get(strId);
 
             if (group) {
-              return renderGroupRow(group);
+              const members = memberList?.[group.project?.slug]
+                ? memberList[group.project.slug]
+                : undefined;
+              return (
+                <HighlightableRow key={group.id} highlighted={matchedSet.has(group.id)}>
+                  <StreamGroup
+                    group={group}
+                    canSelect={false}
+                    withChart={false}
+                    withColumns={DRAWER_COLUMNS}
+                    memberList={members}
+                    statsPeriod={DEFAULT_STREAM_GROUP_STATS_PERIOD}
+                    source="supergroup-drawer"
+                  />
+                </HighlightableRow>
+              );
             }
 
-            // Still loading this group
             if (isPending) {
               return (
                 <PlaceholderRow key={strId}>
