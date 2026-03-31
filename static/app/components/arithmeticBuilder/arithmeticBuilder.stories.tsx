@@ -6,14 +6,13 @@ import * as Storybook from 'sentry/stories';
 export default Storybook.story('ArithmeticBuilder', story => {
   story('With References', () => {
     const [expression, setExpression] = useState('A + B');
-    const [refsInput, setRefsInput] = useState(
-      '{"A": "count()", "B": "avg(span.duration)"}'
-    );
+    const [refsInput, setRefsInput] = useState('["A", "B", "C"]');
     const [parseError, setParseError] = useState('');
 
-    let references: Record<string, string> = {};
+    let references = new Set<string>();
     try {
-      references = JSON.parse(refsInput);
+      const parsed = JSON.parse(refsInput);
+      references = new Set(parsed);
       if (parseError) {
         setParseError('');
       }
@@ -26,8 +25,8 @@ export default Storybook.story('ArithmeticBuilder', story => {
     return (
       <Fragment>
         <p>
-          Define references as JSON below, then use their keys (single uppercase letters)
-          in the expression.
+          Define references as a JSON array of single uppercase letters below, then use
+          them in the expression.
         </p>
 
         <label htmlFor="refs-input">

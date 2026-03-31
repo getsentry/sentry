@@ -58,14 +58,14 @@ describe('vaidateTokens', () => {
   });
 
   it.each([
-    ['A + B', {A: '1', B: '2'}],
-    ['A + 1', {A: '1', B: '2'}],
-    ['(A + B) - 1', {A: '1', B: '2'}],
-    ['(A + B) * (A - B)', {A: '1', B: '2'}],
-    ['(A + B) * (A - B) / 100', {A: '1', B: '2'}],
-    ['((A + B) * (A - B)) / 100', {A: '1', B: '2'}],
+    ['A + B', new Set(['A', 'B'])],
+    ['A + 1', new Set(['A', 'B'])],
+    ['(A + B) - 1', new Set(['A', 'B'])],
+    ['(A + B) * (A - B)', new Set(['A', 'B'])],
+    ['(A + B) * (A - B) / 100', new Set(['A', 'B'])],
+    ['((A + B) * (A - B)) / 100', new Set(['A', 'B'])],
   ])('passes with references `%s`', (expression, references) => {
-    const tokens = tokenizeExpression(expression, references);
+    const tokens = tokenizeExpression(expression, references as Set<string>);
     expect(validateTokens(tokens)).toBe(true);
   });
 });

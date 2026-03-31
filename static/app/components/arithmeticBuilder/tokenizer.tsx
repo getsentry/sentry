@@ -46,10 +46,7 @@ function space(prev: LocationRange | null, next: LocationRange | null): TokenFre
   return new TokenFreeText(location, '');
 }
 
-function tryTokenizeExpression(
-  expression: string,
-  references?: Record<string, string>
-): Token[] {
+function tryTokenizeExpression(expression: string, references?: Set<string>): Token[] {
   if (!expression.trim()) {
     return [];
   }
@@ -60,7 +57,7 @@ function tryTokenizeExpression(
 
 export function tokenizeExpression(
   expression: string,
-  references?: Record<string, string>
+  references?: Set<string>
 ): Token[] {
   let loc: LocationRange | null = null;
   const tokens: Token[] = [];
@@ -192,16 +189,16 @@ class TokenConverter {
   /**
    * A map of reference aliases to their corresponding values.
    */
-  private references: Record<string, string> = {};
+  private references = new Set<string>();
 
-  constructor(references?: Record<string, string>) {
+  constructor(references?: Set<string>) {
     if (references) {
       this.references = references;
     }
   }
 
   isReference(value: string): boolean {
-    return defined(this.references[value]);
+    return this.references.has(value);
   }
 
   tokenReference(value: string, location: LocationRange): TokenReference {

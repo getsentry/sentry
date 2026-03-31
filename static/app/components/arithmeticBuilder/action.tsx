@@ -51,7 +51,7 @@ function isArithmeticBuilderReplaceAction(
 
 interface UseArithmeticBuilderActionOptions {
   initialExpression: string;
-  references?: Record<string, string>;
+  references?: Set<string>;
   updateExpression?: (expression: Expression) => void;
 }
 
@@ -108,7 +108,7 @@ export function useArithmeticBuilderAction({
 function deleteToken(
   text: string,
   action: ArithmeticBuilderDeleteAction,
-  references?: Record<string, string>
+  references?: Set<string>
 ) {
   const [head, tail] = queryHeadTail(text, action.token);
   return new Expression(removeExcessWhitespaceFromParts(head, tail), references);
@@ -117,7 +117,7 @@ function deleteToken(
 function replaceToken(
   text: string,
   action: ArithmeticBuilderReplaceAction,
-  references?: Record<string, string>
+  references?: Set<string>
 ) {
   const [head, tail] = queryHeadTail(text, action.token);
   return new Expression(

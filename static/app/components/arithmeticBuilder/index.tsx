@@ -28,7 +28,11 @@ interface ArithmeticBuilderProps {
    * to a known column.
    */
   getSuggestedKey?: (key: string) => string | null;
-  references?: Record<string, string>;
+  /**
+   * When provided, the arithmetic builder will use the references to suggest
+   * keys for the user instead of aggregations and function arguments.
+   */
+  references?: Set<string>;
   setExpression?: (expression: Expression) => void;
 }
 

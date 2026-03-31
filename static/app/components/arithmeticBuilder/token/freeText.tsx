@@ -587,7 +587,7 @@ function useFunctionItems({
 function useReferenceItems(): Array<SelectSectionWithKey<string>> {
   const {references} = useArithmeticBuilder();
   return useMemo(() => {
-    if (!references) {
+    if (!references || references.size === 0) {
       return [];
     }
 
@@ -595,7 +595,7 @@ function useReferenceItems(): Array<SelectSectionWithKey<string>> {
       {
         key: 'references',
         label: t('references'),
-        options: Object.keys(references).map(key => ({
+        options: [...references].map(key => ({
           key: `${TokenKind.REFERENCE}:${key}`,
           label: key,
           value: key,
