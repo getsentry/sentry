@@ -12,7 +12,7 @@ import {TextField} from 'sentry/components/forms/fields/textField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {
   FormSection,
-  SectionSubHeading,
+  FormSectionSubHeading,
 } from 'sentry/components/workflowEngine/ui/formSection';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
@@ -143,7 +143,7 @@ function Margins() {
   return (
     <Fragment>
       <SubSectionSeparator aria-hidden="true" />
-      <SectionSubHeading>{t('Set margins')}</SectionSubHeading>
+      <FormSectionSubHeading>{t('Set margins')}</FormSectionSubHeading>
       <InputGroup>
         <NumberField
           name="checkinMargin"
@@ -180,7 +180,7 @@ function Thresholds() {
   return (
     <Fragment>
       <SubSectionSeparator aria-hidden="true" />
-      <SectionSubHeading>{t('Set thresholds')}</SectionSubHeading>
+      <FormSectionSubHeading>{t('Set thresholds')}</FormSectionSubHeading>
       <InputGroup>
         <NumberField
           name="failureIssueThreshold"
@@ -204,7 +204,7 @@ export function CronDetectorFormDetectSection() {
       <FormSection title={t('Detect')}>
         <DetectFieldsContainer>
           <div>
-            <SectionSubHeading>{t('Set your schedule')}</SectionSubHeading>
+            <FormSectionSubHeading>{t('Set your schedule')}</FormSectionSubHeading>
             <Text variant="muted">
               {tct('You can use [link:the crontab syntax] or our interval schedule.', {
                 link: <ExternalLink href="https://en.wikipedia.org/wiki/Cron" />,
