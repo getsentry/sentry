@@ -6,7 +6,7 @@ import type {FormModel} from 'sentry/components/forms/model';
 import {EnvironmentSelector} from 'sentry/components/workflowEngine/form/environmentSelector';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Card} from 'sentry/components/workflowEngine/ui/card';
-import {Section} from 'sentry/components/workflowEngine/ui/section';
+import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {AutomationBuilder} from 'sentry/views/automations/components/automationBuilder';
@@ -32,27 +32,27 @@ export function AutomationForm({model}: {model: FormModel}) {
         setConnectedIds={setConnectedIds}
       />
       <Card>
-        <Section
+        <FormSection
           title={t('Choose Environment')}
           description={t(
             'If you select environments different than your monitors then the automation will not fire.'
           )}
         >
           <EnvironmentSelector />
-        </Section>
+        </FormSection>
       </Card>
       <Card>
-        <Section title={t('Alert Builder')}>
+        <FormSection title={t('Alert Builder')}>
           <AutomationBuilder />
-        </Section>
+        </FormSection>
       </Card>
       <Card>
-        <Section
+        <FormSection
           title={t('Action Interval')}
           description={t('Perform the actions above this often for an issue.')}
         >
           <ActionIntervalSelectField />
-        </Section>
+        </FormSection>
       </Card>
     </Flex>
   );
