@@ -759,6 +759,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 ## gsAdmin
 # /static/gsAdmin/*                          unowned
+/static/gsAdmin/components/changeDashboardsParallelLimitModal.tsx  @getsentry/data-browsing
 /static/gsAdmin/components/forkCustomer.tsx  @getsentry/hybrid-cloud
 /static/gsAdmin/components/relocation*       @getsentry/hybrid-cloud
 /static/gsAdmin/views/relocation*            @getsentry/hybrid-cloud
