@@ -222,7 +222,16 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             #     (?=[a-f]*[0-9])     The lookahead - there must be a digit, which may or may not be
             #                         preceded by some number of hex letters
             #     [0-9a-f]{8,128}     The matcher itself - between 8 and 128 hex characters
-            \b
+            (
+                # Regular word boundary (for positive values)
+                \b
+                |
+                # Alphanumeric negative lookbehind before the dash in negative values to ensure it's
+                # only considered a minus sign if it doesn't connect two alphanumeric strings. (No
+                # word boundary here because the dash serves as the word boundary, since it's not a
+                # word character.)
+                (?<!\w)-
+            )
             (
                 ((?=[a-f]*[0-9])[0-9a-f]{8,128}) |
                 ((?=[A-F]*[0-9])[0-9A-F]{8,128})
