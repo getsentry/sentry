@@ -1,5 +1,4 @@
 import {Fragment, useMemo, useState, type ReactNode} from 'react';
-import {createPortal} from 'react-dom';
 import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import {useTheme} from '@emotion/react';
@@ -29,6 +28,7 @@ import {
   type LinkedDashboard,
   type ValidateWidgetResponse,
 } from 'sentry/views/dashboards/types';
+import {correctDragOverlayOffset} from 'sentry/views/dashboards/widgetBuilder/components/common/draggableUtils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
@@ -240,27 +240,28 @@ export function GroupBySelector({
                 ))}
               </SortableQueryFields>
             </SortableContext>
-            {createPortal(
-              <DragOverlay dropAnimation={null} zIndex={theme.zIndex.modal}>
-                {activeId ? (
-                  <Ghost>
-                    <QueryField
-                      value={columns[Number(activeId)]!}
-                      fieldOptions={{
-                        ...filteredFieldOptions,
-                        ...columnsAsFieldOptions[Number(activeId)],
-                      }}
-                      onChange={value => handleSelect(value, Number(activeId))}
-                      canDrag={canDrag}
-                      canDelete={canDelete}
-                      disabled={disable}
-                      renderTagOverride={renderTagOverride}
-                    />
-                  </Ghost>
-                ) : null}
-              </DragOverlay>,
-              document.body
-            )}
+            <DragOverlay
+              dropAnimation={null}
+              zIndex={theme.zIndex.modal}
+              modifiers={[correctDragOverlayOffset]}
+            >
+              {activeId ? (
+                <Ghost>
+                  <QueryField
+                    value={columns[Number(activeId)]!}
+                    fieldOptions={{
+                      ...filteredFieldOptions,
+                      ...columnsAsFieldOptions[Number(activeId)],
+                    }}
+                    onChange={value => handleSelect(value, Number(activeId))}
+                    canDrag={canDrag}
+                    canDelete={canDelete}
+                    disabled={disable}
+                    renderTagOverride={renderTagOverride}
+                  />
+                </Ghost>
+              ) : null}
+            </DragOverlay>
           </DndContext>
         )}
       </StyledField>
