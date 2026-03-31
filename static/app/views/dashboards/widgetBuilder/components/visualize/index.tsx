@@ -1,7 +1,8 @@
 import {Fragment, useMemo, useState, type ReactNode} from 'react';
+import {createPortal} from 'react-dom';
 import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -279,6 +280,7 @@ interface VisualizeProps {
 export function Visualize({error, setError}: VisualizeProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const organization = useOrganization();
+  const theme = useTheme();
   const {state, dispatch} = useWidgetBuilderContext();
   const tags = useTags();
   const {customMeasurements} = useCustomMeasurements();
@@ -1063,18 +1065,21 @@ export function Visualize({error, setError}: VisualizeProps) {
               })}
             </Stack>
           </SortableContext>
-          <DragOverlay dropAnimation={null}>
-            {activeId && (
-              <VisualizeGhostField
-                activeId={Number(activeId)}
-                aggregates={aggregates}
-                fields={fields ?? []}
-                isBigNumberWidget={isBigNumberWidget}
-                isTimeSeriesWidget={isTimeSeriesWidget}
-                stringFields={stringFields ?? []}
-              />
-            )}
-          </DragOverlay>
+          {createPortal(
+            <DragOverlay dropAnimation={null} zIndex={theme.zIndex.modal}>
+              {activeId && (
+                <VisualizeGhostField
+                  activeId={Number(activeId)}
+                  aggregates={aggregates}
+                  fields={fields ?? []}
+                  isBigNumberWidget={isBigNumberWidget}
+                  isTimeSeriesWidget={isTimeSeriesWidget}
+                  stringFields={stringFields ?? []}
+                />
+              )}
+            </DragOverlay>,
+            document.body
+          )}
         </DndContext>
       </StyledFieldGroup>
 

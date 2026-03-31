@@ -1,6 +1,8 @@
 import {Fragment, useMemo, useState, type ReactNode} from 'react';
+import {createPortal} from 'react-dom';
 import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -68,6 +70,7 @@ export function GroupBySelector({
   const organization = useOrganization();
   const source = useDashboardWidgetSource();
   const isEditing = useIsEditingWidget();
+  const theme = useTheme();
   const builderVersion = WidgetBuilderVersion.SLIDEOUT;
 
   function handleAdd() {
@@ -237,24 +240,27 @@ export function GroupBySelector({
                 ))}
               </SortableQueryFields>
             </SortableContext>
-            <DragOverlay dropAnimation={null}>
-              {activeId ? (
-                <Ghost>
-                  <QueryField
-                    value={columns[Number(activeId)]!}
-                    fieldOptions={{
-                      ...filteredFieldOptions,
-                      ...columnsAsFieldOptions[Number(activeId)],
-                    }}
-                    onChange={value => handleSelect(value, Number(activeId))}
-                    canDrag={canDrag}
-                    canDelete={canDelete}
-                    disabled={disable}
-                    renderTagOverride={renderTagOverride}
-                  />
-                </Ghost>
-              ) : null}
-            </DragOverlay>
+            {createPortal(
+              <DragOverlay dropAnimation={null} zIndex={theme.zIndex.modal}>
+                {activeId ? (
+                  <Ghost>
+                    <QueryField
+                      value={columns[Number(activeId)]!}
+                      fieldOptions={{
+                        ...filteredFieldOptions,
+                        ...columnsAsFieldOptions[Number(activeId)],
+                      }}
+                      onChange={value => handleSelect(value, Number(activeId))}
+                      canDrag={canDrag}
+                      canDelete={canDelete}
+                      disabled={disable}
+                      renderTagOverride={renderTagOverride}
+                    />
+                  </Ghost>
+                ) : null}
+              </DragOverlay>,
+              document.body
+            )}
           </DndContext>
         )}
       </StyledField>
@@ -351,14 +357,9 @@ const Ghost = styled('div')`
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
   opacity: 0.8;
   cursor: grabbing;
-  padding-right: ${p => p.theme.space.xl};
   width: 100%;
 
   button {
     cursor: grabbing;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    width: 710px;
   }
 `;
