@@ -1,4 +1,3 @@
-import type {Token} from 'sentry/components/arithmeticBuilder/token';
 import {
   TokenAttribute,
   TokenCloseParenthesis,
@@ -7,6 +6,8 @@ import {
   TokenLiteral,
   TokenOpenParenthesis,
   TokenOperator,
+  TokenReference,
+  type Token,
 } from 'sentry/components/arithmeticBuilder/token';
 import {
   makeTokenKey,
@@ -45,6 +46,10 @@ function a(i: number, attribute: string, type?: string): TokenAttribute {
 
 function f(i: number, func: string, attributes: TokenAttribute[]): TokenFunction {
   return k(i, new TokenFunction(expect.objectContaining({}), func, attributes));
+}
+
+function r(i: number, label: string): TokenReference {
+  return k(i, new TokenReference(expect.objectContaining({}), label));
 }
 
 describe('tokenizeExpression', () => {
@@ -668,4 +673,40 @@ describe('tokenizeExpression', () => {
   ])('tokenizes bad expressions `%s`', (expression, expected) => {
     expect(tokenizeExpression(expression)).toEqual(expected);
   });
+
+  it.each([
+    ['A', {A: '1'}, [s(0), r(0, 'A'), s(1)]],
+    [
+      'A + B',
+      {A: '1', B: '2'},
+      [s(0), r(0, 'A'), s(1), o(0, '+'), s(2), r(1, 'B'), s(3)],
+    ],
+    ['A+1', {A: '1'}, [s(0), r(0, 'A'), s(1), o(0, '+'), s(2), l(0, '1'), s(3)]],
+    ['A-1', {A: '1'}, [s(0), r(0, 'A'), s(1), o(0, '-'), s(2), l(0, '1'), s(3)]],
+  ])('tokenizes references `%s`', (expression, references, expected) => {
+    expect(tokenizeExpression(expression, references)).toEqual(expected);
+  });
+
+  it.each([
+    ['A', {B: '2'}, [s(0, 'A')]],
+    ['A + B', {A: '1'}, [s(0), r(0, 'A'), s(1), o(0, '+'), s(2, 'B')]],
+    ['A + B', {B: '2'}, [s(0, 'A'), o(0, '+'), s(1), r(0, 'B'), s(2)]],
+    ['A + B', {}, [s(0, 'A'), o(0, '+'), s(1, 'B')]],
+    ['A + B', undefined, [s(0, 'A'), o(0, '+'), s(1, 'B')]],
+  ])(
+    'treats missing references as free text `%s`',
+    (expression, references, expected) => {
+      expect(tokenizeExpression(expression, references)).toEqual(expected);
+    }
+  );
+
+  it.each([
+    ['a + B', {a: '1', B: '2'}, [s(0, 'a'), o(0, '+'), s(1), r(0, 'B'), s(2)]],
+    ['ab + B', {ab: '1', B: '2'}, [s(0, 'ab'), o(0, '+'), s(1), r(0, 'B'), s(2)]],
+  ])(
+    'only treats single uppercase letters as references `%s`',
+    (expression, references, expected) => {
+      expect(tokenizeExpression(expression, references)).toEqual(expected);
+    }
+  );
 });
