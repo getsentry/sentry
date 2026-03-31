@@ -295,6 +295,11 @@ class PreprodSizeAnalysisDetectorHandler(
 
         evidence_data: dict[str, Any] = {
             "detector_id": self.detector.id,
+            "value": self.extract_value(data_packet),
+            "conditions": [
+                result.condition.get_snapshot() for result in evaluation_result.condition_results
+            ],
+            "config": self.detector.config,
         }
         if metadata:
             evidence_data["head_artifact_id"] = metadata["head_artifact_id"]

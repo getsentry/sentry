@@ -683,6 +683,14 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
         assert occurrence.evidence_data["base_artifact_id"] == base_artifact.id
         assert occurrence.evidence_data["head_size_metric_id"] == 100
         assert occurrence.evidence_data["base_size_metric_id"] == 200
+        assert occurrence.evidence_data["value"] == 5000000
+        assert len(occurrence.evidence_data["conditions"]) == 1
+        assert occurrence.evidence_data["conditions"][0]["type"] == "gt"
+        assert occurrence.evidence_data["conditions"][0]["comparison"] == 1000000
+        assert occurrence.evidence_data["config"] == {
+            "threshold_type": "absolute",
+            "measurement": "install_size",
+        }
 
     def test_create_occurrence_download_size_with_metadata(self) -> None:
         commit_comparison = self.create_commit_comparison(
@@ -801,7 +809,53 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
         assert occurrence.issue_title == "Install size regression"
         assert event_data["platform"] == "unknown"
         assert event_data["tags"] == {}
-        assert occurrence.evidence_data == {"detector_id": detector.id}
+        assert occurrence.evidence_data["detector_id"] == detector.id
+        assert occurrence.evidence_data["value"] == 5000000
+        assert len(occurrence.evidence_data["conditions"]) == 1
+        assert occurrence.evidence_data["conditions"][0]["type"] == "gt"
+        assert occurrence.evidence_data["conditions"][0]["comparison"] == 1000000
+        assert occurrence.evidence_data["config"] == {
+            "threshold_type": "absolute",
+            "measurement": "install_size",
+        }
+
+    def test_create_occurrence_relative_diff_value(self) -> None:
+        condition_group = self.create_data_condition_group(
+            organization=self.project.organization,
+        )
+        self.create_data_condition(
+            condition_group=condition_group,
+            type=Condition.GREATER,
+            comparison=10,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+        detector = self.create_detector(
+            name="test-detector",
+            type=PreprodSizeAnalysisGroupType.slug,
+            project=self.project,
+            config={"threshold_type": "relative_diff", "measurement": "install_size"},
+            workflow_condition_group=condition_group,
+        )
+        data_packet: SizeAnalysisDataPacket = DataPacket(
+            source_id="test-source",
+            packet={
+                "head_install_size_bytes": 1500000,
+                "head_download_size_bytes": 1500000,
+                "base_install_size_bytes": 1000000,
+                "base_download_size_bytes": 1000000,
+            },
+        )
+        handler = PreprodSizeAnalysisDetectorHandler(detector)
+        result = handler.evaluate(data_packet)
+
+        assert None in result
+        occurrence = result[None].result
+        assert isinstance(occurrence, IssueOccurrence)
+
+        # relative_diff: ((1500000 - 1000000) / 1000000) * 100 = 50.0
+        assert occurrence.evidence_data["value"] == 50.0
+        assert occurrence.evidence_data["config"]["threshold_type"] == "relative_diff"
+        assert occurrence.evidence_data["conditions"][0]["comparison"] == 10
 
 
 @cell_silo_test
