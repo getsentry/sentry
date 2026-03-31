@@ -17,6 +17,7 @@ import {type CodingAgentIntegration} from 'sentry/components/events/autofix/useA
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
+import {processInChunks} from 'sentry/utils/array/procesInChunks';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {fetchDataQuery, fetchMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -99,11 +100,6 @@ export function useSelectedAgentFromBulkSettings({
   ]);
 }
 
-type MutateOptions = {
-  onError?: (error: Error) => void;
-  onSuccess?: () => void;
-};
-
 function useApplyOptimisticUpdate({project}: {project: Project}) {
   const queryClient = useQueryClient();
   const organization = useOrganization();
@@ -143,6 +139,11 @@ function useApplyOptimisticUpdate({project}: {project: Project}) {
     [queryClient, autofixSettingsQueryOptions.queryKey, project.id]
   );
 }
+
+type MutateOptions = {
+  onError?: (error: Error) => void;
+  onSuccess?: () => void;
+};
 
 export function useMutateSelectedAgent({project}: {project: Project}) {
   const {mutateAsync: updateProject} = useUpdateProject(project);
@@ -225,10 +226,10 @@ export function useBulkMutateSelectedAgent({projects}: {projects: Project[]}) {
       integration: 'seer' | 'none' | CodingAgentIntegration,
       {onSuccess, onError}: MutateOptions
     ) => {
-      const tuning = integration === 'none' ? 'off' : 'medium';
-
-      const results = await Promise.allSettled(
-        projects.map(async project => {
+      const results = await processInChunks({
+        items: projects,
+        chunkSize: 10,
+        fn: async project => {
           const [preferencesData] = await queryClient.fetchQuery({
             queryKey: makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
             queryFn: fetchDataQuery<SeerPreferencesResponse>,
@@ -250,7 +251,7 @@ export function useBulkMutateSelectedAgent({projects}: {projects: Project[]}) {
             fetchMutation({
               method: 'PUT',
               url: `/projects/${organization.slug}/${project.slug}/`,
-              data: {autofixAutomationTuning: tuning},
+              data: {autofixAutomationTuning: integration === 'none' ? 'off' : 'medium'},
             }),
             fetchMutation({
               method: 'POST',
@@ -262,8 +263,8 @@ export function useBulkMutateSelectedAgent({projects}: {projects: Project[]}) {
               },
             }),
           ]);
-        })
-      );
+        },
+      });
 
       // Update store only for projects that succeeded
       results.forEach((result, i) => {
@@ -309,8 +310,10 @@ export function useBulkMutateCreatePr({projects}: {projects: Project[]}) {
 
   return useCallback(
     async (value: boolean, {onSuccess, onError}: MutateOptions) => {
-      const results = await Promise.allSettled(
-        projects.map(async project => {
+      const results = await processInChunks({
+        items: projects,
+        chunkSize: 10,
+        fn: async project => {
           const [preferencesData] = await queryClient.fetchQuery({
             queryKey: makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
             queryFn: fetchDataQuery<SeerPreferencesResponse>,
@@ -318,34 +321,26 @@ export function useBulkMutateCreatePr({projects}: {projects: Project[]}) {
           });
           const preference = preferencesData?.preference;
 
-          if (preference?.automation_handoff?.integration_id) {
-            const updatedHandoff = {
-              ...preference.automation_handoff,
-              auto_create_pr: value,
-            };
-            return fetchMutation({
-              method: 'POST',
-              url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
-              data: {
-                repositories: preference?.repositories ?? [],
-                automated_run_stopping_point: preference?.automated_run_stopping_point,
-                automation_handoff: updatedHandoff,
-              },
-            });
-          }
-
-          const stoppingPoint = value ? ('open_pr' as const) : ('code_changes' as const);
           return fetchMutation({
             method: 'POST',
             url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
-            data: {
-              repositories: preference?.repositories ?? [],
-              automated_run_stopping_point: stoppingPoint,
-              automation_handoff: preference?.automation_handoff,
-            },
+            data: preference?.automation_handoff?.integration_id
+              ? {
+                  repositories: preference?.repositories ?? [],
+                  automated_run_stopping_point: preference?.automated_run_stopping_point,
+                  automation_handoff: {
+                    ...preference.automation_handoff,
+                    auto_create_pr: value,
+                  },
+                }
+              : {
+                  repositories: preference?.repositories ?? [],
+                  automated_run_stopping_point: value ? 'open_pr' : 'code_changes',
+                  automation_handoff: preference?.automation_handoff,
+                },
           });
-        })
-      );
+        },
+      });
 
       // Always invalidate to sync cache with whatever the server actually saved
       queryClient.invalidateQueries({
