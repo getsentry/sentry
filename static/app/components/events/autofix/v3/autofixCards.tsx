@@ -370,7 +370,7 @@ interface ArtifactCardProps {
 
 function ArtifactCard({children, icon, title}: ArtifactCardProps) {
   return (
-    <Container border="primary" radius="md" padding="md" background="primary">
+    <Container border="primary" radius="md" padding="lg" background="primary">
       <Disclosure defaultExpanded>
         <Disclosure.Title>
           <Flex gap="md" align="center">
@@ -379,7 +379,7 @@ function ArtifactCard({children, icon, title}: ArtifactCardProps) {
           </Flex>
         </Disclosure.Title>
         <Disclosure.Content>
-          <Flex direction="column" gap="md">
+          <Flex direction="column" gap="lg">
             {children}
           </Flex>
         </Disclosure.Content>
@@ -394,7 +394,7 @@ interface ArtifactDetailsProps extends FlexProps {
 
 function ArtifactDetails({children, ...flexProps}: ArtifactDetailsProps) {
   return (
-    <Flex direction="column" borderTop="primary" gap="md" paddingTop="md" {...flexProps}>
+    <Flex direction="column" borderTop="primary" gap="md" paddingTop="lg" {...flexProps}>
       {children}
     </Flex>
   );

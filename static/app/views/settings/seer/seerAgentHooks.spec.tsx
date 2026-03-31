@@ -14,6 +14,8 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {
   useAgentOptions,
+  useBulkMutateCreatePr,
+  useBulkMutateSelectedAgent,
   useMutateCreatePr,
   useMutateSelectedAgent,
   useSelectedAgentFromBulkSettings,
@@ -35,7 +37,7 @@ describe('seerAgentHooks', () => {
   });
 
   describe('useAgentOptions', () => {
-    it('returns Seer, integration options, and No Handoff Selection', () => {
+    it('returns Seer, integration options', () => {
       const integrations: CodingAgentIntegration[] = [
         {id: '42', name: 'Cursor', provider: 'cursor'},
       ];
@@ -612,6 +614,645 @@ describe('seerAgentHooks', () => {
       expect(storeSpy).toHaveBeenCalledWith({
         id: '1',
         autofixAutomationTuning: 'off',
+      });
+    });
+  });
+
+  describe('useBulkMutateSelectedAgent', () => {
+    const project1 = ProjectFixture({slug: 'project-slug', id: '1'});
+    const project2 = ProjectFixture({slug: 'project-slug-2', id: '2'});
+    const projects = [project1, project2];
+
+    const basePreference: ProjectSeerPreferences = {
+      repositories: [],
+      automated_run_stopping_point: 'code_changes',
+      automation_handoff: undefined,
+    };
+
+    function setupMocks(preference: ProjectSeerPreferences = basePreference) {
+      const mocks = projects.map(p => ({
+        seerPreferencesGetRequest: MockApiClient.addMockResponse({
+          url: `/projects/${organization.slug}/${p.slug}/seer/preferences/`,
+          method: 'GET',
+          body: {preference, code_mapping_repos: []} satisfies SeerPreferencesResponse,
+        }),
+        projectPutRequest: MockApiClient.addMockResponse({
+          url: `/projects/${organization.slug}/${p.slug}/`,
+          method: 'PUT',
+          body: p,
+        }),
+        seerPreferencesPostRequest: MockApiClient.addMockResponse({
+          url: `/projects/${organization.slug}/${p.slug}/seer/preferences/`,
+          method: 'POST',
+          body: {},
+        }),
+      }));
+      return {
+        seerPreferencesGetRequests: mocks.map(m => m.seerPreferencesGetRequest),
+        projectPutRequests: mocks.map(m => m.projectPutRequest),
+        seerPreferencesPostRequests: mocks.map(m => m.seerPreferencesPostRequest),
+      };
+    }
+
+    function renderBulkMutateSelectedAgent() {
+      return renderHookWithProviders(
+        (props: {projects: typeof projects}) => {
+          const mutate = useBulkMutateSelectedAgent(props);
+          return {mutate};
+        },
+        {
+          initialProps: {projects},
+          organization,
+        }
+      );
+    }
+
+    beforeEach(() => {
+      ProjectsStore.loadInitialData(projects);
+    });
+
+    it('sends correct API requests to all projects when integration is "seer"', async () => {
+      const {projectPutRequests, seerPreferencesPostRequests} = setupMocks();
+      const {result} = renderBulkMutateSelectedAgent();
+
+      act(() => {
+        result.current.mutate('seer', {});
+      });
+
+      await waitFor(() => {
+        expect(projectPutRequests[0]).toHaveBeenCalledTimes(1);
+      });
+
+      projects.forEach((p, i) => {
+        expect(projectPutRequests[i]).toHaveBeenCalledWith(
+          `/projects/${organization.slug}/${p.slug}/`,
+          expect.objectContaining({
+            method: 'PUT',
+            data: {autofixAutomationTuning: 'medium'},
+          })
+        );
+        expect(seerPreferencesPostRequests[i]).toHaveBeenCalledWith(
+          `/projects/${organization.slug}/${p.slug}/seer/preferences/`,
+          expect.objectContaining({
+            method: 'POST',
+            data: expect.objectContaining({
+              repositories: [],
+              automated_run_stopping_point: 'code_changes',
+              automation_handoff: undefined,
+            }),
+          })
+        );
+      });
+    });
+
+    it('sends correct API requests to all projects when integration is a CodingAgentIntegration', async () => {
+      const {projectPutRequests, seerPreferencesPostRequests} = setupMocks();
+      const integration: CodingAgentIntegration = {
+        id: '123',
+        name: 'Cursor',
+        provider: 'cursor',
+      };
+      const {result} = renderBulkMutateSelectedAgent();
+
+      act(() => {
+        result.current.mutate(integration, {});
+      });
+
+      await waitFor(() => {
+        expect(projectPutRequests[0]).toHaveBeenCalledTimes(1);
+      });
+
+      projects.forEach((p, i) => {
+        expect(projectPutRequests[i]).toHaveBeenCalledWith(
+          `/projects/${organization.slug}/${p.slug}/`,
+          expect.objectContaining({
+            method: 'PUT',
+            data: {autofixAutomationTuning: 'medium'},
+          })
+        );
+        expect(seerPreferencesPostRequests[i]).toHaveBeenCalledWith(
+          `/projects/${organization.slug}/${p.slug}/seer/preferences/`,
+          expect.objectContaining({
+            method: 'POST',
+            data: expect.objectContaining({
+              automation_handoff: {
+                handoff_point: 'root_cause',
+                target: 'cursor_background_agent',
+                integration_id: 123,
+                auto_create_pr: false,
+              },
+            }),
+          })
+        );
+      });
+    });
+
+    it('sets auto_create_pr true when preference stopping point is open_pr', async () => {
+      const {seerPreferencesPostRequests} = setupMocks({
+        ...basePreference,
+        automated_run_stopping_point: 'open_pr',
+      });
+      const integration: CodingAgentIntegration = {
+        id: '456',
+        name: 'Cursor',
+        provider: 'cursor',
+      };
+      const {result} = renderBulkMutateSelectedAgent();
+
+      act(() => {
+        result.current.mutate(integration, {});
+      });
+
+      await waitFor(() => {
+        expect(seerPreferencesPostRequests[0]).toHaveBeenCalledTimes(1);
+      });
+
+      projects.forEach((_p, i) => {
+        expect(seerPreferencesPostRequests[i]).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: expect.objectContaining({
+              automation_handoff: expect.objectContaining({
+                auto_create_pr: true,
+              }),
+            }),
+          })
+        );
+      });
+    });
+
+    it('preserves repositories from each project preference', async () => {
+      const preferenceWithRepos: ProjectSeerPreferences = {
+        repositories: [
+          {external_id: 'repo-1', name: 'my-repo', owner: 'my-org', provider: 'github'},
+        ],
+        automated_run_stopping_point: 'code_changes',
+        automation_handoff: undefined,
+      };
+      const {seerPreferencesPostRequests} = setupMocks(preferenceWithRepos);
+      const {result} = renderBulkMutateSelectedAgent();
+
+      act(() => {
+        result.current.mutate('seer', {});
+      });
+
+      await waitFor(() => {
+        expect(seerPreferencesPostRequests[0]).toHaveBeenCalledTimes(1);
+      });
+
+      projects.forEach((_p, i) => {
+        expect(seerPreferencesPostRequests[i]).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: expect.objectContaining({
+              repositories: [
+                {
+                  external_id: 'repo-1',
+                  name: 'my-repo',
+                  owner: 'my-org',
+                  provider: 'github',
+                },
+              ],
+            }),
+          })
+        );
+      });
+    });
+
+    it('updates ProjectsStore for all projects', async () => {
+      setupMocks();
+      const storeSpy = jest.spyOn(ProjectsStore, 'onUpdateSuccess');
+      const {result} = renderBulkMutateSelectedAgent();
+
+      act(() => {
+        result.current.mutate('seer', {});
+      });
+
+      await waitFor(() => {
+        expect(storeSpy).toHaveBeenCalledTimes(2);
+      });
+
+      projects.forEach(p => {
+        expect(storeSpy).toHaveBeenCalledWith({
+          id: p.id,
+          autofixAutomationTuning: 'medium',
+        });
+      });
+    });
+
+    it('updates ProjectsStore with "off" tuning for all projects when integration is "none"', async () => {
+      setupMocks();
+      const storeSpy = jest.spyOn(ProjectsStore, 'onUpdateSuccess');
+      const {result} = renderBulkMutateSelectedAgent();
+
+      act(() => {
+        result.current.mutate('none', {});
+      });
+
+      await waitFor(() => {
+        expect(storeSpy).toHaveBeenCalledTimes(2);
+      });
+
+      projects.forEach(p => {
+        expect(storeSpy).toHaveBeenCalledWith({
+          id: p.id,
+          autofixAutomationTuning: 'off',
+        });
+      });
+    });
+
+    it('calls onSuccess when all requests succeed', async () => {
+      setupMocks();
+      const onSuccess = jest.fn();
+      const {result} = renderBulkMutateSelectedAgent();
+
+      act(() => {
+        result.current.mutate('seer', {onSuccess});
+      });
+
+      await waitFor(() => {
+        expect(onSuccess).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    it('calls onError when any request fails', async () => {
+      projects.forEach(p => {
+        MockApiClient.addMockResponse({
+          url: `/projects/${organization.slug}/${p.slug}/seer/preferences/`,
+          method: 'GET',
+          body: {
+            preference: basePreference,
+            code_mapping_repos: [],
+          } satisfies SeerPreferencesResponse,
+        });
+        MockApiClient.addMockResponse({
+          url: `/projects/${organization.slug}/${p.slug}/`,
+          method: 'PUT',
+          statusCode: 500,
+          body: {},
+        });
+        MockApiClient.addMockResponse({
+          url: `/projects/${organization.slug}/${p.slug}/seer/preferences/`,
+          method: 'POST',
+          body: {},
+        });
+      });
+      const onError = jest.fn();
+      const {result} = renderBulkMutateSelectedAgent();
+
+      act(() => {
+        result.current.mutate('seer', {onError});
+      });
+
+      await waitFor(() => {
+        expect(onError).toHaveBeenCalledTimes(1);
+      });
+      expect(onError).toHaveBeenCalledWith(expect.any(Error));
+    });
+
+    it('does nothing when projects list is empty', async () => {
+      const emptyProjectsMutate = renderHookWithProviders(
+        () => useBulkMutateSelectedAgent({projects: []}),
+        {organization}
+      );
+      const onSuccess = jest.fn();
+
+      act(() => {
+        emptyProjectsMutate.result.current('seer', {onSuccess});
+      });
+
+      await waitFor(() => {
+        expect(onSuccess).toHaveBeenCalledTimes(1);
+      });
+    });
+  });
+
+  describe('useBulkMutateCreatePr', () => {
+    const project1 = ProjectFixture({slug: 'project-slug', id: '1'});
+    const project2 = ProjectFixture({slug: 'project-slug-2', id: '2'});
+    const projects = [project1, project2];
+
+    const seerPreference: ProjectSeerPreferences = {
+      repositories: [],
+      automated_run_stopping_point: 'code_changes',
+      automation_handoff: undefined,
+    };
+
+    const integrationPreference: ProjectSeerPreferences = {
+      repositories: [],
+      automated_run_stopping_point: 'code_changes',
+      automation_handoff: {
+        handoff_point: 'root_cause',
+        target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+        integration_id: 123,
+        auto_create_pr: false,
+      },
+    };
+
+    function setupMocks(
+      p1Preference: ProjectSeerPreferences = seerPreference,
+      p2Preference: ProjectSeerPreferences = seerPreference
+    ) {
+      const perProjectPrefs = [p1Preference, p2Preference];
+      const mocks = projects.map((p, i) => ({
+        seerPreferencesGetRequest: MockApiClient.addMockResponse({
+          url: `/projects/${organization.slug}/${p.slug}/seer/preferences/`,
+          method: 'GET',
+          body: {
+            preference: perProjectPrefs[i],
+            code_mapping_repos: [],
+          } satisfies SeerPreferencesResponse,
+        }),
+        seerPreferencesPostRequest: MockApiClient.addMockResponse({
+          url: `/projects/${organization.slug}/${p.slug}/seer/preferences/`,
+          method: 'POST',
+          body: {},
+        }),
+      }));
+      return {
+        seerPreferencesGetRequests: mocks.map(m => m.seerPreferencesGetRequest),
+        seerPreferencesPostRequests: mocks.map(m => m.seerPreferencesPostRequest),
+      };
+    }
+
+    function renderBulkMutateCreatePr() {
+      return renderHookWithProviders(
+        (props: {projects: typeof projects}) => {
+          const mutate = useBulkMutateCreatePr(props);
+          return {mutate};
+        },
+        {
+          initialProps: {projects},
+          organization,
+        }
+      );
+    }
+
+    beforeEach(() => {
+      ProjectsStore.loadInitialData(projects);
+    });
+
+    it('sets automated_run_stopping_point for Seer projects when enabling Create PR', async () => {
+      const {seerPreferencesPostRequests} = setupMocks();
+      const {result} = renderBulkMutateCreatePr();
+
+      act(() => {
+        result.current.mutate(true, {});
+      });
+
+      await waitFor(() => {
+        expect(seerPreferencesPostRequests[0]).toHaveBeenCalledTimes(1);
+      });
+
+      projects.forEach((p, i) => {
+        expect(seerPreferencesPostRequests[i]).toHaveBeenCalledWith(
+          `/projects/${organization.slug}/${p.slug}/seer/preferences/`,
+          expect.objectContaining({
+            method: 'POST',
+            data: expect.objectContaining({
+              automated_run_stopping_point: 'open_pr',
+              automation_handoff: undefined,
+            }),
+          })
+        );
+      });
+    });
+
+    it('sets automated_run_stopping_point for Seer projects when disabling Create PR', async () => {
+      const {seerPreferencesPostRequests} = setupMocks(
+        {...seerPreference, automated_run_stopping_point: 'open_pr'},
+        {...seerPreference, automated_run_stopping_point: 'open_pr'}
+      );
+      const {result} = renderBulkMutateCreatePr();
+
+      act(() => {
+        result.current.mutate(false, {});
+      });
+
+      await waitFor(() => {
+        expect(seerPreferencesPostRequests[0]).toHaveBeenCalledTimes(1);
+      });
+
+      projects.forEach((p, i) => {
+        expect(seerPreferencesPostRequests[i]).toHaveBeenCalledWith(
+          `/projects/${organization.slug}/${p.slug}/seer/preferences/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              automated_run_stopping_point: 'code_changes',
+            }),
+          })
+        );
+      });
+    });
+
+    it('sets auto_create_pr in automation_handoff for external agent projects', async () => {
+      const {seerPreferencesPostRequests} = setupMocks(
+        integrationPreference,
+        integrationPreference
+      );
+      const {result} = renderBulkMutateCreatePr();
+
+      act(() => {
+        result.current.mutate(true, {});
+      });
+
+      await waitFor(() => {
+        expect(seerPreferencesPostRequests[0]).toHaveBeenCalledTimes(1);
+      });
+
+      projects.forEach((p, i) => {
+        expect(seerPreferencesPostRequests[i]).toHaveBeenCalledWith(
+          `/projects/${organization.slug}/${p.slug}/seer/preferences/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              automation_handoff: expect.objectContaining({
+                integration_id: 123,
+                auto_create_pr: true,
+              }),
+            }),
+          })
+        );
+      });
+    });
+
+    it('disables auto_create_pr in automation_handoff for external agent projects', async () => {
+      const {seerPreferencesPostRequests} = setupMocks(
+        {
+          ...integrationPreference,
+          automation_handoff: {
+            ...integrationPreference.automation_handoff!,
+            auto_create_pr: true,
+          },
+        },
+        {
+          ...integrationPreference,
+          automation_handoff: {
+            ...integrationPreference.automation_handoff!,
+            auto_create_pr: true,
+          },
+        }
+      );
+      const {result} = renderBulkMutateCreatePr();
+
+      act(() => {
+        result.current.mutate(false, {});
+      });
+
+      await waitFor(() => {
+        expect(seerPreferencesPostRequests[0]).toHaveBeenCalledTimes(1);
+      });
+
+      projects.forEach((_p, i) => {
+        expect(seerPreferencesPostRequests[i]).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: expect.objectContaining({
+              automation_handoff: expect.objectContaining({
+                auto_create_pr: false,
+              }),
+            }),
+          })
+        );
+      });
+    });
+
+    it('handles mixed projects — Seer and external agent — correctly', async () => {
+      const {seerPreferencesPostRequests} = setupMocks(
+        seerPreference,
+        integrationPreference
+      );
+      const {result} = renderBulkMutateCreatePr();
+
+      act(() => {
+        result.current.mutate(true, {});
+      });
+
+      await waitFor(() => {
+        expect(seerPreferencesPostRequests[0]).toHaveBeenCalledTimes(1);
+      });
+
+      // project1 (Seer): uses stopping_point
+      expect(seerPreferencesPostRequests[0]).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${project1.slug}/seer/preferences/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            automated_run_stopping_point: 'open_pr',
+            automation_handoff: undefined,
+          }),
+        })
+      );
+      // project2 (external agent): uses auto_create_pr in handoff
+      expect(seerPreferencesPostRequests[1]).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${project2.slug}/seer/preferences/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            automation_handoff: expect.objectContaining({
+              integration_id: 123,
+              auto_create_pr: true,
+            }),
+          }),
+        })
+      );
+    });
+
+    it('preserves existing repositories and other handoff fields', async () => {
+      const preferenceWithRepos: ProjectSeerPreferences = {
+        repositories: [
+          {external_id: 'repo-1', name: 'my-repo', owner: 'my-org', provider: 'github'},
+        ],
+        automated_run_stopping_point: 'code_changes',
+        automation_handoff: undefined,
+      };
+      const {seerPreferencesPostRequests} = setupMocks(
+        preferenceWithRepos,
+        preferenceWithRepos
+      );
+      const {result} = renderBulkMutateCreatePr();
+
+      act(() => {
+        result.current.mutate(true, {});
+      });
+
+      await waitFor(() => {
+        expect(seerPreferencesPostRequests[0]).toHaveBeenCalledTimes(1);
+      });
+
+      projects.forEach((_p, i) => {
+        expect(seerPreferencesPostRequests[i]).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: expect.objectContaining({
+              repositories: [
+                {
+                  external_id: 'repo-1',
+                  name: 'my-repo',
+                  owner: 'my-org',
+                  provider: 'github',
+                },
+              ],
+            }),
+          })
+        );
+      });
+    });
+
+    it('calls onSuccess when all requests succeed', async () => {
+      setupMocks();
+      const onSuccess = jest.fn();
+      const {result} = renderBulkMutateCreatePr();
+
+      act(() => {
+        result.current.mutate(true, {onSuccess});
+      });
+
+      await waitFor(() => {
+        expect(onSuccess).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    it('calls onError when any request fails', async () => {
+      projects.forEach(p => {
+        MockApiClient.addMockResponse({
+          url: `/projects/${organization.slug}/${p.slug}/seer/preferences/`,
+          method: 'GET',
+          body: {
+            preference: seerPreference,
+            code_mapping_repos: [],
+          } satisfies SeerPreferencesResponse,
+        });
+        MockApiClient.addMockResponse({
+          url: `/projects/${organization.slug}/${p.slug}/seer/preferences/`,
+          method: 'POST',
+          statusCode: 500,
+          body: {},
+        });
+      });
+      const onError = jest.fn();
+      const {result} = renderBulkMutateCreatePr();
+
+      act(() => {
+        result.current.mutate(true, {onError});
+      });
+
+      await waitFor(() => {
+        expect(onError).toHaveBeenCalledTimes(1);
+      });
+      expect(onError).toHaveBeenCalledWith(expect.any(Error));
+    });
+
+    it('does nothing when projects list is empty', async () => {
+      const emptyProjectsMutate = renderHookWithProviders(
+        () => useBulkMutateCreatePr({projects: []}),
+        {organization}
+      );
+      const onSuccess = jest.fn();
+
+      act(() => {
+        emptyProjectsMutate.result.current(true, {onSuccess});
+      });
+
+      await waitFor(() => {
+        expect(onSuccess).toHaveBeenCalledTimes(1);
       });
     });
   });
