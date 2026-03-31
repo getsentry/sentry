@@ -5,64 +5,72 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useReducer,
   useRef,
 } from 'react';
 
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 
-import {
-  collectDescendantIds,
-  INITIAL_SEER_CONTEXT_STATE,
-  SeerContextAction,
-  seerContextReducer,
-} from './seerContextReducer';
 import type {
-  SeerContextInternalValue,
-  SeerContextNodeSnapshot,
-  SeerContextSnapshot,
-  SeerContextState,
-} from './seerContextTypes';
+  LLMContextInternalValue,
+  LLMContextNode,
+  LLMContextNodeSnapshot,
+  LLMContextSnapshot,
+  LLMContextState,
+} from './llmContextTypes';
 
 // ---------------------------------------------------------------------------
 // Internal context — holds the registry operations (registerNode, etc.)
 // ---------------------------------------------------------------------------
 
-const [_SeerContextProvider, _useSeerContextValue] =
-  createDefinedContext<SeerContextInternalValue>({
-    name: 'SeerContext',
-    strict: false,
+const [_LLMContextProvider, _useLLMContextValue] =
+  createDefinedContext<LLMContextInternalValue>({
+    name: 'LLMContext',
+    strict: true,
   });
 
 /**
- * Hook for internal use by registerSeerContext and useSeerContext to access
+ * Hook for internal use by registerLLMContext and useLLMContext to access
  * the registry operations (registerNode, unregisterNode, updateNodeData, getSnapshot).
- * Returns undefined when called outside a SeerContextProvider.
+ * Throws if called outside an LLMContextProvider.
  */
-export const useSeerContextRegistry = _useSeerContextValue;
+export const useLLMContextRegistry = _useLLMContextValue;
 
 // ---------------------------------------------------------------------------
-// SeerNodeContext — carries the current component's nodeId down the tree
-// so child registerSeerContext wrappers can declare their parentId immediately
+// LLMNodeContext — carries the current component's nodeId down the tree
+// so child registerLLMContext wrappers can declare their parentId immediately
 // during render (before any effects have fired).
 // Default undefined = no parent (root level).
 // ---------------------------------------------------------------------------
 
-export const SeerNodeContext = createContext<string | undefined>(undefined);
+export const LLMNodeContext = createContext<string | undefined>(undefined);
 
 // ---------------------------------------------------------------------------
 // Tree assembly helpers — convert the flat node map to a nested snapshot.
 // Data is read from nodeData (imperative ref) rather than the reducer state
-// so that writes from useSeerContext(data) are visible immediately even
+// so that writes from useLLMContext(data) are visible immediately even
 // before the HOC's registerNode effect has fired.
 // ---------------------------------------------------------------------------
 
+function collectDescendantIds(
+  nodes: Map<string, LLMContextNode>,
+  nodeId: string,
+  result = new Set<string>()
+): Set<string> {
+  result.add(nodeId);
+  for (const [id, node] of nodes) {
+    if (node.parentId === nodeId) {
+      collectDescendantIds(nodes, id, result);
+    }
+  }
+  return result;
+}
+
 function buildTree(
-  nodes: SeerContextState['nodes'],
-  nodeData: Map<string, Record<string, unknown>>,
+  nodes: LLMContextState['nodes'],
+  nodeData: Map<string, unknown>,
   parentId: string | undefined
-): SeerContextNodeSnapshot[] {
-  const children: SeerContextNodeSnapshot[] = [];
+): LLMContextNodeSnapshot[] {
+  const children: LLMContextNodeSnapshot[] = [];
   for (const [id, node] of nodes) {
     if (node.parentId === parentId) {
       children.push({
@@ -76,10 +84,10 @@ function buildTree(
 }
 
 function serializeState(
-  state: SeerContextState,
-  nodeData: Map<string, Record<string, unknown>>,
+  state: LLMContextState,
+  nodeData: Map<string, unknown>,
   fromNodeId?: string
-): SeerContextSnapshot {
+): LLMContextSnapshot {
   if (fromNodeId) {
     const node = state.nodes.get(fromNodeId);
     if (!node) {
@@ -103,116 +111,114 @@ function serializeState(
 }
 
 // ---------------------------------------------------------------------------
-// SeerContextProvider — root of the entire context tree
+// LLMContextProvider — root of the entire context tree
 // ---------------------------------------------------------------------------
 
-interface SeerContextProviderProps {
+interface LLMContextProviderProps {
   children: ReactNode;
 }
 
-export function SeerContextProvider({children}: SeerContextProviderProps) {
-  const [state, dispatch] = useReducer(seerContextReducer, INITIAL_SEER_CONTEXT_STATE);
+const INITIAL_STATE: LLMContextState = {
+  nodes: new Map(),
+  version: 0,
+};
 
-  // Ref so that getSnapshot always reads the latest structural state without
-  // needing to be re-created when state changes (which would break memoization).
-  const stateRef = useRef(state);
-  stateRef.current = state;
+export function LLMContextProvider({children}: LLMContextProviderProps) {
+  // All state lives in refs — no re-renders needed. Consumers read
+  // the latest data imperatively via getSnapshot().
+  const stateRef = useRef<LLMContextState>(INITIAL_STATE);
+  const nodeDataRef = useRef<Map<string, unknown>>(new Map());
 
-  // Imperative ref for node data — written directly without dispatch.
-  // This decouples data writes from the render/effect cycle entirely:
-  // useSeerContext(data) effects fire before registerNode effects (children
-  // run before parents), so data is pre-populated in the ref by the time
-  // getSnapshot() is called.
-  const nodeDataRef = useRef<Map<string, Record<string, unknown>>>(new Map());
-
-  const getSnapshot = useCallback((fromNodeId?: string): SeerContextSnapshot => {
+  const getSnapshot = useCallback((fromNodeId?: string): LLMContextSnapshot => {
     return serializeState(stateRef.current, nodeDataRef.current, fromNodeId);
   }, []);
 
   const registerNode = useCallback(
     (nodeId: string, nodeType: string, parentId?: string): void => {
-      dispatch({
-        type: SeerContextAction.REGISTER_NODE,
-        nodeId,
-        nodeType,
-        parentId,
-      });
+      const prev = stateRef.current;
+      const newNodes = new Map(prev.nodes);
+      newNodes.set(nodeId, {nodeType, parentId});
+      stateRef.current = {nodes: newNodes, version: prev.version + 1};
     },
     []
   );
 
   const unregisterNode = useCallback((nodeId: string) => {
-    // Mirror the reducer's descendant removal against nodeDataRef so stale
-    // data doesn't accumulate in the ref across mount/unmount cycles.
-    const toRemove = collectDescendantIds(stateRef.current.nodes, nodeId);
+    const prev = stateRef.current;
+    if (!prev.nodes.has(nodeId)) {
+      return;
+    }
+    const toRemove = collectDescendantIds(prev.nodes, nodeId);
+    const newNodes = new Map(prev.nodes);
     for (const id of toRemove) {
+      newNodes.delete(id);
       nodeDataRef.current.delete(id);
     }
-    dispatch({type: SeerContextAction.UNREGISTER_NODE, nodeId});
+    stateRef.current = {nodes: newNodes, version: prev.version + 1};
   }, []);
 
-  const updateNodeData = useCallback((nodeId: string, data: Record<string, unknown>) => {
-    // Replace rather than merge: useSeerContext(data) always passes the
-    // complete data object for the component, so merging would retain keys
-    // that were dropped between renders.
+  const updateNodeData = useCallback((nodeId: string, data: unknown) => {
     nodeDataRef.current.set(nodeId, data);
   }, []);
 
   // Memoize so that the context value reference is stable across re-renders.
-  // Without this, any state change (dispatch) would create a new value object,
-  // causing the HOC's useEffect (which has ctx in its deps) to re-fire on
-  // every registration, creating an infinite loop.
-  const value = useMemo<SeerContextInternalValue>(
+  const value = useMemo<LLMContextInternalValue>(
     () => ({getSnapshot, registerNode, unregisterNode, updateNodeData}),
     [getSnapshot, registerNode, unregisterNode, updateNodeData]
   );
 
-  return <_SeerContextProvider value={value}>{children}</_SeerContextProvider>;
+  return <_LLMContextProvider value={value}>{children}</_LLMContextProvider>;
 }
 
 // ---------------------------------------------------------------------------
-// useSeerContext — write overload
+// useLLMContext — write overload
 //
-// Call inside a registerSeerContext-wrapped component (or any descendant)
+// Call inside a registerLLMContext-wrapped component (or any descendant)
 // to push structured data into the nearest registered context node.
+// Accepts any value type — objects, arrays, strings, numbers, etc.
 //
-//   useSeerContext({ title: 'Error Rate', threshold: 5 });
+//   useLLMContext({ title: 'Error Rate', threshold: 5 });
+//   useLLMContext(someComputedValue);
 // ---------------------------------------------------------------------------
 
-export function useSeerContext(data: Record<string, unknown>): void;
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- {} here means "any non-undefined value" to distinguish from the no-arg read overload
+export function useLLMContext(data: {} | null): void;
 
 // ---------------------------------------------------------------------------
-// useSeerContext — read overload
+// useLLMContext — read overload
 //
-// Call with no arguments to get getSeerContext.
+// Call with no arguments to get getLLMContext.
 //
-//   const { getSeerContext } = useSeerContext();
-//   getSeerContext()      // full tree from root
-//   getSeerContext(true)  // current component's subtree only
+//   const { getLLMContext } = useLLMContext();
+//   getLLMContext()      // full tree from root
+//   getLLMContext(true)  // current component's subtree only
 // ---------------------------------------------------------------------------
 
-export function useSeerContext(): {
-  getSeerContext: (componentOnly?: boolean) => SeerContextSnapshot;
+export function useLLMContext(): {
+  getLLMContext: (componentOnly?: boolean) => LLMContextSnapshot;
 };
 
-export function useSeerContext(
-  data?: Record<string, unknown>
-): void | {getSeerContext: (componentOnly?: boolean) => SeerContextSnapshot} {
-  const ctx = useSeerContextRegistry();
-  const nodeId = useContext(SeerNodeContext);
+export function useLLMContext(
+  data?: unknown
+): void | {getLLMContext: (componentOnly?: boolean) => LLMContextSnapshot} {
+  const ctx = useLLMContextRegistry();
+  const nodeId = useContext(LLMNodeContext);
   const prevDataRef = useRef<string>('');
 
   // Write path: sync data into the nearest node whenever it changes.
-  // No dep array so it picks up every render. JSON equality guard prevents
-  // redundant writes. The HOC provides nodeId synchronously (via useMemo),
-  // so this is non-null on first render inside a registered component.
-  // updateNodeData writes imperatively to a ref — no dispatch, no re-render
-  // required, and no timing dependency on registerNode having fired first.
+  // JSON equality guard prevents redundant writes. updateNodeData writes
+  // imperatively to a ref — no dispatch, no re-render required.
   useEffect(() => {
-    if (!ctx || !nodeId || data === undefined) {
+    if (!nodeId || data === undefined) {
       return;
     }
-    const serialized = JSON.stringify(data);
+    let serialized: string;
+    try {
+      serialized = JSON.stringify(data);
+    } catch {
+      // Non-serializable value (e.g. circular reference) — always write
+      serialized = '';
+    }
     if (serialized !== prevDataRef.current) {
       prevDataRef.current = serialized;
       ctx.updateNodeData(nodeId, data);
@@ -221,11 +227,8 @@ export function useSeerContext(
 
   // Read path: always created so hooks run unconditionally.
   // Only returned when called without data.
-  const getSeerContext = useCallback(
-    (componentOnly?: boolean): SeerContextSnapshot => {
-      if (!ctx) {
-        return {version: 0, nodes: []};
-      }
+  const getLLMContext = useCallback(
+    (componentOnly?: boolean): LLMContextSnapshot => {
       if (componentOnly && nodeId) {
         return ctx.getSnapshot(nodeId);
       }
@@ -235,7 +238,7 @@ export function useSeerContext(
   );
 
   if (data === undefined) {
-    return {getSeerContext};
+    return {getLLMContext};
   }
   return undefined;
 }

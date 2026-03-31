@@ -1,10 +1,10 @@
 import type {ReactNode} from 'react';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {registerSeerContext} from './registerSeerContext';
-import {SeerContextProvider, useSeerContext} from './seerContext';
-import type {SeerContextSnapshot} from './seerContextTypes';
+import {LLMContextProvider, useLLMContext} from './llmContext';
+import type {LLMContextSnapshot} from './llmContextTypes';
+import {registerLLMContext} from './registerLLMContext';
 
 // ---------------------------------------------------------------------------
 // Test helper: ContextCapture
@@ -16,17 +16,17 @@ import type {SeerContextSnapshot} from './seerContextTypes';
 // ---------------------------------------------------------------------------
 
 function makeContextCapture() {
-  const ref: {current: ((componentOnly?: boolean) => SeerContextSnapshot) | null} = {
+  const ref: {current: ((componentOnly?: boolean) => LLMContextSnapshot) | null} = {
     current: null,
   };
 
   function ContextCapture() {
-    const {getSeerContext} = useSeerContext();
-    ref.current = getSeerContext;
+    const {getLLMContext} = useLLMContext();
+    ref.current = getLLMContext;
     return null;
   }
 
-  function getSnapshot(componentOnly?: boolean): SeerContextSnapshot {
+  function getSnapshot(componentOnly?: boolean): LLMContextSnapshot {
     if (!ref.current) throw new Error('ContextCapture not mounted');
     return ref.current(componentOnly);
   }
@@ -39,12 +39,12 @@ function makeContextCapture() {
 // ---------------------------------------------------------------------------
 
 function DummyChart({label}: {label?: string}) {
-  useSeerContext({label: label ?? 'chart'});
+  useLLMContext({label: label ?? 'chart'});
   return <div>{label ?? 'chart'}</div>;
 }
 
 function DummyWidget({title, children}: {children?: ReactNode; title?: string}) {
-  useSeerContext({title: title ?? 'widget', type: 'timeseries', unit: 'ms'});
+  useLLMContext({title: title ?? 'widget', type: 'timeseries', unit: 'ms'});
   return (
     <div>
       {title ?? 'widget'}
@@ -54,7 +54,7 @@ function DummyWidget({title, children}: {children?: ReactNode; title?: string}) 
 }
 
 function DummyDashboard({name, children}: {children?: ReactNode; name?: string}) {
-  useSeerContext({name: name ?? 'dashboard'});
+  useLLMContext({name: name ?? 'dashboard'});
   return (
     <div>
       {name ?? 'dashboard'}
@@ -63,22 +63,22 @@ function DummyDashboard({name, children}: {children?: ReactNode; name?: string})
   );
 }
 
-const ContextChart = registerSeerContext('chart', DummyChart);
-const ContextWidget = registerSeerContext('widget', DummyWidget);
-const ContextDashboard = registerSeerContext('dashboard', DummyDashboard);
+const ContextChart = registerLLMContext('chart', DummyChart);
+const ContextWidget = registerLLMContext('widget', DummyWidget);
+const ContextDashboard = registerLLMContext('dashboard', DummyDashboard);
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('SeerContextProvider — empty state', () => {
+describe('LLMContextProvider — empty state', () => {
   it('returns an empty snapshot when no nodes are registered', async () => {
     const {ContextCapture, getSnapshot} = makeContextCapture();
 
     render(
-      <SeerContextProvider>
+      <LLMContextProvider>
         <ContextCapture />
-      </SeerContextProvider>
+      </LLMContextProvider>
     );
 
     await waitFor(() => {
@@ -87,19 +87,19 @@ describe('SeerContextProvider — empty state', () => {
   });
 });
 
-describe('registerSeerContext — nesting', () => {
+describe('registerLLMContext — nesting', () => {
   it('nests Chart inside Widget inside Dashboard in the snapshot', async () => {
     const {ContextCapture, getSnapshot} = makeContextCapture();
 
     render(
-      <SeerContextProvider>
+      <LLMContextProvider>
         <ContextDashboard name="Backend Health">
           <ContextWidget title="Error Rate">
             <ContextChart label="p99" />
           </ContextWidget>
         </ContextDashboard>
         <ContextCapture />
-      </SeerContextProvider>
+      </LLMContextProvider>
     );
 
     // Wait for the cascade of registration effects to settle, then assert the
@@ -131,15 +131,15 @@ describe('registerSeerContext — nesting', () => {
   });
 });
 
-describe('registerSeerContext — unmount cleanup', () => {
+describe('registerLLMContext — unmount cleanup', () => {
   it('removes the node from the tree when the component unmounts', async () => {
     const {ContextCapture, getSnapshot} = makeContextCapture();
 
     const {rerender} = render(
-      <SeerContextProvider>
+      <LLMContextProvider>
         <ContextWidget title="Removable" />
         <ContextCapture />
-      </SeerContextProvider>
+      </LLMContextProvider>
     );
 
     // Node should be present after mount
@@ -149,9 +149,9 @@ describe('registerSeerContext — unmount cleanup', () => {
 
     // Unmount the widget
     rerender(
-      <SeerContextProvider>
+      <LLMContextProvider>
         <ContextCapture />
-      </SeerContextProvider>
+      </LLMContextProvider>
     );
 
     // Node should be gone
@@ -161,63 +161,126 @@ describe('registerSeerContext — unmount cleanup', () => {
   });
 });
 
-describe('useSeerContext — data updates', () => {
+describe('useLLMContext — data updates', () => {
   it('writes data into the node and updates it on re-render', async () => {
     const {ContextCapture, getSnapshot} = makeContextCapture();
 
-    function Counter({count}: {count: number}) {
-      useSeerContext({count});
-      return <div>{count}</div>;
+    function Gauge({value}: {value: number}) {
+      useLLMContext({value});
+      return <div>{value}</div>;
     }
-    const ContextCounter = registerSeerContext('counter', Counter);
+    const ContextGauge = registerLLMContext('widget', Gauge);
 
     const {rerender} = render(
-      <SeerContextProvider>
-        <ContextCounter count={1} />
+      <LLMContextProvider>
+        <ContextGauge value={1} />
         <ContextCapture />
-      </SeerContextProvider>
+      </LLMContextProvider>
     );
 
     // Initial data written after HOC registers and inner component re-renders
     await waitFor(() => {
-      expect(getSnapshot().nodes[0]?.data?.count).toBe(1);
+      expect(getSnapshot().nodes[0]?.data).toEqual({value: 1});
     });
 
     // Update the prop
     rerender(
-      <SeerContextProvider>
-        <ContextCounter count={2} />
+      <LLMContextProvider>
+        <ContextGauge value={2} />
         <ContextCapture />
-      </SeerContextProvider>
+      </LLMContextProvider>
     );
 
     await waitFor(() => {
-      expect(getSnapshot().nodes[0]?.data?.count).toBe(2);
+      expect(getSnapshot().nodes[0]?.data).toEqual({value: 2});
+    });
+  });
+
+  it('handles non-object data types', async () => {
+    const {ContextCapture, getSnapshot} = makeContextCapture();
+
+    function Label({text}: {text: string}) {
+      useLLMContext(text);
+      return <div>{text}</div>;
+    }
+    const ContextLabel = registerLLMContext('widget', Label);
+
+    render(
+      <LLMContextProvider>
+        <ContextLabel text="hello" />
+        <ContextCapture />
+      </LLMContextProvider>
+    );
+
+    await waitFor(() => {
+      expect(getSnapshot().nodes[0]?.data).toBe('hello');
+    });
+  });
+
+  it('handles array data', async () => {
+    const {ContextCapture, getSnapshot} = makeContextCapture();
+
+    function Tags({items}: {items: string[]}) {
+      useLLMContext(items);
+      return <div>{items.join(',')}</div>;
+    }
+    const ContextTags = registerLLMContext('widget', Tags);
+
+    render(
+      <LLMContextProvider>
+        <ContextTags items={['a', 'b', 'c']} />
+        <ContextCapture />
+      </LLMContextProvider>
+    );
+
+    await waitFor(() => {
+      expect(getSnapshot().nodes[0]?.data).toEqual(['a', 'b', 'c']);
+    });
+  });
+
+  it('handles numeric data', async () => {
+    const {ContextCapture, getSnapshot} = makeContextCapture();
+
+    function Score({value}: {value: number}) {
+      useLLMContext(value);
+      return <div>{value}</div>;
+    }
+    const ContextScore = registerLLMContext('widget', Score);
+
+    render(
+      <LLMContextProvider>
+        <ContextScore value={42} />
+        <ContextCapture />
+      </LLMContextProvider>
+    );
+
+    await waitFor(() => {
+      expect(getSnapshot().nodes[0]?.data).toBe(42);
     });
   });
 });
 
-describe('getSeerContext — full tree vs componentOnly', () => {
-  it('getSeerContext() returns full tree including sibling branches', async () => {
+describe('getLLMContext — full tree vs componentOnly', () => {
+  it('getLLMContext() returns full tree including sibling branches', async () => {
     const {ContextCapture, getSnapshot} = makeContextCapture();
 
     function Widget1() {
-      useSeerContext({id: 'w1'});
+      useLLMContext({id: 'w1'});
       return <div>w1</div>;
     }
     function Widget2() {
-      useSeerContext({id: 'w2'});
+      useLLMContext({id: 'w2'});
       return <div>w2</div>;
     }
-    const CW1 = registerSeerContext('widget', Widget1);
-    const CW2 = registerSeerContext('widget', Widget2);
+    const CW1 = registerLLMContext('widget', Widget1);
+    const CW2 = registerLLMContext('widget', Widget2);
 
     render(
-      <SeerContextProvider>
+      <LLMContextProvider>
         <CW1 />
         <CW2 />
         <ContextCapture />
-      </SeerContextProvider>
+      </LLMContextProvider>
     );
 
     await waitFor(() => {
@@ -228,38 +291,38 @@ describe('getSeerContext — full tree vs componentOnly', () => {
     });
   });
 
-  it('getSeerContext(true) returns only the current component subtree', async () => {
+  it('getLLMContext(true) returns only the current component subtree', async () => {
     // We need a capture inside the dashboard to test componentOnly
     const innerRef: {
-      current: ((c?: boolean) => SeerContextSnapshot) | null;
+      current: ((c?: boolean) => LLMContextSnapshot) | null;
     } = {current: null};
 
     function DashboardWithCapture({name}: {name: string}) {
-      useSeerContext({name});
-      const {getSeerContext} = useSeerContext();
-      innerRef.current = getSeerContext;
+      useLLMContext({name});
+      const {getLLMContext} = useLLMContext();
+      innerRef.current = getLLMContext;
       return (
         <div>
           <ContextWidget title="inner-widget" />
         </div>
       );
     }
-    const ContextDashboardWithCapture = registerSeerContext(
+    const ContextDashboardWithCapture = registerLLMContext(
       'dashboard',
       DashboardWithCapture
     );
 
     function SiblingDashboard() {
-      useSeerContext({name: 'sibling'});
+      useLLMContext({name: 'sibling'});
       return <div>sibling</div>;
     }
-    const ContextSiblingDashboard = registerSeerContext('dashboard', SiblingDashboard);
+    const ContextSiblingDashboard = registerLLMContext('dashboard', SiblingDashboard);
 
     render(
-      <SeerContextProvider>
+      <LLMContextProvider>
         <ContextDashboardWithCapture name="main" />
         <ContextSiblingDashboard />
-      </SeerContextProvider>
+      </LLMContextProvider>
     );
 
     // componentOnly snapshot should contain only the dashboard + its inner widget,
@@ -272,12 +335,5 @@ describe('getSeerContext — full tree vs componentOnly', () => {
       expect(snapshot.nodes[0]?.children).toHaveLength(1);
       expect(snapshot.nodes[0]?.children[0]?.nodeType).toBe('widget');
     });
-  });
-});
-
-describe('registerSeerContext — no provider', () => {
-  it('renders the wrapped component normally when there is no SeerContextProvider', () => {
-    render(<ContextWidget title="No Provider" />);
-    expect(screen.getByText('No Provider')).toBeInTheDocument();
   });
 });

@@ -1,49 +1,42 @@
 import type {ComponentType} from 'react';
-import {useContext, useEffect, useMemo} from 'react';
+import {useContext, useEffect, useId} from 'react';
 
-import {uniqueId} from 'sentry/utils/guid';
-
-import {SeerNodeContext, useSeerContextRegistry} from './seerContext';
+import {LLMNodeContext, useLLMContextRegistry} from './llmContext';
+import type {LLMContextNodeType} from './llmContextTypes';
 
 /**
- * HOC that registers a component as a named node in the Seer context tree.
+ * HOC that registers a component as a named node in the LLM context tree.
  *
  * On mount, a new node of the given `nodeType` is created in the tree,
- * nested under the nearest parent node (from `SeerNodeContext`).
+ * nested under the nearest parent node (from `LLMNodeContext`).
  * On unmount, the node and all its descendants are removed.
  *
  * The wrapped component receives all its original props unchanged.
  * To push structured data into this component's node, call
- * `useSeerContext({ key: value })` anywhere inside the wrapped component.
+ * `useLLMContext({ key: value })` anywhere inside the wrapped component.
  *
  * Usage:
- *   const ContextAwareDashboard = registerSeerContext('dashboard', Dashboard);
- *   const ContextAwareWidget = registerSeerContext('widget', Widget);
+ *   const ContextAwareDashboard = registerLLMContext('dashboard', Dashboard);
+ *   const ContextAwareWidget = registerLLMContext('widget', Widget);
  *
  *   // Widget rendered inside Dashboard will nest correctly:
  *   // { nodeType: 'dashboard', children: [{ nodeType: 'widget', ... }] }
  */
-export function registerSeerContext<P extends Record<string, unknown>>(
-  nodeType: string,
+export function registerLLMContext<P extends Record<string, unknown>>(
+  nodeType: LLMContextNodeType,
   WrappedComponent: ComponentType<P>
 ): ComponentType<P> {
-  function SeerContextWrapper(props: P) {
-    const ctx = useSeerContextRegistry();
+  function LLMContextWrapper(props: P) {
+    const ctx = useLLMContextRegistry();
 
-    // Read the nearest parent's nodeId from SeerNodeContext.
+    // Read the nearest parent's nodeId from LLMNodeContext.
     // undefined = no parent (this node will be at root level).
-    const parentNodeId = useContext(SeerNodeContext);
+    const parentNodeId = useContext(LLMNodeContext);
 
-    // Generate a stable nodeId synchronously during render (useMemo with []).
-    // This is available to children BEFORE any effects fire, which means
-    // children that are also registerSeerContext-wrapped will read the correct
-    // parentNodeId from context during their own render — no cascade needed.
-    const ownNodeId = useMemo(() => uniqueId(), []);
+    // React's useId generates a stable, unique ID for this component instance.
+    const ownNodeId = useId();
 
     useEffect(() => {
-      if (!ctx) {
-        return undefined;
-      }
       ctx.registerNode(ownNodeId, nodeType, parentNodeId);
       return () => {
         ctx.unregisterNode(ownNodeId);
@@ -53,16 +46,16 @@ export function registerSeerContext<P extends Record<string, unknown>>(
     }, [ctx, ownNodeId, parentNodeId]);
 
     return (
-      // Provide ownNodeId downward so child registerSeerContext wrappers
-      // and useSeerContext(data) calls read this as their context anchor.
-      <SeerNodeContext.Provider value={ownNodeId}>
+      // Provide ownNodeId downward so child registerLLMContext wrappers
+      // and useLLMContext(data) calls read this as their context anchor.
+      <LLMNodeContext.Provider value={ownNodeId}>
         {/* TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261 */}
         <WrappedComponent {...(props as any)} />
-      </SeerNodeContext.Provider>
+      </LLMNodeContext.Provider>
     );
   }
 
-  SeerContextWrapper.displayName = `registerSeerContext(${nodeType}, ${WrappedComponent.displayName || WrappedComponent.name || 'Component'})`;
+  LLMContextWrapper.displayName = `registerLLMContext(${nodeType}, ${WrappedComponent.displayName || WrappedComponent.name || 'Component'})`;
 
-  return SeerContextWrapper;
+  return LLMContextWrapper;
 }
