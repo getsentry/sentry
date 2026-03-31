@@ -48,6 +48,9 @@ describe('IssueStackTrace', () => {
       url: '/projects/org-slug/project-slug/stacktrace-link/',
       body: {config: null, sourceUrl: null, integrations: []},
     });
+    Object.assign(navigator, {
+      clipboard: {writeText: jest.fn().mockResolvedValue(undefined)},
+    });
   });
 
   it('does not render when event has threads', () => {
@@ -331,9 +334,6 @@ describe('IssueStackTrace', () => {
   });
 
   it('copies raw stacktrace when unsymbolicated toggle is active for chained exceptions', async () => {
-    Object.assign(navigator, {
-      clipboard: {writeText: jest.fn().mockResolvedValue(undefined)},
-    });
     const {event, stacktrace} = makeStackTraceData();
     const rawStacktrace: StacktraceWithFrames = {
       ...stacktrace,
@@ -378,6 +378,72 @@ describe('IssueStackTrace', () => {
     const copiedText = (navigator.clipboard.writeText as jest.Mock).mock.calls[0][0];
     expect(copiedText).toContain('minified_');
     expect(copiedText).not.toContain('File "raven/');
+  });
+
+  it('copies stack trace text including exception type and value for a single exception', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+
+    render(
+      <IssueStackTrace
+        event={event}
+        values={[
+          {
+            type: 'ValueError',
+            value: 'list index out of range',
+            module: 'raven.base',
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            rawStacktrace: null,
+            threadId: null,
+          },
+        ]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Copy as'}));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Text'}));
+
+    const copiedText = (navigator.clipboard.writeText as jest.Mock).mock.calls[0][0];
+    expect(copiedText).toContain('ValueError: list index out of range');
+    expect(copiedText).toContain('raven/base.py');
+  });
+
+  it('copies stack trace text including exception type and value for chained exceptions', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+
+    render(
+      <IssueStackTrace
+        event={event}
+        values={[
+          {
+            type: 'RootError',
+            value: 'root cause',
+            module: 'app.main',
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            rawStacktrace: null,
+            threadId: null,
+          },
+          {
+            type: 'NestedError',
+            value: 'nested cause',
+            module: 'app.nested',
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            rawStacktrace: null,
+            threadId: null,
+          },
+        ]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Copy as'}));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Text'}));
+
+    const copiedText = (navigator.clipboard.writeText as jest.Mock).mock.calls[0][0];
+    expect(copiedText).toContain('RootError: root cause');
+    expect(copiedText).toContain('NestedError: nested cause');
+    expect(copiedText).toContain('raven/base.py');
   });
 
   it('renders raw view for a single exception', async () => {

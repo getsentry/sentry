@@ -181,6 +181,8 @@ function IssueStackTraceContent({
           rawStacktraceContent({
             data: isMinified ? (exc.rawStacktrace ?? exc.stacktrace) : exc.stacktrace,
             platform: event.platform,
+            exception: exc,
+            isMinified,
           })
         )
         .join('\n\n'),
