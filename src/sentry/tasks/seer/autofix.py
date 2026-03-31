@@ -246,6 +246,11 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     default_stopping_point = organization.get_option(
         "sentry:default_automated_run_stopping_point", SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
     )
+    if default_stopping_point == "root_cause" and not features.has(
+        "organizations:seer-overview", organization
+    ):
+        default_stopping_point = SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+
     auto_open_prs = organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT)
 
     default_handoff: dict[str, Any] | None = None
