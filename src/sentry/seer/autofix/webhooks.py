@@ -71,7 +71,7 @@ def record_pr_action_analytic(
             )
         )
 
-        metrics.incr(f"ai.autofix.pr.{analytic_action}", tags={"mode": "legacy"})
+        metrics.incr(f"ai.autofix.pr.{analytic_action}")
         return
 
     explorer_state = get_explorer_state_from_pr_id(
@@ -94,6 +94,9 @@ def record_pr_action_analytic(
                 group_id=group.id,
                 run_id=explorer_state.run_id,
                 github_app=github_app,
+                referrer=explorer_state.metadata.get("referrer")
+                if explorer_state.metadata
+                else None,
             )
         )
 
