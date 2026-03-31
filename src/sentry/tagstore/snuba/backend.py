@@ -30,6 +30,7 @@ from sentry.api.paginator import SequencePaginator
 from sentry.api.utils import default_start_end_dates, handle_query_errors
 from sentry.eventstream.item_helpers import format_attr_key
 from sentry.issues.grouptype import GroupCategory
+from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -38,6 +39,7 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.replays.query import query_replays_dataset_tagkey_values
+from sentry.search.eap.occurrences.common_queries import count_occurrences
 from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.eap.resolver import SearchResolver
@@ -56,6 +58,7 @@ from sentry.search.events.filter import _flip_field_sort
 from sentry.search.events.types import SnubaParams
 from sentry.services.eventstore.query_preprocessing import translate_environment_ids_to_names
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.occurrences_rpc import OccurrenceCategory
 from sentry.snuba.referrer import Referrer
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT, TagKeyStatus, TagStorage
 from sentry.tagstore.exceptions import GroupTagKeyNotFound, TagKeyNotFound
@@ -876,24 +879,64 @@ class SnubaTagStorage(TagStorage):
 
     def get_group_tag_value_count(
         self,
-        group,
-        environment_id,
+        group: Group,
+        environment_id: int | None,
         key: str,
-        tenant_ids=None,
-    ):
+        tenant_ids: dict[str, str | int] | None = None,
+    ) -> int:
         filters: dict[str, Sequence[Any]] = {"project_id": get_project_list(group.project_id)}
         if environment_id:
             filters["environment"] = [environment_id]
         aggregations = [["count()", "", "count"]]
         dataset, filters = self.apply_group_filters(group, filters)
 
-        return snuba.query(
+        snuba_result = snuba.query(
             dataset=dataset,
             filter_keys=filters,
             aggregations=aggregations,
-            referrer="tagstore.get_group_tag_value_count",
+            referrer=Referrer.TAGSTORE_GET_GROUP_TAG_VALUE_COUNT.value,
             tenant_ids=tenant_ids,
         )
+        result = snuba_result
+
+        callsite = "SnubaTagStorage::get_group_tag_value_count"
+        if EAPOccurrencesComparator.should_check_experiment(callsite):
+            occurrence_category = (
+                OccurrenceCategory.ERROR
+                if group.issue_category == GroupCategory.ERROR
+                else OccurrenceCategory.ISSUE_PLATFORM
+            )
+
+            now = datetime.now(tz=timezone.utc)
+            environments = (
+                list(Environment.objects.filter(id=environment_id)) if environment_id else None
+            )
+
+            eap_result = count_occurrences(
+                organization=Organization.objects.get_from_cache(id=group.project.organization_id),
+                projects=[group.project],
+                start=now - timedelta(days=90),
+                end=now,
+                referrer=Referrer.TAGSTORE_GET_GROUP_TAG_VALUE_COUNT.value,
+                group_id=group.id,
+                environments=environments,
+                occurrence_category=occurrence_category,
+            )
+            result = EAPOccurrencesComparator.check_and_choose(
+                control_data=snuba_result,
+                experimental_data=eap_result,
+                callsite=callsite,
+                is_experimental_data_a_null_result=eap_result == 0,
+                reasonable_match_comparator=lambda control, experimental: experimental <= control,
+                debug_context={
+                    "group_id": group.id,
+                    "project_id": group.project_id,
+                    "environment_id": environment_id,
+                    "occurrence_category": occurrence_category.value,
+                },
+            )
+
+        return result
 
     def get_top_group_tag_values(
         self,
