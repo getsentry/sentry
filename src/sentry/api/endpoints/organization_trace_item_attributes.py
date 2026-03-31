@@ -1230,15 +1230,12 @@ class OrganizationTraceItemQueryValidatorEndpoint(OrganizationTraceItemAttribute
                 # Validate all argument keys — function is valid only if all keys are valid
                 all_valid = True
                 first_error = None
-                func_type = None
                 for key in func_keys:
                     result = key_results.get(key, {"valid": False, "error": "Unknown attribute"})
                     if not result["valid"]:
                         all_valid = False
                         if first_error is None:
                             first_error = result.get("error", "Unknown attribute")
-                    else:
-                        func_type = result.get("type")
 
                 entry = {
                     "token": _format_token(af),
@@ -1246,7 +1243,8 @@ class OrganizationTraceItemQueryValidatorEndpoint(OrganizationTraceItemAttribute
                     "valid": all_valid,
                 }
                 if all_valid:
-                    entry["type"] = func_type
+                    primary_result = key_results.get(func_keys[0], {})
+                    entry["type"] = primary_result.get("type")
                 else:
                     entry["error"] = first_error
                 functions_response.append(entry)
