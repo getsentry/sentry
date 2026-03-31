@@ -237,7 +237,7 @@ function GroupList({
           <SupergroupRow
             key={`sg-${supergroup.id}`}
             supergroup={supergroup}
-            matchedCount={matchingIds.length}
+            matchedGroupIds={matchingIds}
             aggregatedStats={stats}
           />
         );

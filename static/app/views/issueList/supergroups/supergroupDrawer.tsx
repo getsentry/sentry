@@ -1,28 +1,71 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import {
   CrumbContainer,
   NavigationCrumbs,
   ShortId,
 } from 'sentry/components/events/eventDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
-import {GroupList} from 'sentry/components/issues/groupList';
+import {GroupListHeader} from 'sentry/components/issues/groupListHeader';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {Pagination} from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {Placeholder} from 'sentry/components/placeholder';
+import {
+  DEFAULT_STREAM_GROUP_STATS_PERIOD,
+  StreamGroup,
+} from 'sentry/components/stream/group';
 import {IconFocus} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {GroupStore} from 'sentry/stores/groupStore';
+import type {Group} from 'sentry/types/group';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {StyledMarkedText} from 'sentry/views/issueList/pages/supergroups';
 import {SupergroupFeedback} from 'sentry/views/issueList/supergroups/supergroupFeedback';
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 
-export function SupergroupDetailDrawer({supergroup}: {supergroup: SupergroupDetail}) {
-  const placeholderRows = Math.min(supergroup.group_ids.length, 10);
-  const issueIdQuery = `issue.id:[${supergroup.group_ids.join(',')}]`;
+const PAGE_SIZE = 20;
 
+/**
+ * Builds a synthetic Link header string for the Pagination component
+ * based on the current page and total number of pages.
+ */
+function buildPageLinks(page: number, totalPages: number): string {
+  const hasPrevious = page > 0;
+  const hasNext = page < totalPages - 1;
+  return [
+    `<>; rel="previous"; results="${hasPrevious}"; cursor="0:0:0"`,
+    `<>; rel="next"; results="${hasNext}"; cursor="0:0:0"`,
+  ].join(',');
+}
+
+const DRAWER_COLUMNS = [
+  'event' as const,
+  'users' as const,
+  'assignee' as const,
+  'firstSeen' as const,
+  'lastSeen' as const,
+];
+
+interface SupergroupDetailDrawerProps {
+  matchedGroupIds: string[];
+  supergroup: SupergroupDetail;
+}
+
+export function SupergroupDetailDrawer({
+  supergroup,
+  matchedGroupIds,
+}: SupergroupDetailDrawerProps) {
   return (
     <Fragment>
       <DrawerHeader hideBar>
@@ -91,17 +134,9 @@ export function SupergroupDetailDrawer({supergroup}: {supergroup: SupergroupDeta
 
         {supergroup.group_ids.length > 0 && (
           <Container padding="xl 2xl">
-            <GroupList
-              queryParams={{
-                query: issueIdQuery,
-                limit: 25,
-                project: ALL_ACCESS_PROJECTS,
-              }}
-              canSelectGroups={false}
-              withChart={false}
-              withPagination={false}
-              source="supergroup-drawer"
-              numPlaceholderRows={placeholderRows}
+            <SupergroupIssueList
+              groupIds={supergroup.group_ids}
+              matchedGroupIds={matchedGroupIds}
             />
           </Container>
         )}
@@ -110,6 +145,201 @@ export function SupergroupDetailDrawer({supergroup}: {supergroup: SupergroupDeta
   );
 }
 
+function SupergroupIssueList({
+  groupIds,
+  matchedGroupIds,
+}: {
+  groupIds: number[];
+  matchedGroupIds: string[];
+}) {
+  const api = useApi();
+  const organization = useOrganization();
+  const [page, setPage] = useState(0);
+
+  const matchedSet = useMemo(() => new Set(matchedGroupIds), [matchedGroupIds]);
+
+  // Split group IDs into those already in GroupStore and those that need fetching.
+  // Place loaded groups first so the user sees them immediately.
+  const {sortedGroupIds, loadedGroups} = useMemo(() => {
+    const loaded: Group[] = [];
+    const loadedIdSet = new Set<string>();
+    const unloaded: number[] = [];
+
+    for (const id of groupIds) {
+      const group = GroupStore.get(String(id)) as Group | undefined;
+      if (group) {
+        loaded.push(group);
+        loadedIdSet.add(String(id));
+      } else {
+        unloaded.push(id);
+      }
+    }
+
+    // Loaded IDs first, then unloaded
+    const sorted = [...groupIds.filter(id => loadedIdSet.has(String(id))), ...unloaded];
+
+    return {sortedGroupIds: sorted, loadedGroups: loaded};
+  }, [groupIds]);
+
+  const totalPages = Math.ceil(sortedGroupIds.length / PAGE_SIZE);
+  const pageGroupIds = useMemo(
+    () => sortedGroupIds.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
+    [sortedGroupIds, page]
+  );
+
+  // Build a map of already-loaded groups for quick lookup
+  const loadedGroupMap = useMemo(() => {
+    const map = new Map<string, Group>();
+    for (const group of loadedGroups) {
+      map.set(group.id, group);
+    }
+    return map;
+  }, [loadedGroups]);
+
+  // Determine which IDs on the current page still need fetching
+  const pageUnloadedIds = useMemo(
+    () => pageGroupIds.filter(id => !loadedGroupMap.has(String(id))),
+    [pageGroupIds, loadedGroupMap]
+  );
+
+  const [memberList, setMemberList] = useState<
+    ReturnType<typeof indexMembersByProject> | undefined
+  >(undefined);
+
+  useEffect(() => {
+    fetchOrgMembers(api, organization.slug).then(members => {
+      setMemberList(indexMembersByProject(members));
+    });
+  }, [api, organization.slug]);
+
+  // Only fetch groups that aren't already loaded
+  const queryKey: ApiQueryKey = useMemo(
+    () => [
+      getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {
+        query: {
+          group: pageUnloadedIds.map(String),
+          project: ALL_ACCESS_PROJECTS,
+        },
+      },
+    ],
+    [organization.slug, pageUnloadedIds]
+  );
+
+  const {data: fetchedGroups, isPending} = useApiQuery<Group[]>(queryKey, {
+    staleTime: 30_000,
+    enabled: pageUnloadedIds.length > 0,
+  });
+
+  // Build a combined map of all available groups (loaded + fetched)
+  const fetchedGroupMap = useMemo(() => {
+    const map = new Map<string, Group>();
+    for (const group of fetchedGroups ?? []) {
+      map.set(group.id, group);
+    }
+    return map;
+  }, [fetchedGroups]);
+
+  const renderGroupRow = (group: Group) => {
+    const members = memberList?.[group.project?.slug]
+      ? memberList[group.project.slug]
+      : undefined;
+    const isMatched = matchedSet.has(group.id);
+
+    return (
+      <HighlightableRow key={group.id} highlighted={isMatched}>
+        <StreamGroup
+          group={group}
+          canSelect={false}
+          withChart={false}
+          withColumns={DRAWER_COLUMNS}
+          memberList={members}
+          statsPeriod={DEFAULT_STREAM_GROUP_STATS_PERIOD}
+          source="supergroup-drawer"
+        />
+      </HighlightableRow>
+    );
+  };
+
+  return (
+    <Fragment>
+      {matchedGroupIds.length > 0 && (
+        <Flex align="center" gap="xs" padding="0 0 md 0">
+          <MatchedIndicator />
+          <Text size="sm" variant="muted">
+            {t('Matched your search filters')}
+          </Text>
+        </Flex>
+      )}
+      <PanelContainer>
+        <GroupListHeader withChart={false} withColumns={DRAWER_COLUMNS} />
+        <PanelBody>
+          {pageGroupIds.map(id => {
+            const strId = String(id);
+            const group = loadedGroupMap.get(strId) ?? fetchedGroupMap.get(strId);
+
+            if (group) {
+              return renderGroupRow(group);
+            }
+
+            // Still loading this group
+            if (isPending) {
+              return (
+                <PlaceholderRow key={strId}>
+                  <Placeholder height="82px" />
+                </PlaceholderRow>
+              );
+            }
+
+            return null;
+          })}
+        </PanelBody>
+      </PanelContainer>
+      {totalPages > 1 && (
+        <Pagination
+          pageLinks={buildPageLinks(page, totalPages)}
+          onCursor={(_cursor, _path, _query, delta) => {
+            setPage(p => p + delta);
+          }}
+          caption={`${page * PAGE_SIZE + 1}-${Math.min((page + 1) * PAGE_SIZE, sortedGroupIds.length)} of ${sortedGroupIds.length}`}
+          size="xs"
+        />
+      )}
+    </Fragment>
+  );
+}
+
 const DrawerContentBody = styled(DrawerBody)`
   padding: 0;
+`;
+
+const PanelContainer = styled(Panel)`
+  container-type: inline-size;
+`;
+
+const PlaceholderRow = styled('div')`
+  padding: ${p => p.theme.space.md};
+
+  &:not(:last-child) {
+    border-bottom: solid 1px ${p => p.theme.tokens.border.secondary};
+  }
+`;
+
+const MatchedIndicator = styled('div')`
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: ${p => p.theme.tokens.graphics.accent.vibrant};
+  flex-shrink: 0;
+`;
+
+const HighlightableRow = styled('div')<{highlighted: boolean}>`
+  ${p =>
+    p.highlighted &&
+    `
+    background: ${p.theme.tokens.background.secondary};
+    border-left: 3px solid ${p.theme.tokens.border.accent.vibrant};
+  `}
 `;
