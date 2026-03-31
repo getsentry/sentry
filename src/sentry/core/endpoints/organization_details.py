@@ -435,9 +435,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
     def validate_defaultAutomatedRunStoppingPoint(self, value: str) -> str:
         organization = self.context["organization"]
-        if value == "root_cause" and not features.has(
-            "organizations:seer-overview-project-creation", organization
-        ):
+        if value == "root_cause" and not features.has("organizations:seer-overview", organization):
             raise serializers.ValidationError("Invalid default stopping point")
         return value
 

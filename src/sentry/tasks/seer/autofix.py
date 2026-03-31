@@ -263,7 +263,7 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
         SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     )
     valid_stopping_points = {"open_pr", "code_changes"}
-    if features.has("organizations:seer-overview-project-creation", organization):
+    if features.has("organizations:seer-overview", organization):
         valid_stopping_points.add("root_cause")
 
     preferences_by_id = bulk_get_project_preferences(organization_id, project_ids)

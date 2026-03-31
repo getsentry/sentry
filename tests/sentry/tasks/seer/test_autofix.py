@@ -355,7 +355,7 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         )
         assert prefs_by_project[project.id]["automation_handoff"] == existing_handoff
 
-    @with_feature("organizations:seer-overview-project-creation")
+    @with_feature("organizations:seer-overview")
     @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
     @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
     def test_root_cause_is_valid_stopping_point_with_flag(
