@@ -27,6 +27,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 
 from sentry import features, options
+from sentry.api import event_search
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -69,6 +70,7 @@ from sentry.search.eap.utils import (
     is_sentry_convention_replacement_attribute,
     translate_internal_to_public_alias,
 )
+from sentry.search.events import fields
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
@@ -1024,3 +1026,207 @@ class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttrib
                     }
 
         return Response({"attributes": results})
+
+
+class OrganizationTraceItemQueryValidatorSerializer(serializers.Serializer):
+    itemType = serializers.ChoiceField(
+        [e.value for e in SupportedTraceItemType], required=True, source="item_type"
+    )
+    query = serializers.CharField(required=True)
+
+
+def _extract_tokens(
+    terms: Sequence[event_search.QueryToken],
+) -> tuple[list[event_search.SearchFilter], list[event_search.AggregateFilter]]:
+    """Recursively walk parsed terms and collect SearchFilter and AggregateFilter tokens."""
+    search_filters: list[event_search.SearchFilter] = []
+    aggregate_filters: list[event_search.AggregateFilter] = []
+    for term in terms:
+        if isinstance(term, event_search.SearchFilter):
+            search_filters.append(term)
+        elif isinstance(term, event_search.AggregateFilter):
+            aggregate_filters.append(term)
+        elif isinstance(term, event_search.ParenExpression):
+            nested_search, nested_agg = _extract_tokens(term.children)
+            search_filters.extend(nested_search)
+            aggregate_filters.extend(nested_agg)
+    return search_filters, aggregate_filters
+
+
+def _extract_function_keys(aggregate_filter: event_search.AggregateFilter) -> list[str]:
+    """Extract attribute keys from an aggregate function's arguments.
+
+    Returns attribute key names, filtering out literals (numbers, quoted strings).
+    Returns an empty list for no-arg functions like count().
+    """
+    match = fields.is_function(aggregate_filter.key.name)
+    if match is None:
+        return []
+    arguments = fields.parse_arguments(match.group("function"), match.group("columns"))
+    keys: list[str] = []
+    for arg in arguments:
+        # Skip numeric literals and quoted strings
+        stripped = arg.strip('"').strip("'")
+        try:
+            float(stripped)
+            continue
+        except ValueError:
+            pass
+        keys.append(arg)
+    return keys
+
+
+@cell_silo_endpoint
+class OrganizationTraceItemQueryValidatorEndpoint(OrganizationTraceItemAttributesEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+    owner = ApiOwner.DATA_BROWSING
+
+    def get(self, request: Request, organization: Organization) -> Response:
+        if not self.has_feature(organization, request):
+            return Response(status=404)
+
+        serializer = OrganizationTraceItemQueryValidatorSerializer(data=request.GET)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        item_type = SupportedTraceItemType(serializer.validated_data["item_type"])
+        query_string: str = serializer.validated_data["query"]
+
+        try:
+            snuba_params = self.get_snuba_params(request, organization)
+        except NoProjects:
+            return Response({"filters": [], "functions": []})
+
+        try:
+            definitions = get_column_definitions(item_type)
+        except ValueError:
+            return Response({"detail": f"Unsupported item type: {item_type.value}"}, status=400)
+
+        resolver = SearchResolver(
+            params=snuba_params,
+            config=SearchResolverConfig(),
+            definitions=definitions,
+        )
+
+        # Step 1: Parse the query
+        try:
+            parsed_terms = event_search.parse_search_query(
+                query_string,
+                config=event_search.SearchConfig.create_from(
+                    event_search.default_config,
+                    wildcard_free_text=True,
+                ),
+                params=snuba_params.filter_params,
+            )
+        except InvalidSearchQuery as e:
+            return Response({"detail": str(e)}, status=400)
+
+        # Step 2: Extract tokens
+        search_filters, aggregate_filters = _extract_tokens(parsed_terms)
+
+        # Step 3: Collect all unique attribute keys and resolve them
+        # Maps key name -> resolution result: (resolved, is_known) or error string
+        key_results: dict[str, dict[str, Any]] = {}
+        unknown_attrs: list[tuple[str, Any]] = []
+
+        # Collect all keys to validate
+        all_keys: set[str] = set()
+        for sf in search_filters:
+            all_keys.add(sf.key.name)
+        for af in aggregate_filters:
+            for key in _extract_function_keys(af):
+                all_keys.add(key)
+
+        # Resolve each unique key
+        for key_name in all_keys:
+            try:
+                resolved, _context = resolver.resolve_attribute(key_name)
+                if key_name in definitions.contexts or key_name in definitions.columns:
+                    key_results[key_name] = {
+                        "valid": True,
+                        "type": serialize_type(resolved.search_type),
+                    }
+                else:
+                    unknown_attrs.append((key_name, resolved))
+            except InvalidSearchQuery as e:
+                key_results[key_name] = {
+                    "valid": False,
+                    "error": str(e),
+                }
+
+        # Step 4: Batch-check unknown keys against storage
+        if unknown_attrs:
+            attrs_by_type: dict[AttributeKey.Type.ValueType, list[str]] = {}
+            for _, resolved in unknown_attrs:
+                attrs_by_type.setdefault(resolved.proto_type, []).append(resolved.internal_name)
+            with handle_query_errors():
+                existing = _check_attributes_exist(resolver, item_type, attrs_by_type)
+
+            for key_name, resolved in unknown_attrs:
+                if (resolved.proto_type, resolved.internal_name) in existing:
+                    key_results[key_name] = {
+                        "valid": True,
+                        "type": serialize_type(resolved.search_type),
+                    }
+                else:
+                    key_results[key_name] = {
+                        "valid": False,
+                        "error": f"Unknown attribute: {key_name}",
+                    }
+
+        # Step 5: Build per-token response
+        filters_response: list[dict[str, Any]] = []
+        for sf in search_filters:
+            result = key_results.get(sf.key.name, {"valid": False, "error": "Unknown attribute"})
+            entry: dict[str, Any] = {
+                "token": sf.to_query_string(),
+                "key": sf.key.name,
+                "valid": result["valid"],
+            }
+            if result["valid"]:
+                entry["type"] = result["type"]
+            else:
+                entry["error"] = result.get("error", "Unknown attribute")
+            filters_response.append(entry)
+
+        functions_response: list[dict[str, Any]] = []
+        for af in aggregate_filters:
+            func_keys = _extract_function_keys(af)
+            if not func_keys:
+                # No-arg function like count()
+                functions_response.append(
+                    {
+                        "token": af.to_query_string(),
+                        "key": None,
+                        "valid": True,
+                        "type": None,
+                    }
+                )
+            else:
+                # Validate all argument keys — function is valid only if all keys are valid
+                all_valid = True
+                first_error = None
+                func_type = None
+                for key in func_keys:
+                    result = key_results.get(key, {"valid": False, "error": "Unknown attribute"})
+                    if not result["valid"]:
+                        all_valid = False
+                        if first_error is None:
+                            first_error = result.get("error", "Unknown attribute")
+                    else:
+                        func_type = result.get("type")
+
+                entry = {
+                    "token": af.to_query_string(),
+                    "key": func_keys[0],
+                    "valid": all_valid,
+                }
+                if all_valid:
+                    entry["type"] = func_type
+                else:
+                    entry["error"] = first_error
+                functions_response.append(entry)
+
+        return Response({"filters": filters_response, "functions": functions_response})
