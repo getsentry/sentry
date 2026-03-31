@@ -189,9 +189,9 @@ function AgentNameForm({
   const preferredAgentIntegration =
     preferredAgentValue === 'seer'
       ? 'seer'
-      : (rawAgentOptions
+      : rawAgentOptions
           .filter(option => option.value !== 'seer')
-          .find(option => option.value.id === preferredAgentValue)?.value ?? 'seer');
+          .find(option => option.value.id === preferredAgentValue)?.value;
 
   const preferredAgentProjectIds = new Set(
     projectsWithPreferredAgent.map(s => s.projectId)
