@@ -47,7 +47,7 @@ standard_cases = [
     (
         "traceparent - aws, but not word boundary",
         "abc1-67891233-abcdef012345678912345678",
-        "abc1-<hex>-<hex>",
+        "<hex>-<hex>-<hex>",
     ),
     ("uuid", "7c1811ed-e98f-4c9c-a9f9-58c757ff494f", "<uuid>"),
     (
@@ -141,8 +141,10 @@ standard_cases = [
     ("hex with prefix - uppercase, 24 digits", "0x9AF8C3BE3A1231FE1121ACB1", "<hex>"),
     ("hex with prefix - lowercase, no numbers", "0xdeadbeef", "<hex>"),
     ("hex with prefix - uppercase, no numbers", "0xDEADBEEF", "<hex>"),
-    ("hex without prefix - lowercase, 4 digits", "9af8", "9af8"),
-    ("hex without prefix - uppercase, 4 digits", "9AF8", "9AF8"),
+    ("hex without prefix - lowercase, < 4 digits", "9af", "9af"),
+    ("hex without prefix - uppercase, < 4 digits", "9AF", "9AF"),
+    ("hex without prefix - lowercase, 4 digits", "9af8", "<hex>"),
+    ("hex without prefix - uppercase, 4 digits", "9AF8", "<hex>"),
     ("hex without prefix - lowercase, 8 digits", "9af8c3be", "<hex>"),
     ("hex without prefix - uppercase, 8 digits", "9AF8C3BE", "<hex>"),
     ("hex without prefix - lowercase, 10 digits", "9af8c3be3a", "<hex>"),
@@ -153,13 +155,16 @@ standard_cases = [
     ("hex without prefix - uppercase, 24 digits", "9AF8C3BE3A1231FE1121ACB1", "<hex>"),
     ("hex without prefix - lowercase, 128 digits", "b0" * 64, "<hex>"),
     ("hex without prefix - uppercase, 128 digits", "B0" * 64, "<hex>"),
-    ("hex without prefix - lowercase, no numbers", "deadbeef", "deadbeef"),
-    ("hex without prefix - uppercase, no numbers", "DEADBEEF", "DEADBEEF"),
-    ("hex without prefix - lowercase, no numbers until later", "deadbeef 123", "deadbeef <int>"),
-    ("hex without prefix - uppercase, no numbers until later", "DEADBEEF 123", "DEADBEEF <int>"),
+    ("hex without prefix - lowercase, no numbers, < 8 digits", "deadbee", "deadbee"),
+    ("hex without prefix - uppercase, no numbers, < 8 digits", "DEADBEE", "DEADBEE"),
+    ("hex without prefix - lowercase, no numbers, 8 digits", "deadbeef", "<hex>"),
+    ("hex without prefix - uppercase, no numbers, 8 digits", "DEADBEEF", "<hex>"),
+    ("hex without prefix - lowercase, no numbers until later", "cafe 123", "cafe <int>"),
+    ("hex without prefix - uppercase, no numbers until later", "CAFE 123", "CAFE <int>"),
     ("hex without prefix - no letters, < 8 digits, positive", "1234567", "<int>"),
     ("hex without prefix - no letters, < 8 digits, negative", "-1234567", "<int>"),
     ("hex without prefix - no letters, 8+ digits, positive", "12345678", "<hex>"),
+    ("hex without prefix - no letters, 8+ digits, negative", "-12345678", "<hex>"),
     ("git sha", "commit a93c7d2", "commit <git_sha>"),
     ("git sha - all letters", "commit cabcafe", "commit cabcafe"),
     ("git sha - all numbers", "commit 4150908", "commit <int>"),
@@ -240,12 +245,6 @@ def test_experimental_parameterization(name: str, input: str, expected: str) -> 
 # parameterization. (Remember to remove the last item in each tuple for the cases you fix.)
 incorrect_cases = [
     # ("name", "input", "desired", "actual")
-    (
-        "hex without prefix - no letters, 8+ digits, negative",
-        "-12345678",
-        "<hex>",
-        "-<hex>",
-    ),
     (
         "int - number in word",
         "Encoding: utf-8",
