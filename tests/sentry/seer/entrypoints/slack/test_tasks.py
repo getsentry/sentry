@@ -33,7 +33,7 @@ class ProcessMentionForSlackTest(TestCase):
     @patch("sentry.seer.entrypoints.slack.tasks.SlackExplorerEntrypoint")
     @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
     def test_happy_path(self, mock_resolve_user, mock_explorer_cls, mock_operator_cls):
-        mock_user = MagicMock()
+        mock_user = MagicMock(id=self.user.id)
         mock_resolve_user.return_value = mock_user
 
         mock_explorer_cls.has_access.return_value = True
@@ -118,11 +118,35 @@ class ProcessMentionForSlackTest(TestCase):
         mock_operator_cls.assert_not_called()
         assert_halt_metric(mock_record, ProcessMentionHaltReason.IDENTITY_NOT_LINKED)
 
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.seer.entrypoints.slack.tasks.SeerExplorerOperator")
+    @patch("sentry.seer.entrypoints.slack.tasks.SlackExplorerEntrypoint")
+    @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
+    def test_user_not_org_member(
+        self,
+        mock_resolve_user,
+        mock_explorer_cls,
+        mock_operator_cls,
+        mock_record,
+    ):
+        other_org = self.create_organization()
+        mock_user = MagicMock(id=self.create_user().id)
+        mock_resolve_user.return_value = mock_user
+
+        mock_explorer_cls.has_access.return_value = True
+        mock_entrypoint = MagicMock()
+        mock_explorer_cls.return_value = mock_entrypoint
+
+        self._run_task(organization_id=other_org.id)
+
+        mock_operator_cls.assert_not_called()
+        assert_halt_metric(mock_record, ProcessMentionHaltReason.USER_NOT_ORG_MEMBER)
+
     @patch("sentry.seer.entrypoints.slack.tasks.SeerExplorerOperator")
     @patch("sentry.seer.entrypoints.slack.tasks.SlackExplorerEntrypoint")
     @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
     def test_with_thread_context(self, mock_resolve_user, mock_explorer_cls, mock_operator_cls):
-        mock_resolve_user.return_value = MagicMock()
+        mock_resolve_user.return_value = MagicMock(id=self.user.id)
 
         mock_explorer_cls.has_access.return_value = True
         mock_entrypoint = MagicMock()
@@ -151,7 +175,7 @@ class ProcessMentionForSlackTest(TestCase):
     @patch("sentry.seer.entrypoints.slack.tasks.SlackExplorerEntrypoint")
     @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
     def test_without_thread_context(self, mock_resolve_user, mock_explorer_cls, mock_operator_cls):
-        mock_resolve_user.return_value = MagicMock()
+        mock_resolve_user.return_value = MagicMock(id=self.user.id)
 
         mock_explorer_cls.has_access.return_value = True
         mock_entrypoint = MagicMock()

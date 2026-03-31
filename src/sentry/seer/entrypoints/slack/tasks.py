@@ -115,6 +115,10 @@ def process_mention_for_slack(
             )
             return
 
+        if not organization.has_access(user):
+            lifecycle.record_halt(ProcessMentionHaltReason.USER_NOT_ORG_MEMBER)
+            return
+
         prompt = extract_prompt(text, bot_user_id)
 
         # Only fetch thread context when actually in a thread.
