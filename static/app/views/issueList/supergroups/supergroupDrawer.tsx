@@ -1,7 +1,9 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Badge} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -12,9 +14,9 @@ import {
   ShortId,
 } from 'sentry/components/events/eventDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
+import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {GroupListHeader} from 'sentry/components/issues/groupListHeader';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
-import {Pagination} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -22,7 +24,7 @@ import {
   DEFAULT_STREAM_GROUP_STATS_PERIOD,
   StreamGroup,
 } from 'sentry/components/stream/group';
-import {IconFocus} from 'sentry/icons';
+import {IconChevron, IconFocus} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
@@ -36,25 +38,12 @@ import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 
 const PAGE_SIZE = 20;
 
-/**
- * Builds a synthetic Link header string for the Pagination component
- * based on the current page and total number of pages.
- */
-function buildPageLinks(page: number, totalPages: number): string {
-  const hasPrevious = page > 0;
-  const hasNext = page < totalPages - 1;
-  return [
-    `<>; rel="previous"; results="${hasPrevious}"; cursor="0:0:0"`,
-    `<>; rel="next"; results="${hasNext}"; cursor="0:0:0"`,
-  ].join(',');
-}
-
-const DRAWER_COLUMNS = [
-  'event' as const,
-  'users' as const,
-  'assignee' as const,
-  'firstSeen' as const,
-  'lastSeen' as const,
+const DRAWER_COLUMNS: GroupListColumn[] = [
+  'event',
+  'users',
+  'assignee',
+  'firstSeen',
+  'lastSeen',
 ];
 
 interface SupergroupDetailDrawerProps {
@@ -298,14 +287,27 @@ function SupergroupIssueList({
         </PanelBody>
       </PanelContainer>
       {totalPages > 1 && (
-        <Pagination
-          pageLinks={buildPageLinks(page, totalPages)}
-          onCursor={(_cursor, _path, _query, delta) => {
-            setPage(p => p + delta);
-          }}
-          caption={`${page * PAGE_SIZE + 1}-${Math.min((page + 1) * PAGE_SIZE, sortedGroupIds.length)} of ${sortedGroupIds.length}`}
-          size="xs"
-        />
+        <Flex justify="end" align="center" gap="sm" padding="md 0">
+          <Text size="sm" variant="muted">
+            {`${page * PAGE_SIZE + 1}-${Math.min((page + 1) * PAGE_SIZE, sortedGroupIds.length)} of ${sortedGroupIds.length}`}
+          </Text>
+          <Flex gap="xs">
+            <Button
+              size="xs"
+              icon={<IconChevron direction="left" />}
+              aria-label={t('Previous')}
+              disabled={page === 0}
+              onClick={() => setPage(p => p - 1)}
+            />
+            <Button
+              size="xs"
+              icon={<IconChevron direction="right" />}
+              aria-label={t('Next')}
+              disabled={page >= totalPages - 1}
+              onClick={() => setPage(p => p + 1)}
+            />
+          </Flex>
+        </Flex>
       )}
     </Fragment>
   );
@@ -338,8 +340,8 @@ const MatchedIndicator = styled('div')`
 const HighlightableRow = styled('div')<{highlighted: boolean}>`
   ${p =>
     p.highlighted &&
-    `
-    background: ${p.theme.tokens.background.secondary};
-    border-left: 3px solid ${p.theme.tokens.border.accent.vibrant};
-  `}
+    css`
+      background: ${p.theme.tokens.background.secondary};
+      border-left: 3px solid ${p.theme.tokens.border.accent.vibrant};
+    `}
 `;
