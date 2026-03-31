@@ -712,7 +712,10 @@ def get_repo_installation_id(
     if not installation_id:
         return {"error": "installation_id_not_found"}
 
-    return {"installation_id": installation_id}
+    return {
+        "installation_id": installation_id,
+        "permissions": integration.metadata.get("permissions"),
+    }
 
 
 def check_repository_integrations_status(*, repository_integrations: list[dict[str, Any]]) -> dict:

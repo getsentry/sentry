@@ -1342,7 +1342,36 @@ class TestSeerRpcMethods(APITestCase):
             name="sentry",
         )
 
-        assert result == {"installation_id": "12345"}
+        assert result == {"installation_id": "12345", "permissions": None}
+
+    def test_get_repo_installation_id_github_with_permissions(self) -> None:
+        """Test returns permissions from integration metadata"""
+        permissions = {"contents": "read", "issues": "write", "pull_requests": "read"}
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="12345",
+            metadata={"permissions": permissions},
+        )
+
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123456",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        result = get_repo_installation_id(
+            organization_id=self.organization.id,
+            provider="github",
+            external_id="123456",
+            owner="getsentry",
+            name="sentry",
+        )
+
+        assert result == {"installation_id": "12345", "permissions": permissions}
 
     def test_get_repo_installation_id_github_enterprise(self) -> None:
         """Test returns metadata installation_id for GitHub Enterprise repos"""
@@ -1370,7 +1399,7 @@ class TestSeerRpcMethods(APITestCase):
             name="internal-repo",
         )
 
-        assert result == {"installation_id": "99999"}
+        assert result == {"installation_id": "99999", "permissions": None}
 
     def test_get_repo_installation_id_not_found(self) -> None:
         """Test returns error when repository does not exist"""
