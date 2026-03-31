@@ -70,6 +70,13 @@ function InternalInput({item, state, token, rowRef}: InternalInputProps) {
   const [_selectionIndex, setSelectionIndex] = useState(0);
   const [_isOpen, setIsOpen] = useState(false);
 
+  // Sync currentValue when the token changes (e.g. key reuse after re-tokenization)
+  const [prevLabel, setPrevLabel] = useState(token.label);
+  if (token.label !== prevLabel) {
+    setPrevLabel(token.label);
+    setCurrentValue(token.label);
+  }
+
   const filterValue = inputValue.trim();
   const displayValue = isCurrentlyEditing ? inputValue : currentValue;
 

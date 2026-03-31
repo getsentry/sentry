@@ -65,7 +65,7 @@ describe('vaidateTokens', () => {
     ['(A + B) * (A - B) / 100', new Set(['A', 'B'])],
     ['((A + B) * (A - B)) / 100', new Set(['A', 'B'])],
   ])('passes with references `%s`', (expression, references) => {
-    const tokens = tokenizeExpression(expression, references as Set<string>);
+    const tokens = tokenizeExpression(expression, references);
     expect(validateTokens(tokens)).toBe(true);
   });
 });

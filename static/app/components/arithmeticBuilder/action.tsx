@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import type {Key} from '@react-types/shared';
 
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
@@ -66,32 +66,39 @@ export function useArithmeticBuilderAction({
     focusOverride: FocusOverride | null;
   };
 } {
-  const [expression, setExpression] = useState(
-    () => new Expression(initialExpression, references)
-  );
+  const [expressionString, setExpressionString] = useState(initialExpression);
   const [focusOverride, setFocusOverride] = useState<FocusOverride | null>(null);
+
+  const expression = useMemo(
+    () => new Expression(expressionString, references),
+    [expressionString, references]
+  );
+
+  useEffect(() => {
+    updateExpression?.(expression);
+  }, [expression, updateExpression]);
 
   const dispatch = useCallback(
     (action: ArithmeticBuilderAction) => {
       if (isArithmeticBuilderUpdateResetFocusOverrideAction(action)) {
         setFocusOverride(null);
       } else if (isArithmeticBuilderDeleteAction(action)) {
-        const newExpression = deleteToken(expression.text, action, references);
-        updateExpression?.(newExpression);
-        setExpression(newExpression);
+        const newText = deleteTokenText(expressionString, action);
+        setExpressionString(newText);
+        updateExpression?.(new Expression(newText, references));
         if (defined(action.focusOverride)) {
           setFocusOverride(action.focusOverride);
         }
       } else if (isArithmeticBuilderReplaceAction(action)) {
-        const newExpression = replaceToken(expression.text, action, references);
-        updateExpression?.(newExpression);
-        setExpression(newExpression);
+        const newText = replaceTokenText(expressionString, action);
+        setExpressionString(newText);
+        updateExpression?.(new Expression(newText, references));
         if (defined(action.focusOverride)) {
           setFocusOverride(action.focusOverride);
         }
       }
     },
-    [expression.text, references, updateExpression]
+    [expressionString, references, updateExpression]
   );
 
   const state = useMemo(
@@ -105,25 +112,14 @@ export function useArithmeticBuilderAction({
   return {state, dispatch};
 }
 
-function deleteToken(
-  text: string,
-  action: ArithmeticBuilderDeleteAction,
-  references?: Set<string>
-) {
+function deleteTokenText(text: string, action: ArithmeticBuilderDeleteAction): string {
   const [head, tail] = queryHeadTail(text, action.token);
-  return new Expression(removeExcessWhitespaceFromParts(head, tail), references);
+  return removeExcessWhitespaceFromParts(head, tail);
 }
 
-function replaceToken(
-  text: string,
-  action: ArithmeticBuilderReplaceAction,
-  references?: Set<string>
-) {
+function replaceTokenText(text: string, action: ArithmeticBuilderReplaceAction): string {
   const [head, tail] = queryHeadTail(text, action.token);
-  return new Expression(
-    removeExcessWhitespaceFromParts(head, action.text, tail),
-    references
-  );
+  return removeExcessWhitespaceFromParts(head, action.text, tail);
 }
 
 function queryHeadTail(expression: string, token: Token): [string, string] {

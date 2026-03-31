@@ -1,26 +1,20 @@
 import {Fragment, useState} from 'react';
 
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
+import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('ArithmeticBuilder', story => {
   story('With References', () => {
     const [expression, setExpression] = useState('A + B');
-    const [refsInput, setRefsInput] = useState('["A", "B", "C"]');
+    const [isValid, setIsValid] = useState(true);
+    const [references, setReferences] = useState(new Set<string>(['A', 'B', 'C']));
     const [parseError, setParseError] = useState('');
 
-    let references = new Set<string>();
-    try {
-      const parsed = JSON.parse(refsInput);
-      references = new Set(parsed);
-      if (parseError) {
-        setParseError('');
-      }
-    } catch (e) {
-      if (!parseError) {
-        setParseError(String(e));
-      }
-    }
+    const onExpressionChange = (expr: Expression) => {
+      setExpression(expr.text);
+      setIsValid(expr.isValid);
+    };
 
     return (
       <Fragment>
@@ -39,8 +33,16 @@ export default Storybook.story('ArithmeticBuilder', story => {
           References JSON
           <textarea
             id="refs-input"
-            value={refsInput}
-            onChange={e => setRefsInput(e.target.value)}
+            defaultValue={JSON.stringify([...references])}
+            onChange={e => {
+              try {
+                const parsed = JSON.parse(e.target.value);
+                setReferences(new Set(parsed));
+                setParseError('');
+              } catch (error) {
+                setParseError(String(error));
+              }
+            }}
             rows={3}
             style={{width: '100%', fontFamily: 'monospace', marginBottom: 8}}
           />
@@ -50,14 +52,22 @@ export default Storybook.story('ArithmeticBuilder', story => {
 
         <ArithmeticBuilder
           expression={expression}
-          setExpression={expr => setExpression(expr.text)}
+          setExpression={onExpressionChange}
           references={references}
           aggregations={[]}
           functionArguments={[]}
           getFieldDefinition={() => null}
         />
 
-        <p style={{marginTop: 8, fontFamily: 'monospace'}}>Expression: {expression}</p>
+        <div style={{marginTop: 8, fontFamily: 'monospace'}}>
+          <p>Expression: {expression}</p>
+          <p>
+            Valid:{' '}
+            <span style={{color: isValid ? 'green' : 'red'}}>
+              {isValid ? 'yes' : 'no'}
+            </span>
+          </p>
+        </div>
       </Fragment>
     );
   });

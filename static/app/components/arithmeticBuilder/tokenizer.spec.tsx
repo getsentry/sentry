@@ -684,7 +684,7 @@ describe('tokenizeExpression', () => {
     ['A+1', new Set(['A']), [s(0), r(0, 'A'), s(1), o(0, '+'), s(2), l(0, '1'), s(3)]],
     ['A-1', new Set(['A']), [s(0), r(0, 'A'), s(1), o(0, '-'), s(2), l(0, '1'), s(3)]],
   ])('tokenizes references `%s`', (expression, references, expected) => {
-    expect(tokenizeExpression(expression, references as Set<string>)).toEqual(expected);
+    expect(tokenizeExpression(expression, references)).toEqual(expected);
   });
 
   it.each([
@@ -696,9 +696,7 @@ describe('tokenizeExpression', () => {
   ])(
     'treats missing references as free text `%s`',
     (expression, references, expected) => {
-      expect(
-        tokenizeExpression(expression, references as Set<string> | undefined)
-      ).toEqual(expected);
+      expect(tokenizeExpression(expression, references)).toEqual(expected);
     }
   );
 
