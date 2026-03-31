@@ -652,10 +652,13 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
             # p4 print returns a list: first element is file metadata dict,
             # remaining elements are file content strings/bytes
-            if len(result) < 2:
+            if not result or not isinstance(result[0], dict):
                 raise ApiError(f"File not found: {depot_path}", code=404)
 
             content_parts = result[1:]
+            if not content_parts:
+                return ""
+
             return "".join(
                 part.decode("utf-8", errors="replace") if isinstance(part, bytes) else part
                 for part in content_parts
