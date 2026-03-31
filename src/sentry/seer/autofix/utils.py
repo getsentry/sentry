@@ -393,9 +393,7 @@ def default_seer_project_preference(project: Project) -> SeerProjectPreference:
         organization_id=project.organization.id,
         project_id=project.id,
         repositories=[],
-        automated_run_stopping_point=project.organization.get_option(
-            "sentry:default_automated_run_stopping_point", SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
-        ),
+        automated_run_stopping_point=AutofixStoppingPoint.CODE_CHANGES.value,
         automation_handoff=None,
     )
 
@@ -407,10 +405,6 @@ def get_org_default_seer_automation_handoff(
     stopping_point = organization.get_option(
         "sentry:default_automated_run_stopping_point", SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
     )
-    if stopping_point == "root_cause" and not features.has(
-        "organizations:seer-overview", organization
-    ):
-        stopping_point = SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
 
     auto_open_prs = organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT)
 

@@ -34,7 +34,6 @@ from sentry.seer.models.project_repository import (
     SeerProjectRepositoryBranchOverride,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.utils.cache import cache
 
 
@@ -1236,15 +1235,7 @@ class TestGetOrgDefaultSeerAutomationHandoff(TestCase):
         assert stopping_point == "open_pr"
         assert handoff is None
 
-    @with_feature("organizations:seer-overview")
-    def test_root_cause_stopping_point_allowed_with_flag(self):
-        self.organization.update_option("sentry:default_automated_run_stopping_point", "root_cause")
-
-        stopping_point, handoff = get_org_default_seer_automation_handoff(self.organization)
-        assert stopping_point == "root_cause"
-        assert handoff is None
-
-    def test_root_cause_stopping_point_falls_back_without_seer_overview_flag(self):
+    def test_invalid_stopping_point_falls_back_to_default(self):
         self.organization.update_option("sentry:default_automated_run_stopping_point", "root_cause")
 
         stopping_point, handoff = get_org_default_seer_automation_handoff(self.organization)

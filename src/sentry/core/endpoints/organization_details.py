@@ -384,7 +384,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     )
     defaultCodingAgentIntegrationId = serializers.IntegerField(required=False, allow_null=True)
     defaultAutomatedRunStoppingPoint = serializers.ChoiceField(
-        choices=["code_changes", "open_pr", "root_cause"], required=False
+        choices=["code_changes", "open_pr"], required=False
     )
     autoOpenPrs = serializers.BooleanField(required=False)
     autoEnableCodeReview = serializers.BooleanField(required=False)
@@ -431,12 +431,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             integration_id=value, organization_id=organization.id
         ):
             raise serializers.ValidationError("Integration does not exist.")
-        return value
-
-    def validate_defaultAutomatedRunStoppingPoint(self, value: str) -> str:
-        organization = self.context["organization"]
-        if value == "root_cause" and not features.has("organizations:seer-overview", organization):
-            raise serializers.ValidationError("Invalid default stopping point")
         return value
 
     def validate_sensitiveFields(self, value):

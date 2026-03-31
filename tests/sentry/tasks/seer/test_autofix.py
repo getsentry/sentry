@@ -16,7 +16,6 @@ from sentry.tasks.seer.autofix import (
     generate_issue_summary_only,
 )
 from sentry.testutils.cases import TestCase as SentryTestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.utils.cache import cache
 
 
@@ -358,23 +357,6 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
             == SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
         )
         assert prefs_by_project[project.id]["automation_handoff"] == existing_handoff
-
-    @with_feature("organizations:seer-overview")
-    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
-    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
-    def test_root_cause_is_valid_stopping_point_with_flag(
-        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
-    ) -> None:
-        """With the feature flag, root_cause is a valid stopping point and the project is skipped."""
-        project = self.create_project(organization=self.organization)
-
-        mock_bulk_get.return_value = {
-            str(project.id): {"automated_run_stopping_point": "root_cause"},
-        }
-
-        configure_seer_for_existing_org(organization_id=self.organization.id)
-
-        mock_bulk_set.assert_not_called()
 
     @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
     def test_raises_on_bulk_get_api_failure(self, mock_bulk_get: MagicMock) -> None:
