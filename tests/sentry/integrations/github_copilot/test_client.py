@@ -121,6 +121,7 @@ class GithubCopilotAgentClientTest(TestCase):
         mock_response = Mock()
         mock_response.json = {
             "id": "task-123",
+            "state": "in_progress",
             "status": "in_progress",
             "created_at": "2024-06-01T12:00:00Z",
         }
@@ -143,6 +144,7 @@ class GithubCopilotAgentClientTest(TestCase):
         mock_response = Mock()
         mock_response.json = {
             "id": "task-456",
+            "state": "in_progress",
             "status": "in_progress",
         }
         mock_response.status_code = 200
@@ -166,6 +168,7 @@ class GithubCopilotAgentClientTest(TestCase):
         mock_response.json = {
             "task": {
                 "id": "task-789",
+                "state": "in_progress",
                 "status": "in_progress",
                 "created_at": "2024-06-01T12:00:00Z",
             }
