@@ -233,6 +233,16 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
                 (?<!\w)-
             )
             (
+                # The patterns for hex strings 4-6 characters long each consist of three parts:
+                #   - Lookahead to guarantee at least one digit (any number of letters, followed by
+                #     a single digit - doesn't have to cover the entire match, so there can continue
+                #     to be letters and numbers after the digit is found)
+                #   - Lookahead to guarantee at least one letter (any number of numbers, followed by
+                #     a single letter - as above, doesn't have to cover the entire match)
+                #   - The matcher itself - between 4 and 6 hex characters (7-character strings
+                #     aren't included because those are classified as git SHAs)
+                (?=[a-f]*[0-9])(?=[0-9]*[a-f])[0-9a-f]{4,6} |
+                (?=[A-F]*[0-9])(?=[0-9]*[A-F])[0-9A-F]{4,6} |
                 ((?=[a-f]*[0-9])[0-9a-f]{8,128}) |
                 ((?=[A-F]*[0-9])[0-9A-F]{8,128})
             )
