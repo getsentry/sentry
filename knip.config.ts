@@ -12,6 +12,8 @@ const productionEntryPoints = [
   'static/app/gettingStartedDocs/**/*.{js,ts,tsx}',
   // this is imported with require.context
   'static/app/data/forms/*.tsx',
+  // frontend experiemnt framework may be unused when we have no experiemnets
+  'static/app/utils/useExperiment.tsx',
   // --- we should be able to get rid of those: ---
   // Only used in stories (so far)
   'static/app/components/core/quote/*.tsx',
