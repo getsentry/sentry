@@ -1133,6 +1133,7 @@ class OrganizationTraceItemQueryValidatorEndpoint(OrganizationTraceItemAttribute
                 params=snuba_params.filter_params,
             )
         except InvalidSearchQuery as e:
+            # InvalidSearchQuery contains user-facing validation messages, not stack traces
             return Response({"detail": str(e)}, status=400)
 
         # Step 2: Extract tokens
