@@ -11,8 +11,6 @@ from sentry.grouping.component import (
 )
 from sentry.grouping.context import GroupingContext
 from sentry.grouping.parameterization import (
-    DEFAULT_PARAMETERIZATION_REGEXES_MAP,
-    EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP,
     experimental_parameterizer,
     parameterizer,
 )
@@ -49,7 +47,7 @@ standard_cases = [
     (
         "traceparent - aws, but not word boundary",
         "abc1-67891233-abcdef012345678912345678",
-        "abc1<int>-<hex>",
+        "abc1-<hex>-<hex>",
     ),
     ("uuid", "7c1811ed-e98f-4c9c-a9f9-58c757ff494f", "<uuid>"),
     (
@@ -171,11 +169,13 @@ standard_cases = [
     ("int - separator", "0:17502", "<int>:<int>"),
     ("int - separator negative no space", "value:-17502", "value:<int>"),
     ("int - separator negative with space", "value: -17502", "value: <int>"),
+    ("int - in dashed string with numbers", "415-908", "<int>-<int>"),
+    ("int - in dashed string with letters", "maisey-908", "maisey-<int>"),
     ("int - parens", '{"msg" => "(#239323)', '{"msg" => "(#<int>)'),
-    ("int - date - invalid day", "2006-01-40", "<int><int><int>"),
-    ("int - date - invalid month", "2006-20-02", "<int><int><int>"),
-    ("int - date - invalid year", "10000-01-02", "<int><int><int>"),
-    ("int - date - missing day", "2006-01", "<int><int>"),
+    ("int - date - invalid day", "2006-01-40", "<int>-<int>-<int>"),
+    ("int - date - invalid month", "2006-20-02", "<int>-<int>-<int>"),
+    ("int - date - invalid year", "10000-01-02", "<int>-<int>-<int>"),
+    ("int - date - missing day", "2006-01", "<int>-<int>"),
     ("int - quoted_str whitespace", "b = '1'", "b = '<int>'"),
     ("int - quoted_str whitespace", 'b = "1"', 'b = "<int>"'),
     ("quoted_str - single", "b='1'", "b=<quoted_str>"),
@@ -219,8 +219,7 @@ def test_default_parameterizer_misses_experimental_cases(
 
 
 @pytest.mark.skipif(
-    EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP == DEFAULT_PARAMETERIZATION_REGEXES_MAP,
-    reason="no experimental regexes to test",
+    not experimental_parameterizer.is_experimental, reason="no experimental regexes to test"
 )
 @pytest.mark.parametrize(("name", "input", "expected"), standard_cases + experimental_cases)
 def test_experimental_parameterization(name: str, input: str, expected: str) -> None:
@@ -245,25 +244,13 @@ incorrect_cases = [
         "hex without prefix - no letters, 8+ digits, negative",
         "-12345678",
         "<hex>",
-        "<int>",
-    ),
-    (
-        "int - dashed string with numbers",
-        "415-908",
-        "<int>-<int>",
-        "<int><int>",
-    ),
-    (
-        "int - dashed string with letters",
-        "maisey-908",
-        "maisey-<int>",
-        "maisey<int>",
+        "-<hex>",
     ),
     (
         "int - number in word",
         "Encoding: utf-8",
         "Encoding: utf-8",
-        "Encoding: utf<int>",
+        "Encoding: utf-<int>",
     ),
     (
         "int - with commas",

@@ -33,7 +33,7 @@ class GitlabRequestParserTest(TestCase):
         return HttpResponse(status=200, content="passthrough")
 
     def get_integration(self) -> Integration:
-        self.organization = self.create_organization(owner=self.user, region="us")
+        self.organization = self.create_organization(owner=self.user, cell="us")
         return self.create_integration(
             organization=self.organization,
             provider="gitlab",

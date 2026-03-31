@@ -11,6 +11,7 @@ from django.db import router, transaction
 from django.utils import timezone
 from taskbroker_client.retry import Retry
 
+from sentry import features
 from sentry.constants import DataCategory
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
@@ -28,7 +29,10 @@ from sentry.preprod.models import (
     PreprodBuildConfiguration,
 )
 from sentry.preprod.producer import PreprodFeature, produce_preprod_artifact_to_kafka
-from sentry.preprod.quotas import has_installable_quota, has_size_quota
+from sentry.preprod.quotas import (
+    has_installable_quota,
+    has_size_quota,
+)
 from sentry.preprod.size_analysis.models import SizeAnalysisResults
 from sentry.preprod.size_analysis.tasks import (
     compare_preprod_artifact_size_analysis,
@@ -47,12 +51,23 @@ from sentry.tasks.assemble import (
     set_assemble_status,
 )
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import preprod_tasks
+from sentry.taskworker.namespaces import launchpad_tasks, preprod_tasks
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.sdk import bind_organization_context
 
 logger = logging.getLogger(__name__)
+
+
+# Typed RPC stub — the body is never called. The decorator registers the task signature
+# with the external namespace; dispatch happens via process_artifact.apply_async().
+@launchpad_tasks.register(
+    name="process_artifact",
+    retry=Retry(times=3),
+    processing_deadline_duration=60 * 12,
+)
+def process_artifact(artifact_id: str, project_id: str, organization_id: str) -> None:
+    pass
 
 
 @instrumented_task(
@@ -83,6 +98,7 @@ def assemble_preprod_artifact(
         },
     )
 
+    assemble_result = None
     try:
         organization = Organization.objects.get_from_cache(pk=org_id)
         project = Project.objects.get(id=project_id, organization=organization)
@@ -142,43 +158,18 @@ def assemble_preprod_artifact(
         )
 
         return
+    finally:
+        try:
+            if assemble_result is not None:
+                assemble_result.bundle_temp_file.close()
+        except Exception:
+            pass
 
-    try:
-        # Note: requested_features is no longer used for filtering - all features are
-        # requested here, and the actual quota/filter checks happen in the update endpoint
-        # (project_preprod_artifact_update.py) after preprocessing completes.
-        produce_preprod_artifact_to_kafka(
-            project_id=project_id,
-            organization_id=org_id,
-            artifact_id=artifact_id,
-            requested_features=[
-                PreprodFeature.SIZE_ANALYSIS,
-                PreprodFeature.BUILD_DISTRIBUTION,
-            ],
-        )
-    except Exception as e:
-        user_friendly_error_message = "Failed to dispatch preprod artifact event for analysis"
-        sentry_sdk.capture_exception(e)
-        logger.exception(
-            user_friendly_error_message,
-            extra={
-                "project_id": project_id,
-                "organization_id": org_id,
-                "checksum": checksum,
-                "preprod_artifact_id": artifact_id,
-            },
-        )
-        PreprodArtifact.objects.filter(id=artifact_id).update(
-            state=PreprodArtifact.ArtifactState.FAILED,
-            error_code=PreprodArtifact.ErrorCode.ARTIFACT_PROCESSING_ERROR,
-            error_message=user_friendly_error_message,
-        )
-        create_preprod_status_check_task.apply_async(
-            kwargs={
-                "preprod_artifact_id": artifact_id,
-                "caller": "assemble_dispatch_error",
-            }
-        )
+    if features.has("organizations:launchpad-taskbroker-rollout", organization):
+        _dispatch_taskbroker_shadow(project_id, org_id, artifact_id)
+
+    kafka_dispatched = _dispatch_kafka(project_id, org_id, artifact_id, checksum)
+    if not kafka_dispatched:
         return
 
     logger.info(
@@ -979,3 +970,74 @@ def detect_expired_preprod_artifacts() -> None:
             + expired_size_comparisons_count,
         },
     )
+
+
+def _dispatch_kafka(project_id: int, org_id: int, artifact_id: int, checksum: str) -> bool:
+    # Note: requested_features is no longer used for filtering - all features are
+    # requested here, and the actual quota/filter checks happen in the update endpoint
+    # (project_preprod_artifact_update.py) after preprocessing completes.
+    try:
+        produce_preprod_artifact_to_kafka(
+            project_id=project_id,
+            organization_id=org_id,
+            artifact_id=artifact_id,
+            requested_features=[
+                PreprodFeature.SIZE_ANALYSIS,
+                PreprodFeature.BUILD_DISTRIBUTION,
+            ],
+        )
+        return True
+    except Exception as e:
+        user_friendly_error_message = "Failed to dispatch preprod artifact event for analysis"
+        sentry_sdk.capture_exception(e)
+        logger.exception(
+            user_friendly_error_message,
+            extra={
+                "project_id": project_id,
+                "organization_id": org_id,
+                "checksum": checksum,
+                "preprod_artifact_id": artifact_id,
+            },
+        )
+        PreprodArtifact.objects.filter(id=artifact_id).update(
+            state=PreprodArtifact.ArtifactState.FAILED,
+            error_code=PreprodArtifact.ErrorCode.ARTIFACT_PROCESSING_ERROR,
+            error_message=user_friendly_error_message,
+        )
+        create_preprod_status_check_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": artifact_id,
+                "caller": "assemble_dispatch_error",
+            }
+        )
+        return False
+
+
+def _dispatch_taskbroker_shadow(project_id: int, org_id: int, artifact_id: int) -> None:
+    # TODO: When taskbroker becomes the primary path, add PreprodArtifactSizeMetrics
+    # state management here (mirroring project_preprod_artifact_update.py). Currently
+    # omitted to avoid racing with the primary Kafka consumer path.
+    try:
+        logger.info(
+            "preprod.dispatch_taskbroker_shadow",
+            extra={
+                "project_id": project_id,
+                "organization_id": org_id,
+                "preprod_artifact_id": artifact_id,
+            },
+        )
+
+        process_artifact.delay(
+            artifact_id=str(artifact_id),
+            project_id=str(project_id),
+            organization_id=str(org_id),
+        )
+    except Exception:
+        logger.exception(
+            "Failed to dispatch shadow taskbroker event",
+            extra={
+                "project_id": project_id,
+                "organization_id": org_id,
+                "preprod_artifact_id": artifact_id,
+            },
+        )

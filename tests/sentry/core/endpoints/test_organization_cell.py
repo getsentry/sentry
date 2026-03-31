@@ -13,8 +13,8 @@ class OrganizationRegionTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.org_owner = self.create_user()
-        us_region = get_cell_by_name("us")
-        self.org = self.create_organization(owner=self.org_owner, region=us_region)
+        us_cell = get_cell_by_name("us")
+        self.org = self.create_organization(owner=self.org_owner, cell=us_cell)
         self.test_project = self.create_project(organization=self.org, name="test_project")
 
     def create_internal_integration_for_org(self, org, user, scopes: list[str]):
@@ -26,8 +26,8 @@ class OrganizationRegionTest(APITestCase):
 
         return (internal_integration, integration_token)
 
-    def create_auth_token_for_org(self, org: Organization, region: Cell, scopes: list[str]):
-        locality = get_global_directory().get_locality_for_cell(region.name)
+    def create_auth_token_for_org(self, org: Organization, cell: Cell, scopes: list[str]):
+        locality = get_global_directory().get_locality_for_cell(cell.name)
         assert locality is not None
         org_auth_token_str = generate_token(org.slug, locality.to_url(""))
         self.create_org_auth_token(
@@ -64,9 +64,9 @@ class OrganizationRegionTest(APITestCase):
         assert response.status_code == 403
 
     def test_org_auth_token_access_with_org_read(self) -> None:
-        us_region = get_cell_by_name("us")
+        us_cell = get_cell_by_name("us")
         org_auth_token_str = self.create_auth_token_for_org(
-            region=us_region, org=self.org, scopes=["org:ci"]
+            cell=us_cell, org=self.org, scopes=["org:ci"]
         )
         response = self.send_get_request_with_auth(self.org.slug, org_auth_token_str)
 
@@ -76,20 +76,18 @@ class OrganizationRegionTest(APITestCase):
         assert response.status_code == 200
 
     def test_org_auth_token_access_with_incorrect_scopes(self) -> None:
-        us_region = get_cell_by_name("us")
-        org_auth_token_str = self.create_auth_token_for_org(
-            region=us_region, org=self.org, scopes=[]
-        )
+        us_cell = get_cell_by_name("us")
+        org_auth_token_str = self.create_auth_token_for_org(cell=us_cell, org=self.org, scopes=[])
         response = self.send_get_request_with_auth(self.org.slug, org_auth_token_str)
 
         assert response.status_code == 403
 
     def test_org_auth_token_access_for_different_organization(self) -> None:
-        us_region = get_cell_by_name("us")
+        us_cell = get_cell_by_name("us")
 
         other_user = self.create_user()
         org_auth_token_str = self.create_auth_token_for_org(
-            region=us_region, org=self.create_organization(owner=other_user), scopes=["org:ci"]
+            cell=us_cell, org=self.create_organization(owner=other_user), scopes=["org:ci"]
         )
         response = self.send_get_request_with_auth(self.org.slug, org_auth_token_str)
 
