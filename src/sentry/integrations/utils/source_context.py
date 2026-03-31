@@ -12,7 +12,11 @@ from sentry.issues.auto_source_code_config.code_mapping import (
     convert_stacktrace_frame_path_to_source_path,
 )
 from sentry.lang.javascript.utils import LINES_OF_CONTEXT, get_source_context
-from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiRateLimitedError,
+    IntegrationConfigurationError,
+)
 from sentry.utils.event_frames import EventFrame
 
 if TYPE_CHECKING:
@@ -229,7 +233,7 @@ def fetch_source_context_from_scm(
                 config.repository, src_path, str(config.default_branch or ""), ctx.get("commit_id")
             )
             result["source_url"] = source_url
-        except ApiError:
+        except (ApiError, IntegrationConfigurationError):
             pass
 
         return result
