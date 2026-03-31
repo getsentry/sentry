@@ -72,6 +72,10 @@ class OrganizationIntegrationReposEndpoint(CellOrganizationIntegrationBaseEndpoi
 
             try:
                 if accessible_only and search:
+                    # Fetch all installation-accessible repos and filter locally by
+                    # identifier only. Unlike the provider search API, this won't
+                    # match on name/description — but identifiers already contain the
+                    # repo name (e.g. "org/repo-name"), so this covers typical searches.
                     repositories = install.get_repositories()
                     search_lower = search.lower()
                     repositories = [
