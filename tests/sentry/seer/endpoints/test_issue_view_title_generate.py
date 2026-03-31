@@ -9,7 +9,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 class IssueViewTitleGenerateEndpointTest(APITestCase):
     endpoint = "sentry-api-0-issue-view-title-generate"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.url = f"/api/0/organizations/{self.organization.slug}/issue-view-title/generate/"

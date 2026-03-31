@@ -64,7 +64,7 @@ import {useRouter} from 'sentry/utils/useRouter';
 import {
   cloneDashboard,
   getCurrentPageFilters,
-  getDashboardFiltersFromURL,
+  getMergedDashboardFilters,
   hasUnsavedFilterChanges,
   isWidgetUsingTransactionName,
   resetPageFilters,
@@ -296,7 +296,7 @@ class DashboardDetail extends Component<Props, State> {
           organization,
           widget,
           widgetLegendState: this.state.widgetLegendState,
-          dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
+          dashboardFilters: getMergedDashboardFilters(dashboard.filters, location),
           dashboardPermissions: dashboard.permissions,
           dashboardCreator: dashboard.createdBy,
           isPrebuiltDashboard: defined(dashboard.prebuiltId),
@@ -849,7 +849,7 @@ class DashboardDetail extends Component<Props, State> {
           const newModifiedDashboard = {
             ...cloneDashboard(modifiedDashboard),
             ...getCurrentPageFilters(location),
-            filters: getDashboardFiltersFromURL(location) ?? modifiedDashboard.filters,
+            filters: getMergedDashboardFilters(modifiedDashboard.filters, location),
           };
           createDashboard(api, organization.slug, newModifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
@@ -1214,9 +1214,10 @@ class DashboardDetail extends Component<Props, State> {
                               const newModifiedDashboard = {
                                 ...cloneDashboard(modifiedDashboard ?? dashboard),
                                 ...getCurrentPageFilters(location),
-                                filters:
-                                  getDashboardFiltersFromURL(location) ??
+                                filters: getMergedDashboardFilters(
                                   (modifiedDashboard ?? dashboard).filters,
+                                  location
+                                ),
                                 ...(defined(dashboard.prebuiltId) && {
                                   widgets: undefined,
                                 }),
@@ -1303,9 +1304,10 @@ class DashboardDetail extends Component<Props, State> {
                               }
                               setOpenWidgetTemplates={this.handleChangeWidgetBuilderView}
                               onClose={this.handleCloseWidgetBuilder}
-                              dashboardFilters={
-                                getDashboardFiltersFromURL(location) ?? dashboard.filters
-                              }
+                              dashboardFilters={getMergedDashboardFilters(
+                                dashboard.filters,
+                                location
+                              )}
                               dashboard={modifiedDashboard ?? dashboard}
                               onSave={this.handleSaveWidget}
                             />

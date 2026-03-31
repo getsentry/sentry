@@ -79,7 +79,7 @@ class BuildWebhookPayloadTest(TestCase):
     # Completed (success) builds
     # ------------------------------------------------------------------
 
-    def test_completed_android_build(self):
+    def test_completed_android_build(self) -> None:
         """Completed Android build produces correct payload."""
         artifact = self._create_installable_artifact()
 
@@ -114,7 +114,7 @@ class BuildWebhookPayloadTest(TestCase):
 
         self._assert_no_transient_fields(payload)
 
-    def test_completed_apple_build(self):
+    def test_completed_apple_build(self) -> None:
         """Completed Apple build includes code-signing fields."""
         artifact = self._create_installable_artifact(
             artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
@@ -131,7 +131,7 @@ class BuildWebhookPayloadTest(TestCase):
         assert "profileName" in payload
         assert "codesigningType" in payload
 
-    def test_completed_build_with_git_context(self):
+    def test_completed_build_with_git_context(self) -> None:
         """Completed build with commit comparison has gitInfo."""
         commit_comparison = self.create_commit_comparison(
             organization=self.organization,
@@ -156,7 +156,7 @@ class BuildWebhookPayloadTest(TestCase):
         assert payload["gitInfo"]["headRepoName"] == "org/repo"
         assert payload["gitInfo"]["prNumber"] == 42
 
-    def test_completed_but_not_installable(self):
+    def test_completed_but_not_installable(self) -> None:
         """Completed build that is not installable (e.g. missing build number)."""
         artifact = self.create_preprod_artifact(
             project=self.project,
@@ -177,7 +177,7 @@ class BuildWebhookPayloadTest(TestCase):
     # Failed builds
     # ------------------------------------------------------------------
 
-    def test_failed_build(self):
+    def test_failed_build(self) -> None:
         """Failed build produces FAILED payload with error details."""
         artifact = self._create_failed_artifact(
             error_code=PreprodArtifact.InstallableAppErrorCode.PROCESSING_ERROR,
@@ -195,7 +195,7 @@ class BuildWebhookPayloadTest(TestCase):
 
         self._assert_no_transient_fields(payload)
 
-    def test_failed_no_quota(self):
+    def test_failed_no_quota(self) -> None:
         """NO_QUOTA error code is mapped correctly."""
         artifact = self._create_failed_artifact(
             error_code=PreprodArtifact.InstallableAppErrorCode.NO_QUOTA,
@@ -208,7 +208,7 @@ class BuildWebhookPayloadTest(TestCase):
         assert payload["state"] == "FAILED"
         assert payload["errorCode"] == "NO_QUOTA"
 
-    def test_failed_skipped(self):
+    def test_failed_skipped(self) -> None:
         """SKIPPED error code is mapped correctly."""
         artifact = self._create_failed_artifact(
             error_code=PreprodArtifact.InstallableAppErrorCode.SKIPPED,
@@ -221,7 +221,7 @@ class BuildWebhookPayloadTest(TestCase):
         assert payload["state"] == "FAILED"
         assert payload["errorCode"] == "SKIPPED"
 
-    def test_failed_unknown(self):
+    def test_failed_unknown(self) -> None:
         """UNKNOWN error code is mapped correctly."""
         artifact = self._create_failed_artifact(
             error_code=PreprodArtifact.InstallableAppErrorCode.UNKNOWN,
@@ -238,13 +238,13 @@ class BuildWebhookPayloadTest(TestCase):
     # Suppressed states
     # ------------------------------------------------------------------
 
-    def test_non_terminal_returns_none(self):
+    def test_non_terminal_returns_none(self) -> None:
         """Artifact with neither file nor error returns None."""
         artifact = self.create_preprod_artifact(project=self.project)
 
         assert build_webhook_payload(artifact) is None
 
-    def test_deleted_artifact_returns_none(self):
+    def test_deleted_artifact_returns_none(self) -> None:
         """Deleted artifact returns None."""
         artifact = self._create_installable_artifact()
         artifact_id = artifact.id
@@ -258,7 +258,7 @@ class BuildWebhookPayloadTest(TestCase):
     # Edge cases
     # ------------------------------------------------------------------
 
-    def test_build_id_is_string(self):
+    def test_build_id_is_string(self) -> None:
         """buildId should always be a string, not an integer."""
         artifact = self._create_installable_artifact()
 
@@ -267,7 +267,7 @@ class BuildWebhookPayloadTest(TestCase):
         assert payload is not None
         assert isinstance(payload["buildId"], str)
 
-    def test_project_id_is_string(self):
+    def test_project_id_is_string(self) -> None:
         """projectId should always be a string, not an integer."""
         artifact = self._create_installable_artifact()
 
@@ -276,7 +276,7 @@ class BuildWebhookPayloadTest(TestCase):
         assert payload is not None
         assert isinstance(payload["projectId"], str)
 
-    def test_no_mobile_app_info(self):
+    def test_no_mobile_app_info(self) -> None:
         """Artifact without mobile app info has null appInfo fields."""
         artifact = self.create_preprod_artifact(
             project=self.project,
@@ -292,7 +292,7 @@ class BuildWebhookPayloadTest(TestCase):
         assert payload["appInfo"]["version"] is None
         assert payload["appInfo"]["buildNumber"] is None
 
-    def test_android_apk_artifact_type(self):
+    def test_android_apk_artifact_type(self) -> None:
         """Android APK artifact has correct appInfo.artifactType."""
         artifact = self._create_installable_artifact(
             artifact_type=PreprodArtifact.ArtifactType.APK,
@@ -304,7 +304,7 @@ class BuildWebhookPayloadTest(TestCase):
         assert payload["appInfo"]["artifactType"] == "APK"
         assert payload["platform"] == "ANDROID"
 
-    def test_both_file_and_error_treats_as_failed(self):
+    def test_both_file_and_error_treats_as_failed(self) -> None:
         """Artifact with both file and error is treated as FAILED."""
         artifact = self._create_installable_artifact()
         artifact.installable_app_error_code = (

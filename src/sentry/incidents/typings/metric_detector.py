@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
+from pydantic import BaseModel
+
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
@@ -281,15 +283,17 @@ class MetricIssueContext:
         )
 
 
-@dataclass
-class OpenPeriodContext:
+class OpenPeriodContext(BaseModel):
     """
     We want to eventually delete this class. it serves as a way to pass data around
     that we used to use `incident` for.
     """
 
+    class Config:
+        frozen = True
+
     date_started: datetime
-    date_closed: datetime | None
+    date_closed: datetime | None = None
     id: int
 
     @classmethod

@@ -516,6 +516,19 @@ export function getCurrentPageFilters(
   };
 }
 
+/**
+ * Merges saved dashboard filters with any overrides from the URL.
+ * URL filters take precedence per-key, but saved filters fill in
+ * keys that aren't present in the URL (e.g. globalFilter when only
+ * release is in the URL).
+ */
+export function getMergedDashboardFilters(
+  savedFilters: DashboardFilters | undefined,
+  location: Location
+): DashboardFilters {
+  return {...savedFilters, ...getDashboardFiltersFromURL(location)};
+}
+
 export function getDashboardFiltersFromURL(location: Location): DashboardFilters | null {
   const dashboardFilters: DashboardFilters = {};
   Object.values(DashboardFilterKeys).forEach(key => {

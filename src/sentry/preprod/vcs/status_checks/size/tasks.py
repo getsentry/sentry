@@ -37,6 +37,7 @@ from sentry.preprod.models import (
 )
 from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.preprod.vcs.status_checks.size.templates import (
+    format_all_skipped_messages,
     format_no_quota_messages,
     format_status_check_messages,
 )
@@ -258,53 +259,57 @@ def create_preprod_status_check_task(
             "preprod.status_checks.create.all_skipped",
             extra={"artifact_id": preprod_artifact.id},
         )
-        return
-
-    url_artifact = (
-        preprod_artifact
-        if preprod_artifact.id in {a.id for a in all_artifacts}
-        else all_artifacts[0]
-    )
-    target_url = get_preprod_artifact_url(url_artifact)
-    completed_at: datetime | None = None
-
-    # Check if any artifact hit quota limits - show neutral status with quota message
-    if _has_no_quota_artifact(all_artifacts, size_metrics_map):
-        title, subtitle, summary = format_no_quota_messages()
+        title, subtitle, summary = format_all_skipped_messages(preprod_artifact.project)
         status = StatusCheckStatus.NEUTRAL
         completed_at = preprod_artifact.date_updated
+        target_url = get_preprod_artifact_url(preprod_artifact)
         triggered_rules: list[TriggeredRule] = []
     else:
-        rules = _get_status_check_rules(preprod_artifact.project)
-        base_artifact_map, base_size_metrics_map = _fetch_base_size_metrics(all_artifacts)
-
-        status, triggered_rules = _compute_overall_status(
-            all_artifacts,
-            size_metrics_map,
-            rules=rules,
-            base_artifact_map=base_artifact_map,
-            base_metrics_by_artifact=base_size_metrics_map,
-            approvals_map=approvals_map,
+        url_artifact = (
+            preprod_artifact
+            if preprod_artifact.id in {a.id for a in all_artifacts}
+            else all_artifacts[0]
         )
+        target_url = get_preprod_artifact_url(url_artifact)
+        completed_at = None
 
-        title, subtitle, summary = format_status_check_messages(
-            all_artifacts,
-            size_metrics_map,
-            status,
-            preprod_artifact.project,
-            base_artifact_map,
-            base_size_metrics_map,
-            triggered_rules,
-        )
-
-        if GITHUB_STATUS_CHECK_STATUS_MAPPING[status] == GitHubCheckStatus.COMPLETED:
-            completed_at = preprod_artifact.date_updated
-
-        # When no rules are configured, always show neutral status.
-        # When rules exist, show actual status (in_progress, failure, success).
-        if not rules:
+        # Check if any artifact hit quota limits - show neutral status with quota message
+        if _has_no_quota_artifact(all_artifacts, size_metrics_map):
+            title, subtitle, summary = format_no_quota_messages()
             status = StatusCheckStatus.NEUTRAL
             completed_at = preprod_artifact.date_updated
+            triggered_rules = []
+        else:
+            rules = _get_status_check_rules(preprod_artifact.project)
+            base_artifact_map, base_size_metrics_map = _fetch_base_size_metrics(all_artifacts)
+
+            status, triggered_rules = _compute_overall_status(
+                all_artifacts,
+                size_metrics_map,
+                rules=rules,
+                base_artifact_map=base_artifact_map,
+                base_metrics_by_artifact=base_size_metrics_map,
+                approvals_map=approvals_map,
+            )
+
+            title, subtitle, summary = format_status_check_messages(
+                all_artifacts,
+                size_metrics_map,
+                status,
+                preprod_artifact.project,
+                base_artifact_map,
+                base_size_metrics_map,
+                triggered_rules,
+            )
+
+            if GITHUB_STATUS_CHECK_STATUS_MAPPING[status] == GitHubCheckStatus.COMPLETED:
+                completed_at = preprod_artifact.date_updated
+
+            # When no rules are configured, always show neutral status.
+            # When rules exist, show actual status (in_progress, failure, success).
+            if not rules:
+                status = StatusCheckStatus.NEUTRAL
+                completed_at = preprod_artifact.date_updated
 
     try:
         check_id = provider.create_status_check(

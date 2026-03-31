@@ -1519,6 +1519,48 @@ class UpdateAutofixTest(TestCase):
         assert response.status_code == 200
         assert response.data == mock_response.json.return_value
 
+    @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
+    def test_update_autofix_blocks_coding_payloads_when_disabled(self, mock_request):
+        from sentry.seer.autofix.autofix import update_autofix
+        from sentry.seer.autofix.types import AutofixCreatePRPayload, AutofixSelectSolutionPayload
+
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        payloads: list[AutofixSelectSolutionPayload | AutofixCreatePRPayload] = [
+            AutofixSelectSolutionPayload(type="select_solution"),
+            AutofixCreatePRPayload(type="create_pr"),
+        ]
+        for payload in payloads:
+            response = update_autofix(
+                organization_id=self.organization.id,
+                run_id=self.run_id,
+                payload=payload,
+            )
+
+            assert response.status_code == 403
+            assert response.data["detail"] == "Code generation is disabled for this organization"
+
+        mock_request.assert_not_called()
+
+    @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
+    def test_update_autofix_allows_select_root_cause_when_coding_disabled(self, mock_request):
+        from sentry.seer.autofix.autofix import update_autofix
+
+        self.organization.update_option("sentry:enable_seer_coding", False)
+        mock_response = Mock()
+        mock_response.status = 200
+        mock_response.json.return_value = {"run_id": self.run_id}
+        mock_request.return_value = mock_response
+
+        response = update_autofix(
+            organization_id=self.organization.id,
+            run_id=self.run_id,
+            payload={"type": "select_root_cause", "cause_id": 1},
+        )
+
+        assert response.status_code == 200
+        mock_request.assert_called_once()
+
 
 class TestPreResolveStacktraceFrames(TestCase):
     def _make_serialized_event(self, frames, platform="python"):
@@ -1540,7 +1582,7 @@ class TestPreResolveStacktraceFrames(TestCase):
             ],
         }
 
-    def test_resolves_frames_with_code_mapping(self):
+    def test_resolves_frames_with_code_mapping(self) -> None:
         project = self.create_project()
         repo = self.create_repo(
             name="getsentry/sentry", provider="github", external_id="123", integration_id=234
@@ -1567,7 +1609,7 @@ class TestPreResolveStacktraceFrames(TestCase):
         # Non in-app frames should not be resolved
         assert "repo_name" not in frames[2]
 
-    def test_no_code_mappings_is_noop(self):
+    def test_no_code_mappings_is_noop(self) -> None:
         event = self._make_serialized_event([{"filename": "src/utils.py", "inApp": True}])
 
         _pre_resolve_stacktrace_frames(event, [])
@@ -1575,7 +1617,7 @@ class TestPreResolveStacktraceFrames(TestCase):
         frames = event["entries"][0]["data"]["values"][0]["stacktrace"]["frames"]
         assert "repo_name" not in frames[0]
 
-    def test_unmatched_frames_left_unresolved(self):
+    def test_unmatched_frames_left_unresolved(self) -> None:
         project = self.create_project()
         repo = self.create_repo(
             name="getsentry/sentry", provider="github", external_id="123", integration_id=234
@@ -1597,7 +1639,7 @@ class TestPreResolveStacktraceFrames(TestCase):
         assert frames[0]["repo_name"] == "getsentry/sentry"
         assert "repo_name" not in frames[1]
 
-    def test_multiple_repos(self):
+    def test_multiple_repos(self) -> None:
         project = self.create_project()
         repo1 = self.create_repo(
             name="getsentry/sentry", provider="github", external_id="123", integration_id=234
@@ -1627,7 +1669,7 @@ class TestPreResolveStacktraceFrames(TestCase):
         assert frames[1]["repo_name"] == "getsentry/seer"
         assert frames[1]["filename"] == "src/seer/models.py"
 
-    def test_resolves_thread_frames(self):
+    def test_resolves_thread_frames(self) -> None:
         project = self.create_project()
         repo = self.create_repo(
             name="getsentry/sentry", provider="github", external_id="123", integration_id=234
