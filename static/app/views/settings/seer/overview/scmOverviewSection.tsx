@@ -25,7 +25,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import {getProviderConfigUrl} from 'sentry/components/repositories/scmIntegrationTree/providerConfigLink';
 import {useScmIntegrationTreeData} from 'sentry/components/repositories/scmIntegrationTree/useScmIntegrationTreeData';
-import {ScmRepoTreeModal} from 'sentry/components/repositories/scmRepoTreeModal';
 import {IconAdd, IconOpen, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
@@ -178,7 +177,10 @@ function NoIntegrations({refetchIntegrations}: {refetchIntegrations: () => void}
         priority="primary"
         size="sm"
         icon={<IconAdd />}
-        onClick={() => {
+        onClick={async () => {
+          const {ScmRepoTreeModal} =
+            await import('sentry/components/repositories/scmRepoTreeModal');
+
           openModal(
             deps => <ScmRepoTreeModal {...deps} title={t('Install Integration')} />,
             {
