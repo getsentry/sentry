@@ -157,8 +157,9 @@ def main() -> int:
         print("No changed files provided, running full test suite")
         affected_test_files: set[str] = set()
     else:
+        all_paths = changed + previous_filenames
         triggered_by = [
-            f for f in changed if any(_matches_trigger(f, t) for t in FULL_SUITE_TRIGGERS)
+            f for f in all_paths if any(_matches_trigger(f, t) for t in FULL_SUITE_TRIGGERS)
         ]
         if triggered_by:
             print(f"Full test suite triggered by: {', '.join(triggered_by)}")
