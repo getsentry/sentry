@@ -13,7 +13,12 @@ const parseFeedbackSlug = createParser<FeedbackSlug>({
     }
     return {feedbackId: value, projectSlug: ''};
   },
-  serialize: value => (value ? `${value.projectSlug}:${value.feedbackId}` : ''),
+  serialize: value =>
+    value
+      ? value.projectSlug
+        ? `${value.projectSlug}:${value.feedbackId}`
+        : value.feedbackId
+      : '',
 });
 
 export const useFeedbackSlug = () => useQueryState('feedbackSlug', parseFeedbackSlug);
