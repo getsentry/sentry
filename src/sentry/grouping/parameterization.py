@@ -2,6 +2,7 @@ import dataclasses
 import re
 from collections import OrderedDict, defaultdict
 from collections.abc import Sequence
+from ipaddress import ip_address, ip_interface, ip_network
 from typing import Callable
 
 from sentry.utils import metrics
@@ -42,6 +43,25 @@ class ParameterizationRegex:
         prefix = rf"(?<={self.lookbehind})" if self.lookbehind else ""
         postfix = rf"(?={self.lookahead})" if self.lookahead else ""
         return rf"{prefix}(?P<{self.name}>{raw_pattern}){postfix}"
+
+
+def is_valid_ip(maybe_ip_str: str) -> bool:
+    # Validate the string by attempting to pass it to the three built-in factory functions for
+    # creating different types of ip address objects. If any of them succeeds, it's a valid IP. If
+    # all three raise an error, it's not.
+    for fn, kwargs in (
+        (ip_address, {}),
+        (ip_interface, {}),
+        (ip_network, {"strict": False}),  # `strict: False` allows host bits
+    ):
+        try:
+            fn(maybe_ip_str, **kwargs)
+        except ValueError:
+            pass
+        else:
+            return True
+
+    return False
 
 
 DEFAULT_PARAMETERIZATION_REGEXES = [
