@@ -28,7 +28,7 @@ from sentry.search.eap.validator import literal_validator
 
 
 def _rate_internal(
-    divisor: int, args: ResolvedArguments, settings: ResolverSettings, is_conditional: bool
+    divisor: int, args: ResolvedArguments, settings: ResolverSettings
 ) -> Column.BinaryFormula:
     """
     Calculate rate per X for trace metrics using the value attribute.
@@ -47,7 +47,7 @@ def _rate_internal(
     )
 
     trace_metric = search_config.metric or extract_trace_metric_aggregate_arguments(
-        args, offset=0 if not is_conditional else 1
+        args, offset=0 if not settings["conditional"] else 1
     )
 
     trace_filter: TraceItemFilter | None
@@ -58,17 +58,17 @@ def _rate_internal(
                     filters=[cast(TraceItemFilter, args[0]), trace_metric.get_filter()]
                 )
             )
-            if is_conditional
+            if settings["conditional"]
             else trace_metric.get_filter()
         )
         if trace_metric.metric_type == "counter":
-            aggregate = Function.FUNCTION_COUNT
+            aggregate = Function.FUNCTION_SUM
             key = AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.value")
         else:
-            aggregate = Function.FUNCTION_SUM
+            aggregate = Function.FUNCTION_COUNT
             key = AttributeKey(name="sentry.project_id", type=AttributeKey.Type.TYPE_INT)
     else:
-        if is_conditional:
+        if settings["conditional"]:
             trace_filter = cast(TraceItemFilter, args[0])
         else:
             trace_filter = None
@@ -102,22 +102,18 @@ def _rate_internal(
     )
 
 
-def per_second(
-    args: ResolvedArguments, settings: ResolverSettings, is_conditional: bool = False
-) -> Column.BinaryFormula:
+def per_second(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     """
     Calculate rate per second for trace metrics using the value attribute.
     """
-    return _rate_internal(1, args, settings, is_conditional)
+    return _rate_internal(1, args, settings)
 
 
-def per_minute(
-    args: ResolvedArguments, settings: ResolverSettings, is_conditional: bool = False
-) -> Column.BinaryFormula:
+def per_minute(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     """
     Calculate rate per minute for trace metrics using the value attribute.
     """
-    return _rate_internal(60, args, settings, is_conditional)
+    return _rate_internal(60, args, settings)
 
 
 TRACE_METRICS_FORMULA_DEFINITIONS: dict[str, FormulaDefinition] = {

@@ -43,6 +43,7 @@ class ResolverSettings(TypedDict):
     snuba_params: SnubaParams
     query_result_cache: dict[str, EAPResponse]
     search_config: SearchResolverConfig
+    conditional: bool
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -510,7 +511,7 @@ class ConditionalAggregateDefinition(AggregateDefinition):
 @dataclass(kw_only=True)
 class FormulaDefinition(FunctionDefinition):
     # A function that takes in the resolved argument and returns a Column.BinaryFormula
-    formula_resolver: Callable[[ResolvedArguments, ResolverSettings, bool], Column.BinaryFormula]
+    formula_resolver: Callable[[ResolvedArguments, ResolverSettings], Column.BinaryFormula]
     is_aggregate: bool
 
     @property
@@ -535,12 +536,13 @@ class FormulaDefinition(FunctionDefinition):
             snuba_params=snuba_params,
             query_result_cache=query_result_cache,
             search_config=search_config,
+            conditional=False,
         )
 
         return ResolvedFormula(
             public_alias=alias,
             search_type=search_type,
-            formula=self.formula_resolver(resolved_arguments, resolver_settings, False),
+            formula=self.formula_resolver(resolved_arguments, resolver_settings),
             is_aggregate=self.is_aggregate,
             internal_type=self.internal_type,
             processor=self.processor,
@@ -573,6 +575,7 @@ class TraceMetricFormulaDefinition(FormulaDefinition):
             snuba_params=snuba_params,
             query_result_cache=query_result_cache,
             search_config=search_config,
+            conditional=isinstance(self, ConditionalTraceMetricFormulaDefinition),
         )
 
         trace_metric = extract_trace_metric_aggregate_arguments(
@@ -585,7 +588,6 @@ class TraceMetricFormulaDefinition(FormulaDefinition):
             formula=self.formula_resolver(
                 resolved_arguments,
                 resolver_settings,
-                isinstance(self, ConditionalTraceMetricFormulaDefinition),
             ),
             is_aggregate=self.is_aggregate,
             internal_type=self.internal_type,
