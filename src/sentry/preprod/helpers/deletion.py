@@ -20,7 +20,7 @@ from sentry.models.files.file import File
 from sentry.objectstore import get_preprod_session
 from sentry.preprod.eap.constants import get_preprod_trace_id
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
-from sentry.preprod.snapshots.manifest import ComparisonManifest, SnapshotManifest
+from sentry.preprod.snapshots.manifest import ComparisonManifest
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.utils import snuba_rpc
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
@@ -131,17 +131,6 @@ def _collect_snapshot_objectstore_keys(
             continue
 
         keys.append((org_id, project_id, manifest_key))
-        try:
-            session = get_preprod_session(org_id, project_id)
-            manifest = SnapshotManifest(**orjson.loads(session.get(manifest_key).payload.read()))
-            prefix = f"{org_id}/{project_id}"
-            for name, meta in manifest.images.items():
-                keys.append((org_id, project_id, f"{prefix}/{meta.content_hash or name}"))
-        except Exception:
-            logger.exception(
-                "preprod.cleanup.snapshot_manifest_read_failed",
-                extra={"manifest_key": manifest_key},
-            )
 
     for comp in PreprodSnapshotComparison.objects.filter(
         Q(head_snapshot_metrics_id__in=metrics_ids) | Q(base_snapshot_metrics_id__in=metrics_ids)
