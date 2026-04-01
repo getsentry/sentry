@@ -131,7 +131,7 @@ def _collect_snapshot_objectstore_keys(
             continue
 
         # Image keys are content-addressed and shared across snapshots;
-        # only delete the manifest, not images (they expire via 30-day TTL).
+        # only delete the manifest, not images (they expire via X-day TTL).
         keys.append((org_id, project_id, manifest_key))
 
     for comp in PreprodSnapshotComparison.objects.filter(
@@ -175,6 +175,11 @@ def _delete_objectstore_key(args: tuple[int, int, str]) -> bool:
 def _delete_snapshot_objectstore_data(
     preprod_artifacts: list[PreprodArtifact],
 ) -> int:
+    # Deletes three types of objectstore data for the given artifacts:
+    # 1. Snapshot manifest keys (per-snapshot JSON manifests from PreprodSnapshotMetrics)
+    # 2. Comparison manifest keys (diff manifests from PreprodSnapshotComparison)
+    # 3. Diff mask image keys (per-image diff masks referenced within comparison manifests)
+    # Note: shared content-addressed image keys are NOT deleted — they expire via X-day TTL.
     keys = list(dict.fromkeys(_collect_snapshot_objectstore_keys(preprod_artifacts)))
     if not keys:
         return 0
