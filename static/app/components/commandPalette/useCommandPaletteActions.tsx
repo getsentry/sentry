@@ -22,7 +22,7 @@ function addKeysToActions(
     if ('actions' in action) {
       return {
         ...action,
-        actions: addKeysToChildActions(id, action.actions),
+        actions: addKeysToChildActions(actionKey, action.actions),
         key: actionKey,
       };
     }
@@ -35,7 +35,7 @@ function addKeysToActions(
 }
 
 function addKeysToChildActions(
-  id: string,
+  parentKey: string,
   actions: Array<CommandPaletteAction>
 ): Array<
   | CommandPaletteActionLinkWithKey
@@ -43,14 +43,12 @@ function addKeysToChildActions(
   | CommandPaletteActionGroupWithKey
 > {
   return actions.map(action => {
-    const actionKey = `${id}:${'type' in action ? action.type : 'action'}:${action.display.label
-      .toLowerCase()
-      .replace(/ /g, '-')}`;
+    const actionKey = `${parentKey}:${'type' in action ? action.type : 'action'}:${slugify(action.display.label)}`;
 
     if ('actions' in action) {
       return {
         ...action,
-        actions: addKeysToChildActions(id, action.actions),
+        actions: addKeysToChildActions(actionKey, action.actions),
         key: actionKey,
       };
     }

@@ -130,7 +130,7 @@ export function CommandPalette(props: CommandPaletteProps) {
               leadingItems: null,
               label: (
                 <Text size="sm" bold variant="primary">
-                  <Flex align="center" gap="xs">
+                  <Flex align="center" gap="md">
                     <IconDefaultsProvider size="sm">
                       {action.display.icon}
                     </IconDefaultsProvider>
@@ -345,10 +345,19 @@ function score(
   const label = typeof action.display.label === 'string' ? action.display.label : '';
   const details =
     typeof action.display.details === 'string' ? action.display.details : '';
-  const keywords = action.keywords?.join(' ') ?? '';
-  const searchText = [label, details, keywords].filter(Boolean).join(' ');
-  const result = fzf(searchText, query, false);
-  return {score: result.score, matched: result.end !== -1};
+  const keywords = action.keywords ?? [];
+
+  const candidates = [label, details, ...keywords].filter(Boolean);
+  let best = {score: 0, matched: false};
+
+  for (const candidate of candidates) {
+    const result = fzf(candidate, query, false);
+    if (result.end !== -1 && result.score > best.score) {
+      best = {score: result.score, matched: true};
+    }
+  }
+
+  return best;
 }
 
 function scoreTree(
@@ -415,19 +424,7 @@ function flattenActions(
     }
   }
 
-  if ('actions' in root) {
-    for (const action of root.actions) {
-      dfs(action);
-    }
-  }
-
-  const groupsWithMatchingChildren = new Set(
-    groups
-      .filter(
-        g => 'actions' in g && g.actions.some(a => scores?.get(a.key)?.score.matched)
-      )
-      .map(g => g.key)
-  );
+  dfs(root);
 
   groups.sort((a, b) => {
     let aScore = 0;
@@ -446,10 +443,12 @@ function flattenActions(
   });
 
   const flattened = groups.flatMap((result): CommandPaletteActionWithListItemType[] => {
+    if (result.key === 'virtual-root') {
+      return [];
+    }
     if ('actions' in result) {
       const resultActions = result.actions.filter(
-        action =>
-          scores?.get(action.key)?.score.matched && !groupsWithMatchingChildren.has(action.key)
+        action => scores?.get(action.key)?.score.matched
       );
 
       if (!resultActions.length) {
@@ -457,7 +456,11 @@ function flattenActions(
       }
 
       return [
-        {...result, listItemType: 'section'},
+        // Suffix the section header key so that a group appearing here as a
+        // header AND as an action item inside its parent doesn't produce a
+        // React duplicate-key error (both entries would otherwise share the
+        // same key).
+        {...result, key: `${result.key}:header`, listItemType: 'section'},
         ...resultActions
           .sort((a, b) => {
             if (!a || !b) {
@@ -477,7 +480,12 @@ function flattenActions(
     return [{...result, listItemType: 'action'}];
   });
 
-  return flattened;
+  const seen = new Set<string>();
+  return flattened.filter(item => {
+    if (seen.has(item.key)) return false;
+    seen.add(item.key);
+    return true;
+  });
 }
 
 function makeMenuItemFromAction(
