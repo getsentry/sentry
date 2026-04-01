@@ -9,6 +9,7 @@ import {HeaderActions} from 'sentry/components/layouts/thirds';
 import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import type {AvatarProject} from 'sentry/types/project';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 interface WorkflowEngineEditLayoutProps {
   /**
@@ -23,17 +24,16 @@ interface WorkflowEngineEditLayoutProps {
  * Precomposed layout for Monitors / Alerts edit pages with form handling.
  */
 function EditLayoutComponent({children, formProps}: WorkflowEngineEditLayoutProps) {
+  // TODO(JonasBadalic): Remove this once the page-frame feature is GA'd
+  const hasPageFrame = useHasPageFrameFeature();
   return (
     <FullHeightForm hideFooter {...formProps}>
-      <StyledPage>{children}</StyledPage>
+      <Stack flex="unset" background={hasPageFrame ? undefined : 'primary'}>
+        {children}
+      </Stack>
     </FullHeightForm>
   );
 }
-
-const StyledPage = styled(Layout.Page)`
-  background: ${p => p.theme.tokens.background.primary};
-  flex: unset;
-`;
 
 const StyledLayoutHeader = styled(Layout.Header)`
   background-color: ${p => p.theme.tokens.background.primary};

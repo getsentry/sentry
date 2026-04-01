@@ -22,7 +22,7 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
         self.user = self.create_user(email="user@example.com")
         self.org = self.create_organization(
             owner=self.user,
-            region="us",
+            cell="us",
             slug="test-org",
         )
         self.project = self.create_project(organization=self.org)
