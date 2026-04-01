@@ -1,4 +1,3 @@
-from collections.abc import Sequence
 from typing import Any
 
 from parsimonious.nodes import Node
@@ -18,6 +17,7 @@ from sentry.api.endpoints.organization_trace_item_attributes import (
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.eap.types import SupportedTraceItemType
+from sentry.search.events.filter import ParsedTerms
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import RPCBase, _extract_function_keys
 
@@ -47,7 +47,7 @@ def _get_term_signature(
 
 
 def _flatten_filter_terms(
-    tokens: Sequence[event_search.QueryToken],
+    tokens: ParsedTerms,
 ) -> list[event_search.SearchFilter | event_search.AggregateFilter]:
     flattened: list[event_search.SearchFilter | event_search.AggregateFilter] = []
 
@@ -79,7 +79,7 @@ def _extract_original_filter_tokens(tree: Node | None) -> list[str]:
 
 
 def _build_original_token_lookup(
-    parsed_terms: Sequence[event_search.QueryToken],
+    parsed_terms: ParsedTerms,
     tree: Node | None,
 ) -> dict[tuple[str, str, str, str], list[str]]:
     flattened_terms = _flatten_filter_terms(parsed_terms)
