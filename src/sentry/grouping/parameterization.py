@@ -369,8 +369,13 @@ class Parameterizer:
         """
 
         replacement_counts: defaultdict[str, int] = defaultdict(int)
+        # Track whether any regex matches don't lead to a replacement
+        found_false_positive = False
 
         def _handle_regex_match(match: re.Match[str]) -> str:
+            # Ensure we're dealing with the flag from the outer scope, rather than shadowing it
+            nonlocal found_false_positive
+
             # Since
             #   a) our regex consists of a bunch of named capturing groups separated by `|`,
             #   b) no other capturing groups in the regex are named, and
@@ -394,6 +399,8 @@ class Parameterizer:
             # something which should be replaced, and we don't want to count that
             if replacement_string != orig_value:
                 replacement_counts[matched_key] += 1
+            else:
+                found_false_positive = True
 
             return replacement_string
 
