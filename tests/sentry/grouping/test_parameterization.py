@@ -11,6 +11,8 @@ from sentry.grouping.component import (
 )
 from sentry.grouping.context import GroupingContext
 from sentry.grouping.parameterization import (
+    ParameterizationRegex,
+    Parameterizer,
     experimental_parameterizer,
     parameterizer,
 )
@@ -590,3 +592,22 @@ def test_runs_parameterizer_on_fingerprint_constant_matching_chained_error_messa
         "That's ball number <int> that Charlie hasn't brought back!",
         "Dogs are great!",
     ]
+
+
+def test_uses_callback_for_replacement_value() -> None:
+    input_str = "Dog number 1, #1 dog"
+    callback_parameterizer = Parameterizer(
+        [
+            ParameterizationRegex(
+                name="int",
+                raw_pattern=r"""-\d+\b | \b\d+\b""",
+                replacement_callback=lambda _: "<callback_result>",
+            )
+        ]
+    )
+
+    assert parameterizer.parameterize(input_str) == "Dog number <int>, #<int> dog"
+    assert (
+        callback_parameterizer.parameterize(input_str)
+        == "Dog number <callback_result>, #<callback_result> dog"  # Callback function was used
+    )
