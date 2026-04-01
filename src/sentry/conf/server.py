@@ -1250,6 +1250,10 @@ TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {
         "task": "sdk.control:sentry.tasks.release_registry.fetch_release_registry_data_control",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
     },
+    "github-repo-sync-beat": {
+        "task": "integrations.control:sentry.integrations.github.tasks.sync_repos.github_repo_sync_beat",
+        "schedule": timedelta(minutes=1),
+    },
 }
 
 if SILO_MODE == "CONTROL":
