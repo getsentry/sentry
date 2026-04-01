@@ -215,13 +215,16 @@ def create_preprod_snapshot_status_check_task(
 
         for artifact in all_artifacts:
             if changes_map.get(artifact.id, False) and artifact.id not in approvals_map:
-                PreprodComparisonApproval.objects.get_or_create(
+                if not PreprodComparisonApproval.objects.filter(
                     preprod_artifact=artifact,
                     preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
-                    defaults={
-                        "approval_status": PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL
-                    },
-                )
+                    approval_status=PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL,
+                ).exists():
+                    PreprodComparisonApproval.objects.create(
+                        preprod_artifact=artifact,
+                        preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+                        approval_status=PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL,
+                    )
 
         title, subtitle, summary = format_snapshot_status_check_messages(
             all_artifacts,
