@@ -15,7 +15,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import {AutomationTitleCell} from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
-import {Section} from 'sentry/components/workflowEngine/ui/section';
+import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
@@ -286,7 +286,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
       );
 
   return (
-    <Section
+    <DetailSection
       title={t('Connected Alerts')}
       trailingItems={
         <Button
@@ -331,7 +331,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
           }
         />
       </ErrorBoundary>
-    </Section>
+    </DetailSection>
   );
 }
 

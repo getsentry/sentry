@@ -1,3 +1,5 @@
+from typing import Callable
+
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, Function
 
 from sentry.search.eap import constants
@@ -5,6 +7,7 @@ from sentry.search.eap.aggregate_utils import count_processor
 from sentry.search.eap.columns import (
     AggregateDefinition,
     AttributeArgumentDefinition,
+    ConditionalTraceMetricAggregateDefinition,
     TraceMetricAggregateDefinition,
     ValueArgumentDefinition,
     count_argument_resolver_optimized,
@@ -363,3 +366,41 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
         ],
     ),
 }
+
+
+def if_query_validator(term: str) -> bool:
+    if not term.startswith("`") or not term.endswith("`"):
+        return False
+    return True
+
+
+def if_combinator(definition: AggregateDefinition) -> AggregateDefinition:
+    # Copy the TraceMetricAggregateDefinition but make it Conditional
+    if_definition = ConditionalTraceMetricAggregateDefinition(
+        attribute_resolver=definition.attribute_resolver,
+        default_search_type=definition.default_search_type,
+        extrapolation_mode_override=definition.extrapolation_mode_override,
+        infer_search_type_from_arguments=definition.infer_search_type_from_arguments,
+        internal_function=definition.internal_function,
+        internal_type=definition.internal_type,
+        processor=definition.processor,
+        private=definition.private,
+        arguments=[
+            ValueArgumentDefinition(argument_types={"query"}, validator=if_query_validator),
+            *definition.arguments,
+        ],
+    )
+    return if_definition
+
+
+TRACE_METRICS_COMBINATORS: dict[str, Callable[[AggregateDefinition], AggregateDefinition]] = {
+    "if": if_combinator,
+}
+
+
+combinator_aggregate_definitions: dict[str, AggregateDefinition] = {}
+for combinator, apply_combinator in TRACE_METRICS_COMBINATORS.items():
+    for function, definition in TRACE_METRICS_AGGREGATE_DEFINITIONS.items():
+        combinator_aggregate_definitions[f"{function}_{combinator}"] = apply_combinator(definition)
+
+TRACE_METRICS_AGGREGATE_DEFINITIONS.update(combinator_aggregate_definitions)

@@ -23,7 +23,10 @@ from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.objectstore import get_preprod_session
-from sentry.preprod.analytics import PreprodArtifactApiGetSnapshotDetailsEvent
+from sentry.preprod.analytics import (
+    PreprodArtifactApiDeleteEvent,
+    PreprodArtifactApiGetSnapshotDetailsEvent,
+)
 from sentry.preprod.api.models.project_preprod_build_details_models import (
     BuildDetailsVcsInfo,
 )
@@ -33,6 +36,7 @@ from sentry.preprod.api.models.snapshots.project_preprod_snapshot_models import 
     SnapshotImageResponse,
 )
 from sentry.preprod.api.schemas import VCS_ERROR_MESSAGES, VCS_SCHEMA_PROPERTIES
+from sentry.preprod.helpers.deletion import delete_artifacts_and_eap_data
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.comparison_categorizer import (
     CategorizedComparison,
@@ -103,8 +107,63 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
+        "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
     permission_classes = (OrganizationReleasePermission,)
+
+    def delete(self, request: Request, organization: Organization, snapshot_id: str) -> Response:
+        if not settings.IS_DEV and not features.has(
+            "organizations:preprod-snapshots", organization, actor=request.user
+        ):
+            return Response({"detail": "Feature not enabled"}, status=403)
+
+        try:
+            artifact = PreprodArtifact.objects.select_related("project").get(
+                id=snapshot_id, project__organization_id=organization.id
+            )
+        except (PreprodArtifact.DoesNotExist, ValueError):
+            return Response({"detail": "Snapshot not found"}, status=404)
+
+        try:
+            artifact.preprodsnapshotmetrics
+        except PreprodSnapshotMetrics.DoesNotExist:
+            return Response({"detail": "Artifact is not a snapshot"}, status=400)
+
+        try:
+            result = delete_artifacts_and_eap_data([artifact])
+        except Exception:
+            logger.exception(
+                "preprod_snapshot.delete_failed",
+                extra={"artifact_id": int(snapshot_id)},
+            )
+            return Response(
+                {"detail": "Internal error deleting snapshot."},
+                status=500,
+            )
+
+        analytics.record(
+            PreprodArtifactApiDeleteEvent(
+                organization_id=organization.id,
+                project_id=artifact.project_id,
+                user_id=(
+                    request.user.id if request.user and request.user.is_authenticated else None
+                ),
+                artifact_id=str(artifact.id),
+            )
+        )
+
+        logger.info(
+            "preprod_snapshot.deleted",
+            extra={
+                "artifact_id": int(snapshot_id),
+                "user_id": request.user.id if request.user else None,
+                "files_deleted": result.files_deleted,
+                "size_metrics_deleted": result.size_metrics_deleted,
+                "artifacts_deleted": result.artifacts_deleted,
+            },
+        )
+
+        return Response(status=204)
 
     def get(self, request: Request, organization: Organization, snapshot_id: str) -> Response:
         if not settings.IS_DEV and not features.has(

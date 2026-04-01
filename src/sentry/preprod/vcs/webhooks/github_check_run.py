@@ -183,6 +183,13 @@ def handle_preprod_check_run_event(
         )
         approvals_created += 1
 
+    if approvals_created > 0:
+        PreprodComparisonApproval.objects.filter(
+            preprod_artifact_id__in=sibling_ids,
+            preprod_feature_type=feature_type,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL,
+        ).delete()
+
     logger.info(
         Log.APPROVALS_CREATED,
         extra={

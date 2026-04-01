@@ -39,6 +39,7 @@ import {AddGiftEventsAction} from 'admin/components/addGiftEventsAction';
 import {triggerAddToStartupProgramModal} from 'admin/components/addToStartupProgramAction';
 import {CancelSubscriptionAction} from 'admin/components/cancelSubscriptionAction';
 import {triggerChangeBalanceModal} from 'admin/components/changeBalanceAction';
+import {openChangeDashboardsParallelLimitModal} from 'admin/components/changeDashboardsParallelLimitModal';
 import {triggerChangeDatesModal} from 'admin/components/changeDatesAction';
 import {triggerGoogleDomainModal} from 'admin/components/changeGoogleDomainAction';
 import {triggerChangePlanAction} from 'admin/components/changePlanAction';
@@ -855,6 +856,18 @@ export function CustomerDetails() {
               openUpdateRetentionSettingsModal({
                 organization,
                 subscription,
+                onSuccess: reloadData,
+              });
+            },
+          },
+          {
+            key: 'changeDashboardsParallelLimit',
+            name: 'Change Dashboard Parallel Query Limit',
+            help: 'Adjust how many dashboard widget queries can run in parallel for this organization.',
+            skipConfirmModal: true,
+            onAction: () => {
+              openChangeDashboardsParallelLimitModal({
+                organization,
                 onSuccess: reloadData,
               });
             },

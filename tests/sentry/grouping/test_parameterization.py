@@ -11,6 +11,8 @@ from sentry.grouping.component import (
 )
 from sentry.grouping.context import GroupingContext
 from sentry.grouping.parameterization import (
+    ParameterizationRegex,
+    Parameterizer,
     experimental_parameterizer,
     parameterizer,
 )
@@ -21,16 +23,29 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.pytest.mocking import count_matching_calls
 
 standard_cases = [
-    ("email", "test@email.com", "<email>"),
-    ("url", "http://some.email.com", "<url>"),
-    ("url - existing behavior", "tcp://user:pass@email.com:10", "tcp://user:<email>:<int>"),
+    ("email", "maisey@dogsaregreat.com", "<email>"),
+    ("email - with period", "maisey.thedog@dogsaregreat.com", "<email>"),
+    ("email - with plus sign", "maisey+thedog@dogsaregreat.com", "<email>"),
+    ("url - no subdomain", "http://dogsaregreat.com", "<url>"),
+    ("url - with subdomain", "http://dogs.squirrelchasers.net", "<url>"),
+    ("url - with path", "http://dogsaregreat.com/adopt/dont/shop", "<url>"),
+    ("url - with path/trailing slash", "http://dogsaregreat.com/adopt/dont/shop/", "<url>"),
+    ("url - with path/filename", "http://dogsaregreat.com/adopt/dont/shop.js", "<url>"),
+    (
+        "url - with querystring",
+        "http://dogsaregreat.com/adopt/dont/shop.js?command=sit&trick=spin",
+        "<url>",
+    ),
+    ("url - with anchor", "http://dogsaregreat.com/adopt/dont/shop.html#shelters", "<url>"),
+    ("url - with username/password", "http://charlie:s3cretSqu1rrel@dogsaregreat.com:10", "<url>"),
+    ("url - localhost", "http://localhost:8000", "<url>"),
     ("url - ipv4", "http://11.21.12.31", "<url>"),
     ("url - ipv4 with port", "http://11.21.12.31:12", "<url>"),
     ("url - ipv6", "http://2001:db8::1", "<url>"),
     ("url - ipv6 with port", "http://[2001:db8::1]:80", "<url>"),
-    ("hostname - tld", "example.com", "<hostname>"),
-    ("hostname - subdomain", "www.example.net", "<hostname>"),
-    ("ip", "0.0.0.0", "<ip>"),
+    ("hostname - no subdomain", "dogsaregreat.com", "<hostname>"),
+    ("hostname - with subdomain", "dogs.squirrelchasers.net", "<hostname>"),
+    ("ip - v4", "11.21.12.31", "<ip>"),
     ("ip - v6 unspecified", "::", "<ip>"),
     ("ip - v6 loopback", "::1", "<ip>"),
     ("ip - v6 full", "1121:0c03:1231:130d:0000:16da:0908:da07", "<ip>"),
@@ -47,7 +62,7 @@ standard_cases = [
     (
         "traceparent - aws, but not word boundary",
         "abc1-67891233-abcdef012345678912345678",
-        "abc1-<hex>-<hex>",
+        "<hex>-<hex>-<hex>",
     ),
     ("uuid", "7c1811ed-e98f-4c9c-a9f9-58c757ff494f", "<uuid>"),
     (
@@ -141,8 +156,10 @@ standard_cases = [
     ("hex with prefix - uppercase, 24 digits", "0x9AF8C3BE3A1231FE1121ACB1", "<hex>"),
     ("hex with prefix - lowercase, no numbers", "0xdeadbeef", "<hex>"),
     ("hex with prefix - uppercase, no numbers", "0xDEADBEEF", "<hex>"),
-    ("hex without prefix - lowercase, 4 digits", "9af8", "9af8"),
-    ("hex without prefix - uppercase, 4 digits", "9AF8", "9AF8"),
+    ("hex without prefix - lowercase, < 4 digits", "9af", "9af"),
+    ("hex without prefix - uppercase, < 4 digits", "9AF", "9AF"),
+    ("hex without prefix - lowercase, 4 digits", "9af8", "<hex>"),
+    ("hex without prefix - uppercase, 4 digits", "9AF8", "<hex>"),
     ("hex without prefix - lowercase, 8 digits", "9af8c3be", "<hex>"),
     ("hex without prefix - uppercase, 8 digits", "9AF8C3BE", "<hex>"),
     ("hex without prefix - lowercase, 10 digits", "9af8c3be3a", "<hex>"),
@@ -153,13 +170,16 @@ standard_cases = [
     ("hex without prefix - uppercase, 24 digits", "9AF8C3BE3A1231FE1121ACB1", "<hex>"),
     ("hex without prefix - lowercase, 128 digits", "b0" * 64, "<hex>"),
     ("hex without prefix - uppercase, 128 digits", "B0" * 64, "<hex>"),
-    ("hex without prefix - lowercase, no numbers", "deadbeef", "deadbeef"),
-    ("hex without prefix - uppercase, no numbers", "DEADBEEF", "DEADBEEF"),
-    ("hex without prefix - lowercase, no numbers until later", "deadbeef 123", "deadbeef <int>"),
-    ("hex without prefix - uppercase, no numbers until later", "DEADBEEF 123", "DEADBEEF <int>"),
+    ("hex without prefix - lowercase, no numbers, < 8 digits", "deadbee", "deadbee"),
+    ("hex without prefix - uppercase, no numbers, < 8 digits", "DEADBEE", "DEADBEE"),
+    ("hex without prefix - lowercase, no numbers, 8 digits", "deadbeef", "<hex>"),
+    ("hex without prefix - uppercase, no numbers, 8 digits", "DEADBEEF", "<hex>"),
+    ("hex without prefix - lowercase, no numbers until later", "cafe 123", "cafe <int>"),
+    ("hex without prefix - uppercase, no numbers until later", "CAFE 123", "CAFE <int>"),
     ("hex without prefix - no letters, < 8 digits, positive", "1234567", "<int>"),
     ("hex without prefix - no letters, < 8 digits, negative", "-1234567", "<int>"),
     ("hex without prefix - no letters, 8+ digits, positive", "12345678", "<hex>"),
+    ("hex without prefix - no letters, 8+ digits, negative", "-12345678", "<hex>"),
     ("git sha", "commit a93c7d2", "commit <git_sha>"),
     ("git sha - all letters", "commit cabcafe", "commit cabcafe"),
     ("git sha - all numbers", "commit 4150908", "commit <int>"),
@@ -241,12 +261,6 @@ def test_experimental_parameterization(name: str, input: str, expected: str) -> 
 incorrect_cases = [
     # ("name", "input", "desired", "actual")
     (
-        "hex without prefix - no letters, 8+ digits, negative",
-        "-12345678",
-        "<hex>",
-        "-<hex>",
-    ),
-    (
         "int - number in word",
         "Encoding: utf-8",
         "Encoding: utf-8",
@@ -303,10 +317,16 @@ incorrect_cases = [
         "invoice k9Mtd2gDcgG",
     ),
     (
-        "URL - non-http protocol user/pass/port",
-        "tcp://user:pass@email.com:10 had a problem",
+        "url - non-http protocol with username/password/port",
+        "tcp://charlie:s3cretSqu1rrel@dogsaregreat.com:10 had a problem",
         "<url> had a problem",
-        "tcp://user:<email>:<int> had a problem",
+        "tcp://charlie:<email>:<int> had a problem",
+    ),
+    (
+        "url - tcp",
+        "tcp://dogsaregreat.com:10",
+        "<url>",
+        "tcp://<hostname>:<int>",
     ),
 ]
 
@@ -591,3 +611,22 @@ def test_runs_parameterizer_on_fingerprint_constant_matching_chained_error_messa
         "That's ball number <int> that Charlie hasn't brought back!",
         "Dogs are great!",
     ]
+
+
+def test_uses_callback_for_replacement_value() -> None:
+    input_str = "Dog number 1, #1 dog"
+    callback_parameterizer = Parameterizer(
+        [
+            ParameterizationRegex(
+                name="int",
+                raw_pattern=r"""-\d+\b | \b\d+\b""",
+                replacement_callback=lambda _: "<callback_result>",
+            )
+        ]
+    )
+
+    assert parameterizer.parameterize(input_str) == "Dog number <int>, #<int> dog"
+    assert (
+        callback_parameterizer.parameterize(input_str)
+        == "Dog number <callback_result>, #<callback_result> dog"  # Callback function was used
+    )
