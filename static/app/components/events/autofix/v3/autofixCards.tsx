@@ -46,8 +46,7 @@ export function RootCauseCard({autofix, section}: AutofixCardProps) {
     return isRootCauseArtifact(sectionArtifact) ? sectionArtifact : null;
   }, [section]);
 
-  const {runState, startStep} = autofix;
-  const runId = runState?.run_id;
+  const {startStep} = autofix;
 
   return (
     <ArtifactCard icon={<IconBug />} title={t('Root Cause')}>
@@ -94,7 +93,7 @@ export function RootCauseCard({autofix, section}: AutofixCardProps) {
             <Button
               priority="primary"
               icon={<IconRefresh />}
-              onClick={() => startStep('root_cause', runId)}
+              onClick={() => startStep('root_cause')}
             >
               {t('Re-run')}
             </Button>
