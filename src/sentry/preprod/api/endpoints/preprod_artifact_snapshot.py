@@ -348,12 +348,17 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         ]
 
         if approved:
-            sentry_user_ids = [a.approved_by_id for a in approved if a.approved_by_id]
+            sentry_user_ids = list({a.approved_by_id for a in approved if a.approved_by_id})
             users_by_id = {u.id: u for u in User.objects.filter(id__in=sentry_user_ids)}
 
             approver_list: list[SnapshotApprover] = []
+            seen_approver_keys: set[str] = set()
             for approval in approved:
                 if approval.approved_by_id:
+                    key = f"sentry:{approval.approved_by_id}"
+                    if key in seen_approver_keys:
+                        continue
+                    seen_approver_keys.add(key)
                     user = users_by_id.get(approval.approved_by_id)
                     if user:
                         approver_list.append(
@@ -371,6 +376,10 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 elif approval.extras and "github" in approval.extras:
                     gh = approval.extras["github"]
                     gh_id = gh.get("id")
+                    key = f"github:{gh_id or gh.get('login')}"
+                    if key in seen_approver_keys:
+                        continue
+                    seen_approver_keys.add(key)
                     approver_list.append(
                         SnapshotApprover(
                             id=str(gh_id) if gh_id is not None else None,
