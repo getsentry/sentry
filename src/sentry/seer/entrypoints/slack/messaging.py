@@ -10,7 +10,6 @@ from taskbroker_client.retry import Retry
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
-from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.platform.registry import provider_registry, template_registry
 from sentry.notifications.platform.service import (
     NotificationService,
@@ -125,7 +124,6 @@ def process_thread_update(
         integration = integration_service.get_integration(
             integration_id=integration_id,
             organization_id=organization_id,
-            provider=IntegrationProviderSlug.SLACK.value,
             status=ObjectStatus.ACTIVE,
         )
         if not integration:

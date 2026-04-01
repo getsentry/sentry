@@ -357,6 +357,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
   });
 
   const unlinkedSlackOrgs = getUnlinkedOrgs('slack');
+  const unlinkedSlackStagingOrgs = getUnlinkedOrgs('slack_staging');
   let notificationDetails = ACCOUNT_NOTIFICATION_FIELDS[notificationType]!;
   if (
     notificationType === 'quota' &&
@@ -509,10 +510,16 @@ export function NotificationSettingsByType({notificationType}: Props) {
           >
             {field => (
               <Fragment>
-                {(field.state.value ?? initialProviders).includes('slack') &&
-                unlinkedSlackOrgs.length > 0 ? (
-                  <UnlinkedAlert organizations={unlinkedSlackOrgs} />
-                ) : null}
+                {(field.state.value ?? initialProviders).includes('slack') && (
+                  <Fragment>
+                    {unlinkedSlackOrgs.length > 0 ? (
+                      <UnlinkedAlert organizations={unlinkedSlackOrgs} />
+                    ) : null}
+                    {unlinkedSlackStagingOrgs.length > 0 ? (
+                      <UnlinkedAlert organizations={unlinkedSlackStagingOrgs} />
+                    ) : null}
+                  </Fragment>
+                )}
                 <field.Layout.Row
                   label={t('Delivery Method')}
                   hintText={t('Where personal notifications will be sent.')}
