@@ -300,7 +300,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
     @patch(
         "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
     )
-    def test_post_accepts_root_cause_with_flag(
+    def test_post_accepts_root_cause_stopping_point_with_flag(
         self, mock_bulk_set_preferences, mock_bulk_get_preferences
     ) -> None:
         project = self.create_project(organization=self.organization)
