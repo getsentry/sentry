@@ -68,7 +68,7 @@ export function SideBySideOrientation({
     width - (rightPanelDesiredWidth + PADDING_SIZE + DIVIDER_WIDTH)
   );
 
-  const additionalActions = canUseMetricsUIRefresh(organization) ? undefined : (
+  const additionalActions = (
     <Flex direction="row" marginTop={infoContentHidden ? undefined : 'md'}>
       <PanelPositionSelector
         orientation={orientation}
