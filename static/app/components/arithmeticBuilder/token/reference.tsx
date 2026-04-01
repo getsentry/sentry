@@ -229,10 +229,6 @@ function InternalInput({item, state, token, rowRef}: InternalInputProps) {
     [dispatch, state, token, resetInputValue]
   );
 
-  const onPaste = useCallback((_evt: React.ClipboardEvent<HTMLInputElement>) => {
-    // TODO
-  }, []);
-
   return (
     <ComboBox
       ref={inputRef}
@@ -253,7 +249,6 @@ function InternalInput({item, state, token, rowRef}: InternalInputProps) {
       onKeyDownCapture={onKeyDownCapture}
       onOpenChange={setIsOpen}
       onOptionSelected={onOptionSelected}
-      onPaste={onPaste}
     >
       {keyItem =>
         itemIsSection(keyItem) ? (
