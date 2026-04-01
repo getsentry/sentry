@@ -39,6 +39,7 @@ class DeletionsCliTest(CliTestCase):
         deletion, _ = self._schedule_org_integration_deletion()
         rv = self.invoke("list")
         assert rv.exit_code == 0
+        assert "ScheduledDeletion" in rv.output
         assert "OrganizationIntegration" in rv.output
         assert str(deletion.id) in rv.output
 
@@ -85,6 +86,13 @@ class DeletionsCliTest(CliTestCase):
         rv = self.invoke("run", "-i", "99999")
         assert rv.exit_code == 0
         assert "not found" in rv.output
+        assert "ScheduledDeletion" in rv.output
+
+    def test_run_nonexistent_cell_id(self) -> None:
+        rv = self.invoke("run", "--cid", "99999")
+        assert rv.exit_code == 0
+        assert "not found" in rv.output
+        assert "CellScheduledDeletion" in rv.output
 
     def test_run_no_pending(self) -> None:
         rv = self.invoke("run", "--all")

@@ -10,35 +10,17 @@ if TYPE_CHECKING:
     from sentry.deletions.models.scheduleddeletion import BaseScheduledDeletion
 
 
-def _get_deletion_models() -> list[type[BaseScheduledDeletion]]:
-    from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion, ScheduledDeletion
-
-    return [ScheduledDeletion, CellScheduledDeletion]
-
-
 def _query_all(**filters: Any) -> list[BaseScheduledDeletion]:
+    from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion, ScheduledDeletion
     from sentry.silo.base import SiloLimit
 
     results: list[BaseScheduledDeletion] = []
-    for model_cls in _get_deletion_models():
+    for model_cls in [ScheduledDeletion, CellScheduledDeletion]:
         try:
             results.extend(model_cls.objects.filter(**filters))
         except SiloLimit.AvailabilityError:
             continue
     return results
-
-
-def _find_by_id(deletion_id: int) -> BaseScheduledDeletion | None:
-    from sentry.silo.base import SiloLimit
-
-    for model_cls in _get_deletion_models():
-        try:
-            return model_cls.objects.get(id=deletion_id)
-        except model_cls.DoesNotExist:
-            continue
-        except SiloLimit.AvailabilityError:
-            continue
-    return None
 
 
 @click.group()
@@ -69,17 +51,26 @@ def list_deletions(model: str | None) -> None:
         click.echo("No pending deletions found.")
         return
 
-    click.echo(f"\n{'ID':<8} {'Model':<30} {'Object ID':<12} {'In Progress':<14} {'Scheduled'}")
-    click.echo("-" * 90)
+    click.echo(
+        f"\n{'Table':<26} {'ID':<8} {'Model':<30} {'Object ID':<12} {'In Progress':<14} {'Scheduled'}"
+    )
+    click.echo("-" * 116)
     for d in deletions_list:
         click.echo(
-            f"{d.id:<8} {d.model_name:<30} {d.object_id:<12} {str(d.in_progress):<14} {d.date_scheduled}"
+            f"{type(d).__name__:<26} {d.id:<8} {d.model_name:<30} {d.object_id:<12} {str(d.in_progress):<14} {d.date_scheduled}"
         )
 
 
 @deletions.command("run")
 @click.option(
-    "-i", "--id", "deletion_id", type=int, help="Specific deletion ID to run", default=None
+    "-i", "--id", "deletion_id", type=int, help="ScheduledDeletion object ID to run", default=None
+)
+@click.option(
+    "--cid",
+    "cell_deletion_id",
+    type=int,
+    help="CellScheduledDeletion object ID to run",
+    default=None,
 )
 @click.option(
     "-m",
@@ -90,22 +81,41 @@ def list_deletions(model: str | None) -> None:
 @click.option("--all", "run_all", is_flag=True, help="Run all pending deletions")
 @click.option("-v", "--verbose", is_flag=True, help="Show full tracebacks on failure")
 @configuration
-def run_deletions(deletion_id: int | None, model: str | None, run_all: bool, verbose: bool) -> None:
+def run_deletions(
+    deletion_id: int | None,
+    cell_deletion_id: int | None,
+    model: str | None,
+    run_all: bool,
+    verbose: bool,
+) -> None:
     """
     Run pending scheduled deletions synchronously.
     """
     from django.utils import timezone
 
-    if not any([deletion_id, model, run_all]):
+    if not any([deletion_id, cell_deletion_id, model, run_all]):
         raise click.UsageError(
-            "Provide one of: --id, --model, or --all. "
+            "Provide one of: --id, --cid, --model, or --all. "
             "Use `sentry deletions list` to see pending deletions."
         )
 
-    if deletion_id:
-        deletion = _find_by_id(deletion_id)
-        if not deletion:
-            click.echo(f"Deletion with ID {deletion_id} not found.")
+    if deletion_id or cell_deletion_id:
+        from sentry.deletions.models.scheduleddeletion import (
+            CellScheduledDeletion,
+            ScheduledDeletion,
+        )
+        from sentry.silo.base import SiloLimit
+
+        if cell_deletion_id:
+            model_cls, target_id = CellScheduledDeletion, cell_deletion_id
+        else:
+            assert deletion_id is not None
+            model_cls, target_id = ScheduledDeletion, deletion_id
+
+        try:
+            deletion = model_cls.objects.get(id=target_id)
+        except (model_cls.DoesNotExist, SiloLimit.AvailabilityError):
+            click.echo(f"Deletion with ID {target_id} not found in {model_cls.__name__}.")
             return
         _run_one(deletion=deletion, verbose=verbose)
         return
