@@ -139,7 +139,6 @@ function useNavigationActions(): CommandPaletteAction[] {
       to: `${prefix}/dashboards/`,
     },
     {
-      type: 'group',
       display: {
         label: t('Starred Dashboards'),
         icon: <IconStar />,
@@ -209,7 +208,6 @@ function useNavigationActions(): CommandPaletteAction[] {
 
   return [
     {
-      type: 'group',
       display: {
         label: t('Go to...'),
       },
@@ -314,7 +312,6 @@ export function useGlobalCommandPaletteActions() {
     ...navigateActions,
     // BEGIN ADD ACTIONS
     {
-      type: 'group',
       display: {
         label: t('Add'),
       },
@@ -352,7 +349,6 @@ export function useGlobalCommandPaletteActions() {
     // END ADD
     // BEGIN HELP ACTIONS
     {
-      type: 'group',
       display: {
         label: t('Help'),
       },
@@ -392,14 +388,12 @@ export function useGlobalCommandPaletteActions() {
     },
     // END HELP ACTIONS
     {
-      type: 'group',
       display: {
         label: t('Interface'),
       },
       actions: [
         navigationToggleAction,
         {
-          type: 'group',
           display: {
             label: t('Change Color Theme'),
             icon: <IconSettings />,

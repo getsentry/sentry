@@ -37,7 +37,6 @@ export interface CommandPaletteActionGroup extends CommonCommandPaletteAction {
   actions: Array<
     CommandPaletteActionLink | CommandPaletteActionCallback | CommandPaletteActionGroup
   >;
-  type: 'group';
 }
 
 // Internally, a key is added to the actions in order to track them for registration and selection.

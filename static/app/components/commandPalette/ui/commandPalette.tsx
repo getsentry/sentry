@@ -87,7 +87,6 @@ export function CommandPalette(props: CommandPaletteProps) {
     const virtualRoot: CommandPaletteActionGroupWithKey = {
       key: 'virtual-root',
       ...state.action?.value.action,
-      type: 'group' as const,
       actions:
         state.action?.value.action && 'actions' in state.action.value.action
           ? [...state.action.value.action.actions]

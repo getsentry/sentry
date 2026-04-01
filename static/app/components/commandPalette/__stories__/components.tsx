@@ -43,7 +43,6 @@ export function CommandPaletteDemo() {
       },
     },
     {
-      type: 'group',
       display: {label: 'Parent action'},
       actions: [
         {
