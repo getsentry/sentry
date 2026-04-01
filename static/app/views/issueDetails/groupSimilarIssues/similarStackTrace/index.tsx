@@ -58,11 +58,6 @@ export function SimilarStackTrace({project}: Props) {
   const hasSimilarityEmbeddingsFeature =
     projectData?.features.includes('similarity-embeddings') ||
     location.query.similarityEmbeddings === '1';
-  // Use reranking by default (assuming the `seer.similarity.similar_issues.use_reranking`
-  // backend option is using its default value of `True`). This is just so we can turn it off
-  // on demand to see if/how that changes the results.
-  const useReranking = String(location.query.useReranking !== '0');
-
   const fetchData = useCallback(() => {
     if (isPending) {
       return;
@@ -77,7 +72,6 @@ export function SimilarStackTrace({project}: Props) {
           {
             k: 10,
             threshold: 0.01,
-            useReranking,
           }
         )}`,
         dataKey: 'similar',
@@ -101,7 +95,6 @@ export function SimilarStackTrace({project}: Props) {
     organization.slug,
     hasSimilarityFeature,
     hasSimilarityEmbeddingsFeature,
-    useReranking,
     isPending,
   ]);
 

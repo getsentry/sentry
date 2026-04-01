@@ -60,7 +60,7 @@ class UserHybridCloudDeletionTest(TestCase):
         self.user_id = self.user.id
 
         # Organization membership determines which cells the deletion will cascade to
-        self.organization = self.create_organization(region=_TEST_CELLS[0])
+        self.organization = self.create_organization(cell=_TEST_CELLS[0])
         self.create_member(user=self.user, organization=self.organization)
 
         self.create_saved_search(
@@ -108,8 +108,8 @@ class UserHybridCloudDeletionTest(TestCase):
         with assume_test_silo_mode(SiloMode.CELL):
             assert SavedSearch.objects.filter(owner_id=another_user.id).exists()
 
-    def test_cascades_to_multiple_regions(self) -> None:
-        eu_org = self.create_organization(region=_TEST_CELLS[1])
+    def test_cascades_to_multiple_cells(self) -> None:
+        eu_org = self.create_organization(cell=_TEST_CELLS[1])
         self.create_member(user=self.user, organization=eu_org)
         self.create_saved_search(name="eu-search", owner=self.user, organization=eu_org)
 
@@ -121,7 +121,7 @@ class UserHybridCloudDeletionTest(TestCase):
             schedule_hybrid_cloud_foreign_key_jobs()
         assert self.get_user_saved_search_count() == 0
 
-    def test_deletions_create_tombstones_in_regions_for_user_with_no_orgs(self) -> None:
+    def test_deletions_create_tombstones_in_cells_for_user_with_no_orgs(self) -> None:
         # Create a user with no org memberships
         user_to_delete = self.create_user("foo@example.com")
         user_id = user_to_delete.id
@@ -130,8 +130,8 @@ class UserHybridCloudDeletionTest(TestCase):
 
         assert self.user_tombstone_exists(user_id=user_id)
 
-    def test_cascades_to_regions_even_if_user_ownership_revoked(self) -> None:
-        eu_org = self.create_organization(region=_TEST_CELLS[1])
+    def test_cascades_to_cells_even_if_user_ownership_revoked(self) -> None:
+        eu_org = self.create_organization(cell=_TEST_CELLS[1])
         self.create_member(user=self.user, organization=eu_org)
         self.create_saved_search(name="eu-search", owner=self.user, organization=eu_org)
         assert self.get_user_saved_search_count() == 2
@@ -152,7 +152,7 @@ class UserHybridCloudDeletionTest(TestCase):
 
     def test_update_purge_cell_cache(self) -> None:
         user = self.create_user()
-        na_org = self.create_organization(region=_TEST_CELLS[0])
+        na_org = self.create_organization(cell=_TEST_CELLS[0])
         self.create_member(user=user, organization=na_org)
 
         with patch.object(caching_module, "cell_caching_service") as mock_caching_service:
@@ -201,8 +201,8 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         for model in sorted(models, key=lambda x: get_model_name(x)):
             model_relations = dependencies()[get_model_name(model)]
             user_refs = [k for k, v in model_relations.foreign_keys.items() if v.model == User]
-            is_region_model = SiloMode.CELL in model_relations.silos
-            with assume_test_silo_mode(SiloMode.CELL if is_region_model else SiloMode.CONTROL):
+            is_cell_model = SiloMode.CELL in model_relations.silos
+            with assume_test_silo_mode(SiloMode.CELL if is_cell_model else SiloMode.CONTROL):
                 for present_user in present:
                     q = Q()
                     for ref in user_refs:

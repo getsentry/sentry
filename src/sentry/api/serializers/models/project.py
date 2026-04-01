@@ -964,6 +964,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     tempestFetchScreenshots: NotRequired[bool]
     autofixAutomationTuning: NotRequired[str]
     seerScannerAutomation: NotRequired[bool]
+    scmSourceContextEnabled: NotRequired[bool]
     debugFilesRole: NotRequired[str | None]
 
 
@@ -1114,6 +1115,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 attrs, "sentry:seer_scanner_automation"
             ),
             "debugFilesRole": attrs["options"].get("sentry:debug_files_role"),
+            "scmSourceContextEnabled": self.get_value_with_default(
+                attrs, "sentry:scm_source_context_enabled"
+            ),
         }
 
         if has_tempest_access(obj.organization):
@@ -1173,6 +1177,15 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             ),
             "sentry:preprod_size_status_checks_rules": options.get(
                 "sentry:preprod_size_status_checks_rules"
+            ),
+            "sentry:preprod_snapshot_status_checks_enabled": options.get(
+                "sentry:preprod_snapshot_status_checks_enabled", True
+            ),
+            "sentry:preprod_snapshot_status_checks_fail_on_added": options.get(
+                "sentry:preprod_snapshot_status_checks_fail_on_added", False
+            ),
+            "sentry:preprod_snapshot_status_checks_fail_on_removed": options.get(
+                "sentry:preprod_snapshot_status_checks_fail_on_removed", True
             ),
             "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
             "sentry:preprod_size_enabled_query": options.get("sentry:preprod_size_enabled_query"),

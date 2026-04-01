@@ -3,12 +3,14 @@ import {css} from '@emotion/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {closeModal} from 'sentry/actionCreators/modal';
-import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
+import type {
+  CommandPaletteActionCallbackWithKey,
+  CommandPaletteActionLinkWithKey,
+} from 'sentry/components/commandPalette/types';
 import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
 import {useCommandPaletteState} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {useDsnLookupActions} from 'sentry/components/commandPalette/useDsnLookupActions';
 import type {Theme} from 'sentry/utils/theme';
-import {unreachable} from 'sentry/utils/unreachable';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -19,18 +21,11 @@ export default function CommandPaletteModal({Body}: ModalRenderProps) {
   useDsnLookupActions(query);
 
   const handleSelect = useCallback(
-    (action: Exclude<CommandPaletteActionWithKey, {type: 'group'}>) => {
-      const actionType = action.type;
-      switch (actionType) {
-        case 'navigate':
-          navigate(normalizeUrl(action.to));
-          break;
-        case 'callback':
-          action.onAction();
-          break;
-        default:
-          unreachable(actionType);
-          break;
+    (action: CommandPaletteActionLinkWithKey | CommandPaletteActionCallbackWithKey) => {
+      if ('to' in action) {
+        navigate(normalizeUrl(action.to));
+      } else {
+        action.onAction();
       }
       closeModal();
     },

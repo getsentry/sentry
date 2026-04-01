@@ -12,7 +12,7 @@ from sentry.testutils.helpers.features import with_feature
 
 
 class OrganizationPrCommentsEndpointTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.factory = APIRequestFactory()
 
@@ -303,7 +303,7 @@ class OrganizationPrCommentsEndpointTest(TestCase):
         assert helper_comments[0]["body"] == "This could be simplified"
 
     @with_feature("organizations:pr-page")
-    def test_no_github_client(self):
+    def test_no_github_client(self) -> None:
         """Test when no GitHub client is available (no integration set up)."""
         Repository.objects.create(
             organization_id=self.organization.id,
@@ -332,7 +332,7 @@ class OrganizationPrCommentsEndpointTest(TestCase):
         assert "Failed to fetch pull request comments from GitHub" in response.data["message"]
 
     @with_feature("organizations:pr-page")
-    def test_repository_not_found(self):
+    def test_repository_not_found(self) -> None:
         """Test when repository doesn't exist in the database."""
         response = self._make_request(repo_name="does-not/exist")
 

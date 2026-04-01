@@ -20,11 +20,11 @@ from sentry.billing.platform.services.usage.service import (
 class TestUsageService:
     """Tests for the UsageService."""
 
-    def test_inherits_from_billing_service(self):
+    def test_inherits_from_billing_service(self) -> None:
         service = UsageService()
         assert isinstance(service, BillingService)
 
-    def test_get_usage_returns_empty_response(self):
+    def test_get_usage_returns_empty_response(self) -> None:
         service = UsageService()
         request = GetUsageRequest()
         response = service.get_usage(request)
@@ -33,7 +33,7 @@ class TestUsageService:
         assert list(response.days) == []
         assert list(response.seats) == []
 
-    def test_get_usage_with_populated_request(self):
+    def test_get_usage_with_populated_request(self) -> None:
         service = UsageService()
 
         start = Timestamp()
@@ -48,7 +48,7 @@ class TestUsageService:
         assert list(response.days) == []
         assert list(response.seats) == []
 
-    def test_get_usage_rejects_non_protobuf_input(self):
+    def test_get_usage_rejects_non_protobuf_input(self) -> None:
         service = UsageService()
 
         with pytest.raises(TypeError, match="expects a protobuf Message"):
@@ -70,5 +70,5 @@ class TestUsageService:
         )
         mock_metrics.timing.assert_called()
 
-    def test_package_reexport(self):
+    def test_package_reexport(self) -> None:
         assert UsageService is UsageServiceDirect

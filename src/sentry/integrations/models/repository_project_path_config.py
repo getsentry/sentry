@@ -37,7 +37,7 @@ class RepositoryProjectPathConfig(DefaultFieldsModelExisting):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_repositoryprojectpathconfig"
-        unique_together = (("project", "stack_root"),)
+        unique_together = (("project", "stack_root", "source_root"),)
 
     def __repr__(self) -> str:
         return (

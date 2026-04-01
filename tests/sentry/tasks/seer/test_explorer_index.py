@@ -20,7 +20,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 @django_db_all
 class TestGetSeerExplorerEnabledProjects(TestCase):
     @freeze_time("2024-01-15 12:00:00")
-    def test_returns_projects_with_feature_flag(self):
+    def test_returns_projects_with_feature_flag(self) -> None:
         org1 = self.create_organization()
         org2 = self.create_organization()
         org3 = self.create_organization()
@@ -71,7 +71,7 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
         assert project5.id not in project_ids
 
     @freeze_time("2024-01-15 12:00:00")
-    def test_excludes_inactive_projects(self):
+    def test_excludes_inactive_projects(self) -> None:
         org = self.create_organization()
         active_project = self.create_project(organization=org)
         inactive_project = self.create_project(organization=org)
@@ -104,7 +104,7 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
         assert inactive_project.id not in project_ids
 
     @freeze_time("2024-01-15 12:00:00")
-    def test_returns_empty_without_feature_flag(self):
+    def test_returns_empty_without_feature_flag(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -131,7 +131,7 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
 
         assert len(result) == 0
 
-    def test_excludes_projects_with_hide_ai_features(self):
+    def test_excludes_projects_with_hide_ai_features(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -156,7 +156,7 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
         assert project.id not in [p[0] for p in result]
 
     @freeze_time("2024-01-15 12:00:00")
-    def test_excludes_projects_without_seer_acknowledgement(self):
+    def test_excludes_projects_without_seer_acknowledgement(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -175,7 +175,7 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
         assert project.id not in [p[0] for p in result]
 
     @freeze_time("2024-01-15 12:00:00")
-    def test_excludes_projects_without_transactions(self):
+    def test_excludes_projects_without_transactions(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -197,7 +197,7 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
         assert len(result) == 0
         assert project.id not in [p[0] for p in result]
 
-    def test_includes_only_projects_matching_hour_shard(self):
+    def test_includes_only_projects_matching_hour_shard(self) -> None:
         org = self.create_organization()
 
         project1 = self.create_project(organization=org)
@@ -235,7 +235,7 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
             assert project2.id not in project_ids
 
     @freeze_time("2024-01-15 12:00:00")
-    def test_excludes_projects_without_seer_billing_plan(self):
+    def test_excludes_projects_without_seer_billing_plan(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -260,7 +260,7 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
         assert project.id not in [p[0] for p in result]
 
     @freeze_time("2024-01-15 12:00:00")
-    def test_includes_projects_with_legacy_seer_plan_via_rollout(self):
+    def test_includes_projects_with_legacy_seer_plan_via_rollout(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -288,7 +288,7 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
             assert project.id in project_ids
 
     @freeze_time("2024-01-15 12:00:00")
-    def test_includes_projects_with_seat_based_plan_via_rollout(self):
+    def test_includes_projects_with_seat_based_plan_via_rollout(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -316,7 +316,7 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
             assert project.id in project_ids
 
     @freeze_time("2024-01-15 12:00:00")
-    def test_excludes_projects_with_billing_plan_not_in_rollout(self):
+    def test_excludes_projects_with_billing_plan_not_in_rollout(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -347,7 +347,7 @@ class TestGetSeerExplorerEnabledProjects(TestCase):
 
 @django_db_all
 class TestScheduleExplorerIndex(TestCase):
-    def test_skips_when_option_disabled(self):
+    def test_skips_when_option_disabled(self) -> None:
         with self.options({"seer.explorer_index.enable": False}):
             with mock.patch(
                 "sentry.tasks.seer.explorer_index.get_seer_explorer_enabled_projects"
@@ -356,7 +356,7 @@ class TestScheduleExplorerIndex(TestCase):
                 mock_get_projects.assert_not_called()
 
     @freeze_time("2024-01-15 12:00:00")
-    def test_schedules_projects_with_option_enabled(self):
+    def test_schedules_projects_with_option_enabled(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -388,7 +388,7 @@ class TestScheduleExplorerIndex(TestCase):
 @django_db_all
 class TestDispatchExplorerIndexProjects(TestCase):
     @freeze_time("2024-01-15 12:00:00")
-    def test_batches_projects_with_delays(self):
+    def test_batches_projects_with_delays(self) -> None:
         timestamp = datetime(2024, 1, 15, 12, 0, 0, tzinfo=UTC)
         projects = [(i, 1) for i in range(150)]
 
@@ -440,7 +440,7 @@ class TestRunExplorerIndexForProjects(TestCase):
             with pytest.raises(Exception):
                 run_explorer_index_for_projects(projects, start)
 
-    def test_skips_when_option_disabled(self):
+    def test_skips_when_option_disabled(self) -> None:
         with self.options({"seer.explorer_index.enable": False}):
             with mock.patch(
                 "sentry.tasks.seer.explorer_index.make_explorer_index_request"
