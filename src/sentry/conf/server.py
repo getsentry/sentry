@@ -948,6 +948,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.collect_project_platforms",
     "sentry.tasks.commit_context",
     "sentry.tasks.commits",
+    "sentry.tasks.console_platform_cleanup",
     "sentry.tasks.delete_pending_groups",
     "sentry.tasks.seer.delete_seer_grouping_records",
     "sentry.tasks.digests",
@@ -1012,10 +1013,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "flush-delayed-workflows": {
         "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
         "schedule": timedelta(seconds=15),
-    },
-    "prune-old-fire-history": {
-        "task": "workflow_engine:sentry.workflow_engine.tasks.cleanup.prune_old_fire_history",
-        "schedule": timedelta(minutes=2),
     },
     "resolve-stale-sourcemap-detectors": {
         "task": "workflow_engine:sentry.processing_errors.tasks.resolve_stale_sourcemap_detectors",
@@ -3016,7 +3013,11 @@ SENTRY_PROFILE_EAP_FUTURES_MAX_LIMIT = 10000
 SENTRY_PREPROD_ARTIFACT_EVENTS_FUTURES_MAX_LIMIT = 10000
 
 # How long we should wait for a gateway proxy request to return before giving up
-GATEWAY_PROXY_TIMEOUT: int | None = None
+GATEWAY_PROXY_TIMEOUT: int | None = (
+    int(os.environ["SENTRY_APIGW_PROXY_TIMEOUT"])
+    if os.environ.get("SENTRY_APIGW_PROXY_TIMEOUT")
+    else None
+)
 
 SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
 # This maps a Sliceable for slicing by name and (lower logical partition, upper physical partition)

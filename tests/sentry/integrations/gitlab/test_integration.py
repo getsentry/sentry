@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from dataclasses import asdict
 from datetime import datetime, timezone
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
@@ -8,6 +11,7 @@ import pytest
 import responses
 from django.core.cache import cache
 from django.test import override_settings
+from django.urls import reverse
 
 from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.integrations.gitlab.blame import GitLabCommitResponse, GitLabFileBlameResponseItem
@@ -16,6 +20,7 @@ from sentry.integrations.gitlab.constants import GITLAB_WEBHOOK_VERSION, GITLAB_
 from sentry.integrations.gitlab.integration import GitlabIntegration, GitlabIntegrationProvider
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.commit_context import (
     CommitInfo,
@@ -27,7 +32,7 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiForbiddenError, IntegrationConfigurationError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
-from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -1357,3 +1362,210 @@ class GitlabIssueSyncTest(GitLabTestCase):
         assert org_integration.config["existing_key"] == "existing_value"
         assert org_integration.config["sync_forward_assignment"] is True
         assert org_integration.config["sync_comments"] is True
+
+
+@control_silo_test
+class GitLabIntegrationApiPipelineTest(APITestCase):
+    endpoint = "sentry-api-0-organization-pipeline"
+    method = "post"
+
+    gitlab_url = "https://gitlab.example.com"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+        self.client_id = "app-id-abc123"
+        self.client_secret = "secret-xyz789"
+
+    def tearDown(self) -> None:
+        responses.reset()
+        super().tearDown()
+
+    def _get_pipeline_url(self) -> str:
+        return reverse(
+            self.endpoint,
+            args=[self.organization.slug, IntegrationPipeline.pipeline_name],
+        )
+
+    def _initialize_pipeline(self) -> Any:
+        return self.client.post(
+            self._get_pipeline_url(),
+            data={"action": "initialize", "provider": "gitlab"},
+            format="json",
+        )
+
+    def _get_step_info(self) -> Any:
+        return self.client.get(self._get_pipeline_url())
+
+    def _advance_step(self, data: dict[str, Any]) -> Any:
+        return self.client.post(self._get_pipeline_url(), data=data, format="json")
+
+    def _stub_gitlab_oauth(self) -> None:
+        responses.add(
+            responses.POST,
+            f"{self.gitlab_url}/oauth/token",
+            json={
+                "access_token": "test-access-token",
+                "token_type": "bearer",
+                "refresh_token": "test-refresh-token",
+                "created_at": 1536798907,
+                "scope": "api",
+            },
+        )
+
+    def _stub_gitlab_user(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{self.gitlab_url}/api/v4/user",
+            json={
+                "id": 42,
+                "username": "testuser",
+                "email": "test@example.com",
+                "name": "Test User",
+            },
+        )
+
+    def _stub_gitlab_group(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{self.gitlab_url}/api/v4/groups/my-group",
+            json={
+                "id": 1,
+                "full_name": "My Group",
+                "full_path": "my-group",
+                "avatar_url": "https://gitlab.example.com/avatar.png",
+                "web_url": "https://gitlab.example.com/my-group",
+            },
+        )
+
+    def _submit_config(self, **overrides: Any) -> Any:
+        data = {
+            "url": self.gitlab_url,
+            "group": "my-group",
+            "includeSubgroups": False,
+            "verifySsl": True,
+            "clientId": self.client_id,
+            "clientSecret": self.client_secret,
+        }
+        data.update(overrides)
+        return self._advance_step(data)
+
+    def _get_pipeline_signature(self, resp: Any) -> str:
+        return resp.data["data"]["oauthUrl"].split("state=")[1].split("&")[0]
+
+    @responses.activate
+    def test_initialize_pipeline(self) -> None:
+        resp = self._initialize_pipeline()
+        assert resp.status_code == 200
+        assert resp.data["step"] == "installation_config"
+        assert resp.data["stepIndex"] == 0
+        assert resp.data["totalSteps"] == 2
+        assert resp.data["provider"] == "gitlab"
+
+    @responses.activate
+    def test_config_step_data(self) -> None:
+        resp = self._initialize_pipeline()
+        data = resp.data["data"]
+        defaults = data["defaults"]
+        assert defaults["verifySsl"] is True
+        assert defaults["includeSubgroups"] is False
+        setup_values = data["setupValues"]
+        labels = [v["label"] for v in setup_values]
+        assert "Name" in labels
+        assert "Redirect URI" in labels
+        assert "Scopes" in labels
+
+    @responses.activate
+    def test_config_step_validation_missing_required_fields(self) -> None:
+        self._initialize_pipeline()
+        resp = self._advance_step({"url": self.gitlab_url})
+        assert resp.status_code == 400
+        assert resp.data["clientId"] == ["This field is required."]
+        assert resp.data["clientSecret"] == ["This field is required."]
+
+    @responses.activate
+    def test_config_step_advance_to_oauth(self) -> None:
+        self._initialize_pipeline()
+        resp = self._submit_config()
+        assert resp.status_code == 200
+        assert resp.data["status"] == "advance"
+        assert resp.data["step"] == "oauth_login"
+        assert resp.data["stepIndex"] == 1
+        assert "oauthUrl" in resp.data["data"]
+        oauth_url = resp.data["data"]["oauthUrl"]
+        assert self.gitlab_url in oauth_url
+        assert "client_id=" in oauth_url
+
+    @responses.activate
+    def test_oauth_step_invalid_state(self) -> None:
+        self._initialize_pipeline()
+        self._submit_config()
+        resp = self._advance_step({"code": "abc123", "state": "wrong-state"})
+        assert resp.status_code == 400
+        assert resp.data["status"] == "error"
+
+    @responses.activate
+    def test_oauth_step_missing_code(self) -> None:
+        self._initialize_pipeline()
+        self._submit_config()
+        resp = self._advance_step({})
+        assert resp.status_code == 400
+        assert resp.data["code"] == ["This field is required."]
+        assert resp.data["state"] == ["This field is required."]
+
+    @responses.activate
+    def test_full_pipeline_flow(self) -> None:
+        self._stub_gitlab_oauth()
+        self._stub_gitlab_user()
+        self._stub_gitlab_group()
+
+        resp = self._initialize_pipeline()
+        assert resp.data["step"] == "installation_config"
+
+        resp = self._submit_config()
+        assert resp.data["step"] == "oauth_login"
+        pipeline_signature = self._get_pipeline_signature(resp)
+
+        resp = self._advance_step({"code": "gitlab-auth-code", "state": pipeline_signature})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+        assert "data" in resp.data
+
+        integration = Integration.objects.get(provider="gitlab")
+        assert integration.metadata["base_url"] == self.gitlab_url
+        assert integration.metadata["group_id"] == 1
+
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id,
+            integration=integration,
+        ).exists()
+
+    @responses.activate
+    def test_full_pipeline_flow_no_group(self) -> None:
+        self._stub_gitlab_oauth()
+        self._stub_gitlab_user()
+
+        self._initialize_pipeline()
+        resp = self._submit_config(group="")
+        pipeline_signature = self._get_pipeline_signature(resp)
+
+        resp = self._advance_step({"code": "gitlab-auth-code", "state": pipeline_signature})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+
+        integration = Integration.objects.get(provider="gitlab")
+        assert integration.metadata["group_id"] is None
+        assert integration.metadata["include_subgroups"] is False
+
+    @responses.activate
+    def test_config_strips_trailing_slash(self) -> None:
+        self._stub_gitlab_oauth()
+        self._stub_gitlab_user()
+        self._stub_gitlab_group()
+
+        self._initialize_pipeline()
+        resp = self._submit_config(url=f"{self.gitlab_url}///")
+        assert resp.data["status"] == "advance"
+        oauth_url = resp.data["data"]["oauthUrl"]
+        assert "gitlab.example.com/oauth/authorize" in oauth_url
+        assert "///" not in oauth_url

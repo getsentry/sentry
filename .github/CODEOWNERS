@@ -338,6 +338,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/views/explore/spans/spansTabSeerComboBox.tsx                  @getsentry/explore @getsentry/machine-learning-ai
 /static/app/views/traces/                                                 @getsentry/explore
 /static/app/components/quickTrace/                                        @getsentry/explore
+/static/app/components/dnd/                                               @getsentry/explore
 /src/sentry/insights/                                                     @getsentry/data-browsing
 /static/app/views/performance/                                            @getsentry/data-browsing
 /static/app/components/performance/                                       @getsentry/data-browsing
@@ -448,6 +449,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/sentry_apps/                                             @getsentry/product-owners-settings-integrations @getsentry/ecosystem
 /tests/sentry/sentry_apps/                                           @getsentry/product-owners-settings-integrations @getsentry/ecosystem
 /src/sentry/utils/sentry_apps/                                       @getsentry/ecosystem
+/tests/sentry/utils/sentry_apps/                                     @getsentry/ecosystem
 /src/sentry/middleware/integrations/                                 @getsentry/ecosystem
 /src/sentry/api/endpoints/project_rule*.py                           @getsentry/alerts-notifications
 /src/sentry/api/serializers/models/rule.py                           @getsentry/alerts-notifications
@@ -710,6 +712,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/tasks/test_auto_remove_inbox.py               @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_auto_resolve_issues.py             @getsentry/issue-detection-backend
 /tests/sentry/tasks/seer/test_delete_seer_grouping_records.py @getsentry/issue-detection-backend
+/tests/sentry/tasks/test_console_platform_cleanup.py        @getsentry/gdx
 /tests/sentry/tasks/test_check_new_issue_threshold_met.py   @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_clear_expired_resolutions.py       @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_clear_expired_rulesnoozes.py       @getsentry/issue-detection-backend
@@ -761,6 +764,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 ## gsAdmin
 # /static/gsAdmin/*                          unowned
+/static/gsAdmin/components/changeDashboardsParallelLimitModal.tsx  @getsentry/data-browsing
 /static/gsAdmin/components/forkCustomer.tsx  @getsentry/hybrid-cloud
 /static/gsAdmin/components/relocation*       @getsentry/hybrid-cloud
 /static/gsAdmin/views/relocation*            @getsentry/hybrid-cloud
@@ -890,6 +894,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 # Cell architecture
 /.agents/skills/cell-architecture                    @getsentry/sre-infrastructure-engineering
+tests/sentry/core/endpoints/test_organization_cell.py @getsentry/sre-infrastructure-engineering
 # End of cell architecture
 
 # Foundational Storage

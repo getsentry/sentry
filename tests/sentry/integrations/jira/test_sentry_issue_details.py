@@ -194,7 +194,7 @@ class JiraIssueHookControlTest(APITestCase):
         )
 
         with assume_test_silo_mode(SiloMode.CELL, cell_name="us"):
-            self.us_org = self.create_organization(region="us")
+            self.us_org = self.create_organization(cell="us")
             self.us_project = Project.objects.create(organization=self.us_org)
             self.first_release = self.create_release(
                 project=self.us_project, version="v1.0", date_added=self.first_seen
@@ -216,7 +216,7 @@ class JiraIssueHookControlTest(APITestCase):
                 key=self.issue_key,
             )
         with assume_test_silo_mode(SiloMode.CELL, cell_name="de"):
-            self.de_org = self.create_organization(region="de")
+            self.de_org = self.create_organization(cell="de")
             self.de_project = Project.objects.create(organization=self.de_org)
             self.de_group = self.create_group(
                 self.de_project,

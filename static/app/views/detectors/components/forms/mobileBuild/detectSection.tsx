@@ -24,6 +24,7 @@ import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import {
   getMetricLabelForPlatform,
   guessPlatformForProject,
+  isDiffThreshold,
   MEASUREMENT_OPTIONS,
   METRIC_OPTIONS,
 } from 'sentry/views/settings/project/preprod/types';
@@ -81,7 +82,7 @@ export function MobileBuildDetectSection() {
               flexibleControlStateSize
               preserveOnUnmount
             />
-            {(thresholdType === 'absolute_diff' || thresholdType === 'relative_diff') && (
+            {isDiffThreshold(thresholdType) && (
               <Flex align="center" gap="sm">
                 <IconInfo size="xs" />
                 <Text variant="muted" size="sm">

@@ -19,7 +19,7 @@ export function getFeedbackItemQueryKey({feedbackId, organization}: Props): {
           }),
           {
             query: {
-              collapse: ['release', 'tags'],
+              collapse: ['release', 'tags', 'stats'],
             },
           },
         ]
@@ -36,6 +36,11 @@ export function getFeedbackItemQueryKey({feedbackId, organization}: Props): {
               },
             }
           ),
+          {
+            query: {
+              collapse: ['fullRelease'],
+            },
+          },
         ]
       : undefined,
   };

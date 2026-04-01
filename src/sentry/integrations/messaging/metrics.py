@@ -118,4 +118,4 @@ class AppMentionHaltReason(StrEnum):
     ORGANIZATION_NOT_FOUND = "organization_not_found"
     ORGANIZATION_NOT_ACTIVE = "organization_not_active"
     FEATURE_NOT_ENABLED = "feature_not_enabled"
-    MISSING_CHANNEL_OR_TEXT = "missing_channel_or_text"
+    MISSING_EVENT_DATA = "missing_event_data"
