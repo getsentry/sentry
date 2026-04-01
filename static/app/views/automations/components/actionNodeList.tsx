@@ -112,7 +112,22 @@ export function ActionNodeList({
       {actions.map(action => {
         const handler = getActionHandler(action, availableActions);
         if (!handler) {
-          return null;
+          const actionLabel = actionNodesMap.get(action.type)?.label || action.type;
+          return (
+            <AutomationBuilderRow
+              key={`actionFilters.${conditionGroupId}.action.${action.id}`}
+              onDelete={() => {
+                onDeleteRow(action.id);
+              }}
+              hasError
+              errorMessage={t(
+                'The %s action is no longer available. Please remove and reconfigure this action.',
+                actionLabel
+              )}
+            >
+              {actionLabel}
+            </AutomationBuilderRow>
+          );
         }
         const error = errors?.[action.id];
         const warningMessage = getIncompatibleActionWarning(action, {
