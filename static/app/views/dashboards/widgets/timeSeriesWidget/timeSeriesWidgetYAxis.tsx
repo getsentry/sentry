@@ -16,6 +16,7 @@ export function TimeSeriesWidgetYAxis(
     {
       type: 'value',
       animation: false,
+      splitNumber: 2,
       axisPointer: {
         type: 'line' as const,
         snap: false,

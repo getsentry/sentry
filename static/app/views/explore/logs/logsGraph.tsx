@@ -235,7 +235,7 @@ function Graph({
           />
         )
       }
-      height={visualize.visible ? 200 : 50}
+      height={visualize.visible ? 175 : 50}
       revealActions="always"
     />
   );
