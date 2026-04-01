@@ -38,7 +38,7 @@ function getConditionLabel({condition}: {condition: MetricCondition}) {
   }
 }
 
-export function formatComparisonValue(
+function formatComparisonValue(
   comparison: MetricCondition['comparison'],
   thresholdType: PreprodDetector['config']['thresholdType']
 ): string {
@@ -51,7 +51,7 @@ export function formatComparisonValue(
   return String(bytesToMB(comparison));
 }
 
-export function getConditionDescription({
+function getConditionDescription({
   condition,
   thresholdType,
 }: {
@@ -62,13 +62,13 @@ export function getConditionDescription({
   const unit = getDisplayUnit(thresholdType);
 
   if (condition.conditionResult === DetectorPriorityLevel.OK) {
-    return t('Below or equal to %(value)s %(unit)s', {
+    return t('Below or equal to %(value)s%(unit)s', {
       value: comparisonValue,
       unit,
     });
   }
 
-  return t('Above %(value)s %(unit)s', {
+  return t('Above %(value)s%(unit)s', {
     value: comparisonValue,
     unit,
   });
