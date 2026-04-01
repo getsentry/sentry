@@ -21,20 +21,20 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.pytest.mocking import count_matching_calls
 
 standard_cases = [
-    ("email", "test@email.com", "<email>"),
+    ("email", "maisey@dogsaregreat.com", "<email>"),
     ("url - with subdomain", "http://dogs.squirrelchasers.net", "<url>"),
     (
         "url - TCP with username/password",
-        "tcp://user:pass@dogsaregreat.com:10",
-        "tcp://user:<email>:<int>",
+        "tcp://charlie:s3cretSqu1rrel@dogsaregreat.com:10",
+        "tcp://charlie:<email>:<int>",
     ),
     ("url - ipv4", "http://11.21.12.31", "<url>"),
     ("url - ipv4 with port", "http://11.21.12.31:12", "<url>"),
     ("url - ipv6", "http://2001:db8::1", "<url>"),
     ("url - ipv6 with port", "http://[2001:db8::1]:80", "<url>"),
-    ("hostname - no subdomain", "example.com", "<hostname>"),
-    ("hostname - with subdomain", "www.example.net", "<hostname>"),
-    ("ip - v4", "0.0.0.0", "<ip>"),
+    ("hostname - no subdomain", "dogsaregreat.com", "<hostname>"),
+    ("hostname - with subdomain", "dogs.squirrelchasers.net", "<hostname>"),
+    ("ip - v4", "11.21.12.31", "<ip>"),
     ("ip - v6 unspecified", "::", "<ip>"),
     ("ip - v6 loopback", "::1", "<ip>"),
     ("ip - v6 full", "1121:0c03:1231:130d:0000:16da:0908:da07", "<ip>"),
@@ -307,9 +307,9 @@ incorrect_cases = [
     ),
     (
         "url - non-http protocol with username/password/port",
-        "tcp://user:pass@email.com:10 had a problem",
+        "tcp://charlie:s3cretSqu1rrel@dogsaregreat.com:10 had a problem",
         "<url> had a problem",
-        "tcp://user:<email>:<int> had a problem",
+        "tcp://charlie:<email>:<int> had a problem",
     ),
 ]
 
