@@ -7,7 +7,10 @@ from sentry.testutils.silo import control_silo_test
 from sentry.users.models.identity import Identity
 
 
-class DeletionsTestMixin:
+@control_silo_test
+class DeletionsCliTest(CliTestCase):
+    command = deletions
+
     def _schedule_org_integration_deletion(self) -> tuple[ScheduledDeletion, int]:
         """Create an OrganizationIntegration and schedule it for deletion."""
         integration = self.create_provider_integration(
@@ -26,11 +29,6 @@ class DeletionsTestMixin:
         org_integration.update(status=ObjectStatus.PENDING_DELETION)
         deletion = ScheduledDeletion.schedule(org_integration, days=0, actor=self.user)
         return deletion, org_integration.id
-
-
-@control_silo_test
-class DeletionsListTest(CliTestCase, DeletionsTestMixin):
-    command = deletions
 
     def test_list_empty(self) -> None:
         rv = self.invoke("list")
@@ -55,11 +53,6 @@ class DeletionsListTest(CliTestCase, DeletionsTestMixin):
         rv = self.invoke("list", "-m", "Project")
         assert rv.exit_code == 0
         assert "No pending deletions found" in rv.output
-
-
-@control_silo_test
-class DeletionsRunTest(CliTestCase, DeletionsTestMixin):
-    command = deletions
 
     def test_run_requires_option(self) -> None:
         rv = self.invoke("run")
