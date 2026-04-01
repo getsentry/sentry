@@ -315,7 +315,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
                     "automatedRunStoppingPoint": "root_cause",
                 },
             )
-        assert response.status_code == 200
+        assert response.status_code == 204
 
     def test_post_rejects_projects_not_in_organization(self) -> None:
         project = self.create_project(organization=self.organization)
