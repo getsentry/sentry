@@ -18,7 +18,6 @@ import {
   isTokenLiteral,
   isTokenOperator,
   isTokenParenthesis,
-  isTokenReference,
   TokenKind,
 } from 'sentry/components/arithmeticBuilder/token';
 import {
@@ -209,19 +208,6 @@ function InternalInput({
           return;
         }
 
-        if (isTokenReference(tok)) {
-          dispatch({
-            type: 'REPLACE_TOKEN',
-            token,
-            text,
-            focusOverride: {
-              itemKey: getNextFocusOverride(),
-            },
-          });
-          resetInputValue();
-          return;
-        }
-
         if (isTokenFunction(tok)) {
           dispatch({
             type: 'REPLACE_TOKEN',
@@ -296,9 +282,12 @@ function InternalInput({
       type: 'REPLACE_TOKEN',
       token,
       text: inputValue.trim(),
+      focusOverride: {
+        itemKey: getNextFocusOverride(),
+      },
     });
     resetInputValue();
-  }, [dispatch, inputValue, token, resetInputValue]);
+  }, [dispatch, inputValue, token, resetInputValue, getNextFocusOverride]);
 
   const onInputEscape = useCallback(() => {
     dispatch({
