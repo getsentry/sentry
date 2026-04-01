@@ -43,18 +43,18 @@ class ProjectKeyCellMappingsTest(APITestCase):
         return f"Signature {signature}"
 
     def test_get_no_auth(self) -> None:
-        url = reverse("sentry-api-0-project-key-cell-mappings")
+        url = reverse("sentry-api-0-projectkey-cell-mappings")
         res = self.client.get(url)
         assert res.status_code == 401
 
     def test_get_no_allow_cookie_auth(self) -> None:
         self.login_as(self.user)
-        url = reverse("sentry-api-0-project-key-cell-mappings")
+        url = reverse("sentry-api-0-projectkey-cell-mappings")
         res = self.client.get(url)
         assert res.status_code == 401
 
     def test_get_invalid_auth(self) -> None:
-        url = reverse("sentry-api-0-project-key-cell-mappings")
+        url = reverse("sentry-api-0-projectkey-cell-mappings")
         res = self.client.get(
             url,
             HTTP_AUTHORIZATION="Signature total:trash",
@@ -62,7 +62,7 @@ class ProjectKeyCellMappingsTest(APITestCase):
         assert res.status_code == 401
 
     def test_get_no_data(self) -> None:
-        url = reverse("sentry-api-0-project-key-cell-mappings")
+        url = reverse("sentry-api-0-projectkey-cell-mappings")
         res = self.client.get(
             url,
             HTTP_AUTHORIZATION=self.auth_header(url),
@@ -81,7 +81,7 @@ class ProjectKeyCellMappingsTest(APITestCase):
         m3 = create_project_key_mapping("de")
         m4 = create_project_key_mapping("de")
 
-        url = reverse("sentry-api-0-project-key-cell-mappings")
+        url = reverse("sentry-api-0-projectkey-cell-mappings")
         res = self.client.get(
             url,
             data={"per_page": 2},
@@ -130,7 +130,7 @@ class ProjectKeyCellMappingsTest(APITestCase):
         create_project_key_mapping("us")
         m3 = create_project_key_mapping("de")
 
-        url = reverse("sentry-api-0-project-key-cell-mappings")
+        url = reverse("sentry-api-0-projectkey-cell-mappings")
         res = self.client.get(
             url,
             data={"locality": "de"},
