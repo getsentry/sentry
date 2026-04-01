@@ -72,18 +72,15 @@ const onChild = jest.fn();
 const globalActions: CommandPaletteAction[] = [
   {
     to: '/target/',
-    groupingKey: 'navigate',
     display: {
       label: 'Go to route',
     },
   },
   {
     to: '/other/',
-    groupingKey: 'help',
     display: {label: 'Other'},
   },
   {
-    groupingKey: 'add',
     display: {label: 'Parent action'},
     actions: [
       {
@@ -235,12 +232,10 @@ describe('CommandPalette', () => {
         {
           to: '/a/',
           display: {label: 'Something with issues buried'},
-          groupingKey: 'navigate',
         },
         {
           to: '/b/',
           display: {label: 'Issues'},
-          groupingKey: 'navigate',
         },
       ];
       render(<GlobalActionsComponent actions={actions} />);
@@ -258,13 +253,11 @@ describe('CommandPalette', () => {
       const actions: CommandPaletteAction[] = [
         {
           display: {label: 'Group'},
-          groupingKey: 'navigate',
           actions: [{type: 'navigate', to: '/child/', display: {label: 'Issues child'}}],
         },
         {
           to: '/top/',
           display: {label: 'Issues'},
-          groupingKey: 'navigate',
         },
       ];
       render(<GlobalActionsComponent actions={actions} />);
@@ -284,7 +277,6 @@ describe('CommandPalette', () => {
           to: '/shortcuts/',
           display: {label: 'Keyboard shortcuts'},
           keywords: ['hotkeys', 'keybindings'],
-          groupingKey: 'help',
         },
       ];
       render(<GlobalActionsComponent actions={actions} />);
@@ -300,7 +292,6 @@ describe('CommandPalette', () => {
       const actions: CommandPaletteAction[] = [
         {
           display: {label: 'Theme'},
-          groupingKey: 'navigate',
           actions: [
             {onAction: jest.fn(), display: {label: 'Light'}},
             {onAction: jest.fn(), display: {label: 'Dark'}},
