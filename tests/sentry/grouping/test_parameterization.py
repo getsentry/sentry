@@ -23,11 +23,8 @@ from sentry.testutils.pytest.mocking import count_matching_calls
 standard_cases = [
     ("email", "maisey@dogsaregreat.com", "<email>"),
     ("url - with subdomain", "http://dogs.squirrelchasers.net", "<url>"),
-    (
-        "url - TCP with username/password",
-        "tcp://charlie:s3cretSqu1rrel@dogsaregreat.com:10",
-        "tcp://charlie:<email>:<int>",
-    ),
+    ("url - with username/password", "http://charlie:s3cretSqu1rrel@dogsaregreat.com:10", "<url>"),
+    ("url - tcp", "tcp://dogsaregreat.com:10", "tcp://<hostname>:<int>"),
     ("url - ipv4", "http://11.21.12.31", "<url>"),
     ("url - ipv4 with port", "http://11.21.12.31:12", "<url>"),
     ("url - ipv6", "http://2001:db8::1", "<url>"),
