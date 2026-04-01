@@ -1442,6 +1442,62 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                 == "Enabled platforms: PlayStation, Xbox; Disabled platforms: Nintendo Switch"
             )
 
+    @patch(
+        "sentry.tasks.console_platform_cleanup.remove_inaccessible_console_platform_sources.delay"
+    )
+    def test_console_platform_revocation_dispatches_cleanup_task(
+        self, mock_cleanup_task: MagicMock
+    ) -> None:
+        """Revoking console platforms dispatches the cleanup task with remaining platforms"""
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(organization=self.organization, user=staff_user, role="owner")
+        self.login_as(user=staff_user, staff=True)
+
+        self.organization.update_option(
+            "sentry:enabled_console_platforms", ["playstation", "nintendo-switch"]
+        )
+
+        data = {"enabledConsolePlatforms": ["playstation"]}
+        self.get_success_response(self.organization.slug, **data)
+
+        mock_cleanup_task.assert_called_once_with(self.organization.id, ["playstation"])
+
+    @patch(
+        "sentry.tasks.console_platform_cleanup.remove_inaccessible_console_platform_sources.delay"
+    )
+    def test_console_platform_addition_does_not_dispatch_cleanup_task(
+        self, mock_cleanup_task: MagicMock
+    ) -> None:
+        """Adding console platforms without revoking any does not dispatch the cleanup task"""
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(organization=self.organization, user=staff_user, role="owner")
+        self.login_as(user=staff_user, staff=True)
+
+        data = {"enabledConsolePlatforms": ["playstation", "xbox"]}
+        self.get_success_response(self.organization.slug, **data)
+
+        mock_cleanup_task.assert_not_called()
+
+    @patch(
+        "sentry.tasks.console_platform_cleanup.remove_inaccessible_console_platform_sources.delay"
+    )
+    def test_console_platform_revoke_all_dispatches_cleanup_task(
+        self, mock_cleanup_task: MagicMock
+    ) -> None:
+        """Revoking all console platforms dispatches the cleanup task with empty list"""
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(organization=self.organization, user=staff_user, role="owner")
+        self.login_as(user=staff_user, staff=True)
+
+        self.organization.update_option(
+            "sentry:enabled_console_platforms", ["playstation", "nintendo-switch"]
+        )
+
+        data: dict[str, list[str]] = {"enabledConsolePlatforms": []}
+        self.get_success_response(self.organization.slug, **data)
+
+        mock_cleanup_task.assert_called_once_with(self.organization.id, [])
+
     def test_enable_seer_enhanced_alerts_default_true(self) -> None:
         response = self.get_success_response(self.organization.slug)
         assert response.data["enableSeerEnhancedAlerts"] is True
