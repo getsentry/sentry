@@ -29,13 +29,14 @@ from snuba_sdk import (
 from snuba_sdk.orderby import Direction
 
 from sentry.billing.platform.services.usage._category_mapping import proto_to_relay_category
+from sentry.snuba.referrer import Referrer
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
 
-_REFERRER = "billing.usage_service.clickhouse"
+_REFERRER = Referrer.BILLING_USAGE_SERVICE_CLICKHOUSE.value
 _APP_ID = "billing"
 _DATASET = "outcomes"
 _DAILY_GRANULARITY = 86400
