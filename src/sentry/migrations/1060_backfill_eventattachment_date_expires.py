@@ -15,7 +15,7 @@ from sentry.new_migrations.migrations import CheckedMigration
 logger = logging.getLogger(__name__)
 
 BATCH_SIZE = 1000
-DATE_EXPIRES_SENTINEL = datetime(1970, 1, 1, 0, 0, 0, tzinfo=dt_timezone.utc)
+SENTINEL = datetime(1970, 1, 1, 0, 0, 0, tzinfo=dt_timezone.utc)
 DEFAULT_RETENTION_DAYS = 30
 
 
@@ -27,11 +27,8 @@ def backfill_eventattachment_date_expires(
     total_updated = 0
 
     while True:
-        updated = EventAttachment.objects.filter(
-            id__in=EventAttachment.objects.filter(date_expires=DATE_EXPIRES_SENTINEL).values("id")[
-                :BATCH_SIZE
-            ]
-        ).update(
+        batch = EventAttachment.objects.filter(date_expires=SENTINEL).values("id")[:BATCH_SIZE]
+        updated = EventAttachment.objects.filter(id__in=batch).update(
             date_expires=ExpressionWrapper(
                 F("date_added") + timedelta(days=DEFAULT_RETENTION_DAYS),
                 output_field=DateTimeField(),
