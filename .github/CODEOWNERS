@@ -745,6 +745,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/api/endpoints/check_am2_compatibility.py    @getsentry/revenue
 /tests/js/getsentry-test/                               @getsentry/revenue
 /src/sentry/billing/                                    @getsentry/revenue
+/tests/sentry/billing/                                  @getsentry/revenue
 /src/sentry/audit_log/                                  @getsentry/revenue
 
 ## gsApp
