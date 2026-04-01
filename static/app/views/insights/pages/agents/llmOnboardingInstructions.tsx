@@ -263,12 +263,12 @@ with sentry_sdk.start_span(op="gen_ai.execute_tool", name=f"execute_tool {tool_n
 \`gen_ai.usage.input_tokens\` must be the **total** input tokens (cached + non-cached). Sentry computes cost as \`(input_tokens - cached_tokens) * price\`, so if \`input_tokens\` only contains non-cached tokens, costs go **negative**.
 
 \`\`\`python
-# ✅ Correct — input_tokens includes cached
+# Correct — input_tokens includes cached
 span.set_data("gen_ai.usage.input_tokens", 100)          # total
 span.set_data("gen_ai.usage.input_tokens.cached", 80)    # cached subset
 span.set_data("gen_ai.usage.output_tokens", 50)
 
-# ❌ Wrong — produces negative cost
+# Wrong — produces negative cost
 span.set_data("gen_ai.usage.input_tokens", 20)            # non-cached only
 span.set_data("gen_ai.usage.input_tokens.cached", 80)     # (20 - 80) * price → negative
 \`\`\`
