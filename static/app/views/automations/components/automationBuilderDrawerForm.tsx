@@ -68,10 +68,7 @@ function FormBody({closeDrawer, model}: {closeDrawer: () => void; model: FormMod
           <Stack gap="md">
             <AutomationBuilder />
           </Stack>
-          <ActionThrottleSelectField
-            label={t('Action Interval')}
-            help={t('Perform the actions above this often for an issue.')}
-          />
+          <ActionThrottleSelectField />
         </Flex>
         <EmbeddedTextField
           required
