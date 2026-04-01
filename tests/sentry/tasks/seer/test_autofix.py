@@ -360,7 +360,7 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
 
     @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
     @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
-    def test_root_cause_stopping_point_preserved_with_seer_overview_flag(
+    def test_root_cause_stopping_point_preserved_when_valid(
         self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
     ) -> None:
         """Project with root_cause stopping point is preserved when root-cause-stopping-point flag is enabled."""
