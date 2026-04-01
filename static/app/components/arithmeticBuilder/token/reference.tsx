@@ -1,4 +1,4 @@
-import type {ChangeEvent, FocusEvent} from 'react';
+import type {ChangeEvent} from 'react';
 import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {Item, Section} from '@react-stately/collections';
@@ -66,8 +66,6 @@ function InternalInput({item, state, token, rowRef}: InternalInputProps) {
   const [inputValue, setInputValue] = useState('');
   const [currentValue, setCurrentValue] = useState(token.label);
   const [isCurrentlyEditing, setIsCurrentlyEditing] = useState(false);
-  const [_selectionIndex, setSelectionIndex] = useState(0);
-  const [_isOpen, setIsOpen] = useState(false);
 
   // Sync currentValue when the token changes (e.g. key reuse after re-tokenization)
   const [prevLabel, setPrevLabel] = useState(token.label);
@@ -78,15 +76,6 @@ function InternalInput({item, state, token, rowRef}: InternalInputProps) {
 
   const filterValue = inputValue.trim();
   const displayValue = isCurrentlyEditing ? inputValue : currentValue;
-
-  const updateSelectionIndex = useCallback(() => {
-    setSelectionIndex(inputRef.current?.selectionStart ?? 0);
-  }, []);
-
-  const resetInputValue = useCallback(() => {
-    setInputValue('');
-    updateSelectionIndex();
-  }, [updateSelectionIndex]);
 
   const {dispatch, references} = useArithmeticBuilder();
 
@@ -115,18 +104,13 @@ function InternalInput({item, state, token, rowRef}: InternalInputProps) {
     [rowRef]
   );
 
-  const onClick = useCallback(() => {
-    updateSelectionIndex();
-  }, [updateSelectionIndex]);
-
   const onInputBlur = useCallback(() => {
-    resetInputValue();
+    setInputValue('');
     setIsCurrentlyEditing(false);
-  }, [resetInputValue]);
+  }, []);
 
   const onInputChange = useCallback((evt: ChangeEvent<HTMLInputElement>) => {
     setInputValue(evt.target.value);
-    setSelectionIndex(evt.target.selectionStart ?? 0);
   }, []);
 
   const onInputCommit = useCallback(() => {
@@ -140,22 +124,19 @@ function InternalInput({item, state, token, rowRef}: InternalInputProps) {
         itemKey: nextTokenKeyOfKind(state, token, TokenKind.FREE_TEXT),
       },
     });
-    resetInputValue();
+    setInputValue('');
     setIsCurrentlyEditing(false);
-  }, [dispatch, state, token, inputValue, resetInputValue]);
+  }, [dispatch, state, token, inputValue]);
 
   const onInputEscape = useCallback(() => {
-    resetInputValue();
+    setInputValue('');
     setIsCurrentlyEditing(false);
-  }, [resetInputValue]);
+  }, []);
 
-  const onInputFocus = useCallback(
-    (_evt: FocusEvent<HTMLInputElement>) => {
-      setIsCurrentlyEditing(true);
-      resetInputValue();
-    },
-    [resetInputValue]
-  );
+  const onInputFocus = useCallback((_evt: React.FocusEvent<HTMLInputElement>) => {
+    setIsCurrentlyEditing(true);
+    setInputValue('');
+  }, []);
 
   const onKeyDownCapture = useCallback(
     (evt: React.KeyboardEvent<HTMLInputElement>) => {
@@ -222,10 +203,10 @@ function InternalInput({item, state, token, rowRef}: InternalInputProps) {
           itemKey: nextTokenKeyOfKind(state, token, TokenKind.FREE_TEXT),
         },
       });
-      resetInputValue();
+      setInputValue('');
       setIsCurrentlyEditing(false);
     },
-    [dispatch, state, token, resetInputValue]
+    [dispatch, state, token]
   );
 
   return (
@@ -238,7 +219,6 @@ function InternalInput({item, state, token, rowRef}: InternalInputProps) {
       filterValue={filterValue}
       tabIndex={item.key === state.selectionManager.focusedKey ? 0 : -1}
       shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
-      onClick={onClick}
       onInputBlur={onInputBlur}
       onInputChange={onInputChange}
       onInputCommit={onInputCommit}
@@ -246,7 +226,6 @@ function InternalInput({item, state, token, rowRef}: InternalInputProps) {
       onInputFocus={onInputFocus}
       onKeyDown={onKeyDown}
       onKeyDownCapture={onKeyDownCapture}
-      onOpenChange={setIsOpen}
       onOptionSelected={onOptionSelected}
     >
       {keyItem =>
