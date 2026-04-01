@@ -28,7 +28,7 @@ from sentry.seer.autofix.utils import (
     get_autofix_state,
     get_org_default_seer_automation_handoff,
     get_seer_seat_based_tier_cache_key,
-    get_valid_stopping_points,
+    get_valid_automated_run_stopping_points,
     resolve_repository_ids,
 )
 from sentry.seer.models import SeerProjectPreference
@@ -244,7 +244,7 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
 
     default_stopping_point, default_handoff = get_org_default_seer_automation_handoff(organization)
     default_handoff_dict = default_handoff.dict() if default_handoff else None
-    valid_stopping_points = get_valid_stopping_points(organization)
+    valid_stopping_points = get_valid_automated_run_stopping_points(organization)
 
     preferences_by_id = bulk_get_project_preferences(organization_id, project_ids)
 

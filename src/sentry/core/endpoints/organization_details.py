@@ -110,7 +110,7 @@ from sentry.organizations.services.organization.model import (
 from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
-from sentry.seer.autofix.utils import get_valid_stopping_points
+from sentry.seer.autofix.utils import get_valid_automated_run_stopping_points
 from sentry.services.organization.provisioning import organization_provisioning_service
 from sentry.tasks.console_platform_cleanup import remove_inaccessible_console_platform_sources
 from sentry.users.services.user.serial import serialize_generic_user
@@ -435,7 +435,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
     def validate_defaultAutomatedRunStoppingPoint(self, value):
         organization = self.context["organization"]
-        if value not in get_valid_stopping_points(organization):
+        if value not in get_valid_automated_run_stopping_points(organization):
             raise serializers.ValidationError(f'"{value}" is not a valid choice.')
         return value
 
