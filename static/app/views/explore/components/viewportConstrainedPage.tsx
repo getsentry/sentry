@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {FlexProps} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import {SHORT_VIEWPORT_HEIGHT} from 'sentry/utils/useIsShortViewport';
 
 interface ViewportConstrainedPageProps extends FlexProps<'main'> {
   constrained?: boolean;
@@ -33,7 +34,7 @@ export function ViewportConstrainedPage({
 const ConstrainedPage = styled(Layout.Page)`
   contain: size;
 
-  @media (max-height: 900px) {
+  @media (max-height: ${SHORT_VIEWPORT_HEIGHT}px) {
     ~ footer {
       display: none;
     }
