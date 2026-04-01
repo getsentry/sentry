@@ -55,7 +55,7 @@ class AsyncSlackResponseTest(TestCase):
             status=200,
         )
         convert_to_async_slack_response(
-            region_names=["eu", "us"],
+            cell_names=["eu", "us"],
             payload=self.payload,
             response_url=self.response_url,
         )
@@ -84,7 +84,7 @@ class AsyncSlackResponseTest(TestCase):
             match=[matchers.json_params_matcher({"ok": True, "region": "eu"})],
         )
         convert_to_async_slack_response(
-            region_names=["us", "eu"],
+            cell_names=["us", "eu"],
             payload=self.payload,
             response_url=self.response_url,
         )
@@ -111,7 +111,7 @@ class AsyncSlackResponseTest(TestCase):
             status=200,
         )
         convert_to_async_slack_response(
-            region_names=["us", "eu"],
+            cell_names=["us", "eu"],
             payload=self.payload,
             response_url=self.response_url,
         )
@@ -137,7 +137,7 @@ class AsyncSlackResponseTest(TestCase):
             status=200,
         )
         convert_to_async_slack_response(
-            region_names=["us", "eu"],
+            cell_names=["us", "eu"],
             payload=self.payload,
             response_url=self.response_url,
         )
@@ -194,7 +194,7 @@ class AsyncDiscordResponseTest(TestCase):
             status=200,
         )
         convert_to_async_discord_response(
-            region_names=["eu", "us"],
+            cell_names=["eu", "us"],
             payload=self.payload,
             response_url=self.response_url,
         )
@@ -223,7 +223,7 @@ class AsyncDiscordResponseTest(TestCase):
             match=[matchers.json_params_matcher({"ok": True, "region": "eu"})],
         )
         convert_to_async_discord_response(
-            region_names=["eu", "us"],
+            cell_names=["eu", "us"],
             payload=self.payload,
             response_url=self.response_url,
         )
@@ -250,7 +250,7 @@ class AsyncDiscordResponseTest(TestCase):
             status=200,
         )
         convert_to_async_discord_response(
-            region_names=["eu", "us"],
+            cell_names=["eu", "us"],
             payload=self.payload,
             response_url=self.response_url,
         )

@@ -41,7 +41,7 @@ from .circuitbreaker import (
 
 logger = logging.getLogger(__name__)
 
-proxy_client = httpx.AsyncClient()
+proxy_client = httpx.AsyncClient(timeout=httpx.Timeout(5.0, read=60.0))
 circuitbreakers = CircuitBreakerManager()
 
 # Endpoints that handle uploaded files have higher timeouts configured
@@ -189,7 +189,7 @@ async def proxy_cell_request(
                         headers=header_dict,
                         params=dict(query_params) if query_params is not None else None,
                         content=_stream_request(data) if data else None,  # type: ignore[arg-type]
-                        timeout=timeout,
+                        timeout=timeout or httpx.USE_CLIENT_DEFAULT,
                     )
                     resp = await proxy_client.send(req, stream=True, follow_redirects=False)
                     if resp.status_code >= 502:

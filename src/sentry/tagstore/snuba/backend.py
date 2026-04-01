@@ -40,6 +40,7 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.replays.query import query_replays_dataset_tagkey_values
+from sentry.search.eap.occurrences.common_queries import count_occurrences
 from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.eap.resolver import SearchResolver
@@ -887,24 +888,64 @@ class SnubaTagStorage(TagStorage):
 
     def get_group_tag_value_count(
         self,
-        group,
-        environment_id,
+        group: Group,
+        environment_id: int | None,
         key: str,
-        tenant_ids=None,
-    ):
+        tenant_ids: dict[str, str | int] | None = None,
+    ) -> int:
         filters: dict[str, Sequence[Any]] = {"project_id": get_project_list(group.project_id)}
         if environment_id:
             filters["environment"] = [environment_id]
         aggregations = [["count()", "", "count"]]
         dataset, filters = self.apply_group_filters(group, filters)
 
-        return snuba.query(
+        snuba_result = snuba.query(
             dataset=dataset,
             filter_keys=filters,
             aggregations=aggregations,
-            referrer="tagstore.get_group_tag_value_count",
+            referrer=Referrer.TAGSTORE_GET_GROUP_TAG_VALUE_COUNT.value,
             tenant_ids=tenant_ids,
         )
+        result = snuba_result
+
+        callsite = "SnubaTagStorage::get_group_tag_value_count"
+        if EAPOccurrencesComparator.should_check_experiment(callsite):
+            occurrence_category = (
+                OccurrenceCategory.ERROR
+                if group.issue_category == GroupCategory.ERROR
+                else OccurrenceCategory.ISSUE_PLATFORM
+            )
+
+            now = datetime.now(tz=timezone.utc)
+            environments = (
+                list(Environment.objects.filter(id=environment_id)) if environment_id else None
+            )
+
+            eap_result = count_occurrences(
+                organization=Organization.objects.get_from_cache(id=group.project.organization_id),
+                projects=[group.project],
+                start=now - timedelta(days=90),
+                end=now,
+                referrer=Referrer.TAGSTORE_GET_GROUP_TAG_VALUE_COUNT.value,
+                group_id=group.id,
+                environments=environments,
+                occurrence_category=occurrence_category,
+            )
+            result = EAPOccurrencesComparator.check_and_choose(
+                control_data=snuba_result,
+                experimental_data=eap_result,
+                callsite=callsite,
+                is_experimental_data_a_null_result=eap_result == 0,
+                reasonable_match_comparator=lambda control, experimental: experimental <= control,
+                debug_context={
+                    "group_id": group.id,
+                    "project_id": group.project_id,
+                    "environment_id": environment_id,
+                    "occurrence_category": occurrence_category.value,
+                },
+            )
+
+        return result
 
     def get_top_group_tag_values(
         self,
@@ -1193,7 +1234,13 @@ class SnubaTagStorage(TagStorage):
         callsite = "SnubaTagStorage::get_groups_user_counts"
         if EAPOccurrencesComparator.should_check_experiment(callsite):
             eap_result = self._eap_get_groups_user_counts(
-                project_ids, group_ids, environment_ids, start, end, referrer
+                project_ids,
+                group_ids,
+                environment_ids,
+                start,
+                end,
+                referrer,
+                occurrence_category=OccurrenceCategory.ERROR,
             )
             result = EAPOccurrencesComparator.check_and_choose(
                 control_data=snuba_result,
@@ -1220,7 +1267,8 @@ class SnubaTagStorage(TagStorage):
         start: datetime | None,
         end: datetime | None,
         referrer: str,
-    ) -> dict[int, int]:
+        occurrence_category: OccurrenceCategory,
+    ) -> defaultdict[int, int]:
         organization_id = get_organization_id_from_project_ids(project_ids)
 
         now = datetime.now(tz=timezone.utc)
@@ -1260,7 +1308,7 @@ class SnubaTagStorage(TagStorage):
                 limit=len(group_ids),
                 referrer=referrer,
                 config=SearchResolverConfig(),
-                occurrence_category=OccurrenceCategory.ERROR,
+                occurrence_category=occurrence_category,
             )
 
             return defaultdict(
@@ -1273,11 +1321,12 @@ class SnubaTagStorage(TagStorage):
             )
         except Exception:
             logger.exception(
-                "EAP get_groups_user_counts query failed",
+                "EAP groups user counts query failed",
                 extra={
                     "organization_id": organization_id,
                     "project_ids": list(project_ids),
                     "group_ids": list(group_ids),
+                    "occurrence_category": occurrence_category.value,
                 },
             )
             return defaultdict(int)
@@ -1329,9 +1378,37 @@ class SnubaTagStorage(TagStorage):
 
         result_snql = raw_snql_query(snuba_request, referrer=referrer, use_cache=True)
 
-        result = nest_groups(result_snql["data"], ["group_id"], ["count"])
+        nested = nest_groups(result_snql["data"], ["group_id"], ["count"])
+        snuba_result = defaultdict(int, {k: v for k, v in nested.items() if v})
+        result = snuba_result
 
-        return defaultdict(int, {k: v for k, v in result.items() if v})
+        callsite = "SnubaTagStorage::get_generic_groups_user_counts"
+        if EAPOccurrencesComparator.should_check_experiment(callsite):
+            eap_result = self._eap_get_groups_user_counts(
+                project_ids,
+                group_ids,
+                environment_ids,
+                start,
+                end,
+                referrer,
+                occurrence_category=OccurrenceCategory.ISSUE_PLATFORM,
+            )
+            result = EAPOccurrencesComparator.check_and_choose(
+                control_data=snuba_result,
+                experimental_data=eap_result,
+                callsite=callsite,
+                is_experimental_data_a_null_result=len(eap_result) == 0,
+                reasonable_match_comparator=_reasonable_user_counts_match,
+                debug_context={
+                    "project_ids": list(project_ids),
+                    "group_ids": list(group_ids),
+                    "environment_ids": list(environment_ids) if environment_ids else None,
+                    "start": start.isoformat() if start else None,
+                    "end": end.isoformat() if end else None,
+                },
+            )
+
+        return result
 
     def get_tag_value_paginator(
         self,

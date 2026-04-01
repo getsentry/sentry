@@ -2432,7 +2432,7 @@ dev = [
     { name = "responses", specifier = ">=0.23.1" },
     { name = "ruff", specifier = ">=0.14.0" },
     { name = "selenium", specifier = ">=4.16.0" },
-    { name = "sentry-cli", specifier = ">=2.16.0" },
+    { name = "sentry-cli", specifier = ">=3.3.0" },
     { name = "sentry-covdefaults-disable-branch-coverage", specifier = ">=1.0.2" },
     { name = "sentry-devenv", specifier = ">=1.28.0" },
     { name = "time-machine", specifier = ">=2.16.0" },
@@ -2469,13 +2469,12 @@ wheels = [
 
 [[package]]
 name = "sentry-cli"
-version = "2.16.0"
+version = "3.3.3"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_cli-2.16.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:db01ed6951a6f65faaf97b34f8dbe66c42c59f922f8be0f383f032309a4dd0b6" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_cli-2.16.0-py3-none-macosx_11_0_universal2.whl", hash = "sha256:c2f51b3b79113ec4080908af7a0a8a43a3bf30873a801ed8f095ba5cf7b73e9e" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_cli-2.16.0-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.musllinux_1_2_aarch64.whl", hash = "sha256:872462805c749cc974ba27709052194f080ff44762a47b98d7f520e34e64a260" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_cli-2.16.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.musllinux_1_2_x86_64.whl", hash = "sha256:9d0541a3cbe96697f354549f2464c24c3250aa189e58d690ca632f434c34e6e8" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_cli-3.3.3-py3-none-macosx_11_0_arm64.whl", hash = "sha256:37d235bf0b2bb5ce2526928d6584441879aa0bcf023e0bc4f43a52c043e996d8" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_cli-3.3.3-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.musllinux_1_2_aarch64.whl", hash = "sha256:9ba4b3199bcfefe40f9e9e7e6ee42f7ecd7b1702af743b2263a78fe8f363bbfd" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_cli-3.3.3-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.musllinux_1_2_x86_64.whl", hash = "sha256:49f1d757778db87c40abb0d0b692938019c13a6d67e14976bd87b66f4ea9820b" },
 ]
 
 [[package]]

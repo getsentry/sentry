@@ -258,6 +258,23 @@ with sentry_sdk.start_span(op="gen_ai.execute_tool", name=f"execute_tool {tool_n
     span.set_data("gen_ai.tool.output", json.dumps(result))
 \`\`\`
 
+## Token Counting & Cost Calculation
+
+\`gen_ai.usage.input_tokens\` must be the **total** input tokens (cached + non-cached). Sentry computes cost as \`(input_tokens - cached_tokens) * price\`, so if \`input_tokens\` only contains non-cached tokens, costs go **negative**. Each \`gen_ai.request\` span should only report its own token usage, not an accumulation of tokens from previous spans in the conversation.
+
+\`\`\`python
+# Correct — input_tokens includes cached
+span.set_data("gen_ai.usage.input_tokens", 100)          # total
+span.set_data("gen_ai.usage.input_tokens.cached", 80)    # cached subset
+span.set_data("gen_ai.usage.output_tokens", 50)
+
+# Wrong — produces negative cost
+span.set_data("gen_ai.usage.input_tokens", 20)            # non-cached only
+span.set_data("gen_ai.usage.input_tokens.cached", 80)     # (20 - 80) * price → negative
+\`\`\`
+
+See: https://docs.sentry.io/ai/monitoring/agents/costs/#troubleshooting
+
 ## Key Rules
 
 1. **Always set the agent name** — enables per-agent dashboards, trace grouping, and alerting
@@ -266,4 +283,5 @@ with sentry_sdk.start_span(op="gen_ai.execute_tool", name=f"execute_tool {tool_n
 4. **Nest spans correctly:** \`gen_ai.invoke_agent\` should contain \`gen_ai.request\` and \`gen_ai.execute_tool\` as children
 5. **JS min version:** \`@sentry/node@10.28.0\` or later
 6. **Enable PII:** \`sendDefaultPii: true\` (JS) / \`send_default_pii=True\` (Python) to capture inputs/outputs
+7. **\`gen_ai.usage.input_tokens\` must include cached tokens** — otherwise cost calculations will be negative
 `;

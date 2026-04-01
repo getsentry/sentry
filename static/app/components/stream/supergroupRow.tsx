@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Text} from '@sentry/scraps/text';
 
+import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import {GroupStatusChart} from 'sentry/components/charts/groupStatusChart';
 import {Count} from 'sentry/components/count';
 import {useDrawer} from 'sentry/components/globalDrawer';
@@ -18,25 +19,37 @@ import {SupergroupDetailDrawer} from 'sentry/views/issueList/supergroups/supergr
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 
 interface SupergroupRowProps {
-  matchedCount: number;
+  matchedGroupIds: string[];
   supergroup: SupergroupDetail;
   aggregatedStats?: AggregatedSupergroupStats | null;
+  memberList?: IndexedMembersByProject;
 }
 
 export function SupergroupRow({
   supergroup,
-  matchedCount,
+  matchedGroupIds,
   aggregatedStats,
+  memberList,
 }: SupergroupRowProps) {
+  const matchedCount = matchedGroupIds.length;
   const {openDrawer, isDrawerOpen} = useDrawer();
   const [isActive, setIsActive] = useState(false);
   const handleClick = () => {
     setIsActive(true);
-    openDrawer(() => <SupergroupDetailDrawer supergroup={supergroup} />, {
-      ariaLabel: t('Supergroup details'),
-      drawerKey: 'supergroup-drawer',
-      onClose: () => setIsActive(false),
-    });
+    openDrawer(
+      () => (
+        <SupergroupDetailDrawer
+          supergroup={supergroup}
+          matchedGroupIds={matchedGroupIds}
+          memberList={memberList}
+        />
+      ),
+      {
+        ariaLabel: t('Supergroup details'),
+        drawerKey: 'supergroup-drawer',
+        onClose: () => setIsActive(false),
+      }
+    );
   };
 
   const highlighted = isActive && isDrawerOpen;

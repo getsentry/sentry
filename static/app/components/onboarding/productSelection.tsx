@@ -489,7 +489,7 @@ export const platformProductAvailability = {
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
   ],
-  unity: [ProductSolution.LOGS],
+  unity: [ProductSolution.LOGS, ProductSolution.METRICS],
   unreal: [ProductSolution.LOGS],
 } as Record<PlatformKey, ProductSolution[]>;
 

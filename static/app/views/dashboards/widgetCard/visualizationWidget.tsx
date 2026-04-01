@@ -48,6 +48,7 @@ import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plott
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import {NegativeCostWarning} from 'sentry/views/insights/common/components/tableCells/currencyCell';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
@@ -363,10 +364,14 @@ function VisualizationWidgetContent({
               {labelContent}
             </Tooltip>
             <TextAlignRight>
-              {dataType === 'number' &&
-              value !== null &&
-              value > 0 &&
-              value < NUMBER_MIN_VALUE ? (
+              {dataType === 'currency' && value !== null && value < 0 ? (
+                <NegativeCostWarning>
+                  {formatBreakdownLegendValue(value, dataType, dataUnit)}
+                </NegativeCostWarning>
+              ) : dataType === 'number' &&
+                value !== null &&
+                value > 0 &&
+                value < NUMBER_MIN_VALUE ? (
                 <Tooltip title={value.toLocaleString()}>
                   <span>{formatBreakdownLegendValue(value, dataType, dataUnit)}</span>
                 </Tooltip>

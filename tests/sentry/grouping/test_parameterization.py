@@ -11,8 +11,8 @@ from sentry.grouping.component import (
 )
 from sentry.grouping.context import GroupingContext
 from sentry.grouping.parameterization import (
-    DEFAULT_PARAMETERIZATION_REGEXES_MAP,
-    EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP,
+    ParameterizationRegex,
+    Parameterizer,
     experimental_parameterizer,
     parameterizer,
 )
@@ -49,7 +49,7 @@ standard_cases = [
     (
         "traceparent - aws, but not word boundary",
         "abc1-67891233-abcdef012345678912345678",
-        "abc1<int>-<hex>",
+        "<hex>-<hex>-<hex>",
     ),
     ("uuid", "7c1811ed-e98f-4c9c-a9f9-58c757ff494f", "<uuid>"),
     (
@@ -143,8 +143,10 @@ standard_cases = [
     ("hex with prefix - uppercase, 24 digits", "0x9AF8C3BE3A1231FE1121ACB1", "<hex>"),
     ("hex with prefix - lowercase, no numbers", "0xdeadbeef", "<hex>"),
     ("hex with prefix - uppercase, no numbers", "0xDEADBEEF", "<hex>"),
-    ("hex without prefix - lowercase, 4 digits", "9af8", "9af8"),
-    ("hex without prefix - uppercase, 4 digits", "9AF8", "9AF8"),
+    ("hex without prefix - lowercase, < 4 digits", "9af", "9af"),
+    ("hex without prefix - uppercase, < 4 digits", "9AF", "9AF"),
+    ("hex without prefix - lowercase, 4 digits", "9af8", "<hex>"),
+    ("hex without prefix - uppercase, 4 digits", "9AF8", "<hex>"),
     ("hex without prefix - lowercase, 8 digits", "9af8c3be", "<hex>"),
     ("hex without prefix - uppercase, 8 digits", "9AF8C3BE", "<hex>"),
     ("hex without prefix - lowercase, 10 digits", "9af8c3be3a", "<hex>"),
@@ -155,15 +157,18 @@ standard_cases = [
     ("hex without prefix - uppercase, 24 digits", "9AF8C3BE3A1231FE1121ACB1", "<hex>"),
     ("hex without prefix - lowercase, 128 digits", "b0" * 64, "<hex>"),
     ("hex without prefix - uppercase, 128 digits", "B0" * 64, "<hex>"),
-    ("hex without prefix - lowercase, no numbers", "deadbeef", "deadbeef"),
-    ("hex without prefix - uppercase, no numbers", "DEADBEEF", "DEADBEEF"),
-    ("hex without prefix - lowercase, no numbers until later", "deadbeef 123", "deadbeef <int>"),
-    ("hex without prefix - uppercase, no numbers until later", "DEADBEEF 123", "DEADBEEF <int>"),
+    ("hex without prefix - lowercase, no numbers, < 8 digits", "deadbee", "deadbee"),
+    ("hex without prefix - uppercase, no numbers, < 8 digits", "DEADBEE", "DEADBEE"),
+    ("hex without prefix - lowercase, no numbers, 8 digits", "deadbeef", "<hex>"),
+    ("hex without prefix - uppercase, no numbers, 8 digits", "DEADBEEF", "<hex>"),
+    ("hex without prefix - lowercase, no numbers until later", "cafe 123", "cafe <int>"),
+    ("hex without prefix - uppercase, no numbers until later", "CAFE 123", "CAFE <int>"),
     ("hex without prefix - no letters, < 8 digits, positive", "1234567", "<int>"),
     ("hex without prefix - no letters, < 8 digits, negative", "-1234567", "<int>"),
     ("hex without prefix - no letters, 8+ digits, positive", "12345678", "<hex>"),
+    ("hex without prefix - no letters, 8+ digits, negative", "-12345678", "<hex>"),
     ("git sha", "commit a93c7d2", "commit <git_sha>"),
-    ("git sha - all letters", "commit deadbeef", "commit deadbeef"),
+    ("git sha - all letters", "commit cabcafe", "commit cabcafe"),
     ("git sha - all numbers", "commit 4150908", "commit <int>"),
     ("float", "0.23", "<float>"),
     ("int", "23", "<int>"),
@@ -171,11 +176,13 @@ standard_cases = [
     ("int - separator", "0:17502", "<int>:<int>"),
     ("int - separator negative no space", "value:-17502", "value:<int>"),
     ("int - separator negative with space", "value: -17502", "value: <int>"),
+    ("int - in dashed string with numbers", "415-908", "<int>-<int>"),
+    ("int - in dashed string with letters", "maisey-908", "maisey-<int>"),
     ("int - parens", '{"msg" => "(#239323)', '{"msg" => "(#<int>)'),
-    ("int - date - invalid day", "2006-01-40", "<int><int><int>"),
-    ("int - date - invalid month", "2006-20-02", "<int><int><int>"),
-    ("int - date - invalid year", "10000-01-02", "<int><int><int>"),
-    ("int - date - missing day", "2006-01", "<int><int>"),
+    ("int - date - invalid day", "2006-01-40", "<int>-<int>-<int>"),
+    ("int - date - invalid month", "2006-20-02", "<int>-<int>-<int>"),
+    ("int - date - invalid year", "10000-01-02", "<int>-<int>-<int>"),
+    ("int - date - missing day", "2006-01", "<int>-<int>"),
     ("int - quoted_str whitespace", "b = '1'", "b = '<int>'"),
     ("int - quoted_str whitespace", 'b = "1"', 'b = "<int>"'),
     ("quoted_str - single", "b='1'", "b=<quoted_str>"),
@@ -219,8 +226,7 @@ def test_default_parameterizer_misses_experimental_cases(
 
 
 @pytest.mark.skipif(
-    EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP == DEFAULT_PARAMETERIZATION_REGEXES_MAP,
-    reason="no experimental regexes to test",
+    not experimental_parameterizer.is_experimental, reason="no experimental regexes to test"
 )
 @pytest.mark.parametrize(("name", "input", "expected"), standard_cases + experimental_cases)
 def test_experimental_parameterization(name: str, input: str, expected: str) -> None:
@@ -242,28 +248,10 @@ def test_experimental_parameterization(name: str, input: str, expected: str) -> 
 incorrect_cases = [
     # ("name", "input", "desired", "actual")
     (
-        "hex without prefix - no letters, 8+ digits, negative",
-        "-12345678",
-        "<hex>",
-        "<int>",
-    ),
-    (
-        "int - dashed string with numbers",
-        "415-908",
-        "<int>-<int>",
-        "<int><int>",
-    ),
-    (
-        "int - dashed string with letters",
-        "maisey-908",
-        "maisey-<int>",
-        "maisey<int>",
-    ),
-    (
         "int - number in word",
         "Encoding: utf-8",
         "Encoding: utf-8",
-        "Encoding: utf<int>",
+        "Encoding: utf-<int>",
     ),
     (
         "int - with commas",
@@ -604,3 +592,22 @@ def test_runs_parameterizer_on_fingerprint_constant_matching_chained_error_messa
         "That's ball number <int> that Charlie hasn't brought back!",
         "Dogs are great!",
     ]
+
+
+def test_uses_callback_for_replacement_value() -> None:
+    input_str = "Dog number 1, #1 dog"
+    callback_parameterizer = Parameterizer(
+        [
+            ParameterizationRegex(
+                name="int",
+                raw_pattern=r"""-\d+\b | \b\d+\b""",
+                replacement_callback=lambda _: "<callback_result>",
+            )
+        ]
+    )
+
+    assert parameterizer.parameterize(input_str) == "Dog number <int>, #<int> dog"
+    assert (
+        callback_parameterizer.parameterize(input_str)
+        == "Dog number <callback_result>, #<callback_result> dog"  # Callback function was used
+    )

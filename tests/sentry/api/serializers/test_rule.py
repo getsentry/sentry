@@ -205,8 +205,8 @@ class WorkflowRuleSerializerTest(TestCase):
             [workflow, workflow_2, workflow_3]
         )
         assert workflow_projects == {
-            workflow_2: {self.project},
-            workflow_3: {self.project, project_2},
+            workflow_2.id: {self.project},
+            workflow_3.id: {self.project, project_2},
         }
 
     def test_fetch_workflows__prefetch(self) -> None:

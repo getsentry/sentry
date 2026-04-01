@@ -89,21 +89,22 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, MutableMapping
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Literal, overload
 
 import sentry_sdk
 from django.conf import settings
 from django.db import router
 from django.utils import timezone
+from objectstore_client import TimeToLive
 
-from sentry import models, nodestore, options
+from sentry import models, nodestore, options, quotas
 from sentry.attachments import CachedAttachment, attachment_cache, store_attachments_for_event
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
 from sentry.models.eventattachment import V1_PREFIX, V2_PREFIX, EventAttachment
 from sentry.models.files.utils import get_storage
 from sentry.models.project import Project
-from sentry.objectstore import get_attachments_session
+from sentry.objectstore import default_attachment_retention, get_attachments_session
 from sentry.options.rollout import in_random_rollout
 from sentry.search.eap.occurrences.common_queries import count_occurrences
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
@@ -419,9 +420,15 @@ def _maybe_copy_attachment_into_cache(
         # attachment is already in objectstore (regardless of flag)
         stored_id = blob_path.removeprefix(V2_PREFIX)
     elif in_random_rollout("objectstore.enable_for.attachments"):
+        retention_days = (
+            quotas.backend.get_event_retention(project.organization)
+            or default_attachment_retention()
+        )
         # move the attachment into objectstore and update the record
         with attachment.getfile() as fp:
-            stored_id = get_attachments_session(project.organization_id, project.id).put(fp)
+            stored_id = get_attachments_session(project.organization_id, project.id).put(
+                fp, expiration_policy=TimeToLive(timedelta(days=retention_days))
+            )
         attachment.blob_path = V2_PREFIX + stored_id
         attachment.save()
         if blob_path.startswith(V1_PREFIX):
