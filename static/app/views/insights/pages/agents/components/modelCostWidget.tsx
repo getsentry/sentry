@@ -12,10 +12,10 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {CurrencyCell} from 'sentry/views/insights/common/components/tableCells/currencyCell';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
+import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
 import {getAIGenerationsFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
@@ -124,7 +124,7 @@ export function ModelCostWidget() {
             <ModelText>
               <ModelName modelId={modelId} />
             </ModelText>
-            <CurrencyCell value={Number(item['sum(gen_ai.cost.total_tokens)']) || null} />
+            <span>{formatLLMCosts(item['sum(gen_ai.cost.total_tokens)'] || 0)}</span>
           </Fragment>
         );
       })}

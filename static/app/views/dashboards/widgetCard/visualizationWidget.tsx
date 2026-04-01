@@ -1,12 +1,16 @@
 import {Fragment} from 'react';
 import {Link} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {ExternalLink} from 'sentry/components/links/externalLink';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {IconWarning} from 'sentry/icons';
+import {tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {EChartDataZoomHandler, Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
@@ -363,10 +367,16 @@ function VisualizationWidgetContent({
               {labelContent}
             </Tooltip>
             <TextAlignRight>
-              {dataType === 'number' &&
-              value !== null &&
-              value > 0 &&
-              value < NUMBER_MIN_VALUE ? (
+              {dataType === 'currency' && value !== null && value < 0 ? (
+                <NegativeCurrencyValue
+                  value={value}
+                  dataType={dataType}
+                  dataUnit={dataUnit}
+                />
+              ) : dataType === 'number' &&
+                value !== null &&
+                value > 0 &&
+                value < NUMBER_MIN_VALUE ? (
                 <Tooltip title={value.toLocaleString()}>
                   <span>{formatBreakdownLegendValue(value, dataType, dataUnit)}</span>
                 </Tooltip>
@@ -495,3 +505,38 @@ function renderBreakdownLabel(
 
   return fallbackLabel;
 }
+
+const NEGATIVE_COST_DOCS_URL = 'https://docs.sentry.io/ai/monitoring/agents/costs/';
+
+function NegativeCurrencyValue({
+  value,
+  dataType,
+  dataUnit,
+}: {
+  dataType: string;
+  value: number;
+  dataUnit?: string;
+}) {
+  return (
+    <Tooltip
+      title={tct(
+        'Negative costs can occur when cached token pricing differs from standard token pricing. [link:Learn more].',
+        {
+          link: <ExternalLink href={NEGATIVE_COST_DOCS_URL} />,
+        }
+      )}
+      skipWrapper
+    >
+      <NegativeCostWrapper>
+        <IconWarning size="sm" variant="warning" />
+        {formatBreakdownLegendValue(value, dataType, dataUnit)}
+      </NegativeCostWrapper>
+    </Tooltip>
+  );
+}
+
+const NegativeCostWrapper = styled('span')`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+`;
