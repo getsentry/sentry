@@ -68,6 +68,7 @@ from sentry.constants import (
     ROLLBACK_ENABLED_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
+    SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     SEER_DEFAULT_CODING_AGENT_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
     ObjectStatus,
@@ -254,11 +255,16 @@ ORG_OPTIONS = (
         None,
     ),
     (
-        # Informs UI default for automated_run_stopping_point in project preferences
         "autoOpenPrs",
         "sentry:auto_open_prs",
         bool,
         AUTO_OPEN_PRS_DEFAULT,
+    ),
+    (
+        "defaultAutomatedRunStoppingPoint",
+        "sentry:default_automated_run_stopping_point",
+        str,
+        SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     ),
     (
         "autoEnableCodeReview",
@@ -371,8 +377,15 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     dashboardsAsyncQueueParallelLimit = serializers.IntegerField(required=False, min_value=1)
     enableSeerEnhancedAlerts = serializers.BooleanField(required=False)
     enableSeerCoding = serializers.BooleanField(required=False)
-    defaultCodingAgent = serializers.CharField(required=False, allow_null=True)
+    defaultCodingAgent = serializers.ChoiceField(
+        choices=["seer", "cursor", "claude_code", "cursor_background_agent", "claude_code_agent"],
+        required=False,
+        allow_null=True,
+    )
     defaultCodingAgentIntegrationId = serializers.IntegerField(required=False, allow_null=True)
+    defaultAutomatedRunStoppingPoint = serializers.ChoiceField(
+        choices=["code_changes", "open_pr"], required=False
+    )
     autoOpenPrs = serializers.BooleanField(required=False)
     autoEnableCodeReview = serializers.BooleanField(required=False)
     defaultCodeReviewTriggers = serializers.ListField(
@@ -400,6 +413,15 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     def validate_relayPiiConfig(self, value):
         organization = self.context["organization"]
         return validate_pii_config_update(organization, value)
+
+    def validate_defaultCodingAgent(self, value: str | None) -> str:
+        if value is None:
+            return SEER_DEFAULT_CODING_AGENT_DEFAULT
+        coding_agent_aliases: dict[str, str] = {
+            "cursor": "cursor_background_agent",
+            "claude_code": "claude_code_agent",
+        }
+        return coding_agent_aliases.get(value, value)
 
     def validate_defaultCodingAgentIntegrationId(self, value: int | None) -> int | None:
         if value is None:

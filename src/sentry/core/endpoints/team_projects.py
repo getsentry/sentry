@@ -31,8 +31,8 @@ from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.seer.similarity.utils import (
     project_is_seer_eligible,
-    set_default_project_auto_open_prs,
     set_default_project_autofix_automation_tuning,
+    set_default_project_seer_preferences,
     set_default_project_seer_scanner_automation,
 )
 from sentry.signals import project_created
@@ -56,7 +56,7 @@ def apply_default_project_settings(organization: Organization, project: Project)
 
     set_default_project_autofix_automation_tuning(organization, project)
     set_default_project_seer_scanner_automation(organization, project)
-    set_default_project_auto_open_prs(organization, project)
+    set_default_project_seer_preferences(organization, project)
 
 
 class ProjectPostSerializer(serializers.Serializer):
