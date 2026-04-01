@@ -129,19 +129,19 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         except PreprodSnapshotMetrics.DoesNotExist:
             return Response({"detail": "Artifact is not a snapshot"}, status=400)
 
-        analytics.record(
-            PreprodArtifactApiDeleteEvent(
-                organization_id=organization.id,
-                project_id=artifact.project_id,
-                user_id=(
-                    request.user.id if request.user and request.user.is_authenticated else None
-                ),
-                artifact_id=str(artifact.id),
-            )
-        )
-
         try:
             result = delete_artifacts_and_eap_data([artifact])
+
+            analytics.record(
+                PreprodArtifactApiDeleteEvent(
+                    organization_id=organization.id,
+                    project_id=artifact.project_id,
+                    user_id=(
+                        request.user.id if request.user and request.user.is_authenticated else None
+                    ),
+                    artifact_id=str(artifact.id),
+                )
+            )
 
             logger.info(
                 "preprod_snapshot.deleted",
