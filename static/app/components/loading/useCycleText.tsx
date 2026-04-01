@@ -11,10 +11,10 @@ interface Props {
 export function useCycleText({messages, delayMs, enabled}: Props) {
   const [messageIndex, setMessageIndex] = useState(0);
 
-  const {start} = useTimeout({
+  const {start, cancel} = useTimeout({
     timeMs: delayMs,
     onTimeout: () => {
-      setMessageIndex(prev => prev + 1);
+      setMessageIndex(prev => Math.min(prev + 1, messages.length - 1));
       start();
     },
   });
@@ -22,8 +22,10 @@ export function useCycleText({messages, delayMs, enabled}: Props) {
   useEffect(() => {
     if (enabled ?? true) {
       start();
+    } else {
+      cancel();
     }
-  }, [start, enabled]);
+  }, [start, cancel, enabled]);
 
   return messages[messageIndex];
 }
