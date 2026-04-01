@@ -14,21 +14,6 @@ type Props = {
 
 const NEGATIVE_COST_DOCS_URL = 'https://docs.sentry.io/ai/monitoring/agents/costs/';
 
-export function NegativeCostWarning() {
-  return (
-    <Tooltip
-      title={tct(
-        'Negative costs can occur when cached token pricing differs from standard token pricing. [link:Learn more].',
-        {
-          link: <ExternalLink href={NEGATIVE_COST_DOCS_URL} />,
-        }
-      )}
-    >
-      <StyledIconWarning size="sm" variant="warning" />
-    </Tooltip>
-  );
-}
-
 export function CurrencyCell({value}: Props) {
   if (value === null || value === undefined) {
     return <NumberContainer>{'\u2014'}</NumberContainer>;
@@ -37,10 +22,20 @@ export function CurrencyCell({value}: Props) {
   if (value < 0) {
     return (
       <NumberContainer>
-        <NegativeCostWrapper>
-          <NegativeCostWarning />
-          {formatDollars(value)}
-        </NegativeCostWrapper>
+        <Tooltip
+          title={tct(
+            'Negative costs can occur when cached token pricing differs from standard token pricing. [link:Learn more].',
+            {
+              link: <ExternalLink href={NEGATIVE_COST_DOCS_URL} />,
+            }
+          )}
+          skipWrapper
+        >
+          <NegativeCostWrapper>
+            <IconWarning size="sm" variant="warning" />
+            {formatDollars(value)}
+          </NegativeCostWrapper>
+        </Tooltip>
       </NumberContainer>
     );
   }
@@ -56,8 +51,4 @@ const NegativeCostWrapper = styled('span')`
   display: inline-flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};
-`;
-
-const StyledIconWarning = styled(IconWarning)`
-  flex-shrink: 0;
 `;
