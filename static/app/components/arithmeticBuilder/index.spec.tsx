@@ -19,13 +19,20 @@ const getSpanFieldDefinition = (key: string) => {
   return getFieldDefinition(key, 'span', argument?.kind);
 };
 
-function ArithmeticBuilderWrapper({expression}: {expression: string}) {
+function ArithmeticBuilderWrapper({
+  expression,
+  references,
+}: {
+  expression: string;
+  references?: Set<string>;
+}) {
   return (
     <ArithmeticBuilder
       aggregations={aggregations}
       functionArguments={functionArguments}
       getFieldDefinition={getSpanFieldDefinition}
       expression={expression}
+      references={references}
     />
   );
 }
@@ -254,5 +261,18 @@ describe('ArithmeticBuilder', () => {
     }
 
     expect(screen.getAllByRole('row')).toHaveLength(1);
+  });
+
+  it('ignores invalid references', async () => {
+    const expression = '!invalid';
+    render(
+      <ArithmeticBuilderWrapper
+        expression={expression}
+        references={new Set(['!invalid'])}
+      />
+    );
+
+    expect(await screen.findByRole('row')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Add a term'})).toHaveValue('!invalid');
   });
 });
