@@ -292,7 +292,6 @@ function AutofixEmptyState({
         size="md"
         icon={<IconBug />}
         aria-label={t('Start Analysis')}
-        tooltipProps={{title: t('Start Analysis')}}
         priority="primary"
         onClick={handleStartRootCause}
         analyticsEventKey="autofix.start_fix_clicked"

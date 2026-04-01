@@ -70,6 +70,7 @@ for cmd in map(
         "sentry.runner.commands.spans.spans",
         "sentry.runner.commands.spans.write_hashes",
         "sentry.runner.commands.notifications.notifications",
+        "sentry.runner.commands.deletions.deletions",
     ),
 ):
     cli.add_command(cmd)

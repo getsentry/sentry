@@ -1,6 +1,7 @@
 import {Fragment, useMemo, useState, type ReactNode} from 'react';
 import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -27,6 +28,7 @@ import {
   type LinkedDashboard,
   type ValidateWidgetResponse,
 } from 'sentry/views/dashboards/types';
+import {correctDragOverlayOffset} from 'sentry/views/dashboards/widgetBuilder/components/common/draggableUtils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
@@ -68,6 +70,7 @@ export function GroupBySelector({
   const organization = useOrganization();
   const source = useDashboardWidgetSource();
   const isEditing = useIsEditingWidget();
+  const theme = useTheme();
   const builderVersion = WidgetBuilderVersion.SLIDEOUT;
 
   function handleAdd() {
@@ -237,7 +240,11 @@ export function GroupBySelector({
                 ))}
               </SortableQueryFields>
             </SortableContext>
-            <DragOverlay dropAnimation={null}>
+            <DragOverlay
+              dropAnimation={null}
+              zIndex={theme.zIndex.modal}
+              modifiers={[correctDragOverlayOffset]}
+            >
               {activeId ? (
                 <Ghost>
                   <QueryField
@@ -351,14 +358,9 @@ const Ghost = styled('div')`
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
   opacity: 0.8;
   cursor: grabbing;
-  padding-right: ${p => p.theme.space.xl};
   width: 100%;
 
   button {
     cursor: grabbing;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    width: 710px;
   }
 `;
