@@ -2,8 +2,14 @@ import dataclasses
 import re
 from collections import defaultdict
 from collections.abc import Sequence
+from typing import Callable
 
 from sentry.utils import metrics
+
+# Function parameterization regexes can specify to provide a customized replacement string. Can also
+# be used to do conditional replacement, by returning the original value in cases where replacement
+# shouldn't happen.
+ParameterizationReplacementFunction = Callable[[str], str]
 
 
 @dataclasses.dataclass
