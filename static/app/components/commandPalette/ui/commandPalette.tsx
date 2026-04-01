@@ -120,7 +120,6 @@ export function CommandPalette(props: CommandPaletteProps) {
     children: actions.map(action => {
       const menuItem = makeMenuItemFromAction(action);
 
-      console.log(action.listItemType);
       if (action.listItemType === 'section') {
         return (
           <Item<CommandPaletteActionMenuItem & {hideCheck: boolean; label: string}>
@@ -405,71 +404,56 @@ function flattenActions(
     return results;
   }
 
-  const collected = new Set();
+  const groups: CommandPaletteActionWithListItemType[] = [];
 
-  console.log(scores);
-
-  function collect(node: CommandPaletteActionWithKey) {
-    if (collected.has(node.key)) {
-      return;
-    }
-
-    collected.add(node.key);
-    results.push({
-      ...node,
-      listItemType: 'actions' in node ? 'section' : 'action',
-    });
-  }
-
-  function dfs(node: CommandPaletteActionWithKey, path: CommandPaletteActionWithKey[]) {
+  function dfs(node: CommandPaletteActionWithKey) {
     if ('actions' in node) {
+      groups.push({...node, listItemType: 'section'});
       for (const action of node.actions) {
-        dfs(action, [...path, action]);
-      }
-    }
-
-    const match = scores!.get(node.key);
-
-    if (match?.score.matched) {
-      if ('actions' in node) {
-        // If this is a section, we can straight up push it to the results
-        collect(node);
-      } else {
-        const parent = path.findLast(p => 'actions' in p);
-        if (parent) collect(parent);
+        dfs(action);
       }
     }
   }
 
-  dfs(root, []);
+  if ('actions' in root) {
+    for (const action of root.actions) {
+      dfs(action);
+    }
+  }
 
-  results.sort((a, b) => {
-    let aScore = scores?.get(a.key)?.score.score ?? 0;
-    let bScore = scores?.get(b.key)?.score.score ?? 0;
+  const groupsWithMatchingChildren = new Set(
+    groups
+      .filter(
+        g => 'actions' in g && g.actions.some(a => scores?.get(a.key)?.score.matched)
+      )
+      .map(g => g.key)
+  );
 
+  groups.sort((a, b) => {
+    let aScore = 0;
+    let bScore = 0;
     if ('actions' in a) {
-      aScore += Math.max(
+      aScore = Math.max(
         ...a.actions.map(action => scores?.get(action.key)?.score.score ?? 0)
       );
     }
-
     if ('actions' in b) {
-      bScore += Math.max(
+      bScore = Math.max(
         ...b.actions.map(action => scores?.get(action.key)?.score.score ?? 0)
       );
     }
-
     return bScore - aScore;
   });
 
-  const flattened = results.flatMap((result): CommandPaletteActionWithListItemType[] => {
+  const flattened = groups.flatMap((result): CommandPaletteActionWithListItemType[] => {
     if ('actions' in result) {
       const resultActions = result.actions.filter(
-        action => scores?.get(action.key)?.score.matched && !collected.has(action.key)
+        action =>
+          scores?.get(action.key)?.score.matched && !groupsWithMatchingChildren.has(action.key)
       );
 
-      if (resultActions.length <= 1) {
-        return [{...result, actions: result.actions, listItemType: 'action'}];
+      if (!resultActions.length) {
+        return [];
       }
 
       return [
@@ -486,15 +470,12 @@ function flattenActions(
           })
           .map(action => ({
             ...action,
-            listItemType:
-              'actions' in action ? ('section' as const) : ('action' as const),
+            listItemType: 'action' as const,
           })),
       ];
     }
     return [{...result, listItemType: 'action'}];
   });
-
-  console.log('flattened', flattened);
 
   return flattened;
 }
