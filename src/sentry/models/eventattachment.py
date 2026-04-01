@@ -12,6 +12,7 @@ from typing import IO, Any
 import zstandard
 from django.core.cache import cache
 from django.db import models
+from django.db.models.expressions import DatabaseDefault
 from django.utils import timezone
 from objectstore_client import TimeToLive
 
@@ -125,8 +126,8 @@ class EventAttachment(Model):
     def save(self, *args: Any, **kwargs: Any) -> None:
         # Computed here rather than as a field default to avoid freezing a callable
         # reference into migrations, which would break if the function is ever renamed.
-        if self.date_expires is None:
-            self.date_expires = timezone.now() + timedelta(days=default_attachment_retention())
+        if self.date_expires is None or isinstance(self.date_expires, DatabaseDefault):  # type: ignore[unreachable]
+            self.date_expires = timezone.now() + timedelta(days=default_attachment_retention())  # type: ignore[unreachable]
         super().save(*args, **kwargs)
 
     def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
