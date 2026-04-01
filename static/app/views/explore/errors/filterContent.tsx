@@ -1,15 +1,13 @@
-import styled from '@emotion/styled';
-
 import {Grid} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {StyledPageFilterBar} from 'sentry/views/explore/spans/spansTabSearchSection';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 export function ErrorsFilterSection() {
@@ -45,7 +43,3 @@ export function ErrorsFilterSection() {
     </Layout.Main>
   );
 }
-
-const StyledPageFilterBar = styled(PageFilterBar)`
-  width: auto;
-`;
