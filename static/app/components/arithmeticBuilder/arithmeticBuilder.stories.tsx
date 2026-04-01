@@ -26,14 +26,20 @@ export default Storybook.story('ArithmeticBuilder', story => {
     return (
       <Fragment>
         <p>
-          Define references as a JSON array of single uppercase letters below, then use
-          them in the expression. If references are present, then they will take priority
-          over aggregations and only suggest references and operators when typing.
+          Define references as a JSON array of strings below, then use them in the
+          expression. If references are present, then they will take priority over
+          aggregations and only suggest references and operators when typing.
         </p>
 
         <p>
           If a character appears that is not a reference, then it will be treated as a
           free text token.
+        </p>
+
+        <p>
+          If during typing, the string matches a single reference, we will automatically
+          select that reference. Otherwise we will continue to suggest references since
+          there are multiple options.
         </p>
 
         <label htmlFor="refs-input">

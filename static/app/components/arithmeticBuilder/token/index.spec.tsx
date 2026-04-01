@@ -52,6 +52,7 @@ const getSuggestedKey = (key: string) => {
 interface TokensProp {
   expression: string;
   dispatch?: Dispatch<ArithmeticBuilderAction>;
+  references?: Set<string>;
 }
 
 function Tokens(props: TokensProp) {
@@ -76,6 +77,7 @@ function Tokens(props: TokensProp) {
         functionArguments,
         getFieldDefinition: getSpanFieldDefinition,
         getSuggestedKey,
+        references: props.references,
       }}
     >
       <TokenGrid tokens={state.expression.tokens} />
@@ -417,6 +419,72 @@ describe('token', () => {
       expect(parenthesis).toHaveAttribute('data-paren-side', 'right');
 
       await waitFor(() => expect(getLastInput()).toHaveFocus());
+    });
+
+    it('allows selecting reference using mouse', async () => {
+      render(<Tokens expression="" references={new Set(['foo', 'bar'])} />);
+
+      const input = screen.getByRole('combobox', {
+        name: 'Add a term',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+
+      // 3 originally because of the parens
+      expect(screen.getAllByRole('option')).toHaveLength(3);
+      await userEvent.type(input, 'foo');
+      expect(screen.getAllByRole('option')).toHaveLength(1);
+
+      await userEvent.click(screen.getByRole('option', {name: 'foo'}));
+
+      await waitFor(() => expect(getLastInput()).toHaveFocus());
+      await userEvent.type(getLastInput(), '{Escape}');
+
+      expect(await screen.findByRole('row', {name: 'foo'})).toBeInTheDocument();
+    });
+
+    it('allows selecting reference using keyboard', async () => {
+      render(<Tokens expression="" references={new Set(['foo', 'bar'])} />);
+
+      const input = screen.getByRole('combobox', {
+        name: 'Add a term',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+
+      // 3 originally because of the parens
+      expect(screen.getAllByRole('option')).toHaveLength(3);
+      await userEvent.type(input, 'foo');
+      expect(screen.getAllByRole('option')).toHaveLength(1);
+
+      await userEvent.type(input, '{ArrowDown}{Enter}');
+
+      expect(await screen.findByRole('row', {name: 'foo'})).toBeInTheDocument();
+
+      await waitFor(() => expect(getLastInput()).toHaveFocus());
+    });
+
+    it('does not automatically select reference if it is a substring of another reference', async () => {
+      render(<Tokens expression="" references={new Set(['a', 'alpha'])} />);
+
+      const input = screen.getByRole('combobox', {
+        name: 'Add a term',
+      });
+      expect(input).toBeInTheDocument();
+
+      await userEvent.click(input);
+      await userEvent.type(input, 'a');
+
+      // Does not automatically select "a"
+      expect(screen.getAllByRole('option')).toHaveLength(2);
+
+      // Type the rest of the alpha string
+      await userEvent.type(input, 'lpha');
+
+      // Now it should automatically select "alpha" since there are no other references
+      expect(await screen.findByRole('row', {name: 'alpha'})).toBeInTheDocument();
     });
   });
 
