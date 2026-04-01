@@ -2,6 +2,7 @@ from uuid import uuid4
 
 from django.urls import reverse
 
+from sentry.search.events.constants import WILDCARD_OPERATOR_MAP
 from sentry.testutils.cases import (
     APITestCase,
     BaseSpansTestCase,
@@ -83,6 +84,42 @@ class OrganizationTraceItemQueryValidatorEndpointTest(APITestCase, BaseSpansTest
         assert by_key["span.description"]["type"] == "string"
         assert by_key["span.duration"]["valid"] is True
         assert by_key["span.duration"]["type"] == "number"
+
+    def test_contains_wildcard_operator_token_round_trips(self):
+        query = f"span.op:{WILDCARD_OPERATOR_MAP['contains']}test"
+
+        response = self.do_request(query={"itemType": "spans", "query": query})
+
+        assert response.status_code == 200
+        filters = response.data["filters"]
+        assert len(filters) == 1
+        assert filters[0]["token"] == query
+        assert filters[0]["key"] == "span.op"
+        assert filters[0]["valid"] is True
+
+    def test_starts_with_wildcard_operator_token_round_trips(self):
+        query = f"span.op:{WILDCARD_OPERATOR_MAP['starts_with']}test"
+
+        response = self.do_request(query={"itemType": "spans", "query": query})
+
+        assert response.status_code == 200
+        filters = response.data["filters"]
+        assert len(filters) == 1
+        assert filters[0]["token"] == query
+        assert filters[0]["key"] == "span.op"
+        assert filters[0]["valid"] is True
+
+    def test_ends_with_wildcard_operator_token_round_trips(self):
+        query = f"span.op:{WILDCARD_OPERATOR_MAP['ends_with']}test"
+
+        response = self.do_request(query={"itemType": "spans", "query": query})
+
+        assert response.status_code == 200
+        filters = response.data["filters"]
+        assert len(filters) == 1
+        assert filters[0]["token"] == query
+        assert filters[0]["key"] == "span.op"
+        assert filters[0]["valid"] is True
 
     def test_virtual_context_filter(self):
         response = self.do_request(
