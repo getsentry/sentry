@@ -702,16 +702,16 @@ def get_all_tags_overview(
 
 
 def _resolve_project_preference(
-    organization: Organization, project: Project, code_mapping_repos: list[dict]
+    organization: Organization, project: Project, fallback_repos: list[dict]
 ) -> SeerProjectPreference | None:
     """
     Resolve the Seer project preference for a project before triggering autofix.
 
     If an existing preference is found in Seer, returns it.
-    If not, creates one from code mapping repos.
+    If not, creates one from fallback_repos.
 
     Returns None only if the preference cannot be resolved (e.g. API errors
-    and no code mapping repos to bootstrap from).
+    and no fallback repos to bootstrap from).
     """
     try:
         preference_response = get_project_seer_preferences(project.id)
@@ -724,14 +724,13 @@ def _resolve_project_preference(
         )
         return None
 
-    # No code mapping repos to bootstrap from.
-    if not code_mapping_repos:
+    if not fallback_repos:
         return None
 
     preference = SeerProjectPreference(
         organization_id=organization.id,
         project_id=project.id,
-        repositories=code_mapping_repos,
+        repositories=fallback_repos,
         automated_run_stopping_point=AutofixStoppingPoint.CODE_CHANGES.value,
     )
 
