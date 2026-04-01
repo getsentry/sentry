@@ -433,6 +433,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 ## Frontend
 /static/app/components/analyticsArea.spec.tsx  @getsentry/app-frontend
 /static/app/components/analyticsArea.tsx       @getsentry/app-frontend
+/static/app/components/loading/                @getsentry/app-frontend
 /static/app/components/events/interfaces/      @getsentry/app-frontend
 /static/app/components/forms/                  @getsentry/app-frontend
 /static/app/locale.tsx                         @getsentry/app-frontend
