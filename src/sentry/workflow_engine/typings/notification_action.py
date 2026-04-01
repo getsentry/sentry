@@ -306,13 +306,13 @@ class SlackActionTranslator(BaseActionTranslator):
     @property
     def required_fields(self) -> list[str]:
         return [
-            ACTION_FIELD_MAPPINGS[ActionType.SLACK][
+            ACTION_FIELD_MAPPINGS[self.action_type][
                 ActionFieldMappingKeys.INTEGRATION_ID_KEY.value
             ],
-            ACTION_FIELD_MAPPINGS[ActionType.SLACK][
+            ACTION_FIELD_MAPPINGS[self.action_type][
                 ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
             ],
-            ACTION_FIELD_MAPPINGS[ActionType.SLACK][
+            ACTION_FIELD_MAPPINGS[self.action_type][
                 ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value
             ],
         ]
@@ -330,20 +330,6 @@ class SlackStagingActionTranslator(SlackActionTranslator):
     @property
     def action_type(self) -> ActionType:
         return ActionType.SLACK_STAGING
-
-    @property
-    def required_fields(self) -> list[str]:
-        return [
-            ACTION_FIELD_MAPPINGS[ActionType.SLACK_STAGING][
-                ActionFieldMappingKeys.INTEGRATION_ID_KEY.value
-            ],
-            ACTION_FIELD_MAPPINGS[ActionType.SLACK_STAGING][
-                ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
-            ],
-            ACTION_FIELD_MAPPINGS[ActionType.SLACK_STAGING][
-                ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value
-            ],
-        ]
 
 
 class DiscordActionTranslator(BaseActionTranslator):

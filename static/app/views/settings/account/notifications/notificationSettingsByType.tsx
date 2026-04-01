@@ -510,7 +510,9 @@ export function NotificationSettingsByType({notificationType}: Props) {
           >
             {field => (
               <Fragment>
-                {(field.state.value ?? initialProviders).includes('slack') && (
+                {(field.state.value ?? initialProviders).some(p =>
+                  ALLOWED_PROVIDERS.has(p as SupportedProviders)
+                ) && (
                   <Fragment>
                     {unlinkedSlackOrgs.length > 0 ? (
                       <UnlinkedAlert organizations={unlinkedSlackOrgs} />
