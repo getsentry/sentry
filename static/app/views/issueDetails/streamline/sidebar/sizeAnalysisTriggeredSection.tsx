@@ -53,6 +53,10 @@ function isSizeAnalysisEvidenceData(
   );
 }
 
+function isDiffThreshold(thresholdType: MeasurementType): boolean {
+  return thresholdType === 'absolute_diff' || thresholdType === 'relative_diff';
+}
+
 function formatRawValueWithUnit(value: number, thresholdType: MeasurementType): string {
   if (thresholdType === 'relative_diff') {
     return `${value}%`;
@@ -62,8 +66,7 @@ function formatRawValueWithUnit(value: number, thresholdType: MeasurementType): 
 }
 
 function formatEvaluatedValue(value: number, thresholdType: MeasurementType): string {
-  const isDiff = thresholdType === 'absolute_diff' || thresholdType === 'relative_diff';
-  const prefix = isDiff ? '+' : '';
+  const prefix = isDiffThreshold(thresholdType) ? '+' : '';
   return `${prefix}${formatRawValueWithUnit(value, thresholdType)}`;
 }
 
@@ -76,8 +79,9 @@ function formatCondition({
   measurementLabel: string;
   thresholdType: MeasurementType;
 }): string {
-  const isDiff = thresholdType === 'absolute_diff' || thresholdType === 'relative_diff';
-  const label = isDiff ? `${measurementLabel} Diff` : measurementLabel;
+  const label = isDiffThreshold(thresholdType)
+    ? `${measurementLabel} Diff`
+    : measurementLabel;
   const comparisonValue =
     typeof condition.comparison === 'number'
       ? formatRawValueWithUnit(condition.comparison, thresholdType)
@@ -105,13 +109,12 @@ export function SizeAnalysisTriggeredSection({event}: SizeAnalysisTriggeredSecti
     config.measurement,
     artifactType
   );
-  const isDiffThreshold =
-    config.thresholdType === 'absolute_diff' || config.thresholdType === 'relative_diff';
+  const hasDiffThreshold = isDiffThreshold(config.thresholdType);
 
   const headBuildPath = `/organizations/${organization.slug}/preprod/size/${headArtifactId}/`;
 
   const compareBuildPath =
-    isDiffThreshold && defined(baseArtifactId)
+    hasDiffThreshold && defined(baseArtifactId)
       ? getCompareBuildPath({
           organizationSlug: organization.slug,
           headArtifactId: String(headArtifactId),
