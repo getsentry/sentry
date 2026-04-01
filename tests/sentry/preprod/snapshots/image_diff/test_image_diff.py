@@ -12,14 +12,14 @@ def _make_solid_image(width: int, height: int, color: tuple[int, int, int, int])
 
 
 class TestCompareImages:
-    def test_identical_images(self):
+    def test_identical_images(self) -> None:
         img = _make_solid_image(100, 100, (128, 128, 128, 255))
         result = compare_images(img, img.copy())
         assert result is not None
         assert result.changed_pixels == 0
         assert result.total_pixels == 100 * 100
 
-    def test_different_sizes(self):
+    def test_different_sizes(self) -> None:
         small = _make_solid_image(30, 30, (100, 100, 100, 255))
         large = _make_solid_image(50, 50, (100, 100, 100, 255))
         result = compare_images(small, large)
@@ -32,7 +32,7 @@ class TestCompareImages:
         assert result.after_width == 50
         assert result.after_height == 50
 
-    def test_modified_block(self):
+    def test_modified_block(self) -> None:
         before = _make_solid_image(100, 100, (100, 100, 100, 255))
         after = _make_solid_image(100, 100, (100, 100, 100, 255))
         draw = ImageDraw.Draw(after)
@@ -42,7 +42,7 @@ class TestCompareImages:
         assert result.changed_pixels > 0
         assert result.total_pixels == 100 * 100
 
-    def test_bytes_input(self):
+    def test_bytes_input(self) -> None:
         img = _make_solid_image(30, 30, (128, 128, 128, 255))
         buf = io.BytesIO()
         img.save(buf, format="PNG")
@@ -55,7 +55,7 @@ class TestCompareImages:
 
 
 class TestCompareImagesBatch:
-    def test_batch_returns_correct_count(self):
+    def test_batch_returns_correct_count(self) -> None:
         img1 = _make_solid_image(50, 50, (100, 100, 100, 255))
         img2 = _make_solid_image(50, 50, (200, 200, 200, 255))
 
@@ -72,7 +72,7 @@ class TestCompareImagesBatch:
         assert results[0].changed_pixels == 0
         assert results[1].changed_pixels == results[1].total_pixels
 
-    def test_batch_single_pair_matches_single(self):
+    def test_batch_single_pair_matches_single(self) -> None:
         before = _make_solid_image(50, 50, (100, 100, 100, 255))
         after = _make_solid_image(50, 50, (200, 200, 200, 255))
 

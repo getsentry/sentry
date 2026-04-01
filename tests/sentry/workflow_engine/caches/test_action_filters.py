@@ -6,7 +6,6 @@ from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.caches.action_filters import (
     ActionFiltersByWorkflow,
     _action_filters_cache,
-    _ActionFilterCacheKey,
     _CacheResults,
     _populate_cache,
     get_action_filters_by_workflows,
@@ -68,21 +67,21 @@ class ActionFilterTestCase(TestCase):
     def populate_action_filter_cache(
         self,
         cache_data: ActionFiltersByWorkflow,
-    ) -> list[_ActionFilterCacheKey]:
+    ) -> list[WorkflowId]:
         _populate_cache(cache_data)
-        cache_keys = [_ActionFilterCacheKey(wid) for wid in cache_data.keys()]
+        cache_keys = list(cache_data.keys())
 
         for cache_key in cache_keys:
-            assert _action_filters_cache.get(cache_key) == cache_data[cache_key.workflow_id]
+            assert _action_filters_cache.get(cache_key) == cache_data[cache_key]
 
         return cache_keys
 
     def get_data_from_cache(
         self,
-        cache_keys: list[_ActionFilterCacheKey],
+        cache_keys: list[WorkflowId],
     ) -> dict[WorkflowId, list[DataConditionGroup] | None]:
         cache_results = _action_filters_cache.get_many(cache_keys)
-        return {key.workflow_id: values for key, values in cache_results.items()}
+        return {key: values for key, values in cache_results.items()}
 
     def assert_cache_result(
         self,

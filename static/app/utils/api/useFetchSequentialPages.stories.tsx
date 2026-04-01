@@ -1,5 +1,7 @@
 import {Fragment, useCallback, useRef} from 'react';
 
+import {InlineCode} from '@sentry/scraps/code';
+
 import {StructuredEventData} from 'sentry/components/structuredEventData';
 import * as Storybook from 'sentry/stories';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -90,7 +92,8 @@ export default Storybook.story('useFetchSequentialPages', story => {
       <Fragment>
         <p>
           You can stop a series of requests from continuing by returning a{' '}
-          <kbd>undefined</kbd> from the <code>getQueryKey</code> callback.
+          <InlineCode>undefined</InlineCode> from the <InlineCode>getQueryKey</InlineCode>{' '}
+          callback.
         </p>
         <p>Here we limit the number of pages to 2</p>
         <StructuredEventData data={{pages: pages.length, isFetching}} />

@@ -11,9 +11,10 @@ import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {PerformanceScoreRingWithTooltips} from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
-import type {
-  ProjectScore,
-  WebVitals,
+import {
+  ORDER,
+  type ProjectScore,
+  type WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
 import PerformanceScoreBreakdownChartWidget from 'sentry/views/insights/common/components/widgets/performanceScoreBreakdownChartWidget';
 
@@ -22,8 +23,6 @@ type Props = {
   projectScore?: ProjectScore;
   webVital?: WebVitals | null;
 };
-
-export const ORDER: WebVitals[] = ['lcp', 'fcp', 'inp', 'cls', 'ttfb'];
 
 export function PerformanceScoreChart({
   projectScore,

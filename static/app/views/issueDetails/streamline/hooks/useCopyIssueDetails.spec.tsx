@@ -397,7 +397,10 @@ describe('useCopyIssueDetails', () => {
     });
 
     it('sets up hotkeys with the correct callbacks', () => {
-      const useHotkeysMock = jest.spyOn(require('sentry/utils/useHotkeys'), 'useHotkeys');
+      const useHotkeysMock = jest.spyOn(
+        require('@sentry/scraps/hotkey/useHotkeys'),
+        'useHotkeys'
+      );
 
       renderHook(() => useCopyIssueDetails(group, event));
 

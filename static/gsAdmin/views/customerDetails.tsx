@@ -34,9 +34,9 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-import {addBillingMetricUsage} from 'admin/components/addBillingMetricUsage';
 import {addGiftBudgetAction} from 'admin/components/addGiftBudgetAction';
 import {AddGiftEventsAction} from 'admin/components/addGiftEventsAction';
+import {triggerAddToStartupProgramModal} from 'admin/components/addToStartupProgramAction';
 import {CancelSubscriptionAction} from 'admin/components/cancelSubscriptionAction';
 import {triggerChangeBalanceModal} from 'admin/components/changeBalanceAction';
 import {triggerChangeDatesModal} from 'admin/components/changeDatesAction';
@@ -486,6 +486,19 @@ export function CustomerDetails() {
             ...actionRequiresBillingAdmin,
           },
           {
+            key: 'addToStartupProgram',
+            name: 'Add to Startup Program',
+            help: 'Add credit for the Sentry for Startups program.',
+            skipConfirmModal: true,
+            onAction: () =>
+              triggerAddToStartupProgramModal({
+                orgId,
+                subscription,
+                onSuccess: reloadData,
+              }),
+            ...actionRequiresBillingAdmin,
+          },
+          {
             key: 'changeOverageNotification',
             name: subscription.hasOverageNotificationsDisabled
               ? 'Enable Overage Notification'
@@ -799,18 +812,6 @@ export function CustomerDetails() {
                 subscription,
               });
             },
-          },
-          {
-            key: 'addBillingMetricUsage',
-            name: 'Add Billing Metric Usage',
-            help: 'Create and add Billing Metric Usage.',
-            skipConfirmModal: true,
-            visible: hasAdminTestFeatures,
-            onAction: () =>
-              addBillingMetricUsage({
-                onSuccess: reloadData,
-                organization,
-              }),
           },
           {
             key: 'deleteBillingMetricHistory',

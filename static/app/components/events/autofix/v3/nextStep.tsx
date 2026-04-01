@@ -1,11 +1,13 @@
 import {useCallback, useMemo, useState, type ReactNode} from 'react';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
+import {MenuComponents} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {
   organizationIntegrationsCodingAgents,
   type CodingAgentIntegration,
@@ -18,6 +20,7 @@ import {
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
@@ -134,13 +137,13 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
     <NextStepTemplate
       isProcessing={isPolling}
       prompt={t('Are you happy with this root cause?')}
-      labelYes={t('Yes, make an implementation plan')}
+      labelYes={t('Yes, make a plan')}
       onClickYes={handleYesClick}
       labelNo={t('No')}
       onClickNo={handleNoClick}
       placeholderPrompt={t('Give seer additional context to improve this root cause.')}
       rethinkPrompt={t('How can this root cause be improved?')}
-      labelNevermind={t('Nevermind, make an implementation plan')}
+      labelNevermind={t('Nevermind, make a plan')}
       labelRethink={t('Rethink root cause')}
       codingAgentIntegrations={codingAgentIntegrations}
       onCodingAgentHandoff={handleCodingAgentHandoff}
@@ -151,14 +154,6 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
 function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepProps) {
   const organization = useOrganization();
   const {isPolling, startStep} = autofix;
-
-  const {codingAgentIntegrations, handleCodingAgentHandoff} = useCodingAgents({
-    autofix,
-    runId,
-    group,
-    step: 'solution',
-    referrer,
-  });
 
   const handleYesClick = useCallback(() => {
     startStep('code_changes', runId);
@@ -192,19 +187,15 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
   return (
     <NextStepTemplate
       isProcessing={isPolling}
-      prompt={t('Are you happy with this implementation plan?')}
+      prompt={t('Are you happy with this plan?')}
       labelYes={t('Yes, write a code fix')}
       onClickYes={handleYesClick}
       labelNo={t('No')}
       onClickNo={handleNoClick}
-      placeholderPrompt={t(
-        'Give seer additional context to improve this implementation plan.'
-      )}
-      rethinkPrompt={t('How can this implementation plan be improved?')}
+      placeholderPrompt={t('Give seer additional context to improve this plan.')}
+      rethinkPrompt={t('How can this plan be improved?')}
       labelNevermind={t('Nevermind, write a code fix')}
-      labelRethink={t('Rethink implementation plan')}
-      codingAgentIntegrations={codingAgentIntegrations}
-      onCodingAgentHandoff={handleCodingAgentHandoff}
+      labelRethink={t('Rethink plan')}
     />
   );
 }
@@ -287,6 +278,8 @@ function NextStepTemplate({
   codingAgentIntegrations,
   onCodingAgentHandoff,
 }: NextStepTemplateProps) {
+  const organization = useOrganization();
+
   const codingAgentOptions = useMemo(() => {
     return (codingAgentIntegrations ?? []).map(integration => {
       const actionLabel =
@@ -361,6 +354,16 @@ function NextStepTemplate({
                 />
               )}
               position="bottom-end"
+              menuFooter={
+                <DropdownMenuFooter>
+                  <MenuComponents.CTALinkButton
+                    icon={<IconAdd />}
+                    to={`/settings/${organization.slug}/integrations/?category=coding%20agent`}
+                  >
+                    {t('Add Integration')}
+                  </MenuComponents.CTALinkButton>
+                </DropdownMenuFooter>
+              }
             />
           ) : null}
         </ButtonBar>

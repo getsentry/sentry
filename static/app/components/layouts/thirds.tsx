@@ -2,7 +2,12 @@ import {useContext, type HTMLAttributes} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {
+  Container,
+  Stack,
+  type ContainerProps,
+  type FlexProps,
+} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
@@ -22,9 +27,12 @@ export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
   if (hasPageFrame) {
     return (
       <StyledPageFrameStack
-        flex="1"
         as="main"
-        roundedCorner={primaryNavigation.layout === 'sidebar'}
+        flex="1"
+        roundedCorner={
+          primaryNavigation.layout === 'sidebar' &&
+          secondaryNavigation?.view === 'expanded'
+        }
         padding={props.withPadding ? '2xl 3xl' : undefined}
         radius={
           secondaryNavigation?.view === 'expanded'
@@ -47,7 +55,7 @@ export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
               : undefined
             : undefined
         }
-        background="secondary"
+        background="primary"
         {...rest}
       />
     );
@@ -73,7 +81,12 @@ const StyledPageFrameStack = styled(Stack)<{roundedCorner: boolean}>`
  *
  * Use `noActionWrap` to disable wrapping if there are minimal actions.
  */
-export const Header = styled('header')<{
+export const Header = styled((props: ContainerProps<'header'>) => {
+  const hasPageFrame = useHasPageFrameFeature();
+  return (
+    <Container as="header" background={hasPageFrame ? undefined : 'primary'} {...props} />
+  );
+})<{
   borderStyle?: 'dashed' | 'solid';
   noActionWrap?: boolean;
   /**
@@ -88,7 +101,6 @@ export const Header = styled('header')<{
     p.noActionWrap ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'};
 
   padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl} 0 ${p => p.theme.space.xl};
-  background-color: ${p => p.theme.tokens.background.primary};
 
   ${p =>
     !p.unified &&

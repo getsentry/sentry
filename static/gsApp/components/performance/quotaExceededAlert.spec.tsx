@@ -1,20 +1,22 @@
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {useLocation} from 'sentry/utils/useLocation';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 
 import {QuotaExceededAlert} from './quotaExceededAlert';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/components/pageFilters/usePageFilters');
-
 describe('Renders QuotaExceededAlert correctly for spans', () => {
-  const {organization} = initializeOrg();
+  const organization = OrganizationFixture();
+  const initialRouterConfig = {
+    location: {
+      pathname: '/organizations/org-slug/performance/quota-exceeded-alert',
+      query: {statsPeriod: '7d'},
+    },
+    route: '/organizations/:orgId/performance/quota-exceeded-alert',
+  };
   const getSubscription = ({
     spansUsageExceeded,
     logsUsageExceeded,
@@ -41,29 +43,15 @@ describe('Renders QuotaExceededAlert correctly for spans', () => {
   };
   beforeEach(() => {
     setMockDate(new Date('2024-12-14').getTime());
-    jest.mocked(usePageFilters).mockReturnValue(
-      PageFilterStateFixture({
-        selection: {
-          datetime: {
-            period: '7d',
-            start: null,
-            end: null,
-            utc: false,
-          },
-          environments: [],
-          projects: [2],
-        },
-      })
-    );
-
-    jest.mocked(useLocation).mockReturnValue({
-      pathname: '',
-      search: '',
-      query: {statsPeriod: '7d'},
-      hash: '',
-      state: undefined,
-      action: 'PUSH',
-      key: '',
+    PageFiltersStore.onInitializeUrlState({
+      projects: [2],
+      environments: [],
+      datetime: {
+        period: '7d',
+        start: null,
+        end: null,
+        utc: false,
+      },
     });
   });
 
@@ -102,6 +90,7 @@ describe('Renders QuotaExceededAlert correctly for spans', () => {
       />,
       {
         organization,
+        initialRouterConfig,
       }
     );
 
@@ -154,6 +143,7 @@ describe('Renders QuotaExceededAlert correctly for spans', () => {
       />,
       {
         organization,
+        initialRouterConfig,
       }
     );
 

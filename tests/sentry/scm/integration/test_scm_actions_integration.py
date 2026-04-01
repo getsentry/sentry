@@ -62,7 +62,7 @@ class TestMakeFromRepositoryId(TestCase):
 
         assert scm.referrer == "emerge"
 
-    def test_raises_repository_not_found_for_nonexistent_id(self):
+    def test_raises_repository_not_found_for_nonexistent_id(self) -> None:
         with pytest.raises(SCMCodedError) as exc_info:
             SourceCodeManager.make_from_repository_id(
                 self.organization.id,
@@ -71,7 +71,7 @@ class TestMakeFromRepositoryId(TestCase):
 
         assert exc_info.value.code == "repository_not_found"
 
-    def test_raises_repository_not_found_for_nonexistent_composite_id(self):
+    def test_raises_repository_not_found_for_nonexistent_composite_id(self) -> None:
         with pytest.raises(SCMCodedError) as exc_info:
             SourceCodeManager.make_from_repository_id(
                 self.organization.id,
@@ -80,7 +80,7 @@ class TestMakeFromRepositoryId(TestCase):
 
         assert exc_info.value.code == "repository_not_found"
 
-    def test_raises_repository_inactive(self):
+    def test_raises_repository_inactive(self) -> None:
         self.repo.status = ObjectStatus.DISABLED
         self.repo.save()
 
@@ -92,7 +92,7 @@ class TestMakeFromRepositoryId(TestCase):
 
         assert exc_info.value.code == "repository_inactive"
 
-    def test_raises_repository_not_found_for_wrong_organization(self):
+    def test_raises_repository_not_found_for_wrong_organization(self) -> None:
         other_org = self.create_organization()
 
         with pytest.raises(SCMCodedError) as exc_info:
@@ -103,7 +103,7 @@ class TestMakeFromRepositoryId(TestCase):
 
         assert exc_info.value.code == "repository_not_found"
 
-    def test_raises_integration_not_found_when_no_integration_exists(self):
+    def test_raises_integration_not_found_when_no_integration_exists(self) -> None:
         repo = self.create_repo(
             name="test-org/orphan-repo",
             provider="integrations:github",

@@ -64,7 +64,10 @@ def assert_no_webhook_payloads() -> None:
 def assert_webhook_payloads_for_mailbox(
     request: WSGIRequest,
     mailbox_name: str,
-    region_names: list[str],
+    # TODO(cells): make required once getsentry passes cell everywhere
+    cell_names: list[str] | None = None,
+    # TODO(cells): remove once getsentry passes cell everywhere
+    region_names: list[str] | None = None,
     destination_types: dict[DestinationType, int] | None = None,
 ) -> None:
     """
@@ -73,16 +76,16 @@ def assert_webhook_payloads_for_mailbox(
 
     :param request:
     :param mailbox_name: The mailbox name that messages should be found in.
-    :param region_names: Optional list of regions each messages should be queued for
+    :param cell_names: List of cells each messages should be queued for
     :param destination_types: Optional Mapping of destination types to the number of messages that should be found for that destination type
     """
     expected_payload = WebhookPayload.get_attributes_from_request(request=request)
-    region_names_set = set(region_names)
+    cell_names_set = set(cell_names or region_names or [])
     messages = WebhookPayload.objects.filter(mailbox_name=mailbox_name)
-    messages_with_region_count = messages.filter(cell_name__isnull=False).count()
-    if messages_with_region_count != len(region_names_set):
+    messages_with_cell_count = messages.filter(cell_name__isnull=False).count()
+    if messages_with_cell_count != len(cell_names_set):
         raise Exception(
-            f"Mismatch: Found {messages_with_region_count} WebhookPayload but {len(region_names_set)} region_names"
+            f"Mismatch: Found {messages_with_cell_count} WebhookPayload but {len(cell_names_set)} cell_names"
         )
     for message in messages:
         assert message.request_method == expected_payload["request_method"]
@@ -104,13 +107,13 @@ def assert_webhook_payloads_for_mailbox(
         else:
             assert message.cell_name is not None
             try:
-                region_names_set.remove(message.cell_name)
+                cell_names_set.remove(message.cell_name)
             except KeyError:
                 raise Exception(
-                    f"Found ControlOutbox for '{message.cell_name}', which was not in region_names: {str(region_names_set)}"
+                    f"Found ControlOutbox for '{message.cell_name}', which was not in cell_names: {str(cell_names_set)}"
                 )
-    if len(region_names_set) != 0:
-        raise Exception(f"WebhookPayload not found for some region_names: {str(region_names_set)}")
+    if len(cell_names_set) != 0:
+        raise Exception(f"WebhookPayload not found for some cell_names: {str(cell_names_set)}")
 
     if destination_types and len(destination_types) != 0:
         exc_strs = [

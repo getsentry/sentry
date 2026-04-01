@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
@@ -33,6 +33,7 @@ from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import CellSiloClient, SiloClientError
 from sentry.types.cell import Cell, find_cells_for_orgs, get_cell_by_name
 from sentry.utils import metrics
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.options import sample_modulo
 
 logger = logging.getLogger(__name__)
@@ -147,7 +148,7 @@ class BaseRequestParser(ABC):
 
         cell_to_response_map = {}
 
-        with ThreadPoolExecutor(max_workers=len(cells)) as executor:
+        with ContextPropagatingThreadPoolExecutor(max_workers=len(cells)) as executor:
             future_to_cell = {
                 executor.submit(self.get_response_from_cell_silo, cell): cell for cell in cells
             }
@@ -164,16 +165,14 @@ class BaseRequestParser(ABC):
 
     def get_response_from_webhookpayload(
         self,
-        cells: list[Cell] | None = None,  # TODO(cells): make required once getsentry is updated
+        cells: list[Cell],
         identifier: int | str | None = None,
         integration_id: int | None = None,
-        regions: list[Cell] | None = None,  # TODO(cells): remove once getsentry is updated
     ) -> HttpResponseBase:
         """
         Used to create webhookpayloads for provided cells to handle the webhooks asynchronously.
         Responds to the webhook provider with a 202 Accepted status.
         """
-        cells = cells or regions or []
         if len(cells) < 1:
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 

@@ -47,12 +47,12 @@ function metricValueToConditionType(metricValue: MetricValues): IssueAlertCondit
   }
 }
 
-const METRIC_CHOICES = [
+export const METRIC_CHOICES = [
   {value: MetricValues.ERRORS, label: t('occurrences of')},
   {value: MetricValues.USERS, label: t('users affected by')},
 ];
 
-const INTERVAL_CHOICES = [
+export const INTERVAL_CHOICES = [
   {value: '1m', label: t('one minute')},
   {value: '5m', label: t('5 minutes')},
   {value: '15m', label: t('15 minutes')},
@@ -62,7 +62,7 @@ const INTERVAL_CHOICES = [
   {value: '30d', label: t('30 days')},
 ];
 
-const DEFAULT_ISSUE_ALERT_OPTIONS_VALUES = {
+export const DEFAULT_ISSUE_ALERT_OPTIONS_VALUES = {
   alertSetting: RuleAction.DEFAULT_ALERT,
   interval: '1m',
   metric: MetricValues.ERRORS,

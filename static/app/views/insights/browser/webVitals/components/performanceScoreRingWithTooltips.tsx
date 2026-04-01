@@ -10,8 +10,8 @@ import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMouseTracking} from 'sentry/utils/useMouseTracking';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {PerformanceScoreRing} from 'sentry/views/insights/browser/webVitals/components/performanceScoreRing';
+import {ORDER} from 'sentry/views/insights/browser/webVitals/types';
 import type {
   ProjectScore,
   WebVitals,

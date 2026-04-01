@@ -96,6 +96,8 @@ class Topic(Enum):
     TASKWORKER_INGEST_PROFILING_DLQ = "taskworker-ingest-profiling-dlq"
     TASKWORKER_INTERNAL = "taskworker-internal"
     TASKWORKER_INTERNAL_DLQ = "taskworker-internal-dlq"
+    TASKWORKER_LAUNCHPAD = "taskworker-launchpad"
+    TASKWORKER_LAUNCHPAD_DLQ = "taskworker-launchpad-dlq"
     TASKWORKER_LIMITED = "taskworker-limited"
     TASKWORKER_LIMITED_DLQ = "taskworker-limited-dlq"
     TASKWORKER_LONG = "taskworker-long"

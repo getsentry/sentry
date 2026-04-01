@@ -17,6 +17,7 @@ from sentry.preprod.authentication import (
     LaunchpadRpcPermission,
     LaunchpadRpcSignatureAuthentication,
 )
+from sentry.preprod.build_distribution_webhooks import send_build_distribution_webhook
 from sentry.preprod.models import PreprodArtifact
 
 logger = logging.getLogger(__name__)
@@ -53,6 +54,11 @@ class ProjectPreprodDistributionEndpoint(PreprodArtifactEndpoint):
                 "installable_app_error_message",
                 "date_updated",
             ]
+        )
+
+        send_build_distribution_webhook(
+            artifact=head_artifact,
+            organization_id=project.organization_id,
         )
 
         return Response({"artifactId": str(head_artifact.id)})

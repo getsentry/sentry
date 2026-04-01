@@ -9,10 +9,10 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 type TPayload = {activity: GroupActivity[]; note?: NoteType; noteId?: string};
 type TMethod = 'PUT' | 'POST' | 'DELETE';
-export type TData = GroupActivity;
-export type TError = RequestError;
-export type TVariables = [TPayload, TMethod];
-export type TContext = unknown;
+type TData = GroupActivity;
+type TError = RequestError;
+type TVariables = [TPayload, TMethod];
+type TContext = unknown;
 
 type DeleteCommentCallback = (
   noteId: string,

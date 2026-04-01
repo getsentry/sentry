@@ -5,11 +5,11 @@ import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Stack} from '@sentry/scraps/layout';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import type {Client} from 'sentry/api';
 import {DateTime} from 'sentry/components/dateTime';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -252,7 +252,7 @@ class MetricAlertDetails extends Component<Props, State> {
     const {error} = this.state;
 
     return (
-      <Layout.Page withPadding>
+      <Stack flex={1} padding="2xl 3xl">
         <Alert.Container>
           <Alert variant="danger">
             {error?.status === 404
@@ -260,7 +260,7 @@ class MetricAlertDetails extends Component<Props, State> {
               : t('An error occurred while fetching the alert rule.')}
           </Alert>
         </Alert.Container>
-      </Layout.Page>
+      </Stack>
     );
   }
 

@@ -111,6 +111,9 @@ class ProjectMemberSerializer(serializers.Serializer):
         required=False,
     )
     preprodSizeStatusChecksRules = serializers.JSONField(required=False)
+    preprodSnapshotStatusChecksEnabled = serializers.BooleanField(required=False)
+    preprodSnapshotStatusChecksFailOnAdded = serializers.BooleanField(required=False)
+    preprodSnapshotStatusChecksFailOnRemoved = serializers.BooleanField(required=False)
     preprodSizeEnabledByCustomer = serializers.BooleanField(required=False, allow_null=True)
     preprodDistributionEnabledByCustomer = serializers.BooleanField(required=False, allow_null=True)
     preprodDistributionPrCommentsEnabledByCustomer = serializers.BooleanField(
@@ -160,6 +163,9 @@ class ProjectMemberSerializer(serializers.Serializer):
         "preprodDistributionEnabledQuery",
         "preprodSizeEnabledByCustomer",
         "preprodDistributionEnabledByCustomer",
+        "preprodSnapshotStatusChecksEnabled",
+        "preprodSnapshotStatusChecksFailOnAdded",
+        "preprodSnapshotStatusChecksFailOnRemoved",
         "preprodDistributionPrCommentsEnabledByCustomer",
     ]
 )
@@ -251,6 +257,10 @@ E.g. `['release', 'environment']`""",
     targetSampleRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     dynamicSamplingBiases = DynamicSamplingBiasSerializer(required=False, many=True)
     tempestFetchScreenshots = serializers.BooleanField(required=False)
+    scmSourceContextEnabled = serializers.BooleanField(
+        required=False,
+        help_text="Enable on-demand source context fetching from SCM integrations for stack traces.",
+    )
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
@@ -465,6 +475,15 @@ E.g. `['release', 'environment']`""",
             raise serializers.ValidationError(
                 "Organization does not have the tempest feature enabled."
             )
+        return value
+
+    def validate_scmSourceContextEnabled(self, value):
+        if value:
+            organization = self.context["project"].organization
+            if not features.has("organizations:scm-source-context", organization):
+                raise serializers.ValidationError(
+                    "Organization does not have the SCM source context feature enabled."
+                )
         return value
 
     def validate_debugFilesRole(self, value):
@@ -755,6 +774,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:tempest_fetch_screenshots"] = result[
                     "tempestFetchScreenshots"
                 ]
+        if result.get("scmSourceContextEnabled") is not None:
+            if project.update_option(
+                "sentry:scm_source_context_enabled", result["scmSourceContextEnabled"]
+            ):
+                changed_proj_settings["sentry:scm_source_context_enabled"] = result[
+                    "scmSourceContextEnabled"
+                ]
         if result.get("targetSampleRate") is not None:
             if project.update_option(
                 "sentry:target_sample_rate", round(result["targetSampleRate"], 4)
@@ -831,6 +857,30 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:preprod_distribution_enabled_query"] = result[
                     "preprodDistributionEnabledQuery"
                 ]
+        if result.get("preprodSnapshotStatusChecksEnabled") is not None:
+            if project.update_option(
+                "sentry:preprod_snapshot_status_checks_enabled",
+                result["preprodSnapshotStatusChecksEnabled"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_status_checks_enabled"] = result[
+                    "preprodSnapshotStatusChecksEnabled"
+                ]
+        if result.get("preprodSnapshotStatusChecksFailOnAdded") is not None:
+            if project.update_option(
+                "sentry:preprod_snapshot_status_checks_fail_on_added",
+                result["preprodSnapshotStatusChecksFailOnAdded"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_status_checks_fail_on_added"] = (
+                    result["preprodSnapshotStatusChecksFailOnAdded"]
+                )
+        if result.get("preprodSnapshotStatusChecksFailOnRemoved") is not None:
+            if project.update_option(
+                "sentry:preprod_snapshot_status_checks_fail_on_removed",
+                result["preprodSnapshotStatusChecksFailOnRemoved"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_status_checks_fail_on_removed"] = (
+                    result["preprodSnapshotStatusChecksFailOnRemoved"]
+                )
         if "preprodDistributionPrCommentsEnabledByCustomer" in result:
             if project.update_option(
                 "sentry:preprod_distribution_pr_comments_enabled_by_customer",

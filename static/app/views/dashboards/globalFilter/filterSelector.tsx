@@ -471,7 +471,7 @@ export function FilterSelector({
       trigger={triggerProps => (
         <Container maxWidth={FILTER_SELECTOR_MAX_WIDTH}>
           <OverlayTrigger.Button {...triggerProps}>
-            {renderFilterSelectorTrigger(stagedFilterValues)}
+            {renderFilterSelectorTrigger(activeFilterValues)}
           </OverlayTrigger.Button>
         </Container>
       )}

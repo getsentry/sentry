@@ -31,6 +31,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import is_slow_condition
+from sentry.workflow_engine.models.data_condition_group_action import DataConditionGroupAction
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.processors.workflow_fire_history import get_last_fired_dates
 from sentry.workflow_engine.registry import condition_handler_registry
@@ -398,15 +399,13 @@ class WorkflowEngineRuleSerializer(Serializer):
             )
         }
 
-    def _fetch_workflow_projects(
-        self, item_list: Sequence[Workflow]
-    ) -> dict[Workflow, set[Project]]:
-        workflow_to_projects: dict[Workflow, set[Project]] = defaultdict(set)
+    def _fetch_workflow_projects(self, item_list: Sequence[Workflow]) -> dict[int, set[Project]]:
+        workflow_to_projects: dict[int, set[Project]] = defaultdict(set)
         detector_workflows = DetectorWorkflow.objects.filter(
             workflow_id__in=[item.id for item in item_list]
-        ).prefetch_related("detector__project")
-        for detector_workflow in detector_workflows:
-            workflow_to_projects[detector_workflow.workflow].add(detector_workflow.detector.project)
+        ).select_related("detector__project")
+        for dw in detector_workflows:
+            workflow_to_projects[dw.workflow_id].add(dw.detector.project)
 
         return workflow_to_projects
 
@@ -456,8 +455,23 @@ class WorkflowEngineRuleSerializer(Serializer):
             return actor.identifier
         return None
 
-    def _fetch_actions(self, condition_group: DataConditionGroup) -> BaseQuerySet[Action]:
-        return Action.objects.filter(dataconditiongroupaction__condition_group=condition_group)
+    def _fetch_actions_by_dcg(self, condition_group_ids: Sequence[int]) -> dict[int, list[Action]]:
+        dcg_actions = (
+            DataConditionGroupAction.objects.filter(
+                condition_group_id__in=condition_group_ids,
+            )
+            .exclude(
+                action__status__in=[
+                    ObjectStatus.DELETION_IN_PROGRESS,
+                    ObjectStatus.PENDING_DELETION,
+                ],
+            )
+            .select_related("action")
+        )
+        result: dict[int, list[Action]] = defaultdict(list)
+        for dcg_action in dcg_actions:
+            result[dcg_action.condition_group_id].append(dcg_action.action)
+        return result
 
     def _generate_rule_conditions_filters(
         self, workflow: Workflow, project: Project, workflow_dcg: WorkflowDataConditionGroup
@@ -570,6 +584,15 @@ class WorkflowEngineRuleSerializer(Serializer):
         # Bulk fetch workflow -> rule ids
         workflow_rule_ids = self._fetch_workflow_rule_ids(item_list)
 
+        # Bulk fetch actions for all condition groups across all workflows
+        all_dcg_ids: list[int] = []
+        for wf in workflows:
+            all_dcg_ids.extend(
+                wdcg.condition_group_id
+                for wdcg in wf.prefetched_wdcgs  # type: ignore[attr-defined]
+            )
+        actions_by_dcg = self._fetch_actions_by_dcg(all_dcg_ids)
+
         last_triggered_lookup: dict[int, datetime] = {}
         if "lastTriggered" in self.expand:
             last_triggered_lookup = self._fetch_workflow_last_triggered(item_list)
@@ -583,7 +606,7 @@ class WorkflowEngineRuleSerializer(Serializer):
                 result[workflow]["owner"] = owner
 
             result[workflow]["environment"] = workflow.environment
-            result[workflow]["projects"] = list(workflow_to_projects[workflow])
+            result[workflow]["projects"] = list(workflow_to_projects[workflow.id])
             result[workflow]["rule_id"] = workflow_rule_ids.get(
                 workflow.id, get_fake_id_from_object_id(workflow.id)
             )
@@ -608,7 +631,7 @@ class WorkflowEngineRuleSerializer(Serializer):
             result[workflow]["filter_match"] = workflow_dcg.condition_group.logic_type
 
             # build up actions data
-            actions = self._fetch_actions(workflow_dcg.condition_group)
+            actions = actions_by_dcg.get(workflow_dcg.condition_group_id, [])
             action_to_handler = {}
             for action in actions:
                 try:
@@ -629,6 +652,13 @@ class WorkflowEngineRuleSerializer(Serializer):
             )
             serialized_actions = []
             errors = []
+
+            if len(prefetched_wdcgs) > 1:
+                errors.append(
+                    {
+                        "detail": "Multiple if/then blocks are not supported in this view. Only the first if/then block is displayed."
+                    }
+                )
             for action in actions_with_handlers:
                 action_data = action_to_action_data[action]
                 action_data["name"] = action_to_handler[action].render_label(

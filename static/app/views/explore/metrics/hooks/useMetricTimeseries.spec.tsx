@@ -67,7 +67,7 @@ describe('useMetricTimeseries', () => {
         timeSeries: [
           {
             ...mockTimeSeries,
-            yAxis: 'per_second(value)',
+            yAxis: 'sum(value)',
             values: [
               {
                 ...mockTimeSeries.values[0]!,

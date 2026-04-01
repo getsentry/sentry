@@ -46,6 +46,7 @@ from sentry.constants import (
     AUTO_ENABLE_CODE_REVIEW,
     AUTO_OPEN_PRS_DEFAULT,
     CONSOLE_SDK_INVITE_QUOTA_DEFAULT,
+    DASHBOARDS_ASYNC_QUEUE_PARALLEL_LIMIT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_CODE_REVIEW_TRIGGERS,
@@ -67,6 +68,7 @@ from sentry.constants import (
     ROLLBACK_ENABLED_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
+    SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     SEER_DEFAULT_CODING_AGENT_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
     ObjectStatus,
@@ -109,6 +111,7 @@ from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.services.organization.provisioning import organization_provisioning_service
+from sentry.tasks.console_platform_cleanup import remove_inaccessible_console_platform_sources
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils.audit import create_audit_entry
 
@@ -253,11 +256,16 @@ ORG_OPTIONS = (
         None,
     ),
     (
-        # Informs UI default for automated_run_stopping_point in project preferences
         "autoOpenPrs",
         "sentry:auto_open_prs",
         bool,
         AUTO_OPEN_PRS_DEFAULT,
+    ),
+    (
+        "defaultAutomatedRunStoppingPoint",
+        "sentry:default_automated_run_stopping_point",
+        str,
+        SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     ),
     (
         "autoEnableCodeReview",
@@ -288,6 +296,12 @@ ORG_OPTIONS = (
         "sentry:console_sdk_invite_quota_limit",
         int,
         CONSOLE_SDK_INVITE_QUOTA_DEFAULT,
+    ),
+    (
+        "dashboardsAsyncQueueParallelLimit",
+        "sentry:dashboards-async-queue-parallel-limit",
+        int,
+        DASHBOARDS_ASYNC_QUEUE_PARALLEL_LIMIT_DEFAULT,
     ),
 )
 
@@ -361,10 +375,18 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         allow_empty=True,
     )
     consoleSdkInviteQuota = serializers.IntegerField(required=False, min_value=0)
+    dashboardsAsyncQueueParallelLimit = serializers.IntegerField(required=False, min_value=1)
     enableSeerEnhancedAlerts = serializers.BooleanField(required=False)
     enableSeerCoding = serializers.BooleanField(required=False)
-    defaultCodingAgent = serializers.CharField(required=False, allow_null=True)
+    defaultCodingAgent = serializers.ChoiceField(
+        choices=["seer", "cursor", "claude_code", "cursor_background_agent", "claude_code_agent"],
+        required=False,
+        allow_null=True,
+    )
     defaultCodingAgentIntegrationId = serializers.IntegerField(required=False, allow_null=True)
+    defaultAutomatedRunStoppingPoint = serializers.ChoiceField(
+        choices=["code_changes", "open_pr"], required=False
+    )
     autoOpenPrs = serializers.BooleanField(required=False)
     autoEnableCodeReview = serializers.BooleanField(required=False)
     defaultCodeReviewTriggers = serializers.ListField(
@@ -392,6 +414,15 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     def validate_relayPiiConfig(self, value):
         organization = self.context["organization"]
         return validate_pii_config_update(organization, value)
+
+    def validate_defaultCodingAgent(self, value: str | None) -> str:
+        if value is None:
+            return SEER_DEFAULT_CODING_AGENT_DEFAULT
+        coding_agent_aliases: dict[str, str] = {
+            "cursor": "cursor_background_agent",
+            "claude_code": "claude_code_agent",
+        }
+        return coding_agent_aliases.get(value, value)
 
     def validate_defaultCodingAgentIntegrationId(self, value: int | None) -> int | None:
         if value is None:
@@ -1274,12 +1305,25 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 CellScheduledDeletion.cancel(organization)
             elif changed_data:
                 if "enabledConsolePlatforms" in changed_data:
+                    current_console_platforms = serializer.validated_data.get(
+                        "enabledConsolePlatforms", []
+                    )
                     create_console_platform_audit_log(
                         request,
                         organization,
                         previous_console_platforms,
-                        serializer.validated_data.get("enabledConsolePlatforms", []),
+                        current_console_platforms,
                     )
+
+                    # If any console platforms were revoked, clean up their
+                    # symbol sources from all projects in the org.
+                    revoked_platforms = set(previous_console_platforms or []) - set(
+                        current_console_platforms
+                    )
+                    if revoked_platforms:
+                        remove_inaccessible_console_platform_sources.delay(
+                            organization.id, current_console_platforms
+                        )
 
                     del changed_data["enabledConsolePlatforms"]
 
@@ -1333,10 +1377,10 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         if rebalanced_projects is not None:
             for rebalanced_item in rebalanced_projects:
                 if int(rebalanced_item.id) in project_ids:
-                    ProjectOption.objects.create_or_update(
+                    ProjectOption.objects.update_or_create(
                         project_id=rebalanced_item.id,
                         key="sentry:target_sample_rate",
-                        values={"value": round(rebalanced_item.new_sample_rate, 4)},
+                        defaults={"value": round(rebalanced_item.new_sample_rate, 4)},
                     )
 
     def handle_delete(self, request: Request, organization: Organization):

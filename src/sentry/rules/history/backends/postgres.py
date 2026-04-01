@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, NamedTuple, TypedDict
+from typing import NamedTuple, TypedDict
 
 from django.db import connection
 from django.db.models import Count, Max, OuterRef, Subquery
@@ -11,14 +11,12 @@ from django.db.models.functions import TruncHour
 
 from sentry.api.paginator import GenericOffsetPaginator, OffsetPaginator
 from sentry.models.group import Group
+from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.history.base import RuleGroupHistory, RuleHistoryBackend, TimeSeriesValue
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.workflow_engine.models import AlertRuleWorkflow
 from sentry.workflow_engine.models.workflow import Workflow
-
-if TYPE_CHECKING:
-    from sentry.models.rule import Rule
 
 logger = logging.getLogger(__name__)
 
@@ -255,7 +253,10 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
         return existing_data
 
     def fetch_rule_hourly_stats(
-        self, target: Rule | Workflow, start: datetime, end: datetime
+        self,
+        target: Rule | Workflow,
+        start: datetime,
+        end: datetime,
     ) -> Sequence[TimeSeriesValue]:
         start = start.replace(tzinfo=timezone.utc)
         end = end.replace(tzinfo=timezone.utc)

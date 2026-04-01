@@ -145,9 +145,7 @@ describe('SeerDrawerNextStep', () => {
       );
       expect(screen.getByText('Are you happy with this root cause?')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'No'})).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', {name: 'Yes, make an implementation plan'})
-      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Yes, make a plan'})).toBeInTheDocument();
     });
 
     it('calls startStep with solution on yes click', async () => {
@@ -159,9 +157,7 @@ describe('SeerDrawerNextStep', () => {
           autofix={autofix}
         />
       );
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Yes, make an implementation plan'})
-      );
+      await userEvent.click(screen.getByRole('button', {name: 'Yes, make a plan'}));
       expect(autofix.startStep).toHaveBeenCalledWith('solution', 1);
     });
 
@@ -180,7 +176,7 @@ describe('SeerDrawerNextStep', () => {
         screen.getByRole('button', {name: 'Rethink root cause'})
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('button', {name: 'Nevermind, make an implementation plan'})
+        screen.getByRole('button', {name: 'Nevermind, make a plan'})
       ).toBeInTheDocument();
     });
 
@@ -213,9 +209,7 @@ describe('SeerDrawerNextStep', () => {
         />
       );
       await userEvent.click(screen.getByRole('button', {name: 'No'}));
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Nevermind, make an implementation plan'})
-      );
+      await userEvent.click(screen.getByRole('button', {name: 'Nevermind, make a plan'}));
       expect(autofix.startStep).toHaveBeenCalledWith('solution', 1);
     });
 
@@ -239,6 +233,33 @@ describe('SeerDrawerNextStep', () => {
       expect(
         await screen.findByRole('button', {name: 'More code fix options'})
       ).toBeInTheDocument();
+    });
+
+    it('shows Add Integration link in dropdown footer', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/coding-agents/',
+        body: {
+          integrations: [
+            {id: '1', name: 'Copilot', provider: 'github', requires_identity: false},
+          ],
+        },
+      });
+      const autofix = makeAutofix();
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('root_cause')]}
+          autofix={autofix}
+        />
+      );
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'More code fix options'})
+      );
+      const addIntegrationLink = screen.getByRole('button', {name: 'Add Integration'});
+      expect(addIntegrationLink).toHaveAttribute(
+        'href',
+        '/settings/org-slug/integrations/?category=coding%20agent'
+      );
     });
   });
 
@@ -270,9 +291,7 @@ describe('SeerDrawerNextStep', () => {
           autofix={autofix}
         />
       );
-      expect(
-        screen.getByText('Are you happy with this implementation plan?')
-      ).toBeInTheDocument();
+      expect(screen.getByText('Are you happy with this plan?')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'No'})).toBeInTheDocument();
       expect(
         screen.getByRole('button', {name: 'Yes, write a code fix'})
@@ -303,9 +322,7 @@ describe('SeerDrawerNextStep', () => {
       );
       await userEvent.click(screen.getByRole('button', {name: 'No'}));
       expect(screen.getByRole('textbox')).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', {name: 'Rethink implementation plan'})
-      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Rethink plan'})).toBeInTheDocument();
       expect(
         screen.getByRole('button', {name: 'Nevermind, write a code fix'})
       ).toBeInTheDocument();
@@ -322,9 +339,7 @@ describe('SeerDrawerNextStep', () => {
       );
       await userEvent.click(screen.getByRole('button', {name: 'No'}));
       await userEvent.type(screen.getByRole('textbox'), 'Consider edge cases');
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Rethink implementation plan'})
-      );
+      await userEvent.click(screen.getByRole('button', {name: 'Rethink plan'}));
       expect(autofix.startStep).toHaveBeenCalledWith(
         'solution',
         1,
@@ -346,57 +361,6 @@ describe('SeerDrawerNextStep', () => {
         screen.getByRole('button', {name: 'Nevermind, write a code fix'})
       );
       expect(autofix.startStep).toHaveBeenCalledWith('code_changes', 1);
-    });
-
-    it('shows coding agent dropdown when integrations exist', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/integrations/coding-agents/',
-        body: {
-          integrations: [
-            {id: '1', name: 'Copilot', provider: 'github', requires_identity: false},
-          ],
-        },
-      });
-      const autofix = makeAutofix();
-      render(
-        <SeerDrawerNextStep
-          group={GroupFixture()}
-          sections={[makeSection('solution')]}
-          autofix={autofix}
-        />
-      );
-      expect(
-        await screen.findByRole('button', {name: 'More code fix options'})
-      ).toBeInTheDocument();
-    });
-
-    it('calls triggerCodingAgentHandoff when coding agent option is clicked', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/integrations/coding-agents/',
-        body: {
-          integrations: [
-            {id: '1', name: 'Copilot', provider: 'github', requires_identity: false},
-          ],
-        },
-      });
-      const autofix = makeAutofix();
-      render(
-        <SeerDrawerNextStep
-          group={GroupFixture()}
-          sections={[makeSection('solution')]}
-          autofix={autofix}
-        />
-      );
-      await userEvent.click(
-        await screen.findByRole('button', {name: 'More code fix options'})
-      );
-      await userEvent.click(screen.getByText('Send to Copilot'));
-      expect(autofix.triggerCodingAgentHandoff).toHaveBeenCalledWith(1, {
-        id: '1',
-        name: 'Copilot',
-        provider: 'github',
-        requires_identity: false,
-      });
     });
   });
 
