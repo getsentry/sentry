@@ -18,7 +18,7 @@ import {TextareaField} from 'sentry/components/forms/fields/textareaField';
 import {FormContext} from 'sentry/components/forms/formContext';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
-import {Section} from 'sentry/components/workflowEngine/ui/section';
+import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
@@ -409,7 +409,7 @@ function CustomizeMetricSection({step}: {step?: number}) {
 
   return (
     <Container>
-      <Section step={step} title={t('Customize Metric')}>
+      <FormSection step={step} title={t('Customize Metric')}>
         <Flex direction="column" gap="xs">
           <DatasetRow>
             <DatasetField
@@ -487,7 +487,7 @@ function CustomizeMetricSection({step}: {step?: number}) {
             <DetectorQueryFilterBuilder />
           </FilterRow>
         </Tooltip>
-      </Section>
+      </FormSection>
     </Container>
   );
 }
@@ -511,7 +511,7 @@ function DetectSection({step}: {step?: number}) {
 
   return (
     <Container>
-      <Section
+      <FormSection
         step={step}
         title={t('Issue Detection')}
         description={t(
@@ -631,7 +631,7 @@ function DetectSection({step}: {step?: number}) {
             <ResolveSection />
           </Fragment>
         )}
-      </Section>
+      </FormSection>
     </Container>
   );
 }
@@ -646,7 +646,7 @@ function IssueOwnershipSection({step}: {step?: number}) {
 
   return (
     <Container>
-      <Section step={step} title={t('Issue Ownership')}>
+      <FormSection step={step} title={t('Issue Ownership')}>
         <Stack>
           <OwnershipField
             placeholder={t('Select a member or team')}
@@ -674,7 +674,7 @@ function IssueOwnershipSection({step}: {step?: number}) {
             autosize
           />
         </Stack>
-      </Section>
+      </FormSection>
     </Container>
   );
 }

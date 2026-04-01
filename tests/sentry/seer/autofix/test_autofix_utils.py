@@ -15,6 +15,7 @@ from sentry.seer.autofix.utils import (
     deduplicate_repositories,
     get_autofix_prompt,
     get_coding_agent_prompt,
+    get_org_default_seer_automation_handoff,
     has_project_connected_repos,
     is_seer_seat_based_tier_enabled,
     resolve_repository_ids,
@@ -1218,3 +1219,91 @@ class TestWritePreferencesToSentryDb(TestCase):
         assert p1_repo.branch_name == "new-branch"
         p2_repo = SeerProjectRepository.objects.get(project=project2)
         assert p2_repo.branch_name == "project-2-branch"
+
+
+class TestGetOrgDefaultSeerAutomationHandoff(TestCase):
+    def test_defaults(self):
+        stopping_point, handoff = get_org_default_seer_automation_handoff(self.organization)
+        assert stopping_point == "code_changes"
+        assert handoff is None
+
+    def test_respects_org_stopping_point_option(self):
+        self.organization.update_option("sentry:default_automated_run_stopping_point", "open_pr")
+        self.organization.update_option("sentry:auto_open_prs", True)
+
+        stopping_point, handoff = get_org_default_seer_automation_handoff(self.organization)
+        assert stopping_point == "open_pr"
+        assert handoff is None
+
+    def test_seer_agent_auto_open_prs_forces_open_pr(self):
+        self.organization.update_option(
+            "sentry:default_automated_run_stopping_point", "code_changes"
+        )
+        self.organization.update_option("sentry:auto_open_prs", True)
+
+        stopping_point, handoff = get_org_default_seer_automation_handoff(self.organization)
+        assert stopping_point == "open_pr"
+        assert handoff is None
+
+    def test_seer_agent_no_auto_open_prs_caps_open_pr_to_code_changes(self):
+        self.organization.update_option("sentry:default_automated_run_stopping_point", "open_pr")
+
+        stopping_point, handoff = get_org_default_seer_automation_handoff(self.organization)
+        assert stopping_point == "code_changes"
+        assert handoff is None
+
+    def test_external_agent_returns_handoff_config(self):
+        self.organization.update_option(
+            "sentry:seer_default_coding_agent", "cursor_background_agent"
+        )
+        self.organization.update_option("sentry:seer_default_coding_agent_integration_id", 42)
+
+        stopping_point, handoff = get_org_default_seer_automation_handoff(self.organization)
+        assert stopping_point == "code_changes"
+        assert handoff is not None
+        assert handoff.handoff_point == "root_cause"
+        assert handoff.target == "cursor_background_agent"
+        assert handoff.integration_id == 42
+        assert handoff.auto_create_pr is False
+
+    def test_external_agent_auto_open_prs_sets_auto_create_pr(self):
+        self.organization.update_option("sentry:seer_default_coding_agent", "claude_code_agent")
+        self.organization.update_option("sentry:seer_default_coding_agent_integration_id", 99)
+        self.organization.update_option("sentry:auto_open_prs", True)
+
+        stopping_point, handoff = get_org_default_seer_automation_handoff(self.organization)
+        assert handoff is not None
+        assert handoff.auto_create_pr is True
+
+    def test_external_agent_auto_open_prs_does_not_override_stopping_point(self):
+        self.organization.update_option(
+            "sentry:default_automated_run_stopping_point", "code_changes"
+        )
+        self.organization.update_option("sentry:auto_open_prs", True)
+        self.organization.update_option(
+            "sentry:seer_default_coding_agent", "cursor_background_agent"
+        )
+        self.organization.update_option("sentry:seer_default_coding_agent_integration_id", 42)
+
+        stopping_point, handoff = get_org_default_seer_automation_handoff(self.organization)
+        assert stopping_point == "code_changes"
+        assert handoff is not None
+
+    def test_external_agent_without_integration_id_falls_back_to_seer(self):
+        self.organization.update_option(
+            "sentry:seer_default_coding_agent", "cursor_background_agent"
+        )
+        self.organization.update_option("sentry:auto_open_prs", True)
+
+        stopping_point, handoff = get_org_default_seer_automation_handoff(self.organization)
+        assert stopping_point == "open_pr"
+        assert handoff is None
+
+    def test_seer_coding_agent_treated_as_no_external_agent(self):
+        self.organization.update_option("sentry:seer_default_coding_agent", "seer")
+        self.organization.update_option("sentry:seer_default_coding_agent_integration_id", 42)
+        self.organization.update_option("sentry:auto_open_prs", True)
+
+        stopping_point, handoff = get_org_default_seer_automation_handoff(self.organization)
+        assert stopping_point == "open_pr"
+        assert handoff is None

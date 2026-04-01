@@ -6,7 +6,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {FormContext} from 'sentry/components/forms/formContext';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
-import {Section} from 'sentry/components/workflowEngine/ui/section';
+import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t} from 'sentry/locale';
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 import {
@@ -122,7 +122,7 @@ export function TemplateSection({step}: {step?: number}) {
 
   return (
     <Container>
-      <Section step={step} title={t('Choose Your Metric')}>
+      <FormSection step={step} title={t('Choose Your Metric')}>
         <CompactSelect
           options={templateOptions}
           value={currentTemplateValue}
@@ -165,7 +165,7 @@ export function TemplateSection({step}: {step?: number}) {
             formContext.form?.setValue(METRIC_DETECTOR_FORM_FIELDS.query, newQuery);
           }}
         />
-      </Section>
+      </FormSection>
     </Container>
   );
 }

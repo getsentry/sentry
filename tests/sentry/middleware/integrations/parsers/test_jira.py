@@ -34,7 +34,7 @@ class JiraRequestParserTest(TestCase):
         return HttpResponse(status=200, content="passthrough")
 
     def get_integration(self) -> Integration:
-        self.organization = self.create_organization(owner=self.user, region="us")
+        self.organization = self.create_organization(owner=self.user, cell="us")
         return self.create_integration(
             organization=self.organization, external_id="jira:1", provider="jira"
         )
@@ -190,7 +190,7 @@ class JiraRequestParserTest(TestCase):
         request = self.factory.get(path=f"{self.path_base}/issue/LR-123/")
         parser = JiraRequestParser(request, self.get_response)
 
-        other_org = self.create_organization(owner=self.user, region="eu")
+        other_org = self.create_organization(owner=self.user, cell="eu")
         integration = self.get_integration()
         integration.add_organization(other_org.id)
 

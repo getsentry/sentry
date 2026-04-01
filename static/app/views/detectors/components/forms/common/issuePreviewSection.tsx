@@ -1,5 +1,5 @@
 import {Container} from 'sentry/components/workflowEngine/ui/container';
-import {Section} from 'sentry/components/workflowEngine/ui/section';
+import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t} from 'sentry/locale';
 
 export function IssuePreviewSection({
@@ -11,7 +11,7 @@ export function IssuePreviewSection({
 }) {
   return (
     <Container data-test-id="issue-preview-section">
-      <Section
+      <FormSection
         step={step}
         title={t('Preview')}
         description={t(
@@ -19,7 +19,7 @@ export function IssuePreviewSection({
         )}
       >
         {children}
-      </Section>
+      </FormSection>
     </Container>
   );
 }

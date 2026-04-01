@@ -8,7 +8,7 @@ import {Text} from '@sentry/scraps/text';
 import {NumberField} from 'sentry/components/forms/fields/numberField';
 import {SegmentedRadioField} from 'sentry/components/forms/fields/segmentedRadioField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
-import {Section} from 'sentry/components/workflowEngine/ui/section';
+import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {
@@ -25,6 +25,7 @@ import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import {
   getMetricLabelForPlatform,
   guessPlatformForProject,
+  isDiffThreshold,
   MEASUREMENT_OPTIONS,
   METRIC_OPTIONS,
 } from 'sentry/views/settings/project/preprod/types';
@@ -59,7 +60,7 @@ export function MobileBuildDetectSection() {
   return (
     <Fragment>
       <Container>
-        <Section step={2} title={t('Choose Your Measurement')}>
+        <FormSection step={2} title={t('Choose Your Measurement')}>
           <MetricField
             name={PREPROD_DETECTOR_FORM_FIELDS.measurement}
             choices={metricOptions}
@@ -67,11 +68,11 @@ export function MobileBuildDetectSection() {
             flexibleControlStateSize
             preserveOnUnmount
           />
-        </Section>
+        </FormSection>
       </Container>
 
       <Container>
-        <Section step={3} title={t('Issue Detection')}>
+        <FormSection step={3} title={t('Issue Detection')}>
           <MeasurementField
             name={PREPROD_DETECTOR_FORM_FIELDS.thresholdType}
             choices={thresholdTypeOptions}
@@ -79,7 +80,7 @@ export function MobileBuildDetectSection() {
             flexibleControlStateSize
             preserveOnUnmount
           />
-          {(thresholdType === 'absolute_diff' || thresholdType === 'relative_diff') && (
+          {isDiffThreshold(thresholdType) && (
             <Flex align="center" gap="sm">
               <IconInfo size="xs" />
               <Text variant="muted" size="sm">
@@ -95,7 +96,7 @@ export function MobileBuildDetectSection() {
             </Flex>
           )}
           <ThresholdSection thresholdType={thresholdType} />
-        </Section>
+        </FormSection>
       </Container>
     </Fragment>
   );

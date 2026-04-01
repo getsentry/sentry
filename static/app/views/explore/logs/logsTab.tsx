@@ -92,7 +92,7 @@ import {
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 
-// eslint-disable-next-line boundaries/element-types
+// eslint-disable-next-line boundaries/dependencies
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
 type LogsTabProps = {

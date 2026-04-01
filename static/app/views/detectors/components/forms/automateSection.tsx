@@ -9,7 +9,7 @@ import {FormContext} from 'sentry/components/forms/formContext';
 import {useDrawer} from 'sentry/components/globalDrawer';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
-import {Section} from 'sentry/components/workflowEngine/ui/section';
+import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {IconAdd, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {AutomationBuilderDrawerForm} from 'sentry/views/automations/components/automationBuilderDrawerForm';
@@ -77,7 +77,7 @@ export function AutomateSection({step}: {step?: number}) {
   if (workflowIds.length > 0) {
     return (
       <Container>
-        <Section step={step} title={t('Connected Alerts')}>
+        <FormSection step={step} title={t('Connected Alerts')}>
           <ConnectedAutomationsList
             automationIds={workflowIds}
             cursor={undefined}
@@ -85,7 +85,7 @@ export function AutomateSection({step}: {step?: number}) {
             limit={null}
             openInNewTab
           />
-        </Section>
+        </FormSection>
         <ButtonWrapper justify="between">
           <Button size="sm" icon={<IconAdd />} onClick={openCreateDrawer}>
             {t('Create New Alert')}
@@ -100,7 +100,7 @@ export function AutomateSection({step}: {step?: number}) {
 
   return (
     <Container>
-      <Section
+      <FormSection
         step={step}
         title={t('Alert')}
         description={t('Configure alerting on this Monitor to get notified on issues.')}
@@ -133,7 +133,7 @@ export function AutomateSection({step}: {step?: number}) {
             </Stack>
           }
         />
-      </Section>
+      </FormSection>
     </Container>
   );
 }
