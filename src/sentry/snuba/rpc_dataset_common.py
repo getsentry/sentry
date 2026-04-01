@@ -7,7 +7,6 @@ from typing import Any
 
 import sentry_sdk
 from google.protobuf.json_format import MessageToJson
-from parsimonious.nodes import Node
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
 )
@@ -70,7 +69,6 @@ from sentry.search.eap.types import (
     SearchResolverConfig,
     SupportedTraceItemType,
 )
-from sentry.search.events import filter as event_filter
 from sentry.search.events.fields import get_function_alias, is_function, parse_arguments
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaData, SnubaParams
 from sentry.snuba.discover import OTHER_KEY, create_groupby_dict, create_result_key, zerofill
@@ -178,12 +176,7 @@ class RPCBase:
         item_type: SupportedTraceItemType,
         definitions: ColumnDefinitions,
         referrer: Referrer,
-    ) -> tuple[
-        dict[str, dict[str, Any]],
-        QueryContext,
-        Node | None,
-        event_filter.ParsedTerms,
-    ]:
+    ) -> tuple[dict[str, dict[str, Any]], QueryContext]:
         """Validate query keys and return their inferred types.
 
         Raises `InvalidSearchQuery` and `IncompatibleMetricsQuery` when
@@ -195,9 +188,8 @@ class RPCBase:
             config=SearchResolverConfig(),
             definitions=definitions,
         )
-        parse_tree, parsed_terms = resolver.parse_query(query_string)
         query_context = QueryContext()
-        resolver.resolve_query(query_string, query_context=query_context, parsed_terms=parsed_terms)
+        resolver.resolve_query(query_string, query_context=query_context)
 
         key_results: dict[str, dict[str, Any]] = {}
         unknown_attrs: list[tuple[str, ResolvedAttribute]] = []
@@ -247,7 +239,7 @@ class RPCBase:
                         "error": f"Unknown attribute: {key_name}",
                     }
 
-        return key_results, query_context, parse_tree, parsed_terms
+        return key_results, query_context
 
     @classmethod
     def categorize_column(
