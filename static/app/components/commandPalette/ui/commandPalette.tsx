@@ -30,6 +30,7 @@ import {
   useCommandPaletteDispatch,
   useCommandPaletteState,
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
+import {useCommandPaletteAnalytics} from 'sentry/components/commandPalette/useCommandPaletteAnalytics';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IconArrow, IconClose, IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
@@ -112,6 +113,12 @@ export function CommandPalette(props: CommandPaletteProps) {
     const after = flattenActions(virtualRoot, scores);
     return after;
   }, [allActions, state.action, state.query]);
+
+  const filteredActionCount = useMemo(
+    () => actions.filter(a => a.listItemType === 'action').length,
+    [actions]
+  );
+  const analytics = useCommandPaletteAnalytics(filteredActionCount);
 
   const treeState = useTreeState({
     disabledKeys: new Set(
@@ -202,15 +209,19 @@ export function CommandPalette(props: CommandPaletteProps) {
         return;
       }
 
+      const resultIndex = actions.indexOf(action);
+
       if ('actions' in action) {
+        analytics.recordGroupAction(action, resultIndex);
         dispatch({type: 'push action', action});
         return;
       }
 
+      analytics.recordAction(action, resultIndex, '');
       dispatch({type: 'trigger action'});
       props.onAction(action);
     },
-    [actions, dispatch, props, treeState]
+    [actions, analytics, dispatch, props, treeState]
   );
 
   return (
