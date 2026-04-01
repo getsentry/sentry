@@ -52,7 +52,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "1059_eventattattachment_date_expires"),
+        ("sentry", "1061_eventattachment_date_expires_index"),
     ]
 
     operations = [
