@@ -120,6 +120,7 @@ export function CommandPalette(props: CommandPaletteProps) {
     children: actions.map(action => {
       const menuItem = makeMenuItemFromAction(action);
 
+      console.log(action.listItemType);
       if (action.listItemType === 'section') {
         return (
           <Item<CommandPaletteActionMenuItem & {hideCheck: boolean; label: string}>
@@ -406,6 +407,8 @@ function flattenActions(
 
   const collected = new Set();
 
+  console.log(scores);
+
   function collect(node: CommandPaletteActionWithKey) {
     if (collected.has(node.key)) {
       return;
@@ -461,10 +464,17 @@ function flattenActions(
 
   const flattened = results.flatMap((result): CommandPaletteActionWithListItemType[] => {
     if ('actions' in result) {
+      const resultActions = result.actions.filter(
+        action => scores?.get(action.key)?.score.matched && !collected.has(action.key)
+      );
+
+      if (resultActions.length <= 1) {
+        return [{...result, actions: result.actions, listItemType: 'action'}];
+      }
+
       return [
-        {...result, actions: [], listItemType: 'section'},
-        ...result.actions
-          .filter(action => scores?.get(action.key)?.score.matched)
+        {...result, listItemType: 'section'},
+        ...resultActions
           .sort((a, b) => {
             if (!a || !b) {
               return 0;
@@ -474,11 +484,17 @@ function flattenActions(
               (scores?.get(a.key)?.score.score ?? 0)
             );
           })
-          .map(action => ({...action, listItemType: 'action' as const})),
+          .map(action => ({
+            ...action,
+            listItemType:
+              'actions' in action ? ('section' as const) : ('action' as const),
+          })),
       ];
     }
     return [{...result, listItemType: 'action'}];
   });
+
+  console.log('flattened', flattened);
 
   return flattened;
 }
