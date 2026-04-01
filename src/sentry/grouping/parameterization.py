@@ -1,6 +1,6 @@
 import dataclasses
 import re
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 from collections.abc import Sequence
 from typing import Callable
 
@@ -329,18 +329,23 @@ class Parameterizer:
         )
 
         if self.is_experimental:
-            pattern_strings = [
-                r.experimental_pattern if r.experimental_pattern else r.pattern for r in regexes
-            ]
+            # This uses an `OrderedDict` to guarantee we apply the patterns in the given order.
+            patterns_by_name = OrderedDict(
+                (
+                    r.name,
+                    r.experimental_pattern if r.experimental_pattern else r.pattern,
+                )
+                for r in regexes
+            )
         else:
-            pattern_strings = [r.pattern for r in regexes]
+            patterns_by_name = OrderedDict((r.name, r.pattern) for r in regexes)
 
         # Combine the individual patterns into one giant regex to check against. (This is faster
         # than checking each pattern individually because it entails less overhead.)
         self.combined_regex = re.compile(
             # The `(?x)` tells the regex compiler to ignore comments and unescaped whitespace, so we
             # can use newlines and indentation for better legibility when defining regexes
-            rf"(?x){'|'.join(pattern_strings)}"
+            rf"(?x){'|'.join(patterns_by_name.values())}"
         )
 
         # Collect replacement callbacks, if any
