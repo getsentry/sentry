@@ -1,13 +1,44 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import click
 
 from sentry.runner.decorators import configuration
 
 if TYPE_CHECKING:
-    from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
+    from sentry.deletions.models.scheduleddeletion import BaseScheduledDeletion
+
+
+def _get_deletion_models() -> list[type[BaseScheduledDeletion]]:
+    from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion, ScheduledDeletion
+
+    return [ScheduledDeletion, CellScheduledDeletion]
+
+
+def _query_all(**filters: Any) -> list[BaseScheduledDeletion]:
+    from sentry.silo.base import SiloLimit
+
+    results: list[BaseScheduledDeletion] = []
+    for model_cls in _get_deletion_models():
+        try:
+            results.extend(model_cls.objects.filter(**filters))
+        except SiloLimit.AvailabilityError:
+            continue
+    return results
+
+
+def _find_by_id(deletion_id: int) -> BaseScheduledDeletion | None:
+    from sentry.silo.base import SiloLimit
+
+    for model_cls in _get_deletion_models():
+        try:
+            return model_cls.objects.get(id=deletion_id)
+        except model_cls.DoesNotExist:
+            continue
+        except SiloLimit.AvailabilityError:
+            continue
+    return None
 
 
 @click.group()
@@ -29,13 +60,11 @@ def list_deletions(model: str | None) -> None:
     """
     List pending scheduled deletions.
     """
-    from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
-
-    queryset = ScheduledDeletion.objects.all()
+    filters: dict[str, Any] = {}
     if model:
-        queryset = queryset.filter(model_name=model)
+        filters["model_name"] = model
 
-    deletions_list = list(queryset)
+    deletions_list = _query_all(**filters)
     if not deletions_list:
         click.echo("No pending deletions found.")
         return
@@ -67,8 +96,6 @@ def run_deletions(deletion_id: int | None, model: str | None, run_all: bool, ver
     """
     from django.utils import timezone
 
-    from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
-
     if not any([deletion_id, model, run_all]):
         raise click.UsageError(
             "Provide one of: --id, --model, or --all. "
@@ -76,21 +103,21 @@ def run_deletions(deletion_id: int | None, model: str | None, run_all: bool, ver
         )
 
     if deletion_id:
-        try:
-            deletion = ScheduledDeletion.objects.get(id=deletion_id)
-        except ScheduledDeletion.DoesNotExist:
+        deletion = _find_by_id(deletion_id)
+        if not deletion:
             click.echo(f"Deletion with ID {deletion_id} not found.")
             return
         _run_one(deletion=deletion, verbose=verbose)
         return
 
-    queryset = ScheduledDeletion.objects.filter(
-        in_progress=False, date_scheduled__lte=timezone.now()
-    )
+    filters: dict[str, Any] = {
+        "in_progress": False,
+        "date_scheduled__lte": timezone.now(),
+    }
     if model:
-        queryset = queryset.filter(model_name=model)
+        filters["model_name"] = model
 
-    deletions_list = list(queryset)
+    deletions_list = _query_all(**filters)
     if not deletions_list:
         click.echo("No pending deletions found.")
         return
@@ -100,7 +127,7 @@ def run_deletions(deletion_id: int | None, model: str | None, run_all: bool, ver
         _run_one(deletion=d, verbose=verbose)
 
 
-def _run_one(*, deletion: ScheduledDeletion, verbose: bool = False) -> None:
+def _run_one(*, deletion: BaseScheduledDeletion, verbose: bool = False) -> None:
     from django.core.exceptions import ObjectDoesNotExist
 
     from sentry import deletions as deletions_module
