@@ -111,6 +111,7 @@ from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.services.organization.provisioning import organization_provisioning_service
+from sentry.tasks.console_platform_cleanup import remove_inaccessible_console_platform_sources
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils.audit import create_audit_entry
 
@@ -1304,12 +1305,25 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 CellScheduledDeletion.cancel(organization)
             elif changed_data:
                 if "enabledConsolePlatforms" in changed_data:
+                    current_console_platforms = serializer.validated_data.get(
+                        "enabledConsolePlatforms", []
+                    )
                     create_console_platform_audit_log(
                         request,
                         organization,
                         previous_console_platforms,
-                        serializer.validated_data.get("enabledConsolePlatforms", []),
+                        current_console_platforms,
                     )
+
+                    # If any console platforms were revoked, clean up their
+                    # symbol sources from all projects in the org.
+                    revoked_platforms = set(previous_console_platforms or []) - set(
+                        current_console_platforms
+                    )
+                    if revoked_platforms:
+                        remove_inaccessible_console_platform_sources.delay(
+                            organization.id, current_console_platforms
+                        )
 
                     del changed_data["enabledConsolePlatforms"]
 

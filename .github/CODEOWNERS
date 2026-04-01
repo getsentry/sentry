@@ -712,6 +712,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/tasks/test_auto_remove_inbox.py               @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_auto_resolve_issues.py             @getsentry/issue-detection-backend
 /tests/sentry/tasks/seer/test_delete_seer_grouping_records.py @getsentry/issue-detection-backend
+/tests/sentry/tasks/test_console_platform_cleanup.py        @getsentry/gdx
 /tests/sentry/tasks/test_check_new_issue_threshold_met.py   @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_clear_expired_resolutions.py       @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_clear_expired_rulesnoozes.py       @getsentry/issue-detection-backend
