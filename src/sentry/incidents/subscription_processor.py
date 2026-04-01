@@ -224,17 +224,19 @@ class SubscriptionProcessor:
         """
         Check if the organization has downgraded since the subscription was created, return early if True
         """
-        if dataset == "events" and not features.has("organizations:incidents", organization):
+        supports_metrics_issues = features.has("organizations:incidents", organization)
+        if dataset == Dataset.Events.value and not supports_metrics_issues:
             metrics.incr("incidents.alert_rules.ignore_update_missing_incidents")
             return True
 
-        elif dataset == "transactions" and not features.has(
-            "organizations:performance-view", organization
+        supports_performance_view = features.has("organizations:performance-view", organization)
+        if dataset in (Dataset.Transactions.value, Dataset.EventsAnalyticsPlatform.value) and not (
+            supports_metrics_issues and supports_performance_view
         ):
             metrics.incr("incidents.alert_rules.ignore_update_missing_incidents_performance")
             return True
 
-        elif dataset == "generic_metrics" and not features.has(
+        if dataset == Dataset.PerformanceMetrics.value and not features.has(
             "organizations:on-demand-metrics-extraction", organization
         ):
             metrics.incr("incidents.alert_rules.ignore_update_missing_on_demand")
