@@ -50,18 +50,20 @@ export default function MetricsContent() {
             : undefined
         }
       >
-        <Stack flex={1}>
-          <MetricsHeader />
-          {defined(onboardingProject) ? (
-            <MetricsTabOnboarding
-              organization={organization}
-              project={onboardingProject}
-              datePageFilterProps={datePageFilterProps}
-            />
-          ) : (
-            <MetricsTabContent datePageFilterProps={datePageFilterProps} />
-          )}
-        </Stack>
+        <AnalyticsArea name="explore.metrics">
+          <Stack flex={1}>
+            <MetricsHeader />
+            {defined(onboardingProject) ? (
+              <MetricsTabOnboarding
+                organization={organization}
+                project={onboardingProject}
+                datePageFilterProps={datePageFilterProps}
+              />
+            ) : (
+              <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+            )}
+          </Stack>
+        </AnalyticsArea>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );
@@ -79,34 +81,32 @@ function MetricsHeader() {
 
   return (
     <Layout.Header unified>
-      <AnalyticsArea name="explore.metrics">
-        <Layout.HeaderContent unified>
-          {hasSavedQueryTitle ? (
-            <SentryDocumentTitle
-              title={`${savedQuery.name} — ${t('Metrics')}`}
-              orgSlug={organization?.slug}
-            />
-          ) : null}
-          {title && defined(pageId) ? (
-            <ExploreBreadcrumb traceItemDataset={TraceItemDataset.TRACEMETRICS} />
-          ) : null}
-          <Layout.Title>
-            {title ? title : t('Metrics')}
-            <FeatureBadge type="beta" />
-          </Layout.Title>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <FeedbackButton
-            feedbackOptions={{
-              messagePlaceholder: t('How can we make metrics work better for you?'),
-              tags: {
-                ['feedback.source']: 'metrics-listing',
-                ['feedback.owner']: 'performance',
-              },
-            }}
+      <Layout.HeaderContent unified>
+        {hasSavedQueryTitle ? (
+          <SentryDocumentTitle
+            title={`${savedQuery.name} — ${t('Metrics')}`}
+            orgSlug={organization?.slug}
           />
-        </Layout.HeaderActions>
-      </AnalyticsArea>
+        ) : null}
+        {title && defined(pageId) ? (
+          <ExploreBreadcrumb traceItemDataset={TraceItemDataset.TRACEMETRICS} />
+        ) : null}
+        <Layout.Title>
+          {title ? title : t('Metrics')}
+          <FeatureBadge type="beta" />
+        </Layout.Title>
+      </Layout.HeaderContent>
+      <Layout.HeaderActions>
+        <FeedbackButton
+          feedbackOptions={{
+            messagePlaceholder: t('How can we make metrics work better for you?'),
+            tags: {
+              ['feedback.source']: 'metrics-listing',
+              ['feedback.owner']: 'performance',
+            },
+          }}
+        />
+      </Layout.HeaderActions>
     </Layout.Header>
   );
 }
