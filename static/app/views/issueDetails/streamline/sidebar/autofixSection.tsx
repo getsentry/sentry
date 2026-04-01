@@ -92,7 +92,7 @@ export function AutofixSection({group, project, event}: AutofixSectionProps) {
     <SidebarFoldSection
       title={
         <Flex align="center" gap="xs">
-          <Text size="md">{t('Seer')}</Text>
+          <Text size="md">{t('Seer Autofix')}</Text>
           <IconSeer />
         </Flex>
       }
@@ -292,7 +292,6 @@ function AutofixEmptyState({
         size="md"
         icon={<IconBug />}
         aria-label={t('Start Analysis')}
-        tooltipProps={{title: t('Start Analysis')}}
         priority="primary"
         onClick={handleStartRootCause}
         analyticsEventKey="autofix.start_fix_clicked"

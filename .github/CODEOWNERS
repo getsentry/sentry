@@ -10,6 +10,7 @@
 ## tell the contributor to move the files to someplace with better ownership.
 /src/sentry/api/                                        @getsentry/app-backend
 /src/sentry/utils/                                      @getsentry/app-backend
+/tests/sentry/utils/                                    @getsentry/app-backend
 /src/sentry/testutils/                                  @getsentry/app-backend
 /src/sentry/users/                                      @getsentry/app-backend
 /tests/sentry/api/                                      @getsentry/app-backend
@@ -494,9 +495,10 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 /src/sentry/runner/commands/createproject.py                         @getsentry/ecosystem
 /src/sentry/runner/commands/createorg.py                             @getsentry/ecosystem
+/src/sentry/runner/commands/deletions.py                             @getsentry/ecosystem
 /tests/sentry/runner/commands/test_createproject.py                  @getsentry/ecosystem
 /tests/sentry/runner/commands/test_createorg.py                      @getsentry/ecosystem
-
+/tests/sentry/runner/commands/test_deletions.py                      @getsentry/ecosystem
 ## End of Integrations
 
 
@@ -745,6 +747,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/api/endpoints/check_am2_compatibility.py    @getsentry/revenue
 /tests/js/getsentry-test/                               @getsentry/revenue
 /src/sentry/billing/                                    @getsentry/revenue
+/tests/sentry/billing/                                  @getsentry/revenue
 /src/sentry/audit_log/                                  @getsentry/revenue
 
 ## gsApp
@@ -764,6 +767,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 ## gsAdmin
 # /static/gsAdmin/*                          unowned
+/static/gsAdmin/components/changeDashboardsParallelLimitModal.tsx  @getsentry/data-browsing
 /static/gsAdmin/components/forkCustomer.tsx  @getsentry/hybrid-cloud
 /static/gsAdmin/components/relocation*       @getsentry/hybrid-cloud
 /static/gsAdmin/views/relocation*            @getsentry/hybrid-cloud

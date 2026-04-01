@@ -304,7 +304,7 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                     continue
 
                 project_id_str = str(proj_id)
-                existing_pref = existing_preferences.get(project_id_str, {})
+                existing_pref = existing_preferences.get(project_id_str) or {}
 
                 pref_update: dict[str, Any] = {
                     **default_seer_project_preference(project).dict(),

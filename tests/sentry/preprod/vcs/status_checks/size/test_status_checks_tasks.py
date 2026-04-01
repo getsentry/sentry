@@ -275,6 +275,13 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                         min_install_size=2 * 1024 * 1024,
                         max_install_size=2 * 1024 * 1024,
                     )
+                else:
+                    # In production, size metrics are created at artifact creation time
+                    PreprodArtifactSizeMetrics.objects.create(
+                        preprod_artifact=preprod_artifact,
+                        metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                        state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+                    )
 
                 _, mock_provider, client_patch, provider_patch = (
                     self._create_working_status_check_setup(preprod_artifact)
@@ -458,19 +465,30 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             max_install_size=2 * 1024 * 1024,
         )
 
-        _ = PreprodArtifact.objects.create(
+        uploading_artifact = PreprodArtifact.objects.create(
             project=self.project,
             state=PreprodArtifact.ArtifactState.UPLOADING,
             app_id="com.example.uploading",
             commit_comparison=commit_comparison,
         )
+        # In production, size metrics are created at artifact creation time
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=uploading_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+        )
 
-        _ = PreprodArtifact.objects.create(
+        failed_artifact = PreprodArtifact.objects.create(
             project=self.project,
             state=PreprodArtifact.ArtifactState.FAILED,
             app_id="com.example.failed",
             error_message="Upload timeout",
             commit_comparison=commit_comparison,
+        )
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=failed_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
         )
 
         _, mock_provider, client_patch, provider_patch = self._create_working_status_check_setup(
@@ -794,6 +812,18 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                 commit_comparison=commit_comparison,
             )
             artifacts.append(artifact)
+
+        # In production, size metrics are created at artifact creation time
+        PreprodArtifactSizeMetrics.objects.bulk_create(
+            [
+                PreprodArtifactSizeMetrics(
+                    preprod_artifact=a,
+                    metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                    state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+                )
+                for a in artifacts
+            ]
+        )
 
         integration = self.create_integration(
             organization=self.organization,
@@ -1366,6 +1396,13 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                         min_install_size=2 * 1024 * 1024,
                         max_install_size=2 * 1024 * 1024,
                     )
+                else:
+                    # In production, size metrics are created at artifact creation time
+                    PreprodArtifactSizeMetrics.objects.create(
+                        preprod_artifact=preprod_artifact,
+                        metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                        state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+                    )
 
                 _, mock_provider, client_patch, provider_patch = (
                     self._create_working_status_check_setup(preprod_artifact)
@@ -1532,3 +1569,90 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             kwargs = mock_provider.create_status_check.call_args.kwargs
             assert f"/size/{valid.id}" in kwargs["target_url"]
             assert f"/size/{skipped.id}" not in kwargs["target_url"]
+
+    def test_snapshot_only_artifact_not_counted_as_processing(self) -> None:
+        """Snapshot-only artifacts (no artifact_type, no size metrics) should be excluded."""
+        commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+        )
+
+        size_artifact = Factories.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            commit_comparison=commit_comparison,
+        )
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=size_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_download_size=1024,
+            max_install_size=2048,
+        )
+
+        # Snapshot artifact: UPLOADED state, no artifact_type, no size metrics
+        PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADED,
+            app_id="com.example.snapshot",
+            commit_comparison=commit_comparison,
+        )
+
+        _, mock_provider, client_patch, provider_patch = self._create_working_status_check_setup(
+            size_artifact
+        )
+
+        with client_patch, provider_patch:
+            with self.tasks():
+                create_preprod_status_check_task(size_artifact.id)
+
+            mock_provider.create_status_check.assert_called_once()
+            kwargs = mock_provider.create_status_check.call_args.kwargs
+            assert "1 component analyzed" in kwargs["subtitle"]
+            assert "processing" not in kwargs["subtitle"]
+
+    def test_uploading_artifact_with_size_metrics_not_excluded(self) -> None:
+        """An UPLOADING artifact with size metrics should still be counted (not filtered out)."""
+        commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+        )
+
+        # Normal artifact still in UPLOADING state but with size metrics already created
+        uploading_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADING,
+            app_id="com.example.uploading",
+            commit_comparison=commit_comparison,
+        )
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=uploading_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+        )
+
+        _, mock_provider, client_patch, provider_patch = self._create_working_status_check_setup(
+            uploading_artifact
+        )
+
+        with client_patch, provider_patch:
+            with self.tasks():
+                create_preprod_status_check_task(uploading_artifact.id)
+
+            mock_provider.create_status_check.assert_called_once()
+            kwargs = mock_provider.create_status_check.call_args.kwargs
+            # The artifact is still UPLOADING, so should show as processing
+            assert "processing" in kwargs["subtitle"]

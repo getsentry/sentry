@@ -74,7 +74,7 @@ describe('AutofixSection', () => {
       organization,
     });
 
-    expect(screen.getByText('Seer')).toBeInTheDocument();
+    expect(screen.getByText('Seer Autofix')).toBeInTheDocument();
   });
 
   it('renders Resources section when AI features are disabled', () => {
@@ -381,7 +381,7 @@ describe('AutofixSection', () => {
     });
 
     // The Seer title should still render
-    expect(screen.getByText('Seer')).toBeInTheDocument();
+    expect(screen.getByText('Seer Autofix')).toBeInTheDocument();
     expect(await screen.findByTestId('loading-placeholder')).toBeInTheDocument();
   });
 
@@ -397,7 +397,7 @@ describe('AutofixSection', () => {
     });
 
     // The Seer title should still render
-    expect(screen.getByText('Seer')).toBeInTheDocument();
+    expect(screen.getByText('Seer Autofix')).toBeInTheDocument();
     expect(await screen.findByText('Have Seer...')).toBeInTheDocument();
   });
 

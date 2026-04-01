@@ -2,12 +2,11 @@ import {useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Heading} from '@sentry/scraps/text';
 
 import {FormContext} from 'sentry/components/forms/formContext';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
+import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t} from 'sentry/locale';
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 import {
@@ -123,8 +122,7 @@ export function TemplateSection() {
 
   return (
     <Container>
-      <Flex direction="column" gap="xs">
-        <Heading as="h3">{t('Choose Your Metric')}</Heading>
+      <FormSection title={t('Choose Your Metric')}>
         <CompactSelect
           options={templateOptions}
           value={currentTemplateValue}
@@ -167,7 +165,7 @@ export function TemplateSection() {
             formContext.form?.setValue(METRIC_DETECTOR_FORM_FIELDS.query, newQuery);
           }}
         />
-      </Flex>
+      </FormSection>
     </Container>
   );
 }
