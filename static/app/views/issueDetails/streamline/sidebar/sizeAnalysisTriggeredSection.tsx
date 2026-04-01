@@ -10,7 +10,6 @@ import type {Group} from 'sentry/types/group';
 import type {MetricCondition} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getConditionDescription} from 'sentry/views/detectors/components/details/mobileBuild/detect';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {
   getCompareBuildPath,
@@ -59,12 +58,30 @@ function isSizeAnalysisEvidenceData(
   );
 }
 
-function formatEvaluatedValue(value: number, thresholdType: MeasurementType): string {
+function formatValueWithUnit(value: number, thresholdType: MeasurementType): string {
   if (thresholdType === 'relative_diff') {
     return `${value}%`;
   }
   const mb = parseFloat(bytesToMB(value).toFixed(2));
   return `${mb} ${getDisplayUnit(thresholdType)}`;
+}
+
+function formatCondition({
+  condition,
+  thresholdType,
+  measurementLabel,
+}: {
+  condition: MetricCondition;
+  measurementLabel: string;
+  thresholdType: MeasurementType;
+}): string {
+  const isDiff = thresholdType === 'absolute_diff' || thresholdType === 'relative_diff';
+  const label = isDiff ? `${measurementLabel} Diff` : measurementLabel;
+  const comparisonValue =
+    typeof condition.comparison === 'number'
+      ? formatValueWithUnit(condition.comparison, thresholdType)
+      : '';
+  return `${label} > ${comparisonValue}`;
 }
 
 interface SizeAnalysisTriggeredSectionProps {
@@ -83,6 +100,10 @@ export function SizeAnalysisTriggeredSection({event}: SizeAnalysisTriggeredSecti
   const {conditions, config, value, headArtifactId, baseArtifactId} = evidenceData;
   const triggeredCondition = conditions[0];
   const artifactType = event.tags?.find(({key}) => key === 'head.artifact_type')?.value;
+  const measurementLabel = getMetricLabelForArtifactType(
+    config.measurement,
+    artifactType
+  );
   const isDiffThreshold =
     config.thresholdType === 'absolute_diff' || config.thresholdType === 'relative_diff';
 
@@ -130,7 +151,7 @@ export function SizeAnalysisTriggeredSection({event}: SizeAnalysisTriggeredSecti
             },
             {
               key: 'measurement',
-              value: getMetricLabelForArtifactType(config.measurement, artifactType),
+              value: measurementLabel,
               subject: t('Measurement'),
             },
             ...(config.query
@@ -148,9 +169,10 @@ export function SizeAnalysisTriggeredSection({event}: SizeAnalysisTriggeredSecti
                     key: 'condition',
                     value: (
                       <pre>
-                        {getConditionDescription({
+                        {formatCondition({
                           condition: triggeredCondition,
                           thresholdType: config.thresholdType,
+                          measurementLabel,
                         })}
                       </pre>
                     ),
@@ -160,7 +182,7 @@ export function SizeAnalysisTriggeredSection({event}: SizeAnalysisTriggeredSecti
               : []),
             {
               key: 'value',
-              value: formatEvaluatedValue(value, config.thresholdType),
+              value: formatValueWithUnit(value, config.thresholdType),
               subject: t('Evaluated Value'),
             },
           ]}

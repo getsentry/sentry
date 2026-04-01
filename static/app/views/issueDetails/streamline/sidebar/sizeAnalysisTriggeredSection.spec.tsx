@@ -102,6 +102,15 @@ describe('SizeAnalysisTriggeredSection', () => {
     expect(screen.getByRole('cell', {name: 'Evaluated Value'})).toBeInTheDocument();
   });
 
+  it('formats condition as "measurement Diff > value" for diff threshold', () => {
+    render(<SizeAnalysisTriggeredSection {...defaultProps} />);
+
+    // absolute_diff with no artifact tag: "Install/Uncompressed Size Diff > 1 MB"
+    expect(
+      screen.getByRole('cell', {name: 'Install/Uncompressed Size Diff > 1 MB'})
+    ).toBeInTheDocument();
+  });
+
   it('shows platform-specific measurement label from artifact type tag', () => {
     const event = EventFixture({
       ...defaultEvent,
@@ -111,6 +120,9 @@ describe('SizeAnalysisTriggeredSection', () => {
     render(<SizeAnalysisTriggeredSection {...defaultProps} event={event} />);
 
     expect(screen.getByRole('cell', {name: 'Install Size'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('cell', {name: 'Install Size Diff > 1 MB'})
+    ).toBeInTheDocument();
   });
 
   it('shows Android measurement label for aab artifact type', () => {
