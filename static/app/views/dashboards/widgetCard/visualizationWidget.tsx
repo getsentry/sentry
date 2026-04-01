@@ -506,7 +506,8 @@ function renderBreakdownLabel(
   return fallbackLabel;
 }
 
-const NEGATIVE_COST_DOCS_URL = 'https://docs.sentry.io/ai/monitoring/agents/costs/';
+const NEGATIVE_COST_DOCS_URL =
+  'https://docs.sentry.io/ai/monitoring/agents/costs/#troubleshooting';
 
 function NegativeCurrencyValue({
   value,
@@ -520,7 +521,7 @@ function NegativeCurrencyValue({
   return (
     <Tooltip
       title={tct(
-        'Cached tokens may cost less than estimated, resulting in a negative total. [link:Learn more about cost tracking].',
+        'Negative costs indicate an error in token count reporting. [link:Follow this guide] to troubleshoot.',
         {
           link: <ExternalLink href={NEGATIVE_COST_DOCS_URL} />,
         }
