@@ -12,8 +12,7 @@ type Props = {
   value: number | null;
 };
 
-const NEGATIVE_COST_DOCS_URL =
-  'https://docs.sentry.io/product/insights/agents/#cost-tracking';
+const NEGATIVE_COST_DOCS_URL = 'https://docs.sentry.io/ai/monitoring/agents/costs/';
 
 export function CurrencyCell({value}: Props) {
   if (value === null || value === undefined) {
