@@ -24,7 +24,7 @@ export function CurrencyCell({value}: Props) {
       <NumberContainer>
         <Tooltip
           title={tct(
-            'Negative costs can occur when cached token pricing differs from standard token pricing. [link:Learn more].',
+            'Cached tokens may cost less than estimated, resulting in a negative total. [link:Learn more about cost tracking].',
             {
               link: <ExternalLink href={NEGATIVE_COST_DOCS_URL} />,
             }
