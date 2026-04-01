@@ -40,7 +40,13 @@ export function useFetchPreferredAgent({organization}: {organization: Organizati
   });
 
   if (value === null || value === 'seer') {
-    return {...query, data: 'seer' as const, isSuccess: true};
+    return {
+      ...query,
+      data: 'seer' as const,
+      isPending: false,
+      isSuccess: true,
+      status: 'success',
+    };
   }
   return query;
 }
