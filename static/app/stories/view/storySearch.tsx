@@ -235,7 +235,6 @@ function SearchComboBox(props: SearchComboBoxProps) {
         <StyledOverlay placement="bottom-start" ref={popoverRef}>
           <ListBox
             size="sm"
-            virtualized
             listState={state}
             hasSearch={!!state.inputValue}
             overlayIsOpen={state.isOpen}
@@ -259,18 +258,10 @@ const StorySearchContainer = styled('div')`
 `;
 
 const StyledOverlay = styled(Overlay)`
-  overflow: hidden;
-  position: fixed;
-  top: 48px;
-  left: 256px;
+  position: absolute;
+  top: 100%;
+  left: 0;
   width: 320px;
-
-  max-height: 320px;
-  min-height: 132px;
-  > div {
-    max-height: 320px !important;
-    min-height: 132px !important;
-  }
 
   /* Make section headers darker in this component */
   p[id][aria-hidden='true'] {
