@@ -9,10 +9,7 @@ import type {MetricCondition} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {
-  getCompareBuildPath,
-  getSizeBuildPath,
-} from 'sentry/views/preprod/utils/buildLinkUtils';
+import {getCompareBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {
   bytesToMB,
   getDisplayUnit,
@@ -56,12 +53,18 @@ function isSizeAnalysisEvidenceData(
   );
 }
 
-function formatValueWithUnit(value: number, thresholdType: MeasurementType): string {
+function formatRawValueWithUnit(value: number, thresholdType: MeasurementType): string {
   if (thresholdType === 'relative_diff') {
     return `${value}%`;
   }
   const mb = parseFloat(bytesToMB(value).toFixed(2));
   return `${mb} ${getDisplayUnit(thresholdType)}`;
+}
+
+function formatEvaluatedValue(value: number, thresholdType: MeasurementType): string {
+  const isDiff = thresholdType === 'absolute_diff' || thresholdType === 'relative_diff';
+  const prefix = isDiff ? '+' : '';
+  return `${prefix}${formatRawValueWithUnit(value, thresholdType)}`;
 }
 
 function formatCondition({
@@ -77,7 +80,7 @@ function formatCondition({
   const label = isDiff ? `${measurementLabel} Diff` : measurementLabel;
   const comparisonValue =
     typeof condition.comparison === 'number'
-      ? formatValueWithUnit(condition.comparison, thresholdType)
+      ? formatRawValueWithUnit(condition.comparison, thresholdType)
       : '';
   return `${label} > ${comparisonValue}`;
 }
@@ -105,10 +108,7 @@ export function SizeAnalysisTriggeredSection({event}: SizeAnalysisTriggeredSecti
   const isDiffThreshold =
     config.thresholdType === 'absolute_diff' || config.thresholdType === 'relative_diff';
 
-  const headBuildPath = getSizeBuildPath({
-    organizationSlug: organization.slug,
-    baseArtifactId: String(headArtifactId),
-  });
+  const headBuildPath = `/organizations/${organization.slug}/preprod/size/${headArtifactId}/`;
 
   const compareBuildPath =
     isDiffThreshold && defined(baseArtifactId)
@@ -117,7 +117,7 @@ export function SizeAnalysisTriggeredSection({event}: SizeAnalysisTriggeredSecti
           headArtifactId: String(headArtifactId),
           baseArtifactId: String(baseArtifactId),
         })
-      : undefined;
+      : null;
 
   return (
     <InterimSection
@@ -177,7 +177,7 @@ export function SizeAnalysisTriggeredSection({event}: SizeAnalysisTriggeredSecti
             : []),
           {
             key: 'value',
-            value: formatValueWithUnit(value, config.thresholdType),
+            value: formatEvaluatedValue(value, config.thresholdType),
             subject: t('Evaluated Value'),
           },
         ]}

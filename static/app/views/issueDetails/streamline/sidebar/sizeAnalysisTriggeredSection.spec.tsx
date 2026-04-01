@@ -188,14 +188,14 @@ describe('SizeAnalysisTriggeredSection', () => {
 
     render(<SizeAnalysisTriggeredSection {...defaultProps} event={event} />);
 
-    expect(screen.getByRole('cell', {name: '15%'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '+15%'})).toBeInTheDocument();
   });
 
   it('renders absolute_diff values in MB', () => {
     render(<SizeAnalysisTriggeredSection {...defaultProps} />);
 
-    // 4292608 bytes = 4.29 MB (capped at 2 decimals)
-    expect(screen.getByRole('cell', {name: '4.29 MB'})).toBeInTheDocument();
+    // 4292608 bytes = +4.29 MB (capped at 2 decimals, + prefix for diff)
+    expect(screen.getByRole('cell', {name: '+4.29 MB'})).toBeInTheDocument();
   });
 
   it('renders query field when present in config', () => {
