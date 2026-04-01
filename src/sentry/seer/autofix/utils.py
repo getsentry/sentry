@@ -408,7 +408,7 @@ def get_org_default_seer_automation_handoff(
 
     # Guard against stored values that are no longer valid.
     valid_stopping_points = {"code_changes", "open_pr"}
-    if features.has("organizations:seer-overview", organization):
+    if features.has("organizations:root-cause-stopping-point", organization):
         valid_stopping_points.add("root_cause")
     if stopping_point not in valid_stopping_points:
         stopping_point = SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT

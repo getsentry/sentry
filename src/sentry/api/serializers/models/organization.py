@@ -607,7 +607,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
         )
         valid_stopping_points = {"code_changes", "open_pr"}
-        if features.has("organizations:seer-overview", obj):
+        if features.has("organizations:root-cause-stopping-point", obj):
             valid_stopping_points.add("root_cause")
         if stopping_point not in valid_stopping_points:
             return SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT

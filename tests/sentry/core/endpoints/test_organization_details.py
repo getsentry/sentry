@@ -1690,7 +1690,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                 self.get_error_response(self.organization.slug, status_code=400, **data)
 
     def test_default_automated_run_stopping_point_accepts_root_cause_with_flag(self) -> None:
-        with self.feature("organizations:seer-overview"):
+        with self.feature("organizations:root-cause-stopping-point"):
             data = {"defaultAutomatedRunStoppingPoint": "root_cause"}
             response = self.get_success_response(self.organization.slug, **data)
             assert response.data["defaultAutomatedRunStoppingPoint"] == "root_cause"

@@ -363,7 +363,7 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
     def test_root_cause_stopping_point_preserved_with_seer_overview_flag(
         self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
     ) -> None:
-        """Project with root_cause stopping point is preserved when seer-overview flag is enabled."""
+        """Project with root_cause stopping point is preserved when root-cause-stopping-point flag is enabled."""
         project = self.create_project(organization=self.organization)
 
         mock_bulk_get.return_value = {
@@ -373,7 +373,7 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
             },
         }
 
-        with self.feature("organizations:seer-overview"):
+        with self.feature("organizations:root-cause-stopping-point"):
             configure_seer_for_existing_org(organization_id=self.organization.id)
 
         mock_bulk_set.assert_not_called()

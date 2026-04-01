@@ -245,7 +245,7 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     default_handoff_dict = default_handoff.dict() if default_handoff else None
 
     valid_stopping_points = {"open_pr", "code_changes"}
-    if features.has("organizations:seer-overview", organization):
+    if features.has("organizations:root-cause-stopping-point", organization):
         valid_stopping_points.add("root_cause")
 
     preferences_by_id = bulk_get_project_preferences(organization_id, project_ids)

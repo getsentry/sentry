@@ -435,7 +435,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     def validate_defaultAutomatedRunStoppingPoint(self, value):
         organization = self.context["organization"]
         valid_choices = ["code_changes", "open_pr"]
-        if features.has("organizations:seer-overview", organization):
+        if features.has("organizations:root-cause-stopping-point", organization):
             valid_choices.append("root_cause")
 
         if value not in valid_choices:
