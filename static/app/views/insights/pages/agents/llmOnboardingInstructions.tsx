@@ -260,43 +260,20 @@ with sentry_sdk.start_span(op="gen_ai.execute_tool", name=f"execute_tool {tool_n
 
 ## Token Counting & Cost Calculation
 
-Sentry calculates costs from token attributes on \`gen_ai.request\` spans. Reporting tokens correctly is critical — **incorrect values cause negative cost calculations**.
+\`gen_ai.usage.input_tokens\` must be the **total** input tokens (cached + non-cached). Sentry computes cost as \`(input_tokens - cached_tokens) * price\`, so if \`input_tokens\` only contains non-cached tokens, costs go **negative**.
 
-### Token attributes
-
-| Attribute | Description |
-|-----------|-------------|
-| \`gen_ai.usage.input_tokens\` | **Total** input tokens, **including** cached tokens |
-| \`gen_ai.usage.output_tokens\` | Total output tokens |
-| \`gen_ai.usage.input_tokens.cached\` | Subset of input tokens served from cache (cheaper rate) |
-
-### How cost is calculated
-
-\`\`\`
-cost = (input_tokens - cached_tokens) * input_price
-     + cached_tokens * cached_price
-     + output_tokens * output_price
-\`\`\`
-
-### Common mistake: negative costs
-
-If \`gen_ai.usage.input_tokens\` contains only the **non-cached** portion while \`gen_ai.usage.input_tokens.cached\` contains the cached portion, the formula subtracts more than the total and **produces a negative cost**.
-
-**Wrong** — input_tokens excludes cached:
 \`\`\`python
-span.set_data("gen_ai.usage.input_tokens", response.non_cached_tokens)      # e.g. 20
-span.set_data("gen_ai.usage.input_tokens.cached", response.cached_tokens)   # e.g. 80
-# cost formula: (20 - 80) * price → NEGATIVE
+# ✅ Correct — input_tokens includes cached
+span.set_data("gen_ai.usage.input_tokens", 100)          # total
+span.set_data("gen_ai.usage.input_tokens.cached", 80)    # cached subset
+span.set_data("gen_ai.usage.output_tokens", 50)
+
+# ❌ Wrong — produces negative cost
+span.set_data("gen_ai.usage.input_tokens", 20)            # non-cached only
+span.set_data("gen_ai.usage.input_tokens.cached", 80)     # (20 - 80) * price → negative
 \`\`\`
 
-**Correct** — input_tokens is the full total:
-\`\`\`python
-span.set_data("gen_ai.usage.input_tokens", response.total_input_tokens)     # e.g. 100
-span.set_data("gen_ai.usage.input_tokens.cached", response.cached_tokens)   # e.g. 80
-# cost formula: (100 - 80) * price + 80 * cached_price → correct
-\`\`\`
-
-For more details, see: https://docs.sentry.io/ai/monitoring/agents/costs/#troubleshooting
+See: https://docs.sentry.io/ai/monitoring/agents/costs/#troubleshooting
 
 ## Key Rules
 
