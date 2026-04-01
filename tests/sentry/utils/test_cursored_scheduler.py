@@ -100,6 +100,8 @@ class CursoredSchedulerTest(TestCase):
         scheduler = self._make_scheduler()
 
         scheduler.tick()
+        first_batch_pks = [c.args[0] for c in self.mock_task.delay.call_args_list]
+        assert first_batch_pks == [oi.pk for oi in ois[:10]]
         self.mock_task.reset_mock()
 
         scheduler.tick()
