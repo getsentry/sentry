@@ -4,7 +4,9 @@ import logging
 from collections import defaultdict
 from dataclasses import dataclass
 
+import orjson
 from django.db import router, transaction
+from django.db.models import Q
 from sentry_protos.snuba.v1.endpoint_delete_trace_items_pb2 import DeleteTraceItemsRequest
 from sentry_protos.snuba.v1.request_common_pb2 import (
     RequestMeta,
@@ -15,9 +17,13 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, Attrib
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 from sentry.models.files.file import File
+from sentry.objectstore import get_preprod_session
 from sentry.preprod.eap.constants import get_preprod_trace_id
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
+from sentry.preprod.snapshots.manifest import ComparisonManifest, SnapshotManifest
+from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.utils import snuba_rpc
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +43,8 @@ class ArtifactDeletionResult:
 
     files_deleted: int
     """Total number of files deleted"""
+
+    objectstore_keys_deleted: int = 0
 
 
 def bulk_delete_artifacts(
@@ -98,6 +106,98 @@ def bulk_delete_artifacts(
     return result
 
 
+def _collect_snapshot_objectstore_keys(
+    preprod_artifacts: list[PreprodArtifact],
+) -> list[tuple[int, int, str]]:
+    artifact_ids = [a.id for a in preprod_artifacts]
+    snapshot_metrics_list = list(
+        PreprodSnapshotMetrics.objects.filter(preprod_artifact_id__in=artifact_ids).select_related(
+            "preprod_artifact__project"
+        )
+    )
+    if not snapshot_metrics_list:
+        return []
+
+    keys: list[tuple[int, int, str]] = []
+    metrics_ids: list[int] = []
+
+    for sm in snapshot_metrics_list:
+        org_id = sm.preprod_artifact.project.organization_id
+        project_id = sm.preprod_artifact.project_id
+        metrics_ids.append(sm.id)
+
+        manifest_key = (sm.extras or {}).get("manifest_key")
+        if not manifest_key:
+            continue
+
+        keys.append((org_id, project_id, manifest_key))
+        try:
+            session = get_preprod_session(org_id, project_id)
+            manifest = SnapshotManifest(**orjson.loads(session.get(manifest_key).payload.read()))
+            prefix = f"{org_id}/{project_id}"
+            for name, meta in manifest.images.items():
+                keys.append((org_id, project_id, f"{prefix}/{meta.content_hash or name}"))
+        except Exception:
+            logger.exception(
+                "preprod.cleanup.snapshot_manifest_read_failed",
+                extra={"manifest_key": manifest_key},
+            )
+
+    for comp in PreprodSnapshotComparison.objects.filter(
+        Q(head_snapshot_metrics_id__in=metrics_ids) | Q(base_snapshot_metrics_id__in=metrics_ids)
+    ).select_related("head_snapshot_metrics__preprod_artifact__project"):
+        org_id = comp.head_snapshot_metrics.preprod_artifact.project.organization_id
+        project_id = comp.head_snapshot_metrics.preprod_artifact.project_id
+
+        comparison_key = (comp.extras or {}).get("comparison_key")
+        if not comparison_key:
+            continue
+
+        keys.append((org_id, project_id, comparison_key))
+        try:
+            session = get_preprod_session(org_id, project_id)
+            comp_manifest = ComparisonManifest(
+                **orjson.loads(session.get(comparison_key).payload.read())
+            )
+            for img in comp_manifest.images.values():
+                if img.diff_mask_key:
+                    keys.append((org_id, project_id, img.diff_mask_key))
+        except Exception:
+            logger.exception(
+                "preprod.cleanup.comparison_manifest_read_failed",
+                extra={"comparison_key": comparison_key},
+            )
+
+    return keys
+
+
+def _delete_objectstore_key(args: tuple[int, int, str]) -> bool:
+    org_id, project_id, key = args
+    try:
+        get_preprod_session(org_id, project_id).delete(key)
+        return True
+    except Exception:
+        logger.exception("preprod.cleanup.objectstore_delete_failed", extra={"key": key})
+        return False
+
+
+def _delete_snapshot_objectstore_data(
+    preprod_artifacts: list[PreprodArtifact],
+) -> int:
+    keys = list(dict.fromkeys(_collect_snapshot_objectstore_keys(preprod_artifacts)))
+    if not keys:
+        return 0
+
+    with ContextPropagatingThreadPoolExecutor(max_workers=8) as executor:
+        deleted = sum(1 for ok in executor.map(_delete_objectstore_key, keys) if ok)
+
+    logger.info(
+        "preprod.cleanup.objectstore_delete_completed",
+        extra={"keys_deleted": deleted, "keys_total": len(keys)},
+    )
+    return deleted
+
+
 def delete_artifacts_and_eap_data(
     preprod_artifacts: list[PreprodArtifact],
 ) -> ArtifactDeletionResult:
@@ -112,7 +212,10 @@ def delete_artifacts_and_eap_data(
             files_deleted=0,
         )
 
+    objectstore_keys_deleted = _delete_snapshot_objectstore_data(preprod_artifacts)
+
     result = bulk_delete_artifacts(preprod_artifacts)
+    result.objectstore_keys_deleted = objectstore_keys_deleted
 
     artifacts_by_project: defaultdict[tuple[int, int], list[int]] = defaultdict(list)
     for artifact in preprod_artifacts:
