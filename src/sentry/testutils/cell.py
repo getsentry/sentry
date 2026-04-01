@@ -53,7 +53,10 @@ class TestEnvCellDirectory(CellDirectory):
             monolith_cell = cells[0]
             with override_settings(SENTRY_MONOLITH_REGION=monolith_cell.name):
                 if local_cell:
-                    with override_settings(SENTRY_LOCAL_CELL=local_cell.name):
+                    # TODO(cells): Remove SENTRY_REGION once all references in getsentry tests updated
+                    with override_settings(
+                        SENTRY_LOCAL_CELL=local_cell.name, SENTRY_REGION=local_cell.name
+                    ):
                         yield
                 else:
                     yield
