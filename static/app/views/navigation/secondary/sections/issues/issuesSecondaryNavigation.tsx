@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
+import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
@@ -127,7 +127,7 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
     !hasRedirectOptOut && organization.features.includes('workflow-engine-ui');
 
   const alertsLink = shouldRedirectToWorkflowEngineUI
-    ? `${makeMonitorBasePathname(organization.slug)}?alertsRedirect=true`
+    ? `${makeAutomationBasePathname(organization.slug)}?alertsRedirect=true`
     : `${baseUrl}/alerts/rules/`;
 
   return (

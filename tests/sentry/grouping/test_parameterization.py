@@ -161,7 +161,7 @@ standard_cases = [
     ("hex without prefix - no letters, < 8 digits, negative", "-1234567", "<int>"),
     ("hex without prefix - no letters, 8+ digits, positive", "12345678", "<hex>"),
     ("git sha", "commit a93c7d2", "commit <git_sha>"),
-    ("git sha - all letters", "commit deadbeef", "commit deadbeef"),
+    ("git sha - all letters", "commit cabcafe", "commit cabcafe"),
     ("git sha - all numbers", "commit 4150908", "commit <int>"),
     ("float", "0.23", "<float>"),
     ("int", "23", "<int>"),

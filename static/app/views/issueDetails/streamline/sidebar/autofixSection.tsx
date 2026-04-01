@@ -382,7 +382,6 @@ function AutofixPreviews({
         size="md"
         icon={<IconSeer />}
         aria-label={t('Open Seer')}
-        tooltipProps={{title: t('Open Seer')}}
         priority="primary"
         onClick={openSeerDrawer}
         analyticsEventKey="issue_details.seer_opened"
