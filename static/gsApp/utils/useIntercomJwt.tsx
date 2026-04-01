@@ -1,4 +1,4 @@
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {IntercomUserData} from 'sentry/utils/intercom';
 import {useApiQuery} from 'sentry/utils/queryClient';
 

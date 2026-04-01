@@ -1,6 +1,6 @@
 import type {ComponentProps} from 'react';
 
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import IntercomLink from 'getsentry/components/intercomLink';
 import ZendeskLink from 'getsentry/components/zendeskLink';
@@ -14,7 +14,7 @@ type Props = Omit<ComponentProps<typeof ZendeskLink>, 'organization'>;
  * This wrapper allows instant switching between support providers via
  * the feature flag without code changes.
  */
-function SupportLink(props: Props) {
+export function SupportLink(props: Props) {
   const organization = useOrganization();
   const useIntercom = organization.features.includes('intercom-support');
 
@@ -24,5 +24,3 @@ function SupportLink(props: Props) {
 
   return <ZendeskLink {...props} />;
 }
-
-export default SupportLink;

@@ -1,8 +1,8 @@
 import {useEffect, useRef} from 'react';
 import Intercom, {shutdown, update} from '@intercom/messenger-js-sdk';
 
-import ConfigStore from 'sentry/stores/configStore';
-import useOrganization from 'sentry/utils/useOrganization';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useIntercomJwt} from 'getsentry/utils/useIntercomJwt';
 
