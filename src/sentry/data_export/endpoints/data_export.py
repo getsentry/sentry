@@ -17,7 +17,10 @@ from sentry.api.utils import get_date_range_from_params
 from sentry.data_export.base import ExportQueryType
 from sentry.data_export.models import ExportedData
 from sentry.data_export.processors.discover import DiscoverProcessor
-from sentry.data_export.processors.explore import SUPPORTED_TRACE_ITEM_DATASETS, ExploreProcessor
+from sentry.data_export.processors.explore import (
+    SUPPORTED_TRACE_ITEM_DATASETS,
+    ExploreProcessor,
+)
 from sentry.data_export.tasks import assemble_download
 from sentry.data_export.writers import OutputMode
 from sentry.discover.arithmetic import categorize_columns
@@ -70,23 +73,36 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
         query_info["dataset"] = dataset
         return query_info
 
-    def _validate_query_info(self, query_type: str, query_info: dict[str, Any]) -> dict[str, Any]:
-        base_fields = query_info.get("field", [])
-        if not isinstance(base_fields, list):
+    def _validate_query_info(
+        self, query_type: str, query_info: dict[str, Any], *, export_format: str
+    ) -> dict[str, Any]:
+        base_fields = query_info.get("field")
+        if base_fields is None:
+            base_fields = []
+        elif not isinstance(base_fields, list):
             base_fields = [base_fields]
 
         if len(base_fields) > MAX_FIELDS:
             detail = f"You can export up to {MAX_FIELDS} fields at a time. Please delete some and try again."
             raise serializers.ValidationError(detail)
         elif len(base_fields) == 0:
-            raise serializers.ValidationError("at least one field is required to export")
+            if not (
+                query_type == ExportQueryType.EXPLORE_STR
+                and query_info.get("dataset") == "logs"
+                and export_format == OutputMode.JSONL.value
+            ):
+                raise serializers.ValidationError("at least one field is required to export")
 
         if "query" not in query_info:
             query_info["query"] = ""
 
-        equations, fields = categorize_columns(base_fields)
-        query_info["field"] = fields
-        query_info["equations"] = equations
+        if len(base_fields) > 0:
+            equations, fields = categorize_columns(base_fields)
+            query_info["field"] = fields
+            query_info["equations"] = equations
+        else:
+            query_info["field"] = []
+            query_info["equations"] = []
         if not query_info.get("project"):
             projects = self.context["get_projects"]()
             query_info["project"] = [project.id for project in projects]
@@ -141,8 +157,12 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
         # Discover Pre-processing
         query_type = data.get("query_type", "")
         query_info = data.get("query_info", {})
+        export_format = data.get("format", OutputMode.CSV.value)
+
         if query_type == ExportQueryType.DISCOVER_STR:
-            query_info = self._validate_query_info(query_type, query_info)
+            query_info = self._validate_query_info(
+                query_type, query_info, export_format=export_format
+            )
             query_info = self._validate_dataset(query_type, query_info)
             dataset = query_info["dataset"]
 
@@ -167,7 +187,7 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
                     params={},
                     snuba_params=processor.snuba_params,
                     query=query_info["query"],
-                    selected_columns=query_info.get("fields", []).copy(),
+                    selected_columns=query_info["field"].copy(),
                     equations=query_info.get("equations", []).copy(),
                     config=config,
                 )
@@ -176,13 +196,24 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
                 raise serializers.ValidationError(str(err))
 
         elif query_type == ExportQueryType.EXPLORE_STR:
-            query_info = self._validate_query_info(query_type, query_info)
+            query_info = self._validate_query_info(
+                query_type, query_info, export_format=export_format
+            )
             query_info = self._validate_dataset(query_type, query_info)
 
+            explore_output_mode = OutputMode.from_value(export_format)
             explore_processor = ExploreProcessor(
                 explore_query=query_info,
                 organization=organization,
+                output_mode=explore_output_mode,
             )
+            if explore_processor.logs_full_detail_export:
+                query_info["field"] = (
+                    explore_processor.probe_columns_for_logs_wide_export_validation(
+                        self.context["user"]
+                    )
+                )
+
             try:
                 rpc_dataset_common.TableQuery(
                     query_string=query_info["query"],
@@ -266,6 +297,7 @@ class DataExportEndpoint(OrganizationEndpoint):
                 ),
                 "get_projects": lambda: self.get_projects(request, organization),
                 "has_metrics": True,
+                "user": request.user,
             },
         )
         if not serializer.is_valid():

@@ -109,8 +109,8 @@ def assemble_download(
             else:
                 export_limit = min(export_limit, EXPORTED_ROWS_LIMIT)
 
-            processor = get_processor(data_export, environment_id)
-            output_mode = OutputMode(data_export.export_format)
+            output_mode = OutputMode.from_value(data_export.export_format)
+            processor = get_processor(data_export, environment_id, output_mode)
 
             with tempfile.TemporaryFile(mode="w+b") as tf:
                 writer = FileWriter(
@@ -225,7 +225,9 @@ def assemble_download(
 
 
 def get_processor(
-    data_export: ExportedData, environment_id: int | None
+    data_export: ExportedData,
+    environment_id: int | None,
+    output_mode: OutputMode,
 ) -> IssuesByTagProcessor | DiscoverProcessor | ExploreProcessor:
     try:
         if data_export.query_type == ExportQueryType.ISSUES_BY_TAG:
@@ -246,6 +248,7 @@ def get_processor(
             return ExploreProcessor(
                 explore_query=data_export.query_info,
                 organization=data_export.organization,
+                output_mode=output_mode,
             )
         else:
             raise ExportError(f"No processor found for this query type: {data_export.query_type}")
