@@ -15,6 +15,9 @@ interface ViewportConstrainedPageProps extends FlexProps<'main'> {
  * algorithm sizes it to exactly the remaining space after siblings
  * (TopBar, Footer, etc.), and content within must manage its own
  * overflow (e.g. via scrollable table bodies).
+ *
+ * When constrained, the footer is also hidden at smaller viewport heights.
+ * Similar to mobile, this is to leave more height space for essential UI.
  */
 export function ViewportConstrainedPage({
   constrained = true,
@@ -29,4 +32,10 @@ export function ViewportConstrainedPage({
 
 const ConstrainedPage = styled(Layout.Page)`
   contain: size;
+
+  @media (max-height: 900px) {
+    ~ footer {
+      display: none;
+    }
+  }
 `;
