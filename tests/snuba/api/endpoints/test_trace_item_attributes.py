@@ -96,11 +96,9 @@ class OrganizationTraceItemQueryValidatorEndpointTest(APITestCase, BaseSpansTest
         response = self.do_request(query={"itemType": "spans", "query": query})
 
         assert response.status_code == 200
-        attributes = response.data["attributes"]
-        assert len(attributes) == 2
-        assert [item["key"] for item in attributes] == ["span.op", "span.op"]
-        assert [item["valid"] for item in attributes] == [True, True]
-        assert [item["type"] for item in attributes] == ["string", "string"]
+        assert response.data == {
+            "attributes": [{"key": "span.op", "valid": True, "type": "string"}]
+        }
 
     def test_starts_with_wildcard_filter(self):
         query = f"span.op:{WILDCARD_OPERATOR_MAP['starts_with']}test"
@@ -216,12 +214,21 @@ class OrganizationTraceItemQueryValidatorEndpointTest(APITestCase, BaseSpansTest
             },
         )
         assert response.status_code == 200
-        attributes = response.data["attributes"]
-        assert len(attributes) == 2
-        for f in attributes:
-            assert f["key"] == "span.duration"
-            assert f["valid"] is True
-            assert f["type"] == "number"
+        assert response.data == {
+            "attributes": [{"key": "span.duration", "valid": True, "type": "number"}]
+        }
+
+    def test_duplicate_keys_across_filter_and_aggregate(self):
+        response = self.do_request(
+            query={
+                "itemType": "spans",
+                "query": "span.duration:>100 avg(span.duration):>50",
+            },
+        )
+        assert response.status_code == 200
+        assert response.data == {
+            "attributes": [{"key": "span.duration", "valid": True, "type": "number"}]
+        }
 
     def test_count_if_with_quoted_string_args(self):
         response = self.do_request(

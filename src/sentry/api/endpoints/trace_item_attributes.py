@@ -63,14 +63,28 @@ class OrganizationTraceItemQueryValidatorEndpoint(OrganizationTraceItemAttribute
             return Response({"detail": str(e)}, status=400)
 
         response_data: list[dict[str, object]] = []
-        for sf in query_context.where_terms:
-            result = key_results.get(sf.key.name, {"valid": False, "error": "Unknown attribute"})
+        seen_attributes: set[tuple[str, str | None]] = set()
+
+        def append_result(key: str, valid: bool, attribute_type: str | None) -> None:
+            dedupe_key = (key, attribute_type)
+            if dedupe_key in seen_attributes:
+                return
+
+            seen_attributes.add(dedupe_key)
             response_data.append(
                 {
-                    "key": sf.key.name,
-                    "valid": result["valid"],
-                    "type": result.get("type") if result["valid"] else None,
+                    "key": key,
+                    "valid": valid,
+                    "type": attribute_type if valid else None,
                 }
+            )
+
+        for sf in query_context.where_terms:
+            result = key_results.get(sf.key.name, {"valid": False, "error": "Unknown attribute"})
+            append_result(
+                sf.key.name,
+                result["valid"],
+                result.get("type") if result["valid"] else None,
             )
 
         for af in query_context.having_terms:
@@ -85,12 +99,10 @@ class OrganizationTraceItemQueryValidatorEndpoint(OrganizationTraceItemAttribute
                     all_valid = False
 
             primary_result = key_results.get(func_keys[0], {})
-            response_data.append(
-                {
-                    "key": func_keys[0],
-                    "valid": all_valid,
-                    "type": primary_result.get("type") if all_valid else None,
-                }
+            append_result(
+                func_keys[0],
+                all_valid,
+                primary_result.get("type") if all_valid else None,
             )
 
         return Response({"attributes": response_data})

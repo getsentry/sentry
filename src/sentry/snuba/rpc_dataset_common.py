@@ -215,15 +215,18 @@ class RPCBase:
                 }
 
         if unknown_attrs:
-            attrs_by_type: dict[AttributeKey.Type.ValueType, list[str]] = {}
+            attrs_by_type: dict[AttributeKey.Type.ValueType, set[str]] = {}
             for _, resolved in unknown_attrs:
-                attrs_by_type.setdefault(resolved.proto_type, []).append(resolved.internal_name)
+                attrs_by_type.setdefault(resolved.proto_type, set()).add(resolved.internal_name)
 
             with handle_query_errors():
                 existing = _check_attributes_exist(
                     resolver,
                     item_type,
-                    attrs_by_type,
+                    {
+                        attr_type: sorted(attribute_names)
+                        for attr_type, attribute_names in attrs_by_type.items()
+                    },
                     referrer=referrer,
                 )
 
