@@ -114,7 +114,7 @@ function AuthTokenCreateForm({
         >
           <div>
             <div>org:ci</div>
-            <ScopeHelpText>{t('Source Map Upload, Release Creation')}</ScopeHelpText>
+            <ScopeHelpText>{t('Source Map Upload, Release Creation, Code Mappings')}</ScopeHelpText>
           </div>
         </FieldGroup>
       </form.FieldGroup>
