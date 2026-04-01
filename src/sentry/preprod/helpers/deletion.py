@@ -130,6 +130,8 @@ def _collect_snapshot_objectstore_keys(
         if not manifest_key:
             continue
 
+        # Image keys are content-addressed and shared across snapshots;
+        # only delete the manifest, not images (they expire via 30-day TTL).
         keys.append((org_id, project_id, manifest_key))
 
     for comp in PreprodSnapshotComparison.objects.filter(
