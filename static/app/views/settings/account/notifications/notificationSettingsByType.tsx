@@ -46,6 +46,9 @@ const typeMappedChildren: Record<string, string[]> = {
   quota: QUOTA_FIELDS.map(field => field.name),
 };
 
+// Ideally, we could just use SUPPORTED_PROVIDERS here, but 'msteams' is not widely tested.
+const ALLOWED_PROVIDERS = new Set(SUPPORTED_PROVIDERS.filter(p => p.includes('slack')));
+
 const getQueryParams = (notificationType: string) => {
   // if we need multiple settings on this page
   // then omit the type so we can load all settings
@@ -91,7 +94,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
     {staleTime: 30_000}
   );
   const identities = allIdentities.filter(identity =>
-    SUPPORTED_PROVIDERS.includes(identity?.identityProvider?.type as SupportedProviders)
+    ALLOWED_PROVIDERS.has(identity?.identityProvider?.type as SupportedProviders)
   );
 
   const {data: allOrgIntegrations = [], status: organizationIntegrationStatus} =
@@ -100,7 +103,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       {staleTime: 30_000}
     );
   const organizationIntegrations = allOrgIntegrations.filter(orgIntegration =>
-    SUPPORTED_PROVIDERS.includes(orgIntegration.provider.key as SupportedProviders)
+    ALLOWED_PROVIDERS.has(orgIntegration.provider.key as SupportedProviders)
   );
   const {data: defaultSettings, status: defaultSettingsStatus} =
     useApiQuery<DefaultSettings>([getApiUrl('/notification-defaults/')], {
