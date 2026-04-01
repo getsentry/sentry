@@ -239,7 +239,7 @@ function SearchComboBox(props: SearchComboBoxProps) {
             hasSearch={!!state.inputValue}
             overlayIsOpen={state.isOpen}
             {...listBoxProps}
-            style={{maxHeight: 320, minHeight: 132}}
+            style={{maxHeight: 320, minHeight: 64}}
           >
             {props.children}
           </ListBox>
