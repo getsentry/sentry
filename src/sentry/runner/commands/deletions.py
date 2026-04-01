@@ -106,6 +106,7 @@ def run_deletions(
         )
         from sentry.silo.base import SiloLimit
 
+        model_cls: type[BaseScheduledDeletion]
         if cell_deletion_id:
             model_cls, target_id = CellScheduledDeletion, cell_deletion_id
         else:
@@ -114,7 +115,11 @@ def run_deletions(
 
         try:
             deletion = model_cls.objects.get(id=target_id)
-        except (model_cls.DoesNotExist, SiloLimit.AvailabilityError):
+        except (
+            ScheduledDeletion.DoesNotExist,
+            CellScheduledDeletion.DoesNotExist,
+            SiloLimit.AvailabilityError,
+        ):
             click.echo(f"Deletion with ID {target_id} not found in {model_cls.__name__}.")
             return
         _run_one(deletion=deletion, verbose=verbose)
