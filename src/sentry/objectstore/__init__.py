@@ -61,6 +61,7 @@ class SentryMetricsBackend(MetricsBackend):
 
 
 _OBJECTSTORE_CLIENT: Client | None = None
+_ATTACHMENTS_USECASE: Usecase | None = None
 _PREPROD_USECASE = Usecase("preprod", expiration_policy=TimeToLive(timedelta(days=30)))
 
 
