@@ -12,9 +12,11 @@ from sentry_protos.billing.v1.services.usage.v1.endpoint_usage_pb2 import (
 from snuba_sdk import Column, Function, Op
 
 from sentry.billing.platform.services.usage._outcomes_query import (
+    _BILLABLE_OUTCOMES,
     _build_query,
     _build_response,
     _over_quota_condition,
+    _total_function,
     query_outcomes_usage,
 )
 from sentry.utils.outcomes import Outcome
@@ -224,7 +226,9 @@ class TestBuildQuery:
         start = datetime(2025, 3, 1, tzinfo=timezone.utc)
         end = datetime(2025, 3, 31, tzinfo=timezone.utc)
 
-        snuba_request = _build_query(org_id=1, start=start, end=end, categories=[])
+        snuba_request = _build_query(
+            org_id=1, start=start, end=end, categories=[], total_outcomes=_BILLABLE_OUTCOMES
+        )
 
         select = snuba_request.query.select
         total_fn = next(f for f in select if isinstance(f, Function) and f.alias == "total")
@@ -243,6 +247,29 @@ class TestBuildQuery:
             Outcome.FILTERED,
             Outcome.RATE_LIMITED,
         }
+
+    def test_build_query_total_all_outcomes_when_none(self):
+        start = datetime(2025, 3, 1, tzinfo=timezone.utc)
+        end = datetime(2025, 3, 31, tzinfo=timezone.utc)
+
+        snuba_request = _build_query(
+            org_id=1, start=start, end=end, categories=[], total_outcomes=None
+        )
+
+        select = snuba_request.query.select
+        total_fn = next(f for f in select if isinstance(f, Function) and f.alias == "total")
+        # No outcome filter — bare sum(quantity) for all outcomes
+        assert total_fn.function == "sum"
+
+    def test_total_function_with_outcomes(self):
+        fn = _total_function(_BILLABLE_OUTCOMES)
+        assert fn.function == "sumIf"
+        assert fn.alias == "total"
+
+    def test_total_function_without_outcomes(self):
+        fn = _total_function(None)
+        assert fn.function == "sum"
+        assert fn.alias == "total"
 
     def test_build_query_select_has_sumif_columns(self):
         start = datetime(2025, 3, 1, tzinfo=timezone.utc)

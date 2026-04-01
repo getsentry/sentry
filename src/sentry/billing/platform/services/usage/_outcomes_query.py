@@ -42,6 +42,11 @@ _DATASET = "outcomes"
 _DAILY_GRANULARITY = 86400
 _QUERY_LIMIT = 10000
 
+# Outcomes stored in PG BillingMetricUsage (getsentry outcomes consumer
+# filters to these three at ingest). The CH outcomes table also has
+# INVALID, ABUSE, CLIENT_DISCARD, and CARDINALITY_LIMITED.
+_BILLABLE_OUTCOMES = [Outcome.ACCEPTED, Outcome.FILTERED, Outcome.RATE_LIMITED]
+
 
 def query_outcomes_usage(request: GetUsageRequest) -> GetUsageResponse:
     org_id = request.organization_id
@@ -55,7 +60,7 @@ def query_outcomes_usage(request: GetUsageRequest) -> GetUsageResponse:
     # (e.g., proto ATTACHMENT=3 vs Relay ATTACHMENT=4). Convert before querying.
     categories = [proto_to_relay_category(c) for c in request.categories]
 
-    snuba_request = _build_query(org_id, start, end, categories)
+    snuba_request = _build_query(org_id, start, end, categories, total_outcomes=_BILLABLE_OUTCOMES)
     result = raw_snql_query(snuba_request, referrer=_REFERRER)
     rows = result["data"]
 
@@ -78,6 +83,8 @@ def _build_query(
     start: datetime,
     end: datetime,
     categories: Sequence[int],
+    *,
+    total_outcomes: Sequence[int] | None = None,
 ) -> Request:
     # Half-open interval [start, end) — standard sentry.snuba.outcomes convention.
     # `end` has already been shifted +1 day in query_outcomes_usage() to convert
@@ -95,27 +102,7 @@ def _build_query(
         select=[
             Column("category"),
             Column("time"),
-            # Only count billable outcomes (ACCEPTED, FILTERED, RATE_LIMITED).
-            # ClickHouse also has INVALID, ABUSE, CLIENT_DISCARD,
-            # CARDINALITY_LIMITED which are not in the PG BillingMetricUsage
-            # table (filtered by getsentry outcomes consumer).
-            Function(
-                "sumIf",
-                [
-                    Column("quantity"),
-                    Function(
-                        "in",
-                        [
-                            Column("outcome"),
-                            Function(
-                                "tuple",
-                                [Outcome.ACCEPTED, Outcome.FILTERED, Outcome.RATE_LIMITED],
-                            ),
-                        ],
-                    ),
-                ],
-                "total",
-            ),
+            _total_function(total_outcomes),
             Function(
                 "sumIf",
                 [Column("quantity"), Function("equals", [Column("outcome"), Outcome.ACCEPTED])],
@@ -214,6 +201,31 @@ def _build_response(rows: list[dict]) -> GetUsageResponse:
         days.append(DailyUsage(date=date, usage=usage))
 
     return GetUsageResponse(days=days, seats=[])
+
+
+def _total_function(outcomes: Sequence[int] | None) -> Function:
+    """Build the ``total`` aggregate.
+
+    When *outcomes* is provided, only those outcome types are counted
+    (billing callers pass ``_BILLABLE_OUTCOMES``).  When ``None``, every
+    outcome is counted (useful for general-purpose usage queries).
+    """
+    if outcomes is None:
+        return Function("sum", [Column("quantity")], "total")
+    return Function(
+        "sumIf",
+        [
+            Column("quantity"),
+            Function(
+                "in",
+                [
+                    Column("outcome"),
+                    Function("tuple", list(outcomes)),
+                ],
+            ),
+        ],
+        "total",
+    )
 
 
 def _over_quota_condition() -> Function:
