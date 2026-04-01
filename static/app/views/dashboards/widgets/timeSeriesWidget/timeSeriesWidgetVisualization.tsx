@@ -247,7 +247,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const axisRangeProp = getAxisRange(props.axisRange) ?? 'auto';
 
-  const yAxisSplitNumber = isShortViewport ? 2 : undefined;
+  const yAxisSplitNumber = isShortViewport ? 2 : 5;
 
   const leftYAxis = TimeSeriesWidgetYAxis(
     {
