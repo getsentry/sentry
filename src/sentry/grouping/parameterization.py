@@ -376,12 +376,15 @@ class Parameterizer:
             # Ensure we're dealing with the flag from the outer scope, rather than shadowing it
             nonlocal found_false_positive
 
-            # Since
-            #   a) our regex consists of a bunch of named capturing groups separated by `|`,
-            #   b) no other capturing groups in the regex are named, and
-            #   c) there's nothing else in the regex,
-            # there should be exactly one named matching group, making the last matching group also
-            # the only matching group.
+            # This handler gets called on two types of regexes:
+            #   - The main/combination regex, which consists of a bunch of named capturing groups
+            #     (with no nested named groups) separated by `|`.
+            #   - Individual regexes for each pattern type, each consisting of one of the
+            #     alternatives in the main regex.
+            # In the former case, only one alternative can have been matched, so its group name will
+            # be the only (and therefore last) matched group name. In the latter case, there is only
+            # one named group to match, so its name will automatically be the only/last matched
+            # group name. Thus `lastgroup` should give us the group name in either case.
             matched_key = match.lastgroup
             orig_value = match.groupdict().get(
                 matched_key or ""  # Empty string for mypy appeasment
