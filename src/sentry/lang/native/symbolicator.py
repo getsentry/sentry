@@ -190,6 +190,7 @@ class Symbolicator:
         if minidump.stored_id:
             session = get_attachments_session(self.project.organization_id, self.project.id)
             storage_url = get_symbolicator_url(session, minidump.stored_id)
+            storage_token = session.mint_token()
             json: dict[str, Any] = {
                 "platform": platform,
                 "sources": sources,
@@ -198,6 +199,7 @@ class Symbolicator:
                 "symbolicate": {
                     "type": "minidump",
                     "storage_url": storage_url,
+                    "storage_token": storage_token,
                     "rewrite_first_module": rewrite_first_module,
                 },
             }
@@ -223,6 +225,7 @@ class Symbolicator:
         if report.stored_id:
             session = get_attachments_session(self.project.organization_id, self.project.id)
             storage_url = get_symbolicator_url(session, report.stored_id)
+            storage_token = session.mint_token()
             json: dict[str, Any] = {
                 "platform": platform,
                 "sources": sources,
@@ -231,6 +234,7 @@ class Symbolicator:
                 "symbolicate": {
                     "type": "applecrashreport",
                     "storage_url": storage_url,
+                    "storage_token": storage_token,
                 },
             }
             res = self._process("process_applecrashreport", "symbolicate-any", json=json)
