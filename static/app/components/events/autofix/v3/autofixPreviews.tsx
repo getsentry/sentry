@@ -1,4 +1,5 @@
 import {useMemo, type ReactNode} from 'react';
+import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
@@ -20,6 +21,7 @@ import {
   isSolutionArtifact,
   type AutofixSection,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconOpen} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
@@ -42,7 +44,10 @@ export function RootCausePreview({section}: ArtifactPreviewProps) {
   return (
     <ArtifactCard icon={<IconBug />} title={t('Root Cause')}>
       {section.status === 'processing' ? (
-        <Placeholder height="3rem" />
+        <Flex direction="row" gap="md">
+          <StyledLoadingIndicator size={16} />
+          <Text>{t('Finding the root cause\u2026')}</Text>
+        </Flex>
       ) : artifact?.data ? (
         <Text>{artifact.data.one_line_description}</Text>
       ) : (
@@ -65,7 +70,10 @@ export function SolutionPreview({section}: ArtifactPreviewProps) {
   return (
     <ArtifactCard icon={<IconList />} title={t('Plan')}>
       {section.status === 'processing' ? (
-        <Placeholder height="3rem" />
+        <Flex direction="row" gap="md">
+          <StyledLoadingIndicator size={16} />
+          <Text>{t('Formulating a plan\u2026')}</Text>
+        </Flex>
       ) : artifact?.data ? (
         <Text>{artifact.data.one_line_summary}</Text>
       ) : (
@@ -125,7 +133,14 @@ export function CodeChangesPreview({section}: ArtifactPreviewProps) {
 
   return (
     <ArtifactCard icon={<IconCode />} title={t('Code Changes')}>
-      {section.status === 'processing' ? <Placeholder height="1.5rem" /> : summary}
+      {section.status === 'processing' ? (
+        <Flex direction="row" gap="md">
+          <StyledLoadingIndicator size={16} />
+          <Text>{t('Implementing changes\u2026')}</Text>
+        </Flex>
+      ) : (
+        summary
+      )}
     </ArtifactCard>
   );
 }
@@ -228,3 +243,7 @@ function ArtifactCard({children, icon, title}: ArtifactCardProps) {
     </Flex>
   );
 }
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  margin: 0;
+`;
