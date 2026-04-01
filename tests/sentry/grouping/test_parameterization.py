@@ -22,15 +22,19 @@ from sentry.testutils.pytest.mocking import count_matching_calls
 
 standard_cases = [
     ("email", "test@email.com", "<email>"),
-    ("url", "http://some.email.com", "<url>"),
-    ("url - existing behavior", "tcp://user:pass@email.com:10", "tcp://user:<email>:<int>"),
+    ("url - with subdomain", "http://some.email.com", "<url>"),
+    (
+        "url - TCP with username/password",
+        "tcp://user:pass@email.com:10",
+        "tcp://user:<email>:<int>",
+    ),
     ("url - ipv4", "http://11.21.12.31", "<url>"),
     ("url - ipv4 with port", "http://11.21.12.31:12", "<url>"),
     ("url - ipv6", "http://2001:db8::1", "<url>"),
     ("url - ipv6 with port", "http://[2001:db8::1]:80", "<url>"),
-    ("hostname - tld", "example.com", "<hostname>"),
-    ("hostname - subdomain", "www.example.net", "<hostname>"),
-    ("ip", "0.0.0.0", "<ip>"),
+    ("hostname - no subdomain", "example.com", "<hostname>"),
+    ("hostname - with subdomain", "www.example.net", "<hostname>"),
+    ("ip - v4", "0.0.0.0", "<ip>"),
     ("ip - v6 unspecified", "::", "<ip>"),
     ("ip - v6 loopback", "::1", "<ip>"),
     ("ip - v6 full", "1121:0c03:1231:130d:0000:16da:0908:da07", "<ip>"),
@@ -302,7 +306,7 @@ incorrect_cases = [
         "invoice k9Mtd2gDcgG",
     ),
     (
-        "URL - non-http protocol user/pass/port",
+        "url - non-http protocol with username/password/port",
         "tcp://user:pass@email.com:10 had a problem",
         "<url> had a problem",
         "tcp://user:<email>:<int> had a problem",
