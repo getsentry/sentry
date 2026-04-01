@@ -317,6 +317,14 @@ class WorkflowEngineDetectorSerializer(Serializer):
         self.add_created_by(result, list(detectors.values()))
         self.add_owner(result, list(detectors.values()))
 
+        alert_rule_ids_by_detector_id = dict(
+            AlertRuleDetector.objects.filter(detector_id__in=detector_ids).values_list(
+                "detector_id", "alert_rule_id"
+            )
+        )
+        for detector in detectors.values():
+            result[detector]["alert_rule_id"] = alert_rule_ids_by_detector_id.get(detector.id)
+
         # Note: originalAlertRuleId comes from AlertRuleActivity snapshots, which were not
         # migrated to the workflow engine. This field will always be None for detectors.
 
@@ -404,14 +412,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
         if triggers:
             alert_rule_id = triggers[0].get("alertRuleId")
         else:
-            try:
-                alert_rule_id = AlertRuleDetector.objects.values_list(
-                    "alert_rule_id", flat=True
-                ).get(detector=obj)
-            except AlertRuleDetector.DoesNotExist:
-                # this detector does not have an analog in the old system,
-                # but we need to return *something*
-                alert_rule_id = get_fake_id_from_object_id(obj.id)
+            alert_rule_id = attrs.get("alert_rule_id") or get_fake_id_from_object_id(obj.id)
 
         comparison_delta = obj.config.get("comparison_delta")
 

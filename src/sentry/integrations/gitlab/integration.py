@@ -9,9 +9,12 @@ from django import forms
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
+from rest_framework.fields import BooleanField, CharField, URLField
 
 from sentry import features
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.identity.gitlab.provider import GitlabIdentityProvider, get_oauth_data, get_user_info
+from sentry.identity.oauth2 import OAuth2ApiStep
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.base import (
     FeatureDescription,
@@ -37,7 +40,8 @@ from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
-from sentry.pipeline.views.base import PipelineView
+from sentry.pipeline.types import PipelineStepResult
+from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
 from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -393,6 +397,78 @@ class GitlabPRCommentWorkflow(PRCommentWorkflow):
         }
 
 
+class InstallationConfigSerializer(CamelSnakeSerializer):
+    url = URLField(required=False, default="https://gitlab.com")
+    group = CharField(required=False, allow_blank=True, default="")
+    include_subgroups = BooleanField(required=False, default=False)
+    verify_ssl = BooleanField(required=False, default=True)
+    client_id = CharField(required=True)
+    client_secret = CharField(required=True)
+
+
+class InstallationConfigApiStep:
+    """
+    Collects GitLab instance configuration: URL, group path, OAuth
+    credentials, and SSL/subgroup preferences.
+
+    On POST, validates the form data, binds ``installation_data`` and
+    ``oauth_config_information`` to pipeline state, then advances.
+    """
+
+    step_name = "installation_config"
+
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
+        return {
+            "defaults": {
+                "verifySsl": True,
+                "includeSubgroups": False,
+            },
+            "setupValues": [
+                {"label": "Name", "value": "Sentry"},
+                {
+                    "label": "Redirect URI",
+                    "value": absolute_uri("/extensions/gitlab/setup/"),
+                },
+                {"label": "Scopes", "value": "api"},
+            ],
+        }
+
+    def get_serializer_cls(self) -> type:
+        return InstallationConfigSerializer
+
+    def handle_post(
+        self,
+        validated_data: dict[str, Any],
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        # Strip trailing slash from URL (same as InstallationForm.clean_url)
+        validated_data["url"] = validated_data["url"].rstrip("/")
+
+        pipeline.bind_state("installation_data", validated_data)
+
+        pipeline.bind_state(
+            "oauth_config_information",
+            {
+                "access_token_url": f"{validated_data['url']}/oauth/token",
+                "authorize_url": f"{validated_data['url']}/oauth/authorize",
+                "client_id": validated_data["client_id"],
+                "client_secret": validated_data["client_secret"],
+                "verify_ssl": validated_data["verify_ssl"],
+            },
+        )
+
+        pipeline.get_logger().info(
+            "gitlab.setup.installation-config-api-step.success",
+            extra={
+                "base_url": validated_data["url"],
+                "client_id": validated_data["client_id"],
+                "verify_ssl": validated_data["verify_ssl"],
+            },
+        )
+        return PipelineStepResult.advance()
+
+
 class InstallationForm(forms.Form):
     url = forms.CharField(
         label=_("GitLab URL"),
@@ -604,8 +680,35 @@ class GitlabIntegrationProvider(IntegrationProvider):
             lambda: self._make_identity_pipeline_view(),
         )
 
+    def _make_oauth_api_step(self) -> OAuth2ApiStep:
+        oauth_info = self.pipeline._fetch_state("oauth_config_information")
+        if oauth_info is None:
+            raise AssertionError("pipeline called out of order")
+        return OAuth2ApiStep(
+            authorize_url=oauth_info["authorize_url"],
+            client_id=oauth_info["client_id"],
+            client_secret=oauth_info["client_secret"],
+            access_token_url=oauth_info["access_token_url"],
+            scope=" ".join(sorted(GitlabIdentityProvider.oauth_scopes)),
+            redirect_url=absolute_uri("/extensions/gitlab/setup/"),
+            verify_ssl=oauth_info.get("verify_ssl", True),
+            bind_key="oauth_data",
+        )
+
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+        return [
+            InstallationConfigApiStep(),
+            lambda: self._make_oauth_api_step(),
+        ]
+
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
-        data = state["identity"]["data"]
+        # TODO: legacy views write token data to state["identity"]["data"] via
+        # NestedPipelineView. API steps write directly to state["oauth_data"].
+        # Remove the legacy path once the old views are retired.
+        if "oauth_data" in state:
+            data = state["oauth_data"]
+        else:
+            data = state["identity"]["data"]
 
         # Gitlab requires the client_id and client_secret for refreshing the access tokens
         oauth_config = state.get("oauth_config_information", {})

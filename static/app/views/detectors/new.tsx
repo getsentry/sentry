@@ -2,12 +2,14 @@ import {useTheme} from '@emotion/react';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -43,8 +45,6 @@ export default function DetectorNew() {
   const [detectorType] = useDetectorTypeQueryState();
   const [projectId] = useQueryState('project', parseAsString);
 
-  const newMonitorName = t('New Monitor');
-
   const formProps = {
     onSubmit: () => {
       navigate({
@@ -62,12 +62,21 @@ export default function DetectorNew() {
 
   return (
     <EditLayout formProps={formProps}>
-      <SentryDocumentTitle title={newMonitorName} />
-
+      <SentryDocumentTitle title={t('New Monitor')} />
       <EditLayout.Header maxWidth={maxWidth}>
         <EditLayout.HeaderContent>
           <NewDetectorBreadcrumbs />
-          <EditLayout.Title title={newMonitorName} />
+          <EditLayout.Title title={t('Select monitor type')} />
+          <Text as="p" size="md" variant="muted">
+            {tct(
+              'Monitors detect problems in your application and send alerts when they occur. [docsLink:Read the Docs].',
+              {
+                docsLink: (
+                  <ExternalLink href="https://docs.sentry.io/product/new-monitors-and-alerts/monitors/" />
+                ),
+              }
+            )}
+          </Text>
         </EditLayout.HeaderContent>
         <div>
           <MonitorFeedbackButton />
