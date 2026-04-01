@@ -212,7 +212,11 @@ def delete_artifacts_and_eap_data(
             files_deleted=0,
         )
 
-    objectstore_keys_deleted = _delete_snapshot_objectstore_data(preprod_artifacts)
+    try:
+        objectstore_keys_deleted = _delete_snapshot_objectstore_data(preprod_artifacts)
+    except Exception:
+        logger.exception("preprod.cleanup.snapshot_objectstore_data_failed")
+        objectstore_keys_deleted = 0
 
     result = bulk_delete_artifacts(preprod_artifacts)
     result.objectstore_keys_deleted = objectstore_keys_deleted
