@@ -494,9 +494,10 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 /src/sentry/runner/commands/createproject.py                         @getsentry/ecosystem
 /src/sentry/runner/commands/createorg.py                             @getsentry/ecosystem
+/src/sentry/runner/commands/deletions.py                             @getsentry/ecosystem
 /tests/sentry/runner/commands/test_createproject.py                  @getsentry/ecosystem
 /tests/sentry/runner/commands/test_createorg.py                      @getsentry/ecosystem
-
+/tests/sentry/runner/commands/test_deletions.py                      @getsentry/ecosystem
 ## End of Integrations
 
 
