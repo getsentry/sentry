@@ -63,10 +63,6 @@ class PutfileResult:
     blob_path: str | None = None
 
 
-def _default_date_expires() -> datetime:
-    return timezone.now() + timedelta(days=default_attachment_retention())
-
-
 def can_store_inline(data: bytes) -> bool:
     """
     Determines whether `data` can be stored inline
@@ -109,7 +105,6 @@ class EventAttachment(Model):
 
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
     date_expires = models.DateTimeField(
-        default=_default_date_expires,
         db_default=DATE_EXPIRES_SENTINEL,
         db_index=True,
     )
@@ -126,6 +121,13 @@ class EventAttachment(Model):
         )
 
     __repr__ = sane_repr("event_id", "name")
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        # Computed here rather than as a field default to avoid freezing a callable
+        # reference into migrations, which would break if the function is ever renamed.
+        if self.date_expires is None:
+            self.date_expires = timezone.now() + timedelta(days=default_attachment_retention())
+        super().save(*args, **kwargs)
 
     def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         rv = super().delete(*args, **kwargs)

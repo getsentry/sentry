@@ -2,7 +2,6 @@
 
 import datetime
 
-import sentry.models.eventattachment
 from django.db import migrations, models
 
 from sentry.new_migrations.migrations import CheckedMigration
@@ -33,7 +32,6 @@ class Migration(CheckedMigration):
             name="date_expires",
             field=models.DateTimeField(
                 db_default=datetime.datetime(1970, 1, 1, 0, 0, tzinfo=datetime.timezone.utc),
-                default=sentry.models.eventattachment._default_date_expires,
             ),
         ),
     ]
