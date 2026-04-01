@@ -10,7 +10,7 @@ from django.test import override_settings
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.buffer import Span, SpansBuffer
-from sentry.spans.consumers.process.flusher import MultiProducer, SpanFlusher, _chunk_segment
+from sentry.spans.consumers.process.flusher import MultiProducer, SpanFlusher
 from sentry.testutils.helpers.options import override_options
 from tests.sentry.spans.test_buffer import DEFAULT_OPTIONS
 
@@ -216,62 +216,3 @@ def test_flusher_timeout_waiting_for_processes_startup() -> None:
             next_step=Noop(),
             produce_to_pipe=lambda project_id, payload, dropped: None,
         )
-
-
-def test_chunk_segment_under_limit() -> None:
-    spans = [{"span_id": "a"}, {"span_id": "b"}]
-    with override_options({"spans.buffer.max-segment-bytes": 10000}):
-        chunks = _chunk_segment(spans)
-    assert chunks == [spans]
-
-
-def test_chunk_segment_splits_oversized() -> None:
-    # Mirror the segment payload shape used in buffer tests.
-    spans = [
-        {
-            "span_id": "a" * 16,
-            "is_segment": True,
-            "attributes": {"sentry.segment.id": {"type": "string", "value": "a" * 16}},
-        },
-        {
-            "span_id": "b" * 16,
-            "is_segment": False,
-            "attributes": {"sentry.segment.id": {"type": "string", "value": "a" * 16}},
-        },
-        {
-            "span_id": "c" * 16,
-            "is_segment": False,
-            "attributes": {"sentry.segment.id": {"type": "string", "value": "a" * 16}},
-        },
-        {
-            "span_id": "d" * 16,
-            "is_segment": False,
-            "attributes": {"sentry.segment.id": {"type": "string", "value": "a" * 16}},
-        },
-        {
-            "span_id": "e" * 16,
-            "is_segment": False,
-            "attributes": {"sentry.segment.id": {"type": "string", "value": "a" * 16}},
-        },
-    ]
-
-    with override_options({"spans.buffer.max-segment-bytes": 500}):
-        chunks = _chunk_segment(spans)
-
-    assert len(chunks) == 2
-    assert [len(chunk) for chunk in chunks] == [3, 2]
-
-    all_spans = [span for chunk in chunks for span in chunk]
-    assert all_spans == spans
-
-    for chunk in chunks[:-1]:
-        chunk_size = sum(len(orjson.dumps(s)) for s in chunk)
-        assert chunk_size <= 500
-
-
-def test_chunk_segment_single_large_span() -> None:
-    """A single span larger than max_bytes still gets its own chunk."""
-    spans = [{"span_id": "a" * 16}]
-    with override_options({"spans.buffer.max-segment-bytes": 10}):
-        chunks = _chunk_segment(spans)
-    assert chunks == [spans]

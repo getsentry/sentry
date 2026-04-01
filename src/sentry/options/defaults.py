@@ -3230,7 +3230,7 @@ register(
 )
 # When enabled, oversized segments are split into chunks instead of being dropped.
 register(
-    "spans.buffer.flush-oversized-segments",
+    "spans.buffer.chunk-oversized-segments",
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )

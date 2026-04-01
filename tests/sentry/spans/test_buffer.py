@@ -39,7 +39,7 @@ DEFAULT_OPTIONS = {
     "spans.buffer.debug-traces": [],
     "spans.buffer.evalsha-cumulative-logger-enabled": True,
     "spans.process-segments.schema-validation": 1.0,
-    "spans.buffer.flush-oversized-segments": False,
+    "spans.buffer.chunk-oversized-segments": False,
 }
 
 
@@ -970,7 +970,7 @@ def test_dropped_spans_emit_outcomes(
 
 @mock.patch("sentry.spans.buffer.Project")
 def test_flush_oversized_segments(mock_project_model, buffer: SpansBuffer) -> None:
-    """When flush-oversized-segments is enabled, oversized segments are kept instead of dropped."""
+    """When chunk-oversized-segments is enabled, oversized segments are kept instead of dropped."""
     mock_project = mock.Mock()
     mock_project.id = 1
     mock_project.organization_id = 100
@@ -1023,7 +1023,7 @@ def test_flush_oversized_segments(mock_project_model, buffer: SpansBuffer) -> No
     ]
 
     with override_options(
-        {"spans.buffer.max-segment-bytes": 100, "spans.buffer.flush-oversized-segments": True}
+        {"spans.buffer.max-segment-bytes": 100, "spans.buffer.chunk-oversized-segments": True}
     ):
         buffer.process_spans(batch1, now=0)
         buffer.process_spans(batch2, now=0)
@@ -1048,6 +1048,120 @@ def test_flush_oversized_segments(mock_project_model, buffer: SpansBuffer) -> No
             ],
         )
     }
+
+
+def test_to_messages_under_limit(buffer: SpansBuffer) -> None:
+    spans = [{"span_id": "a"}, {"span_id": "b"}]
+    segment = FlushedSegment(
+        queue_key=b"test",
+        spans=[OutputSpan(payload=s) for s in spans],
+        project_id=1,
+    )
+    with override_options(
+        {
+            **DEFAULT_OPTIONS,
+            "spans.buffer.chunk-oversized-segments": True,
+            "spans.buffer.max-segment-bytes": 10000,
+        }
+    ):
+        messages = segment.to_messages()
+    assert len(messages) == 1
+    assert messages[0] == {"spans": spans}
+    assert "skip_enrichment" not in messages[0]
+
+
+def test_to_messages_splits_oversized(buffer: SpansBuffer) -> None:
+    spans = [
+        {
+            "span_id": "a" * 16,
+            "is_segment": True,
+            "attributes": {"sentry.segment.id": {"type": "string", "value": "a" * 16}},
+        },
+        {
+            "span_id": "b" * 16,
+            "is_segment": False,
+            "attributes": {"sentry.segment.id": {"type": "string", "value": "a" * 16}},
+        },
+        {
+            "span_id": "c" * 16,
+            "is_segment": False,
+            "attributes": {"sentry.segment.id": {"type": "string", "value": "a" * 16}},
+        },
+        {
+            "span_id": "d" * 16,
+            "is_segment": False,
+            "attributes": {"sentry.segment.id": {"type": "string", "value": "a" * 16}},
+        },
+        {
+            "span_id": "e" * 16,
+            "is_segment": False,
+            "attributes": {"sentry.segment.id": {"type": "string", "value": "a" * 16}},
+        },
+    ]
+    segment = FlushedSegment(
+        queue_key=b"test",
+        spans=[OutputSpan(payload=s) for s in spans],
+        project_id=1,
+    )
+    with override_options(
+        {
+            **DEFAULT_OPTIONS,
+            "spans.buffer.chunk-oversized-segments": True,
+            "spans.buffer.max-segment-bytes": 500,
+        }
+    ):
+        messages = segment.to_messages()
+
+    assert len(messages) == 2
+    assert [len(m["spans"]) for m in messages] == [3, 2]
+
+    all_spans = [span for m in messages for span in m["spans"]]
+    assert all_spans == spans
+
+    for message in messages:
+        assert message["skip_enrichment"] is True
+
+    for message in messages[:-1]:
+        chunk_size = sum(len(orjson.dumps(s)) for s in message["spans"])
+        assert chunk_size <= 500
+
+
+def test_to_messages_single_large_span(buffer: SpansBuffer) -> None:
+    """A single span larger than max_bytes still gets its own message."""
+    segment = FlushedSegment(
+        queue_key=b"test",
+        spans=[OutputSpan(payload={"span_id": "a" * 16})],
+        project_id=1,
+    )
+    with override_options(
+        {
+            **DEFAULT_OPTIONS,
+            "spans.buffer.chunk-oversized-segments": True,
+            "spans.buffer.max-segment-bytes": 10,
+        }
+    ):
+        messages = segment.to_messages()
+    assert len(messages) == 1
+    assert messages[0]["skip_enrichment"] is True
+
+
+def test_to_messages_no_chunking_when_option_disabled(buffer: SpansBuffer) -> None:
+    """When chunk-oversized-segments is disabled, always returns a single message."""
+    segment = FlushedSegment(
+        queue_key=b"test",
+        spans=[OutputSpan(payload={"span_id": "a" * 16})],
+        project_id=1,
+    )
+    with override_options(
+        {
+            **DEFAULT_OPTIONS,
+            "spans.buffer.chunk-oversized-segments": False,
+            "spans.buffer.max-segment-bytes": 10,
+        }
+    ):
+        messages = segment.to_messages()
+    assert len(messages) == 1
+    assert "skip_enrichment" not in messages[0]
 
 
 def test_kafka_slice_id(buffer: SpansBuffer) -> None:
