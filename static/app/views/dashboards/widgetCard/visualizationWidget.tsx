@@ -529,7 +529,7 @@ function NegativeCurrencyValue({
       skipWrapper
     >
       <NegativeCostWrapper>
-        <IconWarning size="sm" variant="warning" />
+        <IconWarning legacySize="1em" variant="warning" />
         {formatBreakdownLegendValue(value, dataType, dataUnit)}
       </NegativeCostWrapper>
     </Tooltip>

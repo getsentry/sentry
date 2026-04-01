@@ -33,7 +33,7 @@ export function CurrencyCell({value}: Props) {
           skipWrapper
         >
           <NegativeCostWrapper>
-            <IconWarning size="sm" variant="warning" />
+            <IconWarning legacySize="1em" variant="warning" />
             {formatDollars(value)}
           </NegativeCostWrapper>
         </Tooltip>
