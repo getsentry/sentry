@@ -240,13 +240,14 @@ class IntegrationRepositoryProvider:
         self,
         configs: list[RepositoryInputConfig],
         organization: RpcOrganization,
-    ):
+    ) -> list[RpcRepository]:
         external_id_to_repo_config: dict[str, RepositoryConfig] = {}
         for config in configs:
             result = self.build_repository_config(organization=organization, data=config)
             external_id_to_repo_config[result["external_id"]] = result
 
         repos_to_update: list[RpcRepository] = []
+        created_repos: list[RpcRepository] = []
 
         hidden_repos = repository_service.get_repositories(
             organization_id=organization.id,
@@ -272,6 +273,7 @@ class IntegrationRepositoryProvider:
                 organization_id=organization.id, create=create_repository
             )
             if new_repository is not None:
+                created_repos.append(new_repository)
                 continue
 
             missing_repos.append(repo_config)
@@ -301,6 +303,8 @@ class IntegrationRepositoryProvider:
 
         if missing_repos:
             raise RepoExistsError(repos=missing_repos)
+
+        return created_repos + repos_to_update
 
     def dispatch(self, request: Request, organization, **kwargs):
         try:
