@@ -727,31 +727,33 @@ def merge_users_for_model_in_org(
     user_refs = {k for k, v in model_relations.foreign_keys.items() if v.model == User}
     for_this_org = _get_org_scope_condition(model_relations, organization_id)
 
+    # model_relations.uniques only contains fields, and needs to be json encodable.
+    unique_constraints: list[tuple[frozenset[str], Q]] = []
+    for unique_fields in model._meta.unique_together:
+        unique_constraints.append((frozenset(unique_fields), Q()))
+    for constraint in model._meta.constraints:
+        if not isinstance(constraint, UniqueConstraint):
+            continue
+        unique_constraints.append((frozenset(constraint.fields), constraint.condition or Q()))
+
     for user_ref in user_refs:
         # For any unique constraint that includes a user/user_id field, delete rows that would
         # collide after reassignment before doing the update.
-        user_uniques = [u for u in model_relations.uniques if user_ref in u]
-        for unique_fields in user_uniques:
-            other_fields = list(unique_fields - {user_ref})
+        user_uniques = [u for u in unique_constraints if user_ref in u[0]]
+        for user_constraint in user_uniques:
+            other_fields = list(user_constraint[0] - {user_ref})
             if not other_fields:
                 # user_ref is unique on its own, delete from_user row so that
                 # updates of to_user -> from_user don't conflict.
-                model.objects.filter(for_this_org, **{user_ref: from_user_id}).delete()
-            elif len(other_fields) == 1:
-                (other_field,) = other_fields
-                colliding = model.objects.filter(for_this_org, **{user_ref: to_user_id}).values(
-                    other_field
-                )
                 model.objects.filter(
-                    for_this_org,
-                    **{user_ref: from_user_id, f"{other_field}__in": colliding},
+                    for_this_org, user_constraint[1], **{user_ref: from_user_id}
                 ).delete()
             else:
-                for matching in model.objects.filter(for_this_org, **{user_ref: to_user_id}).values(
-                    *other_fields
-                ):
+                for matching in model.objects.filter(
+                    for_this_org, user_constraint[1], **{user_ref: to_user_id}
+                ).values(*other_fields):
                     model.objects.filter(
-                        for_this_org, **{user_ref: from_user_id}, **matching
+                        for_this_org, user_constraint[1], **{user_ref: from_user_id}, **matching
                     ).delete()
 
         model.objects.filter(for_this_org & Q(**{user_ref: from_user_id})).update(
