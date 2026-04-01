@@ -406,6 +406,13 @@ def get_org_default_seer_automation_handoff(
         "sentry:default_automated_run_stopping_point", SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
     )
 
+    # Guard against stored values that are no longer valid.
+    valid_stopping_points = {"code_changes", "open_pr"}
+    if features.has("organizations:seer-overview", organization):
+        valid_stopping_points.add("root_cause")
+    if stopping_point not in valid_stopping_points:
+        stopping_point = SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+
     auto_open_prs = organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT)
 
     automation_handoff: SeerAutomationHandoffConfiguration | None = None

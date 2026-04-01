@@ -601,6 +601,18 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         return attrs
 
+    def _get_default_stopping_point(self, obj: Organization) -> str:
+        stopping_point = obj.get_option(
+            "sentry:default_automated_run_stopping_point",
+            SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+        )
+        valid_stopping_points = {"code_changes", "open_pr"}
+        if features.has("organizations:seer-overview", obj):
+            valid_stopping_points.add("root_cause")
+        if stopping_point not in valid_stopping_points:
+            return SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+        return stopping_point
+
     def serialize(  # type: ignore[override]
         self,
         obj: Organization,
@@ -741,10 +753,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             "defaultCodingAgentIntegrationId": obj.get_option(
                 "sentry:seer_default_coding_agent_integration_id", None
             ),
-            "defaultAutomatedRunStoppingPoint": obj.get_option(
-                "sentry:default_automated_run_stopping_point",
-                SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
-            ),
+            "defaultAutomatedRunStoppingPoint": self._get_default_stopping_point(obj),
             "autoOpenPrs": bool(
                 obj.get_option(
                     "sentry:auto_open_prs",
