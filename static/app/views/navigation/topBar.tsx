@@ -1,4 +1,4 @@
-import {createContext, useContext, useEffect, useMemo, useReducer} from 'react';
+import {createContext, useContext, useLayoutEffect, useMemo, useReducer} from 'react';
 import type {ReactNode} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
@@ -182,10 +182,10 @@ interface SlotProps {
 
 function makeSlotOutlet(name: TopBarSlots) {
   function Slot({children}: SlotProps) {
-    const organization = useOrganization({allowNull: true});
     const [value, dispatch] = useTopBarSlotContext();
+    const hasPageFrame = useHasPageFrameFeature();
 
-    useEffect(() => {
+    useLayoutEffect(() => {
       dispatch({type: 'increment counter', name});
       return () => {
         dispatch({type: 'decrement counter', name});
@@ -194,7 +194,7 @@ function makeSlotOutlet(name: TopBarSlots) {
 
     // If the organization doesn't have the page frame feature,
     // then render the children in their natural JSX position
-    if (!organization?.features.includes('page-frame')) {
+    if (!hasPageFrame) {
       return children;
     }
 
