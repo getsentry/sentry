@@ -26,10 +26,7 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {getSavedFiltersAsPageFilters} from 'sentry/views/dashboards/utils';
-import {
-  LLMContextProvider,
-  useLLMContext,
-} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
 
 import {WidgetLegendSelectionState} from './widgetLegendSelectionState';
@@ -37,10 +34,6 @@ import {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
 }));
-
-// Wrap all renders in LLMContextProvider since Dashboard is now wrapped with registerLLMContext
-const renderWithLLMContext: typeof render = (ui, options) =>
-  render(ui, {...options, additionalWrapper: LLMContextProvider});
 
 describe('Dashboards > Dashboard', () => {
   const organization = OrganizationFixture({
@@ -164,7 +157,7 @@ describe('Dashboards > Dashboard', () => {
   });
 
   it('fetches tags', () => {
-    renderWithLLMContext(
+    render(
       <Dashboard
         dashboard={mockDashboard}
         onUpdate={() => undefined}
@@ -181,7 +174,7 @@ describe('Dashboards > Dashboard', () => {
   it('dashboard adds new widget if component is mounted with newWidget prop', async () => {
     const mockHandleAddCustomWidget = jest.fn();
     const mockCallbackToUnsetNewWidget = jest.fn();
-    renderWithLLMContext(
+    render(
       <Dashboard
         dashboard={mockDashboard}
         isEditingDashboard={false}
@@ -201,7 +194,7 @@ describe('Dashboards > Dashboard', () => {
   it('dashboard adds new widget if component updated with newWidget prop', async () => {
     const mockHandleAddCustomWidget = jest.fn();
     const mockCallbackToUnsetNewWidget = jest.fn();
-    const {rerender} = renderWithLLMContext(
+    const {rerender} = render(
       <Dashboard
         dashboard={mockDashboard}
         isEditingDashboard={false}
@@ -237,7 +230,7 @@ describe('Dashboards > Dashboard', () => {
   it('dashboard does not try to add new widget if no newWidget', () => {
     const mockHandleAddCustomWidget = jest.fn();
     const mockCallbackToUnsetNewWidget = jest.fn();
-    renderWithLLMContext(
+    render(
       <Dashboard
         dashboard={mockDashboard}
         isEditingDashboard={false}
@@ -273,7 +266,7 @@ describe('Dashboards > Dashboard', () => {
       ],
     };
 
-    renderWithLLMContext(
+    render(
       <MEPSettingProvider forceTransactions={false}>
         <Dashboard
           dashboard={dashboardWithOneWidget}
@@ -332,7 +325,7 @@ describe('Dashboards > Dashboard', () => {
       ],
     };
 
-    renderWithLLMContext(
+    render(
       <MEPSettingProvider forceTransactions={false}>
         <Dashboard
           dashboard={dashboardWithOneWidget}
@@ -376,7 +369,7 @@ describe('Dashboards > Dashboard', () => {
     });
 
     const mount = (dashboard: DashboardDetails) => {
-      renderWithLLMContext(
+      render(
         <MEPSettingProvider forceTransactions={false}>
           <Dashboard
             dashboard={dashboard}
@@ -564,7 +557,7 @@ describe('Dashboards > Dashboard', () => {
 
         // No interval in the URL — the 5m default is derived purely from the
         // dashboard's saved 24h period via PageFiltersStore → useChartInterval.
-        const {router} = renderWithLLMContext(<DashboardWithIntervalSelector />, {
+        const {router} = render(<DashboardWithIntervalSelector />, {
           organization: orgWithFlag,
           initialRouterConfig: {location: {pathname: '/'}},
         });
@@ -606,7 +599,7 @@ describe('Dashboards > Dashboard', () => {
           match: [MockApiClient.matchQuery({interval: '1h'})],
         });
 
-        const {router} = renderWithLLMContext(<DashboardWithIntervalSelector />, {
+        const {router} = render(<DashboardWithIntervalSelector />, {
           organization: orgWithFlag,
           initialRouterConfig: {location: {pathname: '/', query: {interval: '30m'}}},
         });
@@ -653,13 +646,10 @@ describe('Dashboards > Dashboard', () => {
         });
 
         // 5m is in the URL but is not a valid interval for a 30d window.
-        renderWithLLMContext(
-          <DashboardWithIntervalSelector dashboard={thirtyDayDashboard} />,
-          {
-            organization: orgWithFlag,
-            initialRouterConfig: {location: {pathname: '/', query: {interval: '5m'}}},
-          }
-        );
+        render(<DashboardWithIntervalSelector dashboard={thirtyDayDashboard} />, {
+          organization: orgWithFlag,
+          initialRouterConfig: {location: {pathname: '/', query: {interval: '5m'}}},
+        });
 
         await screen.findByText('Test Spans Widget');
 
@@ -704,13 +694,10 @@ describe('Dashboards > Dashboard', () => {
           match: [MockApiClient.matchQuery({interval: '5m'})],
         });
 
-        renderWithLLMContext(
-          <DashboardWithIntervalSelector dashboard={thirtyDayReleaseDashboard} />,
-          {
-            organization: orgWithFlag,
-            initialRouterConfig: {location: {pathname: '/', query: {interval: '5m'}}},
-          }
-        );
+        render(<DashboardWithIntervalSelector dashboard={thirtyDayReleaseDashboard} />, {
+          organization: orgWithFlag,
+          initialRouterConfig: {location: {pathname: '/', query: {interval: '5m'}}},
+        });
 
         await screen.findByText('Test Releases Widget');
 
@@ -746,7 +733,7 @@ describe('Dashboards > Dashboard', () => {
           />
         </MEPSettingProvider>
       );
-      const {rerender} = renderWithLLMContext(getDashboardComponent(), {
+      const {rerender} = render(getDashboardComponent(), {
         organization: initialData.organization,
       });
       return {rerender: () => rerender(getDashboardComponent())};
@@ -865,7 +852,7 @@ describe('Dashboards > Dashboard', () => {
 
     // URL has release= but no globalFilter — saved global filters must still
     // be applied to the widget data request.
-    renderWithLLMContext(
+    render(
       <MEPSettingProvider forceTransactions={false}>
         <Dashboard
           dashboard={dashboardWithGlobalFilters}
@@ -902,7 +889,7 @@ describe('Dashboards > Dashboard', () => {
       return null;
     }
 
-    renderWithLLMContext(
+    render(
       <div>
         <Dashboard
           dashboard={{...mockDashboard, title: 'LLM Test Dashboard'}}
