@@ -22,6 +22,8 @@ from sentry.testutils.pytest.mocking import count_matching_calls
 
 standard_cases = [
     ("email", "maisey@dogsaregreat.com", "<email>"),
+    ("email - with period", "maisey.thedog@dogsaregreat.com", "<email>"),
+    ("email - with plus sign", "maisey+thedog@dogsaregreat.com", "<email>"),
     ("url - with subdomain", "http://dogs.squirrelchasers.net", "<url>"),
     ("url - with username/password", "http://charlie:s3cretSqu1rrel@dogsaregreat.com:10", "<url>"),
     ("url - ipv4", "http://11.21.12.31", "<url>"),
