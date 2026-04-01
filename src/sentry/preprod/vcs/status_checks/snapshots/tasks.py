@@ -215,6 +215,10 @@ def create_preprod_snapshot_status_check_task(
 
         for artifact in all_artifacts:
             if changes_map.get(artifact.id, False) and artifact.id not in approvals_map:
+                # exists()+create() instead of get_or_create: no unique constraint
+                # on this model, so duplicates from races are harmless (cleaned
+                # up by filter().delete()), while get_or_create would crash with
+                # MultipleObjectsReturned if duplicates already exist.
                 if not PreprodComparisonApproval.objects.filter(
                     preprod_artifact=artifact,
                     preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
