@@ -19,7 +19,6 @@ import {
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
-import {ScmRepoTreeModal} from 'sentry/components/repositories/scmRepoTreeModal';
 import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
 import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
 import {IconAdd} from 'sentry/icons';
@@ -161,7 +160,10 @@ export function SeerRepoTable() {
         <Button
           priority="primary"
           icon={<IconAdd />}
-          onClick={() => {
+          onClick={async () => {
+            const {ScmRepoTreeModal} =
+              await import('sentry/components/repositories/scmRepoTreeModal');
+
             openModal(
               deps => <ScmRepoTreeModal {...deps} title={t('Add Repository')} />,
               {

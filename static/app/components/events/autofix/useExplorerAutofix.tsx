@@ -601,18 +601,21 @@ export function useExplorerAutofix(
   const createPR = useCallback(
     async (runId: number, repoName?: string) => {
       try {
+        const data: Record<string, any> = {
+          step: 'open_pr',
+          run_id: runId,
+        };
+        if (repoName) {
+          data.repo_name = repoName;
+        }
         await api.requestPromise(
-          getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-update/$runId/', {
-            path: {organizationIdOrSlug: orgSlug, runId},
+          getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
+            path: {organizationIdOrSlug: orgSlug, issueId: groupId},
           }),
           {
             method: 'POST',
-            data: {
-              payload: {
-                type: 'create_pr',
-                repo_name: repoName,
-              },
-            },
+            query: {mode: 'explorer'},
+            data,
           }
         );
 
@@ -791,4 +794,45 @@ export function useExplorerAutofix(
      */
     triggerCodingAgentHandoff,
   };
+}
+
+export function collectPatches(
+  patches: ExplorerFilePatch[]
+): Map<string, ExplorerFilePatch[]> {
+  const patchesByRepo = new Map<string, ExplorerFilePatch[]>();
+
+  for (const patch of patches) {
+    const existing = patchesByRepo.get(patch.repo_name) || [];
+    existing.push(patch);
+    patchesByRepo.set(patch.repo_name, existing);
+  }
+
+  for (const [repoName, repoPatches] of patchesByRepo) {
+    const cleanedPatches = cleanPatches(repoPatches);
+    if (cleanedPatches.length) {
+      patchesByRepo.set(repoName, cleanedPatches);
+    } else {
+      patchesByRepo.delete(repoName);
+    }
+  }
+
+  return patchesByRepo;
+}
+
+function cleanPatches(patches: ExplorerFilePatch[]): ExplorerFilePatch[] {
+  const cleanedPatches: ExplorerFilePatch[] = [];
+
+  const patchedFiles = new Set<string>();
+
+  patches.toReversed().forEach(patch => {
+    if (patchedFiles.has(patch.patch.path)) {
+      return;
+    }
+    patchedFiles.add(patch.patch.path);
+    cleanedPatches.push(patch);
+  });
+
+  return cleanedPatches.reverse().filter(patch => {
+    return patch.patch.added > 0 || patch.patch.removed > 0;
+  });
 }

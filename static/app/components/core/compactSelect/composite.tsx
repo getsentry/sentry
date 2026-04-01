@@ -4,10 +4,12 @@ import {FocusScope} from '@react-aria/focus';
 import {Item} from '@react-stately/collections';
 import type {DistributedOmit} from 'type-fest';
 
+import {type ButtonProps} from '@sentry/scraps/button';
+
 import {t} from 'sentry/locale';
 
+import {ClearButton, Control} from './control';
 import type {ControlProps} from './control';
-import {Control} from './control';
 import type {MultipleListProps, SingleListProps} from './list';
 import {List} from './list';
 import {EmptyMessage} from './styles';
@@ -116,6 +118,16 @@ CompositeSelect.Region = function <Value extends SelectKey>(
   // and composable child to `CompositeSelect`. `CompositeSelect` iterates over all child
   // instances of `CompositeSelect.Region` and renders `Region` with the specified props.
   return null;
+};
+
+CompositeSelect.ClearButton = function CompositeSelectClearButton(
+  props: DistributedOmit<ButtonProps, 'priority' | 'size' | 'children'>
+) {
+  return (
+    <ClearButton size="zero" priority="transparent" {...props}>
+      {t('Clear')}
+    </ClearButton>
+  );
 };
 
 export {CompositeSelect};

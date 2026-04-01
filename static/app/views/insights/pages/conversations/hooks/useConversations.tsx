@@ -72,13 +72,15 @@ export function useConversations() {
   const pageLinks = getResponseHeader?.('Link');
 
   const data = useMemo(() => {
-    return (rawData ?? []).map(({firstInput: rawFirstInput, ...rest}): Conversation => {
-      const firstInput =
-        typeof rawFirstInput === 'string'
-          ? rawFirstInput
-          : (rawFirstInput?.find(content => content.type === 'text')?.text ?? null);
-      return {...rest, firstInput};
-    });
+    return (rawData ?? [])
+      .map(({firstInput: rawFirstInput, ...rest}): Conversation => {
+        const firstInput =
+          typeof rawFirstInput === 'string'
+            ? rawFirstInput
+            : (rawFirstInput?.find(content => content.type === 'text')?.text ?? null);
+        return {...rest, firstInput};
+      })
+      .sort((a, b) => b.endTimestamp - a.endTimestamp);
   }, [rawData]);
 
   return {

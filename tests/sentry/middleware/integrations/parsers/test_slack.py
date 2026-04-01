@@ -129,7 +129,7 @@ class SlackRequestParserTest(TestCase):
         response = parser.get_response()
         mock_slack_task.apply_async.assert_called_once_with(
             kwargs={
-                "region_names": ["us"],
+                "cell_names": ["us"],
                 "payload": create_async_request_payload(request),
                 "response_url": response_url,
             }

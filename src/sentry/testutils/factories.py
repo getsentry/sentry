@@ -378,22 +378,26 @@ def _set_sample_rate_from_error_sampling(normalized_data: MutableMapping[str, An
 class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_organization(name=None, owner=None, region: Cell | str | None = None, **kwargs):
+    def create_organization(name=None, owner=None, cell: Cell | str | None = None, **kwargs):
+        # TODO(cells): Remove once getsentry passes cell everywhere
+        if not cell:
+            cell = kwargs.pop("region", None)
+
         if not name:
             name = petname.generate(2, " ", letters=10).title()
 
         with contextlib.ExitStack() as ctx:
-            if region is None or SiloMode.get_current_mode() == SiloMode.MONOLITH:
-                region_name = get_local_cell().name
+            if cell is None or SiloMode.get_current_mode() == SiloMode.MONOLITH:
+                cell_name = get_local_cell().name
             else:
-                if isinstance(region, Cell):
-                    region_name = region.name
+                if isinstance(cell, Cell):
+                    cell_name = cell.name
                 else:
-                    region_obj = get_cell_by_name(region)  # Verify it exists
-                    region_name = region_obj.name
+                    cell_obj = get_cell_by_name(cell)  # Verify it exists
+                    cell_name = cell_obj.name
 
                 ctx.enter_context(
-                    override_settings(SILO_MODE=SiloMode.CELL, SENTRY_REGION=region_name)
+                    override_settings(SILO_MODE=SiloMode.CELL, SENTRY_REGION=cell_name)
                 )
 
             with outbox_context(flush=False):
@@ -403,7 +407,7 @@ class Factories:
                 # Organization mapping creation relies on having a matching org slug reservation
                 OrganizationSlugReservation(
                     organization_id=org.id,
-                    cell_name=region_name,
+                    cell_name=cell_name,
                     user_id=owner.id if owner else -1,
                     slug=org.slug,
                 ).save(unsafe_write=True)
@@ -430,7 +434,7 @@ class Factories:
             kwds.setdefault("slug", org.slug)
             kwds.setdefault("name", org.name)
             kwds.setdefault("idempotency_key", uuid4().hex)
-            kwds.setdefault("region_name", "na")
+            kwds.setdefault("cell_name", "na")
         return OrganizationMapping.objects.create(**kwds)
 
     @staticmethod

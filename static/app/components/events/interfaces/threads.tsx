@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {CommitRow} from 'sentry/components/commitRow';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
   StacktraceContext,
@@ -396,7 +395,6 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
               <SuspectCommits
                 projectSlug={projectSlug}
                 eventId={event.id}
-                commitRow={CommitRow}
                 group={group}
               />
             </ErrorBoundary>

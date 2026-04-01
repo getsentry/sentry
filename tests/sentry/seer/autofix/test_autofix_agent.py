@@ -1,11 +1,15 @@
 from unittest.mock import MagicMock, patch
 
+import pytest
+from rest_framework.exceptions import PermissionDenied
+
 from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     build_step_prompt,
     generate_autofix_handoff_prompt,
     trigger_autofix_explorer,
     trigger_coding_agent_handoff,
+    trigger_push_changes,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.explorer.client_models import (
@@ -773,6 +777,17 @@ class TestTriggerCodingAgentHandoff(TestCase):
             },
         )
 
+    def test_raises_permission_denied_when_coding_disabled(self):
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        with pytest.raises(PermissionDenied, match="Code generation is disabled"):
+            trigger_coding_agent_handoff(
+                group=self.group,
+                run_id=123,
+                referrer=AutofixReferrer.UNKNOWN,
+                integration_id=456,
+            )
+
     @patch("sentry.seer.autofix.autofix_agent.get_autofix_state")
     @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")
     @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
@@ -865,3 +880,45 @@ class TestTriggerCodingAgentHandoff(TestCase):
         mock_get_autofix_state.assert_not_called()
         repos = mock_client.launch_coding_agents.call_args.kwargs["repos"]
         assert repos[0].branch_name == "release/v2"
+
+
+class TestTriggerPushChanges(TestCase):
+    """Tests for trigger_push_changes function."""
+
+    def setUp(self):
+        super().setUp()
+        self.group = self.create_group(project=self.project)
+
+    def test_raises_permission_denied_when_coding_disabled(self):
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        with pytest.raises(PermissionDenied, match="Code generation is disabled"):
+            trigger_push_changes(
+                group=self.group,
+                run_id=123,
+                referrer=AutofixReferrer.UNKNOWN,
+            )
+
+    @patch("sentry.seer.explorer.client.make_explorer_update_request")
+    def test_passes_correct_pr_description_suffix(self, mock_post):
+        """push_changes is called with pr_description_suffix matching the group's qualified short id."""
+        mock_post.return_value = MagicMock(status=200)
+        state = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={},
+            metadata={"group_id": self.group.id},
+        )
+
+        with self.feature("organizations:gen-ai-features"):
+            trigger_push_changes(
+                group=self.group,
+                run_id=123,
+                referrer=AutofixReferrer.UNKNOWN,
+                state=state,
+            )
+
+        body = mock_post.call_args[0][0]
+        assert body["payload"]["pr_description_suffix"] == f"Fixes {self.group.qualified_short_id}"

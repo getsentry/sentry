@@ -31,6 +31,11 @@ describe('SeerAutomation', () => {
       method: 'GET',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/autofix/automation-settings/`,
+      method: 'GET',
+      body: [],
+    });
   });
 
   it('shows no-active-subscription banner inline for legacy Seer cohorts', () => {
