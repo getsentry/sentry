@@ -71,6 +71,7 @@ export function MetricsTabContent({datePageFilterProps}: MetricsTabProps) {
 
 function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
   const organization = useOrganization();
+  const metricQueries = useMultiMetricsQueryParams();
   const addMetricQuery = useAddMetricQuery();
 
   if (canUseMetricsUIRefresh(organization)) {
@@ -89,7 +90,7 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
             <Flex gap="sm" align="center">
               <ToolbarVisualizeAddChart
                 add={addMetricQuery}
-                disabled={false}
+                disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
                 label={t('Add Metric')}
                 display="button"
               />
@@ -113,7 +114,7 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
               searchPlaceholder={t('Custom range: 2h, 4d, 3w')}
             />
           </StyledPageFilterBar>
-          {canUseMetricsUIRefresh(organization) ? null : <MetricSaveAs />}
+          <MetricSaveAs />
         </FilterBarWithSaveAsContainer>
       </Layout.Main>
     </ExploreBodySearch>
