@@ -1,6 +1,6 @@
-import {useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {AnimatePresence, motion} from 'framer-motion';
 
 import {Flex} from '@sentry/scraps/layout';
 import {IndeterminateLoader} from '@sentry/scraps/loader';
@@ -16,6 +16,8 @@ import {
 import type {DO_NOT_USE_ButtonProps as ButtonProps} from './types';
 import {useButtonFunctionality} from './useButtonFunctionality';
 
+const MotionFlex = motion(Flex);
+
 export type {ButtonProps};
 
 export function Button({
@@ -29,10 +31,6 @@ export function Button({
   const contextSize = useSizeContext();
   const size = explicitSize ?? contextSize ?? 'md';
   const theme = useTheme();
-  const hasBeenBusy = useRef(false);
-  if (busy) {
-    hasBeenBusy.current = true;
-  }
   const {handleClick, hasChildren, accessibleLabel} = useButtonFunctionality({
     ...props,
     type,
@@ -69,17 +67,16 @@ export function Button({
           overflow="visible"
           whiteSpace="nowrap"
         >
-          <Flex
+          <MotionFlex
             as="span"
             align="center"
-            style={{
-              transition: busy
-                ? `opacity ${theme.motion.smooth.fast}, transform ${theme.motion.smooth.fast}`
-                : `opacity ${theme.motion.exit.fast}, transform ${theme.motion.exit.fast}`,
+            animate={{
               opacity: busy ? 0 : 1,
-              transform: busy
-                ? `translateY(${theme.space['2xs']}) scale(0.95)`
-                : 'translateY(0) scale(1)',
+              scale: busy ? 0.95 : 1,
+              y: busy ? theme.space['2xs'] : 0,
+              transition: busy
+                ? theme.motion.framer.smooth.fast
+                : theme.motion.framer.exit.fast,
             }}
           >
             {props.icon && (
@@ -102,28 +99,34 @@ export function Button({
               </Flex>
             )}
             {props.children}
-          </Flex>
-          {hasBeenBusy.current && (
-            <Flex
-              align="center"
-              justify="center"
-              position="absolute"
-              inset="0"
-              style={{
-                marginInline: '-4px',
-                transition: busy
-                  ? `opacity ${theme.motion.exit.fast}, transform ${theme.motion.exit.fast}`
-                  : `opacity ${theme.motion.smooth.fast}, transform ${theme.motion.smooth.fast}`,
-                opacity: busy ? 1 : 0,
-                transform: busy
-                  ? 'translateY(0) scale(1)'
-                  : `translateY(-${theme.space['2xs']}) scale(0.95)`,
-                pointerEvents: busy ? undefined : 'none',
-              }}
-            >
-              <IndeterminateLoader variant="monochrome" aria-hidden />
-            </Flex>
-          )}
+          </MotionFlex>
+          <AnimatePresence>
+            {busy && (
+              <MotionFlex
+                key="loader"
+                position="absolute"
+                inset="0"
+                align="center"
+                justify="center"
+                style={{marginInline: '-4px', pointerEvents: 'none'}}
+                initial={{opacity: 0, scale: 0.95, y: `-${theme.space['2xs']}`}}
+                animate={{
+                  opacity: 1,
+                  scale: 1,
+                  y: 0,
+                  transition: theme.motion.framer.smooth.fast,
+                }}
+                exit={{
+                  opacity: 0,
+                  scale: 0.95,
+                  y: `-${theme.space['2xs']}`,
+                  transition: theme.motion.framer.exit.fast,
+                }}
+              >
+                <IndeterminateLoader variant="monochrome" aria-hidden />
+              </MotionFlex>
+            )}
+          </AnimatePresence>
         </Flex>
       </StyledButton>
     </Tooltip>
