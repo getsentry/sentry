@@ -27,7 +27,7 @@ import type {
 } from 'sentry/views/preprod/types/snapshotTypes';
 import {computeSidebarBadges} from 'sentry/views/preprod/utils/sidebarUtils';
 
-import {SnapshotDevTools} from './header/snapshotDevTools';
+import {SnapshotHeaderActions} from './header/snapshotHeaderActions';
 import {SnapshotHeaderContent} from './header/snapshotHeaderContent';
 import type {DiffMode} from './main/imageDisplay/diffImageDisplay';
 import {SnapshotMainContent} from './main/snapshotMainContent';
@@ -44,18 +44,18 @@ export default function SnapshotsPage() {
     snapshotId: string;
   }>();
 
-  const {data, isPending, isError, refetch} = useApiQuery<SnapshotDetailsApiResponse>(
-    [
-      getApiUrl(
-        '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            snapshotId,
-          },
-        }
-      ),
-    ],
+  const snapshotApiUrl = getApiUrl(
+    '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/',
+    {
+      path: {
+        organizationIdOrSlug: organization.slug,
+        snapshotId,
+      },
+    }
+  );
+
+  const {data, isPending, isError} = useApiQuery<SnapshotDetailsApiResponse>(
+    [snapshotApiUrl],
     {
       staleTime: 0,
       enabled: !!snapshotId,
@@ -392,21 +392,17 @@ export default function SnapshotsPage() {
   return (
     <SentryDocumentTitle title={t('Snapshot')}>
       <Stack flex={1}>
-        <Layout.Header>
+        <Layout.Header paddingTop="lg" paddingBottom="md">
           <SnapshotHeaderContent
             data={data}
             isSoloView={isSoloView}
             onToggleView={handleToggleView}
           />
-          <Layout.HeaderActions>
-            <SnapshotDevTools
+          <Layout.HeaderActions style={{alignSelf: 'center'}}>
+            <SnapshotHeaderActions
+              data={data}
               organizationSlug={organization.slug}
-              snapshotId={snapshotId}
-              comparisonRunInfo={comparisonRunInfo}
-              hasBaseArtifact={data.base_artifact_id !== null}
-              refetch={refetch}
-              isSoloView={isSoloView}
-              onToggleView={handleToggleView}
+              apiUrl={snapshotApiUrl}
             />
           </Layout.HeaderActions>
         </Layout.Header>
