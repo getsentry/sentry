@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {Section} from 'sentry/components/workflowEngine/ui/section';
+import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t} from 'sentry/locale';
 import type {PreprodDetector} from 'sentry/types/workflowEngine/detectors';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
@@ -18,11 +18,11 @@ export function MobileBuildDetectorDetailsSidebar({
 }: MobileBuildDetectorDetailsSidebarProps) {
   return (
     <Fragment>
-      <Section title={t('Detect')}>
+      <DetailSection title={t('Detect')}>
         <ErrorBoundary mini>
           <MobileBuildDetectorDetailsDetect detector={detector} />
         </ErrorBoundary>
-      </Section>
+      </DetailSection>
       <DetectorDetailsAssignee owner={detector.owner} />
       <DetectorDetailsDescription description={detector.description} />
       <DetectorExtraDetails>

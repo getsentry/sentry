@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Section} from 'sentry/components/workflowEngine/ui/section';
+import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {MarkedText} from 'sentry/utils/marked/markedText';
@@ -14,9 +14,9 @@ export function DetectorDetailsDescription({
     return null;
   }
   return (
-    <Section title={t('Description')}>
+    <DetailSection title={t('Description')}>
       <StyledMarkedText text={description} />
-    </Section>
+    </DetailSection>
   );
 }
 

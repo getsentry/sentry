@@ -361,6 +361,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/'
   | '/organizations/$organizationIdOrSlug/integrations/$integrationId/serverless-functions/'
   | '/organizations/$organizationIdOrSlug/integrations/coding-agents/'
+  | '/organizations/$organizationIdOrSlug/integrations/direct-enable/$providerKey/'
   | '/organizations/$organizationIdOrSlug/intercom-jwt/'
   | '/organizations/$organizationIdOrSlug/invite-requests/'
   | '/organizations/$organizationIdOrSlug/invite-requests/$memberId/'

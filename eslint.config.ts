@@ -49,9 +49,9 @@ import globals from 'globals';
 import invariant from 'invariant';
 import typescript from 'typescript-eslint';
 
-// eslint-disable-next-line boundaries/element-types
+// eslint-disable-next-line boundaries/dependencies
 import * as sentryScrapsPlugin from './static/eslint/eslintPluginScraps/index';
-// eslint-disable-next-line boundaries/element-types
+// eslint-disable-next-line boundaries/dependencies
 import * as sentryPlugin from './static/eslint/eslintPluginSentry/index';
 
 invariant(react.configs.flat, 'For typescript');
@@ -1246,11 +1246,14 @@ export default typescript.config([
       'boundaries/no-ignored': 'off',
       'boundaries/no-private': 'off',
       'boundaries/no-unknown': 'off',
-      'boundaries/element-types': [
+      // Deprecated in v6 in favor of boundaries/dependencies. The strict preset
+      // still enables it, so we turn it off to avoid running both rules.
+      'boundaries/element-types': 'off',
+      'boundaries/dependencies': [
         'error',
         {
           default: 'disallow',
-          message: '${file.type} is not allowed to import ${dependency.type}',
+          message: '{{from.type}} is not allowed to import {{to.type}}',
           rules: [
             // --- figma code connect ---
             {
@@ -1353,7 +1356,7 @@ export default typescript.config([
     name: 'files/core-inspector',
     files: ['static/app/components/core/inspector.tsx'],
     rules: {
-      'boundaries/element-types': 'off',
+      'boundaries/dependencies': 'off',
     },
   },
 ]);

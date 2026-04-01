@@ -1,7 +1,6 @@
 import {useCallback, useMemo} from 'react';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
@@ -259,10 +258,6 @@ export function LogsTabSeerComboBox() {
     ]
   );
 
-  const usePollingEndpoint = organization.features.includes(
-    'gen-ai-search-agent-translate'
-  );
-
   // Get selected project IDs for the polling variant
   const selectedProjectIds = useMemo(() => {
     if (
@@ -310,28 +305,16 @@ export function LogsTabSeerComboBox() {
     return null;
   }
 
-  if (usePollingEndpoint) {
-    return (
-      <AskSeerPollingComboBox<AskSeerSearchQuery>
-        initialQuery={initialSeerQuery}
-        projectIds={selectedProjectIds}
-        strategy="Logs"
-        applySeerSearchQuery={applySeerSearchQuery}
-        transformResponse={transformResponse}
-        analyticsSource="logs"
-        feedbackSource="logs_ai_query"
-        fallbackMutationOptions={logsTabAskSeerMutationOptions}
-      />
-    );
-  }
-
   return (
-    <AskSeerComboBox
+    <AskSeerPollingComboBox<AskSeerSearchQuery>
       initialQuery={initialSeerQuery}
-      askSeerMutationOptions={logsTabAskSeerMutationOptions}
+      projectIds={selectedProjectIds}
+      strategy="Logs"
       applySeerSearchQuery={applySeerSearchQuery}
+      transformResponse={transformResponse}
       analyticsSource="logs"
       feedbackSource="logs_ai_query"
+      fallbackMutationOptions={logsTabAskSeerMutationOptions}
     />
   );
 }

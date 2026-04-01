@@ -1,6 +1,6 @@
 import dataclasses
 import re
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 from collections.abc import Sequence
 from typing import Callable
 
@@ -329,24 +329,36 @@ class Parameterizer:
         )
 
         if self.is_experimental:
-            pattern_strings = [
-                r.experimental_pattern if r.experimental_pattern else r.pattern for r in regexes
-            ]
+            # This uses an `OrderedDict` to guarantee we apply the patterns in the given order.
+            patterns_by_name = OrderedDict(
+                (
+                    r.name,
+                    r.experimental_pattern if r.experimental_pattern else r.pattern,
+                )
+                for r in regexes
+            )
         else:
-            pattern_strings = [r.pattern for r in regexes]
+            patterns_by_name = OrderedDict((r.name, r.pattern) for r in regexes)
 
         # Combine the individual patterns into one giant regex to check against. (This is faster
         # than checking each pattern individually because it entails less overhead.)
         self.combined_regex = re.compile(
             # The `(?x)` tells the regex compiler to ignore comments and unescaped whitespace, so we
             # can use newlines and indentation for better legibility when defining regexes
-            rf"(?x){'|'.join(pattern_strings)}"
+            rf"(?x){'|'.join(patterns_by_name.values())}"
         )
 
         # Collect replacement callbacks, if any
         self.replacement_functions = {
             r.name: r.replacement_callback for r in regexes if r.replacement_callback
         }
+
+        # Store the individual regexes in case we need to handle replacement function false
+        # positives by manually looping through the patterns. This uses an `OrderedDict` to
+        # guarantee we apply them in the same order as in the main/combined regex.
+        self.compiled_regexes_by_name = OrderedDict(
+            (name, re.compile(rf"(?x){pattern}")) for name, pattern in patterns_by_name.items()
+        )
 
     def parameterize(self, input_str: str) -> str:
         """
@@ -357,14 +369,22 @@ class Parameterizer:
         """
 
         replacement_counts: defaultdict[str, int] = defaultdict(int)
+        # Track whether any regex matches don't lead to a replacement
+        found_false_positive = False
 
         def _handle_regex_match(match: re.Match[str]) -> str:
-            # Since
-            #   a) our regex consists of a bunch of named capturing groups separated by `|`,
-            #   b) no other capturing groups in the regex are named, and
-            #   c) there's nothing else in the regex,
-            # there should be exactly one named matching group, making the last matching group also
-            # the only matching group.
+            # Ensure we're dealing with the flag from the outer scope, rather than shadowing it
+            nonlocal found_false_positive
+
+            # This handler gets called on two types of regexes:
+            #   - The main/combination regex, which consists of a bunch of named capturing groups
+            #     (with no nested named groups) separated by `|`.
+            #   - Individual regexes for each pattern type, each consisting of one of the
+            #     alternatives in the main regex.
+            # In the former case, only one alternative can have been matched, so its group name will
+            # be the only (and therefore last) matched group name. In the latter case, there is only
+            # one named group to match, so its name will automatically be the only/last matched
+            # group name. Thus `lastgroup` should give us the group name in either case.
             matched_key = match.lastgroup
             orig_value = match.groupdict().get(
                 matched_key or ""  # Empty string for mypy appeasment
@@ -382,6 +402,8 @@ class Parameterizer:
             # something which should be replaced, and we don't want to count that
             if replacement_string != orig_value:
                 replacement_counts[matched_key] += 1
+            else:
+                found_false_positive = True
 
             return replacement_string
 
@@ -389,6 +411,23 @@ class Parameterizer:
             "grouping.parameterize", tags={"experimental": self.is_experimental}
         ) as metric_tags:
             parameterized = self.combined_regex.sub(_handle_regex_match, input_str)
+
+            # Our big combo regex will short-circuit when it finds a match, which is great for
+            # performance but problematic in cases where a replacement callback declines to
+            # parameterize a value, because then the value never gets checked against later
+            # patterns. To protect against that, in those cases we cycle through all patterns
+            # individually, which is slower but ensures we check them all.
+            if found_false_positive:
+                metric_tags["false_positive"] = True
+
+                # Reset values before applying the patterns again
+                replacement_counts = defaultdict(int)
+                parameterized = input_str
+
+                # Apply patterns one by one, with no short-circuiting
+                for regex_key, regex in self.compiled_regexes_by_name.items():
+                    parameterized = regex.sub(_handle_regex_match, parameterized)
+
             metric_tags["changed"] = parameterized != input_str
 
         for regex_key, count in replacement_counts.items():

@@ -5,7 +5,7 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
-import {Section} from 'sentry/components/workflowEngine/ui/section';
+import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t, tct, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
@@ -53,18 +53,18 @@ function ResolveSection({project}: {project: Project}) {
 
   if (isPending || !detailedProject) {
     return (
-      <Section title={t('Resolve')}>
+      <DetailSection title={t('Resolve')}>
         <Placeholder height="1em" />
-      </Section>
+      </DetailSection>
     );
   }
 
   const resolveAgeHours = detailedProject.resolveAge;
 
   return (
-    <Section title={t('Resolve')}>
+    <DetailSection title={t('Resolve')}>
       <p>{formatResolveAge(resolveAgeHours)}</p>
-    </Section>
+    </DetailSection>
   );
 }
 
@@ -96,7 +96,7 @@ export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsPr
           <DetectorDetailsAutomations detector={detector} />
         </DetailLayout.Main>
         <DetailLayout.Sidebar>
-          <Section title={t('Detect')}>
+          <DetailSection title={t('Detect')}>
             <Text as="p">
               {tct(
                 'All events have a fingerprint. Events with the same fingerprint are grouped together into an issue. To learn more about issue grouping, [link:read the docs].',
@@ -107,8 +107,8 @@ export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsPr
                 }
               )}
             </Text>
-          </Section>
-          <Section title={t('Assign')}>
+          </DetailSection>
+          <DetailSection title={t('Assign')}>
             <Text as="p">
               {tct(
                 'Sentry will attempt to automatically assign new issues based on [link:Ownership Rules].',
@@ -121,8 +121,8 @@ export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsPr
                 }
               )}
             </Text>
-          </Section>
-          <Section title={t('Prioritize')}>
+          </DetailSection>
+          <DetailSection title={t('Prioritize')}>
             <Text as="p">
               {tct(
                 'New error issues are prioritized based on log level. [link:Learn more about Issue Priority].',
@@ -133,7 +133,7 @@ export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsPr
                 }
               )}
             </Text>
-          </Section>
+          </DetailSection>
           <ResolveSection project={project} />
           <DetectorExtraDetails>
             <DetectorExtraDetails.DateCreated detector={detector} />
