@@ -70,7 +70,7 @@ function AutomationBreadcrumbs() {
 const initialData = {
   name: '',
   environment: null,
-  frequency: 1440,
+  frequency: 0,
   enabled: true,
   projectIds: [],
 };

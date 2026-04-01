@@ -27,7 +27,7 @@ import {
   getNewAutomationData,
   validateAutomationBuilderState,
 } from 'sentry/views/automations/components/automationFormData';
-import {ActionIntervalSelectField} from 'sentry/views/automations/components/forms/actionIntervalSelectField';
+import {ActionThrottleSelectField} from 'sentry/views/automations/components/forms/actionThrottleSelectField';
 import {getAutomationAnalyticsPayload} from 'sentry/views/automations/components/forms/common/getAutomationAnalyticsPayload';
 import {
   AutomationFormProvider,
@@ -41,7 +41,7 @@ import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/reso
 const DEFAULT_INITIAL_DATA = {
   name: '',
   environment: null,
-  frequency: 1440,
+  frequency: 0,
   projectIds: [],
   detectorIds: [],
 };
@@ -68,7 +68,7 @@ function FormBody({closeDrawer, model}: {closeDrawer: () => void; model: FormMod
           <Stack gap="md">
             <AutomationBuilder />
           </Stack>
-          <ActionIntervalSelectField
+          <ActionThrottleSelectField
             label={t('Action Interval')}
             help={t('Perform the actions above this often for an issue.')}
           />

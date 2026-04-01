@@ -20,7 +20,7 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {IconEdit} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -133,10 +133,10 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
             <DetailSection title={t('Environment')}>
               {automation.environment || t('All environments')}
             </DetailSection>
-            <DetailSection title={t('Action Interval')}>
-              {tct('Every [frequency]', {
-                frequency: getDuration((automation.config.frequency || 0) * 60),
-              })}
+            <DetailSection title={t('Throttling')}>
+              {automation.config.frequency
+                ? getDuration(automation.config.frequency * 60)
+                : t('Notify on every trigger')}
             </DetailSection>
             <DetailSection title={t('Conditions')}>
               <ErrorBoundary mini>
