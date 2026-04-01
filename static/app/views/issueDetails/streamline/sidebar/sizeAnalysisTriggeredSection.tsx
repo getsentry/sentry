@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
@@ -122,72 +120,68 @@ export function SizeAnalysisTriggeredSection({event}: SizeAnalysisTriggeredSecti
       : undefined;
 
   return (
-    <Fragment>
-      <InterimSection
-        title={t('Triggered Condition')}
-        type="triggered_condition"
-        actions={
-          <Flex gap="xs">
-            {headBuildPath && (
-              <LinkButton size="xs" to={headBuildPath}>
-                {t('Open Build')}
-              </LinkButton>
-            )}
-            {compareBuildPath && (
-              <LinkButton size="xs" to={compareBuildPath}>
-                {t('Open Comparison')}
-              </LinkButton>
-            )}
-          </Flex>
-        }
-      >
-        <KeyValueList
-          shouldSort={false}
-          data={[
-            {
-              key: 'thresholdType',
-              value: getMeasurementLabel(config.thresholdType),
-              subject: t('Threshold Type'),
-            },
-            {
-              key: 'measurement',
-              value: measurementLabel,
-              subject: t('Measurement'),
-            },
-            ...(config.query
-              ? [
-                  {
-                    key: 'query',
-                    value: config.query,
-                    subject: t('Query'),
-                  },
-                ]
-              : []),
-            ...(triggeredCondition
-              ? [
-                  {
-                    key: 'condition',
-                    value: (
-                      <pre>
-                        {formatCondition({
-                          condition: triggeredCondition,
-                          thresholdType: config.thresholdType,
-                          measurementLabel,
-                        })}
-                      </pre>
-                    ),
-                    subject: t('Condition'),
-                  },
-                ]
-              : []),
-            {
-              key: 'value',
-              value: formatValueWithUnit(value, config.thresholdType),
-              subject: t('Evaluated Value'),
-            },
-          ]}
-        />
-      </InterimSection>
-    </Fragment>
+    <InterimSection
+      title={t('Triggered Condition')}
+      type="triggered_condition"
+      actions={
+        <Flex gap="xs">
+          <LinkButton size="xs" to={headBuildPath}>
+            {t('Open Build')}
+          </LinkButton>
+          {compareBuildPath && (
+            <LinkButton size="xs" to={compareBuildPath}>
+              {t('Open Comparison')}
+            </LinkButton>
+          )}
+        </Flex>
+      }
+    >
+      <KeyValueList
+        shouldSort={false}
+        data={[
+          {
+            key: 'thresholdType',
+            value: getMeasurementLabel(config.thresholdType),
+            subject: t('Threshold Type'),
+          },
+          {
+            key: 'measurement',
+            value: measurementLabel,
+            subject: t('Measurement'),
+          },
+          ...(config.query
+            ? [
+                {
+                  key: 'query',
+                  value: config.query,
+                  subject: t('Query'),
+                },
+              ]
+            : []),
+          ...(triggeredCondition
+            ? [
+                {
+                  key: 'condition',
+                  value: (
+                    <pre>
+                      {formatCondition({
+                        condition: triggeredCondition,
+                        thresholdType: config.thresholdType,
+                        measurementLabel,
+                      })}
+                    </pre>
+                  ),
+                  subject: t('Condition'),
+                },
+              ]
+            : []),
+          {
+            key: 'value',
+            value: formatValueWithUnit(value, config.thresholdType),
+            subject: t('Evaluated Value'),
+          },
+        ]}
+      />
+    </InterimSection>
   );
 }
