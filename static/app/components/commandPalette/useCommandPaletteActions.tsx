@@ -43,7 +43,7 @@ function addKeysToChildActions(
   | CommandPaletteActionGroupWithKey
 > {
   return actions.map(action => {
-    const actionKey = `${parentKey}:${'type' in action ? action.type : 'action'}:${slugify(action.display.label)}`;
+    const actionKey = `${parentKey}::${'actions' in action ? 'group' : 'to' in action ? 'navigate' : 'callback'}:${slugify(action.display.label)}`;
 
     if ('actions' in action) {
       return {

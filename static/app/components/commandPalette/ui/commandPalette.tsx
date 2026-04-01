@@ -72,8 +72,8 @@ interface CommandPaletteProps {
 
 export function CommandPalette(props: CommandPaletteProps) {
   const theme = useTheme();
-
   const allActions = useCommandPaletteActions();
+
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
 

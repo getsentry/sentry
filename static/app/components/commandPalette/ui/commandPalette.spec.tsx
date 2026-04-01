@@ -69,7 +69,7 @@ function GlobalActionsComponent({
 
 const onChild = jest.fn();
 
-const globalActions: CommandPaletteAction[] = [
+const allActions: CommandPaletteAction[] = [
   {
     to: '/target/',
     display: {
@@ -81,11 +81,16 @@ const globalActions: CommandPaletteAction[] = [
     display: {label: 'Other'},
   },
   {
-    display: {label: 'Parent action'},
+    display: {label: 'Parent Label'},
     actions: [
       {
-        onAction: onChild,
-        display: {label: 'Child action'},
+        display: {label: 'Parent Group Action'},
+        actions: [
+          {
+            onAction: onChild,
+            display: {label: 'Child Action'},
+          },
+        ],
       },
     ],
   },
@@ -98,7 +103,7 @@ describe('CommandPalette', () => {
 
   it('clicking a link item navigates and closes modal', async () => {
     const closeSpy = jest.spyOn(modalActions, 'closeModal');
-    const {router} = render(<GlobalActionsComponent actions={globalActions} />);
+    const {router} = render(<GlobalActionsComponent actions={allActions} />);
     await userEvent.click(await screen.findByRole('option', {name: 'Go to route'}));
 
     await waitFor(() => expect(router.location.pathname).toBe('/target/'));
@@ -107,7 +112,7 @@ describe('CommandPalette', () => {
 
   it('ArrowDown to a link item then Enter navigates and closes modal', async () => {
     const closeSpy = jest.spyOn(modalActions, 'closeModal');
-    const {router} = render(<GlobalActionsComponent actions={globalActions} />);
+    const {router} = render(<GlobalActionsComponent actions={allActions} />);
     await screen.findByRole('textbox', {name: 'Search commands'});
     // First item should already be highlighted, arrow down will go highlight "other"
     await userEvent.keyboard('{ArrowDown}{Enter}');
@@ -118,41 +123,43 @@ describe('CommandPalette', () => {
 
   it('clicking action with children shows sub-items, backspace returns', async () => {
     const closeSpy = jest.spyOn(modalActions, 'closeModal');
-    render(<GlobalActionsComponent actions={globalActions} />);
+    render(<GlobalActionsComponent actions={allActions} />);
 
     // Open children
-    await userEvent.click(await screen.findByRole('option', {name: 'Parent action'}));
+    await userEvent.click(
+      await screen.findByRole('option', {name: 'Parent Group Action'})
+    );
 
     // Textbox changes placeholder to parent action label
     await waitFor(() => {
       expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveAttribute(
         'placeholder',
-        'Search inside Parent action...'
+        'Search inside Parent Group Action...'
       );
     });
 
-    // Child actions are visible, global actions are not
-    expect(screen.getByRole('option', {name: 'Child action'})).toBeInTheDocument();
+    // // Child actions are visible, global actions are not
+    expect(screen.getByRole('option', {name: 'Child Action'})).toBeInTheDocument();
     expect(screen.queryByRole('option', {name: 'Parent action'})).not.toBeInTheDocument();
     expect(screen.queryByRole('option', {name: 'Go to route'})).not.toBeInTheDocument();
 
-    // Hit Backspace on the input to go back
+    // // Hit Backspace on the input to go back
     await userEvent.keyboard('{Backspace}');
 
-    // Back to main actions
-    expect(
-      await screen.findByRole('option', {name: 'Parent action'})
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('option', {name: 'Child action'})).not.toBeInTheDocument();
+    // // Back to main actions
+    expect(await screen.findByRole('option', {name: 'Parent Label'})).toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'Child Action'})).not.toBeInTheDocument();
 
     expect(closeSpy).not.toHaveBeenCalled();
   });
 
   it('clicking child sub-item runs onAction and closes modal', async () => {
     const closeSpy = jest.spyOn(modalActions, 'closeModal');
-    render(<GlobalActionsComponent actions={globalActions} />);
-    await userEvent.click(await screen.findByRole('option', {name: 'Parent action'}));
-    await userEvent.click(await screen.findByRole('option', {name: 'Child action'}));
+    render(<GlobalActionsComponent actions={allActions} />);
+    await userEvent.click(
+      await screen.findByRole('option', {name: 'Parent Group Action'})
+    );
+    await userEvent.click(await screen.findByRole('option', {name: 'Child Action'}));
 
     expect(onChild).toHaveBeenCalled();
     expect(closeSpy).toHaveBeenCalledTimes(1);
@@ -160,7 +167,7 @@ describe('CommandPalette', () => {
 
   describe('search', () => {
     it('typing a query filters results to matching items only', async () => {
-      render(<GlobalActionsComponent actions={globalActions} />);
+      render(<GlobalActionsComponent actions={allActions} />);
       const input = await screen.findByRole('textbox', {name: 'Search commands'});
       await userEvent.type(input, 'route');
 
@@ -174,7 +181,7 @@ describe('CommandPalette', () => {
     });
 
     it('non-matching items are not shown', async () => {
-      render(<GlobalActionsComponent actions={globalActions} />);
+      render(<GlobalActionsComponent actions={allActions} />);
       const input = await screen.findByRole('textbox', {name: 'Search commands'});
       await userEvent.type(input, 'xyzzy');
 
@@ -182,7 +189,7 @@ describe('CommandPalette', () => {
     });
 
     it('clearing the query restores all top-level items', async () => {
-      render(<GlobalActionsComponent actions={globalActions} />);
+      render(<GlobalActionsComponent actions={allActions} />);
       const input = await screen.findByRole('textbox', {name: 'Search commands'});
       await userEvent.type(input, 'route');
       expect(
@@ -195,30 +202,30 @@ describe('CommandPalette', () => {
         await screen.findByRole('option', {name: 'Go to route'})
       ).toBeInTheDocument();
       expect(screen.getByRole('option', {name: 'Other'})).toBeInTheDocument();
-      expect(screen.getByRole('option', {name: 'Parent action'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Parent Label'})).toBeInTheDocument();
     });
 
-    it('child actions are hidden when query is empty', async () => {
-      render(<GlobalActionsComponent actions={globalActions} />);
-      await screen.findByRole('option', {name: 'Parent action'});
+    it('child actions are not shown when query is empty', async () => {
+      render(<GlobalActionsComponent actions={allActions} />);
+      await screen.findByRole('option', {name: 'Parent Group Action'});
 
       expect(
-        screen.queryByRole('option', {name: 'Child action'})
+        screen.queryByRole('option', {name: 'Child Action'})
       ).not.toBeInTheDocument();
     });
 
     it('child actions are directly searchable without drilling into the group', async () => {
-      render(<GlobalActionsComponent actions={globalActions} />);
+      render(<GlobalActionsComponent actions={allActions} />);
       const input = await screen.findByRole('textbox', {name: 'Search commands'});
       await userEvent.type(input, 'child');
 
       expect(
-        await screen.findByRole('option', {name: 'Parent action → Child action'})
+        await screen.findByRole('option', {name: 'Child Action'})
       ).toBeInTheDocument();
     });
 
     it('search is case-insensitive', async () => {
-      render(<GlobalActionsComponent actions={globalActions} />);
+      render(<GlobalActionsComponent actions={allActions} />);
       const input = await screen.findByRole('textbox', {name: 'Search commands'});
       await userEvent.type(input, 'ROUTE');
 
@@ -245,8 +252,8 @@ describe('CommandPalette', () => {
       const options = (await screen.findAllByRole('option')).filter(
         el => !el.hasAttribute('aria-disabled')
       );
-      expect(options[0]).toHaveAccessibleName('Issues');
-      expect(options[1]).toHaveAccessibleName('Something with issues buried');
+      expect(options[0]).toHaveAccessibleName('Something with issues buried');
+      expect(options[1]).toHaveAccessibleName('Issues');
     });
 
     it('top-level actions rank before child actions when both match the query', async () => {
@@ -267,8 +274,8 @@ describe('CommandPalette', () => {
       const options = (await screen.findAllByRole('option')).filter(
         el => !el.hasAttribute('aria-disabled')
       );
-      expect(options[0]).toHaveAccessibleName('Issues');
-      expect(options[1]).toHaveAccessibleName('Group → Issues child');
+      expect(options[0]).toHaveAccessibleName('Issues child');
+      expect(options[1]).toHaveAccessibleName('Issues');
     });
 
     it('actions with matching keywords are included in results', async () => {
@@ -315,27 +322,29 @@ describe('CommandPalette', () => {
 
   describe('query restoration', () => {
     it('drilling into a group clears the active query', async () => {
-      render(<GlobalActionsComponent actions={globalActions} />);
+      render(<GlobalActionsComponent actions={allActions} />);
       const input = await screen.findByRole('textbox', {name: 'Search commands'});
 
       // Type a query that shows the group in search results
       await userEvent.type(input, 'parent');
-      await screen.findByRole('option', {name: 'Parent action'});
+      await screen.findByRole('option', {name: 'Parent Group Action'});
 
       // Drill into the group by clicking the group item itself — input should be cleared
-      await userEvent.click(screen.getByRole('option', {name: 'Parent action'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Parent Group Action'}));
 
       await waitFor(() => expect(input).toHaveValue(''));
     });
 
     it('Backspace from a drilled group restores the query that was active before drilling in', async () => {
-      render(<GlobalActionsComponent actions={globalActions} />);
+      render(<GlobalActionsComponent actions={allActions} />);
       const input = await screen.findByRole('textbox', {name: 'Search commands'});
 
       // Type a query, then drill into the group that appears in search results
       await userEvent.type(input, 'parent');
-      await userEvent.click(await screen.findByRole('option', {name: 'Parent action'}));
-      await screen.findByRole('option', {name: 'Child action'});
+      await userEvent.click(
+        await screen.findByRole('option', {name: 'Parent Group Action'})
+      );
+      await screen.findByRole('option', {name: 'Child Action'});
 
       // Go back with Backspace — the pre-drill query should be restored
       await userEvent.keyboard('{Backspace}');
@@ -344,13 +353,15 @@ describe('CommandPalette', () => {
     });
 
     it('clicking the back button from a drilled group restores the query that was active before drilling in', async () => {
-      render(<GlobalActionsComponent actions={globalActions} />);
+      render(<GlobalActionsComponent actions={allActions} />);
       const input = await screen.findByRole('textbox', {name: 'Search commands'});
 
       // Type a query, then drill into the group that appears in search results
       await userEvent.type(input, 'parent');
-      await userEvent.click(await screen.findByRole('option', {name: 'Parent action'}));
-      await screen.findByRole('option', {name: 'Child action'});
+      await userEvent.click(
+        await screen.findByRole('option', {name: 'Parent Group Action'})
+      );
+      await screen.findByRole('option', {name: 'Child Action'});
 
       // Go back with the back button — the pre-drill query should be restored
       await userEvent.click(
