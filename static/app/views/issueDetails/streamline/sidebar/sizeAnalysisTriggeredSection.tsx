@@ -15,6 +15,7 @@ import {
   getDisplayUnit,
   getMeasurementLabel,
   getMetricLabelForArtifactType,
+  isDiffThreshold,
 } from 'sentry/views/settings/project/preprod/types';
 import type {
   MeasurementType,
@@ -51,10 +52,6 @@ function isSizeAnalysisEvidenceData(
     'measurement' in config &&
     'headArtifactId' in evidenceData
   );
-}
-
-function isDiffThreshold(thresholdType: MeasurementType): boolean {
-  return thresholdType === 'absolute_diff' || thresholdType === 'relative_diff';
 }
 
 function formatRawValueWithUnit(value: number, thresholdType: MeasurementType): string {
