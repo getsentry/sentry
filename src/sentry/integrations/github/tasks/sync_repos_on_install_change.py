@@ -1,10 +1,11 @@
 import logging
-from typing import Literal, TypedDict
+from typing import Literal
 
 from taskbroker_client.retry import Retry
 
 from sentry import features
 from sentry.constants import ObjectStatus
+from sentry.integrations.github.webhook_types import GitHubInstallationRepo
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.repository.service import repository_service
@@ -25,13 +26,6 @@ from sentry.taskworker.namespaces import integrations_control_tasks
 
 from .link_all_repos import get_repo_config
 
-
-class GitHubRepo(TypedDict, total=False):
-    id: int
-    full_name: str
-    private: bool
-
-
 logger = logging.getLogger(__name__)
 
 
@@ -46,8 +40,8 @@ logger = logging.getLogger(__name__)
 def sync_repos_on_install_change(
     integration_id: int,
     action: str,
-    repos_added: list[GitHubRepo],
-    repos_removed: list[GitHubRepo],
+    repos_added: list[GitHubInstallationRepo],
+    repos_removed: list[GitHubInstallationRepo],
     repository_selection: Literal["all", "selected"],
 ) -> None:
     """
@@ -111,8 +105,8 @@ def _sync_repos_for_org(
     integration: RpcIntegration,
     rpc_org: RpcOrganization,
     provider: str,
-    repos_added: list[GitHubRepo],
-    repos_removed: list[GitHubRepo],
+    repos_added: list[GitHubInstallationRepo],
+    repos_removed: list[GitHubInstallationRepo],
 ) -> None:
     if repos_added:
         integration_repo_provider = get_integration_repository_provider(integration)

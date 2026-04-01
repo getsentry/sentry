@@ -8,7 +8,7 @@ import time
 from abc import ABC
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import timezone
-from typing import Any, Literal, Protocol, TypedDict
+from typing import Any, Protocol
 
 import orjson
 import sentry_sdk
@@ -30,6 +30,7 @@ from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.github.webhook_types import (
     GITHUB_WEBHOOK_TYPE_HEADER_KEY,
     GithubWebhookType,
+    InstallationRepositoriesEvent,
 )
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.services.integration.model import (
@@ -416,21 +417,6 @@ class InstallationEventWebhook(GitHubWebhook):
                     "organization_ids": list(org_ids),
                 }
             )
-
-
-class GitHubInstallationRepo(TypedDict):
-    id: int
-    full_name: str
-    private: bool
-
-
-class InstallationRepositoriesEvent(TypedDict):
-    action: Literal["added", "removed"]
-    installation: dict[str, Any]
-    repositories_added: list[GitHubInstallationRepo]
-    repositories_removed: list[GitHubInstallationRepo]
-    repository_selection: Literal["all", "selected"]
-    sender: dict[str, Any]
 
 
 class InstallationRepositoriesEventWebhook(GitHubWebhook):

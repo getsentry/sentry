@@ -22,9 +22,9 @@ from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.webhook import (
     GitHubIntegrationsWebhookEndpoint,
-    InstallationRepositoriesEvent,
     InstallationRepositoriesEventWebhook,
 )
+from sentry.integrations.github.webhook_types import InstallationRepositoriesEvent
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
