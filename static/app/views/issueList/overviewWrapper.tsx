@@ -1,3 +1,4 @@
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {TAXONOMY_DEFAULT_QUERY} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -13,11 +14,13 @@ export function OverviewWrapper() {
 
   return (
     <IssueListContainer title={title}>
-      <IssueListOverview
-        shouldFetchOnMount={shouldFetchOnMount}
-        title={title}
-        initialQuery={TAXONOMY_DEFAULT_QUERY}
-      />
+      <AnalyticsArea name="issue_list">
+        <IssueListOverview
+          shouldFetchOnMount={shouldFetchOnMount}
+          title={title}
+          initialQuery={TAXONOMY_DEFAULT_QUERY}
+        />
+      </AnalyticsArea>
     </IssueListContainer>
   );
 }
