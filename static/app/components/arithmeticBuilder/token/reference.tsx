@@ -63,7 +63,6 @@ interface InternalInputProps extends ArithmeticBuilderTokenReferenceProps {
 
 function InternalInput({item, state, token, rowRef}: InternalInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const gridCellRef = useRef<HTMLDivElement>(null);
   const [inputValue, setInputValue] = useState('');
   const [currentValue, setCurrentValue] = useState(token.label);
   const [isCurrentlyEditing, setIsCurrentlyEditing] = useState(false);
@@ -112,7 +111,7 @@ function InternalInput({item, state, token, rowRef}: InternalInputProps) {
   }, [references, filterValue]);
 
   const shouldCloseOnInteractOutside = useCallback(
-    (el: Element) => !gridCellRef.current?.contains(el) && !rowRef.current?.contains(el),
+    (el: Element) => !rowRef.current?.contains(el),
     [rowRef]
   );
 
