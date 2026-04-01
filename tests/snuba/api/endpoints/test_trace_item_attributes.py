@@ -68,7 +68,7 @@ class OrganizationTraceItemQueryValidatorEndpointTest(APITestCase, BaseSpansTest
                 format="json",
             )
         assert response.status_code == 200
-        assert response.data == {"filters": [], "functions": []}
+        assert response.data == {"attributes": []}
 
     def test_known_filter_attributes(self):
         response = self.do_request(
@@ -76,16 +76,16 @@ class OrganizationTraceItemQueryValidatorEndpointTest(APITestCase, BaseSpansTest
         )
         assert response.status_code == 200
 
-        filters = response.data["filters"]
-        assert len(filters) == 2
+        attributes = response.data["attributes"]
+        assert len(attributes) == 2
 
-        by_key = {f["key"]: f for f in filters}
+        by_key = {f["key"]: f for f in attributes}
         assert by_key["span.description"]["valid"] is True
         assert by_key["span.description"]["type"] == "string"
         assert by_key["span.duration"]["valid"] is True
         assert by_key["span.duration"]["type"] == "number"
 
-    def test_preserves_original_wildcard_token_spelling(self):
+    def test_contains_wildcard_filter(self):
         query = " ".join(
             [
                 f"span.op:{WILDCARD_OPERATOR_MAP['contains']}test",
@@ -96,56 +96,49 @@ class OrganizationTraceItemQueryValidatorEndpointTest(APITestCase, BaseSpansTest
         response = self.do_request(query={"itemType": "spans", "query": query})
 
         assert response.status_code == 200
-        filters = response.data["filters"]
-        assert len(filters) == 2
-        assert [filter["token"] for filter in filters] == query.split(" ")
-        assert [filter["key"] for filter in filters] == ["span.op", "span.op"]
-        assert [filter["valid"] for filter in filters] == [True, True]
+        attributes = response.data["attributes"]
+        assert len(attributes) == 2
+        assert [item["key"] for item in attributes] == ["span.op", "span.op"]
+        assert [item["valid"] for item in attributes] == [True, True]
+        assert [item["type"] for item in attributes] == ["string", "string"]
 
-    def test_starts_with_wildcard_operator_token_round_trips(self):
+    def test_starts_with_wildcard_filter(self):
         query = f"span.op:{WILDCARD_OPERATOR_MAP['starts_with']}test"
 
         response = self.do_request(query={"itemType": "spans", "query": query})
 
         assert response.status_code == 200
-        filters = response.data["filters"]
-        assert len(filters) == 1
-        assert filters[0]["token"] == query
-        assert filters[0]["key"] == "span.op"
-        assert filters[0]["valid"] is True
+        assert response.data == {
+            "attributes": [{"key": "span.op", "valid": True, "type": "string"}]
+        }
 
-    def test_ends_with_wildcard_operator_token_round_trips(self):
+    def test_ends_with_wildcard_filter(self):
         query = f"span.op:{WILDCARD_OPERATOR_MAP['ends_with']}test"
 
         response = self.do_request(query={"itemType": "spans", "query": query})
 
         assert response.status_code == 200
-        filters = response.data["filters"]
-        assert len(filters) == 1
-        assert filters[0]["token"] == query
-        assert filters[0]["key"] == "span.op"
-        assert filters[0]["valid"] is True
+        assert response.data == {
+            "attributes": [{"key": "span.op", "valid": True, "type": "string"}]
+        }
 
     def test_virtual_context_filter(self):
         response = self.do_request(
             query={"itemType": "spans", "query": "project:my-project"},
         )
         assert response.status_code == 200
-        filters = response.data["filters"]
-        assert len(filters) == 1
-        assert filters[0]["key"] == "project"
-        assert filters[0]["valid"] is True
+        assert response.data == {
+            "attributes": [{"key": "project", "valid": True, "type": "string"}]
+        }
 
     def test_unknown_filter_not_in_storage(self):
         response = self.do_request(
             query={"itemType": "spans", "query": "my.custom.tag:bar"},
         )
         assert response.status_code == 200
-        filters = response.data["filters"]
-        assert len(filters) == 1
-        assert filters[0]["key"] == "my.custom.tag"
-        assert filters[0]["valid"] is False
-        assert "error" in filters[0]
+        assert response.data == {
+            "attributes": [{"key": "my.custom.tag", "valid": False, "type": None}]
+        }
 
     def test_user_tag_in_storage(self):
         self.store_segment(
@@ -166,33 +159,25 @@ class OrganizationTraceItemQueryValidatorEndpointTest(APITestCase, BaseSpansTest
             query={"itemType": "spans", "query": "my.custom.tag:hello"},
         )
         assert response.status_code == 200
-        filters = response.data["filters"]
-        assert len(filters) == 1
-        assert filters[0]["key"] == "my.custom.tag"
-        assert filters[0]["valid"] is True
-        assert filters[0]["type"] == "string"
+        assert response.data == {
+            "attributes": [{"key": "my.custom.tag", "valid": True, "type": "string"}]
+        }
 
     def test_aggregate_function_with_known_arg(self):
         response = self.do_request(
             query={"itemType": "spans", "query": "avg(span.duration):>100"},
         )
         assert response.status_code == 200
-        functions = response.data["functions"]
-        assert len(functions) == 1
-        assert functions[0]["key"] == "span.duration"
-        assert functions[0]["valid"] is True
-        assert functions[0]["type"] == "number"
+        assert response.data == {
+            "attributes": [{"key": "span.duration", "valid": True, "type": "number"}]
+        }
 
     def test_no_arg_function(self):
         response = self.do_request(
             query={"itemType": "spans", "query": "count():>5"},
         )
         assert response.status_code == 200
-        functions = response.data["functions"]
-        assert len(functions) == 1
-        assert functions[0]["key"] is None
-        assert functions[0]["valid"] is True
-        assert functions[0]["type"] is None
+        assert response.data == {"attributes": []}
 
     def test_mixed_filters_and_functions(self):
         response = self.do_request(
@@ -202,11 +187,12 @@ class OrganizationTraceItemQueryValidatorEndpointTest(APITestCase, BaseSpansTest
             },
         )
         assert response.status_code == 200
-        assert len(response.data["filters"]) == 1
-        assert len(response.data["functions"]) == 2
-
-        assert response.data["filters"][0]["key"] == "span.description"
-        assert response.data["filters"][0]["valid"] is True
+        assert response.data == {
+            "attributes": [
+                {"key": "span.description", "valid": True, "type": "string"},
+                {"key": "span.duration", "valid": True, "type": "number"},
+            ]
+        }
 
     def test_parenthesized_expression(self):
         response = self.do_request(
@@ -216,9 +202,9 @@ class OrganizationTraceItemQueryValidatorEndpointTest(APITestCase, BaseSpansTest
             },
         )
         assert response.status_code == 200
-        filters = response.data["filters"]
-        assert len(filters) == 2
-        by_key = {f["key"]: f for f in filters}
+        attributes = response.data["attributes"]
+        assert len(attributes) == 2
+        by_key = {f["key"]: f for f in attributes}
         assert by_key["span.description"]["valid"] is True
         assert by_key["span.duration"]["valid"] is True
 
@@ -230,9 +216,9 @@ class OrganizationTraceItemQueryValidatorEndpointTest(APITestCase, BaseSpansTest
             },
         )
         assert response.status_code == 200
-        filters = response.data["filters"]
-        assert len(filters) == 2
-        for f in filters:
+        attributes = response.data["attributes"]
+        assert len(attributes) == 2
+        for f in attributes:
             assert f["key"] == "span.duration"
             assert f["valid"] is True
             assert f["type"] == "number"
@@ -245,8 +231,6 @@ class OrganizationTraceItemQueryValidatorEndpointTest(APITestCase, BaseSpansTest
             },
         )
         assert response.status_code == 200
-        functions = response.data["functions"]
-        assert len(functions) == 1
-        assert functions[0]["key"] == "span.duration"
-        assert functions[0]["valid"] is True
-        assert functions[0]["type"] == "number"
+        assert response.data == {
+            "attributes": [{"key": "span.duration", "valid": True, "type": "number"}]
+        }
