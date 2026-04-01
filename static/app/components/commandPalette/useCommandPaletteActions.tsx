@@ -36,7 +36,7 @@ function addKeysToActions(
 
 function addKeysToChildActions(
   parentKey: string,
-  actions: Array<CommandPaletteAction>
+  actions: CommandPaletteAction[]
 ): Array<
   | CommandPaletteActionLinkWithKey
   | CommandPaletteActionCallbackWithKey

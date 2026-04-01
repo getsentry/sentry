@@ -31,7 +31,6 @@ export interface CommandPaletteActionCallback extends CommonCommandPaletteAction
   onAction: () => void;
 }
 
-
 export type CommandPaletteAction =
   | CommandPaletteActionLink
   | CommandPaletteActionCallback
