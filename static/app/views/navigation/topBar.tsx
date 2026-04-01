@@ -1,4 +1,4 @@
-import {createContext, useContext, useMemo, useReducer} from 'react';
+import {createContext, useContext, useEffect, useMemo, useReducer} from 'react';
 import type {ReactNode} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
@@ -10,7 +10,6 @@ import {SizeProvider} from '@sentry/scraps/sizeContext';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
@@ -26,7 +25,7 @@ export function TopBar() {
 
   const {openExplorerPanel} = useExplorerPanel();
 
-  const [, registerSlot] = useTopBarSlotContext();
+  const [slot, , registerSlot] = useTopBarSlotContext();
 
   if (!hasPageFrame) {
     return null;
@@ -59,12 +58,15 @@ export function TopBar() {
           ) : null}
 
           <Flex ref={registerSlot.feedback}>
-            <FeedbackButton
-              aria-label={t('Give Feedback')}
-              feedbackOptions={{tags: {'feedback.source': 'top_navigation'}}}
-            >
-              {null}
-            </FeedbackButton>
+            {/* If no component registers a feedback button, show the default one */}
+            {slot.feedback.counter ? null : (
+              <FeedbackButton
+                aria-label={t('Give Feedback')}
+                feedbackOptions={{tags: {'feedback.source': 'top_navigation'}}}
+              >
+                {null}
+              </FeedbackButton>
+            )}
           </Flex>
         </Flex>
       </SizeProvider>
@@ -73,38 +75,78 @@ export function TopBar() {
 }
 
 type TopBarSlots = 'title' | 'actions' | 'feedback';
-type TopBarSlotValue = Record<TopBarSlots, HTMLElement | null>;
-type TopBarRegisterSlotValue = Record<TopBarSlots, (element: HTMLElement | null) => void>;
+type TopBarSlotValue = Record<
+  TopBarSlots,
+  {counter: number; element: HTMLElement | null}
+>;
 
 const TopBarSlotContext = createContext<
-  [TopBarSlotValue, TopBarRegisterSlotValue] | null
+  | [
+      TopBarSlotValue,
+      React.Dispatch<TopBarSlotReducerAction>,
+      Record<TopBarSlots, (element: HTMLElement | null) => void>,
+    ]
+  | null
 >(null);
 
-type TopBarSlotReducerState = Record<TopBarSlots, HTMLElement | null>;
-type TopBarSlotReducerAction = {
-  element: HTMLElement | null;
-  name: TopBarSlots;
-  type: 'register';
-};
+type TopBarSlotReducerState = Record<
+  TopBarSlots,
+  {counter: number; element: HTMLElement | null}
+>;
+type TopBarSlotReducerAction =
+  | {
+      element: HTMLElement | null;
+      name: TopBarSlots;
+      type: 'register';
+    }
+  | {
+      name: TopBarSlots;
+      type: 'increment counter';
+    }
+  | {
+      name: TopBarSlots;
+      type: 'decrement counter';
+    };
 
 function topBarSlotReducer(
   state: TopBarSlotReducerState,
   action: TopBarSlotReducerAction
 ): TopBarSlotReducerState {
   switch (action.type) {
+    case 'increment counter':
+      return {
+        ...state,
+        [action.name]: {
+          counter: state[action.name].counter + 1,
+          element: state[action.name].element,
+        },
+      };
+    case 'decrement counter':
+      return {
+        ...state,
+        [action.name]: {
+          counter: state[action.name].counter - 1,
+          element: state[action.name].element,
+        },
+      };
     case 'register':
-      return {...state, [action.name]: action.element};
+      return {
+        ...state,
+        [action.name]: {
+          counter: state[action.name]?.counter ?? 0,
+          element: action.element,
+        },
+      };
     default:
-      unreachable(action.type);
       return state;
   }
 }
 
 export function TopBarSlotProvider({children}: {children: ReactNode}) {
   const [value, dispatch] = useReducer(topBarSlotReducer, {
-    title: null,
-    actions: null,
-    feedback: null,
+    title: {counter: 0, element: null},
+    actions: {counter: 0, element: null},
+    feedback: {counter: 0, element: null},
   });
 
   const registerSlot = useMemo(
@@ -120,7 +162,7 @@ export function TopBarSlotProvider({children}: {children: ReactNode}) {
   );
 
   return (
-    <TopBarSlotContext.Provider value={[value, registerSlot]}>
+    <TopBarSlotContext.Provider value={[value, dispatch, registerSlot]}>
       {children}
     </TopBarSlotContext.Provider>
   );
@@ -141,7 +183,14 @@ interface SlotProps {
 function makeSlotOutlet(name: TopBarSlots) {
   function Slot({children}: SlotProps) {
     const organization = useOrganization({allowNull: true});
-    const [value] = useTopBarSlotContext();
+    const [value, dispatch] = useTopBarSlotContext();
+
+    useEffect(() => {
+      dispatch({type: 'increment counter', name});
+      return () => {
+        dispatch({type: 'decrement counter', name});
+      };
+    }, [dispatch]);
 
     // If the organization doesn't have the page frame feature,
     // then render the children in their natural JSX position
@@ -149,11 +198,11 @@ function makeSlotOutlet(name: TopBarSlots) {
       return children;
     }
 
-    if (!value[name]) {
+    if (!value[name]?.element) {
       return null;
     }
 
-    return createPortal(children, value[name]);
+    return createPortal(children, value[name].element);
   }
 
   Slot.displayName = `TopBarSlot.${name}`;

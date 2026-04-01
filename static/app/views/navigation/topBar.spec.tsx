@@ -17,7 +17,7 @@ function TestSlots() {
   return (
     <TopBarSlotProvider>
       <TopBar />
-      <div data-testid="page-content">
+      <div data-test-id="page-content">
         <TopBarSlot.Title>
           <span>Title Content</span>
         </TopBarSlot.Title>
