@@ -132,6 +132,15 @@ export function getMetricLabelForPlatform(
   return getMetricLabel(metric);
 }
 
+export function getMetricLabelForArtifactType(
+  metric: MetricType,
+  artifactType: string | undefined
+): string {
+  const platform =
+    artifactType === 'xcarchive' ? 'apple' : artifactType ? 'android' : undefined;
+  return getMetricLabelForPlatform(metric, platform);
+}
+
 export function getMeasurementLabel(measurement: MeasurementType): string {
   return MEASUREMENT_LABELS[measurement];
 }
