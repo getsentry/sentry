@@ -260,7 +260,7 @@ with sentry_sdk.start_span(op="gen_ai.execute_tool", name=f"execute_tool {tool_n
 
 ## Token Counting & Cost Calculation
 
-\`gen_ai.usage.input_tokens\` must be the **total** input tokens (cached + non-cached). Sentry computes cost as \`(input_tokens - cached_tokens) * price\`, so if \`input_tokens\` only contains non-cached tokens, costs go **negative**.
+\`gen_ai.usage.input_tokens\` must be the **total** input tokens (cached + non-cached). Sentry computes cost as \`(input_tokens - cached_tokens) * price\`, so if \`input_tokens\` only contains non-cached tokens, costs go **negative**. Each \`gen_ai.request\` span should only report its own token usage, not an accumulation of tokens from previous spans in the conversation.
 
 \`\`\`python
 # Correct — input_tokens includes cached
