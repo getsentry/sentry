@@ -319,7 +319,6 @@ export function LogsItemContainer(props: FlexProps<'div'>) {
   return (
     <Flex
       direction="column"
-      flex="1 1 auto"
       minHeight="0"
       overflow="hidden"
       position="relative"
