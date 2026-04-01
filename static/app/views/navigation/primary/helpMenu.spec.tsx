@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import * as intercom from 'sentry/utils/intercom';
 import * as zendesk from 'sentry/utils/zendesk';
 import {PrimaryNavigationHelpMenu} from 'sentry/views/navigation/primary/helpMenu';
@@ -40,10 +40,7 @@ describe('PrimaryNavigationHelpMenu', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Help'}));
 
-    // Hover over "Get Help" to open submenu
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Get Help'}));
-
-    // Click Contact Support in the submenu
+    // Click Contact Support in the menu
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Contact Support'}));
 
     expect(intercom.showIntercom).toHaveBeenCalled();
@@ -61,10 +58,7 @@ describe('PrimaryNavigationHelpMenu', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Help'}));
 
-    // Hover over "Get Help" to open submenu
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Get Help'}));
-
-    // Click Contact Support in the submenu
+    // Click Contact Support in the menu
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Contact Support'}));
 
     expect(zendesk.activateZendesk).toHaveBeenCalled();
@@ -81,9 +75,6 @@ describe('PrimaryNavigationHelpMenu', () => {
     render(<PrimaryNavigationHelpMenu />, {organization});
 
     await userEvent.click(screen.getByRole('button', {name: 'Help'}));
-
-    // Hover over "Get Help" to open submenu
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Get Help'}));
 
     const contactSupport = screen.getByRole('menuitemradio', {name: 'Contact Support'});
     expect(contactSupport).toHaveAttribute('href', 'mailto:support@sentry.io');
