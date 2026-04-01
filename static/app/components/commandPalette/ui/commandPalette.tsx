@@ -109,22 +109,27 @@ export function CommandPalette(props: CommandPaletteProps) {
     >();
 
     scoreTree(virtualRoot, scores, state.query.toLowerCase());
-    const after = flattenActions(virtualRoot, scores);
-    return after;
+    console.log('scores', scores);
+    return flattenActions(virtualRoot, scores);
   }, [allActions, state.action, state.query]);
 
   const filteredActionCount = useMemo(
     () => actions.filter(a => a.listItemType === 'action').length,
     [actions]
   );
+
   const analytics = useCommandPaletteAnalytics(filteredActionCount);
 
-  const treeState = useTreeState({
-    disabledKeys: new Set(
+  const sectionKeys = useMemo(() => {
+    return new Set(
       actions
         .filter(action => action.listItemType === 'section')
         .map(action => action.key)
-    ),
+    );
+  }, [actions]);
+
+  const treeState = useTreeState({
+    disabledKeys: sectionKeys,
     children: actions.map(action => {
       const menuItem = makeMenuItemFromAction(action);
 
@@ -167,7 +172,7 @@ export function CommandPalette(props: CommandPaletteProps) {
 
   const firstFocusableKey = useMemo(() => {
     for (const item of treeState.collection) {
-      if (item.type === 'item') {
+      if (!sectionKeys.has(String(item.key))) {
         return item;
       }
     }
@@ -359,17 +364,9 @@ function score(
     typeof action.display.details === 'string' ? action.display.details : '';
   const keywords = action.keywords ?? [];
 
-  const candidates = [label, details, ...keywords].filter(Boolean);
-  let best = {score: 0, matched: false};
-
-  for (const candidate of candidates) {
-    const result = fzf(candidate, query, false);
-    if (result.end !== -1 && result.score > best.score) {
-      best = {score: result.score, matched: true};
-    }
-  }
-
-  return best;
+  const candidates = [label, details, ...keywords].join(' ');
+  const result = fzf(candidates, query, false);
+  return {matched: result.end !== -1, score: result.score};
 }
 
 function scoreTree(
@@ -380,10 +377,10 @@ function scoreTree(
   >,
   query: string
 ): void {
-  function dfs(node: CommandPaletteActionWithKey, path: CommandPaletteActionWithKey[]) {
+  function dfs(node: CommandPaletteActionWithKey) {
     if ('actions' in node) {
       for (const action of node.actions) {
-        dfs(action, [...path, action]);
+        dfs(action);
       }
     }
 
@@ -393,7 +390,7 @@ function scoreTree(
     }
   }
 
-  dfs(root, []);
+  dfs(root);
 }
 
 function flattenActions(
