@@ -84,6 +84,7 @@ from sentry.models.team import Team, TeamStatus
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.replays.models import OrganizationMemberReplayAccess
+from sentry.seer.autofix.utils import get_valid_stopping_points
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -606,10 +607,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             "sentry:default_automated_run_stopping_point",
             SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
         )
-        valid_stopping_points = {"code_changes", "open_pr"}
-        if features.has("organizations:root-cause-stopping-point", obj):
-            valid_stopping_points.add("root_cause")
-        if stopping_point not in valid_stopping_points:
+        if stopping_point not in get_valid_stopping_points(obj):
             return SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
         return stopping_point
 

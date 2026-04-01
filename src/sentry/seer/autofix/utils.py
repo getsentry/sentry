@@ -67,6 +67,14 @@ class AutofixStoppingPoint(StrEnum):
     OPEN_PR = "open_pr"
 
 
+def get_valid_stopping_points(organization: Organization) -> set[str]:
+    """Return the set of stopping points valid for the given organization."""
+    valid = {"code_changes", "open_pr"}
+    if features.has("organizations:root-cause-stopping-point", organization):
+        valid.add("root_cause")
+    return valid
+
+
 class AutofixRequest(BaseModel):
     organization_id: int
     project_id: int
@@ -405,12 +413,8 @@ def get_org_default_seer_automation_handoff(
     stopping_point = organization.get_option(
         "sentry:default_automated_run_stopping_point", SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
     )
-
-    # Guard against stored values that are no longer valid.
-    valid_stopping_points = {"code_changes", "open_pr"}
-    if features.has("organizations:root-cause-stopping-point", organization):
-        valid_stopping_points.add("root_cause")
-    if stopping_point not in valid_stopping_points:
+    # Guard against stored stopping points that are no longer valid.
+    if stopping_point not in get_valid_stopping_points(organization):
         stopping_point = SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
 
     auto_open_prs = organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT)
