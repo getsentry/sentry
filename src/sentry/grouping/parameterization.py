@@ -207,23 +207,40 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # the prefix pretty much guarantees it's hex).
             (\b0[xX][0-9a-fA-F]+\b) |
 
-            # Hex value without `0x/0X` prefix (between 8 and 128 digits, including a number, and
-            # either all uppercase or all lowercase - we're more conservative here on all three
-            # scores in order to reduce false positives).
-            #
-            # Note: We use a lookahead for `0-9` but don't need one for `a-f/A-F` since if
-            #   a) the value consists of nothing but potential hex digits, but
-            #   b) none of those potential hex digits is a letter
-            # then the <int> pattern would already have caught it. Given that we're here, it didn't,
-            # so the only thing we need the lookahead to guard against is it being all letters.
-            #
-            # Each regex consists of two parts, the lookahead and the hex characters themselves. For
-            # example, for the lowercase pattern we have:
-            #     (?=[a-f]*[0-9])     The lookahead - there must be a digit, which may or may not be
-            #                         preceded by some number of hex letters
-            #     [0-9a-f]{8,128}     The matcher itself - between 8 and 128 hex characters
-            (\b(?=[a-f]*[0-9])[0-9a-f]{8,128}\b) |
-            (\b(?=[A-F]*[0-9])[0-9A-F]{8,128}\b)
+            # Hex value without `0x/0X` prefix (at least 4 characters long, containing both a letter
+            # and number if shorter than 8 characters, and either all uppercase or all lowercase -
+            # we're more conservative here in order to reduce false positives).
+            (
+                # Regular word boundary (for positive values)
+                \b
+                |
+                # Alphanumeric negative lookbehind before the dash in negative values to ensure it's
+                # only considered a minus sign if it doesn't connect two alphanumeric strings. (No
+                # word boundary here because the dash serves as the word boundary, since it's not a
+                # word character.)
+                (?<!\w)-
+            )
+            (
+                # The patterns for hex strings 4-6 characters long each consist of three parts:
+                #   - Lookahead to guarantee at least one digit (any number of letters, followed by
+                #     a single digit - doesn't have to cover the entire match, so there can continue
+                #     to be letters and numbers after the digit is found)
+                #   - Lookahead to guarantee at least one letter (any number of numbers, followed by
+                #     a single letter - as above, doesn't have to cover the entire match)
+                #   - The matcher itself - between 4 and 6 hex characters (7-character strings
+                #     aren't included because those are classified as git SHAs)
+                (?=[a-f]*[0-9])(?=[0-9]*[a-f])[0-9a-f]{4,6} |
+                (?=[A-F]*[0-9])(?=[0-9]*[A-F])[0-9A-F]{4,6} |
+                # The patterns for hex strings 8-128 characters long are less restrictive. We don't
+                # require a number because exceedingly few 8+-letter words consist of only the
+                # letters A-E - the string 'fabaceae' is much more likely to be hex than the Latin
+                # name for the plant family which includes legumes. And we don't require a letter
+                # because long strings of digits are probably more likely to be hex than to be giant
+                # integers.
+                [0-9a-f]{8,128} |
+                [0-9A-F]{8,128}
+            )
+            \b
         """,
     ),
     ParameterizationRegex(
@@ -245,10 +262,8 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
                 # Regular word boundary for positive ints
                 \b
                 |
-                # Alphanumeric negative lookbehind for negative ints to ensure a dash is only
-                # considered a minus sign if it doesn't connect two alphanumeric strings. (No word
-                # boundary here because the dash serves as the word boundary, since it's not a word
-                # character.)
+                # Alphanumeric negative lookbehind before the dash in negative ints (logic the same
+                # as in the hex pattern above)
                 (?<!\w)-
             )
             \d{1,7} # Anything 8 digits and up is considered hex
