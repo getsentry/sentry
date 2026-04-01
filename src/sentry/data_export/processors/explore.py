@@ -1,8 +1,6 @@
 import logging
 from typing import Any, cast
 
-from snuba_sdk.query_visitors import InvalidQueryError
-
 from sentry import features
 from sentry.api.endpoints.organization_trace_item_attributes import (
     POSSIBLE_ATTRIBUTE_TYPES,
@@ -33,9 +31,6 @@ from sentry.snuba.spans_rpc import Spans
 from sentry.users.models import User
 
 logger = logging.getLogger(__name__)
-
-# Minimal columns for TableQuery validation when field list is deferred to task time.
-_LOG_EXPORT_PROBE_COLUMNS = ["id", "trace", "project.id", "timestamp", "timestamp_precise"]
 
 SUPPORTED_TRACE_ITEM_DATASETS = {
     "spans": Spans,
@@ -111,7 +106,6 @@ class ExploreProcessor:
         ) + equations
 
         self.explore_query = explore_query
-        self._logs_wide_export_column_cache: list[str] | None = None
 
     @staticmethod
     def get_projects(organization_id: int, query: dict[str, Any]) -> list[Project]:
@@ -207,14 +201,10 @@ class ExploreProcessor:
         )
         return eap_response["data"]
 
-    def probe_columns_for_logs_wide_export_validation(self, user: User) -> list[str]:
-        """Stable small column set for POST-time TableQuery validation only."""
+    def get_columns_for_logs_wide_export(self, user: User) -> list[str]:
         return self._get_attribute_keys_for_full_export(
             user=user, trace_item_type=SupportedTraceItemType.LOGS
         )
 
     def validate_export_query(self, export_request: TableQuery) -> None:
-        try:
-            _ = self.scoped_dataset.get_table_rpc_request(export_request)
-        except InvalidQueryError as err:
-            raise err
+        _ = self.scoped_dataset.get_table_rpc_request(export_request)

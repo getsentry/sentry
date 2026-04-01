@@ -215,10 +215,8 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
                 output_mode=explore_output_mode,
             )
             if explore_processor.logs_full_detail_export:
-                query_info["field"] = (
-                    explore_processor.probe_columns_for_logs_wide_export_validation(
-                        self.context["user"]
-                    )
+                query_info["field"] = explore_processor.get_columns_for_logs_wide_export(
+                    self.context["user"]
                 )
 
             try:
