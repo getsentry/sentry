@@ -3,7 +3,8 @@ from __future__ import annotations
 import mimetypes
 import os
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
 from hashlib import sha1
 from io import BytesIO
 from typing import IO, Any
@@ -20,9 +21,12 @@ from sentry.db.models import BoundedBigIntegerField, Model, cell_silo_model, san
 from sentry.db.models.fields.bounded import BoundedIntegerField
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.files.utils import get_size_and_checksum, get_storage
-from sentry.objectstore import get_attachments_session
+from sentry.objectstore import default_attachment_retention, get_attachments_session
 from sentry.objectstore.metrics import measure_storage_operation
 from sentry.options.rollout import in_random_rollout
+
+# Sentinel value stored in `date_expires` to mean "no explicit expiry — use default retention".
+DATE_EXPIRES_SENTINEL = datetime(1970, 1, 1, 0, 0, 0, tzinfo=dt_timezone.utc)
 
 # Attachment file types that are considered a crash report (PII relevant)
 CRASH_REPORT_TYPES = ("event.minidump", "event.applecrashreport")
@@ -57,6 +61,10 @@ class PutfileResult:
     size: int
     sha1: str
     blob_path: str | None = None
+
+
+def _default_date_expires() -> datetime:
+    return timezone.now() + timedelta(days=default_attachment_retention())
 
 
 def can_store_inline(data: bytes) -> bool:
@@ -100,6 +108,11 @@ class EventAttachment(Model):
     sha1 = models.CharField(max_length=40, null=True)
 
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
+    date_expires = models.DateTimeField(
+        default=_default_date_expires,
+        db_default=DATE_EXPIRES_SENTINEL,
+        db_index=True,
+    )
 
     # storage:
     blob_path = models.TextField(null=True)
