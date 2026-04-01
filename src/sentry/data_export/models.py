@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.data_export.base import DEFAULT_EXPIRATION, ExportQueryType, ExportStatus
-from sentry.data_export.writers import get_file_extension, OutputMode
+from sentry.data_export.writers import OutputMode, get_file_extension
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
@@ -52,7 +52,9 @@ class ExportedData(Model):
     date_expired = models.DateTimeField(null=True, db_index=True)
     query_type = BoundedPositiveIntegerField(choices=ExportQueryType.as_choices())
     query_info: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
-    export_format = models.CharField(choices=OutputMode.as_choices(), null=True, default=OutputMode.CSV.value)
+    export_format = models.CharField(
+        choices=OutputMode.as_choices(), null=True, default=OutputMode.CSV.value
+    )
 
     @property
     def status(self) -> ExportStatus:

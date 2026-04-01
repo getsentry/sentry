@@ -1,8 +1,8 @@
 import codecs
 import csv
 import enum
-from collections.abc import Mapping
-from typing import Any, BinaryIO, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any, BinaryIO
 
 from sentry.utils import json
 
@@ -18,8 +18,8 @@ class OutputMode(str, enum.Enum):
     @classmethod
     def as_choices(cls) -> tuple[tuple[str, str], ...]:
         return (
-        (cls.CSV.value, "csv"),
-        (cls.JSONL.value, "jsonl"),
+            (cls.CSV.value, "csv"),
+            (cls.JSONL.value, "jsonl"),
         )
 
     @classmethod
@@ -27,6 +27,7 @@ class OutputMode(str, enum.Enum):
         if value == cls.JSONL.value:
             return cls.JSONL
         return cls.CSV
+
 
 class FileWriter:
     def __init__(
@@ -65,7 +66,7 @@ class FileWriter:
         writer = self._get_csv_writer()
         writer.writerow(row)
 
-    def writerows(self, rows: list[Mapping[str, Any]]) -> None:
+    def writerows(self, rows: Sequence[Mapping[str, Any]]) -> None:
         for row in rows:
             self.writerow(row)
 
