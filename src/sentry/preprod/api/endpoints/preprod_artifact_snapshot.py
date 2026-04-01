@@ -118,7 +118,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             return Response({"detail": "Feature not enabled"}, status=403)
 
         try:
-            artifact = PreprodArtifact.objects.get(
+            artifact = PreprodArtifact.objects.select_related("project").get(
                 id=snapshot_id, project__organization_id=organization.id
             )
         except (PreprodArtifact.DoesNotExist, ValueError):
