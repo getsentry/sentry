@@ -353,6 +353,13 @@ class Parameterizer:
             r.name: r.replacement_callback for r in regexes if r.replacement_callback
         }
 
+        # Store the individual regexes in case we need to handle replacement function false
+        # positives by manually looping through the patterns. This uses an `OrderedDict` to
+        # guarantee we apply them in the same order as in the main/combined regex.
+        self.compiled_regexes_by_name = OrderedDict(
+            (name, re.compile(rf"(?x){pattern}")) for name, pattern in patterns_by_name.items()
+        )
+
     def parameterize(self, input_str: str) -> str:
         """
         Replace all regex matches in the input string with placeholder strings, using the regexes
