@@ -296,18 +296,6 @@ def create_preprod_status_check_task(
                 approvals_map=approvals_map,
             )
 
-            if triggered_rules:
-                triggered_artifact_ids = {tr.artifact_id for tr in triggered_rules}
-                for artifact_id in triggered_artifact_ids:
-                    if artifact_id not in approvals_map:
-                        PreprodComparisonApproval.objects.get_or_create(
-                            preprod_artifact_id=artifact_id,
-                            preprod_feature_type=PreprodComparisonApproval.FeatureType.SIZE,
-                            defaults={
-                                "approval_status": PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL
-                            },
-                        )
-
             title, subtitle, summary = format_status_check_messages(
                 all_artifacts,
                 size_metrics_map,
