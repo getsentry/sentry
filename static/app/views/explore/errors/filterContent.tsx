@@ -20,7 +20,8 @@ export function ErrorsFilterSection() {
         searchSource="errors-filter"
         placeholder={t('Search for errors, users, tags, and more')}
       >
-        <Grid gap="md" columns={{sm: '1fr', md: 'minmax(300px, auto) 1fr min-content'}}>
+        {/* TODO: add in min-content column for cross event querying when that's implemented */}
+        <Grid gap="md" columns={{sm: '1fr', md: 'minmax(300px, auto) 1fr'}}>
           <StyledPageFilterBar condensed>
             <ProjectPageFilter />
             <EnvironmentPageFilter />
