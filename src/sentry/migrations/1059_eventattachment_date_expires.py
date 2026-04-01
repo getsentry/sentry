@@ -33,7 +33,6 @@ class Migration(CheckedMigration):
             name="date_expires",
             field=models.DateTimeField(
                 db_default=datetime.datetime(1970, 1, 1, 0, 0, tzinfo=datetime.timezone.utc),
-                db_index=True,
                 default=sentry.models.eventattachment._default_date_expires,
             ),
         ),

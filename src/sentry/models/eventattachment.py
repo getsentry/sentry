@@ -111,7 +111,6 @@ class EventAttachment(Model):
     date_expires = models.DateTimeField(
         default=_default_date_expires,
         db_default=DATE_EXPIRES_SENTINEL,
-        db_index=True,
     )
 
     # storage:
