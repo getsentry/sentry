@@ -69,7 +69,7 @@ def relay_server_setup(live_server, tmpdir_factory):
     template_path = _get_template_dir()
     sources = ["config.yml", "credentials.json"]
 
-    relay_port = ephemeral_port_reserve.reserve(ip="127.0.0.1")
+    relay_port = ephemeral_port_reserve.reserve(ip="127.0.0.1", port=0)
 
     redis_db = xdist.get_redis_db()
 
