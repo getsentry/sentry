@@ -28,6 +28,7 @@ from snuba_sdk import (
 )
 from snuba_sdk.orderby import Direction
 
+from sentry.billing.platform.services.usage._category_mapping import proto_to_relay_category
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import raw_snql_query
@@ -49,7 +50,9 @@ def query_outcomes_usage(request: GetUsageRequest) -> GetUsageResponse:
     # so we add one day to convert inclusive→exclusive. Without this, all
     # hourly rows on the last day would be excluded.
     end = _timestamp_to_datetime(request.end) + timedelta(days=1)
-    categories = list(request.categories)
+    # Proto categories use different int values from Relay/ClickHouse
+    # (e.g., proto ATTACHMENT=3 vs Relay ATTACHMENT=4). Convert before querying.
+    categories = [proto_to_relay_category(c) for c in request.categories]
 
     snuba_request = _build_query(org_id, start, end, categories)
     result = raw_snql_query(snuba_request, referrer=_REFERRER)

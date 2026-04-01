@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from google.protobuf.timestamp_pb2 import Timestamp
+from sentry_protos.billing.v1.data_category_pb2 import DataCategory as ProtoDataCategory
 from sentry_protos.billing.v1.services.usage.v1.endpoint_usage_pb2 import GetUsageRequest
 
 from sentry.billing.platform.services.usage._outcomes_query import query_outcomes_usage
@@ -314,6 +315,50 @@ class TestOutcomesIntegration(OutcomesSnubaTest, TestCase):
         assert len(response.days[0].usage) == 1
         assert response.days[0].usage[0].category == DataCategory.ERROR
         assert response.days[0].usage[0].data.accepted == 10
+
+    def test_category_filter_proto_to_relay_conversion(self):
+        """Proto ATTACHMENT=3 must map to Relay ATTACHMENT=4 when filtering CH.
+
+        Proto and Relay use different int values for some categories.
+        The request carries proto ints, but CH stores Relay ints.
+        """
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "timestamp": _now - timedelta(hours=1),
+                "outcome": Outcome.ACCEPTED,
+                "reason": "none",
+                "category": DataCategory.ATTACHMENT,  # Relay int = 4
+                "quantity": 512,
+            },
+        )
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "timestamp": _now - timedelta(hours=1),
+                "outcome": Outcome.ACCEPTED,
+                "reason": "none",
+                "category": DataCategory.ERROR,  # Relay int = 1
+                "quantity": 10,
+            },
+        )
+
+        # Filter using proto ATTACHMENT enum value (3), not Relay (4)
+        request = _make_request(
+            org_id=self.organization.id,
+            start=_now - timedelta(days=1),
+            end=_now + timedelta(days=1),
+            categories=[ProtoDataCategory.DATA_CATEGORY_ATTACHMENT],
+        )
+        response = query_outcomes_usage(request)
+
+        # Should find the ATTACHMENT data (Relay category 4), not errors
+        assert len(response.days) == 1
+        assert len(response.days[0].usage) == 1
+        assert response.days[0].usage[0].category == DataCategory.ATTACHMENT
+        assert response.days[0].usage[0].data.accepted == 512
 
     def test_overlapping_semantics(self):
         """Verify dropped >= over_quota + spike_protection with real data."""
