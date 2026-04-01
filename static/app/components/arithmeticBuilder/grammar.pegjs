@@ -9,9 +9,15 @@ token
     return token;
   }
 
-reference = val:[A-Z] !open_paren &{ return tc.isReference(val); } {
-  return tc.tokenReference(val, location());
-}
+reference
+  = val:ref_name &{ return tc.isReference(val); } {
+    return tc.tokenReference(val, location());
+  }
+
+ref_name
+  = [^()\t\n, \"+\-*/÷]+ {
+    return text();
+  }
 
 func
   = func:name "(" args:args spaces ")" {

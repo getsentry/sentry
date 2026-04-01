@@ -6,9 +6,11 @@ import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('ArithmeticBuilder', story => {
   story('With References', () => {
-    const [expression, setExpression] = useState('A + B');
+    const [expression, setExpression] = useState('A + B + Gamma');
     const [isValid, setIsValid] = useState(true);
-    const [references, setReferences] = useState(new Set<string>(['A', 'B', 'C']));
+    const [references, setReferences] = useState(
+      new Set<string>(['A', 'B', 'C', 'Gamma'])
+    );
     const [parseError, setParseError] = useState('');
 
     const onExpressionChange = useCallback((expr: Expression) => {
