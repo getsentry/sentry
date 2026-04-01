@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import type {Key} from '@react-types/shared';
 
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
@@ -73,10 +73,6 @@ export function useArithmeticBuilderAction({
     () => new Expression(expressionString, references),
     [expressionString, references]
   );
-
-  useEffect(() => {
-    updateExpression?.(expression);
-  }, [expression, updateExpression]);
 
   const dispatch = useCallback(
     (action: ArithmeticBuilderAction) => {

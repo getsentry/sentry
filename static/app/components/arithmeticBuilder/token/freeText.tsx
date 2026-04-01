@@ -460,14 +460,13 @@ function useSuggestionItems({
     filterValue,
     nextAllowedTokenKinds,
   });
-  const referenceItems = useReferenceItems();
+  const referenceItems = useReferenceItems({nextAllowedTokenKinds});
 
   return useMemo(() => {
-    const items = [...parenthesisItems, ...operatorItems, ...functionItems];
     if (referenceItems.length > 0) {
-      items.push(...referenceItems);
+      return [...parenthesisItems, ...operatorItems, ...referenceItems];
     }
-    return items;
+    return [...parenthesisItems, ...operatorItems, ...functionItems];
   }, [parenthesisItems, operatorItems, functionItems, referenceItems]);
 }
 
@@ -602,10 +601,19 @@ function useFunctionItems({
   }, [allowedFunctions, filterValue, nextAllowedTokenKinds]);
 }
 
-function useReferenceItems(): Array<SelectSectionWithKey<string>> {
+function useReferenceItems({
+  nextAllowedTokenKinds,
+}: {
+  nextAllowedTokenKinds: TokenKind[];
+}): Array<SelectSectionWithKey<string>> {
   const {references} = useArithmeticBuilder();
+
   return useMemo(() => {
-    if (!references || references.size === 0) {
+    if (
+      !references ||
+      references.size === 0 ||
+      !nextAllowedTokenKinds.includes(TokenKind.REFERENCE)
+    ) {
       return [];
     }
 
@@ -622,7 +630,7 @@ function useReferenceItems(): Array<SelectSectionWithKey<string>> {
         })),
       },
     ];
-  }, [references]);
+  }, [references, nextAllowedTokenKinds]);
 }
 
 function stopPropagation(evt: MouseEvent<HTMLElement>) {
