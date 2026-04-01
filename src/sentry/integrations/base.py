@@ -586,7 +586,9 @@ def get_integration_types(provider: str) -> list[IntegrationDomain]:
     return types
 
 
-def is_provider_enabled(provider: IntegrationProvider, organization: Organization) -> bool:
+def is_provider_enabled(
+    provider: IntegrationProvider, organization: Organization | RpcOrganization
+) -> bool:
     from sentry import features
 
     if not provider.requires_feature_flag:
