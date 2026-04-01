@@ -120,7 +120,7 @@ def _format_token(
     if isinstance(filter, event_search.SearchFilter):
         if filter.operator == "IN":
             return f"{key_name}:{value}"
-        if filter.operator == "NOT IN":
+        if filter.operator in ("NOT IN", "!="):
             return f"!{key_name}:{value}"
 
     if filter.operator == "=":
