@@ -80,7 +80,7 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
         </FormSection>
       </Container>
       <Container>
-        <FormSection step={4} title={t('Prioritize')}>
+        <FormSection step={4} title={t('Resolve')}>
           <Text as="p">
             {tct(
               'Issues may be automatically resolved based on [link:Auto Resolve Settings].',
