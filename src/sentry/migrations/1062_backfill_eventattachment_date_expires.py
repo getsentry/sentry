@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
 
+import itertools
+
 import click
 from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
@@ -12,7 +14,7 @@ from django.db.models.fields import DateTimeField
 
 from sentry.new_migrations.migrations import CheckedMigration
 
-BATCH_SIZE = 1000
+BATCH_SIZE = 10_000
 SENTINEL = datetime(1970, 1, 1, 0, 0, 0, tzinfo=dt_timezone.utc)
 DEFAULT_RETENTION_DAYS = 30
 
@@ -22,18 +24,23 @@ def backfill_eventattachment_date_expires(
 ) -> None:
     EventAttachment = apps.get_model("sentry", "EventAttachment")
 
-    with click.progressbar(length=None, label="Backfilling EventAttachment.date_expires") as bar:
-        while True:
-            batch = EventAttachment.objects.filter(date_expires=SENTINEL).values("id")[:BATCH_SIZE]
-            updated = EventAttachment.objects.filter(id__in=batch).update(
-                date_expires=ExpressionWrapper(
-                    F("date_added") + timedelta(days=DEFAULT_RETENTION_DAYS),
-                    output_field=DateTimeField(),
-                )
+    total_updated = 0
+    for i in itertools.count():
+        batch = EventAttachment.objects.filter(date_expires=SENTINEL).values("id")[:BATCH_SIZE]
+        updated = EventAttachment.objects.filter(id__in=batch).update(
+            date_expires=ExpressionWrapper(
+                F("date_added") + timedelta(days=DEFAULT_RETENTION_DAYS),
+                output_field=DateTimeField(),
             )
-            bar.update(updated)
-            if not updated:
-                break
+        )
+        if not updated:
+            break
+
+        total_updated += updated
+        if i % 100 == 0:
+            click.echo(f"Backfilled {total_updated} rows so far...")
+
+    click.echo(f"Done. Backfilled {total_updated} rows total.")
 
 
 class Migration(CheckedMigration):
