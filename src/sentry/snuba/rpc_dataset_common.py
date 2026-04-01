@@ -1,12 +1,14 @@
 import logging
 import math
 from collections import defaultdict
+from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from typing import Any
 
 import sentry_sdk
 from google.protobuf.json_format import MessageToJson
+from parsimonious.nodes import Node
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
 )
@@ -43,6 +45,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
+from sentry.api import event_search
 from sentry.api.event_search import AggregateFilter, SearchFilter, SearchKey, SearchValue
 from sentry.api.utils import handle_query_errors
 from sentry.discover import arithmetic
@@ -164,7 +167,12 @@ class RPCBase:
         item_type: SupportedTraceItemType,
         definitions: ColumnDefinitions,
         referrer: Referrer,
-    ) -> tuple[dict[str, dict[str, Any]], QueryContext]:
+    ) -> tuple[
+        dict[str, dict[str, Any]],
+        QueryContext,
+        Node | None,
+        Sequence[event_search.QueryToken],
+    ]:
         """Validate query keys and return their inferred types.
 
         Raises `InvalidSearchQuery` and `IncompatibleMetricsQuery` when
@@ -176,8 +184,9 @@ class RPCBase:
             config=SearchResolverConfig(),
             definitions=definitions,
         )
+        parse_tree, parsed_terms = resolver.parse_query(query_string)
         query_context = QueryContext()
-        resolver.resolve_query(query_string, query_context=query_context)
+        resolver.resolve_query(query_string, query_context=query_context, parsed_terms=parsed_terms)
 
         key_results: dict[str, dict[str, Any]] = {}
         unknown_attrs: list[tuple[str, ResolvedAttribute]] = []
@@ -227,7 +236,7 @@ class RPCBase:
                         "error": f"Unknown attribute: {key_name}",
                     }
 
-        return key_results, query_context
+        return key_results, query_context, parse_tree, parsed_terms
 
     @classmethod
     def categorize_column(
