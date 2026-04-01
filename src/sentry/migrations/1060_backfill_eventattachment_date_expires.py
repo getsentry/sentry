@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import logging
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
 
+import click
 from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
@@ -11,8 +11,6 @@ from django.db.models import ExpressionWrapper, F
 from django.db.models.fields import DateTimeField
 
 from sentry.new_migrations.migrations import CheckedMigration
-
-logger = logging.getLogger(__name__)
 
 BATCH_SIZE = 1000
 SENTINEL = datetime(1970, 1, 1, 0, 0, 0, tzinfo=dt_timezone.utc)
@@ -24,31 +22,18 @@ def backfill_eventattachment_date_expires(
 ) -> None:
     EventAttachment = apps.get_model("sentry", "EventAttachment")
 
-    total_updated = 0
-
-    while True:
-        batch = EventAttachment.objects.filter(date_expires=SENTINEL).values("id")[:BATCH_SIZE]
-        updated = EventAttachment.objects.filter(id__in=batch).update(
-            date_expires=ExpressionWrapper(
-                F("date_added") + timedelta(days=DEFAULT_RETENTION_DAYS),
-                output_field=DateTimeField(),
+    with click.progressbar(length=None, label="Backfilling EventAttachment.date_expires") as bar:
+        while True:
+            batch = EventAttachment.objects.filter(date_expires=SENTINEL).values("id")[:BATCH_SIZE]
+            updated = EventAttachment.objects.filter(id__in=batch).update(
+                date_expires=ExpressionWrapper(
+                    F("date_added") + timedelta(days=DEFAULT_RETENTION_DAYS),
+                    output_field=DateTimeField(),
+                )
             )
-        )
-
-        total_updated += updated
-        logger.info(
-            "backfill_eventattachment_date_expires: updated %d rows (total: %d)",
-            updated,
-            total_updated,
-        )
-
-        if not updated:
-            break
-
-    logger.info(
-        "backfill_eventattachment_date_expires: complete, updated %d total rows",
-        total_updated,
-    )
+            bar.update(updated)
+            if not updated:
+                break
 
 
 class Migration(CheckedMigration):
