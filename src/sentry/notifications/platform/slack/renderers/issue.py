@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from sentry import eventstore
 from sentry.models.group import Group
+from sentry.models.rule import Rule
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.issue import IssueNotificationData
@@ -29,7 +30,7 @@ class IssueSlackRenderer(NotificationRenderer[SlackRenderable]):
         if data.event_id:
             event = eventstore.backend.get_event_by_id(group.project.id, data.event_id)
 
-        tags = data.rule.data.get("tags", None) or None
+        tags = cls._extract_tags_from_rule(data.rule.to_rule())
         blocks_dict = SlackIssuesMessageBuilder(
             group=group,
             event=event,
@@ -43,3 +44,15 @@ class IssueSlackRenderer(NotificationRenderer[SlackRenderable]):
             blocks=blocks_dict.get("blocks", []),
             text=blocks_dict.get("text", ""),
         )
+
+    @classmethod
+    def _extract_tags_from_rule(cls, rule: Rule) -> set[str] | None:
+        rule_actions = rule.data.get("actions", [])
+        if rule_actions is None or len(rule_actions) == 0:
+            return None
+
+        tags = rule_actions[0].get("tags", None)
+        if tags is None:
+            return None
+
+        return tags

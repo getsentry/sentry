@@ -21,6 +21,7 @@ from sentry.notifications.platform.types import (
     NotificationBodyFormattingBlockType,
     NotificationBodyTextBlock,
     NotificationBodyTextBlockType,
+    NotificationCategory,
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
@@ -135,6 +136,16 @@ class DiscordNotificationProvider(NotificationProvider[DiscordRenderable]):
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
         # TODO(ecosystem): Check for the integration, maybe a feature as well
         return False
+
+    @classmethod
+    def get_renderer(
+        cls, *, data: NotificationData, category: NotificationCategory
+    ) -> type[NotificationRenderer[DiscordRenderable]]:
+        from sentry.notifications.platform.discord.renderers.issue import IssueDiscordRenderer
+
+        if category == NotificationCategory.ISSUE:
+            return IssueDiscordRenderer
+        return cls.default_renderer
 
     @classmethod
     def send(
