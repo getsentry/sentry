@@ -33,9 +33,11 @@ describe('CurrencyCell', () => {
     const warningIcon = screen.getByRole('img', {hidden: true});
     expect(warningIcon).toBeInTheDocument();
 
-    // Hover over the warning icon to see tooltip
+    // Hover over the wrapper to see tooltip
     await userEvent.hover(warningIcon);
-    expect(await screen.findByText(/Negative costs can occur/)).toBeInTheDocument();
-    expect(screen.getByText('Learn more')).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Negative costs indicate an error/)
+    ).toBeInTheDocument();
+    expect(screen.getByText('Follow this guide')).toBeInTheDocument();
   });
 });

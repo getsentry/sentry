@@ -1,5 +1,4 @@
-import styled from '@emotion/styled';
-
+import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ExternalLink} from 'sentry/components/links/externalLink';
@@ -15,6 +14,25 @@ type Props = {
 const NEGATIVE_COST_DOCS_URL =
   'https://docs.sentry.io/ai/monitoring/agents/costs/#troubleshooting';
 
+export function NegativeCostWarning({children}: {children: React.ReactNode}) {
+  return (
+    <Tooltip
+      title={tct(
+        'Negative costs indicate an error in token count reporting. [link:Follow this guide] to troubleshoot.',
+        {
+          link: <ExternalLink href={NEGATIVE_COST_DOCS_URL} />,
+        }
+      )}
+      skipWrapper
+    >
+      <Flex as="span" display="inline-flex" align="center" gap="xs">
+        <IconWarning legacySize="1em" variant="warning" />
+        {children}
+      </Flex>
+    </Tooltip>
+  );
+}
+
 export function CurrencyCell({value}: Props) {
   if (value === null || value === undefined) {
     return <NumberContainer>{'\u2014'}</NumberContainer>;
@@ -23,20 +41,7 @@ export function CurrencyCell({value}: Props) {
   if (value < 0) {
     return (
       <NumberContainer>
-        <Tooltip
-          title={tct(
-            'Negative costs indicate an error in token count reporting. [link:Follow this guide] to troubleshoot.',
-            {
-              link: <ExternalLink href={NEGATIVE_COST_DOCS_URL} />,
-            }
-          )}
-          skipWrapper
-        >
-          <NegativeCostWrapper>
-            <IconWarning legacySize="1em" variant="warning" />
-            {formatDollars(value)}
-          </NegativeCostWrapper>
-        </Tooltip>
+        <NegativeCostWarning>{formatDollars(value)}</NegativeCostWarning>
       </NumberContainer>
     );
   }
@@ -47,9 +52,3 @@ export function CurrencyCell({value}: Props) {
 
   return <NumberContainer>{formatDollars(value)}</NumberContainer>;
 }
-
-const NegativeCostWrapper = styled('span')`
-  display: inline-flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-`;

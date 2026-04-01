@@ -1,16 +1,12 @@
 import {Fragment} from 'react';
 import {Link} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {ExternalLink} from 'sentry/components/links/externalLink';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconWarning} from 'sentry/icons';
-import {tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {EChartDataZoomHandler, Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
@@ -52,6 +48,7 @@ import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plott
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import {NegativeCostWarning} from 'sentry/views/insights/common/components/tableCells/currencyCell';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
@@ -368,11 +365,9 @@ function VisualizationWidgetContent({
             </Tooltip>
             <TextAlignRight>
               {dataType === 'currency' && value !== null && value < 0 ? (
-                <NegativeCurrencyValue
-                  value={value}
-                  dataType={dataType}
-                  dataUnit={dataUnit}
-                />
+                <NegativeCostWarning>
+                  {formatBreakdownLegendValue(value, dataType, dataUnit)}
+                </NegativeCostWarning>
               ) : dataType === 'number' &&
                 value !== null &&
                 value > 0 &&
@@ -505,39 +500,3 @@ function renderBreakdownLabel(
 
   return fallbackLabel;
 }
-
-const NEGATIVE_COST_DOCS_URL =
-  'https://docs.sentry.io/ai/monitoring/agents/costs/#troubleshooting';
-
-function NegativeCurrencyValue({
-  value,
-  dataType,
-  dataUnit,
-}: {
-  dataType: string;
-  value: number;
-  dataUnit?: string;
-}) {
-  return (
-    <Tooltip
-      title={tct(
-        'Negative costs indicate an error in token count reporting. [link:Follow this guide] to troubleshoot.',
-        {
-          link: <ExternalLink href={NEGATIVE_COST_DOCS_URL} />,
-        }
-      )}
-      skipWrapper
-    >
-      <NegativeCostWrapper>
-        <IconWarning legacySize="1em" variant="warning" />
-        {formatBreakdownLegendValue(value, dataType, dataUnit)}
-      </NegativeCostWrapper>
-    </Tooltip>
-  );
-}
-
-const NegativeCostWrapper = styled('span')`
-  display: inline-flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-`;
