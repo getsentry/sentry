@@ -116,7 +116,7 @@ export type KnownSentryApiUrls =
   | '/internal/preprod-artifact/batch-delete/'
   | '/internal/preprod-artifact/rerun-analysis/'
   | '/internal/project-config/'
-  | '/internal/project-key-cell-mappings/'
+  | '/internal/projectkey-cell-mappings/'
   | '/internal/rpc/$serviceName/$methodName/'
   | '/internal/scm-rpc/$methodName/'
   | '/internal/seer-rpc/$methodName/'
