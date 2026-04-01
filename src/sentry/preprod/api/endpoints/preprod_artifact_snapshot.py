@@ -131,31 +131,6 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
 
         try:
             result = delete_artifacts_and_eap_data([artifact])
-
-            analytics.record(
-                PreprodArtifactApiDeleteEvent(
-                    organization_id=organization.id,
-                    project_id=artifact.project_id,
-                    user_id=(
-                        request.user.id if request.user and request.user.is_authenticated else None
-                    ),
-                    artifact_id=str(artifact.id),
-                )
-            )
-
-            logger.info(
-                "preprod_snapshot.deleted",
-                extra={
-                    "artifact_id": int(snapshot_id),
-                    "user_id": request.user.id if request.user else None,
-                    "files_deleted": result.files_deleted,
-                    "size_metrics_deleted": result.size_metrics_deleted,
-                    "artifacts_deleted": result.artifacts_deleted,
-                },
-            )
-
-            return Response(status=204)
-
         except Exception:
             logger.exception(
                 "preprod_snapshot.delete_failed",
@@ -165,6 +140,30 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 {"detail": "Internal error deleting snapshot."},
                 status=500,
             )
+
+        analytics.record(
+            PreprodArtifactApiDeleteEvent(
+                organization_id=organization.id,
+                project_id=artifact.project_id,
+                user_id=(
+                    request.user.id if request.user and request.user.is_authenticated else None
+                ),
+                artifact_id=str(artifact.id),
+            )
+        )
+
+        logger.info(
+            "preprod_snapshot.deleted",
+            extra={
+                "artifact_id": int(snapshot_id),
+                "user_id": request.user.id if request.user else None,
+                "files_deleted": result.files_deleted,
+                "size_metrics_deleted": result.size_metrics_deleted,
+                "artifacts_deleted": result.artifacts_deleted,
+            },
+        )
+
+        return Response(status=204)
 
     def get(self, request: Request, organization: Organization, snapshot_id: str) -> Response:
         if not settings.IS_DEV and not features.has(
