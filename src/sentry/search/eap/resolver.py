@@ -6,6 +6,7 @@ from typing import Any, Literal, cast
 
 import sentry_sdk
 from parsimonious.exceptions import ParseError
+from parsimonious.nodes import Node
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
 )
@@ -181,7 +182,10 @@ class SearchResolver:
 
     @sentry_sdk.trace
     def resolve_query(
-        self, querystring: str | None, query_context: QueryContext | None = None
+        self,
+        querystring: str | None,
+        query_context: QueryContext | None = None,
+        parsed_terms: event_filter.ParsedTerms | None = None,
     ) -> tuple[
         TraceItemFilter | None,
         AggregationFilter | None,
@@ -192,7 +196,11 @@ class SearchResolver:
         This is the public interface to resolver the query, for the logic see __resolve_query, this is because we
         also append the environment before returning the final TraceItemFilter"""
         environment_query = self.__resolve_environment_query()
-        where, having, contexts = self.__resolve_query(querystring, query_context=query_context)
+        where, having, contexts = self.__resolve_query(
+            querystring,
+            query_context=query_context,
+            parsed_terms=parsed_terms,
+        )
         span = sentry_sdk.get_current_span()
         if span:
             span.set_tag("SearchResolver.query_string", querystring)
@@ -279,17 +287,11 @@ class SearchResolver:
                 self.qualified_short_id_to_group_id_cache[g.project.id] = {}
             self.qualified_short_id_to_group_id_cache[g.project.id][raw] = g.id
 
-    def __resolve_query(
-        self, querystring: str | None, query_context: QueryContext | None = None
-    ) -> tuple[
-        TraceItemFilter | None,
-        AggregationFilter | None,
-        list[VirtualColumnDefinition | None],
-    ]:
+    def parse_query(self, querystring: str | None) -> tuple[Node | None, event_filter.ParsedTerms]:
         if querystring is None:
-            return None, None, []
+            return None, []
         try:
-            parsed_terms = event_search.parse_search_query(
+            return event_search.parse_search_query_with_tree(
                 querystring,
                 config=event_search.SearchConfig.create_from(
                     event_search.default_config,
@@ -302,8 +304,22 @@ class SearchResolver:
         except ParseError as e:
             if e.expr is not None:
                 raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
-            else:
-                raise InvalidSearchQuery(f"Parse error for: {querystring}")
+            raise InvalidSearchQuery(f"Parse error for: {querystring}")
+
+    def __resolve_query(
+        self,
+        querystring: str | None,
+        query_context: QueryContext | None = None,
+        parsed_terms: event_filter.ParsedTerms | None = None,
+    ) -> tuple[
+        TraceItemFilter | None,
+        AggregationFilter | None,
+        list[VirtualColumnDefinition | None],
+    ]:
+        if querystring is None:
+            return None, None, []
+        if parsed_terms is None:
+            _, parsed_terms = self.parse_query(querystring)
 
         # If occurrences dataset, cache group_id to issues mapping.
         self._init_issue_short_id_cache(parsed_terms)
