@@ -1,4 +1,3 @@
-import {useRef} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
@@ -18,7 +17,6 @@ import {PRIMARY_HEADER_HEIGHT} from './constants';
 
 export function TopBar() {
   const theme = useTheme();
-  const flexRef = useRef<HTMLDivElement>(null);
   const organization = useOrganization({allowNull: true});
   const hasPageFrame = useHasPageFrameFeature();
 
@@ -30,7 +28,6 @@ export function TopBar() {
 
   return (
     <Flex
-      ref={flexRef}
       height={{
         sm: `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`,
         md: `${PRIMARY_HEADER_HEIGHT}px`,
@@ -46,7 +43,6 @@ export function TopBar() {
       // is in the hover preview state, the top bar does not sit over it.
       style={{
         zIndex: theme.zIndex.sidebarPanel - 1,
-        transition: `border-bottom ${theme.motion.enter.slow}`,
       }}
     >
       <SizeProvider size="sm">
