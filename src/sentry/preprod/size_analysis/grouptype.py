@@ -82,9 +82,9 @@ def _get_measurement_label(measurement: str, platform: str) -> str:
 
 
 def _build_identifier_prefix(metadata: SizeAnalysisMetadata | None) -> str:
-    """Build an app identifier prefix like 'MyApp, android (com.example.app) — '.
+    """Build an app identifier prefix like 'MyApp android (com.example.app) — '.
 
-    Returns empty string if no metadata or no useful identifiers are available.
+    Returns empty string if no metadata is available.
     """
     if metadata is None:
         return ""
@@ -100,9 +100,6 @@ def _build_identifier_prefix(metadata: SizeAnalysisMetadata | None) -> str:
 
     if head_artifact.app_id:
         parts.append(f"({head_artifact.app_id})")
-
-    if not parts:
-        return ""
 
     return " ".join(parts) + " — "
 
