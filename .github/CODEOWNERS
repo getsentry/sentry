@@ -10,6 +10,7 @@
 ## tell the contributor to move the files to someplace with better ownership.
 /src/sentry/api/                                        @getsentry/app-backend
 /src/sentry/utils/                                      @getsentry/app-backend
+/tests/sentry/utils/                                    @getsentry/app-backend
 /src/sentry/testutils/                                  @getsentry/app-backend
 /src/sentry/users/                                      @getsentry/app-backend
 /tests/sentry/api/                                      @getsentry/app-backend
