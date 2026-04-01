@@ -37,10 +37,6 @@ export function registerLLMContext<P extends Record<string, unknown>>(
     const ownNodeId = useId();
 
     useEffect(() => {
-      // No-op when no LLMContextProvider is present (e.g. in tests).
-      if (!ctx) {
-        return undefined;
-      }
       ctx.registerNode(ownNodeId, nodeType, parentNodeId);
       return () => {
         ctx.unregisterNode(ownNodeId);
@@ -48,11 +44,6 @@ export function registerLLMContext<P extends Record<string, unknown>>(
       // parentNodeId in deps: if the parent context changes (e.g. parent
       // component re-mounts), re-register under the new parent.
     }, [ctx, ownNodeId, parentNodeId]);
-
-    // Passthrough when no provider — just render the component without context wiring.
-    if (!ctx) {
-      return <WrappedComponent {...(props as any)} />;
-    }
 
     return (
       // Provide ownNodeId downward so child registerLLMContext wrappers
