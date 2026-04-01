@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import omit from 'lodash/omit';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
@@ -46,6 +47,7 @@ export function IssueListSeerComboBox() {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
+  const analyticsArea = useAnalyticsArea();
   const {
     currentInputValueRef,
     query,
@@ -193,6 +195,11 @@ export function IssueListSeerComboBox() {
         organization,
         query: queryToUse,
       });
+      trackAnalytics('ai_query.applied', {
+        organization,
+        area: analyticsArea,
+        query: queryToUse,
+      });
 
       let timeParams: Record<string, string | undefined> = {};
 
@@ -231,7 +238,14 @@ export function IssueListSeerComboBox() {
         {replace: true, preventScrollReset: true}
       );
     },
-    [askSeerSuggestedQueryRef, location.pathname, location.query, navigate, organization]
+    [
+      analyticsArea,
+      askSeerSuggestedQueryRef,
+      location.pathname,
+      location.query,
+      navigate,
+      organization,
+    ]
   );
 
   if (!enableAISearch) {

@@ -1,5 +1,6 @@
 import {useEffect} from 'react';
 
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -131,7 +132,9 @@ function Homepage() {
 export default function HomepageContainer() {
   return (
     <PageFiltersContainer skipInitializeUrlParams>
-      <Homepage />
+      <AnalyticsArea name="discover">
+        <Homepage />
+      </AnalyticsArea>
     </PageFiltersContainer>
   );
 }

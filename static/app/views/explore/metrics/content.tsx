@@ -1,6 +1,7 @@
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Stack} from '@sentry/scraps/layout';
 
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -78,32 +79,34 @@ function MetricsHeader() {
 
   return (
     <Layout.Header unified>
-      <Layout.HeaderContent unified>
-        {hasSavedQueryTitle ? (
-          <SentryDocumentTitle
-            title={`${savedQuery.name} — ${t('Metrics')}`}
-            orgSlug={organization?.slug}
+      <AnalyticsArea name="explore.metrics">
+        <Layout.HeaderContent unified>
+          {hasSavedQueryTitle ? (
+            <SentryDocumentTitle
+              title={`${savedQuery.name} — ${t('Metrics')}`}
+              orgSlug={organization?.slug}
+            />
+          ) : null}
+          {title && defined(pageId) ? (
+            <ExploreBreadcrumb traceItemDataset={TraceItemDataset.TRACEMETRICS} />
+          ) : null}
+          <Layout.Title>
+            {title ? title : t('Metrics')}
+            <FeatureBadge type="beta" />
+          </Layout.Title>
+        </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <FeedbackButton
+            feedbackOptions={{
+              messagePlaceholder: t('How can we make metrics work better for you?'),
+              tags: {
+                ['feedback.source']: 'metrics-listing',
+                ['feedback.owner']: 'performance',
+              },
+            }}
           />
-        ) : null}
-        {title && defined(pageId) ? (
-          <ExploreBreadcrumb traceItemDataset={TraceItemDataset.TRACEMETRICS} />
-        ) : null}
-        <Layout.Title>
-          {title ? title : t('Metrics')}
-          <FeatureBadge type="beta" />
-        </Layout.Title>
-      </Layout.HeaderContent>
-      <Layout.HeaderActions>
-        <FeedbackButton
-          feedbackOptions={{
-            messagePlaceholder: t('How can we make metrics work better for you?'),
-            tags: {
-              ['feedback.source']: 'metrics-listing',
-              ['feedback.owner']: 'performance',
-            },
-          }}
-        />
-      </Layout.HeaderActions>
+        </Layout.HeaderActions>
+      </AnalyticsArea>
     </Layout.Header>
   );
 }
