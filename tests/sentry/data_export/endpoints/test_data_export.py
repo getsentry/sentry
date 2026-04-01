@@ -475,7 +475,7 @@ class DataExportTest(APITestCase):
         with self.feature("organizations:discover-query"):
             response = self.get_error_response(self.org.slug, status_code=400, **payload)
         assert response.data == {
-            "non_field_errors": ["invalid_dataset is not supported for csv exports"]
+            "non_field_errors": ["invalid_dataset is not supported for exports"]
         }
 
     def test_explore_valid_dataset_spans(self) -> None:
@@ -658,20 +658,27 @@ class DataExportTest(APITestCase):
         """
         Tests that explore queries handle sort parameters correctly
         """
-        payload = self.make_payload("explore", {"sort": ["-timestamp", "span_id"]})
+        payload = self.make_payload(
+            "explore",
+            {"field": ["span_id", "timestamp"], "sort": ["-timestamp", "span_id"]},
+        )
         with self.feature("organizations:discover-query"):
             response = self.get_success_response(self.org.slug, status_code=201, **payload)
         data_export = ExportedData.objects.get(id=response.data["id"])
         query_info = data_export.query_info
+        assert query_info["field"] == ["span_id", "timestamp"]
         assert query_info["sort"] == ["-timestamp", "span_id"]
 
     def test_explore_with_single_sort_string(self) -> None:
         """
         Tests that explore queries handle single sort string parameters correctly
         """
-        payload = self.make_payload("explore", {"sort": "-timestamp"})
+        payload = self.make_payload(
+            "explore", {"field": ["span_id", "timestamp"], "sort": "-timestamp"}
+        )
         with self.feature("organizations:discover-query"):
             response = self.get_success_response(self.org.slug, status_code=201, **payload)
         data_export = ExportedData.objects.get(id=response.data["id"])
         query_info = data_export.query_info
+        assert query_info["field"] == ["span_id", "timestamp"]
         assert query_info["sort"] == ["-timestamp"]

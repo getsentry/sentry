@@ -1,6 +1,8 @@
 import logging
 from typing import Any, cast
 
+from snuba_sdk.query_visitors import InvalidQueryError
+
 from sentry import features
 from sentry.api.endpoints.organization_trace_item_attributes import (
     POSSIBLE_ATTRIBUTE_TYPES,
@@ -26,6 +28,7 @@ from sentry.search.eap.types import (
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.rpc_dataset_common import TableQuery
 from sentry.snuba.spans_rpc import Spans
 from sentry.users.models import User
 
@@ -157,7 +160,7 @@ class ExploreProcessor:
         GET /api/0/organizations/{org}/trace-items/attributes/
         """
         referrer = resolve_attribute_referrer(trace_item_type.value)
-        meta = self.resolver.resolve_meta(referrer=referrer.value)
+        meta = self.search_resolver.resolve_meta(referrer=referrer.value)
         meta.trace_item_type = constants.SUPPORTED_TRACE_ITEM_TYPE_MAP[trace_item_type]
         use_sentry_conventions = features.has(
             "organizations:performance-sentry-conventions-fields",
@@ -209,3 +212,9 @@ class ExploreProcessor:
         return self._get_attribute_keys_for_full_export(
             user=user, trace_item_type=SupportedTraceItemType.LOGS
         )
+
+    def validate_export_query(self, export_request: TableQuery) -> None:
+        try:
+            _ = self.scoped_dataset.get_table_rpc_request(export_request)
+        except InvalidQueryError as err:
+            raise err

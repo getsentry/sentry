@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 from django.db import IntegrityError
+from django.urls import reverse
 
 from sentry.data_export.base import ExportQueryType
 from sentry.data_export.models import ExportedData
@@ -698,7 +699,10 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
         super().setUp()
         self.user = self.create_user()
         self.org = self.create_organization()
-        self.project = self.create_project(organization=self.org)
+
+        self.team = self.create_team(organization=self.org)
+        self.project = self.create_project(organization=self.org, teams=[self.team])
+        self.create_member(user=self.user, organization=self.org, teams=[self.team])
 
     @patch("sentry.data_export.models.ExportedData.email_success")
     def test_explore_spans_dataset_called_correctly(self, emailer: MagicMock) -> None:
@@ -776,7 +780,6 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
         with self.tasks():
             assemble_download(de.id, batch_size=1)
 
-        de = ExportedData.objects.get(id=de.id)
         de = ExportedData.objects.get(id=de.id)
         assert de.date_finished is not None
         assert de.date_expired is not None
@@ -857,6 +860,181 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
             "jsonl log message",
             "jsonl log message two",
         }
+        assert emailer.called
+
+    @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_explore_logs_jsonl_full_dataset_rich_fields(self, emailer: MagicMock) -> None:
+        """
+        Wide logs JSONL export: POST data-export creates ExportedData;
+        """
+        shared_attrs = {
+            "environment": "prod",
+            "origin": "auto.log.stdlib",
+            "sdk.name": "sentry.python.django",
+            "sdk.version": "2.47.0",
+            "tags[code.line.number,number]": 148,
+            "tags[process.pid,number]": 6639,
+        }
+        logs = [
+            self.create_ourlog(
+                {
+                    "body": "api.access.alpha",
+                    "severity_text": "info",
+                    "severity_number": 9,
+                },
+                timestamp=before_now(minutes=10),
+                organization=self.org,
+                project=self.project,
+                attributes={
+                    **shared_attrs,
+                    "method": "GET",
+                    "path": "/api/0/projects/acme/issues/",
+                    "user_agent": "python-requests/2.32.5",
+                    "logger.name": "sentry.access.api",
+                    "response": "200",
+                    "rate_limited": "False",
+                    "payload_size": 981,
+                },
+            ),
+            self.create_ourlog(
+                {
+                    "body": "api.access.beta",
+                    "severity_text": "info",
+                    "severity_number": 9,
+                },
+                timestamp=before_now(minutes=8),
+                organization=self.org,
+                project=self.project,
+                attributes={
+                    **shared_attrs,
+                    "method": "POST",
+                    "path": "/api/0/internal/rpc/",
+                    "user_agent": "curl/8.0",
+                    "logger.name": "sentry.access.api",
+                    "response": "201",
+                    "rate_limited": "False",
+                    "payload_size": 2048,
+                },
+            ),
+        ]
+        self.store_eap_items(logs)
+
+        expected_alpha: dict[str, object] = {
+            "logger.name": "sentry.access.api",
+            "message": "api.access.alpha",
+            "method": "GET",
+            "path": "/api/0/projects/acme/issues/",
+            "project": self.project.slug,
+            "rate_limited": "False",
+            "response": "200",
+            "severity": "info",
+            "severity_number": 9,
+            "tags[environment,string]": "prod",
+            "tags[origin,string]": "auto.log.stdlib",
+            "tags[payload_size,number]": 981.0,
+            "tags[sdk.name,string]": "sentry.python.django",
+            "tags[sdk.version,string]": "2.47.0",
+            "tags[tags[code.line.number,number],number]": 148.0,
+            "tags[tags[process.pid,number],number]": 6639.0,
+            "user_agent": "python-requests/2.32.5",
+        }
+        expected_beta: dict[str, object] = {
+            "logger.name": "sentry.access.api",
+            "message": "api.access.beta",
+            "method": "POST",
+            "path": "/api/0/internal/rpc/",
+            "project": self.project.slug,
+            "rate_limited": "False",
+            "response": "201",
+            "severity": "info",
+            "severity_number": 9,
+            "tags[environment,string]": "prod",
+            "tags[origin,string]": "auto.log.stdlib",
+            "tags[payload_size,number]": 2048.0,
+            "tags[sdk.name,string]": "sentry.python.django",
+            "tags[sdk.version,string]": "2.47.0",
+            "tags[tags[code.line.number,number],number]": 148.0,
+            "tags[tags[process.pid,number],number]": 6639.0,
+            "user_agent": "curl/8.0",
+        }
+        assert set(expected_alpha) == set(expected_beta)
+
+        volatile_keys = frozenset(
+            {"timestamp_precise", "observed_timestamp", "trace", "id", "item_id"}
+        )
+        # Persisted export `field` list is row keys plus time columns (skipped in static row asserts).
+        wide_log_export_field_names = set(expected_alpha) | (
+            volatile_keys - {"trace", "id", "item_id"}
+        )
+
+        start = before_now(minutes=15).isoformat()
+        end = before_now(seconds=30).isoformat()
+        request_body = {
+            "query_type": ExportQueryType.EXPLORE_STR,
+            "format": OutputMode.JSONL.value,
+            "query_info": {
+                "project": [self.project.id],
+                "field": [],
+                "equations": [],
+                "query": "",
+                "dataset": "logs",
+                "start": start,
+                "end": end,
+            },
+        }
+        url = reverse(
+            "sentry-api-0-organization-data-export",
+            kwargs={"organization_id_or_slug": self.org.slug},
+        )
+        self.login_as(self.user)
+        with self.feature("organizations:discover-query"):
+            response = self.client.post(
+                url,
+                data=json.dumps(request_body),
+                content_type="application/json",
+            )
+        assert response.status_code == 201, response.content
+        response_payload = json.loads(response.content)
+        de = ExportedData.objects.get(id=response_payload["id"])
+        assert de.user_id == self.user.id
+        assert de.query_type == ExportQueryType.EXPLORE
+        assert de.export_format == OutputMode.JSONL.value
+        assert sorted(de.query_info["field"]) == sorted(wide_log_export_field_names)
+        assert de.query_info["dataset"] == "logs"
+
+        with self.tasks():
+            assemble_download(de.id, batch_size=10, export_limit=10)
+
+        de = ExportedData.objects.get(id=de.id)
+        assert de.date_finished is not None
+        file = de._get_file()
+        assert isinstance(file, File)
+        assert file.headers == {"Content-Type": "application/x-ndjson"}
+
+        with file.getfile() as f:
+            content = f.read().strip()
+        lines = [ln for ln in content.split(b"\n") if ln]
+        assert len(lines) == 2
+
+        rows = [json.loads(ln.decode("utf-8")) for ln in lines]
+        rows.sort(key=lambda r: str(r.get("message") or r.get("log.body") or ""))
+
+        def assert_row_equals_export(
+            actual: dict[str, object], expected: dict[str, object]
+        ) -> None:
+            for key, exp in expected.items():
+                assert key in actual, f"missing column {key!r}; got {sorted(actual)}"
+                got = actual[key]
+                if isinstance(exp, (int, float)) and isinstance(got, (int, float)):
+                    assert float(got) == float(exp), (key, got, exp)
+                else:
+                    assert got == exp, (key, got, exp)
+            extra = set(actual) - set(expected) - volatile_keys
+            assert not extra, f"unexpected columns: {sorted(extra)}"
+
+        assert_row_equals_export(rows[0], expected_alpha)
+        assert_row_equals_export(rows[1], expected_beta)
+
         assert emailer.called
 
     @patch("sentry.data_export.models.ExportedData.email_success")

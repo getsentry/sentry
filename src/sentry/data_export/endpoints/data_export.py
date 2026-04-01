@@ -82,19 +82,26 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
         elif not isinstance(base_fields, list):
             base_fields = [base_fields]
 
+        is_jsonl_logs_export = (
+            query_type == ExportQueryType.EXPLORE_STR
+            and query_info.get("dataset") == "logs"
+            and export_format == OutputMode.JSONL.value
+        )
+
         if len(base_fields) > MAX_FIELDS:
             detail = f"You can export up to {MAX_FIELDS} fields at a time. Please delete some and try again."
             raise serializers.ValidationError(detail)
         elif len(base_fields) == 0:
-            if not (
-                query_type == ExportQueryType.EXPLORE_STR
-                and query_info.get("dataset") == "logs"
-                and export_format == OutputMode.JSONL.value
-            ):
+            if not is_jsonl_logs_export:
                 raise serializers.ValidationError("at least one field is required to export")
 
         if "query" not in query_info:
-            query_info["query"] = ""
+            if is_jsonl_logs_export:
+                query_info["query"] = ""
+            else:
+                raise serializers.ValidationError(
+                    "query is a required to export, please pass an empty string if you don't want to set one"
+                )
 
         if len(base_fields) > 0:
             equations, fields = categorize_columns(base_fields)
@@ -215,20 +222,25 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
                 )
 
             try:
-                rpc_dataset_common.TableQuery(
-                    query_string=query_info["query"],
-                    selected_columns=query_info.get("fields", []),
-                    orderby=query_info.get("sort", []),
-                    offset=0,
-                    limit=1,
-                    referrer=Referrer.DATA_EXPORT_TASKS_EXPLORE,
-                    sampling_mode=explore_processor.sampling_mode,
-                    resolver=explore_processor.search_resolver,
-                    equations=query_info.get("equations", []),
+                sort = query_info.get("sort", [])
+                orderby = [sort] if isinstance(sort, str) else sort
+
+                explore_processor.validate_export_query(
+                    rpc_dataset_common.TableQuery(
+                        query_string=query_info["query"],
+                        selected_columns=query_info["field"],
+                        orderby=orderby,
+                        offset=0,
+                        limit=1,
+                        referrer=Referrer.DATA_EXPORT_TASKS_EXPLORE,
+                        sampling_mode=explore_processor.sampling_mode,
+                        resolver=explore_processor.search_resolver,
+                        equations=query_info.get("equations", []),
+                    )
                 )
             except InvalidSearchQuery as err:
                 sentry_sdk.capture_exception(err)
-                raise serializers.ValidationError("Invalid table query")
+                raise serializers.ValidationError(f"Invalid table query {err}")
 
         elif data["query_type"] == ExportQueryType.ISSUES_BY_TAG_STR:
             issues_by_tag_validate(query_info)
