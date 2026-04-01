@@ -69,6 +69,9 @@ export function useArithmeticBuilderAction({
   const [expressionString, setExpressionString] = useState(initialExpression);
   const [focusOverride, setFocusOverride] = useState<FocusOverride | null>(null);
 
+  // Recreate the Expression when the string or references change because
+  // a reference change may invalidate some of the current references and turn
+  // them into free text tokens.
   const expression = useMemo(
     () => new Expression(expressionString, references),
     [expressionString, references]
