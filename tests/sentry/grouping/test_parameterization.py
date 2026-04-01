@@ -24,7 +24,6 @@ standard_cases = [
     ("email", "maisey@dogsaregreat.com", "<email>"),
     ("url - with subdomain", "http://dogs.squirrelchasers.net", "<url>"),
     ("url - with username/password", "http://charlie:s3cretSqu1rrel@dogsaregreat.com:10", "<url>"),
-    ("url - tcp", "tcp://dogsaregreat.com:10", "tcp://<hostname>:<int>"),
     ("url - ipv4", "http://11.21.12.31", "<url>"),
     ("url - ipv4 with port", "http://11.21.12.31:12", "<url>"),
     ("url - ipv6", "http://2001:db8::1", "<url>"),
@@ -307,6 +306,12 @@ incorrect_cases = [
         "tcp://charlie:s3cretSqu1rrel@dogsaregreat.com:10 had a problem",
         "<url> had a problem",
         "tcp://charlie:<email>:<int> had a problem",
+    ),
+    (
+        "url - tcp",
+        "tcp://dogsaregreat.com:10",
+        "<url>",
+        "tcp://<hostname>:<int>",
     ),
 ]
 
