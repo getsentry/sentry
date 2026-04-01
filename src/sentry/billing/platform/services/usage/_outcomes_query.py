@@ -161,6 +161,14 @@ def _build_query(
 def _build_response(rows: list[dict]) -> GetUsageResponse:
     # Two-level accumulator: days_map[day_str][category_id] -> usage fields.
     # Each row already contains all 7 sumIf-aggregated fields from ClickHouse.
+    #
+    # NOTE: CategoryUsage.category carries Relay/Sentry int values (not proto
+    # DataCategory ints).  The proto field is typed as DataCategory but every
+    # existing consumer (getsentry postgres backend, shadow comparison,
+    # UsagePricerService, customer_usage, projection, etc.) interprets it as a
+    # Relay int.  Converting to proto ints here would break all consumers and
+    # the shadow comparison.  See the TODO in getsentry's
+    # usage_pricer/service.py for the planned migration.
     days_map: defaultdict[str, dict[int, dict[str, int]]] = defaultdict(dict)
 
     for row in rows:
