@@ -3654,7 +3654,7 @@ INTERNAL_URLS = [
         name="sentry-api-0-org-cell-mappings",
     ),
     re_path(
-        r"^project-key-cell-mappings/$",
+        r"^projectkey-cell-mappings/$",
         ProjectKeyCellMappingsEndpoint.as_view(),
         name="sentry-api-0-project-key-cell-mappings",
     ),
