@@ -7,30 +7,29 @@ from sentry.testutils.silo import control_silo_test
 from sentry.users.models.identity import Identity
 
 
-def _schedule_org_integration_deletion(test_case):
-    """Create an OrganizationIntegration and schedule it for deletion."""
-    integration = test_case.create_provider_integration(
-        provider="slack", name="Slack", external_id="slack:1"
-    )
-    identity = Identity.objects.create(
-        idp=test_case.create_identity_provider(type="slack", config={}, external_id="slack:1"),
-        user=test_case.user,
-        external_id="base_id",
-        data={},
-    )
-    integration.add_organization(
-        test_case.organization, test_case.user, default_auth_id=identity.id
-    )
-    org_integration = OrganizationIntegration.objects.get(
-        integration=integration, organization_id=test_case.organization.id
-    )
-    org_integration.update(status=ObjectStatus.PENDING_DELETION)
-    deletion = ScheduledDeletion.schedule(org_integration, days=0, actor=test_case.user)
-    return deletion, org_integration.id
+class DeletionsTestMixin:
+    def _schedule_org_integration_deletion(self) -> tuple[ScheduledDeletion, int]:
+        """Create an OrganizationIntegration and schedule it for deletion."""
+        integration = self.create_provider_integration(
+            provider="slack", name="Slack", external_id="slack:1"
+        )
+        identity = Identity.objects.create(
+            idp=self.create_identity_provider(type="slack", config={}, external_id="slack:1"),
+            user=self.user,
+            external_id="base_id",
+            data={},
+        )
+        integration.add_organization(self.organization, self.user, default_auth_id=identity.id)
+        org_integration = OrganizationIntegration.objects.get(
+            integration=integration, organization_id=self.organization.id
+        )
+        org_integration.update(status=ObjectStatus.PENDING_DELETION)
+        deletion = ScheduledDeletion.schedule(org_integration, days=0, actor=self.user)
+        return deletion, org_integration.id
 
 
 @control_silo_test
-class DeletionsListTest(CliTestCase):
+class DeletionsListTest(CliTestCase, DeletionsTestMixin):
     command = deletions
 
     def test_list_empty(self) -> None:
@@ -39,27 +38,27 @@ class DeletionsListTest(CliTestCase):
         assert "No pending deletions found" in rv.output
 
     def test_list_shows_pending(self) -> None:
-        deletion, _ = _schedule_org_integration_deletion(self)
+        deletion, _ = self._schedule_org_integration_deletion()
         rv = self.invoke("list")
         assert rv.exit_code == 0
         assert "OrganizationIntegration" in rv.output
         assert str(deletion.id) in rv.output
 
     def test_list_filter_by_model(self) -> None:
-        _schedule_org_integration_deletion(self)
+        self._schedule_org_integration_deletion()
         rv = self.invoke("list", "-m", "OrganizationIntegration")
         assert rv.exit_code == 0
         assert "OrganizationIntegration" in rv.output
 
     def test_list_filter_by_model_no_match(self) -> None:
-        _schedule_org_integration_deletion(self)
+        self._schedule_org_integration_deletion()
         rv = self.invoke("list", "-m", "Project")
         assert rv.exit_code == 0
         assert "No pending deletions found" in rv.output
 
 
 @control_silo_test
-class DeletionsRunTest(CliTestCase):
+class DeletionsRunTest(CliTestCase, DeletionsTestMixin):
     command = deletions
 
     def test_run_requires_option(self) -> None:
@@ -68,7 +67,7 @@ class DeletionsRunTest(CliTestCase):
         assert "Provide one of" in rv.output
 
     def test_run_by_id(self) -> None:
-        deletion, oi_id = _schedule_org_integration_deletion(self)
+        deletion, oi_id = self._schedule_org_integration_deletion()
         rv = self.invoke("run", "-i", str(deletion.id))
         assert rv.exit_code == 0, rv.output
         assert "Done" in rv.output
@@ -76,14 +75,14 @@ class DeletionsRunTest(CliTestCase):
         assert not ScheduledDeletion.objects.filter(id=deletion.id).exists()
 
     def test_run_by_model(self) -> None:
-        deletion, oi_id = _schedule_org_integration_deletion(self)
+        deletion, oi_id = self._schedule_org_integration_deletion()
         rv = self.invoke("run", "-m", "OrganizationIntegration")
         assert rv.exit_code == 0, rv.output
         assert "Done" in rv.output
         assert not OrganizationIntegration.objects.filter(id=oi_id).exists()
 
     def test_run_all(self) -> None:
-        deletion, oi_id = _schedule_org_integration_deletion(self)
+        deletion, oi_id = self._schedule_org_integration_deletion()
         rv = self.invoke("run", "--all")
         assert rv.exit_code == 0, rv.output
         assert "Done" in rv.output
