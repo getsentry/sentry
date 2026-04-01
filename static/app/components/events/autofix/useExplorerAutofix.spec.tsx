@@ -3,6 +3,7 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {DiffFileType, DiffLineType} from 'sentry/components/events/autofix/types';
 import {
+  collectPatches,
   isCodeChangesArtifact,
   isCodingAgentsArtifact,
   isPullRequestsArtifact,
@@ -12,7 +13,7 @@ import {
   type RootCauseArtifact,
   type SolutionArtifact,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import type {Artifact} from 'sentry/views/seerExplorer/types';
+import type {Artifact, ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
 jest.mock('sentry/actionCreators/indicator');
 
@@ -237,6 +238,156 @@ describe('isCodingAgentsArtifact', () => {
 
   it('returns false when array contains invalid items', () => {
     expect(isCodingAgentsArtifact([{not_an: 'agent'}])).toBe(false);
+  });
+});
+
+describe('collectPatches', () => {
+  function makePatch(
+    overrides: Partial<ExplorerFilePatch> & {repo_name: string}
+  ): ExplorerFilePatch {
+    return {
+      diff: 'diff content',
+      patch: {
+        added: 1,
+        removed: 0,
+        path: 'file.py',
+        source_file: 'file.py',
+        target_file: 'file.py',
+        type: DiffFileType.MODIFIED,
+        hunks: [],
+      },
+      ...overrides,
+    };
+  }
+
+  it('returns an empty map for empty input', () => {
+    expect(collectPatches([])).toEqual(new Map());
+  });
+
+  it('returns a single patch grouped by repo', () => {
+    const patch = makePatch({repo_name: 'owner/repo'});
+    const result = collectPatches([patch]);
+
+    expect(result.size).toBe(1);
+    expect(result.get('owner/repo')).toEqual([patch]);
+  });
+
+  it('groups multiple patches in the same repo', () => {
+    const patch1 = makePatch({
+      repo_name: 'owner/repo',
+      patch: {
+        added: 1,
+        removed: 0,
+        path: 'a.py',
+        source_file: 'a.py',
+        target_file: 'a.py',
+        type: DiffFileType.MODIFIED,
+        hunks: [],
+      },
+    });
+    const patch2 = makePatch({
+      repo_name: 'owner/repo',
+      patch: {
+        added: 2,
+        removed: 1,
+        path: 'b.py',
+        source_file: 'b.py',
+        target_file: 'b.py',
+        type: DiffFileType.MODIFIED,
+        hunks: [],
+      },
+    });
+
+    const result = collectPatches([patch1, patch2]);
+
+    expect(result.size).toBe(1);
+    expect(result.get('owner/repo')).toEqual([patch1, patch2]);
+  });
+
+  it('separates patches into different repos', () => {
+    const patch1 = makePatch({repo_name: 'owner/repo-a'});
+    const patch2 = makePatch({repo_name: 'owner/repo-b'});
+
+    const result = collectPatches([patch1, patch2]);
+
+    expect(result.size).toBe(2);
+    expect(result.get('owner/repo-a')).toEqual([patch1]);
+    expect(result.get('owner/repo-b')).toEqual([patch2]);
+  });
+
+  it('deduplicates by file path keeping the last occurrence', () => {
+    const patchOld = makePatch({
+      repo_name: 'owner/repo',
+      diff: 'old diff',
+      patch: {
+        added: 1,
+        removed: 0,
+        path: 'file.py',
+        source_file: 'file.py',
+        target_file: 'file.py',
+        type: DiffFileType.MODIFIED,
+        hunks: [],
+      },
+    });
+    const patchNew = makePatch({
+      repo_name: 'owner/repo',
+      diff: 'new diff',
+      patch: {
+        added: 3,
+        removed: 2,
+        path: 'file.py',
+        source_file: 'file.py',
+        target_file: 'file.py',
+        type: DiffFileType.MODIFIED,
+        hunks: [],
+      },
+    });
+
+    const result = collectPatches([patchOld, patchNew]);
+
+    expect(result.get('owner/repo')).toHaveLength(1);
+    expect(result.get('owner/repo')![0]!.diff).toBe('new diff');
+  });
+
+  it('filters out no-op patches with zero added and removed', () => {
+    const noOpPatch = makePatch({
+      repo_name: 'owner/repo',
+      patch: {
+        added: 0,
+        removed: 0,
+        path: 'file.py',
+        source_file: 'file.py',
+        target_file: 'file.py',
+        type: DiffFileType.MODIFIED,
+        hunks: [],
+      },
+    });
+
+    const result = collectPatches([noOpPatch]);
+
+    expect(result.size).toBe(0);
+  });
+
+  it('removes repos that have only no-op patches', () => {
+    const noOp = makePatch({
+      repo_name: 'owner/empty-repo',
+      patch: {
+        added: 0,
+        removed: 0,
+        path: 'file.py',
+        source_file: 'file.py',
+        target_file: 'file.py',
+        type: DiffFileType.MODIFIED,
+        hunks: [],
+      },
+    });
+    const real = makePatch({repo_name: 'owner/real-repo'});
+
+    const result = collectPatches([noOp, real]);
+
+    expect(result.size).toBe(1);
+    expect(result.has('owner/empty-repo')).toBe(false);
+    expect(result.get('owner/real-repo')).toEqual([real]);
   });
 });
 
