@@ -81,6 +81,7 @@ const globalActions: CommandPaletteAction[] = [
     display: {label: 'Other'},
   },
   {
+    type: 'group',
     display: {label: 'Parent action'},
     actions: [
       {
@@ -252,8 +253,9 @@ describe('CommandPalette', () => {
     it('top-level actions rank before child actions when both match the query', async () => {
       const actions: CommandPaletteAction[] = [
         {
+          type: 'group',
           display: {label: 'Group'},
-          actions: [{type: 'navigate', to: '/child/', display: {label: 'Issues child'}}],
+          actions: [{to: '/child/', display: {label: 'Issues child'}}],
         },
         {
           to: '/top/',
@@ -291,6 +293,7 @@ describe('CommandPalette', () => {
     it("searching within a drilled-in group filters that group's children", async () => {
       const actions: CommandPaletteAction[] = [
         {
+          type: 'group',
           display: {label: 'Theme'},
           actions: [
             {onAction: jest.fn(), display: {label: 'Light'}},

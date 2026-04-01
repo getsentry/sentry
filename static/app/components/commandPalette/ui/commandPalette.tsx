@@ -21,14 +21,15 @@ import {Text} from '@sentry/scraps/text';
 
 import {useCommandPaletteActions} from 'sentry/components/commandPalette/context';
 import type {
+  CommandPaletteActionCallbackWithKey,
   CommandPaletteActionGroupWithKey,
+  CommandPaletteActionLinkWithKey,
   CommandPaletteActionWithKey,
 } from 'sentry/components/commandPalette/types';
 import {
   useCommandPaletteDispatch,
   useCommandPaletteState,
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
-import {useCommandPaletteAnalytics} from 'sentry/components/commandPalette/useCommandPaletteAnalytics';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IconArrow, IconClose, IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
@@ -63,14 +64,15 @@ type CommandPaletteActionWithListItemType = CommandPaletteActionWithKey & {
 };
 
 interface CommandPaletteProps {
-  onAction: (action: CommandPaletteActionWithKey) => void;
+  onAction: (
+    action: CommandPaletteActionCallbackWithKey | CommandPaletteActionLinkWithKey
+  ) => void;
 }
 
 export function CommandPalette(props: CommandPaletteProps) {
   const theme = useTheme();
 
   const allActions = useCommandPaletteActions();
-  const organization = useOrganization();
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
 
@@ -208,7 +210,7 @@ export function CommandPalette(props: CommandPaletteProps) {
       dispatch({type: 'trigger action'});
       props.onAction(action);
     },
-    [actions, dispatch, props, treeState, organization, state.query]
+    [actions, dispatch, props, treeState]
   );
 
   return (
