@@ -14,6 +14,21 @@ type Props = {
 
 const NEGATIVE_COST_DOCS_URL = 'https://docs.sentry.io/ai/monitoring/agents/costs/';
 
+export function NegativeCostWarning() {
+  return (
+    <Tooltip
+      title={tct(
+        'Negative costs can occur when cached token pricing differs from standard token pricing. [link:Learn more].',
+        {
+          link: <ExternalLink href={NEGATIVE_COST_DOCS_URL} />,
+        }
+      )}
+    >
+      <StyledIconWarning size="sm" variant="warning" />
+    </Tooltip>
+  );
+}
+
 export function CurrencyCell({value}: Props) {
   if (value === null || value === undefined) {
     return <NumberContainer>{'\u2014'}</NumberContainer>;
@@ -23,17 +38,8 @@ export function CurrencyCell({value}: Props) {
     return (
       <NumberContainer>
         <NegativeCostWrapper>
+          <NegativeCostWarning />
           {formatDollars(value)}
-          <Tooltip
-            title={tct(
-              'Negative costs can occur when cached token pricing differs from standard token pricing. [link:Learn more].',
-              {
-                link: <ExternalLink href={NEGATIVE_COST_DOCS_URL} />,
-              }
-            )}
-          >
-            <StyledIconWarning size="sm" color="warning" />
-          </Tooltip>
         </NegativeCostWrapper>
       </NumberContainer>
     );

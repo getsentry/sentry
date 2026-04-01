@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {ExternalLink} from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
+import {formatDollars} from 'sentry/utils/formatters';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
@@ -12,7 +13,7 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {CurrencyCell} from 'sentry/views/insights/common/components/tableCells/currencyCell';
+import {NegativeCostWarning} from 'sentry/views/insights/common/components/tableCells/currencyCell';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
@@ -124,7 +125,7 @@ export function ModelCostWidget() {
             <ModelText>
               <ModelName modelId={modelId} />
             </ModelText>
-            <CurrencyCell value={Number(item['sum(gen_ai.cost.total_tokens)']) || null} />
+            <CostValue cost={Number(item['sum(gen_ai.cost.total_tokens)'])} />
           </Fragment>
         );
       })}
@@ -173,6 +174,27 @@ export function ModelCostWidget() {
     />
   );
 }
+
+function CostValue({cost}: {cost: number}) {
+  if (cost < 0) {
+    return (
+      <CostValueWrapper>
+        <NegativeCostWarning />
+        {formatDollars(cost)}
+      </CostValueWrapper>
+    );
+  }
+  if (cost > 0 && cost < 0.01) {
+    return <span>{`<$${(0.01).toLocaleString()}`}</span>;
+  }
+  return <span>{formatDollars(cost)}</span>;
+}
+
+const CostValueWrapper = styled('span')`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+`;
 
 const ModelText = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
