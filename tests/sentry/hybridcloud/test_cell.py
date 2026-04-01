@@ -25,7 +25,7 @@ _TEST_CELLS = (
 class CellResolutionTest(TestCase):
     def setUp(self) -> None:
         self.target_cell = _TEST_CELLS[0]
-        self.organization = self.create_organization(region=self.target_cell)
+        self.organization = self.create_organization(cell=self.target_cell)
 
     def test_by_cell_name(self) -> None:
         resolver = ByCellName()
@@ -75,6 +75,6 @@ class CellResolutionTest(TestCase):
                 cell_resolution.resolve({})
 
         with override_cells(_TEST_CELLS), override_settings(SENTRY_SINGLE_ORGANIZATION=True):
-            self.create_organization(region=_TEST_CELLS[1])
+            self.create_organization(cell=_TEST_CELLS[1])
             with pytest.raises(CellResolutionError):
                 cell_resolution.resolve({})

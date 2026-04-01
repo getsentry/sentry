@@ -177,12 +177,6 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.login_as(user=self.user)
-        self.organization = self.create_organization(owner=self.user)
-        self.api_key = self.create_api_key(
-            organization=self.organization,
-            scope_list=["project:releases"],
-        )
 
         #: some shenanigans to work around async/sync hell:
         #  - use a "one shot" httpx client, so that we're not bound previous
@@ -202,14 +196,15 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
 
         from sentry.hybridcloud.apigateway_async.middleware import ApiGatewayMiddleware
 
-        _original_middleware = ApiGatewayMiddleware._process_view_inner
+        _original_mw = ApiGatewayMiddleware.process_view
 
-        async def _eager_process_view_inner(mw_self, request, view_func, view_args, view_kwargs):
-            resp = await _original_middleware(mw_self, request, view_func, view_args, view_kwargs)
+        async def _eager_process_view(mw_self, request, view_func, view_args, view_kwargs):
+            resp = await _original_mw(mw_self, request, view_func, view_args, view_kwargs)
             if isinstance(resp, StreamingHttpResponse) and resp.is_async:
                 body = b""
                 async for chunk in resp:
                     body += chunk
+                await proxy_mod.proxy_client.aclose()
                 sync_resp = HttpResponse(
                     content=body,
                     status=resp.status_code,
@@ -223,10 +218,17 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
 
         self._apigateway_patch = patch.object(proxy_mod, "proxy_client", HTTPXOneShotClient())
         self._middleware_patch = patch.object(
-            ApiGatewayMiddleware, "_process_view_inner", _eager_process_view_inner
+            ApiGatewayMiddleware, "process_view", _eager_process_view
         )
         self._apigateway_patch.start()
         self._middleware_patch.start()
+
+        self.login_as(user=self.user)
+        self.organization = self.create_organization(owner=self.user)
+        self.api_key = self.create_api_key(
+            organization=self.organization,
+            scope_list=["project:releases"],
+        )
 
     def tearDown(self) -> None:
         self._middleware_patch.stop()

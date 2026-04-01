@@ -21,7 +21,7 @@ from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import cell_silo_test
 from sentry.types.cell import Cell
 from sentry.utils import json
-from tests.sentry.middleware.test_proxy import test_region
+from tests.sentry.middleware.test_proxy import test_cell
 
 
 @pytest.fixture(scope="function")
@@ -31,7 +31,7 @@ def local_live_server(request: pytest.FixtureRequest, live_server: LiveServer) -
     request.node.live_server = live_server
 
 
-@cell_silo_test(cells=[test_region])
+@cell_silo_test(cells=[test_cell])
 @pytest.mark.usefixtures("local_live_server")
 class EndToEndAPIProxyTest(TransactionTestCase):
     live_server: LiveServer
@@ -50,11 +50,11 @@ class EndToEndAPIProxyTest(TransactionTestCase):
             return
 
         self.client = APIClient()
-        config = asdict(test_region)
+        config = asdict(test_cell)
         config["address"] = self.live_server.url
 
         with override_cells([Cell(**config)]):
-            self.organization = Factories.create_organization(owner=self.user, region="us")
+            self.organization = Factories.create_organization(owner=self.user, cell="us")
             self.api_key = Factories.create_api_key(
                 organization=self.organization, scope_list=["org:write", "org:admin", "team:write"]
             )

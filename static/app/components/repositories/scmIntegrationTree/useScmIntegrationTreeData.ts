@@ -2,7 +2,6 @@ import {useEffect, useMemo} from 'react';
 
 import {organizationRepositoriesInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {organizationConfigIntegrationsQueryOptions} from 'sentry/components/repositories/scmIntegrationTree/organizationConfigIntegrationsQueryOptions';
-import {organizationIntegrationsQueryOptions} from 'sentry/endpoints/organizations/organizationsIntegrationsQueryOptions';
 import type {
   IntegrationProvider,
   IntegrationRepository,
@@ -12,6 +11,7 @@ import type {
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useInfiniteQuery, useQueries, useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {organizationIntegrationsQueryOptions} from 'sentry/views/settings/seer/overview/utils/organizationIntegrationsQueryOptions';
 
 type ScmIntegrationTreeData = {
   connectedIdentifiers: Set<string>;

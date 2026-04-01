@@ -836,6 +836,7 @@ class Referrer(StrEnum):
     )
     TAGSTORE__GET_TAG_KEYS = "tagstore.__get_tag_keys"
     TAGSTORE_GET_GROUP_LIST_TAG_VALUE = "tagstore.get_group_list_tag_value"
+    TAGSTORE_GET_GROUP_TAG_VALUE_COUNT = "tagstore.get_group_tag_value_count"
     TAGSTORE_GET_GROUP_TAG_VALUE_ITER = "tagstore.get_group_tag_value_iter"
     TAGSTORE_GET_GROUPS_USER_COUNTS = "tagstore.get_groups_user_counts"
     TAGSTORE_GET_GROUPS_USER_COUNTS_GROUP_SNOOZE = "tagstore.get_groups_user_counts.groupsnooze"

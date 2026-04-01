@@ -20,6 +20,7 @@ from sentry.seer.endpoints.seer_rpc import (
     generate_request_signature,
     get_attributes_for_span,
     get_github_enterprise_integration_config,
+    get_repo_installation_id,
     has_repo_code_mappings,
     validate_repo,
 )
@@ -1317,3 +1318,164 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         assert result == {"valid": True, "integration_id": integration.id}
+
+    def test_get_repo_installation_id_github(self) -> None:
+        """Test returns external_id as installation_id for GitHub repos"""
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="12345"
+        )
+
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123456",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        result = get_repo_installation_id(
+            organization_id=self.organization.id,
+            provider="github",
+            external_id="123456",
+            owner="getsentry",
+            name="sentry",
+        )
+
+        assert result == {"installation_id": "12345", "permissions": None}
+
+    def test_get_repo_installation_id_github_with_permissions(self) -> None:
+        """Test returns permissions from integration metadata"""
+        permissions = {"contents": "read", "issues": "write", "pull_requests": "read"}
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="12345",
+            metadata={"permissions": permissions},
+        )
+
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123456",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        result = get_repo_installation_id(
+            organization_id=self.organization.id,
+            provider="github",
+            external_id="123456",
+            owner="getsentry",
+            name="sentry",
+        )
+
+        assert result == {"installation_id": "12345", "permissions": permissions}
+
+    def test_get_repo_installation_id_github_enterprise(self) -> None:
+        """Test returns metadata installation_id for GitHub Enterprise repos"""
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github_enterprise",
+            external_id="ghe:1",
+            metadata={"installation_id": "99999"},
+        )
+
+        Repository.objects.create(
+            name="mycompany/internal-repo",
+            organization_id=self.organization.id,
+            provider="integrations:github_enterprise",
+            external_id="789",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        result = get_repo_installation_id(
+            organization_id=self.organization.id,
+            provider="github_enterprise",
+            external_id="789",
+            owner="mycompany",
+            name="internal-repo",
+        )
+
+        assert result == {"installation_id": "99999", "permissions": None}
+
+    def test_get_repo_installation_id_not_found(self) -> None:
+        """Test returns error when repository does not exist"""
+        result = get_repo_installation_id(
+            organization_id=self.organization.id,
+            provider="github",
+            external_id="nonexistent",
+            owner="getsentry",
+            name="sentry",
+        )
+
+        assert result == {"error": "repository_not_found"}
+
+    def test_get_repo_installation_id_unsupported_provider(self) -> None:
+        """Test returns error for unsupported provider"""
+        integration = self.create_integration(
+            organization=self.organization, provider="gitlab", external_id="gitlab:1"
+        )
+
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="gitlab",
+            external_id="123456",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        result = get_repo_installation_id(
+            organization_id=self.organization.id,
+            provider="gitlab",
+            external_id="123456",
+            owner="getsentry",
+            name="sentry",
+        )
+
+        assert result == {"error": "unsupported_provider"}
+
+    def test_get_repo_installation_id_no_integration(self) -> None:
+        """Test returns error when repo has no integration_id"""
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123456",
+            status=ObjectStatus.ACTIVE,
+            integration_id=None,
+        )
+
+        result = get_repo_installation_id(
+            organization_id=self.organization.id,
+            provider="github",
+            external_id="123456",
+            owner="getsentry",
+            name="sentry",
+        )
+
+        assert result == {"error": "no_integration"}
+
+    def test_get_repo_installation_id_integration_not_found(self) -> None:
+        """Test returns error when integration record doesn't exist"""
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123456",
+            status=ObjectStatus.ACTIVE,
+            integration_id=999999,
+        )
+
+        result = get_repo_installation_id(
+            organization_id=self.organization.id,
+            provider="github",
+            external_id="123456",
+            owner="getsentry",
+            name="sentry",
+        )
+
+        assert result == {"error": "integration_not_found"}
