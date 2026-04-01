@@ -408,6 +408,23 @@ class Parameterizer:
             "grouping.parameterize", tags={"experimental": self.is_experimental}
         ) as metric_tags:
             parameterized = self.combined_regex.sub(_handle_regex_match, input_str)
+
+            # Our big combo regex will short-circuit when it finds a match, which is great for
+            # performance but problematic in cases where a replacement callback declines to
+            # parameterize a value, because then the value never gets checked against later
+            # patterns. To protect against that, in those cases we cycle through all patterns
+            # individually, which is slower but ensures we check them all.
+            if found_false_positive:
+                metric_tags["false_positive"] = True
+
+                # Reset values before applying the patterns again
+                replacement_counts = defaultdict(int)
+                parameterized = input_str
+
+                # Apply patterns one by one, with no short-circuiting
+                for regex_key, regex in self.compiled_regexes_by_name.items():
+                    parameterized = regex.sub(_handle_regex_match, parameterized)
+
             metric_tags["changed"] = parameterized != input_str
 
         for regex_key, count in replacement_counts.items():
