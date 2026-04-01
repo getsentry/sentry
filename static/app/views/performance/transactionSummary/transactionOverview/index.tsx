@@ -10,7 +10,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
 import type {Column, QueryFieldValue} from 'sentry/utils/discover/fields';
-import type {WebVital} from 'sentry/utils/fields';
+import {WebVital} from 'sentry/utils/fields';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {
   getIsMetricsDataFromResults,
@@ -370,6 +370,8 @@ function getEAPTotalsEventView(
   _organization: Organization,
   eventView: EventView
 ): EventView {
+  const vitals = [WebVital.FCP, WebVital.LCP, WebVital.CLS];
+
   const totalsColumns: QueryFieldValue[] = [
     {
       kind: 'function',
@@ -381,7 +383,16 @@ function getEAPTotalsEventView(
     },
   ];
 
-  return eventView.withColumns([...totalsColumns]);
+  return eventView.withColumns([
+    ...totalsColumns,
+    ...vitals.map(
+      vital =>
+        ({
+          kind: 'function',
+          function: ['percentile', vital, VITAL_PERCENTILE.toString(), undefined],
+        }) as Column
+    ),
+  ]);
 }
 
 export default TransactionOverview;

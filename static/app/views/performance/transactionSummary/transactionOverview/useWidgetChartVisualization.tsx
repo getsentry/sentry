@@ -2,7 +2,11 @@ import {useTheme} from '@emotion/react';
 
 import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {parseFunction} from 'sentry/utils/discover/fields';
+import {
+  getAggregateArg,
+  getMeasurementSlug,
+  parseFunction,
+} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -53,12 +57,22 @@ export function useWidgetChartVisualization({
     query,
   });
 
+  const webVitalsVisualization = useWebVitalsVisualization({
+    enabled: selectedWidget === EAPWidgetType.WEB_VITALS,
+    transactionName,
+    query,
+  });
+
   if (selectedWidget === EAPWidgetType.DURATION_BREAKDOWN) {
     return durationBreakdownVisualization;
   }
 
   if (selectedWidget === EAPWidgetType.DURATION_PERCENTILES) {
     return durationPercentilesVisualization;
+  }
+
+  if (selectedWidget === EAPWidgetType.WEB_VITALS) {
+    return webVitalsVisualization;
   }
 
   return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
@@ -208,6 +222,94 @@ function useDurationPercentilesVisualization({
     <DurationPercentileChart
       series={transformData(durationPercentilesData, false, /p(\d+)\(/)}
       colors={colors}
+    />
+  );
+}
+
+type WebVitalsVisualizationOptions = {
+  enabled: boolean;
+  query: string;
+  transactionName: string;
+};
+
+function useWebVitalsVisualization({
+  enabled,
+  transactionName,
+  query,
+}: WebVitalsVisualizationOptions) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const {selection} = usePageFilters();
+  const legendSelection = getSeriesSelection(location);
+
+  const {releases: releasesWithDate} = useReleaseStats(selection);
+  const releases =
+    releasesWithDate?.map(({date, version}) => ({
+      timestamp: date,
+      version,
+    })) ?? [];
+
+  const newQuery = new MutableSearch(query);
+  newQuery.addFilterValue('transaction', transactionName);
+  newQuery.addFilterValue('is_transaction', '1');
+
+  const {
+    data: spanSeriesData,
+    isPending: isSpanSeriesPending,
+    isError: isSpanSeriesError,
+  } = useFetchSpanTimeSeries(
+    {
+      yAxis: [
+        'p75(measurements.fcp)',
+        'p75(measurements.lcp)',
+        'p75(measurements.cls)',
+        'p75(measurements.ttfb)',
+        'p75(measurements.inp)',
+      ],
+      query: newQuery,
+      interval: getInterval(selection.datetime, 'high'),
+      enabled,
+    },
+    REFERRER
+  );
+
+  if (!enabled) {
+    return null;
+  }
+
+  if (isSpanSeriesPending || isSpanSeriesError) {
+    return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
+  }
+
+  const plottables =
+    spanSeriesData?.timeSeries.map(series => {
+      const arg = getAggregateArg(series.yAxis);
+      let name = series.yAxis;
+      if (arg) {
+        const slug = getMeasurementSlug(arg);
+        if (slug) {
+          name = slug.toUpperCase();
+        }
+      }
+      return new Line(series, {name, alias: name});
+    }) ?? [];
+
+  return (
+    <TimeSeriesWidgetVisualization
+      plottables={plottables}
+      releases={releases}
+      showReleaseAs="bubble"
+      legendSelection={legendSelection}
+      onLegendSelectionChange={selected => {
+        const unselected = Object.keys(selected).filter(key => !selected[key]);
+        navigate({
+          ...location,
+          query: {
+            ...location.query,
+            unselectedSeries: unselected,
+          },
+        });
+      }}
     />
   );
 }
