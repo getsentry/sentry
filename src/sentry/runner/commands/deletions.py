@@ -65,6 +65,8 @@ def run_deletions(deletion_id: int | None, model: str | None, run_all: bool, ver
     """
     Run pending scheduled deletions synchronously.
     """
+    from django.utils import timezone
+
     from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 
     if not any([deletion_id, model, run_all]):
@@ -82,7 +84,9 @@ def run_deletions(deletion_id: int | None, model: str | None, run_all: bool, ver
         _run_one(deletion=deletion, verbose=verbose)
         return
 
-    queryset = ScheduledDeletion.objects.all()
+    queryset = ScheduledDeletion.objects.filter(
+        in_progress=False, date_scheduled__lte=timezone.now()
+    )
     if model:
         queryset = queryset.filter(model_name=model)
 
