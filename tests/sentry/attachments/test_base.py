@@ -42,10 +42,12 @@ def test_meta_basic() -> None:
         "chunks": 3,
         "content_type": "text/plain",
         "name": "lol.txt",
+        "retention_days": 30,
         "type": "event.attachment",
     }
 
 
+@django_db_all
 def test_meta_rate_limited() -> None:
     att = CachedAttachment(
         key="c:foo", id=123, name="lol.txt", content_type="text/plain", chunks=3, rate_limited=True
@@ -58,6 +60,7 @@ def test_meta_rate_limited() -> None:
         "content_type": "text/plain",
         "name": "lol.txt",
         "rate_limited": True,
+        "retention_days": 30,
         "type": "event.attachment",
     }
 

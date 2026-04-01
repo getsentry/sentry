@@ -115,6 +115,7 @@ class CachedAttachment:
                 "size": self.size or None,  # None for backwards compatibility
                 "chunks": self.chunks,
                 "stored_id": self.stored_id,
+                "retention_days": self.retention_days,
             }
         )
 
