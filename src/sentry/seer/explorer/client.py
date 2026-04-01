@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from rest_framework.request import Request
 
 from sentry import features, options
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.explorer.client_models import ExplorerRun, ExplorerRunWithPrs, SeerRunState
@@ -35,6 +36,7 @@ from sentry.seer.models import SeerApiError, SeerPermissionError, SeerRepoDefini
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
 
@@ -170,7 +172,7 @@ class SeerExplorerClient:
 
         Args:
             organization: Sentry organization
-            user: User for permission checks and user-specific context (can be User, AnonymousUser, or None)
+            user: User for permission checks and user-specific context (can be User, RpcUser, AnonymousUser, or None)
             project: Optional project for project-scoped runs (e.g. autofix for an issue)
             category_key: Optional category key for filtering/grouping runs (e.g., "bug-fixer", "trace-analyzer"). Must be provided together with category_value. Makes it easy to retrieve runs for your feature later.
             category_value: Optional category value for filtering/grouping runs (e.g., issue ID, trace ID). Must be provided together with category_key. Makes it easy to retrieve a specific run for your feature later.
@@ -185,7 +187,7 @@ class SeerExplorerClient:
     def __init__(
         self,
         organization: Organization,
-        user: User | AnonymousUser | None = None,
+        user: User | RpcUser | AnonymousUser | None = None,
         project: Project | None = None,
         category_key: str | None = None,
         category_value: str | None = None,
@@ -526,7 +528,8 @@ class SeerExplorerClient:
         self,
         run_id: int,
         repo_name: str | None = None,
-        blocking=True,
+        blocking: bool = True,
+        pr_description_suffix: str | None = None,
         poll_interval: float = 2.0,
         poll_timeout: float = 120.0,
     ) -> SeerRunState | None:
@@ -548,11 +551,19 @@ class SeerExplorerClient:
         Raises:
             TimeoutError: If polling exceeds timeout
             SeerApiError: If the Seer API request fails
+            SeerPermissionError: If code generation is disabled for the organization
         """
+        if not self.organization.get_option(
+            "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
+        ):
+            raise SeerPermissionError("Code generation is disabled for this organization")
+
         # Trigger PR creation
         payload: dict[str, Any] = {"type": "create_pr"}
         if repo_name:
             payload["repo_name"] = repo_name
+        if pr_description_suffix:
+            payload["pr_description_suffix"] = pr_description_suffix
         if self.on_completion_hook:
             payload["on_completion_hook"] = extract_hook_definition(self.on_completion_hook).dict()
         update_body = ExplorerUpdateRequest(

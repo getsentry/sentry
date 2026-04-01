@@ -21,7 +21,7 @@ export default function MetricDetectorsList() {
   return (
     <SentryDocumentTitle title={TITLE}>
       <WorkflowEngineListLayout
-        actions={<DetectorListActions detectorType="metric_issue" />}
+        actions={<DetectorListActions />}
         title={TITLE}
         description={DESCRIPTION}
         docsUrl={DOCS_URL}

@@ -8,7 +8,9 @@ from taskbroker_client.state import current_task
 
 from sentry import analytics, features
 from sentry.analytics.events.autofix_automation_events import AiAutofixAutomationEvent
-from sentry.constants import ObjectStatus
+from sentry.constants import (
+    ObjectStatus,
+)
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -24,6 +26,7 @@ from sentry.seer.autofix.utils import (
     deduplicate_repositories,
     get_autofix_repos_from_project_code_mappings,
     get_autofix_state,
+    get_org_default_seer_automation_handoff,
     get_seer_seat_based_tier_cache_key,
     resolve_repository_ids,
 )
@@ -238,34 +241,49 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
                 "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
             )
 
+    default_stopping_point, default_handoff = get_org_default_seer_automation_handoff(organization)
+    default_handoff_dict = default_handoff.dict() if default_handoff else None
+
+    valid_stopping_points = {"open_pr", "code_changes"}
+
     preferences_by_id = bulk_get_project_preferences(organization_id, project_ids)
 
     # Determine which projects need updates
     preferences_to_set = []
     projects_by_id = {p.id: p for p in projects}
     for project_id in project_ids:
+        stopping_point = default_stopping_point
+        handoff = default_handoff_dict
+
         existing_pref = preferences_by_id.get(str(project_id))
         if not existing_pref:
             # No existing preferences, get repositories from code mappings
             repositories = get_autofix_repos_from_project_code_mappings(projects_by_id[project_id])
         else:
-            # Skip projects that already have an acceptable stopping point configured
-            if existing_pref.get("automated_run_stopping_point") in ("open_pr", "code_changes"):
-                continue
             repositories = existing_pref.get("repositories") or []
 
-        repositories = deduplicate_repositories(repositories)
+            existing_stopping_point = existing_pref.get("automated_run_stopping_point")
+            existing_handoff = existing_pref.get("automation_handoff")
 
-        # Preserve existing repositories and automation_handoff, only update the stopping point
+            # Skip projects that a) already have an acceptable stopping point configured
+            # AND b) already have a handoff configured or no org default handoff.
+            if existing_stopping_point in valid_stopping_points and (
+                existing_handoff or default_handoff_dict is None
+            ):
+                continue
+
+            if existing_stopping_point in valid_stopping_points:
+                stopping_point = existing_stopping_point
+            if existing_handoff:
+                handoff = existing_handoff
+
         preferences_to_set.append(
             {
                 "organization_id": organization_id,
                 "project_id": project_id,
-                "repositories": repositories or [],
-                "automated_run_stopping_point": "code_changes",
-                "automation_handoff": (
-                    existing_pref.get("automation_handoff") if existing_pref else None
-                ),
+                "repositories": deduplicate_repositories(repositories) or [],
+                "automated_run_stopping_point": stopping_point,
+                "automation_handoff": handoff,
             }
         )
 

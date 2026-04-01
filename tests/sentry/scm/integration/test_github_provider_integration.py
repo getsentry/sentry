@@ -589,7 +589,7 @@ class TestGitHubProviderIntegration(TestCase):
 
         assert len(responses.calls) == 1
 
-    def test_repository_conversion_preserves_fields(self):
+    def test_repository_conversion_preserves_fields(self) -> None:
         assert self.repository["name"] == REPO_NAME
         assert self.repository["organization_id"] == self.organization.id
         assert self.repository["integration_id"] == self.integration.id

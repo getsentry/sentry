@@ -12,6 +12,7 @@ import type {PreprodDetector} from 'sentry/types/workflowEngine/detectors';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
 import {DescribeSection} from 'sentry/views/detectors/components/forms/common/describeSection';
+import {ProjectSection} from 'sentry/views/detectors/components/forms/common/projectSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import {MobileBuildDetectSection} from 'sentry/views/detectors/components/forms/mobileBuild/detectSection';
 import {
@@ -40,6 +41,7 @@ function MobileBuildDetectorForm() {
 
   return (
     <Stack gap="2xl" maxWidth={theme.breakpoints.lg}>
+      <ProjectSection />
       <MobileBuildDetectSection />
       <Container>
         <Section
@@ -74,7 +76,6 @@ export function NewPreprodDetectorForm() {
       detectorType="preprod_size_analysis"
       formDataToEndpointPayload={preprodFormDataToEndpointPayload}
       initialFormData={PREPROD_DEFAULT_FORM_DATA}
-      environment={false}
     >
       <MobileBuildDetectorForm />
     </NewDetectorLayout>
@@ -87,7 +88,6 @@ export function EditExistingPreprodDetectorForm({detector}: {detector: PreprodDe
       detector={detector}
       formDataToEndpointPayload={preprodFormDataToEndpointPayload}
       savedDetectorToFormData={preprodSavedDetectorToFormData}
-      environment={false}
     >
       <MobileBuildDetectorForm />
     </EditDetectorLayout>

@@ -15,8 +15,8 @@ from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_p
 from sentry.testutils.silo import control_silo_test
 from sentry.types.cell import Cell, RegionCategory
 
-region = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
-region_config = (region,)
+cell = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
+cell_config = (cell,)
 
 
 @control_silo_test
@@ -38,7 +38,7 @@ class GithubEnterpriseRequestParserTest(TestCase):
         )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_cells(region_config)
+    @override_cells(cell_config)
     def test_invalid_webhook(self) -> None:
         self.get_integration()
         request = self.factory.post(
@@ -49,7 +49,7 @@ class GithubEnterpriseRequestParserTest(TestCase):
         assert response.status_code == 400
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_cells(region_config)
+    @override_cells(cell_config)
     @responses.activate
     def test_routing_no_organization_integrations_found(self) -> None:
         integration = self.get_integration()
@@ -72,7 +72,7 @@ class GithubEnterpriseRequestParserTest(TestCase):
         assert_no_webhook_payloads()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_cells(region_config)
+    @override_cells(cell_config)
     @responses.activate
     def test_routing_no_integrations_found(self) -> None:
         self.get_integration()
@@ -86,7 +86,7 @@ class GithubEnterpriseRequestParserTest(TestCase):
         assert_no_webhook_payloads()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_cells(region_config)
+    @override_cells(cell_config)
     def test_get_integration_from_request_no_host(self) -> None:
         # No host header
         request = self.factory.post(
@@ -100,7 +100,7 @@ class GithubEnterpriseRequestParserTest(TestCase):
         assert result is None
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_cells(region_config)
+    @override_cells(cell_config)
     def test_get_integration_from_request_with_host(self) -> None:
         # With host header
         request = self.factory.post(
@@ -115,7 +115,7 @@ class GithubEnterpriseRequestParserTest(TestCase):
         assert result == integration
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_cells(region_config)
+    @override_cells(cell_config)
     @responses.activate
     def test_installation_hook_handled_in_control(self) -> None:
         self.get_integration()
@@ -137,7 +137,7 @@ class GithubEnterpriseRequestParserTest(TestCase):
         assert_no_webhook_payloads()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_cells(region_config)
+    @override_cells(cell_config)
     @responses.activate
     def test_webhook_outbox_creation(self) -> None:
         integration = self.get_integration()
@@ -156,5 +156,5 @@ class GithubEnterpriseRequestParserTest(TestCase):
         assert_webhook_payloads_for_mailbox(
             request=request,
             mailbox_name=f"github_enterprise:{integration.id}",
-            region_names=[region.name],
+            cell_names=[cell.name],
         )

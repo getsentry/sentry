@@ -2,7 +2,7 @@ import {useCallback, useDeferredValue, useEffect, useMemo, useRef, useState} fro
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -130,6 +130,7 @@ export default function SnapshotsPage() {
         for (const [groupKey, groupedPairs] of groups) {
           const label =
             groupedPairs[0]!.head_image.group ??
+            groupedPairs[0]!.head_image.display_name ??
             groupedPairs[0]!.head_image.image_file_name;
           items.push({
             type,
@@ -156,7 +157,8 @@ export default function SnapshotsPage() {
           }
         }
         for (const [groupKey, images] of groups) {
-          const label = images[0]!.group ?? images[0]!.image_file_name;
+          const label =
+            images[0]!.group ?? images[0]!.display_name ?? images[0]!.image_file_name;
           items.push({
             type,
             key: `${type}:${groupKey}`,
@@ -195,7 +197,8 @@ export default function SnapshotsPage() {
     return [...groups.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([groupKey, images]) => {
-        const label = images[0]!.group ?? images[0]!.image_file_name;
+        const label =
+          images[0]!.group ?? images[0]!.display_name ?? images[0]!.image_file_name;
         return {
           type: 'solo' as const,
           key: `solo:${groupKey}`,
@@ -365,11 +368,11 @@ export default function SnapshotsPage() {
   if (isPending) {
     return (
       <SentryDocumentTitle title={t('Snapshot')}>
-        <Layout.Page>
+        <Stack flex={1}>
           <Flex align="center" justify="center" padding="3xl">
             <LoadingIndicator />
           </Flex>
-        </Layout.Page>
+        </Stack>
       </SentryDocumentTitle>
     );
   }
@@ -377,20 +380,24 @@ export default function SnapshotsPage() {
   if (isError || !data) {
     return (
       <SentryDocumentTitle title={t('Snapshot')}>
-        <Layout.Page>
+        <Stack flex={1}>
           <Flex align="center" justify="center" padding="3xl">
             <Text variant="muted">{t('Unable to load snapshot data.')}</Text>
           </Flex>
-        </Layout.Page>
+        </Stack>
       </SentryDocumentTitle>
     );
   }
 
   return (
     <SentryDocumentTitle title={t('Snapshot')}>
-      <Layout.Page>
+      <Stack flex={1}>
         <Layout.Header>
-          <SnapshotHeaderContent projectId={data.project_id} data={data} />
+          <SnapshotHeaderContent
+            data={data}
+            isSoloView={isSoloView}
+            onToggleView={handleToggleView}
+          />
           <Layout.HeaderActions>
             <SnapshotDevTools
               organizationSlug={organization.slug}
@@ -405,7 +412,7 @@ export default function SnapshotsPage() {
         </Layout.Header>
 
         {isComparisonProcessing ? processingContent : snapshotContent}
-      </Layout.Page>
+      </Stack>
     </SentryDocumentTitle>
   );
 }

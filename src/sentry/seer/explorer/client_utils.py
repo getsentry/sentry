@@ -88,6 +88,12 @@ class ExplorerUpdateRequest(TypedDict):
     payload: NotRequired[dict[str, Any]]
 
 
+class ExplorerPrStateRequest(TypedDict):
+    organization_id: int
+    provider: str
+    pr_id: int
+
+
 def make_explorer_state_request(
     body: ExplorerStateRequest,
     connection_pool: HTTPConnectionPool | None = None,
@@ -140,6 +146,39 @@ def make_explorer_update_request(
     )
 
 
+def make_explorer_state_pr_request(
+    body: ExplorerPrStateRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or explorer_connection_pool,
+        "/v1/automation/explorer/state/pr",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        viewer_context=viewer_context,
+    )
+
+
+def get_explorer_state_from_pr_id(
+    organization_id: int, provider: str, pr_id: int
+) -> SeerRunState | None:
+    body = ExplorerPrStateRequest(organization_id=organization_id, provider=provider, pr_id=pr_id)
+    response = make_explorer_state_pr_request(body)
+
+    if response.status >= 400:
+        raise SeerApiError("Seer request failed", response.status)
+
+    result = response.json()
+    if not result:
+        return None
+
+    session = result.get("session")
+    if session is None:
+        return None
+
+    return SeerRunState(**session)
+
+
 def has_seer_explorer_access_with_detail(
     organization: Organization, actor: SentryUser | AnonymousUser | RpcUser | None = None
 ) -> tuple[bool, str | None]:
@@ -162,7 +201,6 @@ def has_seer_explorer_access_with_detail(
         "organizations:seer-explorer",
         # Access to seer explorer powered autofix
         "organizations:autofix-on-explorer",
-        "organizations:autofix-on-explorer-v2",
     ]
 
     batch_features = features.batch_has(
@@ -189,7 +227,7 @@ def has_seer_explorer_access_with_detail(
 
 
 def collect_user_org_context(
-    user: SentryUser | AnonymousUser | None,
+    user: SentryUser | RpcUser | AnonymousUser | None,
     organization: Organization,
     request: Request | None = None,
 ) -> dict[str, Any]:
@@ -235,7 +273,7 @@ def collect_user_org_context(
 
     # Handle name attribute - SentryUser has name
     user_name: str | None = None
-    if isinstance(user, SentryUser):
+    if isinstance(user, (SentryUser, RpcUser)):
         user_name = user.name
 
     # Get user's timezone setting (IANA timezone name, e.g., "America/Los_Angeles")

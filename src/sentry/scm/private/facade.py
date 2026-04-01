@@ -6,8 +6,7 @@ from typing import Any, Callable, cast
 
 from sentry.scm.private.helpers import exec_provider_fn
 from sentry.scm.private.ipc import record_count_metric
-from sentry.scm.private.provider import ALL_PROTOCOLS, Provider
-from sentry.scm.types import Referrer
+from sentry.scm.types import ALL_PROTOCOLS, Provider, Referrer
 
 
 def _delegating_method(name: str) -> Callable[..., Any]:
