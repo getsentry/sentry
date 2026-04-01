@@ -81,7 +81,12 @@ from sentry.seer.autofix.coding_agent import (
     StateReposNotFound,
     launch_coding_agents_for_run,
 )
-from sentry.seer.autofix.utils import AutofixTriggerSource
+from sentry.seer.autofix.utils import (
+    AutofixTriggerSource,
+    get_project_seer_preferences,
+    resolve_repository_ids,
+    write_preference_to_sentry_db,
+)
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS, SeerSCMProvider
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.explorer.custom_tool_utils import call_custom_tool
@@ -111,6 +116,7 @@ from sentry.seer.explorer.tools import (
 )
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.seer.issue_detection import create_issue_occurrence
+from sentry.seer.models.seer_api_models import SeerProjectPreference
 from sentry.seer.utils import filter_repo_by_provider
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
@@ -572,7 +578,7 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
 def trigger_coding_agent_launch(
     *,
     organization_id: int,
-    project_id: int,
+    project_id: int | None = None,
     integration_id: int,
     run_id: int,
     trigger_source: str = "solution",
@@ -610,10 +616,14 @@ def trigger_coding_agent_launch(
             project = Project.objects.get_from_cache(id=project_id)
             organization = Organization.objects.get_from_cache(id=organization_id)
             if features.has("organizations:seer-project-settings-dual-write", organization):
-                project.delete_option("sentry:seer_automation_handoff_point")
-                project.delete_option("sentry:seer_automation_handoff_target")
-                project.delete_option("sentry:seer_automation_handoff_integration_id")
-                project.delete_option("sentry:seer_automation_handoff_auto_create_pr")
+                preference_response = get_project_seer_preferences(project.id)
+                if preference_response and preference_response.preference:
+                    updated_preference = preference_response.preference.copy(
+                        update={"automation_handoff": None}
+                    )
+                    validated_pref = SeerProjectPreference.validate(updated_preference)
+                    resolved_pref = resolve_repository_ids(organization.id, [validated_pref])
+                    write_preference_to_sentry_db(project, resolved_pref[0])
         except Exception:
             logger.exception(
                 "coding_agent.clear_handoff_preference_failed",

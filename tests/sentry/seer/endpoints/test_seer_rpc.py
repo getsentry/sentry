@@ -1532,11 +1532,36 @@ class TestTriggerCodingAgentLaunch:
 
 
 class TestTriggerCodingAgentLaunchClearsHandoff(APITestCase):
+    def _make_preference_response(self):
+        from sentry.seer.models.seer_api_models import (
+            AutofixHandoffPoint,
+            SeerAutomationHandoffConfiguration,
+            SeerProjectPreference,
+            SeerRawPreferenceResponse,
+        )
+
+        return SeerRawPreferenceResponse(
+            preference=SeerProjectPreference(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                repositories=[],
+                automation_handoff=SeerAutomationHandoffConfiguration(
+                    handoff_point=AutofixHandoffPoint.ROOT_CAUSE,
+                    target="cursor_background_agent",
+                    integration_id=42,
+                ),
+            )
+        )
+
+    @patch("sentry.seer.endpoints.seer_rpc.get_project_seer_preferences")
     @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
-    def test_integration_not_found_clears_handoff_project_options(self, mock_launch):
+    def test_integration_not_found_clears_handoff_project_options(
+        self, mock_launch, mock_get_prefs
+    ):
         from sentry.seer.autofix.coding_agent import IntegrationNotFound
 
         mock_launch.side_effect = IntegrationNotFound()
+        mock_get_prefs.return_value = self._make_preference_response()
 
         self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
         self.project.update_option(
@@ -1559,11 +1584,15 @@ class TestTriggerCodingAgentLaunchClearsHandoff(APITestCase):
         assert self.project.get_option("sentry:seer_automation_handoff_integration_id") is None
         assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
 
+    @patch("sentry.seer.endpoints.seer_rpc.get_project_seer_preferences")
     @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
-    def test_integration_not_found_skips_clear_without_feature_flag(self, mock_launch):
+    def test_integration_not_found_skips_clear_without_feature_flag(
+        self, mock_launch, mock_get_prefs
+    ):
         from sentry.seer.autofix.coding_agent import IntegrationNotFound
 
         mock_launch.side_effect = IntegrationNotFound()
+        mock_get_prefs.return_value = self._make_preference_response()
 
         self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
 
@@ -1576,3 +1605,4 @@ class TestTriggerCodingAgentLaunchClearsHandoff(APITestCase):
 
         assert result == {"success": False, "error_code": "integration_not_found"}
         assert self.project.get_option("sentry:seer_automation_handoff_point") == "root_cause"
+        mock_get_prefs.assert_not_called()
