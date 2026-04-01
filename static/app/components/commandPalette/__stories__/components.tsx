@@ -2,11 +2,12 @@ import {useCallback} from 'react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
-import type {
-  CommandPaletteAction,
-  CommandPaletteActionCallbackWithKey,
-  CommandPaletteActionLinkWithKey,
-} from 'sentry/components/commandPalette/types';
+import {
+  makeCommandPaletteCallback,
+  makeCommandPaletteGroup,
+  makeCommandPaletteLink,
+} from 'sentry/components/commandPalette/makeCommandPaletteAction';
+import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
 import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
 import {useCommandPaletteActions} from 'sentry/components/commandPalette/useCommandPaletteActions';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -21,10 +22,10 @@ export function CommandPaletteDemo() {
   const navigate = useNavigate();
 
   const handleAction = useCallback(
-    (action: CommandPaletteActionLinkWithKey | CommandPaletteActionCallbackWithKey) => {
+    (action: CommandPaletteAction) => {
       if ('to' in action) {
         navigate(normalizeUrl(action.to));
-      } else {
+      } else if ('onAction' in action) {
         action.onAction();
       }
     },
@@ -32,30 +33,27 @@ export function CommandPaletteDemo() {
   );
 
   const demoActions: CommandPaletteAction[] = [
-    {
+    makeCommandPaletteLink({
       display: {label: 'Go to Flex story'},
       to: '/stories/layout/flex/',
-      groupingKey: 'navigate',
-    },
-    {
+    }),
+    makeCommandPaletteCallback({
       display: {label: 'Execute an action'},
-      groupingKey: 'help',
       onAction: () => {
         addSuccessMessage('Action executed');
       },
-    },
-    {
-      groupingKey: 'add',
+    }),
+    makeCommandPaletteGroup({
       display: {label: 'Parent action'},
       actions: [
-        {
+        makeCommandPaletteCallback({
           display: {label: 'Child action'},
           onAction: () => {
             addSuccessMessage('Child action executed');
           },
-        },
+        }),
       ],
-    },
+    }),
   ];
 
   return (

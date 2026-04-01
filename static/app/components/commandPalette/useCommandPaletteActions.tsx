@@ -6,9 +6,9 @@ import {useCommandPaletteRegistration} from './context';
 import type {
   CommandPaletteAction,
   CommandPaletteActionCallbackWithKey,
-  CommandPaletteActionChild,
   CommandPaletteActionLinkWithKey,
   CommandPaletteActionWithKey,
+  CommandPaletteActionGroupWithKey,
 } from './types';
 
 function addKeysToActions(
@@ -36,13 +36,25 @@ function addKeysToActions(
 
 function addKeysToChildActions(
   id: string,
-  actions: CommandPaletteActionChild[]
-): Array<CommandPaletteActionLinkWithKey | CommandPaletteActionCallbackWithKey> {
+  actions: Array<CommandPaletteAction>
+): Array<
+  | CommandPaletteActionLinkWithKey
+  | CommandPaletteActionCallbackWithKey
+  | CommandPaletteActionGroupWithKey
+> {
   return actions.map(action => {
-    const label = action.display.label.toLowerCase().replace(/ /g, '-');
-    const disambiguator = 'to' in action ? `:${JSON.stringify(action.to)}` : '';
-    const kind = 'to' in action ? 'navigate' : 'callback';
-    const actionKey = `${id}:${kind}:${label}${disambiguator}`;
+    const actionKey = `${id}:${'type' in action ? action.type : 'action'}:${action.display.label
+      .toLowerCase()
+      .replace(/ /g, '-')}`;
+
+    if ('actions' in action) {
+      return {
+        ...action,
+        actions: addKeysToChildActions(id, action.actions),
+        key: actionKey,
+      };
+    }
+
     return {
       ...action,
       key: actionKey,

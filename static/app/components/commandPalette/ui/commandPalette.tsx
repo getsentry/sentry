@@ -58,9 +58,8 @@ type CommandPaletteActionMenuItem = MenuListItemProps & {
   hideCheck?: boolean;
 };
 
-type CommandPaletteActionWithPriority = CommandPaletteActionWithKey & {
+type CommandPaletteActionWithListItemType = CommandPaletteActionWithKey & {
   listItemType: 'action' | 'section';
-  priority: number;
 };
 
 interface CommandPaletteProps {
@@ -81,32 +80,35 @@ export function CommandPalette(props: CommandPaletteProps) {
     preload(errorIllustration, {as: 'image'});
   }
 
-  const actions = useMemo<CommandPaletteActionWithPriority[]>(() => {
+  const actions = useMemo<CommandPaletteActionWithListItemType[]>(() => {
     const virtualRoot: CommandPaletteActionGroupWithKey = {
       key: 'virtual-root',
-      type: 'group',
+      ...state.action?.value.action,
+      type: 'group' as const,
       actions:
         state.action?.value.action && 'actions' in state.action.value.action
           ? [...state.action.value.action.actions]
           : [...allActions],
 
       display: {
-        label: 'virtual root',
-        icon: undefined,
+        label: state.action?.value.action?.display.label ?? '',
+        icon: state.action?.value.action?.display.icon ?? undefined,
+        ...state.action?.value.action?.display,
       },
     };
 
     if (!state.query) {
-      return flattenActions(virtualRoot.actions, 1);
+      return flattenActions(virtualRoot, null);
     }
 
     const scores = new Map<
-      CommandPaletteActionWithKey,
-      {matched: boolean; score: number}
+      CommandPaletteActionWithKey['key'],
+      {action: CommandPaletteActionWithKey; score: {matched: boolean; score: number}}
     >();
-    scoreTree(virtualRoot, scores, state.query);
 
-    return flattenActions(filterAndSortTree(virtualRoot.actions, scores));
+    scoreTree(virtualRoot, scores, state.query.toLowerCase());
+    const after = flattenActions(virtualRoot, scores);
+    return after;
   }, [allActions, state.action, state.query]);
 
   const treeState = useTreeState({
@@ -128,7 +130,12 @@ export function CommandPalette(props: CommandPaletteProps) {
               leadingItems: null,
               label: (
                 <Text size="sm" bold variant="primary">
-                  {action.display.label}
+                  <Flex align="center" gap="xs">
+                    <IconDefaultsProvider size="sm">
+                      {action.display.icon}
+                    </IconDefaultsProvider>
+                    {action.display.label}
+                  </Flex>
                 </Text>
               ),
               hideCheck: true,
@@ -346,34 +353,134 @@ function score(
 
 function scoreTree(
   root: CommandPaletteActionGroupWithKey,
-  scores: Map<CommandPaletteActionWithKey, {matched: boolean; score: number}>,
+  scores: Map<
+    CommandPaletteActionWithKey['key'],
+    {action: CommandPaletteActionWithKey; score: {matched: boolean; score: number}}
+  >,
   query: string
 ): void {
-  const queue = 'actions' in root ? [...root.actions] : [];
-
-  while (queue.length > 0) {
-    const node = queue.pop()!;
-    scores.set(node, score(query, node));
-
+  function dfs(node: CommandPaletteActionWithKey, path: CommandPaletteActionWithKey[]) {
     if ('actions' in node) {
-      queue.push(...node.actions);
+      for (const action of node.actions) {
+        dfs(action, [...path, action]);
+      }
+    }
+
+    const scoreValue = score(query, node);
+    if (scoreValue.matched) {
+      scores.set(node.key, {action: node, score: scoreValue});
     }
   }
+
+  dfs(root, []);
 }
 
-function filterAndSortTree(
-  actions: CommandPaletteActionWithKey[],
-  scores: Map<CommandPaletteActionWithKey, {matched: boolean; score: number}>
-): CommandPaletteActionWithKey[] {
-  return actions
-    .filter(a => scores.get(a)?.matched)
-    .sort((a, b) => (scores.get(b)?.score ?? 0) - (scores.get(a)?.score ?? 0))
-    .map(a => {
-      if (a.type === 'group') {
-        return {...a, actions: filterAndSortTree(a.actions, scores)};
+function flattenActions(
+  root: CommandPaletteActionWithKey,
+  scores: Map<
+    CommandPaletteActionWithKey['key'],
+    {action: CommandPaletteActionWithKey; score: {matched: boolean; score: number}}
+  > | null
+): CommandPaletteActionWithListItemType[] {
+  const results: CommandPaletteActionWithListItemType[] = [];
+
+  if (!scores) {
+    for (const action of 'actions' in root ? root.actions : [root]) {
+      results.push({
+        ...action,
+        listItemType: 'actions' in action ? 'section' : 'action',
+      });
+
+      if ('actions' in action) {
+        for (const child of action.actions) {
+          results.push({
+            ...child,
+            listItemType: 'action',
+          });
+        }
       }
-      return a;
+    }
+
+    return results;
+  }
+
+  const collected = new Set();
+
+  function collect(node: CommandPaletteActionWithKey) {
+    if (collected.has(node.key)) {
+      return;
+    }
+
+    collected.add(node.key);
+    results.push({
+      ...node,
+      listItemType: 'actions' in node ? 'section' : 'action',
     });
+  }
+
+  function dfs(node: CommandPaletteActionWithKey, path: CommandPaletteActionWithKey[]) {
+    if ('actions' in node) {
+      for (const action of node.actions) {
+        dfs(action, [...path, action]);
+      }
+    }
+
+    const match = scores!.get(node.key);
+
+    if (match?.score.matched) {
+      if ('actions' in node) {
+        // If this is a section, we can straight up push it to the results
+        collect(node);
+      } else {
+        const parent = path.findLast(p => 'actions' in p);
+        if (parent) collect(parent);
+      }
+    }
+  }
+
+  dfs(root, []);
+
+  results.sort((a, b) => {
+    let aScore = scores?.get(a.key)?.score.score ?? 0;
+    let bScore = scores?.get(b.key)?.score.score ?? 0;
+
+    if ('actions' in a) {
+      aScore += Math.max(
+        ...a.actions.map(action => scores?.get(action.key)?.score.score ?? 0)
+      );
+    }
+
+    if ('actions' in b) {
+      bScore += Math.max(
+        ...b.actions.map(action => scores?.get(action.key)?.score.score ?? 0)
+      );
+    }
+
+    return bScore - aScore;
+  });
+
+  const flattened = results.flatMap((result): CommandPaletteActionWithListItemType[] => {
+    if ('actions' in result) {
+      return [
+        {...result, actions: [], listItemType: 'section'},
+        ...result.actions
+          .filter(action => scores?.get(action.key)?.score.matched)
+          .sort((a, b) => {
+            if (!a || !b) {
+              return 0;
+            }
+            return (
+              (scores?.get(b.key)?.score.score ?? 0) -
+              (scores?.get(a.key)?.score.score ?? 0)
+            );
+          })
+          .map(action => ({...action, listItemType: 'action' as const})),
+      ];
+    }
+    return [{...result, listItemType: 'action'}];
+  });
+
+  return flattened;
 }
 
 function makeMenuItemFromAction(
@@ -399,41 +506,6 @@ function makeMenuItemFromAction(
     children: 'actions' in action ? action.actions.map(makeMenuItemFromAction) : [],
     hideCheck: true,
   };
-}
-
-function flattenActions(
-  actions: CommandPaletteActionWithKey[],
-  maxDepth?: number,
-  currentDepth = 0
-): CommandPaletteActionWithPriority[] {
-  const flattened: CommandPaletteActionWithPriority[] = [];
-
-  for (const action of actions) {
-    if (action.hidden) {
-      continue;
-    }
-
-    flattened.push({
-      ...action,
-      priority: 0,
-      listItemType:
-        'actions' in action
-          ? currentDepth === maxDepth
-            ? 'action'
-            : 'section'
-          : 'action',
-    });
-
-    if (currentDepth === maxDepth) {
-      continue;
-    }
-
-    if (action.type === 'group' && action.actions.length > 0) {
-      flattened.push(...flattenActions(action.actions, maxDepth, currentDepth + 1));
-    }
-  }
-
-  return flattened;
 }
 
 function CommandPaletteNoResults() {
