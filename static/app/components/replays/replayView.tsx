@@ -106,11 +106,10 @@ export function ReplayView({isLoading, layout, toggleFullscreen, toggleLayout}: 
               <Button
                 size="xs"
                 icon={
-                  layout === LayoutKey.VIDEO_ONLY ? (
-                    <IconChevron direction="left" size="xs" />
-                  ) : (
-                    <IconChevron direction="right" size="xs" />
-                  )
+                  <IconChevron
+                    direction={layout === LayoutKey.VIDEO_ONLY ? 'left' : 'right'}
+                    isDouble
+                  />
                 }
                 aria-label="Toggle layout"
                 onClick={toggleLayout}
