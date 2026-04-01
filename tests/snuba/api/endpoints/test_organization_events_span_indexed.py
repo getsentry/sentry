@@ -3375,7 +3375,15 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         )
 
         assert response.status_code == 400, response.content
-        assert "Invalid parameter snequals" in response.data["detail"]
+        error = response.data["detail"]
+        assert "Invalid parameter snequals" in error
+        assert (
+            "['between', 'equals', 'greater', 'greaterOrEquals', 'less', 'lessOrEquals', "
+            "'notEquals']" in error
+        )
+        assert "!=" not in error
+        assert ">=" not in error
+        assert "<=" not in error
 
     def test_ttif_ttfd_contribution_rate(self) -> None:
         spans = []
