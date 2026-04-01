@@ -16,6 +16,7 @@ from sentry.api.endpoints.organization_trace_item_attributes import (
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.eap.types import SupportedTraceItemType
+from sentry.search.events.constants import WILDCARD_OPERATOR_MAP
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import RPCBase, _extract_function_keys
 
@@ -27,16 +28,47 @@ class OrganizationTraceItemQueryValidatorSerializer(serializers.Serializer):
     query = serializers.CharField(required=True, max_length=4096)
 
 
+def _format_search_value(value: event_search.SearchValue) -> str:
+    raw_value = value.raw_value
+
+    if not isinstance(raw_value, str) or not value.is_wildcard():
+        return value.to_query_string()
+
+    wildcard_positions = [
+        match.end() - 1 for match in event_search.WILDCARD_CHARS.finditer(raw_value)
+    ]
+    leading_wildcard = 0 in wildcard_positions
+    trailing_wildcard = (len(raw_value) - 1) in wildcard_positions
+    middle_wildcard = any(pos not in {0, len(raw_value) - 1} for pos in wildcard_positions)
+
+    if not middle_wildcard:
+        if leading_wildcard and trailing_wildcard:
+            return f"{WILDCARD_OPERATOR_MAP['contains']}{raw_value[1:-1]}"
+        if trailing_wildcard:
+            return f"{WILDCARD_OPERATOR_MAP['starts_with']}{raw_value[:-1]}"
+        if leading_wildcard:
+            return f"{WILDCARD_OPERATOR_MAP['ends_with']}{raw_value[1:]}"
+
+    return raw_value
+
+
 def _format_token(
     filter: event_search.SearchFilter | event_search.AggregateFilter,
 ) -> str:
-    """Format a filter token as a query string, omitting the redundant '=' operator."""
-    token = filter.to_query_string()
+    """Format a filter token as a query string, preserving wildcard operator tokens."""
+    value = _format_search_value(filter.value)
     key_name = filter.key.name
-    prefix = f"{key_name}:="
-    if token.startswith(prefix):
-        return f"{key_name}:{token[len(prefix) :]}"
-    return token
+
+    if isinstance(filter, event_search.SearchFilter):
+        if filter.operator == "IN":
+            return f"{key_name}:{value}"
+        if filter.operator == "NOT IN":
+            return f"!{key_name}:{value}"
+
+    if filter.operator == "=":
+        return f"{key_name}:{value}"
+
+    return f"{key_name}:{filter.operator}{value}"
 
 
 @cell_silo_endpoint
