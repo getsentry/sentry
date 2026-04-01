@@ -19,13 +19,13 @@ export function EmptyStateWarning({
   return small ? (
     <EmptyMessage className={className}>
       <SmallMessage>
-        {withIcon && <StyledIconSearch variant="muted" size="lg" />}
+        {withIcon && <StyledIconSearch variant="accent" size="lg" />}
         {children}
       </SmallMessage>
     </EmptyMessage>
   ) : (
     <EmptyStreamWrapper data-test-id="empty-state" className={className}>
-      {withIcon && <IconSearch variant="muted" legacySize="54px" />}
+      {withIcon && <IconSearch variant="accent" legacySize="54px" />}
       {children}
     </EmptyStreamWrapper>
   );
