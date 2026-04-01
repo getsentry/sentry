@@ -123,6 +123,9 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             )
             (?![0-9a-zA-Z]) # Negative lookahead
         """,
+        # Validate that the matched string actually is an IP address before replacing it. If not,
+        # leave it alone.
+        replacement_callback=lambda orig_value: "<ip>" if is_valid_ip(orig_value) else orig_value,
     ),
     ParameterizationRegex(
         name="traceparent",
