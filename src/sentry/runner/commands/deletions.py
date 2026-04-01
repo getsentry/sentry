@@ -1,6 +1,13 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import click
 
 from sentry.runner.decorators import configuration
+
+if TYPE_CHECKING:
+    from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 
 
 @click.group()
@@ -52,8 +59,9 @@ def list_deletions(model: str | None) -> None:
     default=None,
 )
 @click.option("--all", "run_all", is_flag=True, help="Run all pending deletions")
+@click.option("-v", "--verbose", is_flag=True, help="Show full tracebacks on failure")
 @configuration
-def run_deletions(deletion_id: int | None, model: str | None, run_all: bool) -> None:
+def run_deletions(deletion_id: int | None, model: str | None, run_all: bool, verbose: bool) -> None:
     """
     Run pending scheduled deletions synchronously.
     """
@@ -71,7 +79,7 @@ def run_deletions(deletion_id: int | None, model: str | None, run_all: bool) -> 
         except ScheduledDeletion.DoesNotExist:
             click.echo(f"Deletion with ID {deletion_id} not found.")
             return
-        _run_one(deletion)
+        _run_one(deletion=deletion, verbose=verbose)
         return
 
     queryset = ScheduledDeletion.objects.all()
@@ -85,10 +93,10 @@ def run_deletions(deletion_id: int | None, model: str | None, run_all: bool) -> 
 
     click.echo(f"Running {len(deletions_list)} deletion(s)...")
     for d in deletions_list:
-        _run_one(d)
+        _run_one(deletion=d, verbose=verbose)
 
 
-def _run_one(deletion) -> None:  # type: ignore[no-untyped-def]
+def _run_one(*, deletion: ScheduledDeletion, verbose: bool = False) -> None:
     from django.core.exceptions import ObjectDoesNotExist
 
     from sentry import deletions as deletions_module
@@ -124,4 +132,10 @@ def _run_one(deletion) -> None:  # type: ignore[no-untyped-def]
         deletion.delete()
         click.echo("  Done.")
     except Exception as e:
-        click.echo(f"  Failed: {e}")
+        if verbose:
+            import traceback
+
+            click.echo(f"  Failed:\n{traceback.format_exc()}", err=True)
+        else:
+            click.echo(f"  Failed: {e}", err=True)
+        click.echo("  Deletion record preserved for retry. Re-run to continue.")
