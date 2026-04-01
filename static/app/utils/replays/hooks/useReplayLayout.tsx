@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import type {Theme} from '@emotion/react';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
@@ -103,21 +102,18 @@ export function useDefaultReplayLayout(): LayoutKey {
   return getDefaultLayout(view !== 'expanded', theme, secondarySidebarWidth, windowSize);
 }
 
+const parser = parseAsStringLiteral(Object.values(LayoutKey)).withOptions({
+  history: 'push',
+  throttleMs: 0,
+});
+
 export function useReplayLayout() {
   const defaultLayout = useDefaultReplayLayout();
 
-  const parser = useMemo(() => {
-    return parseAsStringLiteral(Object.values(LayoutKey))
-      .withDefault(defaultLayout)
-      .withOptions({history: 'push', throttleMs: 0});
-  }, [defaultLayout]);
-
   const [layout, setLayout] = useQueryState('l_page', parser);
 
-  // We need to override the layout if the window resizes, because nuqs will
-  // cache the value if we switched from video-only back to default.
-  if (layout !== defaultLayout && layout !== LayoutKey.VIDEO_ONLY) {
-    return [defaultLayout, setLayout] as const;
-  }
-  return [layout, setLayout] as const;
+  // If the value is not video-only, then we can just return the default.
+  // The value might be different from the default, but that's probably because
+  // the window size changed and the default is different now.
+  return [layout === LayoutKey.VIDEO_ONLY ? layout : defaultLayout, setLayout] as const;
 }
