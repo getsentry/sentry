@@ -57,10 +57,16 @@ from sentry.search.eap.columns import (
     ValueArgumentDefinition,
     VirtualColumnDefinition,
 )
+from sentry.search.eap.normalizer import unquote_literal
 from sentry.search.eap.rpc_utils import and_trace_item_filters
 from sentry.search.eap.sampling import validate_sampling
 from sentry.search.eap.spans.attributes import SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS
-from sentry.search.eap.types import EAPResponse, SearchResolverConfig, SupportedTraceItemType
+from sentry.search.eap.types import (
+    EAPResponse,
+    QueryContext,
+    SearchResolverConfig,
+    SupportedTraceItemType,
+)
 from sentry.search.events import constants as qb_constants
 from sentry.search.events import fields
 from sentry.search.events import filter as event_filter
@@ -175,7 +181,7 @@ class SearchResolver:
 
     @sentry_sdk.trace
     def resolve_query(
-        self, querystring: str | None
+        self, querystring: str | None, query_context: QueryContext | None = None
     ) -> tuple[
         TraceItemFilter | None,
         AggregationFilter | None,
@@ -186,7 +192,7 @@ class SearchResolver:
         This is the public interface to resolver the query, for the logic see __resolve_query, this is because we
         also append the environment before returning the final TraceItemFilter"""
         environment_query = self.__resolve_environment_query()
-        where, having, contexts = self.__resolve_query(querystring)
+        where, having, contexts = self.__resolve_query(querystring, query_context=query_context)
         span = sentry_sdk.get_current_span()
         if span:
             span.set_tag("SearchResolver.query_string", querystring)
@@ -274,7 +280,7 @@ class SearchResolver:
             self.qualified_short_id_to_group_id_cache[g.project.id][raw] = g.id
 
     def __resolve_query(
-        self, querystring: str | None
+        self, querystring: str | None, query_context: QueryContext | None = None
     ) -> tuple[
         TraceItemFilter | None,
         AggregationFilter | None,
@@ -307,12 +313,12 @@ class SearchResolver:
             or event_search.SearchBoolean.is_operator(term)
             for term in parsed_terms
         ):
-            return self._resolve_boolean_conditions(parsed_terms)
+            return self._resolve_boolean_conditions(parsed_terms, query_context=query_context)
         else:
-            return self._resolve_terms(parsed_terms)
+            return self._resolve_terms(parsed_terms, query_context=query_context)
 
     def _resolve_boolean_conditions(
-        self, terms: event_filter.ParsedTerms
+        self, terms: event_filter.ParsedTerms, query_context: QueryContext | None = None
     ) -> tuple[
         TraceItemFilter | None,
         AggregationFilter | None,
@@ -322,11 +328,13 @@ class SearchResolver:
             return None, None, []
         elif len(terms) == 1:
             if isinstance(terms[0], event_search.ParenExpression):
-                return self._resolve_boolean_conditions(terms[0].children)
+                return self._resolve_boolean_conditions(
+                    terms[0].children, query_context=query_context
+                )
             elif isinstance(terms[0], event_search.SearchFilter):
-                return self._resolve_terms([terms[0]])
+                return self._resolve_terms([terms[0]], query_context=query_context)
             elif isinstance(terms[0], event_search.AggregateFilter):
-                return self._resolve_terms([terms[0]])
+                return self._resolve_terms([terms[0]], query_context=query_context)
             else:
                 raise NotImplementedError("Haven't handled all the search expressions yet")
 
@@ -374,8 +382,12 @@ class SearchResolver:
             lhs, rhs = terms[:1], terms[1:]
             operator = "and"
 
-        where_lhs, having_lhs, contexts_lhs = self._resolve_boolean_conditions(lhs)
-        where_rhs, having_rhs, contexts_rhs = self._resolve_boolean_conditions(rhs)
+        where_lhs, having_lhs, contexts_lhs = self._resolve_boolean_conditions(
+            lhs, query_context=query_context
+        )
+        where_rhs, having_rhs, contexts_rhs = self._resolve_boolean_conditions(
+            rhs, query_context=query_context
+        )
         contexts = contexts_lhs + contexts_rhs
 
         where = None
@@ -408,23 +420,25 @@ class SearchResolver:
         return where, having, contexts
 
     def _resolve_terms(
-        self, terms: event_filter.ParsedTerms
+        self, terms: event_filter.ParsedTerms, query_context: QueryContext | None = None
     ) -> tuple[
         TraceItemFilter | None,
         AggregationFilter | None,
         list[VirtualColumnDefinition | None],
     ]:
-        where, where_contexts = self._resolve_where(terms)
-        having, having_contexts = self._resolve_having(terms)
+        where, where_contexts = self._resolve_where(terms, query_context=query_context)
+        having, having_contexts = self._resolve_having(terms, query_context=query_context)
         return where, having, where_contexts + having_contexts
 
     def _resolve_where(
-        self, terms: event_filter.ParsedTerms
+        self, terms: event_filter.ParsedTerms, query_context: QueryContext | None = None
     ) -> tuple[TraceItemFilter | None, list[VirtualColumnDefinition | None]]:
         parsed_terms = []
         resolved_contexts = []
         for item in terms:
             if isinstance(item, event_search.SearchFilter):
+                if query_context is not None:
+                    query_context.add_where_term(item)
                 resolved_term, resolved_context = self.resolve_term(item)
                 parsed_terms.extend(resolved_term)
                 resolved_contexts.extend(resolved_context)
@@ -436,7 +450,7 @@ class SearchResolver:
         return None, []
 
     def _resolve_having(
-        self, terms: event_filter.ParsedTerms
+        self, terms: event_filter.ParsedTerms, query_context: QueryContext | None = None
     ) -> tuple[AggregationFilter | None, list[VirtualColumnDefinition | None]]:
         if not self.config.use_aggregate_conditions:
             return None, []
@@ -445,6 +459,8 @@ class SearchResolver:
         resolved_contexts = []
         for item in terms:
             if isinstance(item, event_search.AggregateFilter):
+                if query_context is not None:
+                    query_context.add_having_term(item)
                 resolved_term, resolved_context = self.resolve_aggregate_term(item)
                 parsed_terms.append(resolved_term)
                 resolved_contexts.append(resolved_context)
@@ -1248,6 +1264,8 @@ class SearchResolver:
             if argument_index < len(arguments):
                 argument = arguments[argument_index]
                 argument_index += 1
+                if isinstance(argument_definition, ValueArgumentDefinition):
+                    argument = unquote_literal(argument)
                 if argument_definition.validator is not None:
                     if not argument_definition.validator(argument):
                         raise InvalidSearchQuery(
