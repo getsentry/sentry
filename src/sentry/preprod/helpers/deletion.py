@@ -109,6 +109,11 @@ def bulk_delete_artifacts(
 def _collect_snapshot_objectstore_keys(
     preprod_artifacts: list[PreprodArtifact],
 ) -> list[tuple[int, int, str]]:
+    # Collects three types of objectstore keys for the given artifacts:
+    # 1. Snapshot manifest keys (per-snapshot JSON manifests from PreprodSnapshotMetrics)
+    # 2. Comparison manifest keys (diff manifests from PreprodSnapshotComparison)
+    # 3. Diff mask image keys (per-image diff masks referenced within comparison manifests)
+    # Note: shared content-addressed image keys are NOT collected — they expire via X-day TTL.
     artifact_ids = [a.id for a in preprod_artifacts]
     snapshot_metrics_list = list(
         PreprodSnapshotMetrics.objects.filter(preprod_artifact_id__in=artifact_ids).select_related(
@@ -172,15 +177,9 @@ def _delete_objectstore_key(args: tuple[int, int, str]) -> bool:
         return False
 
 
-def _delete_snapshot_objectstore_data(
-    preprod_artifacts: list[PreprodArtifact],
+def _delete_objectstore_keys(
+    keys: list[tuple[int, int, str]],
 ) -> int:
-    # Deletes three types of objectstore data for the given artifacts:
-    # 1. Snapshot manifest keys (per-snapshot JSON manifests from PreprodSnapshotMetrics)
-    # 2. Comparison manifest keys (diff manifests from PreprodSnapshotComparison)
-    # 3. Diff mask image keys (per-image diff masks referenced within comparison manifests)
-    # Note: shared content-addressed image keys are NOT deleted — they expire via X-day TTL.
-    keys = list(dict.fromkeys(_collect_snapshot_objectstore_keys(preprod_artifacts)))
     if not keys:
         return 0
 
@@ -209,13 +208,19 @@ def delete_artifacts_and_eap_data(
         )
 
     try:
-        objectstore_keys_deleted = _delete_snapshot_objectstore_data(preprod_artifacts)
+        objectstore_keys = list(
+            dict.fromkeys(_collect_snapshot_objectstore_keys(preprod_artifacts))
+        )
     except Exception:
-        logger.exception("preprod.cleanup.snapshot_objectstore_data_failed")
-        objectstore_keys_deleted = 0
+        logger.exception("preprod.cleanup.snapshot_objectstore_key_collection_failed")
+        objectstore_keys = []
 
     result = bulk_delete_artifacts(preprod_artifacts)
-    result.objectstore_keys_deleted = objectstore_keys_deleted
+
+    try:
+        result.objectstore_keys_deleted = _delete_objectstore_keys(objectstore_keys)
+    except Exception:
+        logger.exception("preprod.cleanup.snapshot_objectstore_delete_failed")
 
     artifacts_by_project: defaultdict[tuple[int, int], list[int]] = defaultdict(list)
     for artifact in preprod_artifacts:
