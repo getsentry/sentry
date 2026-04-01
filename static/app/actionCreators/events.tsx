@@ -346,11 +346,11 @@ export const useDeleteEventAttachmentOptimistic = (
     onError: (error, variables, onMutateResult, context) => {
       addErrorMessage(t('An error occurred while deleting the attachment'));
 
-      if (context) {
+      if (onMutateResult) {
         setApiQueryData(
           queryClient,
           makeFetchEventAttachmentsQueryKey(variables),
-          onMutateResult?.previous
+          onMutateResult.previous
         );
       }
 
