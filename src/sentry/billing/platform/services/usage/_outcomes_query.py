@@ -95,7 +95,27 @@ def _build_query(
         select=[
             Column("category"),
             Column("time"),
-            Function("sum", [Column("quantity")], "total"),
+            # Only count billable outcomes (ACCEPTED, FILTERED, RATE_LIMITED).
+            # ClickHouse also has INVALID, ABUSE, CLIENT_DISCARD,
+            # CARDINALITY_LIMITED which are not in the PG BillingMetricUsage
+            # table (filtered by getsentry outcomes consumer).
+            Function(
+                "sumIf",
+                [
+                    Column("quantity"),
+                    Function(
+                        "in",
+                        [
+                            Column("outcome"),
+                            Function(
+                                "tuple",
+                                [Outcome.ACCEPTED, Outcome.FILTERED, Outcome.RATE_LIMITED],
+                            ),
+                        ],
+                    ),
+                ],
+                "total",
+            ),
             Function(
                 "sumIf",
                 [Column("quantity"), Function("equals", [Column("outcome"), Outcome.ACCEPTED])],

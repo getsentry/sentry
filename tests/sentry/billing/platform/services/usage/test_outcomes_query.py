@@ -220,6 +220,30 @@ class TestBuildQuery:
         groupby_names = [col.name for col in snuba_request.query.groupby]
         assert groupby_names == ["category", "time"]
 
+    def test_build_query_total_filters_billable_outcomes(self):
+        start = datetime(2025, 3, 1, tzinfo=timezone.utc)
+        end = datetime(2025, 3, 31, tzinfo=timezone.utc)
+
+        snuba_request = _build_query(org_id=1, start=start, end=end, categories=[])
+
+        select = snuba_request.query.select
+        total_fn = next(f for f in select if isinstance(f, Function) and f.alias == "total")
+        # total must use sumIf, not bare sum — only billable outcomes
+        assert total_fn.function == "sumIf"
+        # The condition should filter to ACCEPTED, FILTERED, RATE_LIMITED via in(outcome, tuple(...))
+        condition = total_fn.parameters[1]
+        assert condition.function == "in"
+        outcome_col = condition.parameters[0]
+        assert isinstance(outcome_col, Column)
+        assert outcome_col.name == "outcome"
+        tuple_fn = condition.parameters[1]
+        assert tuple_fn.function == "tuple"
+        assert set(tuple_fn.parameters) == {
+            Outcome.ACCEPTED,
+            Outcome.FILTERED,
+            Outcome.RATE_LIMITED,
+        }
+
     def test_build_query_select_has_sumif_columns(self):
         start = datetime(2025, 3, 1, tzinfo=timezone.utc)
         end = datetime(2025, 3, 31, tzinfo=timezone.utc)
