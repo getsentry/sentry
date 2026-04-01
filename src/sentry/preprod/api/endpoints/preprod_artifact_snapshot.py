@@ -121,7 +121,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             artifact = PreprodArtifact.objects.get(
                 id=snapshot_id, project__organization_id=organization.id
             )
-        except PreprodArtifact.DoesNotExist:
+        except (PreprodArtifact.DoesNotExist, ValueError):
             return Response({"detail": "Snapshot not found"}, status=404)
 
         try:
