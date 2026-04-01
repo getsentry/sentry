@@ -31,7 +31,14 @@ export function ScmStepHeader({
         <Heading as="h2" size="3xl">
           {heading}
         </Heading>
-        <Text variant="muted" size="lg" bold density="comfortable" align="center">
+        <Text
+          variant="muted"
+          size="lg"
+          wrap="pre-line"
+          align="center"
+          bold
+          density="comfortable"
+        >
           {subtitle}
         </Text>
       </Stack>

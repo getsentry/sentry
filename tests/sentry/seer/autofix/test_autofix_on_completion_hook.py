@@ -39,13 +39,16 @@ def run_state(run_id=123, blocks: list[MemoryBlock] | None = None, metadata=None
     )
 
 
-def root_cause_memory_block() -> MemoryBlock:
+def root_cause_memory_block(referrer: str | None = None) -> MemoryBlock:
+    metadata: dict[str, str] = {"step": "root_cause"}
+    if referrer is not None:
+        metadata["referrer"] = referrer
     return MemoryBlock(
         id="block-root-cause",
         message=Message(
             role="assistant",
             content="message root cause",
-            metadata={"step": "root_cause"},
+            metadata=metadata,
         ),
         timestamp="2026-02-10T00:00:00Z",
         artifacts=[
@@ -58,13 +61,16 @@ def root_cause_memory_block() -> MemoryBlock:
     )
 
 
-def solution_memory_block() -> MemoryBlock:
+def solution_memory_block(referrer: str | None = None) -> MemoryBlock:
+    metadata: dict[str, str] = {"step": "solution"}
+    if referrer is not None:
+        metadata["referrer"] = referrer
     return MemoryBlock(
         id="block-solution",
         message=Message(
             role="assistant",
             content="message solution",
-            metadata={"step": "solution"},
+            metadata=metadata,
         ),
         timestamp="2026-02-10T00:00:00Z",
         artifacts=[
@@ -77,13 +83,16 @@ def solution_memory_block() -> MemoryBlock:
     )
 
 
-def code_changes_memory_block() -> MemoryBlock:
+def code_changes_memory_block(referrer: str | None = None) -> MemoryBlock:
+    metadata: dict[str, str] = {"step": "code_changes"}
+    if referrer is not None:
+        metadata["referrer"] = referrer
     return MemoryBlock(
         id="block-code-changes",
         message=Message(
             role="assistant",
             content="message code changes",
-            metadata={"step": "code_changes"},
+            metadata=metadata,
         ),
         timestamp="2026-02-10T00:00:00Z",
         merged_file_patches=[
@@ -95,13 +104,16 @@ def code_changes_memory_block() -> MemoryBlock:
     )
 
 
-def triage_memory_block() -> MemoryBlock:
+def triage_memory_block(referrer: str | None = None) -> MemoryBlock:
+    metadata: dict[str, str] = {"step": "triage"}
+    if referrer is not None:
+        metadata["referrer"] = referrer
     return MemoryBlock(
         id="block-triage",
         message=Message(
             role="assistant",
             content="message triage",
-            metadata={"step": "triage"},
+            metadata=metadata,
         ),
         timestamp="2026-02-10T00:00:00Z",
         artifacts=[
@@ -114,13 +126,16 @@ def triage_memory_block() -> MemoryBlock:
     )
 
 
-def impact_assessment_memory_block() -> MemoryBlock:
+def impact_assessment_memory_block(referrer: str | None = None) -> MemoryBlock:
+    metadata: dict[str, str] = {"step": "impact_assessment"}
+    if referrer is not None:
+        metadata["referrer"] = referrer
     return MemoryBlock(
         id="block-impact-assessment",
         message=Message(
             role="assistant",
             content="message impact assessment",
-            metadata={"step": "impact_assessment"},
+            metadata=metadata,
         ),
         timestamp="2026-02-10T00:00:00Z",
         artifacts=[
@@ -139,14 +154,16 @@ class TestAutofixOnCompletionHookHelpers(TestCase):
     def test_get_current_step_root_cause(self) -> None:
         """Returns ROOT_CAUSE when root_cause artifact exists."""
         state = run_state(blocks=[root_cause_memory_block()])
-        result = AutofixOnCompletionHook._get_current_step(state)
-        assert result == AutofixStep.ROOT_CAUSE
+        step, referrer = AutofixOnCompletionHook._get_current_step(state)
+        assert step == AutofixStep.ROOT_CAUSE
+        assert referrer is None
 
     def test_get_current_step_solution(self) -> None:
         """Returns SOLUTION when solution artifact exists."""
         state = run_state(blocks=[root_cause_memory_block(), solution_memory_block()])
-        result = AutofixOnCompletionHook._get_current_step(state)
-        assert result == AutofixStep.SOLUTION
+        step, referrer = AutofixOnCompletionHook._get_current_step(state)
+        assert step == AutofixStep.SOLUTION
+        assert referrer is None
 
     def test_get_current_step_code_changes(self) -> None:
         """Returns CODE_CHANGES when code changes exist."""
@@ -157,14 +174,44 @@ class TestAutofixOnCompletionHookHelpers(TestCase):
                 code_changes_memory_block(),
             ]
         )
-        result = AutofixOnCompletionHook._get_current_step(state)
-        assert result == AutofixStep.CODE_CHANGES
+        step, referrer = AutofixOnCompletionHook._get_current_step(state)
+        assert step == AutofixStep.CODE_CHANGES
+        assert referrer is None
 
     def test_get_current_step_none(self) -> None:
         """Returns None when no artifacts or code changes exist."""
         state = run_state()
-        result = AutofixOnCompletionHook._get_current_step(state)
-        assert result is None
+        step, referrer = AutofixOnCompletionHook._get_current_step(state)
+        assert step is None
+        assert referrer is None
+
+    def test_get_current_step_extracts_referrer(self):
+        """Returns the referrer from message metadata."""
+        state = run_state(
+            blocks=[root_cause_memory_block(referrer=AutofixReferrer.ON_COMPLETION_HOOK.value)]
+        )
+        step, referrer = AutofixOnCompletionHook._get_current_step(state)
+        assert step == AutofixStep.ROOT_CAUSE
+        assert referrer == AutofixReferrer.ON_COMPLETION_HOOK
+
+    def test_get_current_step_extracts_referrer_from_latest_block(self):
+        """Returns the referrer from the most recent block with step metadata."""
+        state = run_state(
+            blocks=[
+                root_cause_memory_block(referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT.value),
+                solution_memory_block(referrer=AutofixReferrer.ON_COMPLETION_HOOK.value),
+            ]
+        )
+        step, referrer = AutofixOnCompletionHook._get_current_step(state)
+        assert step == AutofixStep.SOLUTION
+        assert referrer == AutofixReferrer.ON_COMPLETION_HOOK
+
+    def test_get_current_step_invalid_referrer_returns_none(self):
+        """Returns None referrer when referrer value is not a valid AutofixReferrer."""
+        state = run_state(blocks=[root_cause_memory_block(referrer="not_a_valid_referrer")])
+        step, referrer = AutofixOnCompletionHook._get_current_step(state)
+        assert step == AutofixStep.ROOT_CAUSE
+        assert referrer is None
 
     def test_get_next_step_root_cause_to_solution(self) -> None:
         """Returns SOLUTION after ROOT_CAUSE."""
@@ -560,6 +607,54 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
 
         mock_trigger_handoff.assert_called_once()
+
+    @patch("sentry.seer.autofix.on_completion_hook.set_project_seer_preference")
+    @patch("sentry.seer.autofix.on_completion_hook.get_project_seer_preferences")
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_coding_agent_handoff")
+    def test_trigger_coding_agent_handoff_clears_preference_on_not_found(
+        self, mock_trigger, mock_get_prefs, mock_set_pref
+    ):
+        """When IntegrationNotFound is raised, automation_handoff is cleared from preferences."""
+        from sentry.seer.autofix.coding_agent import IntegrationNotFound
+
+        mock_trigger.side_effect = IntegrationNotFound()
+        handoff_config = self._make_handoff_config()
+        mock_get_prefs.return_value = self._make_preference_response(handoff_config=handoff_config)
+
+        AutofixOnCompletionHook._trigger_coding_agent_handoff(
+            organization=self.organization,
+            run_id=123,
+            group=self.group,
+            handoff_config=handoff_config,
+        )
+
+        mock_set_pref.assert_called_once()
+        updated = mock_set_pref.call_args.args[0]
+        assert updated.automation_handoff is None
+
+    @patch("sentry.seer.autofix.on_completion_hook.set_project_seer_preference")
+    @patch("sentry.seer.autofix.on_completion_hook.get_project_seer_preferences")
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_coding_agent_handoff")
+    def test_trigger_coding_agent_handoff_not_found_seer_api_error_does_not_raise(
+        self, mock_trigger, mock_get_prefs, mock_set_pref
+    ):
+        """A SeerApiError during preference-clearing after IntegrationNotFound should not propagate."""
+        from sentry.seer.autofix.coding_agent import IntegrationNotFound
+        from sentry.seer.models import SeerApiError
+
+        mock_trigger.side_effect = IntegrationNotFound()
+        mock_get_prefs.side_effect = SeerApiError("seer unavailable", 503)
+        handoff_config = self._make_handoff_config()
+
+        # Should not raise
+        AutofixOnCompletionHook._trigger_coding_agent_handoff(
+            organization=self.organization,
+            run_id=123,
+            group=self.group,
+            handoff_config=handoff_config,
+        )
+
+        mock_set_pref.assert_not_called()
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_coding_agent_handoff")
     def test_trigger_coding_agent_handoff_calls_function(self, mock_trigger):

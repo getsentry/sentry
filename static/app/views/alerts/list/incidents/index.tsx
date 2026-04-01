@@ -4,6 +4,7 @@ import type {Location} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
@@ -263,7 +264,7 @@ class IncidentsList extends DeprecatedAsyncComponent<
 
     return (
       <SentryDocumentTitle title={t('Alerts')} orgSlug={organization.slug}>
-        <Layout.Page>
+        <Stack flex={1}>
           <PageFiltersContainer>
             <AlertHeader activeTab="stream" />
             <Layout.Body>
@@ -286,7 +287,7 @@ class IncidentsList extends DeprecatedAsyncComponent<
               </Layout.Main>
             </Layout.Body>
           </PageFiltersContainer>
-        </Layout.Page>
+        </Stack>
       </SentryDocumentTitle>
     );
   }
@@ -305,7 +306,7 @@ export default function IncidentsListContainer() {
   }, []);
 
   const renderDisabled = () => (
-    <Layout.Page>
+    <Stack flex={1}>
       <Layout.Body>
         <Layout.Main width="full">
           <Alert.Container>
@@ -315,7 +316,7 @@ export default function IncidentsListContainer() {
           </Alert.Container>
         </Layout.Main>
       </Layout.Body>
-    </Layout.Page>
+    </Stack>
   );
 
   return (

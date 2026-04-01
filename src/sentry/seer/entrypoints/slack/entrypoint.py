@@ -42,6 +42,12 @@ if TYPE_CHECKING:
     from sentry.models.group import Group
 
 
+class EntrypointSetupError(Exception):
+    """Raised when entrypoint construction fails during mention processing."""
+
+    pass
+
+
 class SlackThreadDetails(TypedDict):
     thread_ts: str
     channel_id: str
@@ -60,7 +66,6 @@ class SlackExplorerCachePayload(TypedDict):
     organization_id: int
     integration_id: int
     thread: SlackThreadDetails
-    message_ts: str
 
 
 class SlackAutofixEntrypoint(
@@ -339,8 +344,7 @@ class SlackExplorerEntrypoint(
         integration_id: int,
         organization_id: int,
         channel_id: str,
-        message_ts: str,
-        thread_ts: str | None,
+        thread_ts: str,
         slack_user_id: str,
     ):
         from sentry.integrations.services.integration import integration_service
@@ -354,7 +358,7 @@ class SlackExplorerEntrypoint(
             status=ObjectStatus.ACTIVE,
         )
         if not integration:
-            raise ValueError(f"Slack integration {integration_id} not found")
+            raise EntrypointSetupError(f"Slack integration {integration_id} not found")
 
         ois = integration_service.get_organization_integrations(
             integration_id=integration_id,
@@ -363,15 +367,15 @@ class SlackExplorerEntrypoint(
             limit=1,
         )
         if not ois:
-            raise ValueError(
+            raise EntrypointSetupError(
                 f"Slack integration {integration_id} is not active for org {organization_id}"
             )
 
         self.channel_id = channel_id
-        self.message_ts = message_ts
-        self.thread_ts = thread_ts or message_ts
+        self.thread_ts = thread_ts
         self.thread = SlackThreadDetails(thread_ts=self.thread_ts, channel_id=channel_id)
         self.organization_id = organization_id
+        self.integration = integration
         self.install = SlackIntegration(model=integration, organization_id=organization_id)
         self.slack_user_id = slack_user_id
 
@@ -399,7 +403,6 @@ class SlackExplorerEntrypoint(
             thread=self.thread,
             organization_id=self.organization_id,
             integration_id=self.install.model.id,
-            message_ts=self.message_ts,
         )
 
     @staticmethod

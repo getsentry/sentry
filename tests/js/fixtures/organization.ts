@@ -55,6 +55,8 @@ export function OrganizationFixture(params: Partial<Organization> = {}): Organiz
     dateCreated: new Date().toISOString(),
     debugFilesRole: '',
     defaultCodeReviewTriggers: [],
+    defaultCodingAgentIntegrationId: null,
+    defaultCodingAgent: 'seer',
     defaultRole: '',
     enhancedPrivacy: false,
     eventsMemberAdmin: false,

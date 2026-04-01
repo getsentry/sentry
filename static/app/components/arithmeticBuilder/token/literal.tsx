@@ -83,8 +83,15 @@ function InternalInput({item, state, token}: InternalInputProps) {
   }, [updateSelectionIndex]);
 
   const onInputBlur = useCallback(() => {
+    const trimmed = inputValue.trim();
+    const text = validateLiteral(trimmed) ? trimmed : token.text;
+    dispatch({
+      text,
+      type: 'REPLACE_TOKEN',
+      token,
+    });
     resetInputValue();
-  }, [resetInputValue]);
+  }, [dispatch, inputValue, token, resetInputValue]);
 
   const onInputChange = useCallback(
     (evt: ChangeEvent<HTMLInputElement>) => {

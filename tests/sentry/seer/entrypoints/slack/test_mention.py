@@ -1,5 +1,20 @@
+from collections.abc import Mapping
+from typing import Any
+
+from slack_sdk.models.blocks import (
+    ContextBlock,
+    DividerBlock,
+    HeaderBlock,
+    MarkdownBlock,
+    RichTextBlock,
+    SectionBlock,
+)
+from slack_sdk.models.blocks.block_elements import RichTextElementParts, RichTextSectionElement
+
 from sentry.seer.entrypoints.slack.mention import (
     IssueLink,
+    _extract_block_text,
+    _extract_text_from_blocks,
     build_thread_context,
     extract_issue_links,
     extract_prompt,
@@ -98,6 +113,140 @@ class ExtractIssueLinksTest(TestCase):
         assert extract_issue_links(text) == []
 
 
+class ExtractBlockTextTest(TestCase):
+    def test_section_block(self):
+        block = SectionBlock(text="hello *world*").to_dict()
+        assert _extract_block_text(block) == "hello *world*"
+
+    def test_section_block_with_fields(self):
+        block = SectionBlock(
+            fields=[
+                {"type": "mrkdwn", "text": "*Priority*"},
+                {"type": "plain_text", "text": "High"},
+            ]
+        ).to_dict()
+        result = _extract_block_text(block)
+        assert "*Priority*" in result
+        assert "High" in result
+
+    def test_context_block(self):
+        block = ContextBlock(
+            elements=[{"type": "mrkdwn", "text": "Project: test-project"}]
+        ).to_dict()
+        assert _extract_block_text(block) == "Project: test-project"
+
+    def test_header_block(self):
+        block = HeaderBlock(text="My Header").to_dict()
+        assert _extract_block_text(block) == "My Header"
+
+    def test_markdown_block(self):
+        block = MarkdownBlock(text="markdown content").to_dict()
+        assert _extract_block_text(block) == "markdown content"
+
+    def test_rich_text_with_text_and_link(self):
+        block = RichTextBlock(
+            elements=[
+                RichTextSectionElement(
+                    elements=[
+                        RichTextElementParts.Text(text="Check "),
+                        RichTextElementParts.Link(
+                            url="https://sentry.io/organizations/test-org/issues/123/",
+                            text="ISSUE-123",
+                        ),
+                    ]
+                )
+            ]
+        ).to_dict()
+        result = _extract_block_text(block)
+        assert result == "Check <https://sentry.io/organizations/test-org/issues/123/|ISSUE-123>"
+
+    def test_rich_text_link_without_label(self):
+        block = RichTextBlock(
+            elements=[
+                RichTextSectionElement(
+                    elements=[
+                        RichTextElementParts.Link(url="https://example.com"),
+                    ]
+                )
+            ]
+        ).to_dict()
+        assert _extract_block_text(block) == "<https://example.com>"
+
+    def test_rich_text_with_user_and_channel(self):
+        block = RichTextBlock(
+            elements=[
+                RichTextSectionElement(
+                    elements=[
+                        RichTextElementParts.Text(text="Hey "),
+                        RichTextElementParts.User(user_id="U123"),
+                        RichTextElementParts.Text(text=" check "),
+                        RichTextElementParts.Channel(channel_id="C456"),
+                    ]
+                )
+            ]
+        ).to_dict()
+        assert _extract_block_text(block) == "Hey <@U123> check <#C456>"
+
+    def test_rich_text_with_emoji(self):
+        block = RichTextBlock(
+            elements=[
+                RichTextSectionElement(
+                    elements=[
+                        RichTextElementParts.Emoji(name="wave"),
+                        RichTextElementParts.Text(text=" hello"),
+                    ]
+                )
+            ]
+        ).to_dict()
+        assert _extract_block_text(block) == ":wave: hello"
+
+    def test_divider_returns_empty(self):
+        assert _extract_block_text(DividerBlock().to_dict()) == ""
+
+    def test_actions_block_returns_empty(self):
+        block = {
+            "type": "actions",
+            "elements": [{"type": "button", "text": {"type": "plain_text", "text": "Click"}}],
+        }
+        assert _extract_block_text(block) == ""
+
+
+class ExtractTextFromBlocksTest(TestCase):
+    def test_multiple_blocks(self):
+        blocks = [
+            HeaderBlock(text="Alert Title").to_dict(),
+            SectionBlock(text="Something broke").to_dict(),
+            DividerBlock().to_dict(),
+            ContextBlock(elements=[{"type": "mrkdwn", "text": "Project: my-project"}]).to_dict(),
+        ]
+        result = _extract_text_from_blocks(blocks)
+        assert result == "Alert Title\nSomething broke\nProject: my-project"
+
+    def test_sentry_alert_like_blocks(self):
+        blocks = [
+            SectionBlock(
+                text=":red_circle: <https://sentry.io/organizations/test-org/issues/456/|*ValueError: invalid input*>"
+            ).to_dict(),
+            ContextBlock(
+                elements=[{"type": "mrkdwn", "text": "my_module.views in handle_request"}]
+            ).to_dict(),
+            SectionBlock(text="```invalid literal for int()```").to_dict(),
+            ContextBlock(
+                elements=[
+                    {
+                        "type": "mrkdwn",
+                        "text": "Project: <https://sentry.io/projects/backend/|backend>    Alert: My Alert    Short ID: BACKEND-123",
+                    }
+                ]
+            ).to_dict(),
+        ]
+        result = _extract_text_from_blocks(blocks)
+        assert "https://sentry.io/organizations/test-org/issues/456/" in result
+        assert "ValueError: invalid input" in result
+        assert "invalid literal for int()" in result
+        assert "Project:" in result
+
+
 class BuildThreadContextTest(TestCase):
     def test_single_message(self) -> None:
         messages = [{"user": "U123", "text": "hello world", "ts": "1234567890.000001"}]
@@ -139,3 +288,96 @@ class BuildThreadContextTest(TestCase):
         ]
         result = build_thread_context(messages)
         assert "<https://sentry.io/organizations/test-org/issues/123/|ISSUE-123>" in result
+
+    def test_prefers_blocks_over_text(self):
+        messages = [
+            {
+                "user": "U123",
+                "text": "fallback text",
+                "blocks": [SectionBlock(text="rich block content").to_dict()],
+                "ts": "1234567890.000001",
+            }
+        ]
+        result = build_thread_context(messages)
+        assert result == "<@U123>: rich block content"
+        assert "fallback text" not in result
+
+    def test_falls_back_to_text_when_blocks_empty(self):
+        messages = [
+            {
+                "user": "U123",
+                "text": "fallback text",
+                "blocks": [],
+                "ts": "1234567890.000001",
+            }
+        ]
+        result = build_thread_context(messages)
+        assert result == "<@U123>: fallback text"
+
+    def test_falls_back_to_text_when_blocks_have_no_text(self):
+        messages = [
+            {
+                "user": "U123",
+                "text": "fallback text",
+                "blocks": [DividerBlock().to_dict()],
+                "ts": "1234567890.000001",
+            }
+        ]
+        result = build_thread_context(messages)
+        assert result == "<@U123>: fallback text"
+
+    def test_extracts_links_from_rich_text_blocks(self):
+        messages = [
+            {
+                "user": "U123",
+                "text": "fallback with no links",
+                "blocks": [
+                    RichTextBlock(
+                        elements=[
+                            RichTextSectionElement(
+                                elements=[
+                                    RichTextElementParts.Text(text="Check "),
+                                    RichTextElementParts.Link(
+                                        url="https://sentry.io/organizations/test-org/issues/999/",
+                                        text="this issue",
+                                    ),
+                                ]
+                            )
+                        ]
+                    ).to_dict()
+                ],
+                "ts": "1234567890.000001",
+            }
+        ]
+        result = build_thread_context(messages)
+        assert "https://sentry.io/organizations/test-org/issues/999/" in result
+        assert "this issue" in result
+
+    def test_mixed_block_and_text_messages(self):
+        messages: list[Mapping[str, Any]] = [
+            {
+                "user": "U123",
+                "text": "alert fallback",
+                "blocks": [SectionBlock(text="alert from blocks").to_dict()],
+                "ts": "1234567890.000001",
+            },
+            {
+                "user": "U456",
+                "text": "plain text reply",
+                "ts": "1234567890.000002",
+            },
+        ]
+        result = build_thread_context(messages)
+        assert result == "<@U123>: alert from blocks\n<@U456>: plain text reply"
+
+    def test_markdown_block_in_seer_response(self):
+        messages = [
+            {
+                "user": "UBOT",
+                "text": "fallback",
+                "blocks": [MarkdownBlock(text="Here is the Seer analysis...").to_dict()],
+                "ts": "1234567890.000001",
+            }
+        ]
+        result = build_thread_context(messages)
+        assert result == "<@UBOT>: Here is the Seer analysis..."

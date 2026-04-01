@@ -111,6 +111,7 @@ export function ExploreSecondaryNavigation() {
                   to={`${baseUrl}/errors/`}
                   activeTo={`${baseUrl}/errors/`}
                   analyticsItemName="explore_errors"
+                  trailingItems={<FeatureBadge type="alpha" />}
                 >
                   {t('Errors')}
                 </SecondaryNavigation.Link>
