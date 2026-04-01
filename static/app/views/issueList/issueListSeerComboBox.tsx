@@ -3,7 +3,6 @@ import omit from 'lodash/omit';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {Token} from 'sentry/components/searchSyntax/parser';
@@ -89,10 +88,6 @@ export function IssueListSeerComboBox() {
     initialSeerQuery =
       initialSeerQuery === '' ? inputValue : `${initialSeerQuery} ${inputValue}`;
   }
-
-  const usePollingEndpoint = organization.features.includes(
-    'gen-ai-search-agent-translate'
-  );
 
   // Get selected project IDs for the polling variant
   const selectedProjectIds = useMemo(() => {
@@ -252,28 +247,16 @@ export function IssueListSeerComboBox() {
     return null;
   }
 
-  if (usePollingEndpoint) {
-    return (
-      <AskSeerPollingComboBox<IssueAskSeerSearchQuery>
-        initialQuery={initialSeerQuery}
-        projectIds={selectedProjectIds}
-        strategy="Issues"
-        applySeerSearchQuery={applySeerSearchQuery}
-        transformResponse={transformResponse}
-        analyticsSource="issue.list"
-        feedbackSource="issue_list_ai_query"
-        fallbackMutationOptions={issueListAskSeerMutationOptions}
-      />
-    );
-  }
-
   return (
-    <AskSeerComboBox
+    <AskSeerPollingComboBox<IssueAskSeerSearchQuery>
       initialQuery={initialSeerQuery}
-      askSeerMutationOptions={issueListAskSeerMutationOptions}
+      projectIds={selectedProjectIds}
+      strategy="Issues"
       applySeerSearchQuery={applySeerSearchQuery}
+      transformResponse={transformResponse}
       analyticsSource="issue.list"
       feedbackSource="issue_list_ai_query"
+      fallbackMutationOptions={issueListAskSeerMutationOptions}
     />
   );
 }
