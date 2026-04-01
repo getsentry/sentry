@@ -378,7 +378,9 @@ describe('Visualize', () => {
     await userEvent.click(screen.getByRole('option', {name: 'field'}));
 
     // The column selection is automatically opened for aggregates
-    await userEvent.click(screen.getByRole('option', {name: 'transaction.duration'}));
+    await userEvent.click(
+      await screen.findByRole('option', {name: 'transaction.duration'})
+    );
 
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
       'transaction.duration'
