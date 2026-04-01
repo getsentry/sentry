@@ -152,9 +152,7 @@ describe('SpansSearchBar', () => {
     });
   });
 
-  // TODO(nikki): Flaky test
-  // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('triggers onClose when the query changes', async () => {
+  it('triggers onClose when the query changes', async () => {
     const onClose = jest.fn();
 
     renderWithProvider({
@@ -166,10 +164,14 @@ describe('SpansSearchBar', () => {
     const searchInput = await screen.findByRole('combobox', {
       name: 'Add a search term',
     });
+    await userEvent.click(searchInput);
     await userEvent.type(searchInput, 'span.op:');
     await userEvent.keyboard('{enter}');
     await userEvent.keyboard('function');
     await userEvent.keyboard('{enter}');
+
+    // Wait for the filter token to be created before typing the value
+    await screen.findByRole('row', {name: /span\.op/});
 
     await waitFor(() => {
       expect(onClose).toHaveBeenCalled();
