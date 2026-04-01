@@ -1,10 +1,58 @@
+import styled from '@emotion/styled';
+
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {ExternalLink} from 'sentry/components/links/externalLink';
+import {IconWarning} from 'sentry/icons';
+import {tct} from 'sentry/locale';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {formatDollars} from 'sentry/utils/formatters';
 
 type Props = {
-  value: number;
+  value: number | null;
 };
 
+const NEGATIVE_COST_DOCS_URL =
+  'https://docs.sentry.io/product/insights/agents/#cost-tracking';
+
 export function CurrencyCell({value}: Props) {
+  if (value === null || value === undefined) {
+    return <NumberContainer>{'\u2014'}</NumberContainer>;
+  }
+
+  if (value < 0) {
+    return (
+      <NumberContainer>
+        <NegativeCostWrapper>
+          {formatDollars(value)}
+          <Tooltip
+            title={tct(
+              'Negative costs can occur when cached token pricing differs from standard token pricing. [link:Learn more].',
+              {
+                link: <ExternalLink href={NEGATIVE_COST_DOCS_URL} />,
+              }
+            )}
+          >
+            <StyledIconWarning size="sm" color="warning" />
+          </Tooltip>
+        </NegativeCostWrapper>
+      </NumberContainer>
+    );
+  }
+
+  if (value > 0 && value < 0.01) {
+    return <NumberContainer>{`<$${(0.01).toLocaleString()}`}</NumberContainer>;
+  }
+
   return <NumberContainer>{formatDollars(value)}</NumberContainer>;
 }
+
+const NegativeCostWrapper = styled('span')`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+`;
+
+const StyledIconWarning = styled(IconWarning)`
+  flex-shrink: 0;
+`;

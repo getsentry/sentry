@@ -19,7 +19,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
+import {CurrencyCell} from 'sentry/views/insights/common/components/tableCells/currencyCell';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   CellLink,
@@ -34,7 +34,6 @@ import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {ErrorCell} from 'sentry/views/insights/pages/agents/utils/cells';
-import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
 import {getAIGenerationsFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
@@ -263,7 +262,7 @@ const BodyCell = memo(function BodyCell({
     case 'p95(span.duration)':
       return <DurationCell milliseconds={dataRow.p95} />;
     case 'sum(gen_ai.cost.total_tokens)':
-      return <TextAlignRight>{formatLLMCosts(dataRow.cost)}</TextAlignRight>;
+      return <CurrencyCell value={dataRow.cost} />;
     case 'count_if(span.status,equals,internal_error)':
       return (
         <ErrorCell
