@@ -59,7 +59,9 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
         if provider_key:
             providers = [p for p in providers if p.key == provider_key]
 
-        providers = list(filter(lambda p: is_provider_enabled(p, organization), providers))
+        providers = list(
+            filter(lambda p: is_provider_enabled(p, organization, actor=request.user), providers)
+        )
 
         providers.sort(key=lambda i: i.key)
 

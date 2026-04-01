@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from collections import namedtuple
 from collections.abc import Mapping
 from typing import Any
 
@@ -17,8 +16,6 @@ from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.utils.http import absolute_uri
 
 _logger = logging.getLogger("sentry.integrations.slack")
-
-Channel = namedtuple("Channel", ["name", "id"])
 
 
 class SlackStagingIntegrationProvider(SlackIntegrationProvider):

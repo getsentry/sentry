@@ -46,12 +46,15 @@ from sentry.users.models.identity import Identity
 from sentry.utils.audit import create_audit_entry
 
 if TYPE_CHECKING:
+    from django.contrib.auth.models import AnonymousUser
     from django.utils.functional import _StrPromise
 
     from sentry.integrations.pipeline import IntegrationPipeline  # noqa: F401
     from sentry.integrations.services.integration import RpcOrganizationIntegration
     from sentry.integrations.services.integration.model import RpcIntegration
     from sentry.models.organization import Organization
+    from sentry.users.models.user import User
+    from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
 
@@ -587,7 +590,9 @@ def get_integration_types(provider: str) -> list[IntegrationDomain]:
 
 
 def is_provider_enabled(
-    provider: IntegrationProvider, organization: Organization | RpcOrganization
+    provider: IntegrationProvider,
+    organization: Organization | RpcOrganization,
+    actor: User | RpcUser | AnonymousUser | None = None,
 ) -> bool:
     from sentry import features
 
@@ -595,4 +600,4 @@ def is_provider_enabled(
         return True
     provider_key = provider.key.replace("_", "-")
     feature_flag_name = "organizations:integrations-%s" % provider_key
-    return features.has(feature_flag_name, organization)
+    return features.has(feature_flag_name, organization, actor=actor)
