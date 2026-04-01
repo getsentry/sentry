@@ -92,7 +92,7 @@ export function AutofixSection({group, project, event}: AutofixSectionProps) {
     <SidebarFoldSection
       title={
         <Flex align="center" gap="xs">
-          <Text size="md">{t('Seer')}</Text>
+          <Text size="md">{t('Seer Autofix')}</Text>
           <IconSeer />
         </Flex>
       }

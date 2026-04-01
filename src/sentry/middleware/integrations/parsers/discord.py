@@ -64,7 +64,7 @@ class DiscordRequestParser(BaseRequestParser):
         if self.discord_request:
             convert_to_async_discord_response.apply_async(
                 kwargs={
-                    "region_names": [c.name for c in cells],
+                    "cell_names": [c.name for c in cells],
                     "payload": create_async_request_payload(self.request),
                     "response_url": self.discord_request.response_url,
                 }

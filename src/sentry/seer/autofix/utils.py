@@ -389,13 +389,12 @@ class SeerAutofixSettingsSerializer(serializers.Serializer):
 
 
 def default_seer_project_preference(project: Project) -> SeerProjectPreference:
-    stopping_point, handoff = get_org_default_seer_automation_handoff(project.organization)
     return SeerProjectPreference(
         organization_id=project.organization.id,
         project_id=project.id,
         repositories=[],
-        automated_run_stopping_point=stopping_point,
-        automation_handoff=handoff,
+        automated_run_stopping_point=AutofixStoppingPoint.CODE_CHANGES.value,
+        automation_handoff=None,
     )
 
 
