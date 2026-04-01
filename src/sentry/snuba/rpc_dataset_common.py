@@ -1,7 +1,6 @@
 import logging
 import math
 from collections import defaultdict
-from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from typing import Any
@@ -45,7 +44,6 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
-from sentry.api import event_search
 from sentry.api.event_search import AggregateFilter, SearchFilter, SearchKey, SearchValue
 from sentry.api.utils import handle_query_errors
 from sentry.discover import arithmetic
@@ -53,7 +51,13 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.search.eap.attribute_validation import _check_attributes_exist, serialize_type
 from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute, ResolvedColumn
-from sentry.search.eap.constants import DOUBLE, MAX_ROLLUP_POINTS, VALID_GRANULARITIES
+from sentry.search.eap.constants import (
+    DOUBLE,
+    LITERAL_OPERATOR_MAP,
+    MAX_ROLLUP_POINTS,
+    OPERATOR_MAP,
+    VALID_GRANULARITIES,
+)
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.rpc_utils import and_trace_item_filters, anyvalue_to_python
 from sentry.search.eap.sampling import events_meta_from_rpc_request_meta
@@ -66,6 +70,7 @@ from sentry.search.eap.types import (
     SearchResolverConfig,
     SupportedTraceItemType,
 )
+from sentry.search.events import filter as event_filter
 from sentry.search.events.fields import get_function_alias, is_function, parse_arguments
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaData, SnubaParams
 from sentry.snuba.discover import OTHER_KEY, create_groupby_dict, create_result_key, zerofill
@@ -74,6 +79,9 @@ from sentry.utils import json, snuba_rpc
 from sentry.utils.snuba import SnubaTSResult, process_value
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
+
+
+_KNOWN_OPERATORS = frozenset(LITERAL_OPERATOR_MAP.keys()) | frozenset(OPERATOR_MAP.keys())
 
 
 def _extract_function_keys(aggregate_filter: AggregateFilter) -> list[str]:
@@ -87,6 +95,9 @@ def _extract_function_keys(aggregate_filter: AggregateFilter) -> list[str]:
         if (arg.startswith('"') and arg.endswith('"')) or (
             arg.startswith("'") and arg.endswith("'")
         ):
+            continue
+
+        if arg in _KNOWN_OPERATORS:
             continue
 
         try:
@@ -171,7 +182,7 @@ class RPCBase:
         dict[str, dict[str, Any]],
         QueryContext,
         Node | None,
-        Sequence[event_search.QueryToken],
+        event_filter.ParsedTerms,
     ]:
         """Validate query keys and return their inferred types.
 
