@@ -14,7 +14,8 @@ class OrganizationIntegrationDirectEnableTest(APITestCase):
         self.login_as(self.user)
 
     def test_enables_github_copilot(self):
-        response = self.get_success_response(self.organization.slug, "github_copilot")
+        with self.feature("organizations:integrations-github-copilot-agent"):
+            response = self.get_success_response(self.organization.slug, "github_copilot")
 
         integration = Integration.objects.get(provider="github_copilot")
         assert OrganizationIntegration.objects.filter(
@@ -22,8 +23,8 @@ class OrganizationIntegrationDirectEnableTest(APITestCase):
             integration_id=integration.id,
         ).exists()
         assert response.data["provider"]["key"] == "github_copilot"
-        assert response.data["organizationIntegration"]["id"] == integration.id
-        assert response.data["organizationIntegration"]["organizationId"] == self.organization.id
+        assert response.data["id"] == str(integration.id)
+        assert response.data["organizationId"] == self.organization.id
 
     def test_returns_404_for_unknown_provider(self):
         self.get_error_response(self.organization.slug, "nonexistent_provider", status_code=404)
@@ -33,10 +34,14 @@ class OrganizationIntegrationDirectEnableTest(APITestCase):
         self.get_error_response(self.organization.slug, "cursor", status_code=400)
 
     def test_prevents_duplicate_installation(self):
-        self.get_success_response(self.organization.slug, "github_copilot")
-        self.get_error_response(self.organization.slug, "github_copilot", status_code=400)
+        with self.feature("organizations:integrations-github-copilot-agent"):
+            self.get_success_response(self.organization.slug, "github_copilot")
+            self.get_error_response(self.organization.slug, "github_copilot", status_code=400)
 
         assert Integration.objects.filter(provider="github_copilot").count() == 1
+
+    def test_returns_404_when_feature_flag_disabled(self):
+        self.get_error_response(self.organization.slug, "github_copilot", status_code=404)
 
     def test_requires_org_write_permission(self):
         member = self.create_user()

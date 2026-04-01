@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from django.db import transaction
+from django.db import IntegrityError, router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -18,6 +18,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.exceptions import NotRegistered
 from sentry.integrations.manager import default_manager as integrations
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organizationmapping import OrganizationMapping
@@ -68,26 +69,30 @@ class OrganizationIntegrationDirectEnableEndpoint(ControlSiloOrganizationEndpoin
             if existing:
                 return Response({"detail": "Integration is already enabled."}, status=400)
 
-        with transaction.atomic(using="default"):
-            if not provider.allow_multiple:
-                OrganizationMapping.objects.select_for_update().filter(
-                    organization_id=organization.id
-                ).exists()
+        try:
+            with transaction.atomic(using=router.db_for_write(OrganizationIntegration)):
+                if not provider.allow_multiple:
+                    OrganizationMapping.objects.select_for_update().filter(
+                        organization_id=organization.id
+                    ).exists()
 
-                existing = integration_service.get_integrations(
-                    organization_id=organization.id,
-                    providers=[provider_key],
-                    status=ObjectStatus.ACTIVE,
-                )
-                if existing:
-                    return Response({"detail": "Integration is already enabled."}, status=400)
+                    existing = integration_service.get_integrations(
+                        organization_id=organization.id,
+                        providers=[provider_key],
+                        status=ObjectStatus.ACTIVE,
+                    )
+                    if existing:
+                        return Response({"detail": "Integration is already enabled."}, status=400)
 
-            data = provider.build_integration({})
-            integration = ensure_integration(provider.key, data)
+                data = provider.build_integration({})
+                integration = ensure_integration(provider.key, data)
 
-            user = request.user if request.user.is_authenticated else None
-            org_integration = integration.add_organization(organization, user)
-            if org_integration is None:
-                return Response({"detail": "Could not create the integration."}, status=400)
+                user = request.user if request.user.is_authenticated else None
+                org_integration = integration.add_organization(organization, user)
+                if org_integration is None:
+                    raise IntegrityError
+        except IntegrityError:
+            return Response({"detail": "Could not create the integration."}, status=400)
 
+        provider.create_audit_log_entry(integration, organization, request, "install")
         return Response(serialize(org_integration, request.user))
