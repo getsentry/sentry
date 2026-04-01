@@ -25,13 +25,13 @@ import type {
 const [_LLMContextProvider, _useLLMContextValue] =
   createDefinedContext<LLMContextInternalValue>({
     name: 'LLMContext',
-    strict: true,
+    strict: false,
   });
 
 /**
  * Hook for internal use by registerLLMContext and useLLMContext to access
  * the registry operations (registerNode, unregisterNode, updateNodeData, getSnapshot).
- * Throws if called outside an LLMContextProvider.
+ * Returns undefined when called outside an LLMContextProvider (graceful no-op).
  */
 export const useLLMContextRegistry = _useLLMContextValue;
 
@@ -172,6 +172,8 @@ export function LLMContextProvider({children}: LLMContextProviderProps) {
   return <_LLMContextProvider value={value}>{children}</_LLMContextProvider>;
 }
 
+const EMPTY_SNAPSHOT: LLMContextSnapshot = {version: 0, nodes: []};
+
 // ---------------------------------------------------------------------------
 // useLLMContext — write overload
 //
@@ -210,8 +212,9 @@ export function useLLMContext(
   // Write path: sync data into the nearest node whenever it changes.
   // JSON equality guard prevents redundant writes. updateNodeData writes
   // imperatively to a ref — no dispatch, no re-render required.
+  // No-ops when no LLMContextProvider is present.
   useEffect(() => {
-    if (!nodeId || data === undefined) {
+    if (!ctx || !nodeId || data === undefined) {
       return;
     }
     let serialized: string | null;
@@ -234,8 +237,12 @@ export function useLLMContext(
 
   // Read path: always created so hooks run unconditionally.
   // Only returned when called without data.
+  // Returns empty snapshot when no LLMContextProvider is present.
   const getLLMContext = useCallback(
     (componentOnly?: boolean): LLMContextSnapshot => {
+      if (!ctx) {
+        return EMPTY_SNAPSHOT;
+      }
       if (componentOnly && nodeId) {
         return ctx.getSnapshot(nodeId);
       }
