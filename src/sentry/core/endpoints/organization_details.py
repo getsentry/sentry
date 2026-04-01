@@ -384,9 +384,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         allow_null=True,
     )
     defaultCodingAgentIntegrationId = serializers.IntegerField(required=False, allow_null=True)
-    defaultAutomatedRunStoppingPoint = serializers.ChoiceField(
-        choices=["code_changes", "open_pr"], required=False
-    )
+    defaultAutomatedRunStoppingPoint = serializers.CharField(required=False)
     autoOpenPrs = serializers.BooleanField(required=False)
     autoEnableCodeReview = serializers.BooleanField(required=False)
     defaultCodeReviewTriggers = serializers.ListField(
@@ -432,6 +430,16 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             integration_id=value, organization_id=organization.id
         ):
             raise serializers.ValidationError("Integration does not exist.")
+        return value
+
+    def validate_defaultAutomatedRunStoppingPoint(self, value):
+        organization = self.context["organization"]
+        valid_choices = ["code_changes", "open_pr"]
+        if features.has("organizations:seer-overview", organization):
+            valid_choices.append("root_cause")
+
+        if value not in valid_choices:
+            raise serializers.ValidationError(f'"{value}" is not a valid choice.')
         return value
 
     def validate_sensitiveFields(self, value):
