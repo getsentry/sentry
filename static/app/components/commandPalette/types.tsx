@@ -10,8 +10,6 @@ interface CommonCommandPaletteAction {
     /** Icon to render for this action */
     icon?: ReactNode;
   };
-  /** Whether this action should be hidden from the palette */
-  hidden?: boolean;
   /** Optional keywords to improve searchability */
   keywords?: string[];
 }

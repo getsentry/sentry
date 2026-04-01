@@ -87,33 +87,36 @@ function useNavigationActions(): CommandPaletteAction[] {
       },
       to: `${prefix}/explore/traces/`,
     },
-    {
-      display: {
-        label: t('Logs'),
-      },
-      to: `${prefix}/explore/logs/`,
-      hidden: !organization.features.includes('ourlogs-enabled'),
-    },
+    organization.features.includes('ourlogs-enabled')
+      ? {
+          display: {
+            label: t('Logs'),
+          },
+          to: `${prefix}/explore/logs/`,
+        }
+      : undefined,
     {
       display: {
         label: t('Discover'),
       },
       to: `${prefix}/explore/discover/homepage/`,
     },
-    {
-      display: {
-        label: t('Profiles'),
-      },
-      to: `${prefix}/explore/profiling/`,
-      hidden: !organization.features.includes('profiling'),
-    },
-    {
-      display: {
-        label: t('Replays'),
-      },
-      to: `${prefix}/explore/replays/`,
-      hidden: !organization.features.includes('session-replay-ui'),
-    },
+    organization.features.includes('profiling')
+      ? {
+          display: {
+            label: t('Profiles'),
+          },
+          to: `${prefix}/explore/profiling/`,
+        }
+      : undefined,
+    organization.features.includes('session-replay-ui')
+      ? {
+          display: {
+            label: t('Replays'),
+          },
+          to: `${prefix}/explore/replays/`,
+        }
+      : undefined,
     {
       display: {
         label: t('Releases'),
@@ -126,7 +129,7 @@ function useNavigationActions(): CommandPaletteAction[] {
       },
       to: `${prefix}/explore/saved-queries/`,
     },
-  ];
+  ].filter(action => action !== undefined);
 
   const dashboardsChildren: CommandPaletteAction[] = [
     {
@@ -188,20 +191,21 @@ function useNavigationActions(): CommandPaletteAction[] {
       },
       to: `${prefix}/insights/crons/`,
     },
-    {
-      display: {
-        label: t('Uptime'),
-      },
-      to: `${prefix}/insights/uptime/`,
-      hidden: !organization.features.includes('uptime'),
-    },
+    organization.features.includes('uptime')
+      ? {
+          display: {
+            label: t('Uptime'),
+          },
+          to: `${prefix}/insights/uptime/`,
+        }
+      : undefined,
     {
       display: {
         label: t('All Projects'),
       },
       to: `${prefix}/insights/projects/`,
     },
-  ];
+  ].filter(action => action !== undefined);
 
   return [
     {
@@ -211,7 +215,7 @@ function useNavigationActions(): CommandPaletteAction[] {
       },
       actions: [
         {
-          type: 'group',
+          type: 'group' as const,
           display: {
             label: t('Issues'),
             icon: <IconIssues />,
@@ -219,7 +223,7 @@ function useNavigationActions(): CommandPaletteAction[] {
           actions: issuesChildren,
         },
         {
-          type: 'group',
+          type: 'group' as const,
           display: {
             label: t('Explore'),
             icon: <IconCompass />,
@@ -227,24 +231,25 @@ function useNavigationActions(): CommandPaletteAction[] {
           actions: exploreChildren,
         },
         {
-          type: 'group',
+          type: 'group' as const,
           display: {
             label: t('Dashboards'),
             icon: <IconDashboard />,
           },
           actions: dashboardsChildren,
         },
+        organization.features.includes('performance-view')
+          ? {
+              type: 'group' as const,
+              display: {
+                label: t('Insights'),
+                icon: <IconGraph type="area" />,
+              },
+              actions: insightsChildren,
+            }
+          : undefined,
         {
-          type: 'group',
-          display: {
-            label: t('Insights'),
-            icon: <IconGraph type="area" />,
-          },
-          actions: insightsChildren,
-          hidden: !organization.features.includes('performance-view'),
-        },
-        {
-          type: 'group',
+          type: 'group' as const,
           display: {
             label: t('Settings'),
             icon: <IconSettings />,
@@ -259,7 +264,7 @@ function useNavigationActions(): CommandPaletteAction[] {
           ),
         },
         {
-          type: 'group',
+          type: 'group' as const,
           display: {
             label: t('Project Settings'),
             icon: <IconSettings />,
@@ -272,7 +277,7 @@ function useNavigationActions(): CommandPaletteAction[] {
             to: `/settings/${slug}/projects/${project.slug}/`,
           })),
         },
-      ],
+      ].filter(action => action !== undefined),
     },
   ];
 }
