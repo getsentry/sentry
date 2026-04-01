@@ -85,8 +85,8 @@ export function CommandPalette(props: CommandPaletteProps) {
 
   const actions = useMemo<CommandPaletteActionWithListItemType[]>(() => {
     const virtualRoot: CommandPaletteActionGroupWithKey = {
-      key: 'virtual-root',
       ...state.action?.value.action,
+      key: 'virtual-root',
       actions:
         state.action?.value.action && 'actions' in state.action.value.action
           ? [...state.action.value.action.actions]
@@ -167,7 +167,7 @@ export function CommandPalette(props: CommandPaletteProps) {
 
   const firstFocusableKey = useMemo(() => {
     for (const item of treeState.collection) {
-      if (item.type === 'action') {
+      if (item.type === 'item') {
         return item;
       }
     }
@@ -433,6 +433,8 @@ function flattenActions(
       for (const action of node.actions) {
         dfs(action);
       }
+    } else {
+      groups.push({...node, listItemType: 'action'});
     }
   }
 
@@ -489,7 +491,9 @@ function flattenActions(
           })),
       ];
     }
-    return [{...result, listItemType: 'action'}];
+    return scores?.get(result.key)?.score.matched
+      ? [{...result, listItemType: 'action'}]
+      : [];
   });
 
   const seen = new Set<string>();
