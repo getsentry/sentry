@@ -821,6 +821,7 @@ class ExhaustiveFixtures(Fixtures):
 
         custom_rule = CustomDynamicSamplingRule.objects.create(
             organization=org,
+            created_by_id=owner_id,
             condition='{"op":"and","inner":[]}',
             end_date=timezone.now() + timedelta(days=1),
             num_samples=100,
