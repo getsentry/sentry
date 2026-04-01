@@ -53,6 +53,7 @@ SENTRY_BACKEND_REFERRERS = [
     Referrer.API_ENDPOINT_REGRESSION_ALERT_CHARTCUTERIE.value,
     Referrer.API_FUNCTION_REGRESSION_ALERT_CHARTCUTERIE.value,
     Referrer.DISCOVER_SLACK_UNFURL.value,
+    Referrer.EXPLORE_SLACK_UNFURL.value,
 ]
 
 logger = logging.getLogger(__name__)

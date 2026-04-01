@@ -191,6 +191,28 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
                 {"org_slug": "org1", "query": QueryDict("project=1&yAxis=count()")},
             ),
         ),
+        (
+            "https://sentry.io/organizations/org1/explore/traces/?aggregateField=%7B%22groupBy%22%3A%22%22%7D&aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D&project=1&statsPeriod=24h",
+            (
+                LinkType.EXPLORE,
+                {
+                    "org_slug": "org1",
+                    "query": QueryDict(
+                        "yAxis=avg(span.duration)&dataset=spans&project=1&statsPeriod=24h"
+                    ),
+                },
+            ),
+        ),
+        (
+            "https://org1.sentry.io/explore/traces/?aggregateField=%7B%22yAxes%22%3A%5B%22count(span.duration)%22%5D%7D&statsPeriod=24h",
+            (
+                LinkType.EXPLORE,
+                {
+                    "org_slug": "org1",
+                    "query": QueryDict("yAxis=count(span.duration)&dataset=spans&statsPeriod=24h"),
+                },
+            ),
+        ),
     ],
 )
 def test_match_link(url, expected) -> None:
@@ -1430,3 +1452,159 @@ class UnfurlTest(TestCase):
         assert len(mock_get_event_stats_data.mock_calls) == 1
         dataset = mock_get_event_stats_data.mock_calls[0][2]["dataset"]
         assert dataset == discover
+
+    @patch(
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
+        return_value={
+            "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
+            "end": 1652903400,
+            "isMetricsData": False,
+            "start": 1652817000,
+        },
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore(self, mock_generate_chart: MagicMock, _: MagicMock) -> None:
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D&project={self.project.id}&statsPeriod=24h"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        assert link_type == LinkType.EXPLORE
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(title="Explore Traces", chart_url="chart-url").build()
+        )
+        assert len(mock_generate_chart.mock_calls) == 1
+        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_TOTAL_PERIOD
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert chart_data["seriesName"] == "avg(span.duration)"
+        assert len(chart_data["stats"]["data"]) == INTERVALS_PER_DAY
+
+    @patch(
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
+        return_value={
+            "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
+            "end": 1652903400,
+            "isMetricsData": False,
+            "start": 1652817000,
+        },
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_no_feature_flag(
+        self, mock_generate_chart: MagicMock, _: MagicMock
+    ) -> None:
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D&project={self.project.id}&statsPeriod=24h"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        assert len(unfurls) == 0
+        assert len(mock_generate_chart.mock_calls) == 0
+
+    @patch(
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
+        return_value={
+            "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
+            "end": 1652903400,
+            "isMetricsData": False,
+            "start": 1652817000,
+        },
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_with_groupby(
+        self, mock_generate_chart: MagicMock, _: MagicMock
+    ) -> None:
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=%7B%22groupBy%22%3A%22span.op%22%7D&aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D&project={self.project.id}&statsPeriod=24h"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert len(unfurls) == 1
+        assert len(mock_generate_chart.mock_calls) == 1
+        # avg is a line plot field, so top5line display mode
+        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE
+
+    @patch(
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
+        return_value={
+            "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
+            "end": 1652903400,
+            "isMetricsData": False,
+            "start": 1652817000,
+        },
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_default_yaxis(
+        self, mock_generate_chart: MagicMock, _: MagicMock
+    ) -> None:
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?project={self.project.id}&statsPeriod=24h"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert len(unfurls) == 1
+        assert len(mock_generate_chart.mock_calls) == 1
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert chart_data["seriesName"] == "count(span.duration)"
+
+    @patch(
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
+        return_value={
+            "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
+            "end": 1652903400,
+            "isMetricsData": False,
+            "start": 1652817000,
+        },
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_malformed_aggregate_field(
+        self, mock_generate_chart: MagicMock, _: MagicMock
+    ) -> None:
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=not-valid-json&project={self.project.id}&statsPeriod=24h"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        # Should still unfurl with default yAxis
+        assert len(unfurls) == 1
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert chart_data["seriesName"] == "count(span.duration)"
