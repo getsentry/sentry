@@ -69,9 +69,9 @@ class AutofixStoppingPoint(StrEnum):
 
 def get_valid_automated_run_stopping_points(organization: Organization) -> set[str]:
     """Return the set of stopping points valid for the given organization."""
-    valid = {"code_changes", "open_pr"}
+    valid = {AutofixStoppingPoint.CODE_CHANGES, AutofixStoppingPoint.OPEN_PR}
     if features.has("organizations:root-cause-stopping-point", organization):
-        valid.add("root_cause")
+        valid.add(AutofixStoppingPoint.ROOT_CAUSE)
     return valid
 
 
@@ -382,11 +382,16 @@ class SeerAutofixSettingsSerializer(serializers.Serializer):
         required=False,
         help_text="The tuning setting for the projects.",
     )
-    automatedRunStoppingPoint = serializers.ChoiceField(
-        choices=[opt.value for opt in AutofixStoppingPoint],
+    automatedRunStoppingPoint = serializers.CharField(
         required=False,
         help_text="The stopping point for the projects.",
     )
+
+    def validate_automatedRunStoppingPoint(self, value):
+        organization = self.context["organization"]
+        if value not in get_valid_automated_run_stopping_points(organization):
+            raise serializers.ValidationError(f'"{value}" is not a valid choice.')
+        return value
 
     def validate(self, data):
         if "autofixAutomationTuning" not in data and "automatedRunStoppingPoint" not in data:
