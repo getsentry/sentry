@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useMemo, useRef} from 'react';
 
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -17,8 +17,24 @@ export function useSuperGroups(groupIds: string[]): {
   isLoading: boolean;
 } {
   const organization = useOrganization();
+  const requestedGroupIdsRef = useRef(groupIds);
   const hasTopIssuesUI = organization.features.includes('top-issues-ui');
-  const enabled = hasTopIssuesUI && groupIds.length > 0;
+  const shouldReuseRequestedGroupIds = useMemo(() => {
+    const requestedGroupIds = requestedGroupIdsRef.current;
+
+    if (groupIds.length === 0 || requestedGroupIds.length < groupIds.length) {
+      return false;
+    }
+
+    const requestedGroupIdSet = new Set(requestedGroupIds);
+    return groupIds.every(groupId => requestedGroupIdSet.has(groupId));
+  }, [groupIds]);
+
+  const requestedGroupIds = shouldReuseRequestedGroupIds
+    ? requestedGroupIdsRef.current
+    : groupIds;
+  requestedGroupIdsRef.current = requestedGroupIds;
+  const enabled = hasTopIssuesUI && requestedGroupIds.length > 0;
 
   const {data: response, isLoading} = useApiQuery<{data: SupergroupDetail[]}>(
     [
@@ -27,7 +43,7 @@ export function useSuperGroups(groupIds: string[]): {
       }),
       {
         query: {
-          group_id: groupIds,
+          group_id: requestedGroupIds,
         },
       },
     ],

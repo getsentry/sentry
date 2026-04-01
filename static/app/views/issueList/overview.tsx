@@ -9,9 +9,10 @@ import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
 import * as qs from 'query-string';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {CursorHandler} from 'sentry/components/pagination';
@@ -873,7 +874,7 @@ function IssueListOverview({
   const {numPreviousIssues, numIssuesOnPage} = getPageCounts();
 
   return (
-    <Layout.Page>
+    <Stack flex={1}>
       <IssueViewsHeader
         selectedProjectIds={selection.projects}
         title={title}
@@ -933,7 +934,7 @@ function IssueListOverview({
           />
         </StyledMain>
       </StyledBody>
-    </Layout.Page>
+    </Stack>
   );
 }
 

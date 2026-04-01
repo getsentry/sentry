@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 def get_jwt(github_id: str | None = None, github_private_key: str | None = None) -> str:
     if github_id is None:
-        github_id = options.get("github-app.id")
+        github_id = str(options.get("github-app.id"))
     if github_private_key is None:
         github_private_key = options.get("github-app.private-key")
     exp_ = datetime.datetime.utcnow() + datetime.timedelta(minutes=10)

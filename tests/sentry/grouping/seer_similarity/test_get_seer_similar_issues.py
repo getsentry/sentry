@@ -107,7 +107,6 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "exception_type": "FailedToFetchError",
                 "k": options.get("seer.similarity.ingest.num_matches_to_request"),
                 "referrer": "ingest",
-                "use_reranking": True,
                 "model": GroupingVersion.V1,
                 "training_mode": False,
                 "platform": "python",
@@ -177,7 +176,6 @@ class GetSeerSimilarIssuesTest(TestCase):
                         **base_request_params,
                         "k": options.get("seer.similarity.ingest.num_matches_to_request"),
                         "referrer": "ingest",
-                        "use_reranking": True,
                     },
                     {
                         "platform": "python",
@@ -194,7 +192,6 @@ class GetSeerSimilarIssuesTest(TestCase):
                         **base_request_params,
                         "k": 0,
                         "referrer": "ingest_follow_up",
-                        "use_reranking": False,
                     },
                     {
                         "platform": "python",

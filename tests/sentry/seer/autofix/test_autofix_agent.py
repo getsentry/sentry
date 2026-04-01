@@ -1,5 +1,8 @@
 from unittest.mock import MagicMock, patch
 
+import pytest
+from rest_framework.exceptions import PermissionDenied
+
 from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     build_step_prompt,
@@ -774,6 +777,17 @@ class TestTriggerCodingAgentHandoff(TestCase):
             },
         )
 
+    def test_raises_permission_denied_when_coding_disabled(self):
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        with pytest.raises(PermissionDenied, match="Code generation is disabled"):
+            trigger_coding_agent_handoff(
+                group=self.group,
+                run_id=123,
+                referrer=AutofixReferrer.UNKNOWN,
+                integration_id=456,
+            )
+
     @patch("sentry.seer.autofix.autofix_agent.get_autofix_state")
     @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")
     @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
@@ -874,6 +888,16 @@ class TestTriggerPushChanges(TestCase):
     def setUp(self):
         super().setUp()
         self.group = self.create_group(project=self.project)
+
+    def test_raises_permission_denied_when_coding_disabled(self):
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        with pytest.raises(PermissionDenied, match="Code generation is disabled"):
+            trigger_push_changes(
+                group=self.group,
+                run_id=123,
+                referrer=AutofixReferrer.UNKNOWN,
+            )
 
     @patch("sentry.seer.explorer.client.make_explorer_update_request")
     def test_passes_correct_pr_description_suffix(self, mock_post):
