@@ -28,7 +28,6 @@ import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/
 import {makeFetchGroupSearchViewKey} from 'sentry/views/issueList/queries/useFetchGroupSearchView';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 import {useHasIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useHasIssueViews';
-import {TopBarSlot} from 'sentry/views/navigation/topBar';
 
 type IssueViewsHeaderProps = {
   onRealtimeChange: (active: boolean) => void;
@@ -59,17 +58,15 @@ function PageTitle({title, description}: {title: ReactNode; description?: ReactN
 
   return (
     <Layout.Title>
-      <TopBarSlot.Title>
-        {title}
-        {description && (
-          <QuestionTooltip
-            isHoverable
-            position="right"
-            size="sm"
-            title={<LeftAlignContainer>{description}</LeftAlignContainer>}
-          />
-        )}
-      </TopBarSlot.Title>
+      {title}
+      {description && (
+        <QuestionTooltip
+          isHoverable
+          position="right"
+          size="sm"
+          title={<LeftAlignContainer>{description}</LeftAlignContainer>}
+        />
+      )}
     </Layout.Title>
   );
 }
