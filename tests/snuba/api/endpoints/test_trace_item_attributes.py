@@ -85,17 +85,22 @@ class OrganizationTraceItemQueryValidatorEndpointTest(APITestCase, BaseSpansTest
         assert by_key["span.duration"]["valid"] is True
         assert by_key["span.duration"]["type"] == "number"
 
-    def test_contains_wildcard_operator_token_round_trips(self):
-        query = f"span.op:{WILDCARD_OPERATOR_MAP['contains']}test"
+    def test_preserves_original_wildcard_token_spelling(self):
+        query = " ".join(
+            [
+                f"span.op:{WILDCARD_OPERATOR_MAP['contains']}test",
+                "span.op:*test*",
+            ]
+        )
 
         response = self.do_request(query={"itemType": "spans", "query": query})
 
         assert response.status_code == 200
         filters = response.data["filters"]
-        assert len(filters) == 1
-        assert filters[0]["token"] == query
-        assert filters[0]["key"] == "span.op"
-        assert filters[0]["valid"] is True
+        assert len(filters) == 2
+        assert [filter["token"] for filter in filters] == query.split(" ")
+        assert [filter["key"] for filter in filters] == ["span.op", "span.op"]
+        assert [filter["valid"] for filter in filters] == [True, True]
 
     def test_starts_with_wildcard_operator_token_round_trips(self):
         query = f"span.op:{WILDCARD_OPERATOR_MAP['starts_with']}test"

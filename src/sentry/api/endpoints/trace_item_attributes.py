@@ -1,5 +1,7 @@
+from collections.abc import Sequence
 from typing import Any
 
+from parsimonious.nodes import Node
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -16,7 +18,6 @@ from sentry.api.endpoints.organization_trace_item_attributes import (
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.eap.types import SupportedTraceItemType
-from sentry.search.events.constants import WILDCARD_OPERATOR_MAP
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import RPCBase, _extract_function_keys
 
@@ -29,33 +30,90 @@ class OrganizationTraceItemQueryValidatorSerializer(serializers.Serializer):
 
 
 def _format_search_value(value: event_search.SearchValue) -> str:
-    raw_value = value.raw_value
+    if isinstance(value.raw_value, str) and value.is_wildcard():
+        return value.raw_value
+    return value.to_query_string()
 
-    if not isinstance(raw_value, str) or not value.is_wildcard():
-        return value.to_query_string()
 
-    wildcard_positions = [
-        match.end() - 1 for match in event_search.WILDCARD_CHARS.finditer(raw_value)
-    ]
-    leading_wildcard = 0 in wildcard_positions
-    trailing_wildcard = (len(raw_value) - 1) in wildcard_positions
-    middle_wildcard = any(pos not in {0, len(raw_value) - 1} for pos in wildcard_positions)
+def _get_term_signature(
+    filter: event_search.SearchFilter | event_search.AggregateFilter,
+) -> tuple[str, str, str, str]:
+    return (
+        type(filter).__name__,
+        filter.key.name,
+        filter.operator,
+        repr(filter.value.raw_value),
+    )
 
-    if not middle_wildcard:
-        if leading_wildcard and trailing_wildcard:
-            return f"{WILDCARD_OPERATOR_MAP['contains']}{raw_value[1:-1]}"
-        if trailing_wildcard:
-            return f"{WILDCARD_OPERATOR_MAP['starts_with']}{raw_value[:-1]}"
-        if leading_wildcard:
-            return f"{WILDCARD_OPERATOR_MAP['ends_with']}{raw_value[1:]}"
 
-    return raw_value
+def _flatten_filter_terms(
+    tokens: Sequence[event_search.QueryToken],
+) -> list[event_search.SearchFilter | event_search.AggregateFilter]:
+    flattened: list[event_search.SearchFilter | event_search.AggregateFilter] = []
+
+    for token in tokens:
+        if isinstance(token, (event_search.SearchFilter, event_search.AggregateFilter)):
+            flattened.append(token)
+        elif isinstance(token, event_search.ParenExpression):
+            flattened.extend(_flatten_filter_terms(token.children))
+
+    return flattened
+
+
+def _extract_original_filter_tokens(tree: Node | None) -> list[str]:
+    if tree is None:
+        return []
+
+    original_tokens: list[str] = []
+
+    def visit(node: Node) -> None:
+        if node.expr_name == "filter":
+            original_tokens.append(node.text)
+            return
+
+        for child in node.children:
+            visit(child)
+
+    visit(tree)
+    return original_tokens
+
+
+def _build_original_token_lookup(
+    parsed_terms: Sequence[event_search.QueryToken],
+    tree: Node | None,
+) -> dict[tuple[str, str, str, str], list[str]]:
+    flattened_terms = _flatten_filter_terms(parsed_terms)
+    original_tokens = _extract_original_filter_tokens(tree)
+
+    if len(flattened_terms) != len(original_tokens):
+        return {}
+
+    token_lookup: dict[tuple[str, str, str, str], list[str]] = {}
+    for filter, original_token in zip(flattened_terms, original_tokens):
+        token_lookup.setdefault(_get_term_signature(filter), []).append(original_token)
+
+    return token_lookup
+
+
+def _pop_original_token(
+    token_lookup: dict[tuple[str, str, str, str], list[str]],
+    filter: event_search.SearchFilter | event_search.AggregateFilter,
+) -> str | None:
+    matching_tokens = token_lookup.get(_get_term_signature(filter))
+    if not matching_tokens:
+        return None
+
+    return matching_tokens.pop(0)
 
 
 def _format_token(
     filter: event_search.SearchFilter | event_search.AggregateFilter,
+    original_token: str | None = None,
 ) -> str:
     """Format a filter token as a query string, preserving wildcard operator tokens."""
+    if original_token is not None and filter.value.is_wildcard():
+        return original_token
+
     value = _format_search_value(filter.value)
     key_name = filter.key.name
 
@@ -99,7 +157,7 @@ class OrganizationTraceItemQueryValidatorEndpoint(OrganizationTraceItemAttribute
         except ValueError:
             return Response({"detail": f"Unsupported item type: {item_type.value}"}, status=400)
         try:
-            key_results, query_context = RPCBase.validate_query(
+            key_results, query_context, parse_tree, parsed_terms = RPCBase.validate_query(
                 query_string,
                 snuba_params,
                 item_type,
@@ -109,11 +167,13 @@ class OrganizationTraceItemQueryValidatorEndpoint(OrganizationTraceItemAttribute
         except (InvalidSearchQuery, IncompatibleMetricsQuery) as e:
             return Response({"detail": str(e)}, status=400)
 
+        original_token_lookup = _build_original_token_lookup(parsed_terms, parse_tree)
+
         filters_response: list[dict[str, Any]] = []
         for sf in query_context.where_terms:
             result = key_results.get(sf.key.name, {"valid": False, "error": "Unknown attribute"})
             entry: dict[str, Any] = {
-                "token": _format_token(sf),
+                "token": _format_token(sf, _pop_original_token(original_token_lookup, sf)),
                 "key": sf.key.name,
                 "valid": result["valid"],
             }
@@ -129,7 +189,7 @@ class OrganizationTraceItemQueryValidatorEndpoint(OrganizationTraceItemAttribute
             if not func_keys:
                 functions_response.append(
                     {
-                        "token": _format_token(af),
+                        "token": _format_token(af, _pop_original_token(original_token_lookup, af)),
                         "key": None,
                         "valid": True,
                         "type": None,
@@ -146,7 +206,7 @@ class OrganizationTraceItemQueryValidatorEndpoint(OrganizationTraceItemAttribute
                             first_error = result.get("error", "Unknown attribute")
 
                 entry = {
-                    "token": _format_token(af),
+                    "token": _format_token(af, _pop_original_token(original_token_lookup, af)),
                     "key": func_keys[0],
                     "valid": all_valid,
                 }
