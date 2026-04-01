@@ -2009,6 +2009,45 @@ def parse_search_query(
     get_field_type: Callable[[str], str | None] | None = None,
     get_function_result_type: Callable[[str], str | None] | None = None,
 ) -> Sequence[QueryToken]:
+    return parse_search_query_with_tree(
+        query,
+        config=config,
+        params=params,
+        get_field_type=get_field_type,
+        get_function_result_type=get_function_result_type,
+    )[1]
+
+
+@overload
+def parse_search_query_with_tree(
+    query: str,
+    *,
+    config: SearchConfig[Literal[False]],
+    params: ParamsType | None = None,
+    get_field_type: Callable[[str], str | None] | None = None,
+    get_function_result_type: Callable[[str], str | None] | None = None,
+) -> tuple[Node, Sequence[SearchFilter | AggregateFilter]]: ...
+
+
+@overload
+def parse_search_query_with_tree(
+    query: str,
+    *,
+    config: SearchConfig[Literal[True]] | None = None,
+    params: ParamsType | None = None,
+    get_field_type: Callable[[str], str | None] | None = None,
+    get_function_result_type: Callable[[str], str | None] | None = None,
+) -> tuple[Node, Sequence[QueryToken]]: ...
+
+
+def parse_search_query_with_tree(
+    query: str,
+    *,
+    config: SearchConfig[Any] | None = None,
+    params: ParamsType | None = None,
+    get_field_type: Callable[[str], str | None] | None = None,
+    get_function_result_type: Callable[[str], str | None] | None = None,
+) -> tuple[Node, Sequence[QueryToken]]:
     if config is None:
         config = default_config
 
@@ -2025,9 +2064,12 @@ def parse_search_query(
             )
         )
 
-    return SearchVisitor(
-        config,
-        params=params,
-        get_field_type=get_field_type,
-        get_function_result_type=get_function_result_type,
-    ).visit(tree)
+    return (
+        tree,
+        SearchVisitor(
+            config,
+            params=params,
+            get_field_type=get_field_type,
+            get_function_result_type=get_function_result_type,
+        ).visit(tree),
+    )
