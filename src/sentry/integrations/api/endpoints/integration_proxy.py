@@ -17,7 +17,7 @@ from sentry_sdk import Scope
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.api.base import Endpoint, internal_control_silo_endpoint
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -72,7 +72,7 @@ class IntegrationProxyFailureMetricType(StrEnum):
     FAILED_VALIDATION = "failed_validation"
 
 
-@control_silo_endpoint
+@internal_control_silo_endpoint
 class InternalIntegrationProxyEndpoint(Endpoint):
     publish_status = defaultdict(lambda: ApiPublishStatus.PRIVATE)
     owner = ApiOwner.HYBRID_CLOUD

@@ -723,6 +723,12 @@ If a request is received and the application is not in CONTROL
 mode 404s will be returned.
 """
 
+internal_control_silo_endpoint = EndpointSiloLimit(SiloMode.CONTROL, internal=True)
+"""
+Apply to endpoints that exist in CONTROL silo that
+should not be included in the frontend URL mapping
+"""
+
 cell_silo_endpoint = EndpointSiloLimit(SiloMode.CELL)
 """
 Apply to endpoints that exist in CELL silo.
