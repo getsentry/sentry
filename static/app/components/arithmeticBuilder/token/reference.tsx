@@ -185,7 +185,7 @@ function InternalInput({item, state, token, rowRef}: InternalInputProps) {
         evt.currentTarget.selectionEnd === evt.currentTarget.value.length &&
         evt.key === 'Delete'
       ) {
-        const itemKey = state.collection.getKeyBefore(item.key);
+        const itemKey = state.collection.getKeyAfter(item.key);
         dispatch({
           type: 'DELETE_TOKEN',
           token,
