@@ -45,10 +45,6 @@ interface ProviderOptions {
    */
   additionalWrapper?: rtl.RenderOptions['wrapper'];
   /**
-   * When true, wraps rendered content in LLMContextProvider
-   */
-  enableLLMContext?: boolean;
-  /**
    * Sets the OrganizationContext. You may pass null to provide no organization
    */
   organization?: Partial<Organization> | null;
@@ -121,17 +117,16 @@ function makeAllTheProviders(options: ProviderOptions) {
   const optionalOrganization = options.organization === null ? null : organization;
   // Any additional test providers
   const AdditionalWrapper = options.additionalWrapper ?? Fragment;
-  const LLMWrapper = options.enableLLMContext ? LLMContextProvider : Fragment;
 
   return function ({children}: {children?: React.ReactNode}) {
     const content = (
-      <LLMWrapper>
+      <LLMContextProvider>
         <OrganizationContext value={optionalOrganization}>
           <GlobalDrawer>
             <AdditionalWrapper>{children}</AdditionalWrapper>
           </GlobalDrawer>
         </OrganizationContext>
-      </LLMWrapper>
+      </LLMContextProvider>
     );
 
     const wrappedContent = <ProvideAriaRouter>{content}</ProvideAriaRouter>;
@@ -324,7 +319,6 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
   const AllTheProviders = makeAllTheProviders({
     organization: options.organization,
     additionalWrapper: options.additionalWrapper,
-    enableLLMContext: options.enableLLMContext,
   });
 
   const memoryRouter = makeRouter({
@@ -378,7 +372,6 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
   const AllTheProviders = makeAllTheProviders({
     organization: options.organization,
     additionalWrapper: options.additionalWrapper,
-    enableLLMContext: options.enableLLMContext,
   });
 
   let memoryRouter: Router | null = null;
