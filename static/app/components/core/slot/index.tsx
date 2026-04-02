@@ -1,0 +1,1 @@
+export {slot} from './slot';
