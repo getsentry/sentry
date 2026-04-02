@@ -86,12 +86,28 @@ export function SnapshotHeaderActions({
     );
   }, [organizationSlug, data.head_artifact_id, queryClient, apiUrl]);
 
-  const handleRerunComparison = useCallback(() => {
+  const handleRerunStatusChecks = useCallback(() => {
     clientRef.current.request(
       `/organizations/${organizationSlug}/preprod-artifact/rerun-status-checks/${data.head_artifact_id}/`,
       {
         method: 'POST',
         data: {check_types: ['snapshots']},
+        success: () => {
+          addSuccessMessage(t('Status checks rerun initiated'));
+          queryClient.invalidateQueries({queryKey: [apiUrl]});
+        },
+        error: (_resp: any) => {
+          addErrorMessage(t('Failed to rerun status checks'));
+        },
+      }
+    );
+  }, [organizationSlug, data.head_artifact_id, queryClient, apiUrl]);
+
+  const handleRerunComparison = useCallback(() => {
+    clientRef.current.request(
+      `/organizations/${organizationSlug}/preprodartifacts/snapshots/${data.head_artifact_id}/recompare/`,
+      {
+        method: 'POST',
         success: () => {
           addSuccessMessage(t('Re-run comparison initiated'));
           queryClient.invalidateQueries({queryKey: [apiUrl]});
@@ -165,6 +181,17 @@ export function SnapshotHeaderActions({
       >
         {({open: openDeleteModal}) => {
           const menuItems: MenuItemProps[] = [
+            {
+              key: 'rerun-status-checks',
+              label: (
+                <Flex align="center" gap="sm">
+                  <IconRefresh size="sm" />
+                  {t('Rerun Status Checks')}
+                </Flex>
+              ),
+              onAction: handleRerunStatusChecks,
+              textValue: t('Rerun Status Checks'),
+            },
             {
               key: 'delete',
               label: (

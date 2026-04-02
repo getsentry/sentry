@@ -88,8 +88,7 @@ describe('IssueCronCheckTimeline', () => {
     });
     render(<IssueCronCheckTimeline group={group} />, {organization});
 
-    expect(await screen.findByTestId('check-in-placeholder')).not.toBeInTheDocument();
-
+    expect(await screen.findByText(statusToText[CheckInStatus.OK])).toBeInTheDocument();
     const legend = screen.getByRole('caption');
     expect(within(legend).getByText(statusToText[CheckInStatus.OK])).toBeInTheDocument();
     expect(screen.getByRole('figure')).toBeInTheDocument();
@@ -132,7 +131,7 @@ describe('IssueCronCheckTimeline', () => {
       },
     });
     render(<IssueCronCheckTimeline group={group} />, {organization});
-    expect(await screen.findByTestId('check-in-placeholder')).not.toBeInTheDocument();
+    expect(await screen.findByText(statusToText[CheckInStatus.OK])).toBeInTheDocument();
     const legend = screen.getByRole('caption');
     [
       statusToText[CheckInStatus.OK],
@@ -182,7 +181,7 @@ describe('IssueCronCheckTimeline', () => {
       },
     });
     render(<IssueCronCheckTimeline group={group} />, {organization});
-    expect(await screen.findByTestId('check-in-placeholder')).not.toBeInTheDocument();
+    expect(await screen.findByText(statusToText[CheckInStatus.OK])).toBeInTheDocument();
     const legend = screen.getByRole('caption');
     // All statuses from both environment timelines should be present
     [

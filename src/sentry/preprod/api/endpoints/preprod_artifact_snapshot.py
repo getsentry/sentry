@@ -61,7 +61,7 @@ from sentry.preprod.vcs.status_checks.snapshots.tasks import (
 )
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.users.models.user import User
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -349,7 +349,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
 
         if approved:
             sentry_user_ids = list({a.approved_by_id for a in approved if a.approved_by_id})
-            users_by_id = {u.id: u for u in User.objects.filter(id__in=sentry_user_ids)}
+            users_by_id = {u.id: u for u in user_service.get_many_by_id(ids=sentry_user_ids)}
 
             approver_list: list[SnapshotApprover] = []
             seen_approver_keys: set[str] = set()

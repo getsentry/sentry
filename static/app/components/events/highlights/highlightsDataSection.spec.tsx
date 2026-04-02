@@ -83,8 +83,9 @@ describe('HighlightsDataSection', () => {
     render(<HighlightsDataSection event={event} project={project} />, {
       organization,
     });
-    expect(screen.getByText('Highlights')).toBeInTheDocument();
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
+    expect(await screen.findByText('Highlights')).toBeInTheDocument();
+    // Wait for the project detail API data to load and render tags
+    expect(await screen.findByText('environment', {selector: 'div'})).toBeInTheDocument();
     for (const tagKey of highlightTags) {
       const row = screen
         .getByText(tagKey, {selector: 'div'})

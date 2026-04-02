@@ -27,7 +27,7 @@ describe('useProfileEvents', () => {
       },
     });
 
-    await waitFor(() => result.current.isSuccess);
+    await waitFor(() => expect(result.current.data).toBeDefined());
     expect(result.current.data).toEqual({
       data: [],
       meta: {
@@ -74,7 +74,7 @@ describe('useProfileEvents', () => {
       },
     });
 
-    await waitFor(() => result.current.isSuccess);
+    await waitFor(() => expect(result.current.data).toBeDefined());
     expect(result.current.data).toEqual({
       data: [{axis: 'count()', values: [1, 2]}],
       meta: {
@@ -135,7 +135,7 @@ describe('useProfileEvents', () => {
       },
     });
 
-    await waitFor(() => result.current.isSuccess);
+    await waitFor(() => expect(result.current.data).toBeDefined());
     expect(result.current.data).toEqual({
       data: [
         {axis: 'count()', values: [1, 2]},
@@ -187,7 +187,7 @@ describe('useProfileEvents', () => {
       },
     });
 
-    await waitFor(() => result.current.isSuccess);
+    await waitFor(() => expect(result.current.data).toBeDefined());
     expect(result.current.data).toEqual({
       data: [{axis: 'count()', values: [1, 2]}],
       meta: {

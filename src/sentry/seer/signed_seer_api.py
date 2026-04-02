@@ -249,6 +249,7 @@ class SummarizeIssueRequest(TypedDict):
     organization_slug: str
     organization_id: int
     project_id: int
+    experiment_variant: NotRequired[str | None]
 
 
 class SupergroupsEmbeddingRequest(TypedDict):

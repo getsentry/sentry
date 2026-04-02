@@ -41,10 +41,11 @@ function MobileBuildDetectorForm() {
 
   return (
     <Stack gap="2xl" maxWidth={theme.breakpoints.lg}>
-      <ProjectSection />
+      <ProjectSection step={1} />
       <MobileBuildDetectSection />
       <Container>
         <FormSection
+          step={4}
           title={t('Filters')}
           description={t(
             'Narrow down which builds are monitored by filtering on build attributes.'
@@ -62,10 +63,10 @@ function MobileBuildDetectorForm() {
           />
         </FormSection>
       </Container>
-      <MobileBuildPreviewSection />
-      <AssignSection />
-      <DescribeSection />
-      <AutomateSection />
+      <MobileBuildPreviewSection step={5} />
+      <AssignSection step={6} />
+      <DescribeSection step={7} />
+      <AutomateSection step={8} />
     </Stack>
   );
 }

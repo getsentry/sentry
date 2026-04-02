@@ -38,8 +38,6 @@ import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactYouMightNotNeedAnEffect from 'eslint-plugin-react-you-might-not-need-an-effect';
 import regexp from 'eslint-plugin-regexp';
-// @ts-expect-error TS(7016): Could not find a declaration file
-import sentry from 'eslint-plugin-sentry';
 import testingLibrary from 'eslint-plugin-testing-library';
 // @ts-expect-error TS (7016): Could not find a declaration file
 import typescriptSortKeys from 'eslint-plugin-typescript-sort-keys';
@@ -458,7 +456,10 @@ export default typescript.config([
     name: 'plugin/@sentry/sentry',
     plugins: {'@sentry': sentryPlugin},
     rules: {
+      '@sentry/no-digits-in-tn': 'error',
+      '@sentry/no-dynamic-translations': 'error',
       '@sentry/no-static-translations': 'error',
+      '@sentry/no-styled-shortcut': 'error',
     },
   },
   {
@@ -539,8 +540,13 @@ export default typescript.config([
       '@tanstack/query': pluginQuery,
     },
     rules: {
-      ...pluginQuery.configs.recommended.rules,
+      ...pluginQuery.configs.recommendedStrict.rules,
+      '@tanstack/query/prefer-query-options': 'off',
       '@tanstack/query/no-rest-destructuring': 'error',
+      '@tanstack/query/exhaustive-deps': [
+        'error',
+        {allowlist: {variables: ['api'], types: ['Client']}},
+      ],
     },
   },
   {
@@ -740,16 +746,6 @@ export default typescript.config([
         'asc',
         {caseSensitive: true, natural: false, requiredFirst: true},
       ],
-    },
-  },
-  {
-    name: 'plugin/sentry',
-    // https://github.com/getsentry/eslint-config-sentry/tree/master/packages/eslint-plugin-sentry/docs/rules
-    plugins: {sentry},
-    rules: {
-      'sentry/no-digits-in-tn': 'error',
-      'sentry/no-dynamic-translations': 'error', // TODO(ryan953): There are no docs for this rule
-      'sentry/no-styled-shortcut': 'error',
     },
   },
   {
@@ -1353,20 +1349,16 @@ export default typescript.config([
               from: [{type: 'core'}],
               allow: [{to: {type: 'core*'}}, {to: {type: 'sentry*'}}],
             },
-            // --- entry-point restriction for core components ---
-            // Only public entry points can be imported from core.
+            // --- core entry points (enforce isolation) ---
             {
-              from: [{type: '*'}],
-              disallow: [
-                {
-                  to: {
-                    type: 'core',
-                    internalPath:
-                      '!{*.{ts,tsx},*/index.{ts,tsx},**/*.png,**/__stories__/*.{ts,tsx}}',
-                  },
-                },
-              ],
-              message: 'Only public entry points of core components can be imported',
+              to: {
+                type: 'core',
+                internalPath:
+                  '!(*.{ts,tsx}|*/index.{ts,tsx}|**/*.png|**/__stories__/*.{ts,tsx})',
+              },
+              disallow: {
+                from: {type: '*'},
+              },
             },
           ],
         },
