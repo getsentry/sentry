@@ -68,7 +68,7 @@ def has_downgraded(dataset: str, organization: Organization) -> bool:
     ):
         metrics.incr("incidents.alert_rules.ignore_update_missing_incidents_performance")
         return True
-        
+
     supports_explore_view = features.has("organizations:visibility-explore-view", organization)
     if dataset == Dataset.EventsAnalyticsPlatform.value and not (
         supports_metrics_issues and supports_explore_view
