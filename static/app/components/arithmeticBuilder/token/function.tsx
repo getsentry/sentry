@@ -8,7 +8,6 @@ import {useListState, type ListState} from '@react-stately/list';
 import type {CollectionChildren, KeyboardEvent, Node} from '@react-types/shared';
 
 import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 
 import {useArithmeticBuilder} from 'sentry/components/arithmeticBuilder/context';
@@ -18,7 +17,7 @@ import type {
   TokenFunction,
 } from 'sentry/components/arithmeticBuilder/token';
 import {TokenKind} from 'sentry/components/arithmeticBuilder/token';
-import {DeleteButton} from 'sentry/components/arithmeticBuilder/token/styles';
+import {DeleteButton} from 'sentry/components/arithmeticBuilder/token/deleteButton';
 import {nextTokenKeyOfKind} from 'sentry/components/arithmeticBuilder/tokenizer';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
@@ -27,7 +26,6 @@ import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridList
 import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {ComboBox} from 'sentry/components/tokenizedInput/token/comboBox';
 import {InputBox} from 'sentry/components/tokenizedInput/token/inputBox';
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {FieldKind, FieldValueType, prettifyTagKey} from 'sentry/utils/fields';
@@ -69,7 +67,7 @@ export function ArithmeticTokenFunction({
       <FunctionGridCell {...gridCellProps}>{token.function}</FunctionGridCell>
       <ArgumentsGrid rowRef={ref} item={item} state={state} token={token} />
       <BaseGridCell {...gridCellProps}>
-        <DeleteFunction token={token} />
+        <DeleteButton token={token} label={t('Remove function %s', token.text)} />
       </BaseGridCell>
     </FunctionWrapper>
   );
@@ -669,28 +667,6 @@ function InternalInput({
         }
       </ComboBox>
     </ArgumentGridCell>
-  );
-}
-
-interface DeleteFunctionProps {
-  token: TokenFunction;
-}
-
-function DeleteFunction({token}: DeleteFunctionProps) {
-  const {dispatch} = useArithmeticBuilder();
-
-  const onClick = useCallback(() => {
-    dispatch({
-      type: 'DELETE_TOKEN',
-      token,
-    });
-  }, [dispatch, token]);
-
-  return (
-    <DeleteButton aria-label={t('Remove function %s', token.text)} onClick={onClick}>
-      <InteractionStateLayer />
-      <IconClose legacySize="8px" />
-    </DeleteButton>
   );
 }
 
