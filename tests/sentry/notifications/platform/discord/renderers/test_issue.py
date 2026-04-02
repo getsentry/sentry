@@ -42,8 +42,7 @@ class IssueDiscordRendererTest(TestCase):
                 id=1,
                 label="Test Detector",
                 data={
-                    "tags": tags,
-                    "actions": [{"workflow_id": 1}],
+                    "actions": [{"workflow_id": 1, "tags": tags}],
                 },
                 project_id=self.project.id,
             ),
