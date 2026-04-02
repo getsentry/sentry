@@ -22,7 +22,7 @@ const topBarSlot = slot(['Title', 'Actions', 'Feedback'] as const);
 
 export const TopBarSlotProvider = topBarSlot.Provider;
 
-const TopBarSlots = {
+export const TopBarSlots = {
   ...topBarSlot.slot,
 };
 
@@ -59,35 +59,35 @@ export function TopBar() {
           {props => <Flex {...props} align="center" gap="sm" />}
         </TopBarSlots.Title.Root>
 
-        <TopBarSlots.Actions.Root>
-          {props => {
-            return (
-              <Flex {...props} align="center" gap="md">
-                {organization && isSeerExplorerEnabled(organization) ? (
-                  <Button icon={<IconSeer />} onClick={openExplorerPanel}>
-                    {t('Ask Seer')}
-                  </Button>
-                ) : null}
-              </Flex>
-            );
-          }}
-        </TopBarSlots.Actions.Root>
+        <Flex align="center" gap="sm">
+          <TopBarSlots.Actions.Root>
+            {props => {
+              return <Flex {...props} align="center" gap="sm" />;
+            }}
+          </TopBarSlots.Actions.Root>
 
-        <TopBarSlots.Feedback.Root>
-          {props => (
-            <Flex {...props}>
-              {/* If no component registers a feedback button, show the default one */}
-              <TopBarSlots.Feedback.Fallback>
-                <FeedbackButton
-                  aria-label={t('Give Feedback')}
-                  feedbackOptions={{tags: {'feedback.source': 'top_navigation'}}}
-                >
-                  {null}
-                </FeedbackButton>
-              </TopBarSlots.Feedback.Fallback>
-            </Flex>
-          )}
-        </TopBarSlots.Feedback.Root>
+          {organization && isSeerExplorerEnabled(organization) ? (
+            <Button icon={<IconSeer />} onClick={openExplorerPanel}>
+              {t('Ask Seer')}
+            </Button>
+          ) : null}
+
+          <TopBarSlots.Feedback.Root>
+            {props => (
+              <Flex {...props}>
+                {/* If no component registers a feedback button, show the default one */}
+                <TopBarSlots.Feedback.Fallback>
+                  <FeedbackButton
+                    aria-label={t('Give Feedback')}
+                    feedbackOptions={{tags: {'feedback.source': 'top_navigation'}}}
+                  >
+                    {null}
+                  </FeedbackButton>
+                </TopBarSlots.Feedback.Fallback>
+              </Flex>
+            )}
+          </TopBarSlots.Feedback.Root>
+        </Flex>
       </SizeProvider>
     </Flex>
   );
