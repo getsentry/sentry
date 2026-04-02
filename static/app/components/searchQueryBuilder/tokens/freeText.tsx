@@ -8,7 +8,6 @@ import type {KeyboardEvent, Node} from '@react-types/shared';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
-import {areWildcardOperatorsAllowed} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {useFilterKeyListBox} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/useFilterKeyListBox';
 import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
 import {useSortedFilterKeyItems} from 'sentry/components/searchQueryBuilder/tokens/useSortedFilterKeyItems';
@@ -27,7 +26,6 @@ import {
   recentSearchTypeToLabel,
 } from 'sentry/components/searchQueryBuilder/utils';
 import {
-  FilterType,
   InvalidReason,
   parseSearch,
   Token,
@@ -134,25 +132,13 @@ function countPreviousItemsOfType({
 
 function calculateNextFocusForFilter(
   state: ListState<ParseResultToken>,
-  definition: FieldDefinition | null,
-  key: string | null,
-  hasInputChangeFlows: boolean
+  definition: FieldDefinition | null
 ): FocusOverride {
   const numPreviousFilterItems = countPreviousItemsOfType({state, type: Token.FILTER});
 
-  const isNumericValueType =
-    definition?.valueType === FieldValueType.NUMBER ||
-    definition?.valueType === FieldValueType.INTEGER;
-
-  let part: FocusOverride['part'] =
-    hasInputChangeFlows && (isNumericValueType || areWildcardOperatorsAllowed(definition))
-      ? 'op'
-      : 'value';
-
+  let part: FocusOverride['part'] = 'value';
   if (definition?.kind === FieldKind.FUNCTION && definition.parameters?.length) {
     part = 'key';
-  } else if (key === FilterType.IS || key === FilterType.HAS) {
-    part = 'value';
   }
 
   return {
@@ -265,9 +251,6 @@ function SearchQueryBuilderInputInternal({
   const [selectionIndex, setSelectionIndex] = useState(0);
 
   const organization = useOrganization();
-  const hasInputChangeFlows = organization.features.includes(
-    'search-query-builder-input-flow-changes'
-  );
 
   const updateSelectionIndex = useCallback(() => {
     setSelectionIndex(inputRef.current?.selectionStart ?? 0);
@@ -512,12 +495,7 @@ function SearchQueryBuilderInputInternal({
               value,
               getFieldDefinition
             ),
-            focusOverride: calculateNextFocusForFilter(
-              state,
-              getFieldDefinition(value),
-              value,
-              hasInputChangeFlows
-            ),
+            focusOverride: calculateNextFocusForFilter(state, getFieldDefinition(value)),
             shouldCommitQuery: false,
           });
           resetInputValue();
@@ -617,9 +595,7 @@ function SearchQueryBuilderInputInternal({
                   ),
                   focusOverride: calculateNextFocusForFilter(
                     state,
-                    getFieldDefinition(filterValue),
-                    null,
-                    hasInputChangeFlows
+                    getFieldDefinition(filterValue)
                   ),
                   shouldCommitQuery: false,
                 });
@@ -660,9 +636,7 @@ function SearchQueryBuilderInputInternal({
               ),
               focusOverride: calculateNextFocusForFilter(
                 state,
-                getFieldDefinition(filterKey),
-                filterKey,
-                hasInputChangeFlows
+                getFieldDefinition(filterKey)
               ),
               shouldCommitQuery: false,
             });

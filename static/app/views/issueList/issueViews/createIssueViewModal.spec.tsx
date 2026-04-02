@@ -150,7 +150,9 @@ describe('CreateIssueViewModal', () => {
         jest.runAllTimers();
       });
 
-      expect(nameInput).toHaveValue('Generated View Title');
+      await waitFor(() => {
+        expect(nameInput).toHaveValue('Generated View Title');
+      });
     });
 
     it('does not override a pre-filled name', () => {

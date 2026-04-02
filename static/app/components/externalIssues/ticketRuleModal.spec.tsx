@@ -103,7 +103,7 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
         organization,
       }
     );
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
+    await screen.findByRole('button', {name: 'Apply Changes'});
     return wrapper;
   };
 

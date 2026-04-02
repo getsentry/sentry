@@ -394,7 +394,7 @@ export function useSendTestNotification(
         }
       ),
     ...options,
-    onSuccess: (data, variables, context) => {
+    onSuccess: (data, variables, onMutateResult, context) => {
       queryClient.invalidateQueries({
         queryKey: [
           getApiUrl('/organizations/$organizationIdOrSlug/workflows/', {
@@ -405,16 +405,16 @@ export function useSendTestNotification(
       addSuccessMessage(
         tn('Notification fired!', 'Notifications sent!', variables.length)
       );
-      options?.onSuccess?.(data, variables, context);
+      options?.onSuccess?.(data, variables, onMutateResult, context);
     },
-    onError: (error, variables, context) => {
+    onError: (error, variables, onMutateResult, context) => {
       const detail = error.responseJSON?.detail;
       const message = typeof detail === 'string' ? detail : detail?.message;
 
       addErrorMessage(
         message || tn('Notification failed', 'Notifications failed', variables.length)
       );
-      options?.onError?.(error, variables, context);
+      options?.onError?.(error, variables, onMutateResult, context);
     },
   });
 }

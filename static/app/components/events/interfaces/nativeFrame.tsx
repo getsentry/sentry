@@ -104,7 +104,7 @@ function NativeFrame({
   const isDartAsyncSuspensionFrame =
     frame.filename === '<asynchronous suspension>' ||
     frame.absPath === '<asynchronous suspension>';
-  const {displayOptions, stackView} = useStacktraceContext();
+  const {displayOptions, stackView, hasScmSourceContext} = useStacktraceContext();
 
   const {sectionData} = useIssueDetails();
   const debugSectionConfig = sectionData[SectionKey.DEBUGMETA];
@@ -136,6 +136,7 @@ function NativeFrame({
     registers,
     platform,
     emptySourceNotation,
+    hasScmSourceContext,
   });
 
   const inlineFrame =
@@ -282,7 +283,7 @@ function NativeFrame({
     <StackTraceFrame data-test-id="stack-trace-frame">
       <StrictClick onClick={handleToggleContext}>
         <RowHeader
-          expandable={expandable}
+          expandable={!!expandable}
           isInAppFrame={frame.inApp}
           isSubFrame={!!isSubFrame}
           onMouseEnter={handleMouseEnter}
@@ -458,6 +459,7 @@ function NativeFrame({
           hasContextRegisters={hasContextRegisters(registers)}
           emptySourceNotation={emptySourceNotation}
           hasAssembly={hasAssembly(frame, platform)}
+          hasScmSourceContext={hasScmSourceContext}
           isExpanded={expanded}
           registersMeta={registersMeta}
           frameMeta={frameMeta}

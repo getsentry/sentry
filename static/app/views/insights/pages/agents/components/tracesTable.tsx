@@ -32,10 +32,10 @@ import {FRAMELESS_STYLES} from 'sentry/views/dashboards/widgets/tableWidget/tabl
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import {CurrencyCell} from 'sentry/views/insights/common/components/tableCells/currencyCell';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {useTraceViewDrawer} from 'sentry/views/insights/pages/agents/components/drawer';
-import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {resolveAgentName} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
@@ -421,11 +421,7 @@ const BodyCell = memo(function BodyCell({
       if (dataRow.isSpanDataLoading) {
         return <NumberPlaceholder />;
       }
-      return (
-        <TextAlignRight>
-          <LLMCosts cost={dataRow.totalCost} />
-        </TextAlignRight>
-      );
+      return <CurrencyCell value={dataRow.totalCost} />;
     case 'timestamp':
       return (
         <TextAlignRight>

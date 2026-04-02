@@ -654,6 +654,36 @@ class GitHubIntegrationTest(IntegrationTestCase):
         ]
 
     @responses.activate
+    def test_get_repositories_accessible_only(self) -> None:
+        """When accessible_only=True, fetches installation repos and filters locally."""
+        with self.tasks():
+            self.assert_setup_flow()
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        result = installation.get_repositories("foo", accessible_only=True)
+        assert result == [
+            {"name": "foo", "identifier": "Test-Organization/foo", "default_branch": "master"},
+        ]
+
+    @responses.activate
+    def test_get_repositories_accessible_only_no_match(self) -> None:
+        """When accessible_only=True and nothing matches, returns empty list."""
+        with self.tasks():
+            self.assert_setup_flow()
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        result = installation.get_repositories("nonexistent", accessible_only=True)
+        assert result == []
+
+    @responses.activate
     def test_get_repositories_all_and_pagination(self) -> None:
         """Fetch all repositories and test the pagination logic."""
         with self.tasks():

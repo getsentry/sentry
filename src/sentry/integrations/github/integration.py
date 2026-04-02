@@ -318,18 +318,24 @@ class GitHubIntegration(
         return source_path
 
     def get_repositories(
-        self, query: str | None = None, page_number_limit: int | None = None
+        self,
+        query: str | None = None,
+        page_number_limit: int | None = None,
+        accessible_only: bool = False,
     ) -> list[dict[str, Any]]:
         """
         args:
         * query - a query to filter the repositories by
+        * accessible_only - when True with a query, fetch only installation-
+          accessible repos and filter locally instead of using the Search API
+          (which may return repos outside the installation's scope)
 
         This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
         """
-        if not query:
+        if not query or accessible_only:
             all_repos = self.get_client().get_repos(page_number_limit=page_number_limit)
-            return [
+            repos = [
                 {
                     "name": i["name"],
                     "identifier": i["full_name"],
@@ -338,6 +344,10 @@ class GitHubIntegration(
                 for i in all_repos
                 if not i.get("archived")
             ]
+            if query:
+                query_lower = query.lower()
+                repos = [r for r in repos if query_lower in r["identifier"].lower()]
+            return repos
 
         full_query = build_repository_query(self.model.metadata, self.model.name, query)
         response = self.get_client().search_repositories(full_query)
@@ -1254,6 +1264,10 @@ class GithubOrganizationSelectionApiStep:
                     "count": info.get("count"),
                 }
                 for info in enriched
+                # TODO(epurkhiser): Remove this filter once the legacy Django
+                # views are removed and _build_installation_info_with_counts is
+                # merged directly into this API pipeline step.
+                if info["installation_id"] != "-1"
             ],
         }
 

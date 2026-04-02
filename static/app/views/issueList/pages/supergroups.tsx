@@ -109,10 +109,13 @@ function Supergroups() {
   const supergroups = (response?.data ?? []).filter(sg => sg.group_ids.length > 1);
 
   const handleSupergroupClick = (supergroup: SupergroupDetail) => {
-    openDrawer(() => <SupergroupDetailDrawer supergroup={supergroup} />, {
-      ariaLabel: t('Supergroup details'),
-      drawerKey: 'supergroup-drawer',
-    });
+    openDrawer(
+      () => <SupergroupDetailDrawer supergroup={supergroup} matchedGroupIds={[]} />,
+      {
+        ariaLabel: t('Supergroup details'),
+        drawerKey: 'supergroup-drawer',
+      }
+    );
   };
 
   if (!hasTopIssuesUI) {

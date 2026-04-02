@@ -47,12 +47,12 @@ describe('RootCausePreview', () => {
     expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
   });
 
-  it('renders placeholder when processing', () => {
+  it('renders loading text when processing', () => {
     render(
       <RootCausePreview section={makeSection('root_cause', [], {status: 'processing'})} />
     );
 
-    expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
+    expect(screen.getByText('Finding the root cause…')).toBeInTheDocument();
   });
 
   it('handles null data', () => {
@@ -90,12 +90,12 @@ describe('SolutionPreview', () => {
     expect(screen.getByText('Add null check before accessing user')).toBeInTheDocument();
   });
 
-  it('renders placeholder when processing', () => {
+  it('renders loading text when processing', () => {
     render(
       <SolutionPreview section={makeSection('solution', [], {status: 'processing'})} />
     );
 
-    expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
+    expect(screen.getByText('Formulating a plan…')).toBeInTheDocument();
   });
 
   it('handles null data', () => {
@@ -176,14 +176,14 @@ describe('CodeChangesPreview', () => {
     expect(screen.getByText('3 files changed in 2 repos')).toBeInTheDocument();
   });
 
-  it('renders placeholder when processing', () => {
+  it('renders loading text when processing', () => {
     render(
       <CodeChangesPreview
         section={makeSection('code_changes', [], {status: 'processing'})}
       />
     );
 
-    expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
+    expect(screen.getByText('Implementing changes…')).toBeInTheDocument();
   });
 
   it('renders empty array with error message', () => {

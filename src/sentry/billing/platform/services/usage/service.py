@@ -6,6 +6,7 @@ from sentry_protos.billing.v1.services.usage.v1.endpoint_usage_pb2 import (
 )
 
 from sentry.billing.platform.core import BillingService, service_method
+from sentry.billing.platform.services.usage._outcomes_query import query_outcomes_usage
 
 
 class UsageService(BillingService):
@@ -18,6 +19,4 @@ class UsageService(BillingService):
         accepted, dropped, filtered, over_quota, spike_protection, and
         dynamic_sampling.
         """
-        # Default implementation returns empty response.
-        # GetSentry overrides this with Postgres/ClickHouse backends.
-        return GetUsageResponse()
+        return query_outcomes_usage(request)

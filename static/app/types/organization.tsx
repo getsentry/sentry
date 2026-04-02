@@ -101,6 +101,7 @@ export interface Organization extends OrganizationSummary {
   teamRoleList: TeamRole[];
   trustedRelays: Relay[];
   consoleSdkInviteQuota?: number;
+  dashboardsAsyncQueueParallelLimit?: number;
   defaultAutofixAutomationTuning?:
     | 'off'
     | 'super_low'
@@ -114,6 +115,7 @@ export interface Organization extends OrganizationSummary {
   enableSeerCoding?: boolean;
   enableSeerEnhancedAlerts?: boolean;
   enabledConsolePlatforms?: string[];
+  experiments?: Record<string, string>;
   extraOptions?: {
     traces: {
       checkSpanExtractionDate: boolean;

@@ -677,6 +677,14 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
             )
             assert "onboarding" not in response.data["features"]
 
+    def test_invalid_stored_stopping_point_falls_back_to_default(self) -> None:
+        self.organization.update_option("sentry:default_automated_run_stopping_point", "root_cause")
+        response = self.get_success_response(self.organization.slug)
+        assert (
+            response.data["defaultAutomatedRunStoppingPoint"]
+            == SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+        )
+
 
 @cell_silo_test(cells=cells)
 class OrganizationUpdateTest(OrganizationDetailsTestBase):
@@ -1442,6 +1450,62 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                 == "Enabled platforms: PlayStation, Xbox; Disabled platforms: Nintendo Switch"
             )
 
+    @patch(
+        "sentry.tasks.console_platform_cleanup.remove_inaccessible_console_platform_sources.delay"
+    )
+    def test_console_platform_revocation_dispatches_cleanup_task(
+        self, mock_cleanup_task: MagicMock
+    ) -> None:
+        """Revoking console platforms dispatches the cleanup task with remaining platforms"""
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(organization=self.organization, user=staff_user, role="owner")
+        self.login_as(user=staff_user, staff=True)
+
+        self.organization.update_option(
+            "sentry:enabled_console_platforms", ["playstation", "nintendo-switch"]
+        )
+
+        data = {"enabledConsolePlatforms": ["playstation"]}
+        self.get_success_response(self.organization.slug, **data)
+
+        mock_cleanup_task.assert_called_once_with(self.organization.id, ["playstation"])
+
+    @patch(
+        "sentry.tasks.console_platform_cleanup.remove_inaccessible_console_platform_sources.delay"
+    )
+    def test_console_platform_addition_does_not_dispatch_cleanup_task(
+        self, mock_cleanup_task: MagicMock
+    ) -> None:
+        """Adding console platforms without revoking any does not dispatch the cleanup task"""
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(organization=self.organization, user=staff_user, role="owner")
+        self.login_as(user=staff_user, staff=True)
+
+        data = {"enabledConsolePlatforms": ["playstation", "xbox"]}
+        self.get_success_response(self.organization.slug, **data)
+
+        mock_cleanup_task.assert_not_called()
+
+    @patch(
+        "sentry.tasks.console_platform_cleanup.remove_inaccessible_console_platform_sources.delay"
+    )
+    def test_console_platform_revoke_all_dispatches_cleanup_task(
+        self, mock_cleanup_task: MagicMock
+    ) -> None:
+        """Revoking all console platforms dispatches the cleanup task with empty list"""
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(organization=self.organization, user=staff_user, role="owner")
+        self.login_as(user=staff_user, staff=True)
+
+        self.organization.update_option(
+            "sentry:enabled_console_platforms", ["playstation", "nintendo-switch"]
+        )
+
+        data: dict[str, list[str]] = {"enabledConsolePlatforms": []}
+        self.get_success_response(self.organization.slug, **data)
+
+        mock_cleanup_task.assert_called_once_with(self.organization.id, [])
+
     def test_enable_seer_enhanced_alerts_default_true(self) -> None:
         response = self.get_success_response(self.organization.slug)
         assert response.data["enableSeerEnhancedAlerts"] is True
@@ -1628,10 +1692,16 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                 assert response.data["defaultAutomatedRunStoppingPoint"] == choice
 
     def test_default_automated_run_stopping_point_rejects_invalid(self) -> None:
-        for invalid in ("root_cause", "solution", "invalid_point"):
+        for invalid in ("solution", "invalid_point", "root_cause"):
             with self.subTest(value=invalid):
                 data = {"defaultAutomatedRunStoppingPoint": invalid}
                 self.get_error_response(self.organization.slug, status_code=400, **data)
+
+    def test_default_automated_run_stopping_point_accepts_root_cause_with_flag(self) -> None:
+        with self.feature("organizations:root-cause-stopping-point"):
+            data = {"defaultAutomatedRunStoppingPoint": "root_cause"}
+            response = self.get_success_response(self.organization.slug, **data)
+            assert response.data["defaultAutomatedRunStoppingPoint"] == "root_cause"
 
     def test_default_coding_agent_integration_id_can_be_cleared(self) -> None:
         self.organization.update_option("sentry:seer_default_coding_agent_integration_id", 123)
