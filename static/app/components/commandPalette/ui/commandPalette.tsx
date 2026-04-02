@@ -334,6 +334,7 @@ export function CommandPalette(props: CommandPaletteProps) {
         <ResultsList
           direction="column"
           width="100%"
+          paddingTop="xs"
           maxHeight="min(calc(100vh - 128px - 4rem), 400px)"
           overflow="auto"
         >
