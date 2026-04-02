@@ -63,10 +63,17 @@ def has_downgraded(dataset: str, organization: Organization) -> bool:
         return True
 
     supports_performance_view = features.has("organizations:performance-view", organization)
-    if dataset in (Dataset.Transactions.value, Dataset.EventsAnalyticsPlatform.value) and not (
+    if dataset == Dataset.Transactions.value and not (
         supports_metrics_issues and supports_performance_view
     ):
         metrics.incr("incidents.alert_rules.ignore_update_missing_incidents_performance")
+        return True
+        
+    supports_explore_view = features.has("organizations:visibility-explore-view", organization)
+    if dataset == Dataset.EventsAnalyticsPlatform.value and not (
+        supports_metrics_issues and supports_explore_view
+    ):
+        metrics.incr("incidents.alert_rules.ignore_update_missing_incidents_eap")
         return True
 
     if dataset == Dataset.PerformanceMetrics.value and not features.has(
