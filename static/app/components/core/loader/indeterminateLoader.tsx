@@ -6,9 +6,12 @@ import {useResizeObserver} from '@react-aria/utils';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
 
 import {testableTransition} from 'sentry/utils/testableTransition';
+
+// required to break import cycle
+// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
+import {Text} from '../text/text';
 
 interface IndeterminateLoaderProps extends React.HTMLAttributes<HTMLDivElement> {
   messages?: React.ReactNode[];
