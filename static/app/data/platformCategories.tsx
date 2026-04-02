@@ -118,6 +118,7 @@ export const backend: PlatformKey[] = [
   'python-falcon',
   'python-fastapi',
   'python-flask',
+  'python-litestar',
   'python-pylons',
   'python-pymongo',
   'python-pyramid',
@@ -384,6 +385,7 @@ export const withLoggingOnboarding = new Set<PlatformKey>([
   'python-fastapi',
   'python-flask',
   'python-gcpfunctions',
+  'python-litestar',
   'python-pylons',
   'python-pyramid',
   'python-quart',
@@ -480,6 +482,7 @@ export const withMetricsOnboarding = new Set<PlatformKey>([
   'python-fastapi',
   'python-flask',
   'python-gcpfunctions',
+  'python-litestar',
   'python-pyramid',
   'python-quart',
   'python-rq',
@@ -492,6 +495,7 @@ export const withMetricsOnboarding = new Set<PlatformKey>([
   'ruby',
   'ruby-rack',
   'ruby-rails',
+  'unity',
 ]);
 
 // List of platforms that do not have metrics support. We make use of this list in the product to not provide any Metrics
@@ -577,6 +581,7 @@ export const profiling: PlatformKey[] = [
   'python-fastapi',
   'python-flask',
   'python-gcpfunctions',
+  'python-litestar',
   'python-pylons',
   'python-pyramid',
   'python-quart',
@@ -692,6 +697,7 @@ export const replayBackendPlatforms: readonly PlatformKey[] = [
   'python-falcon',
   'python-fastapi',
   'python-flask',
+  'python-litestar',
   'python-pyramid',
   'python-quart',
   'python-sanic',

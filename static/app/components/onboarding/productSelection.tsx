@@ -432,6 +432,12 @@ export const platformProductAvailability = {
     ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
+  'python-litestar': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
   'python-gcpfunctions': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
@@ -489,7 +495,7 @@ export const platformProductAvailability = {
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
   ],
-  unity: [ProductSolution.LOGS],
+  unity: [ProductSolution.LOGS, ProductSolution.METRICS],
   unreal: [ProductSolution.LOGS],
 } as Record<PlatformKey, ProductSolution[]>;
 

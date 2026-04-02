@@ -250,6 +250,10 @@ def create_preprod_status_check_task(
         for approval in approval_qs:
             approvals_map[approval.preprod_artifact_id] = approval
 
+    # Filter out artifacts not in the size analysis pipeline (e.g., snapshot-only artifacts).
+    # Symmetric with snapshots/tasks.py which filters to snapshot-only artifacts.
+    all_artifacts = [a for a in all_artifacts if a.id in size_metrics_map]
+
     # Filter out SKIPPED artifacts (user didn't request size analysis)
     all_artifacts = [
         a for a in all_artifacts if not _is_artifact_size_skipped(size_metrics_map.get(a.id, []))

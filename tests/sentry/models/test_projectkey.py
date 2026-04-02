@@ -134,7 +134,7 @@ class ProjectKeyTest(TestCase):
                 == f"http://{host}/api/{self.project.id}/cron/___MONITOR_SLUG___/abc/"
             )
 
-    @override_settings(SENTRY_REGION="us")
+    @override_settings(SENTRY_LOCAL_CELL="us")
     def test_get_dsn_multiregion(self) -> None:
         key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
         host = "us.testserver" if SiloMode.get_current_mode() == SiloMode.CELL else "testserver"
@@ -151,7 +151,7 @@ class ProjectKeyTest(TestCase):
             == f"http://{host}/api/{self.project.id}/cron/___MONITOR_SLUG___/abc/"
         )
 
-    @override_settings(SENTRY_REGION="us")
+    @override_settings(SENTRY_LOCAL_CELL="us")
     def test_get_dsn_org_subdomain_and_multiregion(self) -> None:
         with self.feature("organizations:org-ingest-subdomains"):
             key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")

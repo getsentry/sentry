@@ -90,6 +90,7 @@ import {useCopyIssueDetails} from 'sentry/views/issueDetails/streamline/hooks/us
 import {InstrumentationFixSection} from 'sentry/views/issueDetails/streamline/instrumentationFixSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {MetricDetectorTriggeredSection} from 'sentry/views/issueDetails/streamline/sidebar/metricDetectorTriggeredSection';
+import {SizeAnalysisTriggeredSection} from 'sentry/views/issueDetails/streamline/sidebar/sizeAnalysisTriggeredSection';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
@@ -385,6 +386,9 @@ export function EventDetailsContent({
       )}
       <ErrorBoundary customComponent={() => null}>
         <MetricDetectorTriggeredSection group={group} event={event} />
+      </ErrorBoundary>
+      <ErrorBoundary customComponent={() => null}>
+        <SizeAnalysisTriggeredSection group={group} event={event} />
       </ErrorBoundary>
       <EventHydrationDiff event={event} group={group} />
       <EventReplay event={event} group={group} projectSlug={project.slug} />

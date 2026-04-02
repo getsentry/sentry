@@ -4,7 +4,9 @@ import moment from 'moment-timezone';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingError} from 'sentry/components/loadingError';
@@ -20,6 +22,7 @@ import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {withSubscription} from 'getsentry/components/withSubscription';
@@ -141,6 +144,7 @@ type RowProps = {
 function UsageHistoryRow({history}: RowProps) {
   const organization = useOrganization();
   const [expanded, setExpanded] = useState<boolean>(history.isCurrent);
+  const {projects, onSearch: onProjectSearch} = useProjects();
 
   function renderOnDemandUsage({
     sortedCategories,
@@ -265,18 +269,27 @@ function UsageHistoryRow({history}: RowProps) {
           >
             {t('Download Summary')}
           </Button>
-          <Button
-            icon={<IconDownload />}
-            onClick={() => {
+          <CompactSelect
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps} icon={<IconDownload />}>
+                {t('Download Project Breakdown')}
+              </OverlayTrigger.Button>
+            )}
+            search={{placeholder: t('Filter projects'), onChange: onProjectSearch}}
+            options={projects.map(project => ({
+              value: project.slug,
+              label: project.slug,
+              textValue: project.slug,
+            }))}
+            value={undefined}
+            onChange={(option: SelectOption<string>) => {
               trackGetsentryAnalytics('subscription_page.download_reports.clicked', {
                 organization,
                 reportType: 'project_breakdown',
               });
-              window.open(history.links.csvPerProject, '_blank');
+              window.open(`${history.links.csvPerProject}${option.value}/`, '_blank');
             }}
-          >
-            {t('Download Project Breakdown')}
-          </Button>
+          />
         </Grid>
       </Flex>
       {expanded && (

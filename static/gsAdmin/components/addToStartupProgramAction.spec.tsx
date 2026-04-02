@@ -209,7 +209,7 @@ describe('AddToStartupProgramAction', () => {
       url: `/_admin/customers/${organization.slug}/balance-changes/`,
       method: 'POST',
       body: {},
-      asyncDelay: 100,
+      asyncDelay: 500,
     });
 
     triggerAddToStartupProgramModal(modalProps);

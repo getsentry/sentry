@@ -62,6 +62,7 @@ import {getOrgRoles} from 'getsentry/hooks/organizationRoles';
 import OrgStatsBanner from 'getsentry/hooks/orgStatsBanner';
 import {OrgStatsProfilingBanner} from 'getsentry/hooks/orgStatsProfilingBanner';
 import {rootRoutes} from 'getsentry/hooks/rootRoutes';
+import {ScmGithubMultiOrgInstall} from 'getsentry/hooks/scmGithubMultiOrgInstall';
 import {seerSettingsRoutes} from 'getsentry/hooks/seerSettingsRoutes';
 import {ComponentWrapper as EnhancedOrganizationStats} from 'getsentry/hooks/spendVisibility/enhancedIndex';
 import {SpikeProtectionProjectSettings} from 'getsentry/hooks/spendVisibility/spikeProtectionProjectSettings';
@@ -233,6 +234,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:first-party-integration-alert': () => FirstPartyIntegrationAlertHook,
   'component:first-party-integration-additional-cta': () =>
     FirstPartyIntegrationAdditionalCTA,
+  'component:scm-github-multi-org-install': () => ScmGithubMultiOrgInstall,
   'component:replay-onboarding-alert': () => ReplayOnboardingAlert,
   'component:replay-onboarding-cta': () => ReplayOnboardingCTA,
   'component:replay-settings-alert': () => ReplaySettingsAlert,

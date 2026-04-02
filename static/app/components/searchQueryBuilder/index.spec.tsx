@@ -1068,9 +1068,7 @@ describe('SearchQueryBuilder', () => {
 
     it('can add a new token by clicking a key suggestion', async () => {
       const mockOnChange = jest.fn();
-      render(<SearchQueryBuilder {...defaultProps} onChange={mockOnChange} />, {
-        organization: {features: ['search-query-builder-input-flow-changes']},
-      });
+      render(<SearchQueryBuilder {...defaultProps} onChange={mockOnChange} />);
 
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
@@ -1081,11 +1079,6 @@ describe('SearchQueryBuilder', () => {
       ).toBeInTheDocument();
       // onChange should not be called until exiting edit mode
       expect(mockOnChange).not.toHaveBeenCalled();
-
-      // Should have focus on the operator option
-      const operatorOption = await screen.findByRole('option', {name: 'contains'});
-      expect(operatorOption).toHaveFocus();
-      await userEvent.click(operatorOption);
 
       await userEvent.click(await screen.findByRole('option', {name: 'Firefox'}));
 
@@ -1109,8 +1102,7 @@ describe('SearchQueryBuilder', () => {
         <SearchQueryBuilder
           {...defaultProps}
           initialQuery={`browser.name:${WildcardOperators.CONTAINS}firefox`}
-        />,
-        {organization: {features: ['search-query-builder-input-flow-changes']}}
+        />
       );
 
       await userEvent.click(
@@ -1142,9 +1134,7 @@ describe('SearchQueryBuilder', () => {
     });
 
     it('can add a filter after some free text', async () => {
-      render(<SearchQueryBuilder {...defaultProps} />, {
-        organization: {features: ['search-query-builder-input-flow-changes']},
-      });
+      render(<SearchQueryBuilder {...defaultProps} />);
 
       await userEvent.click(getLastInput());
 
@@ -1155,11 +1145,6 @@ describe('SearchQueryBuilder', () => {
       await userEvent.type(screen.getByRole('combobox'), 'some free text brow');
       await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
       jest.restoreAllMocks();
-
-      // Should have focus on the operator option
-      const operatorOption = await screen.findByRole('option', {name: 'contains'});
-      expect(operatorOption).toHaveFocus();
-      await userEvent.click(operatorOption);
 
       // Filter value should have focus
       expect(await screen.findByLabelText('Edit filter value')).toHaveFocus();
@@ -1244,9 +1229,7 @@ describe('SearchQueryBuilder', () => {
     });
 
     it('converts text to filter when typing <filter>:', async () => {
-      render(<SearchQueryBuilder {...defaultProps} />, {
-        organization: {features: ['search-query-builder-input-flow-changes']},
-      });
+      render(<SearchQueryBuilder {...defaultProps} />);
       await userEvent.click(getLastInput());
 
       await userEvent.type(
@@ -1276,16 +1259,13 @@ describe('SearchQueryBuilder', () => {
     });
 
     it('selects [Filtered] from dropdown', async () => {
-      render(<SearchQueryBuilder {...defaultProps} />, {
-        organization: {features: ['search-query-builder-input-flow-changes']},
-      });
+      render(<SearchQueryBuilder {...defaultProps} />);
       await userEvent.click(getLastInput());
 
       await userEvent.type(
         screen.getByRole('combobox', {name: 'Add a search term'}),
         'message:'
       );
-      await userEvent.keyboard('{enter}');
       await userEvent.click(screen.getByRole('option', {name: '[Filtered]'}));
 
       // Selecting from dropdown switches operator from contains to "is"
@@ -4197,36 +4177,24 @@ describe('SearchQueryBuilder', () => {
       });
 
       it('focuses on the filter value when user selects an aggregate filter with no arguments', async () => {
-        render(<SearchQueryBuilder {...aggregateDefaultProps} />, {
-          organization: {features: ['search-query-builder-input-flow-changes']},
-        });
+        render(<SearchQueryBuilder {...aggregateDefaultProps} />);
 
         await userEvent.click(getLastInput());
         await userEvent.keyboard('count');
         await userEvent.click(screen.getByRole('option', {name: 'count()'}));
         expect(screen.getByLabelText('count():>100')).toBeInTheDocument();
 
-        const gtOption = screen.getByRole('option', {name: '>'});
-        expect(gtOption).toHaveFocus();
-        await userEvent.click(gtOption);
-
-        expect(screen.getByLabelText('Edit filter value')).toHaveFocus();
+        expect(await screen.findByLabelText('Edit filter value')).toHaveFocus();
       });
 
       it('focuses on the filter value when user input looks like an aggregate filter with no arguments', async () => {
-        render(<SearchQueryBuilder {...aggregateDefaultProps} />, {
-          organization: {features: ['search-query-builder-input-flow-changes']},
-        });
+        render(<SearchQueryBuilder {...aggregateDefaultProps} />);
 
         await userEvent.click(getLastInput());
         await userEvent.keyboard('count(');
         expect(screen.getByLabelText('count():>100')).toBeInTheDocument();
 
-        const gtOption = screen.getByRole('option', {name: '>'});
-        expect(gtOption).toHaveFocus();
-        await userEvent.click(gtOption);
-
-        expect(screen.getByLabelText('Edit filter value')).toHaveFocus();
+        expect(await screen.findByLabelText('Edit filter value')).toHaveFocus();
       });
 
       it('focuses on the filter value after only argument is specified', async () => {

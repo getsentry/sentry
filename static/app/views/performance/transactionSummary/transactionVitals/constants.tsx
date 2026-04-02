@@ -5,6 +5,14 @@ import type {VitalGroup} from 'sentry/utils/performance/vitals/types';
 
 export const PERCENTILE = 0.75;
 
+export const EAP_WEB_VITALS = [
+  WebVital.FCP,
+  WebVital.LCP,
+  WebVital.CLS,
+  WebVital.TTFB,
+  WebVital.INP,
+];
+
 /**
  * This defines the grouping for histograms. Histograms that are in the same group
  * will be queried together on initial load for alignment. However, the zoom controls

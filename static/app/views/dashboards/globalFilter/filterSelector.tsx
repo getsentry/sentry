@@ -183,6 +183,7 @@ export function FilterSelector({
   );
   const queryKey = useDebouncedValue(baseQueryKey);
 
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const queryResult = useQuery({
     queryKey,
     queryFn: async ctx => {

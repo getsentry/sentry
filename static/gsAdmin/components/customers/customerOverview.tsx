@@ -315,10 +315,7 @@ function OnDemandSummary({customer}: OnDemandSummaryProps) {
   ) {
     const {onDemandBudgets} = customer;
 
-    if (
-      onDemandBudgets &&
-      onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY
-    ) {
+    if (onDemandBudgets?.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
       return (
         <Fragment>
           {onDemandPeriod}
