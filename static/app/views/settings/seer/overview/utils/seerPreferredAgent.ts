@@ -58,9 +58,9 @@ export function useFetchPreferredAgentOptions({
 }) {
   return useQuery({
     ...organizationIntegrationsCodingAgents(organization),
-    select: (data): ReadonlyArray<SelectValue<PreferredAgent>> => {
+    select: data => {
       return [
-        {value: 'seer' as const, label: t('Seer Agent')},
+        {value: 'seer', label: t('Seer Agent')} as SelectValue<PreferredAgent>,
         ...(data.json.integrations ?? [])
           .filter(integration => integration.id)
           .map(integration => ({
@@ -79,9 +79,6 @@ export function usePreferredAgentMutationOptions({
 }) {
   return mutationOptions({
     mutationFn: ({integration}: {integration: PreferredAgent}) => {
-      if (!integration) {
-        return Promise.reject(new Error('Integration is required'));
-      }
       return fetchMutation<Organization>({
         method: 'PUT',
         url: `/organizations/${organization.slug}/`,

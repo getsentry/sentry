@@ -161,13 +161,15 @@ function AgentNameForm({
     o => o.value === preferredAgent.data
   )?.label;
 
+  const initialValue = preferredAgent.data ? preferredAgent.data : ('seer' as const);
+
   return (
     <AutoSaveForm
       name="integration"
       schema={z.object({
         integration: z.union([z.literal('seer'), z.custom<CodingAgentIntegration>()]),
       })}
-      initialValue={preferredAgent.data ? preferredAgent.data : ('seer' as const)}
+      initialValue={initialValue}
       mutationOptions={codingAgentMutationOptions}
     >
       {field => (
@@ -187,7 +189,7 @@ function AgentNameForm({
                 </Alert>
               ) : (
                 <field.Select
-                  value={field.state.value}
+                  value={field.state.value as CodingAgentIntegration | 'seer'}
                   onChange={field.handleChange}
                   disabled={!canWrite}
                   options={codingAgentSelectOptions.data}
