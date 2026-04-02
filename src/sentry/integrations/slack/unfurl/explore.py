@@ -110,15 +110,23 @@ def _unfurl_explore(
         id__in=[oi.organization_id for oi in org_integrations]
     )
     orgs_by_slug = {org.slug: org for org in organizations}
+
+    # Check if any org has the feature flag enabled before doing any work
+    enabled_orgs = {
+        slug: org
+        for slug, org in orgs_by_slug.items()
+        if features.has("organizations:data-browsing-widget-unfurl", org, actor=user)
+    }
+    if not enabled_orgs:
+        return {}
+
     unfurls = {}
 
     for link in links:
         org_slug = link.args["org_slug"]
-        org = orgs_by_slug.get(org_slug)
+        org = enabled_orgs.get(org_slug)
 
         if not org:
-            continue
-        if not features.has("organizations:data-browsing-widget-unfurl", org, actor=user):
             continue
 
         params = link.args["query"]
