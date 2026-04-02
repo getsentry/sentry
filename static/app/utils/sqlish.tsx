@@ -6,17 +6,22 @@
  * `@sentry/sqlish/react` instead.
  */
 import * as Sentry from '@sentry/react';
-import {SQLishFormatter as BaseSQLishFormatter} from '@sentry/sqlish';
+import {SQLishFormatter as BaseSQLishFormatter, SQLishParser} from '@sentry/sqlish';
 import {simpleMarkup} from '@sentry/sqlish/react';
-
-export {SQLishParser} from '@sentry/sqlish';
-export type {Token} from '@sentry/sqlish';
 
 type StringFormatterOptions = Parameters<BaseSQLishFormatter['toString']>[1];
 
-export class SQLishFormatter extends BaseSQLishFormatter {
-  override toString(sql: string, options?: StringFormatterOptions): string {
-    return this._withSentry('string', () => super.toString(sql, options), sql);
+export class SQLishFormatter {
+  private formatter: BaseSQLishFormatter;
+  private parser: SQLishParser;
+
+  constructor() {
+    this.formatter = new BaseSQLishFormatter();
+    this.parser = new SQLishParser();
+  }
+
+  toString(sql: string, options?: StringFormatterOptions): string {
+    return this._withSentry('string', () => this.formatter.toString(sql, options), sql);
   }
 
   toSimpleMarkup(sql: string): React.ReactElement[] {
