@@ -201,7 +201,7 @@ function Thresholds() {
 export function CronDetectorFormDetectSection({step}: {step?: number}) {
   return (
     <Container>
-      <FormSection step={step} title={t('Detect')}>
+      <FormSection step={step} title={t('Issue Detection')}>
         <DetectFieldsContainer>
           <div>
             <FormSectionSubHeading>{t('Set your schedule')}</FormSectionSubHeading>

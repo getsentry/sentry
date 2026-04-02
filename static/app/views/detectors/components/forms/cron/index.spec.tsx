@@ -58,8 +58,7 @@ describe('NewCronDetectorForm', () => {
 
     // Form sections should be visible
     expect(await screen.findByText(/Detect/)).toBeInTheDocument();
-    expect(screen.getByText(/Assign/)).toBeInTheDocument();
-    expect(screen.getByText(/Description/)).toBeInTheDocument();
+    expect(screen.getByText(/Issue Ownership/)).toBeInTheDocument();
 
     // Create Monitor button should be present and enabled
     const createButton = screen.getByRole('button', {name: 'Create Monitor'});
@@ -80,8 +79,7 @@ describe('NewCronDetectorForm', () => {
 
     // Form sections should be hidden
     expect(screen.queryByText(/Detect/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Assign/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Description/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Issue Ownership/)).not.toBeInTheDocument();
 
     // Create Monitor button should be present but disabled
     const createButton = screen.getByRole('button', {name: 'Create Monitor'});
@@ -99,8 +97,7 @@ describe('NewCronDetectorForm', () => {
 
     // Form sections should be visible even with platform set, because guide is "manual"
     expect(await screen.findByText(/Detect/)).toBeInTheDocument();
-    expect(screen.getByText(/Assign/)).toBeInTheDocument();
-    expect(screen.getByText(/Description/)).toBeInTheDocument();
+    expect(screen.getByText(/Issue Ownership/)).toBeInTheDocument();
 
     // Create Monitor button should be present and enabled
     const createButton = screen.getByRole('button', {name: 'Create Monitor'});
