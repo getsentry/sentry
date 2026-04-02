@@ -3,7 +3,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -17,6 +16,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
+import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
 import {ComparisonState, getImageGroup} from 'sentry/views/preprod/types/snapshotTypes';
 import type {
@@ -59,6 +59,8 @@ export default function SnapshotsPage() {
     {
       staleTime: 0,
       enabled: !!snapshotId,
+      // Skip retries on 4xx so error pages render instantly
+      retry: (count, err) => count < 3 && (!err?.status || err.status >= 500),
       refetchInterval: query => {
         const state = query.state.data?.[0]?.comparison_run_info?.state;
         return state === ComparisonState.PENDING || state === ComparisonState.PROCESSING
@@ -381,9 +383,12 @@ export default function SnapshotsPage() {
     return (
       <SentryDocumentTitle title={t('Snapshot')}>
         <Stack flex={1}>
-          <Flex align="center" justify="center" padding="3xl">
-            <Text variant="muted">{t('Unable to load snapshot data.')}</Text>
-          </Flex>
+          <BuildError
+            title={t('Snapshot unavailable')}
+            message={t(
+              'This snapshot may have been deleted or you may not have access to it.'
+            )}
+          />
         </Stack>
       </SentryDocumentTitle>
     );

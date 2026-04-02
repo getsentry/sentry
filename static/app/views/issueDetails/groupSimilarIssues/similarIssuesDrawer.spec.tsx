@@ -81,7 +81,9 @@ describe('SimilarIssuesDrawer', () => {
       await screen.findByRole('heading', {name: 'Similar Issues'})
     ).toBeInTheDocument();
 
-    expect(screen.getByText('Issues with a similar stack trace')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Issues with a similar stack trace')
+    ).toBeInTheDocument();
     await waitFor(() => {
       expect(mockSimilarIssues).toHaveBeenCalled();
     });

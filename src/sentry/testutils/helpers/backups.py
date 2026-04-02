@@ -77,7 +77,10 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
 )
-from sentry.models.dynamicsampling import CustomDynamicSamplingRule
+from sentry.models.dynamicsampling import (
+    CustomDynamicSamplingRule,
+    CustomDynamicSamplingRuleProject,
+)
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewProject
@@ -520,17 +523,6 @@ class ExhaustiveFixtures(Fixtures):
             sent_initial_email_date=timezone.now(),
             sent_final_email_date=timezone.now(),
         )
-        CustomDynamicSamplingRule.update_or_create(
-            created_by_id=owner_id,
-            condition={"op": "equals", "name": "environment", "value": "prod"},
-            start=timezone.now(),
-            end=timezone.now() + timedelta(hours=1),
-            project_ids=[project.id],
-            organization_id=org.id,
-            num_samples=100,
-            sample_rate=0.5,
-            query="environment:prod event.type:transaction",
-        )
 
         # Environment*
         self.create_environment(project=project)
@@ -825,6 +817,20 @@ class ExhaustiveFixtures(Fixtures):
             data_forwarder=data_forwarder,
             project=project,
             overrides={"write_key": "test_override_write_key"},
+        )
+
+        custom_rule = CustomDynamicSamplingRule.objects.create(
+            organization=org,
+            created_by_id=owner_id,
+            condition='{"op":"and","inner":[]}',
+            end_date=timezone.now() + timedelta(days=1),
+            num_samples=100,
+            condition_hash="abc123def456abc123def456abc123def4560000",
+            sample_rate=0.5,
+        )
+        CustomDynamicSamplingRuleProject.objects.create(
+            custom_dynamic_sampling_rule=custom_rule,
+            project=project,
         )
 
         return org

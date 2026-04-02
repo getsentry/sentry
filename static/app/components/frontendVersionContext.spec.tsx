@@ -1,4 +1,4 @@
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as constants from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -55,9 +55,11 @@ describe('FrontendVersionProvider', () => {
     // Advance past the initial delay before version checking starts
     act(() => jest.advanceTimersByTime(ONE_HOUR));
 
-    expect(await screen.findByTestId('state')).toHaveTextContent('current');
-    expect(await screen.findByTestId('deployed-version')).toHaveTextContent(commitSha);
-    expect(await screen.findByTestId('running-version')).toHaveTextContent(commitSha);
+    await waitFor(() => {
+      expect(screen.getByTestId('state')).toHaveTextContent('current');
+    });
+    expect(screen.getByTestId('deployed-version')).toHaveTextContent(commitSha);
+    expect(screen.getByTestId('running-version')).toHaveTextContent(commitSha);
   });
 
   it('provides state="stale" when server version differs from current version', async () => {
@@ -79,13 +81,11 @@ describe('FrontendVersionProvider', () => {
     // Advance past the initial delay before version checking starts
     act(() => jest.advanceTimersByTime(ONE_HOUR));
 
-    expect(await screen.findByTestId('state')).toHaveTextContent('stale');
-    expect(await screen.findByTestId('deployed-version')).toHaveTextContent(
-      serverVersion
-    );
-    expect(await screen.findByTestId('running-version')).toHaveTextContent(
-      currentCommitSha
-    );
+    await waitFor(() => {
+      expect(screen.getByTestId('state')).toHaveTextContent('stale');
+    });
+    expect(screen.getByTestId('deployed-version')).toHaveTextContent(serverVersion);
+    expect(screen.getByTestId('running-version')).toHaveTextContent(currentCommitSha);
   });
 
   it('provides state="unknown" when server returns null version', async () => {

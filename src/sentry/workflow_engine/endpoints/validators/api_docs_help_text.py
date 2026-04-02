@@ -601,7 +601,26 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
                     "targetDisplay":""
                     },
                 "integrationId":"2345",
-                "data":{...},
+                "data":{
+                  "additional_fields": {
+                      "assignee": "",
+                      "integration": "2345",
+                      "labels": [],
+                      "repo": "example-repo",
+                  },
+                  "dynamic_form_fields": [
+                      {
+                        "choices": [["YourOrg/example-repo", "example-repo"]],
+                        "default": "YourOrg/example-repo",
+                        "label": "GitHub Repository",
+                        "name": "repo",
+                        "required": true
+                        "type": "select",
+                        "updatesForm": true,
+                        "url": "/extensions/github/search/example-repo/1234567/",
+                      },
+                  ],
+                },
                 "status":"active"
             }
         ```

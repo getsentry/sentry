@@ -2132,7 +2132,6 @@ tests/sentry/models/test_commitfilechange.py
 tests/sentry/models/test_dashboard.py
 tests/sentry/models/test_debugfile.py
 tests/sentry/models/test_deploy.py
-tests/sentry/models/test_dynamicsampling.py
 tests/sentry/models/test_environment.py
 tests/sentry/models/test_eventattachment.py
 tests/sentry/models/test_eventerror.py

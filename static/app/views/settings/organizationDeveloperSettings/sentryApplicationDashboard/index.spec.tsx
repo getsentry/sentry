@@ -186,7 +186,6 @@ describe('Sentry Application Dashboard', () => {
           route: '/settings/:orgId/developer-settings/:appSlug/dashboard/',
         },
       });
-      expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
       // The mock response has 1 request
       expect(await screen.findByTestId('request-item')).toBeInTheDocument();
       const requestLog = within(screen.getByTestId('request-item'));
