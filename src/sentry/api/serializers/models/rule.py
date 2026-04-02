@@ -640,6 +640,16 @@ class WorkflowEngineRuleSerializer(Serializer):
                 except Exception:
                     continue  # just keep iterating through the actions in case we have valid ones in there
             actions_with_handlers = list(action_to_handler.keys())
+
+            # action_to_action_data = {}
+            # for action in actions_with_handlers:
+            #     try:
+            #         action_to_action_data[action] = action_to_handler[action].build_rule_action_blob(
+            #             action, workflow.organization_id
+            #         )
+            #     except ValueError:
+            #         continue
+
             action_to_action_data = {
                 action: action_to_handler[action].build_rule_action_blob(
                     action, workflow.organization_id
