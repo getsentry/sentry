@@ -1,6 +1,8 @@
 import {createContext, useContext, useMemo, useState} from 'react';
 
 import {StackType, StackView} from 'sentry/types/stacktrace';
+import {defined} from 'sentry/utils';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -42,6 +44,10 @@ interface StacktraceContextType {
    */
   forceFullStackTrace: boolean;
   /**
+   * Whether the project has SCM source context enabled
+   */
+  hasScmSourceContext: boolean;
+  /**
    * Display full stack trace or filter to relevant frames.
    * This should only be used to control the full/relevant toggle.
    * @default false
@@ -79,6 +85,7 @@ const IssueStacktraceContext = createContext<StacktraceContextType>({
   stackType: StackType.ORIGINAL,
   displayOptions: [],
   setDisplayOptions: () => {},
+  hasScmSourceContext: false,
   isFullStackTrace: true,
   forceFullStackTrace: false,
   setIsFullStackTrace: () => {},
@@ -94,6 +101,13 @@ export function StacktraceContext({
   defaultIsNewestFramesFirst = true,
 }: StackTraceContextOptions) {
   const organization = useOrganization();
+  const hasScmFeature = organization.features.includes('scm-source-context');
+  const {data: detailedProject} = useDetailedProject(
+    {orgSlug: organization.slug, projectSlug: projectSlug ?? ''},
+    {enabled: hasScmFeature && defined(projectSlug)}
+  );
+  const hasScmSourceContext = hasScmFeature && !!detailedProject?.scmSourceContextEnabled;
+
   const [isFullStackTrace, setIsFullStackTrace] = useState(false);
   const [isNewestFramesFirst, setIsNewestFramesFirst] = useState(
     defaultIsNewestFramesFirst
@@ -123,6 +137,7 @@ export function StacktraceContext({
       setIsNewestFramesFirst,
       displayOptions,
       setDisplayOptions,
+      hasScmSourceContext,
       stackView,
       stackType,
       forceFullStackTrace,
@@ -133,6 +148,7 @@ export function StacktraceContext({
       isNewestFramesFirst,
       displayOptions,
       setDisplayOptions,
+      hasScmSourceContext,
       stackView,
       stackType,
     ]

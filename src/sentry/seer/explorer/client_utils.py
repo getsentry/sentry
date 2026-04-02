@@ -52,6 +52,7 @@ class ExplorerChatRequest(TypedDict):
     run_id: int | None
     insert_index: int | None
     on_page_context: str | None
+    page_name: NotRequired[str | None]
     user_org_context: NotRequired[dict[str, Any] | None]
     intelligence_level: NotRequired[str]
     is_interactive: NotRequired[bool]
@@ -86,6 +87,12 @@ class ExplorerUpdateRequest(TypedDict):
     run_id: int
     organization_id: int
     payload: NotRequired[dict[str, Any]]
+
+
+class ExplorerPrStateRequest(TypedDict):
+    organization_id: int
+    provider: str
+    pr_id: int
 
 
 def make_explorer_state_request(
@@ -138,6 +145,39 @@ def make_explorer_update_request(
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         viewer_context=viewer_context,
     )
+
+
+def make_explorer_state_pr_request(
+    body: ExplorerPrStateRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or explorer_connection_pool,
+        "/v1/automation/explorer/state/pr",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        viewer_context=viewer_context,
+    )
+
+
+def get_explorer_state_from_pr_id(
+    organization_id: int, provider: str, pr_id: int
+) -> SeerRunState | None:
+    body = ExplorerPrStateRequest(organization_id=organization_id, provider=provider, pr_id=pr_id)
+    response = make_explorer_state_pr_request(body)
+
+    if response.status >= 400:
+        raise SeerApiError("Seer request failed", response.status)
+
+    result = response.json()
+    if not result:
+        return None
+
+    session = result.get("session")
+    if session is None:
+        return None
+
+    return SeerRunState(**session)
 
 
 def has_seer_explorer_access_with_detail(

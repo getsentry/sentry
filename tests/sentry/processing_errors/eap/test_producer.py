@@ -167,6 +167,32 @@ class ProduceProcessingErrorsToEAPTest(TestCase):
             "Skipping EAP processing error production: missing trace_id"
         )
 
+    @patch("sentry.processing_errors.eap.producer.logger")
+    @patch("sentry.processing_errors.eap.producer._eap_producer")
+    def test_skips_when_contexts_is_none(self, mock_producer, mock_logger):
+        event_data = self._make_event_data(contexts=None)
+        errors = [{"type": "js_no_source"}]
+
+        produce_processing_errors_to_eap(self.project, event_data, errors)
+
+        mock_producer.produce.assert_not_called()
+        mock_logger.debug.assert_called_once_with(
+            "Skipping EAP processing error production: missing trace_id"
+        )
+
+    @patch("sentry.processing_errors.eap.producer.logger")
+    @patch("sentry.processing_errors.eap.producer._eap_producer")
+    def test_skips_when_trace_context_is_none(self, mock_producer, mock_logger):
+        event_data = self._make_event_data(contexts={"trace": None})
+        errors = [{"type": "js_no_source"}]
+
+        produce_processing_errors_to_eap(self.project, event_data, errors)
+
+        mock_producer.produce.assert_not_called()
+        mock_logger.debug.assert_called_once_with(
+            "Skipping EAP processing error production: missing trace_id"
+        )
+
     @patch("sentry.processing_errors.eap.producer._eap_producer")
     @patch("sentry.processing_errors.eap.producer.logger")
     def test_error_handling_does_not_raise(self, mock_logger, mock_producer):

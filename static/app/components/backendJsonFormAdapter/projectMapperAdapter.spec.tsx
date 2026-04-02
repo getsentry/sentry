@@ -132,9 +132,12 @@ describe('ProjectMapperAdapter', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Add project'}));
 
     await waitFor(() => {
-      expect(mutationOptions.mutationFn).toHaveBeenCalledWith({
-        project_mappings: [[101, 'proj-1']],
-      });
+      expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
+        {
+          project_mappings: [[101, 'proj-1']],
+        },
+        expect.anything()
+      );
     });
   });
 
@@ -156,9 +159,12 @@ describe('ProjectMapperAdapter', () => {
     await userEvent.click(deleteButtons[0]!);
 
     await waitFor(() => {
-      expect(mutationOptions.mutationFn).toHaveBeenCalledWith({
-        project_mappings: [[102, 'proj-2']],
-      });
+      expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
+        {
+          project_mappings: [[102, 'proj-2']],
+        },
+        expect.anything()
+      );
     });
   });
 

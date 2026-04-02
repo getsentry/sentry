@@ -114,6 +114,7 @@ class NotificationProviderKey(StrEnum):
 
     EMAIL = ExternalProviderEnum.EMAIL
     SLACK = ExternalProviderEnum.SLACK
+    SLACK_STAGING = ExternalProviderEnum.SLACK_STAGING
     MSTEAMS = ExternalProviderEnum.MSTEAMS
     DISCORD = ExternalProviderEnum.DISCORD
 

@@ -16,6 +16,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 /**
@@ -64,6 +65,24 @@ export function ProjectEventRedirect() {
 
     // If the event has a group ID, navigate to the issue event page
     if (event.groupID && event.eventID) {
+      if ('feedback' in event.contexts) {
+        navigate(
+          {
+            pathname: makeFeedbackPathname({
+              path: '/',
+              organization,
+            }),
+            query: {
+              feedbackSlug: event.projectSlug
+                ? `${event.projectSlug}:${event.groupID}`
+                : event.groupID,
+            },
+          },
+          {replace: true}
+        );
+        return;
+      }
+
       navigate(
         {
           pathname: `/organizations/${organization.slug}/issues/${event.groupID}/events/${event.eventID}/`,

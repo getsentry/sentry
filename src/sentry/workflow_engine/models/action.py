@@ -55,6 +55,7 @@ class Action(DefaultFieldsModel, JSONConfigBase):
 
     class Type(StrEnum):
         SLACK = "slack"
+        SLACK_STAGING = "slack_staging"
         MSTEAMS = "msteams"
         DISCORD = "discord"
 
