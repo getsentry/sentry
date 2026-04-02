@@ -60,7 +60,7 @@ export default function SnapshotsPage() {
       staleTime: 0,
       enabled: !!snapshotId,
       // Skip retries on 4xx so error pages render instantly
-      retry: (_, err) => !err?.status || err.status >= 500,
+      retry: (count, err) => count < 3 && (!err?.status || err.status >= 500),
       refetchInterval: query => {
         const state = query.state.data?.[0]?.comparison_run_info?.state;
         return state === ComparisonState.PENDING || state === ComparisonState.PROCESSING
