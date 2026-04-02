@@ -9,7 +9,6 @@ from django.utils.translation import gettext_lazy as _
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
-from sentry import features
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.base import (
     FeatureDescription,
@@ -299,7 +298,7 @@ class SlackIntegrationProvider(IntegrationProvider):
         ]
     )
     # Extended scopes that require Slack marketplace approval
-    # Gated by organizations:integrations-slack-staging feature flag
+    # Used by SlackStagingIntegrationProvider
     extended_oauth_scopes = frozenset(
         [
             SlackScope.REACTIONS_WRITE,
@@ -319,11 +318,7 @@ class SlackIntegrationProvider(IntegrationProvider):
     def _get_oauth_scopes(self) -> frozenset[str]:
         """
         Returns the OAuth scopes to request during installation.
-        Extended scopes are included when the integrations-slack-staging feature is enabled.
         """
-        organization = self.pipeline.organization
-        if features.has("organizations:integrations-slack-staging", organization):
-            return self.identity_oauth_scopes | self.extended_oauth_scopes
         return self.identity_oauth_scopes
 
     setup_dialog_config = {"width": 600, "height": 900}

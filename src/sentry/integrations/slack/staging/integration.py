@@ -23,6 +23,9 @@ class SlackStagingIntegrationProvider(SlackIntegrationProvider):
     name = "Slack (Staging)"
     requires_feature_flag = True
 
+    def _get_oauth_scopes(self) -> frozenset[str]:
+        return self.identity_oauth_scopes | self.extended_oauth_scopes
+
     def _identity_pipeline_view(self) -> PipelineView[IntegrationPipeline]:
         return NestedPipelineView(
             bind_key="identity",
