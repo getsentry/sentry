@@ -96,7 +96,9 @@ class GeneratedWidgetLayout(BaseModel):
         le=GRID_WIDTH,
     )
     h: int = Field(
-        default=2, description="Height in rows (1+). A height of 2 is approximately 256px.", ge=1
+        default=2,
+        description="Height in rows (1+). A height of 2 is approximately 256px. For non big_number widgets, this should be at least 2.",
+        ge=1,
     )
     min_h: int = Field(default=2, description="Minimum height in rows (1+).")
 
