@@ -76,8 +76,8 @@ export function Button({
               scale: busy ? 0.95 : 1,
               y: busy ? theme.space['2xs'] : 0,
               transition: busy
-                ? theme.motion.framer.smooth.fast
-                : theme.motion.framer.exit.fast,
+                ? theme.motion.framer.smooth.moderate
+                : theme.motion.framer.exit.moderate,
             }}
           >
             {props.icon && (
@@ -115,13 +115,13 @@ export function Button({
                   opacity: 1,
                   scale: 1,
                   y: 0,
-                  transition: testableTransition(theme.motion.framer.smooth.fast),
+                  transition: testableTransition(theme.motion.framer.smooth.moderate),
                 }}
                 exit={{
                   opacity: 0,
                   scale: 0.95,
                   y: `-${theme.space['2xs']}`,
-                  transition: testableTransition(theme.motion.framer.exit.fast),
+                  transition: testableTransition(theme.motion.framer.exit.moderate),
                 }}
               >
                 <IndeterminateLoader variant="monochrome" aria-hidden />
