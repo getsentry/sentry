@@ -67,6 +67,7 @@ describe('AskSeerComboBox', () => {
           initialQuery="test"
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
+          analyticsSource="test"
           feedbackSource="test"
         />
       </SearchQueryBuilderProvider>,
@@ -87,6 +88,7 @@ describe('AskSeerComboBox', () => {
           initialQuery="test"
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
+          analyticsSource="test"
           feedbackSource="test"
         />
       </SearchQueryBuilderProvider>,
@@ -106,6 +108,7 @@ describe('AskSeerComboBox', () => {
           initialQuery="test"
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
+          analyticsSource="test"
           feedbackSource="test"
         />
       </SearchQueryBuilderProvider>,
@@ -124,6 +127,7 @@ describe('AskSeerComboBox', () => {
           initialQuery="test"
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
+          analyticsSource="test"
           feedbackSource="test"
         />
       ) : (
@@ -160,6 +164,7 @@ describe('AskSeerComboBox', () => {
           initialQuery=""
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
+          analyticsSource="test"
           feedbackSource="test"
         />
       </SearchQueryBuilderProvider>,
@@ -183,6 +188,7 @@ describe('AskSeerComboBox', () => {
           initialQuery=""
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={applySeerSearchQuery}
+          analyticsSource="test"
           feedbackSource="test"
         />
       </SearchQueryBuilderProvider>,
@@ -220,6 +226,7 @@ describe('AskSeerComboBox', () => {
           initialQuery=""
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
+          analyticsSource="test"
           feedbackSource="test"
         />
       </SearchQueryBuilderProvider>,
@@ -244,6 +251,7 @@ describe('AskSeerComboBox', () => {
           initialQuery=""
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
+          analyticsSource="test"
           feedbackSource="test"
         />
       </SearchQueryBuilderProvider>
@@ -258,6 +266,7 @@ describe('AskSeerComboBox', () => {
           initialQuery=""
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
+          analyticsSource="test"
           feedbackSource="test"
         />
       </SearchQueryBuilderProvider>,
