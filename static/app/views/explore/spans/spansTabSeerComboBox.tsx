@@ -259,6 +259,12 @@ export function SpansTabSeerComboBox() {
         sort,
         mode,
       });
+      trackAnalytics('trace.explorer.ai_query_applied', {
+        organization,
+        query: queryToUse,
+        group_by_count: groupBys.length,
+        visualize_count: visualizations.length,
+      });
       trackAnalytics('ai_query.applied', {
         organization,
         area: analyticsArea,
@@ -345,6 +351,7 @@ export function SpansTabSeerComboBox() {
         strategy="Traces"
         applySeerSearchQuery={applySeerSearchQuery}
         transformResponse={transformResponse}
+        analyticsSource="trace.explorer"
         fallbackMutationOptions={spansTabAskSeerMutationOptions}
       />
     );
@@ -355,6 +362,7 @@ export function SpansTabSeerComboBox() {
       initialQuery={initialSeerQuery}
       askSeerMutationOptions={spansTabAskSeerMutationOptions}
       applySeerSearchQuery={applySeerSearchQuery}
+      analyticsSource="trace.explorer"
     />
   );
 }

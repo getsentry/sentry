@@ -5,7 +5,6 @@ from typing import Any
 
 import pytest
 
-from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import OpenPeriodContext
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider
 from sentry.notifications.platform.slack.renderers.metric_alert import SlackMetricAlertRenderer
@@ -33,7 +32,7 @@ def _make_notification_data(**overrides: Any) -> MetricAlertNotificationData:
             id=1,
             date_started=datetime(2024, 1, 1, tzinfo=timezone.utc),
         ),
-        new_status=IncidentStatus.CRITICAL.value,
+        new_status=20,  # IncidentStatus.CRITICAL
         title="Critical: Test Alert",
         title_link="https://sentry.io/alerts/1/",
         text="123 events in the last 5 minutes",
@@ -82,11 +81,10 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
         self.notification_data = _make_notification_data(
             group_id=self.group.id,
             organization_id=self.organization.id,
-            action_id=1,
             open_period_context=open_period_context,
-            new_status=IncidentStatus.CRITICAL.value,
             title=f"Critical: {self.detector.name}",
             title_link="https://sentry.io/alerts/1/",
+            # matches evidence_data value used in MetricAlertHandlerBase
             text="123.45 events in the last minute",
         )
         self.rendered_template = NotificationRenderedTemplate(subject="Metric Alert", body=[])
@@ -97,21 +95,20 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
             rendered_template=self.rendered_template,
         )
 
-        # Without a chart: exactly one section block with the metric text
+        # Without a chart: exactly one section block
         blocks: list[Any] = result["blocks"]
         assert len(blocks) == 1
         assert blocks[0]["type"] == "section"
         assert blocks[0]["text"]["type"] == "mrkdwn"
         assert "123.45 events in the last minute" in blocks[0]["text"]["text"]
-        # Fallback text should reference the detector/alert name
+        # Fallback text references the alert name from title
         assert self.detector.name in result["text"]
 
-    def test_render_includes_image_block_when_chart_url_present(self) -> None:
+    def test_render_includes_image_block_when_chart_url_set(self) -> None:
         data_with_chart = _make_notification_data(
             group_id=self.group.id,
             organization_id=self.organization.id,
             open_period_context=OpenPeriodContext.from_group(self.group),
-            new_status=IncidentStatus.CRITICAL.value,
             title=f"Critical: {self.detector.name}",
             title_link="https://sentry.io/alerts/1/",
             text="123.45 events in the last minute",
@@ -147,10 +144,10 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
             group_id=self.group.id,
             organization_id=self.organization.id,
             open_period_context=OpenPeriodContext.from_group(self.group),
-            new_status=IncidentStatus.CLOSED.value,
             title=f"Resolved: {self.detector.name}",
             title_link="https://sentry.io/alerts/1/",
             text="",
+            new_status=2,  # IncidentStatus.CLOSED
         )
 
         result = SlackMetricAlertRenderer.render(

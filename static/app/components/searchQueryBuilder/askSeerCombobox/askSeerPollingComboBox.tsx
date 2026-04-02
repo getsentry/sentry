@@ -89,6 +89,12 @@ interface AskSeerPollingComboBoxProps<T extends QueryTokensProps> extends Omit<
   AriaComboBoxProps<unknown>,
   'children'
 > {
+  /**
+   * The source of the analytics event, must be a dot-separated identifier like "trace.
+   * explorer" or "issue.list"
+   * @example 'trace.explorer'
+   */
+  analyticsSource: string;
   applySeerSearchQuery: (item: T) => void;
   initialQuery: string;
   projectIds: number[];
@@ -107,6 +113,7 @@ interface AskSeerPollingComboBoxProps<T extends QueryTokensProps> extends Omit<
 
 export function AskSeerPollingComboBox<T extends QueryTokensProps>({
   initialQuery,
+  analyticsSource,
   projectIds,
   strategy,
   transformResponse,
@@ -224,6 +231,11 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
       if (typeof key !== 'string') return;
 
       if (key === 'none-of-these') {
+        trackAnalytics(`${analyticsSource}.ai_query_rejected`, {
+          organization,
+          natural_language_query: searchQuery,
+          num_queries_returned: queries.length ?? 0,
+        });
         trackAnalytics('ai_query.rejected', {
           organization,
           area: analyticsArea,
@@ -296,6 +308,10 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
         switch (e.key) {
           case 'Escape':
             if (!state.isOpen) {
+              trackAnalytics(`${analyticsSource}.ai_query_interface`, {
+                organization,
+                action: 'closed',
+              });
               trackAnalytics('ai_query.interface', {
                 organization,
                 area: analyticsArea,
@@ -310,6 +326,11 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
             return;
           case 'Enter':
             if (state.isOpen && state.selectionManager.focusedKey === 'none-of-these') {
+              trackAnalytics(`${analyticsSource}.ai_query_rejected`, {
+                organization,
+                natural_language_query: searchQuery,
+                num_queries_returned: queries.length ?? 0,
+              });
               trackAnalytics('ai_query.rejected', {
                 organization,
                 area: analyticsArea,
@@ -342,6 +363,10 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
               searchQuery.trim() !== null &&
               searchQuery.trim() !== ''
             ) {
+              trackAnalytics(`${analyticsSource}.ai_query_submitted`, {
+                organization,
+                natural_language_query: searchQuery.trim(),
+              });
               trackAnalytics('ai_query.submitted', {
                 organization,
                 area: analyticsArea,
@@ -407,6 +432,10 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
 
   useLayoutEffect(() => {
     if (autoSubmitSeer && searchQuery.trim()) {
+      trackAnalytics(`${analyticsSource}.ai_query_submitted`, {
+        organization,
+        natural_language_query: searchQuery.trim(),
+      });
       trackAnalytics('ai_query.submitted', {
         organization,
         area: analyticsArea,
@@ -417,6 +446,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     }
   }, [
     analyticsArea,
+    analyticsSource,
     autoSubmitSeer,
     organization,
     searchQuery,
@@ -439,6 +469,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
         initialQuery={initialQuery}
         askSeerMutationOptions={fallbackMutationOptions}
         applySeerSearchQuery={props.applySeerSearchQuery}
+        analyticsSource={analyticsSource}
       />
     );
   }
@@ -466,6 +497,10 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
           icon={<IconClose />}
           onFocus={() => !state.isOpen && state.open()}
           onClick={() => {
+            trackAnalytics(`${analyticsSource}.ai_query_interface`, {
+              organization,
+              action: 'closed',
+            });
             trackAnalytics('ai_query.interface', {
               organization,
               area: analyticsArea,

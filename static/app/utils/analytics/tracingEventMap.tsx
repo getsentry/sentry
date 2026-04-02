@@ -11,6 +11,22 @@ export type TracingEventParameters = {
   'trace.configurations_docs_link_clicked': {
     title: string;
   };
+
+  'trace.explorer.ai_query_applied': {
+    group_by_count: number;
+    query: string;
+    visualize_count: number;
+  };
+  'trace.explorer.ai_query_interface': {
+    action: 'opened' | 'closed' | 'consent_accepted';
+  };
+  'trace.explorer.ai_query_rejected': {
+    natural_language_query: string;
+    num_queries_returned: number;
+  };
+  'trace.explorer.ai_query_submitted': {
+    natural_language_query: string;
+  };
   'trace.explorer.cross_event_added': {
     type: CrossEventType;
   };
@@ -209,6 +225,10 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.metadata': 'Trace Load Metadata',
   'trace.load.empty_state': 'Trace Load Empty State',
   'trace.load.error_state': 'Trace Load Error State',
+  'trace.explorer.ai_query_applied': 'Trace Explorer: AI Query Applied',
+  'trace.explorer.ai_query_rejected': 'Trace Explorer: AI Query Rejected',
+  'trace.explorer.ai_query_submitted': 'Trace Explorer: AI Query Submitted',
+  'trace.explorer.ai_query_interface': 'Trace Explorer: AI Query Interface',
   'trace.explorer.metadata': 'Improved Trace Explorer Pageload Metadata',
   'trace.explorer.cross_event_added': 'Trace Explorer: Cross Event Added',
   'trace.explorer.cross_event_changed': 'Trace Explorer: Cross Event Changed',

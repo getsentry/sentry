@@ -1004,7 +1004,7 @@ class TestSeerRpcMethods(APITestCase):
             owner="nonexistent",
             name="nonexistent",
         )
-        assert result == {"has_code_mappings": False}
+        assert result == {"has_code_mappings": False, "project_slug_to_id": {}}
 
     def test_has_repo_code_mappings_no_mappings(self) -> None:
         """Test when repository exists but has no code mappings"""
@@ -1023,7 +1023,7 @@ class TestSeerRpcMethods(APITestCase):
             owner="test",
             name="repo",
         )
-        assert result == {"has_code_mappings": False}
+        assert result == {"has_code_mappings": False, "project_slug_to_id": {}}
 
     def test_has_repo_code_mappings_with_mappings(self) -> None:
         """Test when repository exists and has code mappings"""
@@ -1059,7 +1059,10 @@ class TestSeerRpcMethods(APITestCase):
             owner="test",
             name="repo",
         )
-        assert result == {"has_code_mappings": True}
+        assert result == {
+            "has_code_mappings": True,
+            "project_slug_to_id": {project.slug: project.id},
+        }
 
     def test_validate_repo_valid(self) -> None:
         """Test when repository exists and matches all fields"""
