@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import defaultdict, deque
 from dataclasses import dataclass
 from enum import Enum, auto, unique
 from functools import lru_cache
@@ -689,10 +689,10 @@ def _get_org_scope_condition(model_relations: ModelRelations, organization_id: i
     }
     all_deps = dependencies()
     visited: set[NormalizedModelName] = {get_model_name(model_relations.model)}
-    queue: list[tuple[ModelRelations, str]] = [(model_relations, "")]
+    queue: deque[tuple[ModelRelations, str]] = deque([(model_relations, "")])
 
     while queue:
-        current, prefix = queue.pop(0)
+        current, prefix = queue.popleft()
         for field_name, fk in current.foreign_keys.items():
             if fk.model is Organization:
                 col = field_name if field_name.endswith("_id") else f"{field_name}_id"
