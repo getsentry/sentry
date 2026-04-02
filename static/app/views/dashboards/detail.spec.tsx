@@ -10,7 +10,7 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
-  render,
+  render as baseRender,
   screen,
   userEvent,
   waitFor,
@@ -34,6 +34,9 @@ import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs
 import ViewEditDashboard from 'sentry/views/dashboards/view';
 import {useWidgetBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {OrganizationContext} from 'sentry/views/organizationContext';
+
+const render: typeof baseRender = (ui, options) =>
+  baseRender(ui, {...options, enableLLMContext: true});
 
 jest.mock('sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState');
 jest.mock('sentry/actionCreators/indicator');
