@@ -4,6 +4,8 @@ from typing import Any
 
 import pytest
 
+from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
+from sentry.models.group import Group
 from sentry.notifications.platform.discord.provider import (
     DiscordNotificationProvider,
 )
@@ -17,6 +19,7 @@ from sentry.notifications.platform.types import (
     NotificationRenderedTemplate,
     NotificationSource,
 )
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 
 
@@ -24,9 +27,9 @@ class IssueDiscordRendererTest(TestCase):
     def _create_data(
         self,
         *,
-        tags: str = "",
+        tags: list[str] | None = None,
         event_data: dict[str, Any] | None = None,
-    ) -> IssueNotificationData:
+    ) -> tuple[IssueNotificationData, Event, Group]:
         event = self.store_event(
             data=event_data or {"message": "test event"},
             project_id=self.project.id,
@@ -34,19 +37,22 @@ class IssueDiscordRendererTest(TestCase):
         group = event.group
         assert group is not None
 
-        return IssueNotificationData(
+        data = IssueNotificationData(
             group_id=group.id,
             event_id=event.event_id,
             notification_uuid="test-uuid",
+            tags=tags,
             rule=SerializableRuleProxy(
                 id=1,
                 label="Test Detector",
                 data={
-                    "actions": [{"workflow_id": 1, "tags": tags}],
+                    "actions": [{"workflow_id": 1}],
                 },
                 project_id=self.project.id,
             ),
         )
+
+        return data, event, group
 
     def test_render_raises_on_invalid_data(self) -> None:
         from sentry.notifications.platform.templates.seer import SeerAutofixError
@@ -61,7 +67,7 @@ class IssueDiscordRendererTest(TestCase):
             )
 
     def test_render_produces_message(self) -> None:
-        data = self._create_data()
+        data, event, group = self._create_data()
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
         result = IssueDiscordRenderer.render(
@@ -77,14 +83,23 @@ class IssueDiscordRendererTest(TestCase):
         assert len(result["components"]) >= 1
 
         embed = result["embeds"][0]
-        assert "title" in embed
-        assert "url" in embed
-        assert "color" in embed
-        assert "footer" in embed
+        assert embed.get("title") == "test event"
+        url = embed.get("url")
+        assert (
+            url is not None
+            and f"{self.organization.slug}/issues/{group.id}/events/{event.event_id}/?referrer=discord&workflow_id=1&alert_type=issue"
+            in url
+        )
+        color = embed.get("color")
+        assert color is not None and color == LEVEL_TO_COLOR["error"]
+        footer = embed.get("footer")
+        assert footer is not None and footer == {
+            "text": f"{group.qualified_short_id} via Test Detector"
+        }
 
     def test_render_with_tags(self) -> None:
-        data = self._create_data(
-            tags="level",
+        data, _, _ = self._create_data(
+            tags=["level"],
             event_data={"message": "tagged event", "level": "error"},
         )
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
@@ -130,6 +145,7 @@ class IssueAlertProviderDispatchTest(TestCase):
             rule=SerializableRuleProxy(
                 id=1, label="Test Detector", data={}, project_id=self.project.id
             ),
+            tags=["environment", "level"],
         )
         renderer = DiscordNotificationProvider.get_renderer(
             data=data,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from sentry import eventstore
+from sentry.integrations.discord.message_builder.issues import DiscordIssuesMessageBuilder
 from sentry.models.group import Group
 from sentry.notifications.platform.discord.provider import DiscordRenderable
 from sentry.notifications.platform.renderer import NotificationRenderer
@@ -11,7 +12,7 @@ from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationRenderedTemplate,
 )
-from sentry.services.eventstore.models import GroupEvent
+from sentry.services.eventstore.models import Event
 
 
 class IssueDiscordRenderer(NotificationRenderer[DiscordRenderable]):
@@ -24,10 +25,6 @@ class IssueDiscordRenderer(NotificationRenderer[DiscordRenderable]):
         if not isinstance(data, IssueNotificationData):
             raise ValueError(f"IssueDiscordRenderer does not support {data.__class__.__name__}")
 
-        from sentry.integrations.discord.message_builder.issues import (
-            DiscordIssuesMessageBuilder,
-        )
-
         # Retrieving Group and Event data is an anti-pattern, do not do this
         # in permanent renderers.
         try:
@@ -35,26 +32,23 @@ class IssueDiscordRenderer(NotificationRenderer[DiscordRenderable]):
         except Group.DoesNotExist:
             raise NotificationRenderError(f"Group {data.group_id} not found")
 
-        event = None
+        group_event = None
         if data.event_id:
             try:
-                event = eventstore.backend.get_event_by_id(group.project.id, data.event_id)
+                event = eventstore.backend.get_event_by_id(
+                    project_id=group.project.id, event_id=data.event_id, group_id=data.group_id
+                )
+                if isinstance(event, Event):
+                    group_event = event.for_group(group)
             except Exception:
                 raise NotificationRenderError(f"Failed to retrieve event {data.event_id}")
 
         rules = [data.rule.to_rule()] if data.rule else []
 
-        if event is not None:
-            # Event should always be a GroupEvent at this point, but we need to
-            # narrow the type for mypy.
-            assert isinstance(event, GroupEvent), (
-                f"Expected GroupEvent, got {type(event)} for event {data.event_id}"
-            )
-
         return DiscordIssuesMessageBuilder(
             group=group,
-            event=event,
-            tags=data.tags,
+            event=group_event,
+            tags=set(data.tags) if data.tags else None,
             rules=rules,
             link_to_event=True,
         ).build(notification_uuid=data.notification_uuid)

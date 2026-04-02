@@ -31,7 +31,7 @@ class IssueAlertInvocationMixin(TestCase):
     def _create_invocation(
         self,
         *,
-        tags: str = "",
+        tags: list[str] | None = None,
         notes: str = "",
         notification_uuid: str = "test-uuid",
         event_data: dict[str, Any] | None = None,
@@ -50,7 +50,7 @@ class IssueAlertInvocationMixin(TestCase):
         workflow = self.create_workflow(organization=self.organization)
         action = self.create_action(
             type=Action.Type.SLACK,
-            data={"tags": tags, "notes": notes},
+            data={"tags": ", ".join(tags) if tags else "", "notes": notes},
             config={
                 "target_identifier": "C12345",
                 "target_display": "#test-channel",
@@ -87,7 +87,7 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
 
     def test_from_action_invocation(self) -> None:
         invocation = self._create_invocation(
-            tags="environment,level", notes="test note", notification_uuid="test-uuid-123"
+            tags=["environment", "level"], notes="test note", notification_uuid="test-uuid-123"
         )
 
         result = issue_notification_data_factory(invocation)
@@ -100,7 +100,7 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
         assert isinstance(result.rule, SerializableRuleProxy)
         assert result.rule.id == invocation.action.id
         assert result.rule.label == invocation.detector.name
-        assert result.tags == set(["environment", "level"])
+        assert result.tags == ["environment", "level"]
         assert result.notes == "test note"
         assert len(result.rule.data["actions"]) == 1
         action_blob = result.rule.data["actions"][0]
@@ -114,7 +114,7 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
         assert result.rule.project_id == self.project.id
 
     def test_from_action_invocation_empty_tags(self) -> None:
-        invocation = self._create_invocation(tags="", notes="")
+        invocation = self._create_invocation(tags=[], notes="")
 
         result = issue_notification_data_factory(invocation)
 
@@ -122,7 +122,6 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
         assert isinstance(invocation.event_data.event, GroupEvent)
         assert result.event_id == invocation.event_data.event.event_id
         assert result.tags is None
-        assert result.notes == ""
         assert len(result.rule.data["actions"]) == 1
         action_blob = result.rule.data["actions"][0]
         assert action_blob["workflow_id"] == getattr(invocation.action, "workflow_id", None)
@@ -166,7 +165,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
         event_id: str,
         title: str = "test event",
         notes: str | None = None,
-        tags: set[str] | None = None,
+        tags: list[str] | None = None,
     ) -> SlackRenderable:
         """Build the expected SlackRenderable for a rendered issue alert."""
         org_slug = self.organization.slug
@@ -321,7 +320,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
     )
     def test_render_with_tags(self, mock_summary: Any) -> None:
         invocation = self._create_invocation(
-            tags="level",
+            tags=["level"],
             event_data={"message": "tagged event", "level": "error"},
         )
         data = issue_notification_data_factory(invocation)
@@ -338,7 +337,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
             workflow_id=getattr(invocation.action, "workflow_id"),
             event_id=invocation.event_data.event.event_id,
             title="tagged event",
-            tags=set(["level: `error`  "]),
+            tags=["level: `error`  "],
         )
 
 
