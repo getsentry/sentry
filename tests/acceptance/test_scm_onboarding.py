@@ -1,0 +1,140 @@
+from unittest import mock
+
+import pytest
+
+from sentry.models.project import Project
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
+
+pytestmark = pytest.mark.sentry_metrics
+
+
+@no_silo_test
+class ScmOnboardingTest(AcceptanceTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.user = self.create_user("foo@example.com")
+        self.org = self.create_organization(name="Rowdy Tiger", owner=None)
+        self.team = self.create_team(organization=self.org, name="Mariachi Band")
+        self.member = self.create_member(
+            user=self.user, organization=self.org, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+    def create_github_integration(self):
+        integration = self.create_provider_integration(
+            provider="github",
+            name="getsentry",
+            external_id="12345",
+            metadata={"access_token": "ghu_xxxxx"},
+        )
+        integration.add_organization(self.org, self.user)
+        return integration
+
+    def start_onboarding(self):
+        self.browser.get(f"/onboarding/{self.org.slug}/")
+        self.browser.wait_until('[data-test-id="onboarding-step-welcome"]')
+        self.browser.click('[data-test-id="onboarding-welcome-start"]')
+        self.browser.wait_until('[data-test-id="onboarding-step-scm-connect"]')
+
+    def test_scm_onboarding_happy_path(self) -> None:
+        """Full flow: welcome → connect repo → detected platform → create project."""
+        self.create_github_integration()
+
+        mock_repos = [
+            {
+                "name": "sentry",
+                "identifier": "getsentry/sentry",
+                "default_branch": "master",
+            },
+        ]
+
+        mock_platforms = [
+            {
+                "platform": "python-django",
+                "language": "Python",
+                "bytes": 50000,
+                "confidence": "high",
+                "priority": 1,
+            }
+        ]
+
+        with (
+            self.feature(
+                {
+                    "organizations:onboarding-scm": True,
+                    "organizations:integrations-github-platform-detection": True,
+                }
+            ),
+            mock.patch(
+                "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+                return_value=mock_repos,
+            ),
+            mock.patch(
+                "sentry.integrations.github.repository.GitHubRepositoryProvider._validate_repo",
+                return_value={"id": "12345"},
+            ),
+            mock.patch(
+                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms",
+                return_value=mock_platforms,
+            ),
+        ):
+            self.start_onboarding()
+
+            # SCM Connect: wait for integration to be detected, then search
+            self.browser.wait_until(xpath='//*[contains(text(), "Connected to")]')
+            # react-select renders a separate placeholder element, not an HTML
+            # placeholder attribute, so target the input by its ARIA role.
+            input_el = self.browser.element('input[aria-autocomplete="list"]')
+            input_el.send_keys("sentry")
+            self.browser.wait_until('[data-test-id="menu-list-item-label"]')
+            self.browser.click('[data-test-id="menu-list-item-label"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
+            self.browser.click(xpath='//button[contains(., "Continue")]')
+
+            # Platform Features: select detected platform, then continue
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
+            self.browser.wait_until('[role="radio"]')
+            self.browser.click('[role="radio"]')
+            self.browser.click(xpath='//button[contains(., "Continue")]')
+
+            # Project Details: defaults auto-fill from platform + team
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-project-details"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Create project")]')
+            self.browser.click(xpath='//button[contains(., "Create project")]')
+
+            # Setup Docs
+            self.browser.wait_until('[data-test-id="onboarding-step-setup-docs"]')
+
+            project = Project.objects.get(organization=self.org)
+            assert project.platform == "python-django"
+
+    def test_scm_onboarding_skip_integration(self) -> None:
+        """Skip flow: welcome → skip connect → manual platform → create project."""
+        with self.feature({"organizations:onboarding-scm": True}):
+            self.start_onboarding()
+
+            # SCM Connect: skip
+            self.browser.click(xpath='//button[contains(., "Skip for now")]')
+
+            # Platform Features: manual picker
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
+            self.browser.wait_until(xpath='//h3[text()="Select a platform"]')
+            input_el = self.browser.element('input[aria-autocomplete="list"]')
+            input_el.send_keys("React")
+            self.browser.wait_until(
+                xpath='//p[@data-test-id="menu-list-item-label"][text()="React"]'
+            )
+            self.browser.click(xpath='//p[@data-test-id="menu-list-item-label"][text()="React"]')
+            self.browser.click(xpath='//button[contains(., "Continue")]')
+
+            # Project Details: defaults auto-fill
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-project-details"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Create project")]')
+            self.browser.click(xpath='//button[contains(., "Create project")]')
+
+            # Setup Docs
+            self.browser.wait_until('[data-test-id="onboarding-step-setup-docs"]')
+
+            project = Project.objects.get(organization=self.org)
+            assert project.platform == "javascript-react"
