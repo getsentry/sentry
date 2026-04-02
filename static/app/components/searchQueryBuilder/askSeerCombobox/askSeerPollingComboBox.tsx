@@ -90,13 +90,6 @@ interface AskSeerPollingComboBoxProps<T extends QueryTokensProps> extends Omit<
   'children'
 > {
   applySeerSearchQuery: (item: T) => void;
-  /**
-   * The owner of the feedback form, must be an underscore-separated identifier like
-   * "trace_explorer_ai_query" or "issue_list_ai_query"
-   *
-   * @example 'trace_explorer_ai_query'
-   */
-  feedbackSource: string;
   initialQuery: string;
   projectIds: number[];
   strategy: string;
@@ -114,7 +107,6 @@ interface AskSeerPollingComboBoxProps<T extends QueryTokensProps> extends Omit<
 
 export function AskSeerPollingComboBox<T extends QueryTokensProps>({
   initialQuery,
-  feedbackSource,
   projectIds,
   strategy,
   transformResponse,
@@ -187,7 +179,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
       openForm({
         messagePlaceholder: t('Why were these queries incorrect?'),
         tags: {
-          ['feedback.source']: feedbackSource,
+          ['feedback.source']: `ai_query.${analyticsArea}`,
           ['feedback.owner']: 'ml-ai',
           ['feedback.natural_language_query']: searchQuery,
           ['feedback.raw_result']: JSON.stringify(queries).replace(/\n/g, ''),
@@ -447,7 +439,6 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
         initialQuery={initialQuery}
         askSeerMutationOptions={fallbackMutationOptions}
         applySeerSearchQuery={props.applySeerSearchQuery}
-        feedbackSource={feedbackSource}
       />
     );
   }
@@ -540,7 +531,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
                   openForm({
                     messagePlaceholder: t('How can we make Seer search better for you?'),
                     tags: {
-                      ['feedback.source']: feedbackSource,
+                      ['feedback.source']: `ai_query.${analyticsArea}`,
                       ['feedback.owner']: 'ml-ai',
                     },
                   })

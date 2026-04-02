@@ -305,7 +305,6 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
       strategy="Errors"
       applySeerSearchQuery={applySeerSearchQuery}
       transformResponse={transformResponse}
-      feedbackSource="errors_ai_query"
       fallbackMutationOptions={issueListAskSeerMutationOptions}
     />
   );
