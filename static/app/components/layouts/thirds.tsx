@@ -26,27 +26,9 @@ export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
 
   if (hasPageFrame) {
     return (
-      <StyledPageFrameStack
+      <Stack
         as="main"
         flex="1"
-        roundedCorner={
-          primaryNavigation.layout === 'sidebar' &&
-          secondaryNavigation?.view === 'expanded'
-        }
-        radius={
-          secondaryNavigation?.view === 'expanded'
-            ? primaryNavigation.layout === 'sidebar'
-              ? 'lg 0 0 0'
-              : undefined
-            : undefined
-        }
-        borderTop={
-          primaryNavigation.layout === 'mobile'
-            ? 'primary'
-            : secondaryNavigation?.view === 'expanded'
-              ? 'primary'
-              : undefined
-        }
         borderLeft={
           secondaryNavigation?.view === 'expanded'
             ? primaryNavigation.layout === 'sidebar'
@@ -64,12 +46,6 @@ export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
     <Stack flex="1" padding={withPadding ? '2xl 3xl' : undefined} as="main" {...rest} />
   );
 }
-
-const StyledPageFrameStack = styled(Stack)<{roundedCorner: boolean}>`
-  > :first-child {
-    border-top-left-radius: ${p => (p.roundedCorner ? p.theme.radius.lg : undefined)};
-  }
-`;
 
 /**
  * Header container for header content and header actions.

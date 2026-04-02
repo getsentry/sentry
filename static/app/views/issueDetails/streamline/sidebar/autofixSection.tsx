@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import seerConfigConnectImg from 'sentry-images/spot/seer-config-connect-2.svg';
 
-import {Button, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
 import {Image} from '@sentry/scraps/image';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -41,6 +41,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -92,7 +93,7 @@ export function AutofixSection({group, project, event}: AutofixSectionProps) {
     <SidebarFoldSection
       title={
         <Flex align="center" gap="xs">
-          <Text size="md">{t('Seer')}</Text>
+          <Text size="md">{t('Seer Autofix')}</Text>
           <IconSeer />
         </Flex>
       }
@@ -247,6 +248,8 @@ function AutofixEmptyState({
   project,
   referrer,
 }: AutofixEmptyStateProps) {
+  const seerDrawerLink = useSeerDrawerLink();
+
   const {openSeerDrawer} = useOpenSeerDrawer({
     group,
     project,
@@ -288,19 +291,19 @@ function AutofixEmptyState({
           <Image src={seerConfigConnectImg} alt="" width="auto" height="100%" />
         </ImageContainer>
       </Flex>
-      <Button
+      <LinkButton
         size="md"
         icon={<IconBug />}
         aria-label={t('Start Analysis')}
-        tooltipProps={{title: t('Start Analysis')}}
         priority="primary"
+        to={seerDrawerLink}
         onClick={handleStartRootCause}
         analyticsEventKey="autofix.start_fix_clicked"
         analyticsEventName="Autofix: Start Fix Clicked"
         analyticsParams={{group_id: group.id, mode: 'explorer', referrer}}
       >
         {t('Start Analysis')}
-      </Button>
+      </LinkButton>
     </Flex>
   );
 }
@@ -320,6 +323,8 @@ function AutofixPreviews({
   sections,
   referrer,
 }: AutofixPreviewsProps) {
+  const seerDrawerLink = useSeerDrawerLink();
+
   const hasRootCause =
     sections.findLast(isRootCauseSection)?.artifacts?.some(isRootCauseArtifact) ?? false;
 
@@ -378,11 +383,12 @@ function AutofixPreviews({
         // TODO: maybe send a log?
         return null;
       })}
-      <Button
+      <LinkButton
         size="md"
         icon={<IconSeer />}
         aria-label={t('Open Seer')}
         priority="primary"
+        to={seerDrawerLink}
         onClick={openSeerDrawer}
         analyticsEventKey="issue_details.seer_opened"
         analyticsEventName="Issue Details: Seer Opened"
@@ -401,9 +407,20 @@ function AutofixPreviews({
         }}
       >
         {t('Open Seer')}
-      </Button>
+      </LinkButton>
     </Flex>
   );
+}
+
+function useSeerDrawerLink() {
+  const location = useLocation();
+  return {
+    pathname: location.pathname,
+    query: {
+      ...location.query,
+      seerDrawer: true,
+    },
+  };
 }
 
 const ImageContainer = styled(Flex)<{

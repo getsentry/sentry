@@ -55,7 +55,8 @@ export function useTraceItemAttributeKeys({
     query,
   });
 
-  const {data, isFetching, error} = useQuery<TagCollection>({
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
+  const {data, isFetching, error} = useQuery({
     enabled,
     queryKey: [...queryKey, search],
     queryFn: () => getTraceItemAttributeKeys(search),

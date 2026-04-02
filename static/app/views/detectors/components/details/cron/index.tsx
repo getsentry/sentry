@@ -17,7 +17,7 @@ import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {TimeSince} from 'sentry/components/timeSince';
 import {TimezoneProvider, useTimezone} from 'sentry/components/timezoneProvider';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
-import {Section} from 'sentry/components/workflowEngine/ui/section';
+import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {IconJson} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -196,7 +196,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                     intervalSeconds={intervalSeconds}
                   />
                 </ErrorBoundary>
-                <Section title={t('Recent Check-Ins')}>
+                <DetailSection title={t('Recent Check-Ins')}>
                   <div>
                     <MonitorCheckIns
                       monitorSlug={dataSource.queryObj.slug}
@@ -204,7 +204,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                       project={project}
                     />
                   </div>
-                </Section>
+                </DetailSection>
                 <DetectorDetailsAutomations detector={detector} />
               </Fragment>
             ) : (
@@ -215,22 +215,22 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
             )}
           </DetailLayout.Main>
           <DetailLayout.Sidebar>
-            <Section title={t('Detect')}>
+            <DetailSection title={t('Detect')}>
               {tn(
                 'One failed check-in.',
                 '%s consecutive failed check-ins.',
                 failure_issue_threshold ?? 1
               )}
-            </Section>
-            <Section title={t('Resolve')}>
+            </DetailSection>
+            <DetailSection title={t('Resolve')}>
               {tn(
                 'One successful check-in.',
                 '%s consecutive successful check-ins.',
                 recovery_threshold ?? 1
               )}
-            </Section>
+            </DetailSection>
             <DetectorDetailsAssignee owner={detector.owner} />
-            <Section title={t('Schedule')}>
+            <DetailSection title={t('Schedule')}>
               <div>
                 {scheduleAsText(dataSource.queryObj.config)}{' '}
                 {dataSource.queryObj.config.schedule_type === ScheduleType.CRONTAB &&
@@ -241,14 +241,14 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                   </Text>
                 )}
               </div>
-            </Section>
-            <Section title={t('Legend')}>
+            </DetailSection>
+            <DetailSection title={t('Legend')}>
               <DetailsTimelineLegend
                 checkInMargin={dataSource.queryObj.config.checkin_margin}
                 maxRuntime={dataSource.queryObj.config.max_runtime}
                 showUnknownLegend={showUnknownLegend}
               />
-            </Section>
+            </DetailSection>
             <DetectorDetailsDescription description={detector.description} />
             <DetectorExtraDetails>
               <KeyValueTableRow

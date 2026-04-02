@@ -447,7 +447,11 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
 
   return (
     <Layout.Main width="full">
-      <SearchQueryBuilderProvider enableAISearch {...spanSearchQueryBuilderProviderProps}>
+      <SearchQueryBuilderProvider
+        enableAISearch
+        aiSearchBadgeType="beta"
+        {...spanSearchQueryBuilderProviderProps}
+      >
         <TourElement<ExploreSpansTour>
           tourContext={ExploreSpansTourContext}
           id={ExploreSpansTour.SEARCH_BAR}
@@ -502,6 +506,6 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   );
 }
 
-const StyledPageFilterBar = styled(PageFilterBar)`
+export const StyledPageFilterBar = styled(PageFilterBar)`
   width: auto;
 `;

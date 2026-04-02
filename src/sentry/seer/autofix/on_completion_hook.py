@@ -8,14 +8,22 @@ from django.utils import timezone
 from sentry import features
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     trigger_autofix_explorer,
     trigger_coding_agent_handoff,
     trigger_push_changes,
 )
+from sentry.seer.autofix.coding_agent import IntegrationNotFound
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.utils import AutofixStoppingPoint, get_project_seer_preferences
+from sentry.seer.autofix.utils import (
+    AutofixStoppingPoint,
+    get_project_seer_preferences,
+    resolve_repository_ids,
+    set_project_seer_preference,
+    write_preference_to_sentry_db,
+)
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.explorer.client_models import Artifact
 from sentry.seer.explorer.client_utils import fetch_run_status
@@ -25,6 +33,7 @@ from sentry.seer.models import (
     SeerApiResponseValidationError,
     SeerAutomationHandoffConfiguration,
 )
+from sentry.seer.models.seer_api_models import SeerProjectPreference
 from sentry.seer.supergroups.embeddings import trigger_supergroups_embedding
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
@@ -473,6 +482,35 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         return handoff_config
 
     @classmethod
+    def _clear_handoff_preference(
+        cls, project: Project, run_id: int, organization: Organization
+    ) -> None:
+        """Clear automation_handoff from project preferences after integration is not found."""
+        try:
+            preference_response = get_project_seer_preferences(project.id)
+            if preference_response and preference_response.preference:
+                updated_preference = preference_response.preference.copy(
+                    update={"automation_handoff": None}
+                )
+                set_project_seer_preference(updated_preference)
+
+                if features.has("organizations:seer-project-settings-dual-write", organization):
+                    try:
+                        validated_pref = SeerProjectPreference.validate(updated_preference)
+                        resolved_pref = resolve_repository_ids(organization.id, [validated_pref])
+                        write_preference_to_sentry_db(project, resolved_pref[0])
+                    except Exception:
+                        logger.exception(
+                            "seer.write_preferences.failed",
+                            extra={"project_id": project.id, "organization_id": organization.id},
+                        )
+        except (SeerApiError, SeerApiResponseValidationError):
+            logger.exception(
+                "autofix.on_completion_hook.clear_handoff_preference_failed",
+                extra={"run_id": run_id, "organization_id": organization.id},
+            )
+
+    @classmethod
     def _trigger_coding_agent_handoff(
         cls,
         organization: Organization,
@@ -508,6 +546,16 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                     "failures": len(result.get("failures", [])),
                 },
             )
+        except IntegrationNotFound:
+            logger.exception(
+                "autofix.on_completion_hook.coding_agent_handoff_integration_not_found",
+                extra={
+                    "run_id": run_id,
+                    "organization_id": organization.id,
+                    "integration_id": handoff_config.integration_id,
+                },
+            )
+            cls._clear_handoff_preference(group.project, run_id, organization)
         except Exception:
             logger.exception(
                 "autofix.on_completion_hook.coding_agent_handoff_failed",

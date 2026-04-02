@@ -10,7 +10,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
-import {Section} from 'sentry/components/workflowEngine/ui/section';
+import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t, tct} from 'sentry/locale';
 import type {ErrorDetector} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -34,7 +34,7 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
   return (
     <Stack gap="2xl" maxWidth={theme.breakpoints.xl}>
       <Container>
-        <Section title={t('Detect')}>
+        <FormSection title={t('Detect')}>
           <Text as="p">
             {tct(
               'An error issue will be created when a new issue group is detected. [link:Manage Grouping Rules]',
@@ -47,10 +47,10 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
               }
             )}
           </Text>
-        </Section>
+        </FormSection>
       </Container>
       <Container>
-        <Section title={t('Assign')}>
+        <FormSection title={t('Assign')}>
           <Text as="p">
             {tct(
               'Sentry will attempt to automatically assign new issues based on [link:Ownership Rules].',
@@ -63,10 +63,10 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
               }
             )}
           </Text>
-        </Section>
+        </FormSection>
       </Container>
       <Container>
-        <Section title={t('Prioritize')}>
+        <FormSection title={t('Prioritize')}>
           <Text as="p">
             {tct(
               'New error issues are prioritized based on log level. [link:Learn more about Issue Priority]',
@@ -77,10 +77,10 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
               }
             )}
           </Text>
-        </Section>
+        </FormSection>
       </Container>
       <Container>
-        <Section title={t('Prioritize')}>
+        <FormSection title={t('Prioritize')}>
           <Text as="p">
             {tct(
               'Issues may be automatically resolved based on [link:Auto Resolve Settings].',
@@ -93,7 +93,7 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
               }
             )}
           </Text>
-        </Section>
+        </FormSection>
       </Container>
       <AutomateSection />
     </Stack>
