@@ -550,6 +550,7 @@ def _generate_summary(
         experiment_variant="control" if is_experiment else None,
     )
 
+    # Experiment: test summary quality without breadcrumbs and trace
     if is_experiment:
         try:
             experimental_event = {
