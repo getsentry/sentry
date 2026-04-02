@@ -171,6 +171,13 @@ export function useBulkMutateSelectedAgent({projects}: {projects: Project[]}) {
           addErrorMessage(
             t('Too many requests. Please wait a moment before trying again.')
           );
+        } else {
+          addErrorMessage(
+            t(
+              'Failed to update settings for %s project(s). Please try again.',
+              failures.length
+            )
+          );
         }
       }
     },

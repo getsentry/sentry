@@ -3,6 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import type {SeerPreferencesResponse} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -401,6 +402,74 @@ describe('seerPreferredAgent', () => {
         id: project.id,
         autofixAutomationTuning: 'medium',
       });
+    });
+
+    it('shows a generic error message when requests fail with non-429 errors', async () => {
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+        method: 'GET',
+        body: {preference, code_mapping_repos: []},
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        method: 'PUT',
+        statusCode: 500,
+        body: {detail: 'Internal Server Error'},
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+        method: 'POST',
+        statusCode: 500,
+        body: {detail: 'Internal Server Error'},
+      });
+      const addErrorMessageSpy = jest.spyOn(indicators, 'addErrorMessage');
+
+      const {result} = renderHookWithProviders(useBulkMutateSelectedAgent, {
+        organization,
+        initialProps: {projects: [project]},
+      });
+
+      await act(async () => {
+        await result.current('seer');
+      });
+
+      expect(addErrorMessageSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to update settings')
+      );
+    });
+
+    it('shows a rate-limit error message when requests fail with 429', async () => {
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+        method: 'GET',
+        body: {preference, code_mapping_repos: []},
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        method: 'PUT',
+        statusCode: 429,
+        body: {detail: 'Too Many Requests'},
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+        method: 'POST',
+        statusCode: 429,
+        body: {detail: 'Too Many Requests'},
+      });
+      const addErrorMessageSpy = jest.spyOn(indicators, 'addErrorMessage');
+
+      const {result} = renderHookWithProviders(useBulkMutateSelectedAgent, {
+        organization,
+        initialProps: {projects: [project]},
+      });
+
+      await act(async () => {
+        await result.current('seer');
+      });
+
+      expect(addErrorMessageSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Too many requests')
+      );
     });
   });
 });
