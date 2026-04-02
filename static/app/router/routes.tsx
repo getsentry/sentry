@@ -309,12 +309,12 @@ function buildRoutes(): RouteObject[] {
     {
       path: '/stories/*',
       withOrgPath: true,
-      // eslint-disable-next-line boundaries/element-types -- storybook entrypoint
+      // eslint-disable-next-line boundaries/dependencies -- storybook entrypoint
       component: make(() => import('sentry/stories/view/index')),
     },
     {
       path: '/debug/notifications/:notificationSource?/',
-      // eslint-disable-next-line boundaries/element-types -- debug tools entrypoint
+      // eslint-disable-next-line boundaries/dependencies -- debug tools entrypoint
       component: make(() => import('sentry/debug/notifications/views/index')),
       withOrgPath: true,
     },
@@ -569,7 +569,7 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'seer/',
       name: t('Seer'),
-      // eslint-disable-next-line boundaries/element-types -- TODO: move to getsentry routes
+      // eslint-disable-next-line boundaries/dependencies -- TODO: move to getsentry routes
       component: make(() => import('getsentry/views/seerAutomation/projectDetails')),
     },
     {

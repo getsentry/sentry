@@ -378,6 +378,7 @@ type IntegrationAspects = {
   configure_integration?: {
     title: string;
   };
+  directEnable?: boolean;
   disable_dialog?: IntegrationDialog;
   externalInstall?: {
     buttonText: string;

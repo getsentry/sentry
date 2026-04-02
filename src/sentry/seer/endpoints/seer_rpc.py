@@ -36,6 +36,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, StrArray
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
@@ -73,8 +74,19 @@ from sentry.seer.assisted_query.traces_tools import (
     get_attribute_values_with_substring,
 )
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
-from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
-from sentry.seer.autofix.utils import AutofixTriggerSource
+from sentry.seer.autofix.coding_agent import (
+    AutofixStateNotFound,
+    IntegrationNotFound,
+    OrganizationNotFound,
+    StateReposNotFound,
+    launch_coding_agents_for_run,
+)
+from sentry.seer.autofix.utils import (
+    AutofixTriggerSource,
+    get_project_seer_preferences,
+    resolve_repository_ids,
+    write_preference_to_sentry_db,
+)
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS, SeerSCMProvider
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.explorer.custom_tool_utils import call_custom_tool
@@ -104,6 +116,7 @@ from sentry.seer.explorer.tools import (
 )
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.seer.issue_detection import create_issue_occurrence
+from sentry.seer.models.seer_api_models import SeerProjectPreference
 from sentry.seer.utils import filter_repo_by_provider
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
@@ -565,6 +578,7 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
 def trigger_coding_agent_launch(
     *,
     organization_id: int,
+    project_id: int | None = None,
     integration_id: int,
     run_id: int,
     trigger_source: str = "solution",
@@ -579,7 +593,7 @@ def trigger_coding_agent_launch(
         trigger_source: Either "root_cause" or "solution" (default: "solution")
 
     Returns:
-        dict: {"success": bool}
+        dict: {"success": bool, "error_code": str | None}
     """
     try:
         launch_coding_agents_for_run(
@@ -589,7 +603,45 @@ def trigger_coding_agent_launch(
             trigger_source=AutofixTriggerSource(trigger_source),
         )
         return {"success": True}
-    except (NotFound, PermissionDenied, ValidationError, APIException):
+    except IntegrationNotFound:
+        logger.exception(
+            "coding_agent.rpc_launch_error",
+            extra={
+                "organization_id": organization_id,
+                "integration_id": integration_id,
+                "run_id": run_id,
+            },
+        )
+        try:
+            project = Project.objects.get_from_cache(id=project_id)
+            organization = Organization.objects.get_from_cache(id=organization_id)
+            if features.has("organizations:seer-project-settings-dual-write", organization):
+                preference_response = get_project_seer_preferences(project.id)
+                if preference_response and preference_response.preference:
+                    updated_preference = preference_response.preference.copy(
+                        update={"automation_handoff": None}
+                    )
+                    validated_pref = SeerProjectPreference.validate(updated_preference)
+                    resolved_pref = resolve_repository_ids(organization.id, [validated_pref])
+                    write_preference_to_sentry_db(project, resolved_pref[0])
+        except Exception:
+            logger.exception(
+                "coding_agent.clear_handoff_preference_failed",
+                extra={
+                    "project_id": project_id,
+                    "organization_id": organization_id,
+                    "run_id": run_id,
+                },
+            )
+        return {"success": False, "error_code": "integration_not_found"}
+    except (
+        OrganizationNotFound,
+        AutofixStateNotFound,
+        StateReposNotFound,
+        PermissionDenied,
+        ValidationError,
+        APIException,
+    ):
         logger.exception(
             "coding_agent.rpc_launch_error",
             extra={

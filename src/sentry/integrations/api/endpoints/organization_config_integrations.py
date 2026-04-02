@@ -57,9 +57,11 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
         def is_provider_enabled(provider):
             if not provider.requires_feature_flag:
                 return True
-            provider_key = provider.key.replace("_", "-")
-            feature_flag_name = "organizations:integrations-%s" % provider_key
-            return features.has(feature_flag_name, organization, actor=request.user)
+            flag = (
+                provider.feature_flag_name
+                or "organizations:integrations-%s" % provider.key.replace("_", "-")
+            )
+            return features.has(flag, organization, actor=request.user)
 
         providers = list(integrations.all())
         provider_key = request.GET.get("provider_key") or request.GET.get("providerKey")

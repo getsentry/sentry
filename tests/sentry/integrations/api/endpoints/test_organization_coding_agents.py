@@ -332,11 +332,19 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
         assert "integrations" in response.data
         assert len(response.data["integrations"]) == 0
 
-    def test_github_copilot_shown_with_feature_flag(self) -> None:
-        """Test GET endpoint shows GitHub Copilot when feature flag is enabled."""
+    def _mock_github_copilot_integration(self):
+        mock = Mock()
+        mock.id = 99
+        mock.name = "GitHub Copilot"
+        mock.provider = "github_copilot"
+        return mock
+
+    def test_github_copilot_shown_when_installed_and_feature_flag_enabled(self):
+        """Test GET endpoint shows GitHub Copilot when installed and feature flag is enabled."""
+        copilot = self._mock_github_copilot_integration()
         with (
             self.feature("organizations:integrations-github-copilot-agent"),
-            self.mock_integration_service_calls(integrations=[]),
+            self.mock_integration_service_calls(integrations=[copilot]),
         ):
             response = self.get_success_response(self.organization.slug)
 
@@ -348,16 +356,26 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
             assert integrations[0]["requires_identity"] is True
             assert integrations[0]["has_identity"] is False
 
+    def test_github_copilot_not_shown_when_not_installed(self):
+        """Test GET endpoint does not show GitHub Copilot when feature flag is on but integration is not installed."""
+        with (
+            self.feature("organizations:integrations-github-copilot-agent"),
+            self.mock_integration_service_calls(integrations=[]),
+        ):
+            response = self.get_success_response(self.organization.slug)
+            assert response.data["integrations"] == []
+
     @patch(
         "sentry.integrations.api.endpoints.organization_coding_agents.github_copilot_identity_service"
     )
     def test_github_copilot_has_identity_true_when_authenticated(self, mock_identity_service):
         """Test GET endpoint returns has_identity: True when user has GitHub Copilot OAuth token."""
         mock_identity_service.get_access_token_for_user.return_value = "mock-access-token"
+        copilot = self._mock_github_copilot_integration()
 
         with (
             self.feature("organizations:integrations-github-copilot-agent"),
-            self.mock_integration_service_calls(integrations=[]),
+            self.mock_integration_service_calls(integrations=[copilot]),
         ):
             response = self.get_success_response(self.organization.slug)
 
@@ -375,10 +393,11 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
     def test_github_copilot_has_identity_false_when_not_authenticated(self, mock_identity_service):
         """Test GET endpoint returns has_identity: False when user doesn't have GitHub Copilot OAuth token."""
         mock_identity_service.get_access_token_for_user.return_value = None
+        copilot = self._mock_github_copilot_integration()
 
         with (
             self.feature("organizations:integrations-github-copilot-agent"),
-            self.mock_integration_service_calls(integrations=[]),
+            self.mock_integration_service_calls(integrations=[copilot]),
         ):
             response = self.get_success_response(self.organization.slug)
 
@@ -397,18 +416,17 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
         """Test GET endpoint handles RPC exceptions gracefully when checking GitHub Copilot identity."""
         from sentry.hybridcloud.rpc.service import RpcRemoteException
 
-        # Simulate RPC service failure
         mock_identity_service.get_access_token_for_user.side_effect = RpcRemoteException(
             "github_copilot_identity", "get_access_token_for_user", "Service unavailable"
         )
+        copilot = self._mock_github_copilot_integration()
 
         with (
             self.feature("organizations:integrations-github-copilot-agent"),
-            self.mock_integration_service_calls(integrations=[]),
+            self.mock_integration_service_calls(integrations=[copilot]),
         ):
             response = self.get_success_response(self.organization.slug)
 
-            # Should still return successfully with has_identity set to False
             integrations = response.data["integrations"]
             assert len(integrations) == 1
             assert integrations[0]["provider"] == "github_copilot"

@@ -18,7 +18,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TimeSince} from 'sentry/components/timeSince';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
-import {Section} from 'sentry/components/workflowEngine/ui/section';
+import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
@@ -93,7 +93,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
                   utc={utc ?? null}
                 />
               </ErrorBoundary>
-              <Section title={t('History')}>
+              <DetailSection title={t('History')}>
                 <ErrorBoundary mini>
                   <AutomationHistoryList
                     automationId={automation.id}
@@ -105,8 +105,8 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
                     }}
                   />
                 </ErrorBoundary>
-              </Section>
-              <Section title={t('Connected Monitors')}>
+              </DetailSection>
+              <DetailSection title={t('Connected Monitors')}>
                 <ErrorBoundary mini>
                   <ConnectedMonitorsList
                     detectorIds={automation.detectorIds}
@@ -114,11 +114,11 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
                     onCursor={setMonitorListCursor}
                   />
                 </ErrorBoundary>
-              </Section>
+              </DetailSection>
             </PageFiltersContainer>
           </DetailLayout.Main>
           <DetailLayout.Sidebar>
-            <Section title={t('Last Triggered')}>
+            <DetailSection title={t('Last Triggered')}>
               {automation.lastTriggered ? (
                 <Flex gap="md">
                   <TimeSince date={automation.lastTriggered} />
@@ -129,24 +129,24 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
               ) : (
                 t('Never')
               )}
-            </Section>
-            <Section title={t('Environment')}>
+            </DetailSection>
+            <DetailSection title={t('Environment')}>
               {automation.environment || t('All environments')}
-            </Section>
-            <Section title={t('Action Interval')}>
+            </DetailSection>
+            <DetailSection title={t('Action Interval')}>
               {tct('Every [frequency]', {
                 frequency: getDuration((automation.config.frequency || 0) * 60),
               })}
-            </Section>
-            <Section title={t('Conditions')}>
+            </DetailSection>
+            <DetailSection title={t('Conditions')}>
               <ErrorBoundary mini>
                 <ConditionsPanel
                   triggers={automation.triggers}
                   actionFilters={automation.actionFilters}
                 />
               </ErrorBoundary>
-            </Section>
-            <Section title={t('Details')}>
+            </DetailSection>
+            <DetailSection title={t('Details')}>
               <ErrorBoundary mini>
                 <KeyValueTable>
                   <KeyValueTableRow
@@ -163,7 +163,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
                   />
                 </KeyValueTable>
               </ErrorBoundary>
-            </Section>
+            </DetailSection>
           </DetailLayout.Sidebar>
         </DetailLayout.Body>
       </DetailLayout>

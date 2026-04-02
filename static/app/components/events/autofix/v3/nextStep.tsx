@@ -289,6 +289,7 @@ function NextStepTemplate({
 
       return {
         key: `agent:${integration.id ?? integration.provider}`,
+        textValue: actionLabel,
         label: (
           <Flex gap="md" align="center">
             <PluginIcon pluginId={integration.provider} size={16} />

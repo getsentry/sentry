@@ -34,6 +34,7 @@ from sentry.replays.query import query_replay_id_by_prefix, query_replay_instanc
 from sentry.search.eap.constants import BOOLEAN, DOUBLE, INT, STRING
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.events.constants import ISSUE_ID_ALIAS
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.seer.autofix.autofix import get_all_tags_overview
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
@@ -776,7 +777,7 @@ def _get_issue_event_timeseries(
         dataset=dataset,
         y_axes=["count()"],
         group_by=[],
-        query=f"issue:{group.qualified_short_id}",
+        query=f"{ISSUE_ID_ALIAS}:{group.id}",
         start=start.isoformat(),
         end=end.isoformat(),
         interval=interval,
