@@ -128,8 +128,8 @@ function makeAllTheProviders(options: ProviderOptions) {
               <AdditionalWrapper>{children}</AdditionalWrapper>
             </GlobalDrawer>
           </OrganizationContext>
-        </TopBarSlotProvider>
-      </LLMContextProvider>
+        </LLMContextProvider>
+      </TopBarSlotProvider>
     );
 
     const wrappedContent = <ProvideAriaRouter>{content}</ProvideAriaRouter>;
