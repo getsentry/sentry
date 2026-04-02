@@ -94,11 +94,13 @@ interface SpanTabProps {
   datePageFilterProps: DatePageFilterProps;
 }
 
+const SPANS_TOOLBAR_STORAGE_KEY = 'explore-spans-toolbar';
+
 export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
   useVisitExplore();
 
   const [controlSectionExpanded, setControlSectionExpanded] = useControlSectionExpanded(
-    'explore-spans-toolbar'
+    SPANS_TOOLBAR_STORAGE_KEY
   );
 
   return (

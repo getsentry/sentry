@@ -51,9 +51,11 @@ function ErrorsHeader() {
   );
 }
 
+const ERRORS_TOOLBAR_STORAGE_KEY = 'explore-errors-toolbar';
+
 export function ErrorsBody() {
   const [controlSectionExpanded, setControlSectionExpanded] = useControlSectionExpanded(
-    'explore-errors-toolbar'
+    ERRORS_TOOLBAR_STORAGE_KEY
   );
 
   return (
