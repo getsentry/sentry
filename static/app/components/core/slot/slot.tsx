@@ -66,7 +66,7 @@ function makeSlotReducer<T extends Slot>(): SlotReducer<T> {
           ...state,
           [action.name]: {
             ...currentSlot,
-            counter: currentSlot?.counter ?? 0 - 1,
+            counter: (currentSlot?.counter ?? 0) - 1,
           },
         };
       }
