@@ -21,7 +21,7 @@ import {ResolveActions} from 'sentry/components/actions/resolve';
 import {renderArchiveReason} from 'sentry/components/archivedBox';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {renderResolutionReason} from 'sentry/components/resolutionBox';
+import {ResolutionReason} from 'sentry/components/resolutionBox';
 import {
   IconCheckmark,
   IconEllipsis,
@@ -366,21 +366,17 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             <Flex direction="column">
               {isResolved ? resolvedCopyCap || t('Resolved') : t('Archived')}
               <ReasonBanner>
-                {group.status === 'resolved'
-                  ? renderResolutionReason({
-                      statusDetails: group.statusDetails,
-                      activities: group.activity,
-                      hasStreamlinedUI: true,
-                      project,
-                      organization,
-                    })
-                  : null}
+                {group.status === 'resolved' ? (
+                  <ResolutionReason
+                    statusDetails={group.statusDetails}
+                    activities={group.activity}
+                    project={project}
+                  />
+                ) : null}
                 {group.status === 'ignored'
                   ? renderArchiveReason({
                       substatus: group.substatus,
                       statusDetails: group.statusDetails,
-                      organization,
-                      hasStreamlinedUI: true,
                     })
                   : null}
               </ReasonBanner>

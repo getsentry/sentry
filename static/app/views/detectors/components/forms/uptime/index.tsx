@@ -18,6 +18,7 @@ import {
   type EnvironmentConfig,
 } from 'sentry/views/detectors/components/forms/common/projectEnvironmentSection';
 import {useSetAutomaticName} from 'sentry/views/detectors/components/forms/common/useSetAutomaticName';
+import {useStepCounter} from 'sentry/views/detectors/components/forms/common/useStepCounter';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 import {ConnectedTestUptimeMonitorButton} from 'sentry/views/detectors/components/forms/uptime/connectedTestUptimeMonitorButton';
@@ -38,6 +39,8 @@ const ENVIRONMENT_CONFIG: EnvironmentConfig = {
 
 function UptimeDetectorForm() {
   const theme = useTheme();
+  const {hasRuntimeAssertions} = useUptimeAssertionFeatures();
+  const nextStep = useStepCounter();
 
   useSetAutomaticName(form => {
     const url = form.getValue('url');
@@ -61,13 +64,13 @@ function UptimeDetectorForm() {
     <Stack gap="2xl" maxWidth={theme.breakpoints.lg}>
       <UptimeRegionWarning />
       <PreviewSection />
-      <ProjectEnvironmentSection environment={ENVIRONMENT_CONFIG} />
-      <UptimeDetectorFormDetectSection />
-      <UptimeDetectorVerificationSection />
-      <UptimeDetectorResolveSection />
-      <AssignSection />
-      <DescribeSection />
-      <AutomateSection />
+      <ProjectEnvironmentSection step={nextStep()} environment={ENVIRONMENT_CONFIG} />
+      <UptimeDetectorFormDetectSection step={nextStep()} />
+      {hasRuntimeAssertions && <UptimeDetectorVerificationSection step={nextStep()} />}
+      <UptimeDetectorResolveSection step={nextStep()} />
+      <AssignSection step={nextStep()} />
+      <DescribeSection step={nextStep()} />
+      <AutomateSection step={nextStep()} />
     </Stack>
   );
 }

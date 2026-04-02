@@ -111,9 +111,12 @@ export function useCreateDetector<T extends Detector = Detector>() {
   return useMutation<T, void, BaseDetectorUpdatePayload>({
     mutationFn: data =>
       api.requestPromise(
-        getApiUrl('/organizations/$organizationIdOrSlug/detectors/', {
-          path: {organizationIdOrSlug: org.slug},
-        }),
+        getApiUrl(
+          '/organizations/$organizationIdOrSlug/projects/$projectIdOrSlug/detectors/',
+          {
+            path: {organizationIdOrSlug: org.slug, projectIdOrSlug: data.projectId},
+          }
+        ),
         {
           method: 'POST',
           data,

@@ -122,7 +122,9 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert summary_data == convert_dict_key_case(expected_response_summary, snake_to_camel_case)
         mock_get_event.assert_called_once_with(self.group, self.user, provided_event_id=None)
         mock_get_trace_tree.assert_called_once()
-        mock_call_seer.assert_called_once_with(self.group, serialized_event, {"trace": "tree"})
+        mock_call_seer.assert_called_once_with(
+            self.group, serialized_event, {"trace": "tree"}, experiment_variant=None
+        )
 
         # Check if the cache was set correctly
         cached_summary = cache.get(f"ai-group-summary-v2:{self.group.id}")
@@ -628,7 +630,9 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             summary_data, status_code = get_issue_summary(self.group, self.user)
 
         assert status_code == 200
-        mock_call_seer.assert_called_once_with(self.group, serialized_event, None)
+        mock_call_seer.assert_called_once_with(
+            self.group, serialized_event, None, experiment_variant=None
+        )
 
     @patch("sentry.seer.autofix.issue_summary.run_automation")
     @patch("sentry.seer.autofix.issue_summary._get_trace_tree_for_event")
@@ -675,7 +679,9 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert summary_data == convert_dict_key_case(expected_response_summary, snake_to_camel_case)
         mock_get_event.assert_called_once_with(self.group, self.user, provided_event_id=None)
         mock_get_trace_tree.assert_called_once()
-        mock_call_seer.assert_called_once_with(self.group, serialized_event, {"trace": "tree"})
+        mock_call_seer.assert_called_once_with(
+            self.group, serialized_event, {"trace": "tree"}, experiment_variant=None
+        )
 
         # Verify that run_automation was NOT called
         mock_run_automation.assert_not_called()
@@ -683,6 +689,145 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         # Check if the cache was set correctly
         cached_summary = cache.get(f"ai-group-summary-v2:{self.group.id}")
         assert cached_summary == expected_response_summary
+
+    @patch("sentry.seer.autofix.issue_summary.run_automation")
+    @patch("sentry.seer.autofix.issue_summary._get_trace_tree_for_event")
+    @patch("sentry.seer.autofix.issue_summary._call_seer")
+    @patch("sentry.seer.autofix.issue_summary._get_event")
+    def test_experiment_flag_calls_seer_twice(
+        self,
+        mock_get_event,
+        mock_call_seer,
+        mock_get_trace_tree,
+        mock_run_automation,
+    ):
+        """When the experiment flag is on, _call_seer is called twice: control and experimental."""
+        event = Mock(
+            event_id="test_event_id",
+            data="test_event_data",
+            trace_id="test_trace",
+            datetime=datetime.datetime.now(),
+        )
+        serialized_event = {
+            "event_id": "test_event_id",
+            "entries": [
+                {"type": "exception", "data": {}},
+                {"type": "breadcrumbs", "data": {"values": []}},
+            ],
+        }
+        mock_get_event.return_value = [serialized_event, event]
+        mock_summary = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="Test headline",
+            whats_wrong="Test whats wrong",
+            trace="Test trace",
+            possible_cause="Test possible cause",
+        )
+        mock_call_seer.return_value = mock_summary
+        mock_get_trace_tree.return_value = {"trace": "tree"}
+
+        with self.feature("organizations:issue-summary-experimental"):
+            get_issue_summary(self.group, self.user)
+
+        assert mock_call_seer.call_count == 2
+
+        # First call: control with full data
+        control_call = mock_call_seer.call_args_list[0]
+        assert control_call == call(
+            self.group, serialized_event, {"trace": "tree"}, experiment_variant="control"
+        )
+
+        # Second call: experimental without breadcrumbs and without trace
+        experimental_call = mock_call_seer.call_args_list[1]
+        experimental_event = experimental_call[0][1]
+        assert all(e["type"] != "breadcrumbs" for e in experimental_event["entries"])
+        assert experimental_call[0][2] is None  # trace_tree is None
+        assert experimental_call[1]["experiment_variant"] == "experimental"
+
+    @patch("sentry.seer.autofix.issue_summary.run_automation")
+    @patch("sentry.seer.autofix.issue_summary._get_trace_tree_for_event")
+    @patch("sentry.seer.autofix.issue_summary._call_seer")
+    @patch("sentry.seer.autofix.issue_summary._get_event")
+    def test_experiment_flag_off_calls_seer_once(
+        self,
+        mock_get_event,
+        mock_call_seer,
+        mock_get_trace_tree,
+        mock_run_automation,
+    ):
+        """When the experiment flag is off, only one call to _call_seer is made."""
+        event = Mock(
+            event_id="test_event_id",
+            trace_id="test_trace",
+            datetime=datetime.datetime.now(),
+        )
+        serialized_event = {
+            "event_id": "test_event_id",
+            "entries": [
+                {"type": "exception", "data": {}},
+                {"type": "breadcrumbs", "data": {"values": []}},
+            ],
+        }
+        mock_get_event.return_value = [serialized_event, event]
+        mock_summary = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="Test headline",
+            whats_wrong="Test whats wrong",
+            trace="Test trace",
+            possible_cause="Test possible cause",
+        )
+        mock_call_seer.return_value = mock_summary
+        mock_get_trace_tree.return_value = {"trace": "tree"}
+
+        get_issue_summary(self.group, self.user)
+
+        mock_call_seer.assert_called_once_with(
+            self.group, serialized_event, {"trace": "tree"}, experiment_variant=None
+        )
+
+    @patch("sentry.seer.autofix.issue_summary.run_automation")
+    @patch("sentry.seer.autofix.issue_summary._get_trace_tree_for_event")
+    @patch("sentry.seer.autofix.issue_summary._call_seer")
+    @patch("sentry.seer.autofix.issue_summary._get_event")
+    def test_experiment_failure_does_not_affect_regular_flow(
+        self,
+        mock_get_event,
+        mock_call_seer,
+        mock_get_trace_tree,
+        mock_run_automation,
+    ):
+        """If the experimental call fails, the control result is still cached and returned."""
+        event = Mock(
+            event_id="test_event_id",
+            trace_id="test_trace",
+            datetime=datetime.datetime.now(),
+        )
+        serialized_event = {
+            "event_id": "test_event_id",
+            "entries": [{"type": "breadcrumbs", "data": {"values": []}}],
+        }
+        mock_get_event.return_value = [serialized_event, event]
+        mock_summary = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="Test headline",
+            whats_wrong="Test whats wrong",
+            trace="Test trace",
+            possible_cause="Test possible cause",
+        )
+        # First call (control) succeeds, second call (experimental) raises
+        mock_call_seer.side_effect = [mock_summary, Exception("experimental failed")]
+        mock_get_trace_tree.return_value = {"trace": "tree"}
+
+        with self.feature("organizations:issue-summary-experimental"):
+            summary_data, status_code = get_issue_summary(self.group, self.user)
+
+        assert status_code == 200
+        assert summary_data["headline"] == "Test headline"
+
+        # Cache should still be set from the control result
+        cached = cache.get(f"ai-group-summary-v2:{self.group.id}")
+        assert cached is not None
+        assert cached["headline"] == "Test headline"
 
 
 class TestGetStoppingPointFromFixability:

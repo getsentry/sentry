@@ -134,7 +134,7 @@ describe('CronDetectorDetails - check-ins', () => {
 
       expect(await screen.findByText('Recent Check-Ins')).toBeInTheDocument();
       expect(
-        screen.getByText('No check-ins have been recorded for this time period.')
+        await screen.findByText('No check-ins have been recorded for this time period.')
       ).toBeInTheDocument();
     });
 
@@ -208,10 +208,10 @@ describe('CronDetectorDetails - check-ins', () => {
         </UserTimezoneProvider>
       );
 
-      // Wait for check-ins to load and find the table after the heading
+      // Wait for check-ins to load and find the table within the section
       const recentCheckInsHeading = await screen.findByText('Recent Check-Ins');
-      const container = recentCheckInsHeading.parentElement!.parentElement!;
-      const checkInTable = within(container).getByRole('table');
+      const container = recentCheckInsHeading.closest('section')!;
+      const checkInTable = await within(container).findByRole('table');
 
       // Find the "Started" column index
       const headers = within(checkInTable).getAllByRole('columnheader');

@@ -10,6 +10,7 @@ type FormSectionProps = {
   className?: string;
   defaultExpanded?: boolean;
   description?: React.ReactNode;
+  step?: number;
   trailingItems?: React.ReactNode;
 };
 
@@ -18,6 +19,7 @@ export function FormSection({
   className,
   title,
   description,
+  step,
   trailingItems,
   defaultExpanded = true,
 }: FormSectionProps) {
@@ -30,7 +32,10 @@ export function FormSection({
       className={className}
     >
       <Disclosure.Title trailingItems={trailingItems}>
-        <Heading as="h3">{title}</Heading>
+        <Heading as="h3">
+          {step ? `${step}. ` : ''}
+          {title}
+        </Heading>
       </Disclosure.Title>
       <Disclosure.Content>
         <Flex direction="column" gap="md">

@@ -1,5 +1,6 @@
 import {useCallback, useMemo} from 'react';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
@@ -53,6 +54,7 @@ export function LogsTabSeerComboBox() {
   const pageFilters = usePageFilters();
   const organization = useOrganization();
   const queryParams = useQueryParams();
+  const analyticsArea = useAnalyticsArea();
   const {
     currentInputValueRef,
     query,
@@ -244,11 +246,18 @@ export function LogsTabSeerComboBox() {
         query: queryToUse,
         group_by_count: groupBys.length,
       });
+      trackAnalytics('ai_query.applied', {
+        organization,
+        area: analyticsArea,
+        query: queryToUse,
+        group_by_count: groupBys.length,
+      });
 
       // Single navigation with all params (matches Trace Explorer pattern)
       navigate({...location, query: newQuery}, {replace: true, preventScrollReset: true});
     },
     [
+      analyticsArea,
       askSeerSuggestedQueryRef,
       location,
       navigate,

@@ -34,7 +34,7 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
   return (
     <Stack gap="2xl" maxWidth={theme.breakpoints.xl}>
       <Container>
-        <FormSection title={t('Detect')}>
+        <FormSection step={1} title={t('Detect')}>
           <Text as="p">
             {tct(
               'An error issue will be created when a new issue group is detected. [link:Manage Grouping Rules]',
@@ -50,7 +50,7 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
         </FormSection>
       </Container>
       <Container>
-        <FormSection title={t('Assign')}>
+        <FormSection step={2} title={t('Assign')}>
           <Text as="p">
             {tct(
               'Sentry will attempt to automatically assign new issues based on [link:Ownership Rules].',
@@ -66,7 +66,7 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
         </FormSection>
       </Container>
       <Container>
-        <FormSection title={t('Prioritize')}>
+        <FormSection step={3} title={t('Prioritize')}>
           <Text as="p">
             {tct(
               'New error issues are prioritized based on log level. [link:Learn more about Issue Priority]',
@@ -80,7 +80,7 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
         </FormSection>
       </Container>
       <Container>
-        <FormSection title={t('Prioritize')}>
+        <FormSection step={4} title={t('Resolve')}>
           <Text as="p">
             {tct(
               'Issues may be automatically resolved based on [link:Auto Resolve Settings].',
@@ -95,7 +95,7 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
           </Text>
         </FormSection>
       </Container>
-      <AutomateSection />
+      <AutomateSection step={5} />
     </Stack>
   );
 }
