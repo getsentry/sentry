@@ -14,6 +14,7 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.events.types import SnubaParams
+from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.seer.explorer.context_engine_utils import (
     EVENT_COUNT_LOOKBACK_DAYS,
     ProjectEventCounts,
@@ -45,7 +46,6 @@ from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils.hashlib import md5_text
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
-from src.sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
 
 logger = logging.getLogger(__name__)
 
@@ -221,7 +221,6 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
     name="sentry.tasks.seer.context_engine_index.index_repos",
     namespace=seer_tasks,
     processing_deadline_duration=10 * 60,  # 10 minutes
-    retry=Retry(times=3, on=(SnubaRPCRateLimitExceeded,), delay=60),
 )
 def index_repos(organization_id: int, *args, **kwargs) -> None:
     if not options.get("explorer.context_engine_indexing.enable"):
@@ -266,11 +265,14 @@ def index_repos(organization_id: int, *args, **kwargs) -> None:
                     "integration_id": repo["integration_id"],
                 }
 
-    make_org_repo_knowledge_index_request(
+    response = make_org_repo_knowledge_index_request(
         ExplorerIndexOrgRepoRequest(
             org_id=organization.id, repos=list(org_repo_definitions.values())
         )
     )
+
+    if response.status >= 400:
+        raise SeerApiError("Seer request failed", response.status)
 
 
 def get_allowed_org_ids_context_engine_indexing() -> list[int]:
