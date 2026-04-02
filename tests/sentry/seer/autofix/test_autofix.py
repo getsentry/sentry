@@ -1137,10 +1137,12 @@ class TestResolveProjectPreference(TestCase):
     @patch("sentry.seer.autofix.autofix.write_preference_to_sentry_db")
     @patch("sentry.seer.autofix.autofix.set_project_seer_preference")
     @patch("sentry.seer.autofix.autofix.get_project_seer_preferences")
-    def test_creates_preference_from_code_mappings(
+    def test_creates_preference_from_code_mappings_and_org_defaults(
         self, mock_get_prefs, mock_set_pref, mock_write_sentry
     ):
         mock_get_prefs.return_value = SeerRawPreferenceResponse(preference=None)
+        self.organization.update_option("sentry:default_automated_run_stopping_point", "open_pr")
+        self.organization.update_option("sentry:auto_open_prs", True)
 
         code_mapping_repos = [self._mock_repo("sentry", "123")]
         result = _resolve_project_preference(self.organization, self.project, code_mapping_repos)
@@ -1151,7 +1153,7 @@ class TestResolveProjectPreference(TestCase):
         assert len(result.repositories) == 1
         assert result.repositories[0].name == "sentry"
         assert result.repositories[0].external_id == "123"
-        assert result.automated_run_stopping_point == "code_changes"
+        assert result.automated_run_stopping_point == "open_pr"
         mock_set_pref.assert_called_once()
         mock_write_sentry.assert_called_once()
 
