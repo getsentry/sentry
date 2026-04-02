@@ -19,6 +19,7 @@ import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
 import {t, tctCode} from 'sentry/locale';
@@ -99,6 +100,7 @@ export function WidgetBuilderSlideout({
 }: WidgetBuilderSlideoutProps) {
   const organization = useOrganization();
   const location = useLocation();
+  const {visible: isModalVisible} = useGlobalModal();
   const {state, dispatch} = useWidgetBuilderContext();
   const [initialState] = useState(state);
   const [customizeFromLibrary, setCustomizeFromLibrary] = useState(false);
@@ -236,13 +238,13 @@ export function WidgetBuilderSlideout({
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !event.defaultPrevented && !isModalVisible) {
         onCloseWithModal();
       }
     }
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onCloseWithModal]);
+  }, [onCloseWithModal, isModalVisible]);
 
   const breadcrumbs = customizeFromLibrary
     ? [
