@@ -467,7 +467,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         call_kwargs = mock_produce_to_kafka.call_args[1]
         assert PreprodFeature.SIZE_ANALYSIS in call_kwargs["requested_features"]
 
-    @patch("sentry.preprod.tasks._dispatch_taskbroker_shadow")
+    @patch("sentry.preprod.tasks._dispatch_taskbroker")
     @patch("sentry.preprod.tasks.produce_preprod_artifact_to_kafka")
     def test_only_taskbroker_dispatched_when_flag_enabled(
         self, mock_produce_to_kafka, mock_shadow
@@ -498,7 +498,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         mock_produce_to_kafka.assert_not_called()
         mock_shadow.assert_called_once_with(self.project.id, self.organization.id, artifact.id)
 
-    @patch("sentry.preprod.tasks._dispatch_taskbroker_shadow")
+    @patch("sentry.preprod.tasks._dispatch_taskbroker")
     @patch("sentry.preprod.tasks.produce_preprod_artifact_to_kafka")
     def test_shadow_taskbroker_not_dispatched_when_flag_disabled(
         self, mock_produce_to_kafka, mock_shadow
@@ -528,7 +528,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         mock_produce_to_kafka.assert_called_once()
         mock_shadow.assert_not_called()
 
-    @patch("sentry.preprod.tasks._dispatch_taskbroker_shadow")
+    @patch("sentry.preprod.tasks._dispatch_taskbroker")
     @patch("sentry.preprod.tasks.produce_preprod_artifact_to_kafka")
     def test_only_kafka_dispatched_when_flag_disabled(
         self, mock_produce_to_kafka, mock_shadow
