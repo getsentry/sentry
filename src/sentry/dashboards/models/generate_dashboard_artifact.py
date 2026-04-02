@@ -1,33 +1,40 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Literal, TypeAlias
 
 from pydantic import BaseModel, Field, validator
 
 from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard_widget import DashboardWidgetDisplayTypes, DashboardWidgetTypes
 
 GRID_WIDTH = 6
 
-# Hardcode maintained lists for now, not all display types are well suited for dashboard generation.
-DisplayType = Literal[
-    "line",
-    "area",
-    "stacked_area",
-    "bar",
-    "table",
-    "big_number",
-    "top_n",
-    "categorical_bar",
-]
+DISPLAY_TYPE_BLOCKLIST: set[str] = {
+    "details",
+    "server_tree",
+    "rage_and_dead_clicks",
+    "wheel",
+    "agents_traces_table",
+}
 
-# Hardcode maintained lists for now, not all widget types are well suited for dashboard generation.
-WidgetType = Literal[
-    "issue",
-    "error-events",
-    "spans",
-    "logs",
-    "tracemetrics",
-]
+# Most of these are deprecated, not selectable in the UI, or don't make sense for generated dashboards.
+WIDGET_TYPE_BLOCKLIST: set[str] = {
+    "discover",
+    "custom-metrics",
+    "metrics",
+    "transaction-like",
+    "preprod-app-size",
+}
+
+_ALLOWED_DISPLAY_TYPES = tuple(
+    t for t in DashboardWidgetDisplayTypes.TYPE_NAMES if t not in DISPLAY_TYPE_BLOCKLIST
+)
+_ALLOWED_WIDGET_TYPES = tuple(
+    t for t in DashboardWidgetTypes.TYPE_NAMES if t not in WIDGET_TYPE_BLOCKLIST
+)
+
+DisplayType: TypeAlias = Literal[tuple(_ALLOWED_DISPLAY_TYPES)]  # type: ignore[valid-type]
+WidgetType: TypeAlias = Literal[tuple(_ALLOWED_WIDGET_TYPES)]  # type: ignore[valid-type]
 
 Intervals = Literal["5m", "15m", "30m", "1h", "4h", "12h", "24h"]
 
@@ -122,12 +129,13 @@ class GeneratedWidget(BaseModel):
 
     title: str = Field(..., max_length=255)  # Matches serializer
     description: str = Field(
-        ..., max_length=255
-    )  # Length matches serializer, required field for generation
-    display_type: DisplayType
-    widget_type: WidgetType = Field(
         ...,
-        description="Dataset to query. Use 'spans' as the default — it covers most use cases. Use 'error-events' for error-specific data, 'issue' for issue tracking, 'logs' for log data, 'tracemetrics' for trace metrics.",
+        description="A short description of the widget. This is displayed in the dashboard UI as a hoverable tooltip.For text widget types, this is the markdown text content displayed to the user. Should not exceed 255 characters for non-text widgets. ",
+    )
+    display_type: DisplayType
+    widget_type: WidgetType | None = Field(
+        ...,
+        description="Dataset to query. Use 'spans' as the default — it covers most use cases. Use 'error-events' for error-specific data, 'issue' for issue tracking, 'logs' for log data, 'tracemetrics' for trace metrics. Text widgets do not have a widget_type and should be set to None. Required for non-text widgets.",
     )
     queries: list[GeneratedWidgetQuery]
     layout: GeneratedWidgetLayout
