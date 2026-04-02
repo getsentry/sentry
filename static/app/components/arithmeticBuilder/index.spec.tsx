@@ -263,16 +263,11 @@ describe('ArithmeticBuilder', () => {
     expect(screen.getAllByRole('row')).toHaveLength(1);
   });
 
-  it('ignores invalid references', async () => {
-    const expression = '!invalid';
-    render(
-      <ArithmeticBuilderWrapper
-        expression={expression}
-        references={new Set(['!invalid'])}
-      />
-    );
-
-    expect(await screen.findByRole('row')).toBeInTheDocument();
-    expect(screen.getByRole('combobox', {name: 'Add a term'})).toHaveValue('!invalid');
+  it('throws when provided invalid references', () => {
+    expect(() => {
+      render(
+        <ArithmeticBuilderWrapper expression="A + B" references={new Set(['!invalid'])} />
+      );
+    }).toThrow('Invalid reference: !invalid');
   });
 });

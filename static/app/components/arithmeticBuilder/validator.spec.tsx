@@ -64,7 +64,6 @@ describe('vaidateTokens', () => {
     ['(A + B) * (A - B)', new Set(['A', 'B'])],
     ['(A + B) * (A - B) / 100', new Set(['A', 'B'])],
     ['((A + B) * (A - B)) / 100', new Set(['A', 'B'])],
-    ['((A + B) * (A - Beta)) / 100', new Set(['A', 'B', 'Beta'])],
   ])('passes with references `%s`', (expression, references) => {
     const tokens = tokenizeExpression(expression, references);
     expect(validateTokens(tokens)).toBe(true);
