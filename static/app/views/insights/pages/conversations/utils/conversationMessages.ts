@@ -154,7 +154,10 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
   for (const turn of turns) {
     const timestamp = getNodeTimestamp(turn.generation);
 
-    if (turn.userContent && !seenUserContent.has(turn.userContent)) {
+    if (
+      turn.userContent &&
+      (turn.userContent === FILTERED || !seenUserContent.has(turn.userContent))
+    ) {
       seenUserContent.add(turn.userContent);
       messages.push({
         id: `user-${turn.generation.id}`,
@@ -166,7 +169,11 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
       });
     }
 
-    if (turn.assistantContent && !seenAssistantContent.has(turn.assistantContent)) {
+    if (
+      turn.assistantContent &&
+      (turn.assistantContent === FILTERED ||
+        !seenAssistantContent.has(turn.assistantContent))
+    ) {
       seenAssistantContent.add(turn.assistantContent);
 
       // Duration: from start of generation span to end of last span (generation or tool)

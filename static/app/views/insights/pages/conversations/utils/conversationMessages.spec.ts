@@ -633,6 +633,39 @@ describe('conversationMessages utilities', () => {
       expect(assistantMessages).toHaveLength(1);
     });
 
+    it('does not deduplicate [Filtered] messages across turns', () => {
+      const turns = [
+        {
+          generation: {
+            id: 'gen-1',
+            value: {start_timestamp: 1000, end_timestamp: 1100},
+          } as any,
+          userContent: '[Filtered]',
+          assistantContent: '[Filtered]',
+          toolCalls: [],
+          userEmail: undefined,
+        },
+        {
+          generation: {
+            id: 'gen-2',
+            value: {start_timestamp: 2000, end_timestamp: 2100},
+          } as any,
+          userContent: '[Filtered]',
+          assistantContent: '[Filtered]',
+          toolCalls: [],
+          userEmail: undefined,
+        },
+      ];
+
+      const messages = turnsToMessages(turns);
+
+      const userMessages = messages.filter(m => m.role === 'user');
+      const assistantMessages = messages.filter(m => m.role === 'assistant');
+
+      expect(userMessages).toHaveLength(2);
+      expect(assistantMessages).toHaveLength(2);
+    });
+
     it('attaches tool calls to assistant messages', () => {
       const turns = [
         {
