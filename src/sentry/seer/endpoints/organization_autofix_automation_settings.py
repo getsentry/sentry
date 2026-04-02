@@ -246,7 +246,9 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
         :pparam string organization_id_or_slug: the id or slug of the organization.
         :auth: required
         """
-        serializer = SeerAutofixSettingsPostSerializer(data=request.data)
+        serializer = SeerAutofixSettingsPostSerializer(
+            data=request.data, context={"organization": organization}
+        )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 

@@ -1,11 +1,13 @@
 import {Link} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
+import {Observer} from 'mobx-react-lite';
 
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
+import {FormContext} from 'sentry/components/forms/formContext';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
@@ -34,7 +36,7 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
   return (
     <Stack gap="2xl" maxWidth={theme.breakpoints.xl}>
       <Container>
-        <FormSection title={t('Detect')}>
+        <FormSection step={1} title={t('Detect')}>
           <Text as="p">
             {tct(
               'An error issue will be created when a new issue group is detected. [link:Manage Grouping Rules]',
@@ -50,7 +52,7 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
         </FormSection>
       </Container>
       <Container>
-        <FormSection title={t('Assign')}>
+        <FormSection step={2} title={t('Assign')}>
           <Text as="p">
             {tct(
               'Sentry will attempt to automatically assign new issues based on [link:Ownership Rules].',
@@ -66,7 +68,7 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
         </FormSection>
       </Container>
       <Container>
-        <FormSection title={t('Prioritize')}>
+        <FormSection step={3} title={t('Prioritize')}>
           <Text as="p">
             {tct(
               'New error issues are prioritized based on log level. [link:Learn more about Issue Priority]',
@@ -80,7 +82,7 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
         </FormSection>
       </Container>
       <Container>
-        <FormSection title={t('Prioritize')}>
+        <FormSection step={4} title={t('Resolve')}>
           <Text as="p">
             {tct(
               'Issues may be automatically resolved based on [link:Auto Resolve Settings].',
@@ -95,7 +97,7 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
           </Text>
         </FormSection>
       </Container>
-      <AutomateSection />
+      <AutomateSection step={5} />
     </Stack>
   );
 }
@@ -158,21 +160,30 @@ export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetect
         <ErrorDetectorForm detector={detector} />
       </EditLayout.Body>
 
-      <EditLayout.Footer maxWidth={maxWidth}>
-        <Button
-          type="submit"
-          priority="primary"
-          size="sm"
-          disabled={!canEditWorkflowConnections}
-          tooltipProps={{
-            title: canEditWorkflowConnections
-              ? undefined
-              : getNoPermissionToEditMonitorTooltip(),
-          }}
-        >
-          {t('Save')}
-        </Button>
-      </EditLayout.Footer>
+      <FormContext.Consumer>
+        {({form}) => (
+          <EditLayout.Footer maxWidth={maxWidth}>
+            <Observer>
+              {() => (
+                <Button
+                  type="submit"
+                  priority="primary"
+                  size="sm"
+                  busy={form?.isSaving}
+                  disabled={!canEditWorkflowConnections}
+                  tooltipProps={{
+                    title: canEditWorkflowConnections
+                      ? undefined
+                      : getNoPermissionToEditMonitorTooltip(),
+                  }}
+                >
+                  {t('Save')}
+                </Button>
+              )}
+            </Observer>
+          </EditLayout.Footer>
+        )}
+      </FormContext.Consumer>
     </EditLayout>
   );
 }

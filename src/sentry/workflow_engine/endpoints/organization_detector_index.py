@@ -148,7 +148,7 @@ def get_detector_validator(
 class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
-        "POST": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
         "PUT": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
     }

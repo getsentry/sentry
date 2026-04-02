@@ -53,7 +53,10 @@ class TestEnvCellDirectory(CellDirectory):
             monolith_cell = cells[0]
             with override_settings(SENTRY_MONOLITH_REGION=monolith_cell.name):
                 if local_cell:
-                    with override_settings(SENTRY_REGION=local_cell.name):
+                    # TODO(cells): Remove SENTRY_REGION once all references in getsentry tests updated
+                    with override_settings(
+                        SENTRY_LOCAL_CELL=local_cell.name, SENTRY_REGION=local_cell.name
+                    ):
                         yield
                 else:
                     yield
@@ -70,7 +73,10 @@ class TestEnvCellDirectory(CellDirectory):
     @contextmanager
     def swap_to_default_cell(self) -> Generator[None]:
         """Swap to the monolith cell when entering cell mode."""
-        with override_settings(SENTRY_REGION=self._default_cell.name):
+        # TODO(cells): Remove SENTRY_REGION once all references in getsentry tests updated
+        with override_settings(
+            SENTRY_LOCAL_CELL=self._default_cell.name, SENTRY_REGION=self._default_cell.name
+        ):
             yield
 
     @contextmanager
@@ -79,7 +85,8 @@ class TestEnvCellDirectory(CellDirectory):
         cell = self.get_cell_by_name(cell_name)
         if cell is None:
             raise Exception("specified swap cell not found")
-        with override_settings(SENTRY_REGION=cell.name):
+        # TODO(cells): Remove SENTRY_REGION once all references in getsentry tests updated
+        with override_settings(SENTRY_LOCAL_CELL=cell.name, SENTRY_REGION=cell.name):
             yield
 
 
@@ -93,9 +100,9 @@ def get_test_env_directory() -> TestEnvCellDirectory:
 def override_cells(cells: Sequence[Cell], local_cell: Cell | None = None) -> Generator[None]:
     """Override the global set of existing cells.
 
-    The overriding value takes the place of the `SENTRY_REGION_CONFIG` setting and
+    The overriding value takes the place of the `SENTRY_CELLS` setting and
     changes the behavior of the module-level functions in `sentry.types.cell`. This
-    is preferable to overriding the `SENTRY_REGION_CONFIG` setting value directly
+    is preferable to overriding the `SENTRY_CELLS` setting value directly
     because the cell mapping may already be cached.
     """
     with get_test_env_directory().swap_state(cells, local_cell=local_cell):

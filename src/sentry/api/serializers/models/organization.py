@@ -84,6 +84,7 @@ from sentry.models.team import Team, TeamStatus
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.replays.models import OrganizationMemberReplayAccess
+from sentry.seer.autofix.utils import get_valid_automated_run_stopping_points
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -601,6 +602,15 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         return attrs
 
+    def _get_default_automated_run_stopping_point(self, obj: Organization) -> str:
+        stopping_point = obj.get_option(
+            "sentry:default_automated_run_stopping_point",
+            SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+        )
+        if stopping_point not in get_valid_automated_run_stopping_points(obj):
+            return SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+        return stopping_point
+
     def serialize(  # type: ignore[override]
         self,
         obj: Organization,
@@ -741,10 +751,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             "defaultCodingAgentIntegrationId": obj.get_option(
                 "sentry:seer_default_coding_agent_integration_id", None
             ),
-            "defaultAutomatedRunStoppingPoint": obj.get_option(
-                "sentry:default_automated_run_stopping_point",
-                SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
-            ),
+            "defaultAutomatedRunStoppingPoint": self._get_default_automated_run_stopping_point(obj),
             "autoOpenPrs": bool(
                 obj.get_option(
                     "sentry:auto_open_prs",

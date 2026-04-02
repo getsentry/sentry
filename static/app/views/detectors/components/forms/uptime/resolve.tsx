@@ -8,10 +8,10 @@ import {t, tct} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {UPTIME_DEFAULT_RECOVERY_THRESHOLD} from 'sentry/views/detectors/components/forms/uptime/fields';
 
-export function UptimeDetectorResolveSection() {
+export function UptimeDetectorResolveSection({step}: {step?: number}) {
   return (
     <Container>
-      <FormSection title={t('Resolve')}>
+      <FormSection step={step} title={t('Resolve')}>
         <DetectFieldsContainer>
           <div>
             <NumberField

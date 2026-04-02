@@ -12,6 +12,7 @@ import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import type {SpanProperty} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {
   filterToColor,
@@ -19,6 +20,7 @@ import {
 } from 'sentry/views/performance/transactionSummary/filter';
 import {transformData} from 'sentry/views/performance/transactionSummary/transactionOverview/durationPercentileChart/utils';
 import {EAPWidgetType} from 'sentry/views/performance/transactionSummary/transactionOverview/eapChartsWidget';
+import {EAP_WEB_VITALS} from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
 
 import {Chart as DurationPercentileChart} from './durationPercentileChart/chart';
 
@@ -53,12 +55,22 @@ export function useWidgetChartVisualization({
     query,
   });
 
+  const webVitalsVisualization = useWebVitalsVisualization({
+    enabled: selectedWidget === EAPWidgetType.WEB_VITALS,
+    transactionName,
+    query,
+  });
+
   if (selectedWidget === EAPWidgetType.DURATION_BREAKDOWN) {
     return durationBreakdownVisualization;
   }
 
   if (selectedWidget === EAPWidgetType.DURATION_PERCENTILES) {
     return durationPercentilesVisualization;
+  }
+
+  if (selectedWidget === EAPWidgetType.WEB_VITALS) {
+    return webVitalsVisualization;
   }
 
   return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
@@ -208,6 +220,80 @@ function useDurationPercentilesVisualization({
     <DurationPercentileChart
       series={transformData(durationPercentilesData, false, /p(\d+)\(/)}
       colors={colors}
+    />
+  );
+}
+
+type WebVitalsVisualizationOptions = {
+  enabled: boolean;
+  query: string;
+  transactionName: string;
+};
+
+function useWebVitalsVisualization({
+  enabled,
+  transactionName,
+  query,
+}: WebVitalsVisualizationOptions) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const {selection} = usePageFilters();
+  const legendSelection = getSeriesSelection(location);
+
+  const {releases: releasesWithDate} = useReleaseStats(selection);
+  const releases =
+    releasesWithDate?.map(({date, version}) => ({
+      timestamp: date,
+      version,
+    })) ?? [];
+
+  const newQuery = new MutableSearch(query);
+  newQuery.addFilterValue('transaction', transactionName);
+  newQuery.addFilterValue('is_transaction', '1');
+
+  const {
+    data: spanSeriesData,
+    isPending: isSpanSeriesPending,
+    isError: isSpanSeriesError,
+  } = useFetchSpanTimeSeries(
+    {
+      yAxis: EAP_WEB_VITALS.map(vital => `p75(${vital})` as SpanProperty),
+      query: newQuery,
+      interval: getInterval(selection.datetime, 'high'),
+      enabled,
+    },
+    REFERRER
+  );
+
+  if (!enabled) {
+    return null;
+  }
+
+  if (isSpanSeriesPending || isSpanSeriesError) {
+    return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
+  }
+
+  const plottables =
+    spanSeriesData?.timeSeries.map(series => {
+      return new Line(series);
+    }) ?? [];
+
+  return (
+    <TimeSeriesWidgetVisualization
+      plottables={plottables}
+      releases={releases}
+      showReleaseAs="bubble"
+      legendSelection={legendSelection}
+      onLegendSelectionChange={selected => {
+        const unselected = Object.keys(selected).filter(key => !selected[key]);
+        navigate({
+          ...location,
+          query: {
+            ...location.query,
+            unselectedSeries: unselected,
+          },
+        });
+      }}
     />
   );
 }

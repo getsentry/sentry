@@ -315,7 +315,12 @@ function EditConnectedMonitorsContent({
 
   return (
     <WorkflowEngineContainer>
-      <FormSection title={t('Source')}>
+      <FormSection
+        title={t('Source')}
+        description={t(
+          'Get alerted when new issues are detected or an issue changes state.'
+        )}
+      >
         <Stack gap="lg">
           <RadioGroup
             label={t('Connected monitors mode')}
@@ -369,7 +374,12 @@ export function EditConnectedMonitors({connectedIds, setConnectedIds}: Props) {
   if (isLoading && firstLoad) {
     return (
       <WorkflowEngineContainer>
-        <FormSection title={t('Source')}>
+        <FormSection
+          title={t('Source')}
+          description={t(
+            'Get alerted when new issues are detected or an issue changes state.'
+          )}
+        >
           <Placeholder width="100%" height="200px" />
         </FormSection>
       </WorkflowEngineContainer>

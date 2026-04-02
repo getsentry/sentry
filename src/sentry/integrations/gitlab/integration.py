@@ -165,7 +165,10 @@ class GitlabIntegration(
         return False
 
     def get_repositories(
-        self, query: str | None = None, page_number_limit: int | None = None
+        self,
+        query: str | None = None,
+        page_number_limit: int | None = None,
+        accessible_only: bool = False,
     ) -> list[dict[str, Any]]:
         try:
             # Note: gitlab projects are the same things as repos everywhere else

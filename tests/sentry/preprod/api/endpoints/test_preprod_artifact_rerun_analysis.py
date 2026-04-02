@@ -275,6 +275,31 @@ class PreprodArtifactRerunAnalysisTest(BaseRerunAnalysisTest):
         assert PreprodFeature.BUILD_DISTRIBUTION in call_kwargs["requested_features"]
 
     @patch(
+        "sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.dispatch_taskbroker",
+        return_value=True,
+    )
+    @patch(
+        "sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.produce_preprod_artifact_to_kafka"
+    )
+    def test_rerun_dispatches_via_taskbroker_when_flag_enabled(
+        self, mock_produce_to_kafka, mockdispatch_taskbroker
+    ):
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_name="MyApp",
+            app_id="com.my.app",
+            build_version="1.0.0",
+            build_number=1,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+
+        with self.feature("organizations:launchpad-taskbroker-rollout"):
+            self.get_success_response(self.organization.slug, artifact.id, status_code=200)
+
+        mock_produce_to_kafka.assert_not_called()
+        mockdispatch_taskbroker.assert_called_once()
+
+    @patch(
         "sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.produce_preprod_artifact_to_kafka"
     )
     def test_rerun_analysis_includes_feature_on_invalid_query(self, mock_produce_to_kafka):
@@ -392,10 +417,35 @@ class PreprodArtifactAdminRerunAnalysisTest(BaseRerunAnalysisTest):
 
     def test_rerun_analysis_not_found(self) -> None:
         response = self.get_error_response(preprod_artifact_id=999999, status_code=404)
-        assert "not found" in response.data["error"]
+        assert "not found" in response.data["detail"]
 
     def test_rerun_analysis_invalid_id(self) -> None:
         response = self.get_error_response(preprod_artifact_id="invalid", status_code=400)
         assert (
-            "preprod_artifact_id is required and must be a valid integer" in response.data["error"]
+            "preprod_artifact_id is required and must be a valid integer" in response.data["detail"]
         )
+
+    @patch(
+        "sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.dispatch_taskbroker",
+        return_value=True,
+    )
+    @patch(
+        "sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.produce_preprod_artifact_to_kafka"
+    )
+    def test_rerun_dispatches_via_taskbroker_when_flag_enabled(
+        self, mock_produce_to_kafka, mockdispatch_taskbroker
+    ):
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_name="MyApp",
+            app_id="com.my.app",
+            build_version="1.0.0",
+            build_number=1,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+
+        with self.feature("organizations:launchpad-taskbroker-rollout"):
+            self.get_success_response(preprod_artifact_id=artifact.id, status_code=200)
+
+        mock_produce_to_kafka.assert_not_called()
+        mockdispatch_taskbroker.assert_called_once()
