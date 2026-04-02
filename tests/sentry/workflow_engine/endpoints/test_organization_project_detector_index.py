@@ -87,6 +87,21 @@ class OrganizationProjectDetectorIndexBaseTest(APITestCase):
 @cell_silo_test
 @with_feature("organizations:incidents")
 class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexBaseTest):
+    def test_reject_upsampled_count_aggregate(self) -> None:
+        """Users should not be able to submit upsampled_count() directly in ACI."""
+        data = {**self.valid_data}
+        data["dataSources"] = [
+            {**self.valid_data["dataSources"][0], "aggregate": "upsampled_count()"}
+        ]
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            **data,
+            status_code=400,
+        )
+        assert "upsampled_count() is not allowed as user input" in str(response.data)
+
     def test_missing_group_type(self) -> None:
         data = {**self.valid_data}
         del data["type"]
