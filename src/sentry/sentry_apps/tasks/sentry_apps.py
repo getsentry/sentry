@@ -993,10 +993,11 @@ def send_metric_alert_webhook(
     with SentryAppInteractionEvent(
         operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
         event_type=event,
-    ).capture():
+    ).capture() as lifecycle:
         sentry_app = app_service.get_sentry_app_by_id(id=sentry_app_id)
         if sentry_app is None:
-            raise SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_SENTRY_APP)
+            lifecycle.record_failure(SentryAppWebhookFailureReason.MISSING_SENTRY_APP)
+            return
 
         installations = app_service.get_many(
             filter=dict(
@@ -1006,7 +1007,8 @@ def send_metric_alert_webhook(
             )
         )
         if not installations:
-            raise SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_INSTALLATION)
+            lifecycle.record_failure(SentryAppWebhookFailureReason.MISSING_INSTALLATION)
+            return
 
         app_platform_event = AppPlatformEvent(
             resource=SentryAppResourceType.METRIC_ALERT,
