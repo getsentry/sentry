@@ -399,6 +399,7 @@ function useFilterSuggestions({
   const isDebouncing = baseQueryKey !== queryKey;
 
   // TODO(malwilley): Display error states
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const {data, isFetching} = useQuery({
     queryKey,
     queryFn: ctx => getTagValues(...ctx.queryKey[1]),

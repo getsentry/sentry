@@ -317,7 +317,7 @@ export const useDeleteEventAttachmentOptimistic = (
         {method: 'DELETE'}
       );
     },
-    onMutate: async variables => {
+    onMutate: async (variables, context) => {
       await queryClient.cancelQueries({
         queryKey: makeFetchEventAttachmentsQueryKey(variables),
       });
@@ -339,22 +339,22 @@ export const useDeleteEventAttachmentOptimistic = (
         }
       );
 
-      incomingOptions.onMutate?.(variables);
+      incomingOptions.onMutate?.(variables, context);
 
       return {previous};
     },
-    onError: (error, variables, context) => {
+    onError: (error, variables, onMutateResult, context) => {
       addErrorMessage(t('An error occurred while deleting the attachment'));
 
-      if (context) {
+      if (onMutateResult) {
         setApiQueryData(
           queryClient,
           makeFetchEventAttachmentsQueryKey(variables),
-          context.previous
+          onMutateResult.previous
         );
       }
 
-      incomingOptions.onError?.(error, variables, context);
+      incomingOptions.onError?.(error, variables, onMutateResult, context);
     },
   };
 

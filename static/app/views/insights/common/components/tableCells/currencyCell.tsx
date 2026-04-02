@@ -24,6 +24,7 @@ export function NegativeCostWarning({children}: {children: React.ReactNode}) {
         }
       )}
       skipWrapper
+      isHoverable
     >
       <Flex as="span" display="inline-flex" align="center" gap="xs">
         <IconWarning legacySize="1em" variant="warning" />

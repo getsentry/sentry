@@ -55,7 +55,7 @@ describe('Subscription > PaymentHistory', () => {
     render(<PaymentHistory />, {organization});
 
     await screen.findByText('Receipts');
-    expect(screen.getByTestId('payment-list')).toBeInTheDocument();
+    expect(await screen.findByTestId('payment-list')).toBeInTheDocument();
   });
 
   it('renders no receipts found', async () => {

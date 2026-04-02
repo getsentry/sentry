@@ -190,7 +190,9 @@ describe('EventGraph', () => {
         },
       },
     });
-    expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByTestId('event-graph-loading')).not.toBeInTheDocument();
+    });
 
     expect(mockEventStats).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',

@@ -14,7 +14,7 @@ import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPa
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {Container as WorkflowEngineContainer} from 'sentry/components/workflowEngine/ui/container';
-import {Section} from 'sentry/components/workflowEngine/ui/section';
+import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
@@ -97,7 +97,7 @@ function AllMonitors({
 
   return (
     <PageFiltersContainer>
-      <Section title={t('All Monitors')}>
+      <FormSection title={t('All Monitors')}>
         <Flex gap="xl">
           <ProjectPageFilter storageNamespace="automationDrawer" />
           <div style={{flexGrow: 1}}>
@@ -116,7 +116,7 @@ function AllMonitors({
           projectIds={selection.projects}
           openInNewTab
         />
-      </Section>
+      </FormSection>
     </PageFiltersContainer>
   );
 }
@@ -315,7 +315,7 @@ function EditConnectedMonitorsContent({
 
   return (
     <WorkflowEngineContainer>
-      <Section title={t('Source')}>
+      <FormSection title={t('Source')}>
         <Stack gap="lg">
           <RadioGroup
             label={t('Connected monitors mode')}
@@ -335,7 +335,7 @@ function EditConnectedMonitorsContent({
             />
           )}
         </Stack>
-      </Section>
+      </FormSection>
     </WorkflowEngineContainer>
   );
 }
@@ -369,9 +369,9 @@ export function EditConnectedMonitors({connectedIds, setConnectedIds}: Props) {
   if (isLoading && firstLoad) {
     return (
       <WorkflowEngineContainer>
-        <Section title={t('Source')}>
+        <FormSection title={t('Source')}>
           <Placeholder width="100%" height="200px" />
-        </Section>
+        </FormSection>
       </WorkflowEngineContainer>
     );
   }
@@ -392,6 +392,6 @@ const DrawerContent = styled('div')`
   padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
 `;
 
-const StyledSection = styled(Section)`
+const StyledSection = styled(FormSection)`
   margin-bottom: ${p => p.theme.space.lg};
 `;

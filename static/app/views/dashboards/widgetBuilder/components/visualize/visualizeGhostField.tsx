@@ -221,18 +221,14 @@ const Ghost = styled('div')`
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
   opacity: 0.8;
   cursor: grabbing;
-  padding-right: ${p => p.theme.space.xl};
   width: 100%;
 
   button {
     cursor: grabbing;
   }
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    width: 710px;
-  }
 `;
 
 const StyledDragReorderButton = styled(DragReorderButton)`
   height: ${p => p.theme.form.md.height};
+  cursor: grabbing;
 `;

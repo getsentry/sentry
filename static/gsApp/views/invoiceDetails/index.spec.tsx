@@ -127,7 +127,7 @@ describe('InvoiceDetails', () => {
     await waitFor(() => expect(mockapi).toHaveBeenCalled());
 
     expect(
-      screen.getByText(
+      await screen.findByText(
         /Your subscription will automatically renew on or about the same day each year and your credit card on file will be charged the recurring subscription fees set forth above. In addition to recurring subscription fees, you may also be charged for monthly pay-as-you-go fees. You may cancel your subscription at any time /
       )
     ).toBeInTheDocument();
@@ -221,8 +221,8 @@ describe('InvoiceDetails', () => {
 
     await waitFor(() => expect(mockapiInvoice).toHaveBeenCalled());
 
-    expect(screen.getByText(/Receipt Details/)).toBeInTheDocument();
-    expect(screen.getByText(/AWAITING PAYMENT/)).toBeInTheDocument();
+    expect(await screen.findByText(/Receipt Details/)).toBeInTheDocument();
+    expect(await screen.findByText(/AWAITING PAYMENT/)).toBeInTheDocument();
     expect(screen.queryByText(/Pay Now/)).not.toBeInTheDocument();
   });
 
@@ -309,8 +309,8 @@ describe('InvoiceDetails', () => {
     await waitFor(() => expect(mockapiInvoice).toHaveBeenCalled());
     await waitFor(() => expect(mockapiPayments).toHaveBeenCalled());
 
-    expect(screen.getByText(/Receipt Details/)).toBeInTheDocument();
-    expect(screen.getAllByText(/Pay Now/)).toHaveLength(2);
+    expect(await screen.findByText(/Receipt Details/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getAllByText(/Pay Now/)).toHaveLength(2));
     expect(screen.getByText(/Pay Bill/)).toBeInTheDocument();
     expect(screen.getByTestId('modal-backdrop')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();

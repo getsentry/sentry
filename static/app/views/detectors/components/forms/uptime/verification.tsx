@@ -1,5 +1,5 @@
 import {Container} from 'sentry/components/workflowEngine/ui/container';
-import {Section} from 'sentry/components/workflowEngine/ui/section';
+import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t} from 'sentry/locale';
 import {UptimeAssertionsField} from 'sentry/views/alerts/rules/uptime/assertions/field';
 import {useUptimeAssertionFeatures} from 'sentry/views/alerts/rules/uptime/useUptimeAssertionFeatures';
@@ -15,7 +15,7 @@ export function UptimeDetectorVerificationSection() {
 
   return (
     <Container>
-      <Section
+      <FormSection
         title={t('Verification')}
         trailingItems={
           hasAiAssertionSuggestions ? (
@@ -33,7 +33,7 @@ export function UptimeDetectorVerificationSection() {
             flexibleControlStateSize
           />
         </UptimeSectionGrid>
-      </Section>
+      </FormSection>
     </Container>
   );
 }
