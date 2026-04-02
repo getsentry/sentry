@@ -270,6 +270,9 @@ from sentry.integrations.api.endpoints.organization_integration_channels import 
 from sentry.integrations.api.endpoints.organization_integration_details import (
     OrganizationIntegrationDetailsEndpoint,
 )
+from sentry.integrations.api.endpoints.organization_integration_direct_enable import (
+    OrganizationIntegrationDirectEnableEndpoint,
+)
 from sentry.integrations.api.endpoints.organization_integration_issues import (
     OrganizationIntegrationIssuesEndpoint,
 )
@@ -1969,6 +1972,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/$",
         OrganizationIntegrationsEndpoint.as_view(),
         name="sentry-api-0-organization-integrations",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/integrations/direct-enable/(?P<provider_key>[^/]+)/$",
+        OrganizationIntegrationDirectEnableEndpoint.as_view(),
+        name="sentry-api-0-organization-integration-direct-enable",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/coding-agents/$",

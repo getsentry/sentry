@@ -44,7 +44,7 @@ class SiloClientError(Exception):
 
 def get_cell_ip_addresses() -> frozenset[ipaddress.IPv4Address | ipaddress.IPv6Address]:
     """
-    Infers the Cell Silo IP addresses from the SENTRY_REGION_CONFIG setting.
+    Infers the Cell Silo IP addresses from the SENTRY_CELLS setting.
     """
     cell_ip_addresses: set[ipaddress.IPv4Address | ipaddress.IPv6Address] = set()
 

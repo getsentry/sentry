@@ -19,6 +19,7 @@ import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/hooks/useSeer
 import {makeSeerExplorerQueryKey} from 'sentry/views/seerExplorer/utils';
 
 import {WidgetErrorProvider} from './contexts/widgetErrorContext';
+import {applySeerWidgetDefaults} from './createFromSeerUtils';
 import {DashboardChatPanel, type WidgetError} from './dashboardChatPanel';
 import {EMPTY_DASHBOARD} from './data';
 import {DashboardDetailWithInjectedProps as DashboardDetail} from './detail';
@@ -81,7 +82,7 @@ function extractDashboardFromSession(
       return {
         title: data.title,
         widgets: assignDefaultLayout(
-          data.widgets.map(normalizeWidget).map(assignTempId),
+          applySeerWidgetDefaults(data.widgets.map(normalizeWidget)).map(assignTempId),
           getInitialColumnDepths()
         ),
       };

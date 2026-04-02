@@ -864,7 +864,7 @@ function findCanvasInMutation(event: incrementalSnapshotEvent) {
   }
 
   return event.data.adds.find(
-    add => add.node && add.node.type === 2 && add.node.tagName === 'canvas'
+    add => add.node?.type === 2 && add.node.tagName === 'canvas'
   );
 }
 

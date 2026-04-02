@@ -88,17 +88,16 @@ class WorkflowEngineDetectorSerializer(Serializer):
         detectors: dict[int, Detector],
         sentry_app_installations_by_sentry_app_id: Mapping[str, RpcSentryAppComponentContext],
         serialized_data_conditions: list[dict[str, Any]],
+        detector_ids_by_alert_rule_id: dict[int, int],
     ) -> None:
         for serialized in serialized_data_conditions:
             errors = []
             alert_rule_id = serialized.get("alertRuleId")
             assert alert_rule_id
-            try:
-                detector_id = AlertRuleDetector.objects.values_list("detector_id", flat=True).get(
-                    alert_rule_id=alert_rule_id
-                )
-            except AlertRuleDetector.DoesNotExist:
-                detector_id = get_object_id_from_fake_id(int(alert_rule_id))
+            detector_id = detector_ids_by_alert_rule_id.get(
+                int(alert_rule_id),
+                get_object_id_from_fake_id(int(alert_rule_id)),
+            )
 
             detector = detectors[int(detector_id)]
             alert_rule_triggers = result[detector].setdefault("triggers", [])
@@ -273,6 +272,16 @@ class WorkflowEngineDetectorSerializer(Serializer):
             self.add_sentry_app_installations_by_sentry_app_id(actions, organization_id)
         )
 
+        # Batch-fetch AlertRuleDetector mappings (used by add_triggers_and_actions and serialize)
+        alert_rule_ids_by_detector_id = dict(
+            AlertRuleDetector.objects.filter(detector_id__in=detector_ids).values_list(
+                "detector_id", "alert_rule_id"
+            )
+        )
+        detector_ids_by_alert_rule_id: dict[int, int] = {
+            v: k for k, v in alert_rule_ids_by_detector_id.items() if v is not None
+        }
+
         # add trigger and action data
         # Evaluate queryset once and reuse for both serialization and lookup dict
         detector_trigger_data_conditions_list = list(detector_trigger_data_conditions)
@@ -287,6 +296,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             detectors,
             sentry_app_installations_by_sentry_app_id,
             serialized_data_conditions,
+            detector_ids_by_alert_rule_id,
         )
         # derive thresholdType and sensitivity/seasonality from trigger data conditions
         # Build a dict to avoid N queries when looking up by condition_group_id
@@ -317,11 +327,6 @@ class WorkflowEngineDetectorSerializer(Serializer):
         self.add_created_by(result, list(detectors.values()))
         self.add_owner(result, list(detectors.values()))
 
-        alert_rule_ids_by_detector_id = dict(
-            AlertRuleDetector.objects.filter(detector_id__in=detector_ids).values_list(
-                "detector_id", "alert_rule_id"
-            )
-        )
         for detector in detectors.values():
             result[detector]["alert_rule_id"] = alert_rule_ids_by_detector_id.get(detector.id)
 

@@ -95,7 +95,7 @@ class CellDirectoryTest(TestCase):
             directory = load_from_config(self._INPUTS, [])
         assert directory.cells == frozenset(self._EXPECTED_OUTPUTS)
 
-    @override_settings(SILO_MODE=SiloMode.CELL, SENTRY_REGION="us")
+    @override_settings(SILO_MODE=SiloMode.CELL, SENTRY_LOCAL_CELL="us")
     def test_get_local_cell(self) -> None:
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS, [])
@@ -143,11 +143,11 @@ class CellDirectoryTest(TestCase):
 
     def test_locality_to_url(self) -> None:
         locality = Locality("us", frozenset(["us"]), RegionCategory.MULTI_TENANT, new_org_cell="us")
-        with override_settings(SILO_MODE=SiloMode.CELL, SENTRY_REGION="us"):
+        with override_settings(SILO_MODE=SiloMode.CELL, SENTRY_LOCAL_CELL="us"):
             assert locality.to_url("/avatar/abcdef/") == "http://us.testserver/avatar/abcdef/"
-        with override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_REGION=""):
+        with override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_LOCAL_CELL=""):
             assert locality.to_url("/avatar/abcdef/") == "http://us.testserver/avatar/abcdef/"
-        with override_settings(SILO_MODE=SiloMode.MONOLITH, SENTRY_REGION=""):
+        with override_settings(SILO_MODE=SiloMode.MONOLITH, SENTRY_LOCAL_CELL=""):
             assert locality.to_url("/avatar/abcdef/") == "http://testserver/avatar/abcdef/"
 
     @patch("sentry.types.cell.sentry_sdk")

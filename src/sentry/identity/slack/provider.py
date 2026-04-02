@@ -71,6 +71,22 @@ class SlackIdentityProvider(OAuth2Provider):
         }
 
 
+class SlackStagingIdentityProvider(SlackIdentityProvider):
+    key = IntegrationProviderSlug.SLACK_STAGING.value
+    name = "Slack (Staging)"
+
+    def get_oauth_client_id(self):
+        return options.get("slack-staging.client-id")
+
+    def get_oauth_client_secret(self):
+        return options.get("slack-staging.client-secret")
+
+    def build_identity(self, data):
+        production_identity = super().build_identity(data)
+        production_identity["type"] = IntegrationProviderSlug.SLACK_STAGING.value
+        return production_identity
+
+
 class SlackOAuth2LoginView(OAuth2LoginView):
     """
     We need to customize the OAuth2LoginView in order to support passing through

@@ -134,7 +134,7 @@ describe('CronDetectorDetails - check-ins', () => {
 
       expect(await screen.findByText('Recent Check-Ins')).toBeInTheDocument();
       expect(
-        screen.getByText('No check-ins have been recorded for this time period.')
+        await screen.findByText('No check-ins have been recorded for this time period.')
       ).toBeInTheDocument();
     });
 
@@ -211,7 +211,7 @@ describe('CronDetectorDetails - check-ins', () => {
       // Wait for check-ins to load and find the table within the section
       const recentCheckInsHeading = await screen.findByText('Recent Check-Ins');
       const container = recentCheckInsHeading.closest('section')!;
-      const checkInTable = within(container).getByRole('table');
+      const checkInTable = await within(container).findByRole('table');
 
       // Find the "Started" column index
       const headers = within(checkInTable).getAllByRole('columnheader');

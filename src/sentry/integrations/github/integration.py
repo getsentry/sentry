@@ -1254,6 +1254,10 @@ class GithubOrganizationSelectionApiStep:
                     "count": info.get("count"),
                 }
                 for info in enriched
+                # TODO(epurkhiser): Remove this filter once the legacy Django
+                # views are removed and _build_installation_info_with_counts is
+                # merged directly into this API pipeline step.
+                if info["installation_id"] != "-1"
             ],
         }
 

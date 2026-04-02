@@ -2508,6 +2508,7 @@ def save_attachment(
         sha1=file.sha1,
         # storage:
         blob_path=file.blob_path,
+        date_expires=datetime.now(timezone.utc) + timedelta(days=attachment.retention_days),
     )
 
     track_outcome(

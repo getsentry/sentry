@@ -38,7 +38,7 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
 
         assert response.status_code == 200
         url = response.data["objectstore"]["url"]
-        region = settings.SENTRY_REGION
+        region = settings.SENTRY_LOCAL_CELL
         assert url.startswith(f"https://{region}.testserver/")
         assert url.endswith(f"/api/0/organizations/{self.org.id}/objectstore")
 
