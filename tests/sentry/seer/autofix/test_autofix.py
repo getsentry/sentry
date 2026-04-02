@@ -1158,37 +1158,40 @@ class TestResolveProjectPreference(TestCase):
     @patch("sentry.seer.autofix.autofix.write_preference_to_sentry_db")
     @patch("sentry.seer.autofix.autofix.set_project_seer_preference")
     @patch("sentry.seer.autofix.autofix.get_project_seer_preferences")
-    def test_returns_none_when_no_repos(self, mock_get_prefs, mock_set_pref, mock_write_sentry):
+    def test_creates_preference_with_empty_repos_when_no_fallback(
+        self, mock_get_prefs, mock_set_pref, mock_write_sentry
+    ):
         mock_get_prefs.return_value = SeerRawPreferenceResponse(preference=None)
 
         result = _resolve_project_preference(self.organization, self.project, [])
 
-        assert result is None
-        mock_set_pref.assert_not_called()
-        mock_write_sentry.assert_not_called()
+        assert result is not None
+        assert result.repositories == []
+        mock_set_pref.assert_called_once()
+        mock_write_sentry.assert_called_once()
 
     @patch("sentry.seer.autofix.autofix.write_preference_to_sentry_db")
     @patch("sentry.seer.autofix.autofix.set_project_seer_preference")
     @patch("sentry.seer.autofix.autofix.get_project_seer_preferences")
-    def test_returns_none_on_get_api_error(self, mock_get_prefs, mock_set_pref, mock_write_sentry):
+    def test_raises_on_get_api_error(self, mock_get_prefs, mock_set_pref, mock_write_sentry):
         mock_get_prefs.side_effect = SeerApiError("test error", 500)
 
-        result = _resolve_project_preference(self.organization, self.project, [self._mock_repo()])
+        with pytest.raises(SeerApiError):
+            _resolve_project_preference(self.organization, self.project, [self._mock_repo()])
 
-        assert result is None
         mock_set_pref.assert_not_called()
         mock_write_sentry.assert_not_called()
 
     @patch("sentry.seer.autofix.autofix.write_preference_to_sentry_db")
     @patch("sentry.seer.autofix.autofix.set_project_seer_preference")
     @patch("sentry.seer.autofix.autofix.get_project_seer_preferences")
-    def test_returns_none_on_set_api_error(self, mock_get_prefs, mock_set_pref, mock_write_sentry):
+    def test_raises_on_set_api_error(self, mock_get_prefs, mock_set_pref, mock_write_sentry):
         mock_get_prefs.return_value = SeerRawPreferenceResponse(preference=None)
         mock_set_pref.side_effect = SeerApiError("test error", 500)
 
-        result = _resolve_project_preference(self.organization, self.project, [self._mock_repo()])
+        with pytest.raises(SeerApiError):
+            _resolve_project_preference(self.organization, self.project, [self._mock_repo()])
 
-        assert result is None
         mock_write_sentry.assert_not_called()
 
     @patch("sentry.seer.autofix.autofix.write_preference_to_sentry_db")
@@ -1197,20 +1200,15 @@ class TestResolveProjectPreference(TestCase):
     def test_returns_preference_on_sentry_db_write_error(
         self, mock_get_prefs, mock_set_pref, mock_write_sentry
     ):
-        mock_get_prefs.return_value = SeerRawPreferenceResponse(
-            preference=SeerProjectPreference(
-                organization_id=self.organization.id,
-                project_id=self.project.id,
-                repositories=[self._mock_repo()],
-                automated_run_stopping_point="root_cause",
-            )
-        )
+        mock_get_prefs.return_value = SeerRawPreferenceResponse(preference=None)
         mock_write_sentry.side_effect = Exception()
 
         result = _resolve_project_preference(self.organization, self.project, [self._mock_repo()])
 
         assert result is not None
         assert result.project_id == self.project.id
+        mock_set_pref.assert_called_once()
+        mock_write_sentry.assert_called_once()
 
     @patch("sentry.seer.autofix.autofix.write_preference_to_sentry_db")
     @patch("sentry.seer.autofix.autofix.set_project_seer_preference")

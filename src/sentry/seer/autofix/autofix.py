@@ -39,6 +39,7 @@ from sentry.seer.autofix.types import (
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     get_autofix_repos_from_project_code_mappings,
+    get_org_default_seer_automation_handoff,
     get_project_seer_preferences,
     make_autofix_start_request,
     make_autofix_update_request,
@@ -46,11 +47,7 @@ from sentry.seer.autofix.utils import (
     write_preference_to_sentry_db,
 )
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
-from sentry.seer.models import (
-    SeerApiError,
-    SeerApiResponseValidationError,
-    SeerProjectPreference,
-)
+from sentry.seer.models import SeerProjectPreference
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -703,52 +700,35 @@ def get_all_tags_overview(
 
 def _resolve_project_preference(
     organization: Organization, project: Project, fallback_repos: list[dict]
-) -> SeerProjectPreference | None:
+) -> SeerProjectPreference:
     """
     Resolve the Seer project preference for a project before triggering autofix.
 
     If an existing preference is found in Seer, returns it.
     If not, creates one from fallback_repos.
-
-    Returns None only if the preference cannot be resolved (e.g. API errors
-    and no fallback repos to bootstrap from).
     """
-    try:
-        preference_response = get_project_seer_preferences(project.id)
-        if preference_response.preference:
-            return preference_response.preference
-    except (SeerApiError, SeerApiResponseValidationError):
-        logger.exception(
-            "seer.write_preferences.resolve_project_preference.get_failed",
-            extra={"project_id": project.id, "organization_id": organization.id},
-        )
-        return None
+    preference_response = get_project_seer_preferences(project.id)
+    if preference_response.preference:
+        return preference_response.preference
 
-    if not fallback_repos:
-        return None
-
+    default_stopping_point, default_handoff = get_org_default_seer_automation_handoff(organization)
     preference = SeerProjectPreference(
         organization_id=organization.id,
         project_id=project.id,
         repositories=fallback_repos,
-        automated_run_stopping_point=AutofixStoppingPoint.CODE_CHANGES.value,
+        automated_run_stopping_point=default_stopping_point,
+        automation_handoff=default_handoff,
     )
 
-    try:
-        set_project_seer_preference(preference)
-    except SeerApiError:
-        logger.exception(
-            "seer.write_preferences.resolve_project_preference.set_failed",
-            extra={"project_id": project.id, "organization_id": organization.id},
-        )
-        return None
+    set_project_seer_preference(preference)
 
     try:
         write_preference_to_sentry_db(project, preference)
     except Exception:
         logger.exception(
-            "seer.write_preferences.resolve_project_preference.write_failed",
+            "seer.write_preferences.resolve_project_preference.sentry_db_write_failed",
             extra={"project_id": project.id, "organization_id": organization.id},
+            exc_info=True,
         )
 
     return preference
@@ -802,9 +782,17 @@ def trigger_autofix(
     code_mappings = get_sorted_code_mapping_configs(group.project)
     repos = get_autofix_repos_from_project_code_mappings(group.project, code_mappings=code_mappings)
 
-    preference = _resolve_project_preference(group.organization, group.project, repos)
-    if preference and preference.repositories:
-        repos = [repo.dict() for repo in preference.repositories]
+    preference: SeerProjectPreference | None = None
+    try:
+        preference = _resolve_project_preference(group.organization, group.project, repos)
+        if preference.repositories:
+            repos = [repo.dict() for repo in preference.repositories]
+    except Exception:
+        logger.exception(
+            "seer.write_preferences.resolve_project_preference.failed",
+            extra={"project_id": group.project.id, "organization_id": group.organization.id},
+            exc_info=True,
+        )
 
     # Pre-resolve stacktrace frame paths using code mappings so Seer can skip
     # expensive git tree fetches for large repos.
