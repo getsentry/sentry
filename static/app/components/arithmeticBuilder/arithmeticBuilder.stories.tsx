@@ -45,7 +45,6 @@ export default Storybook.story('ArithmeticBuilder', story => {
           References JSON. This setup will submit the references onBlur. If you trigger an
           error case, you can update the references and it will re-mount the component.
           <textarea
-            key={JSON.stringify(references)}
             id="refs-input"
             defaultValue={JSON.stringify([...references])}
             onBlur={e => {
