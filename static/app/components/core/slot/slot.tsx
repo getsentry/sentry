@@ -1,4 +1,11 @@
-import {createContext, useCallback, useContext, useLayoutEffect, useReducer} from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+} from 'react';
 import {createPortal} from 'react-dom';
 
 type Slot = string;
@@ -70,6 +77,11 @@ function makeSlotReducer<T extends Slot>(): SlotReducer<T> {
             counter: state[action.name]?.counter ?? 0,
             element: action.element,
           },
+        };
+      case 'unregister':
+        return {
+          ...state,
+          [action.name]: undefined,
         };
       default:
         return state;
@@ -176,7 +188,12 @@ function makeSlotProvider<T extends Slot>(
 ): (props: SlotProviderProps) => React.ReactNode {
   function SlotProvider({children}: SlotProviderProps) {
     const [value, dispatch] = useReducer(makeSlotReducer<T>(), {});
-    return <context.Provider value={[value, dispatch]}>{children}</context.Provider>;
+
+    const contextValue = useMemo(
+      () => [value, dispatch] satisfies SlotContextValue<T>,
+      [value, dispatch]
+    );
+    return <context.Provider value={contextValue}>{children}</context.Provider>;
   }
 
   SlotProvider.displayName = `Slot.Provider`;
