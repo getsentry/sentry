@@ -49,9 +49,11 @@ function WebVitalsWidget({transactionName}: {transactionName: string}) {
     'dashboards-prebuilt-insights-dashboards'
   );
 
-  const search = new MutableSearch('');
-  search.addFilterValue(SpanFields.TRANSACTION, transactionName);
-  const filterValue = search.formatString();
+  const filterValue = useMemo(() => {
+    const search = new MutableSearch('');
+    search.addFilterValue(SpanFields.TRANSACTION, transactionName);
+    return search.formatString();
+  }, [transactionName]);
 
   const dashboardUrl = usePrebuiltDashboardUrl(PrebuiltDashboardId.WEB_VITALS_SUMMARY, {
     filters: {
