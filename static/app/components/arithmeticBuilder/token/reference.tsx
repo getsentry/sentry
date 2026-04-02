@@ -1,22 +1,25 @@
 import type {ChangeEvent} from 'react';
 import {useCallback, useMemo, useRef, useState} from 'react';
-import styled from '@emotion/styled';
 import {Item, Section} from '@react-stately/collections';
 import type {ListState} from '@react-stately/list';
 import type {KeyboardEvent, Node} from '@react-types/shared';
 
 import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 
 import {useArithmeticBuilder} from 'sentry/components/arithmeticBuilder/context';
 import type {Token, TokenReference} from 'sentry/components/arithmeticBuilder/token';
 import {TokenKind} from 'sentry/components/arithmeticBuilder/token';
+import {DeleteBlah} from 'sentry/components/arithmeticBuilder/token/deleteButton';
+import {
+  GridCell,
+  LeftGridCell,
+  Row,
+} from 'sentry/components/arithmeticBuilder/token/styles';
 import {nextTokenKeyOfKind} from 'sentry/components/arithmeticBuilder/tokenizer';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
 import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {ComboBox} from 'sentry/components/tokenizedInput/token/comboBox';
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 
@@ -46,6 +49,7 @@ export function ArithmeticBuilderTokenReference({
       tabIndex={-1}
       aria-label={token.label}
       aria-invalid={false}
+      withBorder
     >
       <LeftGridCell {...gridCellProps}>
         <InternalInput item={item} state={state} token={token} rowRef={ref} />
@@ -254,70 +258,13 @@ interface DeleteReferenceProps {
 }
 
 function DeleteReference({token, item, state}: DeleteReferenceProps) {
-  const {dispatch} = useArithmeticBuilder();
-
-  const onClick = useCallback(() => {
-    const itemKey = state.collection.getKeyBefore(item.key);
-    dispatch({
-      type: 'DELETE_TOKEN',
-      token,
-      focusOverride: defined(itemKey) ? {itemKey} : undefined,
-    });
-  }, [dispatch, token, state, item]);
+  const itemKey = state.collection.getKeyBefore(item.key)?.toString() ?? null;
 
   return (
-    <DeleteButton aria-label={t('Remove reference %s', token.label)} onClick={onClick}>
-      <InteractionStateLayer />
-      <IconClose legacySize="8px" />
-    </DeleteButton>
+    <DeleteBlah
+      token={token}
+      focusOverrideKey={itemKey}
+      label={t('Remove reference %s', token.label)}
+    />
   );
 }
-
-const Row = styled('div')`
-  position: relative;
-  display: flex;
-  align-items: stretch;
-  height: 24px;
-  max-width: 100%;
-  border: 1px solid ${p => p.theme.tokens.border.secondary};
-  border-radius: ${p => p.theme.radius.md};
-
-  :focus {
-    background-color: ${p => p.theme.colors.gray100};
-    outline: none;
-  }
-
-  &:last-child {
-    flex-grow: 1;
-  }
-
-  &[aria-selected='true'] {
-    background-color: ${p => p.theme.colors.gray100};
-  }
-`;
-
-const GridCell = styled('div')`
-  display: flex;
-  align-items: center;
-  position: relative;
-  height: 100%;
-`;
-
-const LeftGridCell = styled(GridCell)`
-  padding-left: ${p => p.theme.space.xs};
-`;
-
-const DeleteButton = styled('button')`
-  background: none;
-  border: none;
-  color: ${p => p.theme.tokens.content.secondary};
-  outline: none;
-  user-select: none;
-  padding-right: ${p => p.theme.space.xs};
-
-  :focus {
-    background-color: ${p => p.theme.colors.gray100};
-    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
-    outline: none;
-  }
-`;

@@ -18,6 +18,7 @@ import type {
   TokenFunction,
 } from 'sentry/components/arithmeticBuilder/token';
 import {TokenKind} from 'sentry/components/arithmeticBuilder/token';
+import {DeleteButton} from 'sentry/components/arithmeticBuilder/token/styles';
 import {nextTokenKeyOfKind} from 'sentry/components/arithmeticBuilder/tokenizer';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
@@ -777,19 +778,4 @@ const BaseGridCell = styled('div')`
 const FunctionGridCell = styled(BaseGridCell)`
   color: ${p => p.theme.colors.green500};
   padding-left: ${p => p.theme.space.xs};
-`;
-
-const DeleteButton = styled('button')`
-  background: none;
-  border: none;
-  color: ${p => p.theme.tokens.content.secondary};
-  outline: none;
-  user-select: none;
-  padding-right: ${p => p.theme.space.xs};
-
-  :focus {
-    background-color: ${p => p.theme.colors.gray100};
-    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
-    outline: none;
-  }
 `;

@@ -21,6 +21,7 @@ import {
   isTokenReference,
   TokenKind,
 } from 'sentry/components/arithmeticBuilder/token';
+import {Row} from 'sentry/components/arithmeticBuilder/token/styles';
 import {
   nextSimilarTokenKey,
   nextTokenKeyOfKind,
@@ -636,36 +637,6 @@ function useReferenceItems({
 function stopPropagation(evt: MouseEvent<HTMLElement>) {
   evt.stopPropagation();
 }
-
-const Row = styled('div')`
-  position: relative;
-  display: flex;
-  align-items: stretch;
-  height: 24px;
-  max-width: 100%;
-
-  &:last-child {
-    flex-grow: 1;
-  }
-
-  &[aria-invalid='true'] {
-    input {
-      color: ${p => p.theme.colors.red500};
-    }
-  }
-
-  &[aria-selected='true'] {
-    [data-hidden-text='true']::before {
-      content: '';
-      position: absolute;
-      left: ${p => p.theme.space.xs};
-      right: ${p => p.theme.space.xs};
-      top: 0;
-      bottom: 0;
-      background-color: ${p => p.theme.colors.gray100};
-    }
-  }
-`;
 
 const GridCell = styled('div')`
   position: relative;
