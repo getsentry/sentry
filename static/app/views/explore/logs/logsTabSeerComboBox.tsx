@@ -1,5 +1,6 @@
 import {useCallback, useMemo} from 'react';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
@@ -8,6 +9,7 @@ import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {DateString} from 'sentry/types/core';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -51,6 +53,7 @@ export function LogsTabSeerComboBox() {
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
   const organization = useOrganization();
+  const analyticsArea = useAnalyticsArea();
   const queryParams = useQueryParams();
   const {
     currentInputValueRef,
@@ -238,13 +241,22 @@ export function LogsTabSeerComboBox() {
         mode,
       });
 
+      trackAnalytics('ai_query.applied', {
+        organization,
+        area: analyticsArea,
+        query: queryToUse,
+        group_by_count: groupBys.length,
+      });
+
       // Single navigation with all params (matches Trace Explorer pattern)
       navigate({...location, query: newQuery}, {replace: true, preventScrollReset: true});
     },
     [
+      analyticsArea,
       askSeerSuggestedQueryRef,
       location,
       navigate,
+      organization,
       pageFilters.selection,
       queryParams.aggregateFields,
     ]

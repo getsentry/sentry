@@ -4,6 +4,7 @@ import type {Node} from '@react-types/shared';
 
 import {Flex} from '@sentry/scraps/layout';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
 import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
@@ -20,7 +21,9 @@ import type {
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {FieldKey} from 'sentry/utils/fields';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type KeyComboboxProps = {
   item: Node<ParseResultToken>;
@@ -32,6 +35,8 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState(getKeyLabel(token.key) ?? '');
 
+  const organization = useOrganization();
+  const analyticsArea = useAnalyticsArea();
   const {mutate: seerAcknowledgeMutate} = useSeerAcknowledgeMutation();
   const {items: sortedFilterKeys, isLoading} = useSortedFilterKeyItems({
     filterValue: inputValue,
@@ -58,6 +63,11 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       const newFilterValueType = getFilterValueType(token, newFieldDef);
 
       if (keyName === ASK_SEER_ITEM_KEY) {
+        trackAnalytics('ai_query.interface', {
+          organization,
+          area: analyticsArea,
+          action: 'opened',
+        });
         setDisplayAskSeer(true);
 
         if (currentInputValueRef.current?.trim()) {
@@ -70,6 +80,11 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       }
 
       if (keyName === ASK_SEER_CONSENT_ITEM_KEY) {
+        trackAnalytics('ai_query.interface', {
+          organization,
+          area: analyticsArea,
+          action: 'consent_accepted',
+        });
         seerAcknowledgeMutate();
         return;
       }
@@ -111,9 +126,11 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       currentFilterValueType,
       currentInputValueRef,
       dispatch,
+      analyticsArea,
       getFieldDefinition,
       item.key,
       onCommit,
+      organization,
       seerAcknowledgeMutate,
       setAutoSubmitSeer,
       setDisplayAskSeer,
