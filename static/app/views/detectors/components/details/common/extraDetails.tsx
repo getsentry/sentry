@@ -7,7 +7,7 @@ import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {TimeSince} from 'sentry/components/timeSince';
-import {Section} from 'sentry/components/workflowEngine/ui/section';
+import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useUserFromId} from 'sentry/utils/useUserFromId';
@@ -19,9 +19,9 @@ type Props = {
 
 export function DetectorExtraDetails({children}: Props) {
   return (
-    <Section title={t('Details')}>
+    <DetailSection title={t('Details')}>
       <StyledKeyValueTable>{children}</StyledKeyValueTable>
-    </Section>
+    </DetailSection>
   );
 }
 

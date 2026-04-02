@@ -52,7 +52,7 @@ import {
 } from 'sentry/views/explore/components/styles';
 import {StyledPageFilterBar} from 'sentry/views/explore/logs/styles';
 
-// eslint-disable-next-line boundaries/element-types
+// eslint-disable-next-line boundaries/dependencies
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
 type OnboardingProps = {

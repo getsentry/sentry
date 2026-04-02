@@ -2,7 +2,7 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {GroupList} from 'sentry/components/issues/groupList';
-import {Section} from 'sentry/components/workflowEngine/ui/section';
+import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
@@ -35,7 +35,7 @@ export function DetectorDetailsOngoingIssues({
   };
 
   return (
-    <Section
+    <DetailSection
       title={t('Ongoing Issues')}
       trailingItems={
         <LinkButton
@@ -55,6 +55,6 @@ export function DetectorDetailsOngoingIssues({
           <GroupList numPlaceholderRows={5} queryParams={{...queryParams, limit: 5}} />
         </div>
       </ErrorBoundary>
-    </Section>
+    </DetailSection>
   );
 }

@@ -269,6 +269,8 @@ def test_feedbacks_spawn_save_event_feedback(
 @django_db_all
 @pytest.mark.parametrize("missing_chunks", (True, False))
 def test_with_attachments(default_project, task_runner, missing_chunks, django_cache) -> None:
+    retention_days = 66
+
     with patch("sentry.features.has", return_value=True):
         payload = get_normalized_event({"message": "hello world"}, default_project)
         event_id = payload["event_id"]
@@ -296,6 +298,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, django_c
                 }
             )
 
+        now = datetime.datetime.now(datetime.timezone.utc)
         with task_runner():
             process_event(
                 ConsumerType.Events,
@@ -313,6 +316,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, django_c
                             "attachment_type": "custom.attachment",
                             "size": len(b"Hello World!"),
                             "chunks": 2,
+                            "retention_days": retention_days,
                         }
                     ],
                 },
@@ -329,6 +333,8 @@ def test_with_attachments(default_project, task_runner, missing_chunks, django_c
         assert attachment.name == "lol.txt"
         with attachment.getfile() as file:
             assert file.read() == b"Hello World!"
+        delta = attachment.date_expires - (now + datetime.timedelta(days=retention_days))
+        assert abs(delta.total_seconds()) < 3600
     else:
         assert not persisted_attachments
 
@@ -533,6 +539,8 @@ def test_process_stored_attachment(
 def test_individual_attachments(
     default_project, factories, feature_enabled, attachment, with_group, django_cache
 ):
+    retention_days = 66
+
     with patch("sentry.features.has", return_value=feature_enabled):
         event_id = uuid.uuid4().hex
         attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
@@ -554,6 +562,7 @@ def test_individual_attachments(
             "content_type": content_type,
             "attachment_type": attachment_type,
             "chunks": len(chunks),
+            "retention_days": retention_days,
         }
         if isinstance(chunks, bytes):
             attachment_meta["data"] = chunks
@@ -572,6 +581,7 @@ def test_individual_attachments(
             expected_content = b"".join(chunks)
         attachment_meta["size"] = len(expected_content)
 
+        now = datetime.datetime.now(datetime.timezone.utc)
         process_individual_attachment(
             {
                 "type": "attachment",
@@ -594,6 +604,9 @@ def test_individual_attachments(
 
         with attachment.getfile() as file_contents:
             assert file_contents.read() == expected_content
+
+        delta = attachment.date_expires - (now + datetime.timedelta(days=retention_days))
+        assert abs(delta.total_seconds()) < 3600
 
 
 @django_db_all
