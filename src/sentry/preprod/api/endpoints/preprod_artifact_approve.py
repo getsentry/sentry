@@ -89,11 +89,9 @@ class OrganizationPreprodArtifactApproveEndpoint(OrganizationEndpoint):
         ).delete()
 
         task = STATUS_CHECK_TASK_MAP[feature_type]
-        task.apply_async(
-            kwargs={
-                "preprod_artifact_id": artifact.id,
-                "caller": "approval_endpoint",
-            }
+        task(
+            preprod_artifact_id=artifact.id,
+            caller="approval_endpoint",
         )
 
         return Response({"detail": "Approved"}, status=201)

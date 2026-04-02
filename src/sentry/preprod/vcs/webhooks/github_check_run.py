@@ -215,18 +215,14 @@ def handle_preprod_check_run_event(
         )
 
     if identifier == APPROVE_SIZE_ACTION_IDENTIFIER:
-        create_preprod_status_check_task.apply_async(
-            kwargs={
-                "preprod_artifact_id": artifact.id,
-                "caller": "github_approve_webhook",
-            }
+        create_preprod_status_check_task(
+            preprod_artifact_id=artifact.id,
+            caller="github_approve_webhook",
         )
     elif identifier == APPROVE_SNAPSHOT_ACTION_IDENTIFIER:
-        create_preprod_snapshot_status_check_task.apply_async(
-            kwargs={
-                "preprod_artifact_id": artifact.id,
-                "caller": "github_approve_webhook",
-            }
+        create_preprod_snapshot_status_check_task(
+            preprod_artifact_id=artifact.id,
+            caller="github_approve_webhook",
         )
     else:
         raise ValueError(f"Unknown identifier: {identifier}")
