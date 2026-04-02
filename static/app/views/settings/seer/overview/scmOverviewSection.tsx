@@ -263,7 +263,7 @@ function AddedRepos({
   seerRepos,
   unconnectedRepos,
 }: Props) {
-  const message = useCycleText({messages, delayMs: 5000, enabled: isReposPending});
+  const message = useCycleText({messages, delayMs: 5000, disabled: !isReposPending});
   return (
     <Flex align="center" gap="lg">
       <Stack width="50%" gap="xs">

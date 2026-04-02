@@ -5,10 +5,10 @@ import {useTimeout} from 'sentry/utils/useTimeout';
 interface Props {
   delayMs: number;
   messages: string[];
-  enabled?: boolean;
+  disabled?: boolean;
 }
 
-export function useCycleText({messages, delayMs, enabled}: Props) {
+export function useCycleText({messages, delayMs, disabled = false}: Props) {
   const [messageIndex, setMessageIndex] = useState(0);
 
   const {start, cancel} = useTimeout({
@@ -20,12 +20,12 @@ export function useCycleText({messages, delayMs, enabled}: Props) {
   });
 
   useEffect(() => {
-    if (enabled ?? true) {
-      start();
-    } else {
+    if (disabled) {
       cancel();
+    } else {
+      start();
     }
-  }, [start, cancel, enabled]);
+  }, [start, cancel, disabled]);
 
   return messages[messageIndex];
 }
