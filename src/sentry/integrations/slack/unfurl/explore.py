@@ -1,17 +1,18 @@
 from __future__ import annotations
 
 import html
+import itertools
 import logging
 import re
 from collections.abc import Mapping
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from urllib.parse import urlparse
 
 from django.http.request import QueryDict
 
 from sentry import analytics, features
-from sentry.api import client
+from sentry.api.serializers.snuba import calculate_time_frame, zerofill
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartType
 from sentry.integrations.messaging.metrics import (
@@ -24,13 +25,17 @@ from sentry.integrations.slack.analytics import SlackIntegrationChartUnfurl
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.unfurl.types import Handler, UnfurlableUrl, UnfurledUrl
-from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.spans_rpc import Spans
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import json
-from sentry.utils.dates import get_interval_from_range, parse_stats_period
+from sentry.utils.dates import get_interval_from_range, parse_stats_period, parse_timestamp
+from sentry.utils.snuba import SnubaTSResult
 
 _logger = logging.getLogger(__name__)
 
@@ -50,10 +55,35 @@ LINE_PLOT_FIELDS = {
     "p100",
     "percentile",
     "avg",
-    "sum",
 }
 
 TOP_N = 5
+
+
+def snuba_ts_result_to_event_stats(result: SnubaTSResult, column: str) -> dict[str, Any]:
+    """
+    Converts a SnubaTSResult into the events-stats response format that
+    Chartcuterie expects.
+    """
+    data = [
+        (key, list(group))
+        for key, group in itertools.groupby(result.data["data"], key=lambda r: r["time"])
+    ]
+    rv = []
+    for k, v in data:
+        row = [{"count": r.get(column, 0)} for r in v]
+        rv.append((k, row))
+
+    res: dict[str, Any] = {
+        "data": zerofill(rv, result.start, result.end, result.rollup),
+        "isMetricsData": result.data.get("isMetricsData", False),
+    }
+
+    timeframe = calculate_time_frame(result.start, result.end, result.rollup)
+    res["start"] = timeframe["start"]
+    res["end"] = timeframe["end"]
+
+    return res
 
 
 def unfurl_explore(
@@ -96,7 +126,6 @@ def _unfurl_explore(
         y_axes = params.getlist("yAxis")
         if not y_axes:
             y_axes = [DEFAULT_Y_AXIS]
-            params.setlist("yAxis", y_axes)
 
         group_bys = params.getlist("field")
 
@@ -105,45 +134,90 @@ def _unfurl_explore(
             y_axis = y_axes[0]
             aggregate_fn = y_axis.split("(")[0]
             if aggregate_fn in LINE_PLOT_FIELDS:
-                display_mode = "top5line"
                 style = ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE
             else:
-                display_mode = "top5"
                 style = ChartType.SLACK_DISCOVER_TOP5_PERIOD
-            params.setlist("topEvents", [str(TOP_N)])
         else:
-            display_mode = "default"
             style = ChartType.SLACK_DISCOVER_TOTAL_PERIOD
 
-        # Compute interval from time range
-        delta = timedelta(days=90)
-        if "statsPeriod" in params:
-            if (parsed_period := parse_stats_period(params["statsPeriod"])) is not None:
+        # Compute time range
+        now = datetime.now(tz=timezone.utc)
+        stats_period = params.get("statsPeriod")
+        start_param = params.get("start")
+        end_param = params.get("end")
+
+        if stats_period:
+            parsed_period = parse_stats_period(stats_period)
+            if parsed_period is not None:
                 delta = parsed_period
-        elif not params.get("statsPeriod") and not params.get("start"):
-            params["statsPeriod"] = DEFAULT_PERIOD
-            delta = timedelta(days=14)
-
-        if "daily" in display_mode:
-            params.setlist("interval", ["1d"])
+            else:
+                delta = timedelta(days=14)
+            end = now
+            start = end - delta
+        elif start_param and end_param:
+            parsed_start = parse_timestamp(start_param)
+            parsed_end = parse_timestamp(end_param)
+            if parsed_start is not None and parsed_end is not None:
+                start = parsed_start
+                end = parsed_end
+                delta = end - start
+            else:
+                delta = timedelta(days=14)
+                end = now
+                start = end - delta
         else:
-            interval = get_interval_from_range(delta, False)
-            params.setlist("interval", [interval])
+            delta = timedelta(days=14)
+            end = now
+            start = end - delta
 
-        params["referrer"] = Referrer.EXPLORE_SLACK_UNFURL.value
+        rollup = get_interval_from_range(delta, False)
+        parsed_rollup = parse_stats_period(rollup)
+        granularity_secs = int(parsed_rollup.total_seconds()) if parsed_rollup else 3600
+
+        # Resolve project IDs
+        project_ids = [int(p) for p in params.getlist("project") if p]
+        if project_ids:
+            projects = list(
+                Project.objects.filter(organization=org, id__in=project_ids).values_list(
+                    "id", flat=True
+                )
+            )
+        else:
+            projects = list(
+                Project.objects.filter(organization=org).values_list("id", flat=True)[:10]
+            )
+
+        snuba_params = SnubaParams(
+            start=start,
+            end=end,
+            granularity_secs=granularity_secs,
+            organization=org,
+            projects=Project.objects.filter(id__in=projects),
+            environments=[],
+        )
+
+        query_string = params.get("query", "")
+
+        config = SearchResolverConfig(
+            auto_fields=False,
+            use_aggregate_conditions=True,
+        )
 
         try:
-            resp = client.get(
-                auth=ApiKey(organization_id=org.id, scope_list=["org:read"]),
-                user=user,
-                path=f"/organizations/{org_slug}/events-stats/",
-                params=params,
+            result = Spans.run_timeseries_query(
+                params=snuba_params,
+                query_string=query_string,
+                y_axes=y_axes,
+                referrer=Referrer.EXPLORE_SLACK_UNFURL.value,
+                config=config,
+                sampling_mode=None,
             )
         except Exception:
-            _logger.warning("Failed to load events-stats for explore unfurl")
+            _logger.warning("Failed to load timeseries data for explore unfurl")
             continue
 
-        chart_data = {"seriesName": params.get("yAxis"), "stats": resp.data}
+        stats = snuba_ts_result_to_event_stats(result, y_axes[0])
+        chart_data = {"seriesName": y_axes[0], "stats": stats}
 
         try:
             url = charts.generate_chart(style, chart_data)
@@ -196,10 +270,9 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
     if not y_axes:
         y_axes = [DEFAULT_Y_AXIS]
 
-    # Build query params for events-stats endpoint
+    # Build query params
     query = QueryDict(mutable=True)
     query.setlist("yAxis", y_axes)
-    query["dataset"] = "spans"
 
     if group_bys:
         query.setlist("field", group_bys)

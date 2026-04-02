@@ -197,9 +197,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
                 LinkType.EXPLORE,
                 {
                     "org_slug": "org1",
-                    "query": QueryDict(
-                        "yAxis=avg(span.duration)&dataset=spans&project=1&statsPeriod=24h"
-                    ),
+                    "query": QueryDict("yAxis=avg(span.duration)&project=1&statsPeriod=24h"),
                 },
             ),
         ),
@@ -209,7 +207,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
                 LinkType.EXPLORE,
                 {
                     "org_slug": "org1",
-                    "query": QueryDict("yAxis=count(span.duration)&dataset=spans&statsPeriod=24h"),
+                    "query": QueryDict("yAxis=count(span.duration)&statsPeriod=24h"),
                 },
             ),
         ),
@@ -1453,17 +1451,25 @@ class UnfurlTest(TestCase):
         dataset = mock_get_event_stats_data.mock_calls[0][2]["dataset"]
         assert dataset == discover
 
+    def _build_mock_snuba_ts_result(self, column="avg(span.duration)"):
+        from sentry.utils.snuba import SnubaTSResult
+
+        end = before_now(minutes=1)
+        start = end - timedelta(days=1)
+        data = [{"time": i * INTERVAL_COUNT, column: 0} for i in range(INTERVALS_PER_DAY)]
+        return SnubaTSResult(
+            {"data": data, "isMetricsData": False},
+            start,
+            end,
+            INTERVAL_COUNT,
+        )
+
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
-        return_value={
-            "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
-            "end": 1652903400,
-            "isMetricsData": False,
-            "start": 1652817000,
-        },
+        "sentry.integrations.slack.unfurl.explore.Spans.run_timeseries_query",
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_explore(self, mock_generate_chart: MagicMock, _: MagicMock) -> None:
+    def test_unfurl_explore(self, mock_generate_chart: MagicMock, mock_query: MagicMock) -> None:
+        mock_query.return_value = self._build_mock_snuba_ts_result()
         url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D&project={self.project.id}&statsPeriod=24h"
         link_type, args = match_link(url)
 
@@ -1487,21 +1493,15 @@ class UnfurlTest(TestCase):
         assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_TOTAL_PERIOD
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["seriesName"] == "avg(span.duration)"
-        assert len(chart_data["stats"]["data"]) == INTERVALS_PER_DAY
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
-        return_value={
-            "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
-            "end": 1652903400,
-            "isMetricsData": False,
-            "start": 1652817000,
-        },
+        "sentry.integrations.slack.unfurl.explore.Spans.run_timeseries_query",
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_explore_no_feature_flag(
-        self, mock_generate_chart: MagicMock, _: MagicMock
+        self, mock_generate_chart: MagicMock, mock_query: MagicMock
     ) -> None:
+        mock_query.return_value = self._build_mock_snuba_ts_result()
         url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D&project={self.project.id}&statsPeriod=24h"
         link_type, args = match_link(url)
 
@@ -1517,18 +1517,13 @@ class UnfurlTest(TestCase):
         assert len(mock_generate_chart.mock_calls) == 0
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
-        return_value={
-            "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
-            "end": 1652903400,
-            "isMetricsData": False,
-            "start": 1652817000,
-        },
+        "sentry.integrations.slack.unfurl.explore.Spans.run_timeseries_query",
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_explore_with_groupby(
-        self, mock_generate_chart: MagicMock, _: MagicMock
+        self, mock_generate_chart: MagicMock, mock_query: MagicMock
     ) -> None:
+        mock_query.return_value = self._build_mock_snuba_ts_result()
         url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=%7B%22groupBy%22%3A%22span.op%22%7D&aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D&project={self.project.id}&statsPeriod=24h"
         link_type, args = match_link(url)
 
@@ -1548,18 +1543,13 @@ class UnfurlTest(TestCase):
         assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
-        return_value={
-            "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
-            "end": 1652903400,
-            "isMetricsData": False,
-            "start": 1652817000,
-        },
+        "sentry.integrations.slack.unfurl.explore.Spans.run_timeseries_query",
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_explore_default_yaxis(
-        self, mock_generate_chart: MagicMock, _: MagicMock
+        self, mock_generate_chart: MagicMock, mock_query: MagicMock
     ) -> None:
+        mock_query.return_value = self._build_mock_snuba_ts_result(column="count(span.duration)")
         url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?project={self.project.id}&statsPeriod=24h"
         link_type, args = match_link(url)
 
@@ -1579,18 +1569,13 @@ class UnfurlTest(TestCase):
         assert chart_data["seriesName"] == "count(span.duration)"
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
-        return_value={
-            "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
-            "end": 1652903400,
-            "isMetricsData": False,
-            "start": 1652817000,
-        },
+        "sentry.integrations.slack.unfurl.explore.Spans.run_timeseries_query",
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_explore_malformed_aggregate_field(
-        self, mock_generate_chart: MagicMock, _: MagicMock
+        self, mock_generate_chart: MagicMock, mock_query: MagicMock
     ) -> None:
+        mock_query.return_value = self._build_mock_snuba_ts_result(column="count(span.duration)")
         url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=not-valid-json&project={self.project.id}&statsPeriod=24h"
         link_type, args = match_link(url)
 
@@ -1608,3 +1593,69 @@ class UnfurlTest(TestCase):
         assert len(unfurls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["seriesName"] == "count(span.duration)"
+
+    @patch(
+        "sentry.integrations.slack.unfurl.explore.Spans.run_timeseries_query",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_end_to_end(
+        self, mock_generate_chart: MagicMock, mock_query: MagicMock
+    ) -> None:
+        """
+        End-to-end test: URL → match → handler → verify Spans query args → verify chartcuterie input
+        """
+        mock_query.return_value = self._build_mock_snuba_ts_result(column="avg(span.duration)")
+
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D&project={self.project.id}&statsPeriod=24h&query=span.op%3Ahttp"
+
+        # Step 1: URL matching
+        link_type, args = match_link(url)
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["org_slug"] == self.organization.slug
+        assert args["query"]["yAxis"] == "avg(span.duration)"
+        assert args["query"]["project"] == str(self.project.id)
+        assert args["query"]["statsPeriod"] == "24h"
+        assert args["query"]["query"] == "span.op:http"
+
+        # Step 2: Run handler
+        links = [UnfurlableUrl(url=url, args=args)]
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        # Step 3: Verify Spans.run_timeseries_query was called with correct args
+        assert mock_query.call_count == 1
+        query_kwargs = mock_query.call_args[1]
+        assert query_kwargs["y_axes"] == ["avg(span.duration)"]
+        assert query_kwargs["query_string"] == "span.op:http"
+        assert query_kwargs["referrer"] == "explore.slack.unfurl"
+        snuba_params = query_kwargs["params"]
+        assert snuba_params.organization.id == self.organization.id
+        project_ids = [p.id for p in snuba_params.projects]
+        assert self.project.id in project_ids
+
+        # Step 4: Verify chartcuterie received correct data
+        assert mock_generate_chart.call_count == 1
+        chart_type = mock_generate_chart.call_args[0][0]
+        chart_data = mock_generate_chart.call_args[0][1]
+
+        assert chart_type == ChartType.SLACK_DISCOVER_TOTAL_PERIOD
+        assert chart_data["seriesName"] == "avg(span.duration)"
+        # Stats should be in events-stats format: {data: [(ts, [{count: N}]), ...], start, end}
+        stats = chart_data["stats"]
+        assert "data" in stats
+        assert "start" in stats
+        assert "end" in stats
+        assert len(stats["data"]) > 0
+        # Each data point is (timestamp, [{count: value}])
+        first_point = stats["data"][0]
+        assert isinstance(first_point[0], int)
+        assert isinstance(first_point[1], list)
+        assert "count" in first_point[1][0]
+
+        # Step 5: Verify the unfurl result
+        assert len(unfurls) == 1
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(title="Explore Traces", chart_url="chart-url").build()
+        )
