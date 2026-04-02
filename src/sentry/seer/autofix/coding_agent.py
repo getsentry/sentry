@@ -12,6 +12,24 @@ from requests import HTTPError
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
 
 from sentry import features
+
+
+class IntegrationNotFound(NotFound):
+    pass
+
+
+class OrganizationNotFound(NotFound):
+    pass
+
+
+class AutofixStateNotFound(NotFound):
+    pass
+
+
+class StateReposNotFound(NotFound):
+    pass
+
+
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, ObjectStatus
 from sentry.integrations.claude_code.integration import (
     ClaudeCodeIntegrationMetadata,
@@ -118,7 +136,7 @@ def _validate_and_get_integration(organization, integration_id: int):
     )
 
     if not org_integration or org_integration.status != ObjectStatus.ACTIVE:
-        raise NotFound("Integration not found")
+        raise IntegrationNotFound("Integration not found")
 
     integration = integration_service.get_integration(
         organization_integration_id=org_integration.id,
@@ -126,7 +144,7 @@ def _validate_and_get_integration(organization, integration_id: int):
     )
 
     if not integration:
-        raise NotFound("Integration not found")
+        raise IntegrationNotFound("Integration not found")
 
     # Verify it's a coding agent integration
     if integration.provider not in get_coding_agent_providers():
@@ -252,7 +270,7 @@ def _launch_agents_for_repos(
     repos_to_launch = validated_repos or autofix_state_repos
 
     if not repos_to_launch:
-        raise NotFound(
+        raise StateReposNotFound(
             "There are no repos in the Seer state to launch coding agents with, make sure you have repos connected to Seer and rerun this Issue Fix."
         )
 
@@ -426,7 +444,7 @@ def launch_coding_agents_for_run(
     try:
         organization = Organization.objects.get(id=organization_id)
     except Organization.DoesNotExist:
-        raise NotFound("Organization not found")
+        raise OrganizationNotFound("Organization not found")
 
     if not organization.get_option("sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT):
         raise PermissionDenied("Code generation is disabled for this organization")
@@ -457,7 +475,7 @@ def launch_coding_agents_for_run(
 
     autofix_state = _get_autofix_state(run_id, organization)
     if autofix_state is None:
-        raise NotFound("Autofix state not found")
+        raise AutofixStateNotFound("Autofix state not found")
 
     logger.info(
         "coding_agent.launch_request",

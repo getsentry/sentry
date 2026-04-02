@@ -1,44 +1,21 @@
-import {ExternalLink} from '@sentry/scraps/link';
-
 import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration';
 import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
 import {t} from 'sentry/locale';
 import type {Group, IgnoredStatusDetails} from 'sentry/types/group';
 import {GroupSubstatus} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
-import {trackAnalytics} from 'sentry/utils/analytics';
 
 interface ArchivedBoxProps {
-  organization: Organization;
   statusDetails: IgnoredStatusDetails;
   substatus: Group['substatus'];
-  hasStreamlinedUI?: boolean;
 }
 
-export function renderArchiveReason({
-  substatus,
-  statusDetails,
-  organization,
-  hasStreamlinedUI = false,
-}: ArchivedBoxProps) {
+export function renderArchiveReason({substatus, statusDetails}: ArchivedBoxProps) {
   const {ignoreUntil, ignoreCount, ignoreWindow, ignoreUserCount, ignoreUserWindow} =
     statusDetails;
 
   if (substatus === GroupSubstatus.ARCHIVED_UNTIL_ESCALATING) {
-    return hasStreamlinedUI
-      ? t('This issue has been archived until it escalates.')
-      : t(
-          "This issue has been archived. It'll return to your inbox if it escalates. To learn more, %s",
-          <ExternalLink
-            href="https://docs.sentry.io/product/issues/states-triage/#archive"
-            onClick={() =>
-              trackAnalytics('issue_details.issue_status_docs_clicked', {organization})
-            }
-          >
-            {t('read the docs')}
-          </ExternalLink>
-        );
+    return t('This issue has been archived until it escalates.');
   }
   if (ignoreUntil) {
     return t(
@@ -81,11 +58,12 @@ export function renderArchiveReason({
 
   return t('This issue has been archived forever.');
 }
-export function ArchivedBox({substatus, statusDetails, organization}: ArchivedBoxProps) {
+
+export function ArchivedBox({substatus, statusDetails}: ArchivedBoxProps) {
   return (
     <BannerContainer priority="default">
       <BannerSummary>
-        <span>{renderArchiveReason({substatus, statusDetails, organization})}</span>
+        <span>{renderArchiveReason({substatus, statusDetails})}</span>
       </BannerSummary>
     </BannerContainer>
   );

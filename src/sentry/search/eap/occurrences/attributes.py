@@ -280,6 +280,12 @@ OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
                 internal_name="frame_stack_levels",
                 search_type="string",
             ),
+            ResolvedAttribute(
+                public_alias="issue",
+                internal_name="group_id",
+                search_type="string",
+                internal_type=constants.INT,
+            ),
         ]
     )
 }

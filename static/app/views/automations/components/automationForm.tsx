@@ -6,12 +6,12 @@ import type {FormModel} from 'sentry/components/forms/model';
 import {EnvironmentSelector} from 'sentry/components/workflowEngine/form/environmentSelector';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Card} from 'sentry/components/workflowEngine/ui/card';
-import {Section} from 'sentry/components/workflowEngine/ui/section';
+import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {AutomationBuilder} from 'sentry/views/automations/components/automationBuilder';
 import {EditConnectedMonitors} from 'sentry/views/automations/components/editConnectedMonitors';
-import {ActionIntervalSelectField} from 'sentry/views/automations/components/forms/actionIntervalSelectField';
+import {ActionThrottleSelectField} from 'sentry/views/automations/components/forms/actionThrottleSelectField';
 import {useSetAutomaticAutomationName} from 'sentry/views/automations/components/forms/useSetAutomaticAutomationName';
 
 export function AutomationForm({model}: {model: FormModel}) {
@@ -32,27 +32,25 @@ export function AutomationForm({model}: {model: FormModel}) {
         setConnectedIds={setConnectedIds}
       />
       <Card>
-        <Section
-          title={t('Choose Environment')}
-          description={t(
-            'If you select environments different than your monitors then the automation will not fire.'
-          )}
+        <FormSection
+          title={t('Filter Issues')}
+          description={t('Only get alerted on Issues from these environments.')}
         >
           <EnvironmentSelector />
-        </Section>
+        </FormSection>
       </Card>
       <Card>
-        <Section title={t('Alert Builder')}>
+        <FormSection title={t('Alert Builder')}>
           <AutomationBuilder />
-        </Section>
+        </FormSection>
       </Card>
       <Card>
-        <Section
-          title={t('Action Interval')}
-          description={t('Perform the actions above this often for an issue.')}
+        <FormSection
+          title={t('Throttling')}
+          description={t('Set how often this alert can be triggered for a given issue.')}
         >
-          <ActionIntervalSelectField />
-        </Section>
+          <ActionThrottleSelectField />
+        </FormSection>
       </Card>
     </Flex>
   );

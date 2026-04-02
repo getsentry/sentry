@@ -216,7 +216,10 @@ class GitHubEnterpriseIntegration(
     # RepositoryIntegration methods
 
     def get_repositories(
-        self, query: str | None = None, page_number_limit: int | None = None
+        self,
+        query: str | None = None,
+        page_number_limit: int | None = None,
+        accessible_only: bool = False,
     ) -> list[dict[str, Any]]:
         if not query:
             all_repos = self.get_client().get_repos(page_number_limit=page_number_limit)

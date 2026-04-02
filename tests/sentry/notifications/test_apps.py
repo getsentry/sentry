@@ -15,16 +15,18 @@ class NotificationsDjangoAppTest(TestCase):
         """
         from sentry.notifications.notify import registry
 
-        assert len(registry) == 3
+        assert len(registry) == 4
         assert registry[ExternalProviders.EMAIL] is not None
         assert registry[ExternalProviders.SLACK] is not None
+        assert registry[ExternalProviders.SLACK_STAGING] is not None
         assert registry[ExternalProviders.MSTEAMS] is not None
 
     def test_registers_platform_providers(self) -> None:
         from sentry.notifications.platform.registry import provider_registry
 
-        assert len(provider_registry.registrations) == 4
+        assert len(provider_registry.registrations) == 5
         assert provider_registry.get(NotificationProviderKey.DISCORD) is not None
         assert provider_registry.get(NotificationProviderKey.EMAIL) is not None
         assert provider_registry.get(NotificationProviderKey.MSTEAMS) is not None
         assert provider_registry.get(NotificationProviderKey.SLACK) is not None
+        assert provider_registry.get(NotificationProviderKey.SLACK_STAGING) is not None

@@ -73,6 +73,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         mock_client.start_run.assert_called_once_with(
             prompt="What is this error about?",
             on_page_context=None,
+            page_name=None,
             override_ce_enable=True,
         )
 
@@ -126,6 +127,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             prompt="Follow up question",
             insert_index=2,
             on_page_context=None,
+            page_name=None,
         )
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")

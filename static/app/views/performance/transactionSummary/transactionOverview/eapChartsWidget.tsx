@@ -54,7 +54,7 @@ const WIDGET_OPTIONS: Record<
     description: t(
       'Web Vitals Breakdown reflects the 75th percentile of web vitals over time.'
     ),
-    disabled: true,
+    disabled: false,
   },
 };
 

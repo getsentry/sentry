@@ -17,11 +17,6 @@ export type TracingEventParameters = {
     query: string;
     visualize_count: number;
   };
-  'trace.explorer.ai_query_feedback': {
-    correct_query_results: 'yes' | 'no';
-    natural_language_query: string;
-    query: string;
-  };
   'trace.explorer.ai_query_interface': {
     action: 'opened' | 'closed' | 'consent_accepted';
   };
@@ -234,7 +229,6 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.explorer.ai_query_rejected': 'Trace Explorer: AI Query Rejected',
   'trace.explorer.ai_query_submitted': 'Trace Explorer: AI Query Submitted',
   'trace.explorer.ai_query_interface': 'Trace Explorer: AI Query Interface',
-  'trace.explorer.ai_query_feedback': 'Trace Explorer: AI Query Feedback',
   'trace.explorer.metadata': 'Improved Trace Explorer Pageload Metadata',
   'trace.explorer.cross_event_added': 'Trace Explorer: Cross Event Added',
   'trace.explorer.cross_event_changed': 'Trace Explorer: Cross Event Changed',

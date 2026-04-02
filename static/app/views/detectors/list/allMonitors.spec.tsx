@@ -127,7 +127,7 @@ describe('DetectorsList', () => {
 
     render(<AllMonitors />, {organization});
     const row = await screen.findByTestId('detector-list-row');
-    expect(within(row).getByText('1 alert')).toBeInTheDocument();
+    expect(await within(row).findByText('1 alert')).toBeInTheDocument();
 
     // Tooltip should fetch and display the automation name/action
     await userEvent.hover(within(row).getByText('1 alert'));
