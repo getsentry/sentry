@@ -237,11 +237,6 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         area: analyticsArea,
         query: queryToUse,
       });
-      trackAnalytics('ai_query.applied', {
-        organization,
-        area: analyticsArea,
-        query: queryToUse,
-      });
 
       // Apply the search query
       onSearch(queryToUse);

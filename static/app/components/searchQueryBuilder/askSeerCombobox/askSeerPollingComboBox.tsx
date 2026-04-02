@@ -238,12 +238,6 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
           natural_language_query: searchQuery,
           num_queries_returned: queries.length ?? 0,
         });
-        trackAnalytics('ai_query.rejected', {
-          organization,
-          area: analyticsArea,
-          natural_language_query: searchQuery,
-          num_queries_returned: queries.length ?? 0,
-        });
         handleNoneOfTheseClick();
         return;
       }
@@ -315,11 +309,6 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
                 area: analyticsArea,
                 action: 'closed',
               });
-              trackAnalytics('ai_query.interface', {
-                organization,
-                area: analyticsArea,
-                action: 'closed',
-              });
               setDisplayAskSeerFeedback(false);
               setDisplayAskSeer(false);
             }
@@ -329,12 +318,6 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
             return;
           case 'Enter':
             if (state.isOpen && state.selectionManager.focusedKey === 'none-of-these') {
-              trackAnalytics('ai_query.rejected', {
-                organization,
-                area: analyticsArea,
-                natural_language_query: searchQuery,
-                num_queries_returned: queries.length ?? 0,
-              });
               trackAnalytics('ai_query.rejected', {
                 organization,
                 area: analyticsArea,
@@ -367,11 +350,6 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
               searchQuery.trim() !== null &&
               searchQuery.trim() !== ''
             ) {
-              trackAnalytics('ai_query.submitted', {
-                organization,
-                area: analyticsArea,
-                natural_language_query: searchQuery.trim(),
-              });
               trackAnalytics('ai_query.submitted', {
                 organization,
                 area: analyticsArea,
@@ -442,11 +420,6 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
         area: analyticsArea,
         natural_language_query: searchQuery.trim(),
       });
-      trackAnalytics('ai_query.submitted', {
-        organization,
-        area: analyticsArea,
-        natural_language_query: searchQuery.trim(),
-      });
       submitQuery(searchQuery.trim());
       setAutoSubmitSeer(false);
     }
@@ -502,11 +475,6 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
           icon={<IconClose />}
           onFocus={() => !state.isOpen && state.open()}
           onClick={() => {
-            trackAnalytics('ai_query.interface', {
-              organization,
-              area: analyticsArea,
-              action: 'closed',
-            });
             trackAnalytics('ai_query.interface', {
               organization,
               area: analyticsArea,
