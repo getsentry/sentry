@@ -79,9 +79,16 @@ function makeSlotReducer<T extends Slot>(): SlotReducer<T> {
           },
         };
       case 'unregister':
+        const currentSlot = state[action.name];
+        if (!currentSlot) {
+          return state;
+        }
         return {
           ...state,
-          [action.name]: undefined,
+          [action.name]: {
+            counter: currentSlot?.counter ?? 0,
+            element: null,
+          },
         };
       default:
         return state;
