@@ -2,7 +2,7 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
-import {Section} from 'sentry/components/workflowEngine/ui/section';
+import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {getApiQueryData, setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
@@ -21,7 +21,7 @@ function ConnectedAutomations({
   const [cursor, setCursor] = useState<string | undefined>(undefined);
 
   return (
-    <Section title={t('Connected Alerts')}>
+    <DetailSection title={t('Connected Alerts')}>
       <ConnectedAutomationsList
         data-test-id="drawer-connected-automations-list"
         automationIds={automationIds}
@@ -32,7 +32,7 @@ function ConnectedAutomations({
         limit={null}
         openInNewTab
       />
-    </Section>
+    </DetailSection>
   );
 }
 
@@ -51,7 +51,7 @@ function AllAutomations({
   }, []);
 
   return (
-    <Section title={t('All Alerts')}>
+    <DetailSection title={t('All Alerts')}>
       <AutomationSearch initialQuery={searchQuery} onSearch={onSearch} />
       <ConnectedAutomationsList
         data-test-id="drawer-all-automations-list"
@@ -64,7 +64,7 @@ function AllAutomations({
         query={searchQuery}
         openInNewTab
       />
-    </Section>
+    </DetailSection>
   );
 }
 

@@ -107,26 +107,30 @@ export function CommandPalette(props: CommandPaletteProps) {
   );
 
   const sectionHeaderKeys = useMemo(
-    () => new Set(sections.map(({key}) => `section-${key}`)),
+    () => new Set(sections.filter(({label}) => label).map(({key}) => `section-${key}`)),
     [sections]
   );
 
   const treeState = useTreeState({
     disabledKeys: [...sectionHeaderKeys],
     children: sections.flatMap(({key: sectionKey, label, children}) => [
-      <Item<CommandPaletteActionMenuItem & {hideCheck: boolean; label: string}>
-        key={`section-${sectionKey}`}
-        textValue={label as string}
-        {...{
-          label: (
-            <Text size="sm" bold variant="primary">
-              {label}
-            </Text>
-          ),
-          hideCheck: true,
-          children: [],
-        }}
-      />,
+      ...(label
+        ? [
+            <Item<CommandPaletteActionMenuItem & {hideCheck: boolean; label: string}>
+              key={`section-${sectionKey}`}
+              textValue={label as string}
+              {...{
+                label: (
+                  <Text size="sm" bold variant="primary">
+                    {label}
+                  </Text>
+                ),
+                hideCheck: true,
+                children: [],
+              }}
+            />,
+          ]
+        : []),
       ...children.map(({key: actionKey, ...action}) => (
         <Item<CommandPaletteActionMenuItem> key={actionKey} {...action}>
           {action.label}

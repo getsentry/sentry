@@ -264,6 +264,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
             items={[
               {
                 key: 'github',
+                textValue: t('GitHub'),
                 label: (
                   <Flex gap="sm" align="center">
                     <PluginIcon pluginId="github" size={16} />
@@ -274,6 +275,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
               },
               {
                 key: 'github_enterprise',
+                textValue: t('GitHub Enterprise'),
                 label: (
                   <Flex gap="sm" align="center">
                     <PluginIcon pluginId="github_enterprise" size={16} />

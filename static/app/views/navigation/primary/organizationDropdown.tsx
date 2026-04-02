@@ -103,6 +103,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
       items={[
         {
           key: 'organization',
+          textValue: organization.name,
           label: (
             <Flex align="center" gap="md">
               <OrganizationAvatar organization={organization} size={32} />
