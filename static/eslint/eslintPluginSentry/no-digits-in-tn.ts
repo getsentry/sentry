@@ -25,15 +25,11 @@ export const noDigitsInTn = ESLintUtils.RuleCreator.withoutDocs({
             typeof argument.value === 'string' &&
             argument.value.includes('%d')
           ) {
-            const fixed = argument.value.replace(/%d/g, '%s');
             context.report({
               node,
               messageId: 'noDigits',
               fix(fixer) {
-                return fixer.replaceTextRange(
-                  [argument.range[0] + 1, argument.range[1] - 1],
-                  fixed
-                );
+                return fixer.replaceText(argument, argument.raw.replace(/%d/g, '%s'));
               },
             });
           }

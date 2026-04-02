@@ -28,15 +28,13 @@ export const noStyledShortcut = ESLintUtils.RuleCreator.withoutDocs({
         }
 
         const element = tag.property.name;
-        const replaceStart = tag.object.range[1];
-        const replaceEnd = tag.property.range[1];
 
         context.report({
           node,
           messageId: 'noShorthand',
           data: {element},
           fix(fixer) {
-            return fixer.replaceTextRange([replaceStart, replaceEnd], `('${element}')`);
+            return fixer.replaceText(tag, `styled('${element}')`);
           },
         });
       },

@@ -15,5 +15,10 @@ ruleTester.run('no-digits-in-tn', noDigitsInTn, {
       output: "tn('%s project', '%s projects', 5)",
       errors: [{messageId: 'noDigits'}, {messageId: 'noDigits'}],
     },
+    {
+      code: "tn('%d items\\n', '%d items\\n', count)",
+      output: "tn('%s items\\n', '%s items\\n', count)",
+      errors: [{messageId: 'noDigits'}, {messageId: 'noDigits'}],
+    },
   ],
 });
