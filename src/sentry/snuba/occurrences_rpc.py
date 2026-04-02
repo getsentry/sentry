@@ -249,35 +249,46 @@ class Occurrences(rpc_dataset_common.RPCBase):
         return results
 
     @classmethod
-    def _fetch_issue_labels(cls, group_ids: list[int | None]) -> dict[int, str]:
+    def _fetch_issue_labels(
+        cls,
+        group_ids: list[int | None],
+        project_ids: list[int],
+    ) -> dict[int, str]:
         resultant_map: dict[int, str] = {}
-        for grp in Group.objects.filter(
-            pk__in=set([grp_id for grp_id in group_ids if grp_id])
-        ).select_related("project"):
+        grp_ids: set[int] = set({grp_id for grp_id in (group_ids or []) if grp_id})
+        qs = Group.objects.filter(pk__in=grp_ids, project_id__in=project_ids).select_related(
+            "project"
+        )
+        for grp in qs:
             resultant_map[grp.id] = grp.qualified_short_id or UNKNOWN_ISSUE
         return resultant_map
 
     @classmethod
-    def process_a_column_values(
+    def process_column_values(
         cls,
         column_value: Any,
         final_data: SnubaData,
         attribute: Any,
         resolved_column: ResolvedColumn,
+        **context_kwargs: Any,
     ) -> None:
         if attribute == "issue":
             group_ids: list[int | None] = [
                 getattr(result, str(result.WhichOneof("value"))) if not result.is_null else None
                 for result in column_value.results
             ]
-            group_id_to_issue_map = cls._fetch_issue_labels(group_ids)
+            group_id_to_issue_map = cls._fetch_issue_labels(
+                group_ids, context_kwargs.get("project_ids", [])
+            )
             for index, group_id in enumerate(group_ids):
                 issue_label = UNKNOWN_ISSUE
                 if group_id and group_id in group_id_to_issue_map:
                     issue_label = group_id_to_issue_map[group_id]
                 final_data[index][attribute] = issue_label
         else:
-            super().process_a_column_values(column_value, final_data, attribute, resolved_column)
+            super().process_column_values(
+                column_value, final_data, attribute, resolved_column, **context_kwargs
+            )
 
     @classmethod
     def _build_category_filter(cls, category: OccurrenceCategory | None) -> TraceItemFilter | None:
