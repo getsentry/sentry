@@ -78,7 +78,7 @@ function makeSlotReducer<T extends Slot>(): SlotReducer<T> {
             element: action.element,
           },
         };
-      case 'unregister':
+      case 'unregister': {
         const currentSlot = state[action.name];
         if (!currentSlot) {
           return state;
@@ -90,6 +90,7 @@ function makeSlotReducer<T extends Slot>(): SlotReducer<T> {
             element: null,
           },
         };
+      }
       default:
         return state;
     }
