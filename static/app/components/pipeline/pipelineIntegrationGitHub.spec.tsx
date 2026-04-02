@@ -3,8 +3,8 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {githubIntegrationPipeline} from './pipelineIntegrationGitHub';
 import type {PipelineStepProps} from './types';
 
-const GitHubOAuthLoginStep = githubIntegrationPipeline.steps[0]!.component;
-const OrgSelectionStep = githubIntegrationPipeline.steps[1]!.component;
+const GitHubOAuthLoginStep = githubIntegrationPipeline.steps[0].component;
+const OrgSelectionStep = githubIntegrationPipeline.steps[1].component;
 
 function makeStepProps<D, A>(
   overrides: Partial<PipelineStepProps<D, A>> & {stepData: D}
