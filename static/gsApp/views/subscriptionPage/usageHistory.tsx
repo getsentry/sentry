@@ -144,7 +144,7 @@ type RowProps = {
 function UsageHistoryRow({history}: RowProps) {
   const organization = useOrganization();
   const [expanded, setExpanded] = useState<boolean>(history.isCurrent);
-  const {projects} = useProjects();
+  const {projects, onSearch: onProjectSearch} = useProjects();
 
   function renderOnDemandUsage({
     sortedCategories,
@@ -275,7 +275,7 @@ function UsageHistoryRow({history}: RowProps) {
                 {t('Download Project Breakdown')}
               </OverlayTrigger.Button>
             )}
-            search={{placeholder: t('Filter projects')}}
+            search={{placeholder: t('Filter projects'), onChange: onProjectSearch}}
             options={projects.map(project => ({
               value: project.slug,
               label: project.slug,
