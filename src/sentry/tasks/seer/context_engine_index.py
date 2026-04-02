@@ -227,7 +227,12 @@ def index_repos(organization_id: int, *args, **kwargs) -> None:
         logger.info("explorer.context_engine_indexing.enable flag is disabled")
         return
 
-    organization = Organization.objects.get(id=organization_id)
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.error("Organization not found", extra={"org_id": organization_id})
+        return
+
     if not features.has("organizations:context-engine-experiments", organization):
         logger.info("organizations:context-engine-experiments flag is disabled")
         return
