@@ -897,8 +897,10 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 # End of Conduit
 
 # Cell architecture
+/src/sentry/synapse/
+/tests/sentry/synapse/
 /.agents/skills/cell-architecture                    @getsentry/sre-infrastructure-engineering
-tests/sentry/core/endpoints/test_organization_cell.py @getsentry/sre-infrastructure-engineering
+/tests/sentry/core/endpoints/test_organization_cell.py @getsentry/sre-infrastructure-engineering
 # End of cell architecture
 
 # Foundational Storage
