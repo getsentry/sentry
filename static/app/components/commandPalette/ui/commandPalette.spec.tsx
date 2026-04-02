@@ -130,7 +130,7 @@ describe('CommandPalette', () => {
       await screen.findByRole('option', {name: 'Parent Group Action'})
     );
 
-    // Textbox changes placeholder to parent action label
+    // Textbox changes placeholder to parent Label label
     await waitFor(() => {
       expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveAttribute(
         'placeholder',
@@ -140,7 +140,7 @@ describe('CommandPalette', () => {
 
     // // Child actions are visible, global actions are not
     expect(screen.getByRole('option', {name: 'Child Action'})).toBeInTheDocument();
-    expect(screen.queryByRole('option', {name: 'Parent action'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'Parent Label'})).not.toBeInTheDocument();
     expect(screen.queryByRole('option', {name: 'Go to route'})).not.toBeInTheDocument();
 
     // // Hit Backspace on the input to go back
@@ -176,7 +176,7 @@ describe('CommandPalette', () => {
       ).toBeInTheDocument();
       expect(screen.queryByRole('option', {name: 'Other'})).not.toBeInTheDocument();
       expect(
-        screen.queryByRole('option', {name: 'Parent action'})
+        screen.queryByRole('option', {name: 'Parent Label'})
       ).not.toBeInTheDocument();
     });
 
