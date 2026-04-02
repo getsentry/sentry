@@ -162,11 +162,9 @@ def _detect_for_config(
                 _set_detector_triggered(config, project_id)
                 metrics.incr(f"processing_errors.{config.slug}.triggered")
                 error_types = sorted(
-                    {
-                        e.get("type")
-                        for e in errors
-                        if e.get("type") in config.handler_cls.error_types
-                    }
+                    config.handler_cls.error_types.intersection(
+                        filter(None, (e.get("type") for e in errors))
+                    )
                 )
                 logger.info(
                     "processing_errors.%s.occurrence_created",
