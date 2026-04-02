@@ -365,7 +365,7 @@ const OnboardingContentSection = styled('section')`
   grid-column: 1/3;
 `;
 
-const ChevronButton = styled(Button)<{expanded: boolean}>`
+export const ChevronButton = styled(Button)<{expanded: boolean}>`
   display: none;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
