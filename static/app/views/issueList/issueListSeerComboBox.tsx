@@ -44,7 +44,6 @@ export function IssueListSeerComboBox() {
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
   const organization = useOrganization();
-  const analyticsArea = useAnalyticsArea();
   const location = useLocation();
   const navigate = useNavigate();
   const analyticsArea = useAnalyticsArea();
@@ -187,11 +186,6 @@ export function IssueListSeerComboBox() {
         end: resultEnd,
       });
 
-      trackAnalytics('ai_query.applied', {
-        organization,
-        area: analyticsArea,
-        query: queryToUse,
-      });
       trackAnalytics('ai_query.applied', {
         organization,
         area: analyticsArea,

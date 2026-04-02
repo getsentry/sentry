@@ -36,7 +36,6 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
   const [inputValue, setInputValue] = useState(getKeyLabel(token.key) ?? '');
 
   const organization = useOrganization();
-  const analyticsArea = useAnalyticsArea();
   const {mutate: seerAcknowledgeMutate} = useSeerAcknowledgeMutation();
   const {items: sortedFilterKeys, isLoading} = useSortedFilterKeyItems({
     filterValue: inputValue,
@@ -70,11 +69,6 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
           area: analyticsArea,
           action: 'opened',
         });
-        trackAnalytics('ai_query.interface', {
-          organization,
-          area: analyticsArea,
-          action: 'opened',
-        });
         setDisplayAskSeer(true);
 
         if (currentInputValueRef.current?.trim()) {
@@ -87,11 +81,6 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       }
 
       if (keyName === ASK_SEER_CONSENT_ITEM_KEY) {
-        trackAnalytics('ai_query.interface', {
-          organization,
-          area: analyticsArea,
-          action: 'consent_accepted',
-        });
         trackAnalytics('ai_query.interface', {
           organization,
           area: analyticsArea,
@@ -139,7 +128,6 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       currentFilterValueType,
       currentInputValueRef,
       dispatch,
-      analyticsArea,
       getFieldDefinition,
       item.key,
       onCommit,

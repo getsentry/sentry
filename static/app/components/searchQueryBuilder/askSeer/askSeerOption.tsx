@@ -25,7 +25,6 @@ export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
   const analyticsArea = useAnalyticsArea();
 
   const organization = useOrganization();
-  const analyticsArea = useAnalyticsArea();
 
   const [optionDisableOverride, setOptionDisableOverride] = useState(false);
 
@@ -43,11 +42,6 @@ export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
 
   const handleClick = () => {
     if (optionDisableOverride) return;
-    trackAnalytics('ai_query.interface', {
-      organization,
-      area: analyticsArea,
-      action: 'opened',
-    });
     trackAnalytics('ai_query.interface', {
       organization,
       area: analyticsArea,

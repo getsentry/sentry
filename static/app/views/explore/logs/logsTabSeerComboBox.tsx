@@ -53,7 +53,6 @@ export function LogsTabSeerComboBox() {
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
   const organization = useOrganization();
-  const analyticsArea = useAnalyticsArea();
   const queryParams = useQueryParams();
   const analyticsArea = useAnalyticsArea();
   const {
@@ -242,12 +241,6 @@ export function LogsTabSeerComboBox() {
         mode,
       });
 
-      trackAnalytics('ai_query.applied', {
-        organization,
-        area: analyticsArea,
-        query: queryToUse,
-        group_by_count: groupBys.length,
-      });
       trackAnalytics('ai_query.applied', {
         organization,
         area: analyticsArea,

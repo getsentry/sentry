@@ -212,7 +212,6 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
   });
 
   const organization = useOrganization();
-  const analyticsArea = useAnalyticsArea();
 
   const filterKeyMenuItems = useMemo(() => {
     const recentFilterItems = makeRecentFilterItems({recentFilters});
@@ -427,11 +426,6 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
           area: analyticsArea,
           action: 'opened',
         });
-        trackAnalytics('ai_query.interface', {
-          organization,
-          area: analyticsArea,
-          action: 'opened',
-        });
         setDisplayAskSeer(true);
 
         if (currentInputValueRef.current?.trim()) {
@@ -444,11 +438,6 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
       }
 
       if (option.type === 'ask-seer-consent') {
-        trackAnalytics('ai_query.interface', {
-          organization,
-          area: analyticsArea,
-          action: 'consent_accepted',
-        });
         trackAnalytics('ai_query.interface', {
           organization,
           area: analyticsArea,
