@@ -128,6 +128,10 @@ const SpansTabCrossEventSearchBar = memo(
     const mode = useQueryParamsMode();
     const crossEvents = useQueryParamsCrossEvents();
     const setCrossEvents = useSetQueryParamsCrossEvents();
+    const organization = useOrganization();
+    const hasRawSearchReplacement = organization.features.includes(
+      'search-query-builder-raw-search-replacement'
+    );
 
     const traceItemType =
       type === 'logs' ? TraceItemDataset.LOGS : TraceItemDataset.SPANS;
@@ -178,11 +182,17 @@ const SpansTabCrossEventSearchBar = memo(
         booleanSecondaryAliases,
         numberSecondaryAliases,
         stringSecondaryAliases,
+        replaceRawSearchKeys: hasRawSearchReplacement
+          ? type === 'logs'
+            ? ['message']
+            : ['span.description']
+          : undefined,
       }),
       [
         booleanAttributes,
         booleanSecondaryAliases,
         crossEvents,
+        hasRawSearchReplacement,
         index,
         mode,
         numberSecondaryAliases,
