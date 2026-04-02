@@ -1201,6 +1201,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:preprod_distribution_pr_comments_enabled_by_customer": self.get_value_with_default(
                 attrs, "sentry:preprod_distribution_pr_comments_enabled_by_customer"
             ),
+            "sentry:preprod_snapshot_pr_comments_enabled": self.get_value_with_default(
+                attrs, "sentry:preprod_snapshot_pr_comments_enabled"
+            ),
         }
 
     def get_value_with_default(self, attrs, key):

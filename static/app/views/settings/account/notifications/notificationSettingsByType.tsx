@@ -510,18 +510,14 @@ export function NotificationSettingsByType({notificationType}: Props) {
           >
             {field => (
               <Fragment>
-                {(field.state.value ?? initialProviders).some(p =>
-                  ALLOWED_PROVIDERS.has(p as SupportedProviders)
-                ) && (
-                  <Fragment>
-                    {unlinkedSlackOrgs.length > 0 ? (
-                      <UnlinkedAlert organizations={unlinkedSlackOrgs} />
-                    ) : null}
-                    {unlinkedSlackStagingOrgs.length > 0 ? (
-                      <UnlinkedAlert organizations={unlinkedSlackStagingOrgs} />
-                    ) : null}
-                  </Fragment>
-                )}
+                {(field.state.value ?? initialProviders).includes('slack') &&
+                unlinkedSlackOrgs.length > 0 ? (
+                  <UnlinkedAlert organizations={unlinkedSlackOrgs} />
+                ) : null}
+                {(field.state.value ?? initialProviders).includes('slack_staging') &&
+                unlinkedSlackStagingOrgs.length > 0 ? (
+                  <UnlinkedAlert organizations={unlinkedSlackStagingOrgs} />
+                ) : null}
                 <field.Layout.Row
                   label={t('Delivery Method')}
                   hintText={t('Where personal notifications will be sent.')}

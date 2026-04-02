@@ -506,6 +506,6 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   );
 }
 
-const StyledPageFilterBar = styled(PageFilterBar)`
+export const StyledPageFilterBar = styled(PageFilterBar)`
   width: auto;
 `;
