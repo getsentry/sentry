@@ -243,6 +243,7 @@ export const useSeerExplorer = () => {
             query,
             insert_index: calculatedInsertIndex,
             on_page_context: screenshot,
+            page_name: getPageReferrer(),
             override_ce_enable: overrideCtxEngEnable,
           },
         })) as SeerExplorerChatResponse;
