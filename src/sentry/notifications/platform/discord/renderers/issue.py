@@ -11,6 +11,7 @@ from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationRenderedTemplate,
 )
+from sentry.services.eventstore.models import GroupEvent
 
 
 class IssueDiscordRenderer(NotificationRenderer[DiscordRenderable]):
@@ -41,8 +42,14 @@ class IssueDiscordRenderer(NotificationRenderer[DiscordRenderable]):
             except Exception:
                 raise NotificationRenderError(f"Failed to retrieve event {data.event_id}")
 
-        rules = [data.rule.to_rule()] if data.rule else None
-        assert len(rules) == 1, "Expected 1 rule, got {len(rules)}"
+        rules = [data.rule.to_rule()] if data.rule else []
+
+        if event is not None:
+            # Event should always be a GroupEvent at this point, but we need to
+            # narrow the type for mypy.
+            assert isinstance(event, GroupEvent), (
+                f"Expected GroupEvent, got {type(event)} for event {data.event_id}"
+            )
 
         return DiscordIssuesMessageBuilder(
             group=group,

@@ -98,7 +98,6 @@ class IssueDiscordRendererTest(TestCase):
         embed = result["embeds"][0]
         assert "fields" in embed
         fields = embed["fields"]
-        assert len(fields) > 0
         assert any(f["name"] == "level" for f in fields)
 
     def test_source(self) -> None:
