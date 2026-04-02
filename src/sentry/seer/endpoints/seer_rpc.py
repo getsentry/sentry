@@ -671,7 +671,7 @@ def has_repo_code_mappings(
     """
     try:
         repo_projects = get_repo_and_projects(organization_id, provider, external_id, owner, name)
-    except (Repository.DoesNotExist, NoProjectsForRepoError, Project.DoesNotExist):
+    except (Repository.DoesNotExist, NoProjectsForRepoError):
         return {"has_code_mappings": False, "project_slug_to_id": {}}
 
     project_slug_to_id = dict(
