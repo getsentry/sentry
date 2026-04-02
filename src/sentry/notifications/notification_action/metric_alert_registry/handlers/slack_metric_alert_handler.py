@@ -151,6 +151,9 @@ class SlackMetricAlertHandler(BaseMetricAlertHandler):
         detector_serialized_response = get_detector_serializer(detector)
         incident_serialized_response = get_detailed_incident_serializer(open_period)
 
+        if notification_context.integration_id is None:
+            raise ValueError("Slack integration_id is None")
+
         if notification_context.target_identifier is None:
             raise ValueError("Slack channel (target_identifier) is None")
 
