@@ -3,7 +3,6 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import type {ComboBoxState} from '@react-stately/combobox';
 import type {Node} from '@react-types/shared';
 
-import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenu} from 'sentry/components/searchQueryBuilder/tokens/combobox';
@@ -34,9 +33,7 @@ import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/t
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import type {RecentSearch, TagCollection} from 'sentry/types/group';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {clamp} from 'sentry/utils/number/clamp';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
 
 const MAX_OPTIONS_WITHOUT_SEARCH = 100;
@@ -203,15 +200,12 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
     currentInputValueRef,
     disallowLogicalOperators,
   } = useSearchQueryBuilder();
-  const analyticsArea = useAnalyticsArea();
   const {sectionedItems} = useFilterKeyItems();
   const recentFilters = useRecentSearchFilters();
   const {data: recentSearches} = useRecentSearches();
   const {sections, selectedSection, setSelectedSection} = useFilterKeySections({
     recentSearches,
   });
-
-  const organization = useOrganization();
 
   const filterKeyMenuItems = useMemo(() => {
     const recentFilterItems = makeRecentFilterItems({recentFilters});
@@ -421,15 +415,6 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
   const handleOptionSelected = useCallback(
     (option: FilterKeyItem) => {
       if (option.type === 'ask-seer') {
-        trackAnalytics('trace.explorer.ai_query_interface', {
-          organization,
-          action: 'opened',
-        });
-        trackAnalytics('ai_query.interface', {
-          organization,
-          area: analyticsArea,
-          action: 'opened',
-        });
         setDisplayAskSeer(true);
 
         if (currentInputValueRef.current?.trim()) {
@@ -442,27 +427,11 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
       }
 
       if (option.type === 'ask-seer-consent') {
-        trackAnalytics('trace.explorer.ai_query_interface', {
-          organization,
-          action: 'consent_accepted',
-        });
-        trackAnalytics('ai_query.interface', {
-          organization,
-          area: analyticsArea,
-          action: 'consent_accepted',
-        });
         seerAcknowledgeMutate();
         return;
       }
     },
-    [
-      analyticsArea,
-      currentInputValueRef,
-      organization,
-      seerAcknowledgeMutate,
-      setAutoSubmitSeer,
-      setDisplayAskSeer,
-    ]
+    [currentInputValueRef, seerAcknowledgeMutate, setAutoSubmitSeer, setDisplayAskSeer]
   );
 
   return {

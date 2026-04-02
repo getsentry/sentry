@@ -8,7 +8,6 @@ import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {DateString} from 'sentry/types/core';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -230,11 +229,6 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         columns,
       });
 
-      trackAnalytics('errors.ai_query_applied', {
-        organization,
-        query: queryToUse,
-      });
-
       // Apply the search query
       onSearch(queryToUse);
 
@@ -285,7 +279,6 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
       location,
       navigate,
       onSearch,
-      organization,
       pageFilters.selection.datetime,
     ]
   );
@@ -301,7 +294,6 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
       strategy="Errors"
       applySeerSearchQuery={applySeerSearchQuery}
       transformResponse={transformResponse}
-      analyticsSource="errors"
       feedbackSource="errors_ai_query"
       fallbackMutationOptions={issueListAskSeerMutationOptions}
     />

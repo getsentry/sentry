@@ -56,9 +56,6 @@ export type IssueEventParameters = {
   'device.classification.unclassified.ios.device': {
     model: string;
   };
-  'errors.ai_query_applied': {
-    query: string;
-  };
   'highlights.edit_modal.add_context_key': Record<string, unknown>;
   'highlights.edit_modal.add_tag': Record<string, unknown>;
   'highlights.edit_modal.cancel_clicked': Record<string, unknown>;
@@ -77,9 +74,6 @@ export type IssueEventParameters = {
     group_id: number;
     issue_type: string;
     project_id: number;
-  };
-  'issue.list.ai_query_applied': {
-    query: string;
   };
   'issue.shared_publicly': Record<string, unknown>;
   'issue_details.activity_drawer.filter_changed': {
@@ -298,7 +292,6 @@ type IssueEventKey = keyof IssueEventParameters;
 
 export const issueEventMap: Record<IssueEventKey, string | null> = {
   'breadcrumbs.issue_details.change_time_display': 'Breadcrumb Time Display Toggled',
-  'errors.ai_query_applied': 'Errors: AI Query Applied',
   'breadcrumbs.issue_details.drawer_opened': 'Breadcrumb Drawer Opened',
   'breadcrumbs.drawer.action': 'Breadcrumb Drawer Action Taken',
   'highlights.edit_modal.add_context_key': 'Highlights: Add Context in Edit Modal',
@@ -361,7 +354,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_views.star_view': 'Issue Views: Star View',
   'issue_search.failed': 'Issue Search: Failed',
   'issue_search.empty': 'Issue Search: Empty',
-  'issue.list.ai_query_applied': 'Issue List: AI Query Applied',
   'issues_stream.archived': 'Issues Stream: Archived',
   'issues_stream.updated_priority': 'Issues Stream: Updated Priority',
   'issues_stream.realtime_clicked': 'Issues Stream: Realtime Clicked',
