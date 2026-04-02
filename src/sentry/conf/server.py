@@ -948,6 +948,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.collect_project_platforms",
     "sentry.tasks.commit_context",
     "sentry.tasks.commits",
+    "sentry.tasks.console_platform_cleanup",
     "sentry.tasks.delete_pending_groups",
     "sentry.tasks.seer.delete_seer_grouping_records",
     "sentry.tasks.digests",
@@ -1012,10 +1013,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "flush-delayed-workflows": {
         "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
         "schedule": timedelta(seconds=15),
-    },
-    "prune-old-fire-history": {
-        "task": "workflow_engine:sentry.workflow_engine.tasks.cleanup.prune_old_fire_history",
-        "schedule": timedelta(minutes=2),
     },
     "resolve-stale-sourcemap-detectors": {
         "task": "workflow_engine:sentry.processing_errors.tasks.resolve_stale_sourcemap_detectors",
@@ -2228,6 +2225,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.bitbucket.integration.BitbucketIntegrationProvider",
     "sentry.integrations.bitbucket_server.integration.BitbucketServerIntegrationProvider",
     "sentry.integrations.slack.SlackIntegrationProvider",
+    "sentry.integrations.slack.staging.integration.SlackStagingIntegrationProvider",
     "sentry.integrations.github.integration.GitHubIntegrationProvider",
     "sentry.integrations.github_enterprise.integration.GitHubEnterpriseIntegrationProvider",
     "sentry.integrations.gitlab.integration.GitlabIntegrationProvider",
@@ -2243,6 +2241,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.opsgenie.OpsgenieIntegrationProvider",
     "sentry.integrations.cursor.integration.CursorAgentIntegrationProvider",
     "sentry.integrations.claude_code.integration.ClaudeCodeAgentIntegrationProvider",
+    "sentry.integrations.github_copilot.integration.GithubCopilotIntegrationProvider",
     "sentry.integrations.perforce.integration.PerforceIntegrationProvider",
 )
 
@@ -3016,7 +3015,11 @@ SENTRY_PROFILE_EAP_FUTURES_MAX_LIMIT = 10000
 SENTRY_PREPROD_ARTIFACT_EVENTS_FUTURES_MAX_LIMIT = 10000
 
 # How long we should wait for a gateway proxy request to return before giving up
-GATEWAY_PROXY_TIMEOUT: int | None = None
+GATEWAY_PROXY_TIMEOUT: int | None = (
+    int(os.environ["SENTRY_APIGW_PROXY_TIMEOUT"])
+    if os.environ.get("SENTRY_APIGW_PROXY_TIMEOUT")
+    else None
+)
 
 SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
 # This maps a Sliceable for slicing by name and (lower logical partition, upper physical partition)
@@ -3259,7 +3262,7 @@ if SILO_DEVSERVER:
     # Addresses are hardcoded based on the defaults
     # we use in commands/devserver.
     region_port = os.environ.get("SENTRY_REGION_SILO_PORT", "8010")
-    SENTRY_REGION_CONFIG = [
+    SENTRY_CELLS = [
         {
             "name": "us",
             "snowflake_id": 1,
@@ -3267,7 +3270,10 @@ if SILO_DEVSERVER:
             "address": f"http://127.0.0.1:{region_port}",
         }
     ]
-    SENTRY_MONOLITH_REGION = SENTRY_REGION_CONFIG[0]["name"]
+    SENTRY_MONOLITH_REGION = SENTRY_CELLS[0]["name"]
+
+    # TODO(cells): remove after getsentry updated
+    SENTRY_REGION_CONFIG = SENTRY_CELLS
 
     # Cross region RPC authentication
     RPC_SHARED_SECRET = [

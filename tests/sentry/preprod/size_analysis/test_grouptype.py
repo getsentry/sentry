@@ -954,16 +954,20 @@ class PreprodSizeAnalysisEvidenceTextTest(TestCase):
         evidence = occurrence.evidence_display[0]
         assert evidence.value == "Download Size, Relative Diff > 5% (+20.0%)"
 
-    def _make_metadata(self, platform: str, artifact_type: int) -> dict[str, Any]:
+    def _make_metadata(
+        self, platform: str, artifact_type: int, app_name: str = "MyApp"
+    ) -> dict[str, Any]:
         head_artifact = self.create_preprod_artifact(
             project=self.project,
             app_id="com.example.app",
             artifact_type=artifact_type,
+            app_name=app_name,
         )
         base_artifact = self.create_preprod_artifact(
             project=self.project,
             app_id="com.example.app",
             artifact_type=artifact_type,
+            app_name=app_name,
         )
         head_artifact = PreprodArtifact.objects.select_related(
             "mobile_app_info", "commit_comparison"
@@ -992,7 +996,10 @@ class PreprodSizeAnalysisEvidenceTextTest(TestCase):
             metadata=metadata,
         )
         evidence = occurrence.evidence_display[0]
-        assert evidence.value == "Uncompressed Size, Absolute Size > 1.0 MB (5.0 MB)"
+        assert (
+            evidence.value
+            == "MyApp android (com.example.app) — Uncompressed Size, Absolute Size > 1.0 MB (5.0 MB)"
+        )
 
     def test_evidence_apple_shows_install_size(self) -> None:
         self._create_condition(Condition.GREATER, 1000000)
@@ -1005,4 +1012,7 @@ class PreprodSizeAnalysisEvidenceTextTest(TestCase):
             metadata=metadata,
         )
         evidence = occurrence.evidence_display[0]
-        assert evidence.value == "Install Size, Absolute Size > 1.0 MB (5.0 MB)"
+        assert (
+            evidence.value
+            == "MyApp apple (com.example.app) — Install Size, Absolute Size > 1.0 MB (5.0 MB)"
+        )

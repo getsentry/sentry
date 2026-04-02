@@ -12,6 +12,7 @@ from urllib.parse import urljoin, urlparse
 import httpx
 from asgiref.sync import sync_to_async
 from django.conf import settings
+from django.core.exceptions import RequestAborted
 from django.http import HttpRequest, HttpResponse, JsonResponse, StreamingHttpResponse
 from django.http.response import HttpResponseBase
 
@@ -41,7 +42,7 @@ from .circuitbreaker import (
 
 logger = logging.getLogger(__name__)
 
-proxy_client = httpx.AsyncClient()
+proxy_client = httpx.AsyncClient(timeout=httpx.Timeout(5.0, read=60.0))
 circuitbreakers = CircuitBreakerManager()
 
 # Endpoints that handle uploaded files have higher timeouts configured
@@ -189,14 +190,17 @@ async def proxy_cell_request(
                         headers=header_dict,
                         params=dict(query_params) if query_params is not None else None,
                         content=_stream_request(data) if data else None,  # type: ignore[arg-type]
-                        timeout=timeout,
+                        timeout=timeout or httpx.USE_CLIENT_DEFAULT,
                     )
                     resp = await proxy_client.send(req, stream=True, follow_redirects=False)
                     if resp.status_code >= 502:
                         metrics.incr("apigateway.proxy.request_failed", tags=metric_tags)
                         circuitbreaker.incr_failures()
                     return _adapt_response(resp, target_url)
-            except (httpx.TimeoutException, asyncio.CancelledError):
+            except asyncio.CancelledError:
+                metrics.incr("apigateway.proxy.request_aborted", tags=metric_tags)
+                raise RequestAborted()
+            except httpx.TimeoutException:
                 metrics.incr("apigateway.proxy.request_timeout", tags=metric_tags)
                 circuitbreaker.incr_failures()
                 # remote silo timeout. Use DRF timeout instead

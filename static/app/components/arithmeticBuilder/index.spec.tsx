@@ -206,8 +206,9 @@ describe('ArithmeticBuilder', () => {
     const expression = '( sum(span.duration) + count_if(span.op,equals,db) )';
     render(<ArithmeticBuilderWrapper expression={expression} />);
 
-    const rows = screen.getAllByRole('row');
-    expect(rows).toHaveLength(11);
+    await waitFor(() => {
+      expect(screen.getAllByRole('row')).toHaveLength(11);
+    });
 
     // the combobox inside the free text tokens will get the focus
     const freeTextTokens = screen.getAllByRole('combobox', {name: 'Add a term'});

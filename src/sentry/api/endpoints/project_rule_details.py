@@ -104,7 +104,7 @@ class ProjectRuleDetailsPutSerializer(serializers.Serializer):
 @cell_silo_endpoint
 class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
     workflow_engine_method_flags = {
-        "GET": "organizations:workflow-engine-projectruledetailsendpoint-get",
+        "GET": "organizations:workflow-engine-issue-alert-endpoints-get",
     }
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,

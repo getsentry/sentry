@@ -76,7 +76,7 @@ describe('AutomationDetail', () => {
     // Check sidebar sections
     expect(screen.getByRole('heading', {name: 'Last Triggered'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Environment'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Action Interval'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Throttling'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Conditions'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Details'})).toBeInTheDocument();
   });

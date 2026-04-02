@@ -182,16 +182,13 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
   // used to query a demo transaction event from the backend.
   const mode = decodeScalar(normalizedParams.demo) ? 'demo' : undefined;
 
-  const query = useQuery<
-    {
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
+  const query = useQuery({
+    queryKey: ['traceData', replayTraces.map(trace => trace.traceSlug)],
+    queryFn: async (): Promise<{
       apiErrors: Error[];
       meta: TraceMeta | EAPTraceMeta;
-    },
-    Error
-  >({
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps
-    queryKey: ['traceData', replayTraces.map(trace => trace.traceSlug)],
-    queryFn: async () => {
+    }> => {
       const result = await fetchTraceMetaInBatches(
         isEAP ? 'eap' : 'non-eap',
         api,

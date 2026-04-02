@@ -58,6 +58,7 @@ from sentry.constants import (
     ROLLBACK_ENABLED_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
+    SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     SEER_DEFAULT_CODING_AGENT_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
     ObjectStatus,
@@ -83,6 +84,7 @@ from sentry.models.team import Team, TeamStatus
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.replays.models import OrganizationMemberReplayAccess
+from sentry.seer.autofix.utils import get_valid_automated_run_stopping_points
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -558,8 +560,9 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     defaultSeerScannerAutomation: bool
     enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
-    defaultCodingAgent: str | None
+    defaultCodingAgent: str
     defaultCodingAgentIntegrationId: int | None
+    defaultAutomatedRunStoppingPoint: str
     autoEnableCodeReview: bool
     autoOpenPrs: bool
     defaultCodeReviewTriggers: list[str]
@@ -598,6 +601,15 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             )
 
         return attrs
+
+    def _get_default_automated_run_stopping_point(self, obj: Organization) -> str:
+        stopping_point = obj.get_option(
+            "sentry:default_automated_run_stopping_point",
+            SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+        )
+        if stopping_point not in get_valid_automated_run_stopping_points(obj):
+            return SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+        return stopping_point
 
     def serialize(  # type: ignore[override]
         self,
@@ -734,13 +746,12 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 )
             ),
             "defaultCodingAgent": obj.get_option(
-                "sentry:seer_default_coding_agent",
-                SEER_DEFAULT_CODING_AGENT_DEFAULT,
+                "sentry:seer_default_coding_agent", SEER_DEFAULT_CODING_AGENT_DEFAULT
             ),
             "defaultCodingAgentIntegrationId": obj.get_option(
-                "sentry:seer_default_coding_agent_integration_id",
-                None,
+                "sentry:seer_default_coding_agent_integration_id", None
             ),
+            "defaultAutomatedRunStoppingPoint": self._get_default_automated_run_stopping_point(obj),
             "autoOpenPrs": bool(
                 obj.get_option(
                     "sentry:auto_open_prs",

@@ -1,3 +1,4 @@
+import {notifyManager} from '@tanstack/react-query';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -12,6 +13,9 @@ describe('User Details', () => {
   });
 
   beforeEach(() => {
+    // Use synchronous scheduling to avoid React 19 act() timing issues
+    // with TanStack Query's default setTimeout-based batching
+    notifyManager.setScheduler(cb => cb());
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/users/${mockUser.id}/`,
@@ -38,6 +42,11 @@ describe('User Details', () => {
       url: `/users/${mockUser.id}/user-identities/`,
       body: [],
     });
+  });
+
+  afterEach(() => {
+    // Restore default scheduler
+    notifyManager.setScheduler(setTimeout);
   });
 
   describe('page rendering', () => {

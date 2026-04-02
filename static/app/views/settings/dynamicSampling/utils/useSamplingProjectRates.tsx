@@ -63,10 +63,10 @@ const fetchAllSamplingRates = async (
 export function useGetSamplingProjectRates() {
   const api = useApi();
   const organization = useOrganization();
-  return useQuery<SamplingProjectRate[]>({
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps
+  return useQuery({
     queryKey: getQueryKey(organization),
-    queryFn: () => fetchAllSamplingRates(api, organization),
+    queryFn: (): Promise<SamplingProjectRate[]> =>
+      fetchAllSamplingRates(api, organization),
     staleTime: 0,
   });
 }

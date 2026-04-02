@@ -1107,7 +1107,7 @@ class SearchResolver:
         if function_definition.private and function_name not in self.config.fields_acl.functions:
             raise InvalidSearchQuery(f"The function {function_name} is not allowed for this query")
 
-        parsed_args: list[ResolvedAttribute | str | int | float] = []
+        parsed_args: list[ResolvedAttribute | str | int | float | TraceItemFilter] = []
 
         # Parse the arguments
         arguments = fields.parse_arguments(function_name, columns)
@@ -1154,6 +1154,14 @@ class SearchResolver:
                             parsed_args.append(int(argument))
                         elif arg_type == "number":
                             parsed_args.append(float(argument))
+                        elif arg_type == "query":
+                            # Only TraceItemFilter currently supported
+                            trace_item_filters = self.resolve_query(argument[1:-1])[0]
+                            if trace_item_filters is None:
+                                raise InvalidSearchQuery(
+                                    "The if combinator requires non-aggregate filters"
+                                )
+                            parsed_args.append(trace_item_filters)
                         else:
                             parsed_args.append(argument)
                     continue

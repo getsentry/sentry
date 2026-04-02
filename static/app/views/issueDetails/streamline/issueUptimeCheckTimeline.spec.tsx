@@ -83,8 +83,10 @@ describe('IssueUptimeCheckTimeline', () => {
     });
     render(<IssueUptimeCheckTimeline group={group} />, {organization});
 
-    expect(await screen.findByTestId('check-in-placeholder')).not.toBeInTheDocument();
-
+    // Wait for all legend items to render - MISSED_WINDOW ("Unknown") renders last
+    expect(
+      await screen.findByText(statusToText[CheckStatus.MISSED_WINDOW])
+    ).toBeInTheDocument();
     const legend = screen.getByRole('caption');
     expect(
       within(legend).getByText(statusToText[CheckStatus.SUCCESS])
@@ -134,8 +136,10 @@ describe('IssueUptimeCheckTimeline', () => {
       },
     });
     render(<IssueUptimeCheckTimeline group={group} />, {organization});
-    expect(await screen.findByTestId('check-in-placeholder')).not.toBeInTheDocument();
 
+    expect(
+      await screen.findByText(statusToText[CheckStatus.SUCCESS])
+    ).toBeInTheDocument();
     const legend = screen.getByRole('caption');
     expect(
       within(legend).getByText(statusToText[CheckStatus.SUCCESS])

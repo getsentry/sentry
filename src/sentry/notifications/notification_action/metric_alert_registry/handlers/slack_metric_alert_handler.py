@@ -69,3 +69,8 @@ class SlackMetricAlertHandler(BaseMetricAlertHandler):
             incident_serialized_response=incident_serialized_response,
             detector_serialized_response=detector_serialized_response,
         )
+
+
+@metric_alert_handler_registry.register(Action.Type.SLACK_STAGING)
+class SlackStagingMetricAlertHandler(SlackMetricAlertHandler):
+    pass

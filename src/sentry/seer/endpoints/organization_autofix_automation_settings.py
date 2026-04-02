@@ -246,7 +246,9 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
         :pparam string organization_id_or_slug: the id or slug of the organization.
         :auth: required
         """
-        serializer = SeerAutofixSettingsPostSerializer(data=request.data)
+        serializer = SeerAutofixSettingsPostSerializer(
+            data=request.data, context={"organization": organization}
+        )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
@@ -304,7 +306,7 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                     continue
 
                 project_id_str = str(proj_id)
-                existing_pref = existing_preferences.get(project_id_str, {})
+                existing_pref = existing_preferences.get(project_id_str) or {}
 
                 pref_update: dict[str, Any] = {
                     **default_seer_project_preference(project).dict(),

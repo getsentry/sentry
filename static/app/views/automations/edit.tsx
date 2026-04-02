@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/react';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import type {FieldValue} from 'sentry/components/forms/model';
 import {FormModel} from 'sentry/components/forms/model';
@@ -187,6 +188,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
           ...newAutomationData,
         });
         onSubmitSuccess(formModel?.getData() ?? data);
+        addSuccessMessage(t('Alert updated'));
         trackAnalytics('automation.updated', {
           organization,
           ...analyticsPayload,

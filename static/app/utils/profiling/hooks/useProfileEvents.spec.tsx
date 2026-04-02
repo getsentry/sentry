@@ -42,7 +42,7 @@ describe('useProfileEvents', () => {
       },
     });
 
-    await waitFor(() => result.current.isSuccess);
+    await waitFor(() => expect(result.current.data).toBeDefined());
     expect(result.current.data).toEqual(body);
   });
 

@@ -132,6 +132,15 @@ export function getMetricLabelForPlatform(
   return getMetricLabel(metric);
 }
 
+export function getMetricLabelForArtifactType(
+  metric: MetricType,
+  artifactType: string | undefined
+): string {
+  const platform =
+    artifactType === 'xcarchive' ? 'apple' : artifactType ? 'android' : undefined;
+  return getMetricLabelForPlatform(metric, platform);
+}
+
 export function getMeasurementLabel(measurement: MeasurementType): string {
   return MEASUREMENT_LABELS[measurement];
 }
@@ -175,4 +184,8 @@ export function bytesToMB(bytes: number): number {
 
 export function mbToBytes(mb: number): number {
   return mb * 1000 * 1000;
+}
+
+export function isDiffThreshold(thresholdType: MeasurementType): boolean {
+  return thresholdType === 'absolute_diff' || thresholdType === 'relative_diff';
 }
