@@ -53,8 +53,6 @@ export function useCreateDetectorFormSubmit<
         return;
       }
 
-      formModel.setFormSaving();
-
       // Use getTransformedData() instead of raw data to apply field-level
       // getValue transformations (e.g., assertion normalization)
       const payload = formDataToEndpointPayload(
@@ -62,6 +60,8 @@ export function useCreateDetectorFormSubmit<
       );
 
       try {
+        formModel.setFormSaving();
+
         const resultDetector = await createDetector(payload);
 
         trackAnalytics('monitor.created', {
