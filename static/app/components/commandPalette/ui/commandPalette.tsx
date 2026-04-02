@@ -109,7 +109,6 @@ export function CommandPalette(props: CommandPaletteProps) {
     >();
 
     scoreTree(virtualRoot, scores, state.query.toLowerCase());
-    console.log('scores', scores);
     return flattenActions(virtualRoot, scores);
   }, [allActions, state.action, state.query]);
 
@@ -177,7 +176,7 @@ export function CommandPalette(props: CommandPaletteProps) {
       }
     }
     return undefined;
-  }, [treeState.collection]);
+  }, [treeState.collection, sectionKeys]);
 
   useLayoutEffect(() => {
     if (treeState.selectionManager.focusedKey !== null) {
