@@ -53,30 +53,9 @@ LINE_PLOT_FIELDS = {
 TOP_N = 5
 
 
-def timeseries_to_chart_data(resp_data: dict[str, Any], y_axis: str) -> dict[str, Any]:
-    """
-    Converts an events-timeseries StatsResponse into the events-stats format
-    that Chartcuterie expects.
-
-    events-timeseries format:
-        {"timeSeries": [{"yAxis": "count()", "values": [{"timestamp": ms, "value": N}, ...]}]}
-
-    events-stats format (what Chartcuterie expects):
-        {"data": [(timestamp_sec, [{"count": N}]), ...], "start": sec, "end": sec}
-    """
-    time_series = resp_data.get("timeSeries", [])
-
-    # Find the series matching our y_axis
-    series = None
-    for ts in time_series:
-        if ts.get("yAxis") == y_axis:
-            series = ts
-            break
-
-    if not series or not series.get("values"):
-        return {"data": [], "start": 0, "end": 0, "isMetricsData": False}
-
-    values = series["values"]
+def _serialize_single_series(series: dict[str, Any]) -> dict[str, Any]:
+    """Convert a single TimeSeries into events-stats format."""
+    values = series.get("values", [])
     data = []
     for row in values:
         # events-timeseries uses milliseconds, events-stats uses seconds
@@ -92,6 +71,39 @@ def timeseries_to_chart_data(resp_data: dict[str, Any], y_axis: str) -> dict[str
         "end": end,
         "isMetricsData": False,
     }
+
+
+def timeseries_to_chart_data(
+    resp_data: dict[str, Any], y_axis: str, has_groups: bool = False
+) -> dict[str, Any]:
+    """
+    Converts an events-timeseries StatsResponse into the events-stats format
+    that Chartcuterie expects.
+
+    For single series:
+        {"data": [(timestamp_sec, [{"count": N}]), ...], "start": sec, "end": sec}
+
+    For top events (grouped):
+        {"group_label": {"data": [...], "order": N, ...}, ...}
+    """
+    time_series = resp_data.get("timeSeries", [])
+    matching = [ts for ts in time_series if ts.get("yAxis") == y_axis]
+
+    if not matching:
+        return {"data": [], "start": 0, "end": 0, "isMetricsData": False}
+
+    if has_groups and len(matching) > 1:
+        # Top events: return dict keyed by group label
+        result = {}
+        for i, ts in enumerate(matching):
+            group_by = ts.get("groupBy", [])
+            label = ",".join(str(g.get("value", "")) for g in group_by) if group_by else str(i)
+            series_data = _serialize_single_series(ts)
+            series_data["order"] = ts.get("meta", {}).get("order", i)
+            result[label] = series_data
+        return result
+
+    return _serialize_single_series(matching[0])
 
 
 def unfurl_explore(
@@ -144,7 +156,7 @@ def _unfurl_explore(
             y_axes = [DEFAULT_Y_AXIS]
             params.setlist("yAxis", y_axes)
 
-        group_bys = params.getlist("field")
+        group_bys = params.getlist("groupBy")
 
         # Determine display mode based on whether groupBy is present
         if group_bys:
@@ -175,7 +187,7 @@ def _unfurl_explore(
             _logger.warning("Failed to load events-timeseries for explore unfurl")
             continue
 
-        stats = timeseries_to_chart_data(resp.data, y_axes[0])
+        stats = timeseries_to_chart_data(resp.data, y_axes[0], has_groups=bool(group_bys))
         chart_data = {"seriesName": y_axes[0], "stats": stats}
 
         try:
@@ -234,7 +246,7 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
     query.setlist("yAxis", y_axes)
 
     if group_bys:
-        query.setlist("field", group_bys)
+        query.setlist("groupBy", group_bys)
 
     # Copy standard params
     for param in ("project", "statsPeriod", "start", "end", "query", "environment"):
