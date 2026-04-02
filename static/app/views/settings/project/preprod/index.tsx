@@ -45,7 +45,7 @@ export default function PreprodSettings() {
     ? VALID_TABS
     : VALID_TABS.filter(tab => tab !== 'snapshots');
   const queryTab = decodeScalar(location?.query?.tab);
-  const tab: PreprodTab = availableTabs.includes(queryTab as PreprodTab)
+  const tab = availableTabs.includes(queryTab as PreprodTab)
     ? (queryTab as PreprodTab)
     : 'size';
 
