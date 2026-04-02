@@ -71,18 +71,7 @@ class OrganizationIntegrationReposEndpoint(CellOrganizationIntegrationBaseEndpoi
             accessible_only = request.GET.get("accessibleOnly", "false").lower() == "true"
 
             try:
-                if accessible_only and search:
-                    # Fetch all installation-accessible repos and filter locally by
-                    # identifier only. Unlike the provider search API, this won't
-                    # match on name/description — but identifiers already contain the
-                    # repo name (e.g. "org/repo-name"), so this covers typical searches.
-                    repositories = install.get_repositories()
-                    search_lower = search.lower()
-                    repositories = [
-                        r for r in repositories if search_lower in str(r["identifier"]).lower()
-                    ]
-                else:
-                    repositories = install.get_repositories(search)
+                repositories = install.get_repositories(search, accessible_only=accessible_only)
             except (IntegrationError, IdentityNotValid) as e:
                 return self.respond({"detail": str(e)}, status=400)
 

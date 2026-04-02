@@ -190,19 +190,17 @@ class OrganizationIntegrationReposTest(APITestCase):
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_repositories", return_value=[]
     )
-    def test_accessible_only_filters_locally(self, get_repositories: MagicMock) -> None:
-        """When accessibleOnly=true, fetches all repos without a query and filters locally."""
+    def test_accessible_only_passes_param(self, get_repositories: MagicMock) -> None:
+        """When accessibleOnly=true, passes accessible_only to get_repositories."""
         get_repositories.return_value = [
             {"name": "rad-repo", "identifier": "Example/rad-repo", "default_branch": "main"},
-            {"name": "cool-repo", "identifier": "Example/cool-repo", "default_branch": "dev"},
         ]
         response = self.client.get(
             self.path, format="json", data={"search": "rad", "accessibleOnly": "true"}
         )
 
         assert response.status_code == 200, response.content
-        # Called without a search query — filtering is done at the endpoint level
-        get_repositories.assert_called_once_with()
+        get_repositories.assert_called_once_with("rad", accessible_only=True)
         assert response.data == {
             "repos": [
                 {
@@ -218,58 +216,15 @@ class OrganizationIntegrationReposTest(APITestCase):
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_repositories", return_value=[]
     )
-    def test_accessible_only_with_integer_identifier(self, get_repositories: MagicMock) -> None:
-        """Handles non-string identifiers without crashing."""
-        get_repositories.return_value = [
-            {"name": "my-project", "identifier": 12345},
-            {"name": "other-project", "identifier": 67890},
-        ]
-        response = self.client.get(
-            self.path, format="json", data={"search": "123", "accessibleOnly": "true"}
-        )
-
-        assert response.status_code == 200, response.content
-        assert response.data == {
-            "repos": [
-                {
-                    "name": "my-project",
-                    "identifier": 12345,
-                    "defaultBranch": None,
-                    "isInstalled": False,
-                },
-            ],
-            "searchable": True,
-        }
-
-    @patch(
-        "sentry.integrations.github.integration.GitHubIntegration.get_repositories", return_value=[]
-    )
-    def test_accessible_only_no_match(self, get_repositories: MagicMock) -> None:
-        """When accessibleOnly=true and the search matches nothing, returns empty list."""
-        get_repositories.return_value = [
-            {"name": "rad-repo", "identifier": "Example/rad-repo", "default_branch": "main"},
-            {"name": "cool-repo", "identifier": "Example/cool-repo", "default_branch": "dev"},
-        ]
-        response = self.client.get(
-            self.path, format="json", data={"search": "nonexistent", "accessibleOnly": "true"}
-        )
-
-        assert response.status_code == 200, response.content
-        get_repositories.assert_called_once_with()
-        assert response.data == {"repos": [], "searchable": True}
-
-    @patch(
-        "sentry.integrations.github.integration.GitHubIntegration.get_repositories", return_value=[]
-    )
-    def test_accessible_only_without_search_passes_query(self, get_repositories: MagicMock) -> None:
-        """When accessibleOnly=true but no search, behaves normally."""
+    def test_accessible_only_without_search(self, get_repositories: MagicMock) -> None:
+        """When accessibleOnly=true but no search, passes both params through."""
         get_repositories.return_value = [
             {"name": "rad-repo", "identifier": "Example/rad-repo", "default_branch": "main"},
         ]
         response = self.client.get(self.path, format="json", data={"accessibleOnly": "true"})
 
         assert response.status_code == 200, response.content
-        get_repositories.assert_called_once_with(None)
+        get_repositories.assert_called_once_with(None, accessible_only=True)
 
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_repositories", return_value=[]
@@ -279,7 +234,6 @@ class OrganizationIntegrationReposTest(APITestCase):
         get_repositories.return_value = [
             {"name": "rad-repo", "identifier": "Example/rad-repo", "default_branch": "main"},
             {"name": "cool-repo", "identifier": "Example/cool-repo", "default_branch": "dev"},
-            {"name": "other-repo", "identifier": "Other/other-repo", "default_branch": "main"},
         ]
 
         self.create_repo(
@@ -295,7 +249,7 @@ class OrganizationIntegrationReposTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        get_repositories.assert_called_once_with()
+        get_repositories.assert_called_once_with("Example", accessible_only=True)
         assert response.data == {
             "repos": [
                 {
