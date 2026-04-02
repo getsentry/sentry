@@ -940,6 +940,37 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
     @patch(
         "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
     )
+    def test_post_handles_null_existing_preference(
+        self, mock_bulk_get_preferences, mock_bulk_set_preferences
+    ):
+        project = self.create_project(organization=self.organization)
+
+        mock_bulk_get_preferences.return_value = {
+            str(project.id): None,
+        }
+
+        response = self.client.post(
+            self.url,
+            {
+                "projectIds": [project.id],
+                "automatedRunStoppingPoint": AutofixStoppingPoint.OPEN_PR.value,
+            },
+        )
+        assert response.status_code == 204
+
+        mock_bulk_set_preferences.assert_called_once()
+        call_args = mock_bulk_set_preferences.call_args
+        preferences = call_args[0][1]
+        assert len(preferences) == 1
+        assert preferences[0]["project_id"] == project.id
+        assert preferences[0]["automated_run_stopping_point"] == AutofixStoppingPoint.OPEN_PR.value
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
+    )
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
     def test_post_append_resolves_repo_id_for_existing_repos(
         self, mock_bulk_get_preferences, mock_bulk_set_preferences
     ):

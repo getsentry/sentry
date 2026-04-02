@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
@@ -54,6 +54,7 @@ export function LogsTabSeerComboBox() {
   const pageFilters = usePageFilters();
   const organization = useOrganization();
   const queryParams = useQueryParams();
+  const analyticsArea = useAnalyticsArea();
   const {
     currentInputValueRef,
     query,
@@ -245,11 +246,18 @@ export function LogsTabSeerComboBox() {
         query: queryToUse,
         group_by_count: groupBys.length,
       });
+      trackAnalytics('ai_query.applied', {
+        organization,
+        area: analyticsArea,
+        query: queryToUse,
+        group_by_count: groupBys.length,
+      });
 
       // Single navigation with all params (matches Trace Explorer pattern)
       navigate({...location, query: newQuery}, {replace: true, preventScrollReset: true});
     },
     [
+      analyticsArea,
       askSeerSuggestedQueryRef,
       location,
       navigate,
@@ -257,10 +265,6 @@ export function LogsTabSeerComboBox() {
       pageFilters.selection,
       queryParams.aggregateFields,
     ]
-  );
-
-  const usePollingEndpoint = organization.features.includes(
-    'gen-ai-search-agent-translate'
   );
 
   // Get selected project IDs for the polling variant
@@ -310,28 +314,16 @@ export function LogsTabSeerComboBox() {
     return null;
   }
 
-  if (usePollingEndpoint) {
-    return (
-      <AskSeerPollingComboBox<AskSeerSearchQuery>
-        initialQuery={initialSeerQuery}
-        projectIds={selectedProjectIds}
-        strategy="Logs"
-        applySeerSearchQuery={applySeerSearchQuery}
-        transformResponse={transformResponse}
-        analyticsSource="logs"
-        feedbackSource="logs_ai_query"
-        fallbackMutationOptions={logsTabAskSeerMutationOptions}
-      />
-    );
-  }
-
   return (
-    <AskSeerComboBox
+    <AskSeerPollingComboBox<AskSeerSearchQuery>
       initialQuery={initialSeerQuery}
-      askSeerMutationOptions={logsTabAskSeerMutationOptions}
+      projectIds={selectedProjectIds}
+      strategy="Logs"
       applySeerSearchQuery={applySeerSearchQuery}
+      transformResponse={transformResponse}
       analyticsSource="logs"
       feedbackSource="logs_ai_query"
+      fallbackMutationOptions={logsTabAskSeerMutationOptions}
     />
   );
 }

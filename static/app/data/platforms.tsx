@@ -626,6 +626,13 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/python/guides/flask/',
   },
   {
+    id: 'python-litestar',
+    name: 'Litestar',
+    type: 'framework',
+    language: 'python',
+    link: 'https://docs.sentry.io/platforms/python/integrations/litestar/',
+  },
+  {
     id: 'python-gcpfunctions',
     name: 'Google Cloud Functions (Python)',
     type: 'framework',

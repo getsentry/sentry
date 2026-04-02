@@ -20,6 +20,7 @@ export async function dispatch({
   fileChanges,
   mergeCommitSha,
   sentryChangedFiles,
+  sentryPreviousFilenames,
   targetWorkflow,
 }) {
   core.startGroup('Dispatching request to getsentry.');
@@ -42,6 +43,7 @@ export async function dispatch({
 
         // Changed files for selective testing. Empty string means full suite.
         'sentry-changed-files': sentryChangedFiles || '',
+        'sentry-previous-filenames': sentryPreviousFilenames || '',
       };
 
       core.info(

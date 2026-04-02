@@ -2,8 +2,7 @@ import {useCallback, useDeferredValue, useEffect, useMemo, useRef, useState} fro
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -17,6 +16,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
+import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
 import {ComparisonState, getImageGroup} from 'sentry/views/preprod/types/snapshotTypes';
 import type {
@@ -27,7 +27,7 @@ import type {
 } from 'sentry/views/preprod/types/snapshotTypes';
 import {computeSidebarBadges} from 'sentry/views/preprod/utils/sidebarUtils';
 
-import {SnapshotDevTools} from './header/snapshotDevTools';
+import {SnapshotHeaderActions} from './header/snapshotHeaderActions';
 import {SnapshotHeaderContent} from './header/snapshotHeaderContent';
 import type {DiffMode} from './main/imageDisplay/diffImageDisplay';
 import {SnapshotMainContent} from './main/snapshotMainContent';
@@ -44,21 +44,23 @@ export default function SnapshotsPage() {
     snapshotId: string;
   }>();
 
-  const {data, isPending, isError, refetch} = useApiQuery<SnapshotDetailsApiResponse>(
-    [
-      getApiUrl(
-        '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            snapshotId,
-          },
-        }
-      ),
-    ],
+  const snapshotApiUrl = getApiUrl(
+    '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/',
+    {
+      path: {
+        organizationIdOrSlug: organization.slug,
+        snapshotId,
+      },
+    }
+  );
+
+  const {data, isPending, isError} = useApiQuery<SnapshotDetailsApiResponse>(
+    [snapshotApiUrl],
     {
       staleTime: 0,
       enabled: !!snapshotId,
+      // Skip retries on 4xx so error pages render instantly
+      retry: (count, err) => count < 3 && (!err?.status || err.status >= 500),
       refetchInterval: query => {
         const state = query.state.data?.[0]?.comparison_run_info?.state;
         return state === ComparisonState.PENDING || state === ComparisonState.PROCESSING
@@ -368,11 +370,11 @@ export default function SnapshotsPage() {
   if (isPending) {
     return (
       <SentryDocumentTitle title={t('Snapshot')}>
-        <Layout.Page>
+        <Stack flex={1}>
           <Flex align="center" justify="center" padding="3xl">
             <LoadingIndicator />
           </Flex>
-        </Layout.Page>
+        </Stack>
       </SentryDocumentTitle>
     );
   }
@@ -380,39 +382,38 @@ export default function SnapshotsPage() {
   if (isError || !data) {
     return (
       <SentryDocumentTitle title={t('Snapshot')}>
-        <Layout.Page>
-          <Flex align="center" justify="center" padding="3xl">
-            <Text variant="muted">{t('Unable to load snapshot data.')}</Text>
-          </Flex>
-        </Layout.Page>
+        <Stack flex={1}>
+          <BuildError
+            title={t('Snapshot unavailable')}
+            message={t(
+              'This snapshot may have been deleted or you may not have access to it.'
+            )}
+          />
+        </Stack>
       </SentryDocumentTitle>
     );
   }
 
   return (
     <SentryDocumentTitle title={t('Snapshot')}>
-      <Layout.Page>
-        <Layout.Header>
+      <Stack flex={1}>
+        <Layout.Header paddingTop="lg" paddingBottom="md">
           <SnapshotHeaderContent
             data={data}
             isSoloView={isSoloView}
             onToggleView={handleToggleView}
           />
-          <Layout.HeaderActions>
-            <SnapshotDevTools
+          <Layout.HeaderActions style={{alignSelf: 'center'}}>
+            <SnapshotHeaderActions
+              data={data}
               organizationSlug={organization.slug}
-              snapshotId={snapshotId}
-              comparisonRunInfo={comparisonRunInfo}
-              hasBaseArtifact={data.base_artifact_id !== null}
-              refetch={refetch}
-              isSoloView={isSoloView}
-              onToggleView={handleToggleView}
+              apiUrl={snapshotApiUrl}
             />
           </Layout.HeaderActions>
         </Layout.Header>
 
         {isComparisonProcessing ? processingContent : snapshotContent}
-      </Layout.Page>
+      </Stack>
     </SentryDocumentTitle>
   );
 }

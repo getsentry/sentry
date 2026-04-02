@@ -101,7 +101,7 @@ export default function ProjectKeys() {
         }
       );
     },
-    onMutate: ({data}: {data: ProjectKey}) => {
+    onMutate: ({data}) => {
       addLoadingMessage(t('Saving changes\u2026'));
       setKeyListState(
         keyList.map(key => {

@@ -39,6 +39,13 @@ class SeerExplorerChatSerializer(serializers.Serializer):
         allow_null=True,
         help_text="Optional context from the user's screen.",
     )
+    page_name = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        default=None,
+        help_text="The UI page name where the request originated (e.g., route string).",
+    )
     override_ce_enable = serializers.BooleanField(
         required=False,
         default=True,
@@ -143,6 +150,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         query = validated_data["query"]
         insert_index = validated_data.get("insert_index")
         on_page_context = validated_data.get("on_page_context")
+        page_name = validated_data.get("page_name")
         override_ce_enable = validated_data["override_ce_enable"]
 
         try:
@@ -164,12 +172,14 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
                     prompt=query,
                     insert_index=insert_index,
                     on_page_context=on_page_context,
+                    page_name=page_name,
                 )
             else:
                 # Start new conversation
                 result_run_id = client.start_run(
                     prompt=query,
                     on_page_context=on_page_context,
+                    page_name=page_name,
                     override_ce_enable=override_ce_enable,
                 )
 

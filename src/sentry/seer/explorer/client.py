@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from rest_framework.request import Request
 
 from sentry import features, options
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.explorer.client_models import ExplorerRun, ExplorerRunWithPrs, SeerRunState
@@ -237,6 +238,7 @@ class SeerExplorerClient:
         prompt: str,
         prompt_metadata: dict[str, str] | None = None,
         on_page_context: str | None = None,
+        page_name: str | None = None,
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
         metadata: dict[str, Any] | None = None,
@@ -270,6 +272,7 @@ class SeerExplorerClient:
             run_id=None,
             insert_index=None,
             on_page_context=on_page_context,
+            page_name=page_name,
             user_org_context=collect_user_org_context(
                 self.user, self.organization, request=request
             ),
@@ -338,6 +341,7 @@ class SeerExplorerClient:
         prompt_metadata: dict[str, str] | None = None,
         insert_index: int | None = None,
         on_page_context: str | None = None,
+        page_name: str | None = None,
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
     ) -> int:
@@ -368,6 +372,7 @@ class SeerExplorerClient:
             run_id=run_id,
             insert_index=insert_index,
             on_page_context=on_page_context,
+            page_name=page_name,
             is_interactive=self.is_interactive,
             enable_coding=self.enable_coding,
         )
@@ -550,7 +555,13 @@ class SeerExplorerClient:
         Raises:
             TimeoutError: If polling exceeds timeout
             SeerApiError: If the Seer API request fails
+            SeerPermissionError: If code generation is disabled for the organization
         """
+        if not self.organization.get_option(
+            "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
+        ):
+            raise SeerPermissionError("Code generation is disabled for this organization")
+
         # Trigger PR creation
         payload: dict[str, Any] = {"type": "create_pr"}
         if repo_name:

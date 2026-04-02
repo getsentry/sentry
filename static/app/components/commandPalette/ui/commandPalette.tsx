@@ -21,6 +21,8 @@ import {Text} from '@sentry/scraps/text';
 
 import {useCommandPaletteActions} from 'sentry/components/commandPalette/context';
 import type {
+  CommandPaletteActionCallbackWithKey,
+  CommandPaletteActionLinkWithKey,
   CommandPaletteActionWithKey,
   CommandPaletteGroupKey,
 } from 'sentry/components/commandPalette/types';
@@ -63,7 +65,9 @@ type CommandPaletteActionWithPriority = CommandPaletteActionWithKey & {
 };
 
 interface CommandPaletteProps {
-  onAction: (action: Exclude<CommandPaletteActionWithKey, {type: 'group'}>) => void;
+  onAction: (
+    action: CommandPaletteActionLinkWithKey | CommandPaletteActionCallbackWithKey
+  ) => void;
 }
 
 export function CommandPalette(props: CommandPaletteProps) {
@@ -81,7 +85,8 @@ export function CommandPalette(props: CommandPaletteProps) {
 
   const displayedActions = useMemo<CommandPaletteActionWithPriority[]>(() => {
     if (
-      state.action?.value.action.type === 'group' &&
+      state.action !== null &&
+      'actions' in state.action.value.action &&
       state.action.value.action.actions.length > 0
     ) {
       return flattenActions(state.action.value.action.actions);
@@ -102,26 +107,30 @@ export function CommandPalette(props: CommandPaletteProps) {
   );
 
   const sectionHeaderKeys = useMemo(
-    () => new Set(sections.map(({key}) => `section-${key}`)),
+    () => new Set(sections.filter(({label}) => label).map(({key}) => `section-${key}`)),
     [sections]
   );
 
   const treeState = useTreeState({
     disabledKeys: [...sectionHeaderKeys],
     children: sections.flatMap(({key: sectionKey, label, children}) => [
-      <Item<CommandPaletteActionMenuItem & {hideCheck: boolean; label: string}>
-        key={`section-${sectionKey}`}
-        textValue={label as string}
-        {...{
-          label: (
-            <Text size="sm" bold variant="primary">
-              {label}
-            </Text>
-          ),
-          hideCheck: true,
-          children: [],
-        }}
-      />,
+      ...(label
+        ? [
+            <Item<CommandPaletteActionMenuItem & {hideCheck: boolean; label: string}>
+              key={`section-${sectionKey}`}
+              textValue={label as string}
+              {...{
+                label: (
+                  <Text size="sm" bold variant="primary">
+                    {label}
+                  </Text>
+                ),
+                hideCheck: true,
+                children: [],
+              }}
+            />,
+          ]
+        : []),
       ...children.map(({key: actionKey, ...action}) => (
         <Item<CommandPaletteActionMenuItem> key={actionKey} {...action}>
           {action.label}
@@ -174,7 +183,7 @@ export function CommandPalette(props: CommandPaletteProps) {
         return;
       }
 
-      if (action.type === 'group') {
+      if ('actions' in action) {
         analytics.recordGroupAction(action, resultIndex);
         dispatch({type: 'push action', action});
         return;
@@ -399,7 +408,7 @@ function makeMenuItemFromAction(
         <IconDefaultsProvider size="sm">{action.display.icon}</IconDefaultsProvider>
       </Flex>
     ),
-    children: action.type === 'group' ? action.actions.map(makeMenuItemFromAction) : [],
+    children: 'actions' in action ? action.actions.map(makeMenuItemFromAction) : [],
     hideCheck: true,
   };
 }
@@ -428,7 +437,7 @@ function flattenActions(
       flattened.push({...action, priority: 0});
     }
 
-    if (action.type === 'group' && action.actions.length > 0) {
+    if ('actions' in action && action.actions.length > 0) {
       const childParentLabel = parentLabel
         ? `${parentLabel} → ${action.display.label}`
         : action.display.label;

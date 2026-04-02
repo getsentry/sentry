@@ -20,10 +20,9 @@ export default function AccountSecurityWrapper() {
   const api = useApi();
   const {authId} = useParams<{authId?: string}>();
 
-  const orgRequest = useQuery<OrganizationSummary[]>({
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps
+  const orgRequest = useQuery({
     queryKey: ['organizations'],
-    queryFn: () => fetchOrganizations(api),
+    queryFn: (): Promise<OrganizationSummary[]> => fetchOrganizations(api),
     staleTime: 0,
   });
   const {refetch: refetchOrganizations} = orgRequest;

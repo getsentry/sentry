@@ -49,3 +49,8 @@ class SlackIssueAlertHandler(BaseIssueAlertHandler):
             label += " in notification"
 
         return label
+
+
+@issue_alert_handler_registry.register(Action.Type.SLACK_STAGING)
+class SlackStagingIssueAlertHandler(SlackIssueAlertHandler):
+    pass

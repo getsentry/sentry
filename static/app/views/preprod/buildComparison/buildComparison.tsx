@@ -1,6 +1,7 @@
 import {useTheme} from '@emotion/react';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -88,7 +89,7 @@ export default function BuildComparison() {
   if (headBuildDetailsQuery.isLoading) {
     return (
       <SentryDocumentTitle title={t('Build comparison')}>
-        <Layout.Page>
+        <Stack flex={1}>
           <Layout.Header>
             <Placeholder
               height="20px"
@@ -102,7 +103,7 @@ export default function BuildComparison() {
               <LoadingIndicator />
             </Layout.Main>
           </Layout.Body>
-        </Layout.Page>
+        </Stack>
       </SentryDocumentTitle>
     );
   }
@@ -128,7 +129,7 @@ export default function BuildComparison() {
 
   return (
     <SentryDocumentTitle title={t('Build comparison')}>
-      <Layout.Page>
+      <Stack flex={1}>
         <Layout.Header>
           <BuildCompareHeaderContent
             buildDetails={headBuildDetailsQuery.data}
@@ -142,7 +143,7 @@ export default function BuildComparison() {
         <Layout.Body>
           <Layout.Main width="full">{mainContent}</Layout.Main>
         </Layout.Body>
-      </Layout.Page>
+      </Stack>
     </SentryDocumentTitle>
   );
 }

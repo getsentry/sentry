@@ -235,7 +235,7 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
             name="Santry", slug="santry", owner=self.provisioning_user
         )
 
-    def create_temporary_slug_res(self, organization: Organization, slug: str, region: str) -> None:
+    def create_temporary_slug_res(self, organization: Organization, slug: str, cell: str) -> None:
         with (
             assume_test_silo_mode(SiloMode.CONTROL),
             outbox_context(transaction.atomic(router.db_for_write(OrganizationSlugReservation))),
@@ -244,7 +244,7 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
                 reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS,
                 slug=slug,
                 organization_id=organization.id,
-                cell_name=region,
+                cell_name=cell,
                 user_id=-1,
             ).save(unsafe_write=True)
 
@@ -262,7 +262,7 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
         desired_slug = "new-santry"
         # We have to create a temporary slug reservation in order for org mapping drains to proceed
         self.create_temporary_slug_res(
-            organization=self.provisioned_org, region="us", slug=desired_slug
+            organization=self.provisioned_org, cell="us", slug=desired_slug
         )
         result = (
             cell_organization_provisioning_rpc_service.update_organization_slug_from_reservation(

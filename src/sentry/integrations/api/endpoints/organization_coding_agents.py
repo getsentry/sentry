@@ -93,7 +93,10 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
             if integration.provider != "github_copilot"
         ]
 
-        if features.has("organizations:integrations-github-copilot-agent", organization):
+        github_copilot_installed = any(i.provider == "github_copilot" for i in integrations)
+        if github_copilot_installed and features.has(
+            "organizations:integrations-github-copilot-agent", organization
+        ):
             has_identity = False
             if request.user and request.user.id:
                 try:

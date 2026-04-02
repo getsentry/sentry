@@ -178,7 +178,7 @@ describe('ReleasesDrawerDetails', () => {
     expect(screen.getByText('File Changes')).toBeInTheDocument();
 
     // assert that the <Link> component goes to the correct url
-    const link = screen.getByTestId('select-project-1');
+    const link = await screen.findByTestId('select-project-1');
     expect(link).toHaveAttribute(
       'href',
       expect.stringContaining('/?rdReleaseProjectId=1')

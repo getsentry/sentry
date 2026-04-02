@@ -77,7 +77,7 @@ export function ScreensTable({
     column: GridColumn<string>,
     row: TableDataRow
   ): React.ReactNode {
-    if (!data?.meta || !data?.meta.fields) {
+    if (!data?.meta?.fields) {
       return row[column.key];
     }
 

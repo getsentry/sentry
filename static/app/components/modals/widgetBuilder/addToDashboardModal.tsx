@@ -143,8 +143,7 @@ function AddToDashboardModal({
   const widgetTemplates = getTopNConvertedDefaultWidgets(organization);
   const widgetTemplate = widgetTemplates.find(w => w.displayType === widget.displayType);
   const shouldOpenWidgetLibrary =
-    !isWidgetEditable(widget.displayType) ||
-    (widgetTemplate && widgetTemplate.isCustomizable === false);
+    !isWidgetEditable(widget.displayType) || widgetTemplate?.isCustomizable === false;
 
   const handleWidgetTableSort = (sort: Sort) => {
     const newOrderBy = `${sort.kind === 'desc' ? '-' : ''}${sort.field}`;
