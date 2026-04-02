@@ -716,10 +716,10 @@ def _resolve_project_preference(
     try:
         preference_response = get_project_seer_preferences(project.id)
         if preference_response.preference and preference_response.preference.repositories:
-            return SeerProjectPreference.validate(preference_response.preference)
+            return preference_response.preference
     except (SeerApiError, SeerApiResponseValidationError):
         logger.exception(
-            "seer.write_preferences.resolve_project_preference.failed",
+            "seer.write_preferences.resolve_project_preference.get_failed",
             extra={"project_id": project.id, "organization_id": organization.id},
         )
         return None
@@ -738,7 +738,7 @@ def _resolve_project_preference(
         set_project_seer_preference(preference)
     except SeerApiError:
         logger.exception(
-            "seer.write_preferences.resolve_project_preference.failed",
+            "seer.write_preferences.resolve_project_preference.set_failed",
             extra={"project_id": project.id, "organization_id": organization.id},
         )
         return None
@@ -747,7 +747,7 @@ def _resolve_project_preference(
         write_preference_to_sentry_db(project, preference)
     except Exception:
         logger.exception(
-            "seer.write_preferences.resolve_project_preference.failed",
+            "seer.write_preferences.resolve_project_preference.write_failed",
             extra={"project_id": project.id, "organization_id": organization.id},
         )
 
