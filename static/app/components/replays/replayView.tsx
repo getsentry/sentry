@@ -111,7 +111,11 @@ export function ReplayView({isLoading, layout, toggleFullscreen, toggleLayout}: 
                     isDouble
                   />
                 }
-                aria-label="Toggle layout"
+                aria-label={
+                  layout === LayoutKey.VIDEO_ONLY
+                    ? t('Open Sidebar')
+                    : t('Collapse Sidebar')
+                }
                 onClick={toggleLayout}
                 tooltipProps={{
                   title:
