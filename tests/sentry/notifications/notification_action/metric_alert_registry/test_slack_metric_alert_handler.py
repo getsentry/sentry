@@ -13,11 +13,6 @@ from sentry.incidents.typings.metric_detector import (
 from sentry.models.activity import Activity
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.metric_alert_registry import SlackMetricAlertHandler
-from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
-    get_alert_rule_serializer,
-    get_detailed_incident_serializer,
-    get_detector_serializer,
-)
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models import Action
@@ -43,10 +38,13 @@ class TestSlackMetricAlertHandler(MetricAlertHandlerBase):
         self.handler = SlackMetricAlertHandler()
 
     @mock.patch(
-        "sentry.notifications.notification_action.metric_alert_registry.handlers.slack_metric_alert_handler.send_incident_alert_notification"
+        "sentry.notifications.notification_action.metric_alert_registry.handlers.slack_metric_alert_handler.NotificationService"
     )
     @freeze_time("2021-01-01 00:00:00")
-    def test_send_alert(self, mock_send_incident_alert_notification: mock.MagicMock) -> None:
+    def test_send_alert(self, mock_notification_service: mock.MagicMock) -> None:
+        mock_service_instance = mock.MagicMock()
+        mock_notification_service.return_value = mock_service_instance
+
         notification_context = NotificationContext.from_action_model(self.action)
         assert self.group_event.occurrence is not None
         assert self.group_event.occurrence.priority is not None
@@ -75,17 +73,35 @@ class TestSlackMetricAlertHandler(MetricAlertHandlerBase):
             notification_uuid=notification_uuid,
         )
 
-        mock_send_incident_alert_notification.assert_called_once_with(
-            organization=self.detector.project.organization,
-            alert_context=alert_context,
-            notification_context=notification_context,
-            metric_issue_context=metric_issue_context,
-            open_period_context=open_period_context,
-            alert_rule_serialized_response=get_alert_rule_serializer(self.detector),
-            incident_serialized_response=get_detailed_incident_serializer(self.open_period),
-            detector_serialized_response=get_detector_serializer(self.detector),
-            notification_uuid=notification_uuid,
-        )
+        # Verify NotificationService was instantiated with MetricAlertNotificationData
+        mock_notification_service.assert_called_once()
+        call_kwargs = mock_notification_service.call_args.kwargs
+        data = call_kwargs["data"]
+
+        from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
+
+        assert isinstance(data, MetricAlertNotificationData)
+        assert data.group_id == self.group.id
+        assert data.organization_id == self.organization.id
+        assert data.notification_uuid == notification_uuid
+        assert data.action_id == notification_context.id
+
+        # Verify notify_target was called with a Slack target and threading options
+        mock_service_instance.notify_target.assert_called_once()
+        notify_kwargs = mock_service_instance.notify_target.call_args.kwargs
+
+        from sentry.notifications.platform.target import IntegrationNotificationTarget
+        from sentry.notifications.platform.threading import ThreadingOptions
+
+        target = notify_kwargs["target"]
+        assert isinstance(target, IntegrationNotificationTarget)
+        assert target.resource_id == "channel123"
+        assert target.integration_id == 1234567890
+
+        threading_options = notify_kwargs["threading_options"]
+        assert isinstance(threading_options, ThreadingOptions)
+        assert threading_options.thread_key.key_data["action_id"] == notification_context.id
+        assert threading_options.thread_key.key_data["group_id"] == self.group.id
 
     @mock.patch(
         "sentry.notifications.notification_action.metric_alert_registry.SlackMetricAlertHandler.send_alert"
