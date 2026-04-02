@@ -31,6 +31,7 @@ import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {TopBarSlotProvider} from 'sentry/views/navigation/topBar';
 import {OrganizationContext} from 'sentry/views/organizationContext';
+import {LLMContextProvider} from 'sentry/views/seerExplorer/contexts/llmContext';
 
 import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';
 
@@ -121,12 +122,14 @@ function makeAllTheProviders(options: ProviderOptions) {
   return function ({children}: {children?: React.ReactNode}) {
     const content = (
       <TopBarSlotProvider>
-        <OrganizationContext value={optionalOrganization}>
-          <GlobalDrawer>
-            <AdditionalWrapper>{children}</AdditionalWrapper>
-          </GlobalDrawer>
-        </OrganizationContext>
-      </TopBarSlotProvider>
+        <LLMContextProvider>
+          <OrganizationContext value={optionalOrganization}>
+            <GlobalDrawer>
+              <AdditionalWrapper>{children}</AdditionalWrapper>
+            </GlobalDrawer>
+          </OrganizationContext>
+        </TopBarSlotProvider>
+      </LLMContextProvider>
     );
 
     const wrappedContent = <ProvideAriaRouter>{content}</ProvideAriaRouter>;

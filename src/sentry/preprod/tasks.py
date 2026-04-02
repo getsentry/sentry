@@ -166,14 +166,16 @@ def assemble_preprod_artifact(
             pass
 
     if features.has("organizations:launchpad-taskbroker-rollout", organization):
-        _dispatch_taskbroker_shadow(project_id, org_id, artifact_id)
-
-    kafka_dispatched = _dispatch_kafka(project_id, org_id, artifact_id, checksum)
-    if not kafka_dispatched:
-        return
+        taskbroker_dispatched = dispatch_taskbroker(project_id, org_id, artifact_id)
+        if not taskbroker_dispatched:
+            return
+    else:
+        kafka_dispatched = _dispatch_kafka(project_id, org_id, artifact_id, checksum)
+        if not kafka_dispatched:
+            return
 
     logger.info(
-        "Finished preprod artifact row creation and kafka dispatch",
+        "Finished preprod artifact dispatch",
         extra={
             "preprod_artifact_id": artifact_id,
             "project_id": project_id,
@@ -1013,13 +1015,10 @@ def _dispatch_kafka(project_id: int, org_id: int, artifact_id: int, checksum: st
         return False
 
 
-def _dispatch_taskbroker_shadow(project_id: int, org_id: int, artifact_id: int) -> None:
-    # TODO: When taskbroker becomes the primary path, add PreprodArtifactSizeMetrics
-    # state management here (mirroring project_preprod_artifact_update.py). Currently
-    # omitted to avoid racing with the primary Kafka consumer path.
+def dispatch_taskbroker(project_id: int, org_id: int, artifact_id: int) -> bool:
     try:
         logger.info(
-            "preprod.dispatch_taskbroker_shadow",
+            "preprod.dispatch_taskbroker",
             extra={
                 "project_id": project_id,
                 "organization_id": org_id,
@@ -1032,12 +1031,26 @@ def _dispatch_taskbroker_shadow(project_id: int, org_id: int, artifact_id: int) 
             project_id=str(project_id),
             organization_id=str(org_id),
         )
+        return True
     except Exception:
+        user_friendly_error_message = "Failed to dispatch preprod artifact event for analysis"
         logger.exception(
-            "Failed to dispatch shadow taskbroker event",
+            user_friendly_error_message,
             extra={
                 "project_id": project_id,
                 "organization_id": org_id,
                 "preprod_artifact_id": artifact_id,
             },
         )
+        PreprodArtifact.objects.filter(id=artifact_id).update(
+            state=PreprodArtifact.ArtifactState.FAILED,
+            error_code=PreprodArtifact.ErrorCode.ARTIFACT_PROCESSING_ERROR,
+            error_message=user_friendly_error_message,
+        )
+        create_preprod_status_check_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": artifact_id,
+                "caller": "assemble_dispatch_error",
+            }
+        )
+        return False
