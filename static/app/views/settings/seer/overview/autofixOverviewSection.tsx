@@ -226,22 +226,24 @@ function AgentNameForm({
                 projectsIdsWithPreferredAgent.size
               )}
             </Button>
-            <Text variant="secondary" size="sm">
-              {projects.length === 0
-                ? t('No projects found')
-                : projects.length === 1
-                  ? projectsIdsWithPreferredAgent.size === 1
-                    ? t('Your existing project uses %s', preferredAgentLabel)
-                    : t('Your existing project does not use %s', preferredAgentLabel)
-                  : projects.length === projectsIdsWithPreferredAgent.size
-                    ? t('All existing projects use %s', preferredAgentLabel)
-                    : t(
-                        '%s of %s existing projects use %s',
-                        projectsIdsWithPreferredAgent.size,
-                        projects.length,
-                        preferredAgentLabel
-                      )}
-            </Text>
+            {preferredAgentLabel ? (
+              <Text variant="secondary" size="sm">
+                {projects.length === 0
+                  ? t('No projects found')
+                  : projects.length === 1
+                    ? projectsIdsWithPreferredAgent.size === 1
+                      ? t('Your existing project uses %s', preferredAgentLabel)
+                      : t('Your existing project does not use %s', preferredAgentLabel)
+                    : projects.length === projectsIdsWithPreferredAgent.size
+                      ? t('All existing projects use %s', preferredAgentLabel)
+                      : t(
+                          '%s of %s existing projects use %s',
+                          projectsIdsWithPreferredAgent.size,
+                          projects.length,
+                          preferredAgentLabel
+                        )}
+              </Text>
+            ) : null}
           </Flex>
         </Stack>
       )}

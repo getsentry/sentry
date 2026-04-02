@@ -6,6 +6,7 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 import * as indicators from 'sentry/actionCreators/indicator';
 import type {SeerPreferencesResponse} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useMutation} from 'sentry/utils/queryClient';
 import {
@@ -196,6 +197,10 @@ describe('seerPreferredAgent', () => {
       });
     }
 
+    beforeEach(() => {
+      OrganizationsStore.addOrReplace(organization);
+    });
+
     it('sends PUT with seer payload when integration is "seer"', async () => {
       mockIntegrationsEndpoint();
       const orgPutRequest = mockOrgPutRequest();
@@ -234,10 +239,6 @@ describe('seerPreferredAgent', () => {
       const options = getPreferredAgentMutationOptions({organization});
       const {result} = renderHookWithProviders(useMutation, {
         initialProps: options,
-      });
-
-      act(() => {
-        result.current.mutateAsync({integration: 'seer'});
       });
 
       act(() => {
