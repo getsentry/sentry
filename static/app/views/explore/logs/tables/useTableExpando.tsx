@@ -9,19 +9,24 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TableActionButton} from 'sentry/views/explore/components/tableActionButton';
 
-interface Expando {
+interface TableExpando {
   button: React.ReactNode;
   enabled: boolean;
   expanded: boolean | undefined;
 }
 
-export function useExpando(): Expando {
+export function useLogsTableExpandoFeatureFlag() {
   const organization = useOrganization();
   const location = useLocation();
-  const enabled =
-    organization.features.includes('ourlogs-table-expando') ||
-    location.query.logsTableExpando === 'true';
 
+  return (
+    organization.features.includes('ourlogs-table-expando') ||
+    location.query.logsTableExpando === 'true'
+  );
+}
+
+export function useTableExpando(): TableExpando {
+  const enabled = useLogsTableExpandoFeatureFlag();
   const [expandedState, setExpandedState] = useState(false);
 
   const [Icon, text] = expandedState

@@ -96,7 +96,7 @@ import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 // eslint-disable-next-line boundaries/dependencies
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
-import {useExpando} from './tables/useExpando';
+import {useTableExpando} from './tables/useTableExpando';
 
 type LogsTabProps = {
   datePageFilterProps: DatePageFilterProps;
@@ -425,7 +425,7 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
   }, [pageFilters.selection.datetime]);
 
   const {infiniteLogsQueryResult} = useLogsPageData();
-  const expando = useExpando();
+  const expando = useTableExpando();
 
   return (
     <Fragment>

@@ -25,7 +25,7 @@ import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
-import {useExpando} from 'sentry/views/explore/logs/tables/useExpando';
+import {useLogsTableExpandoFeatureFlag} from 'sentry/views/explore/logs/tables/useTableExpando';
 import {
   useQueryParamsId,
   useQueryParamsTitle,
@@ -35,7 +35,7 @@ import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnbo
 
 export default function LogsContent() {
   const organization = useOrganization();
-  const {enabled: hasExpando} = useExpando();
+  const hasExpando = useLogsTableExpandoFeatureFlag();
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.LOG_BYTE],
   });

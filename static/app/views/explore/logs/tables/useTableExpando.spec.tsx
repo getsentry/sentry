@@ -1,13 +1,13 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {useExpando} from './useExpando';
+import {useTableExpando} from './useTableExpando';
 
 function ExpandoWrapper() {
-  const {button} = useExpando();
+  const {button} = useTableExpando();
   return <div>{button}</div>;
 }
 
-describe('useExpando', () => {
+describe('useTableExpando', () => {
   it('is contracted when the button is not yet clicked', () => {
     render(<ExpandoWrapper />);
 
