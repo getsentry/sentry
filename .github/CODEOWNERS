@@ -624,6 +624,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/tasks/seer/                                   @getsentry/machine-learning-ai
 /src/sentry/viewer_context.py                               @getsentry/machine-learning-ai
 /tests/sentry/test_viewer_context.py                        @getsentry/machine-learning-ai
+/src/sentry/middleware/viewer_context.py                     @getsentry/machine-learning-ai
+/tests/sentry/middleware/test_viewer_context.py              @getsentry/machine-learning-ai
 ## End of ML & AI
 
 ## Issues
