@@ -8,7 +8,7 @@ from django.db import router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, cell_silo_endpoint, internal_cell_silo_endpoint
@@ -24,6 +24,7 @@ from sentry.preprod.models import (
 )
 from sentry.preprod.producer import PreprodFeature, produce_preprod_artifact_to_kafka
 from sentry.preprod.quotas import should_run_distribution, should_run_size
+from sentry.preprod.tasks import _dispatch_taskbroker
 
 logger = logging.getLogger(__name__)
 
@@ -79,26 +80,35 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
             cleanup_old_metrics(head_artifact)
         reset_artifact_data(head_artifact)
 
-        try:
-            produce_preprod_artifact_to_kafka(
-                project_id=head_artifact.project.id,
-                organization_id=organization.id,
-                artifact_id=head_artifact_id,
-                requested_features=requested_features,
+        if features.has("organizations:launchpad-taskbroker-rollout", organization):
+            dispatched = _dispatch_taskbroker(
+                head_artifact.project.id, organization.id, head_artifact_id
             )
-        except Exception:
-            logger.exception(
-                "preprod_artifact.rerun_analysis.kafka_error",
-                extra={
-                    "artifact_id": head_artifact_id,
-                    "user_id": request.user.id,
-                    "organization_id": organization.id,
-                    "project_id": head_artifact.project.id,
-                },
-            )
+        else:
+            try:
+                produce_preprod_artifact_to_kafka(
+                    project_id=head_artifact.project.id,
+                    organization_id=organization.id,
+                    artifact_id=head_artifact_id,
+                    requested_features=requested_features,
+                )
+                dispatched = True
+            except Exception:
+                logger.exception(
+                    "preprod_artifact.rerun_analysis.dispatch_error",
+                    extra={
+                        "artifact_id": head_artifact_id,
+                        "user_id": request.user.id,
+                        "organization_id": organization.id,
+                        "project_id": head_artifact.project.id,
+                    },
+                )
+                dispatched = False
+
+        if not dispatched:
             return Response(
                 {
-                    "error": f"Failed to queue analysis for artifact {head_artifact_id}",
+                    "detail": f"Failed to queue analysis for artifact {head_artifact_id}",
                 },
                 status=500,
             )
@@ -171,31 +181,40 @@ class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
         cleanup_stats = cleanup_old_metrics(preprod_artifact)
         reset_artifact_data(preprod_artifact)
 
-        try:
-            # Admin endpoint bypasses quota checks and requests all features
-            produce_preprod_artifact_to_kafka(
-                project_id=preprod_artifact.project.id,
-                organization_id=preprod_artifact.project.organization_id,
-                artifact_id=preprod_artifact_id,
-                requested_features=[
-                    PreprodFeature.SIZE_ANALYSIS,
-                    PreprodFeature.BUILD_DISTRIBUTION,
-                ],
+        organization = preprod_artifact.project.organization
+        if features.has("organizations:launchpad-taskbroker-rollout", organization):
+            dispatched = _dispatch_taskbroker(
+                preprod_artifact.project.id, organization.id, preprod_artifact_id
             )
-        except Exception as e:
-            logger.exception(
-                "preprod_artifact.admin_rerun_analysis.kafka_error",
-                extra={
-                    "artifact_id": preprod_artifact_id,
-                    "user_id": request.user.id,
-                    "organization_id": preprod_artifact.project.organization_id,
-                    "project_id": preprod_artifact.project.id,
-                    "error": str(e),
-                },
-            )
+        else:
+            try:
+                produce_preprod_artifact_to_kafka(
+                    project_id=preprod_artifact.project.id,
+                    organization_id=organization.id,
+                    artifact_id=preprod_artifact_id,
+                    requested_features=[
+                        PreprodFeature.SIZE_ANALYSIS,
+                        PreprodFeature.BUILD_DISTRIBUTION,
+                    ],
+                )
+                dispatched = True
+            except Exception as e:
+                logger.exception(
+                    "preprod_artifact.admin_rerun_analysis.dispatch_error",
+                    extra={
+                        "artifact_id": preprod_artifact_id,
+                        "user_id": request.user.id,
+                        "organization_id": organization.id,
+                        "project_id": preprod_artifact.project.id,
+                        "error": str(e),
+                    },
+                )
+                dispatched = False
+
+        if not dispatched:
             return Response(
                 {
-                    "error": f"Failed to queue analysis for artifact {preprod_artifact_id}",
+                    "detail": f"Failed to queue analysis for artifact {preprod_artifact_id}",
                 },
                 status=500,
             )
