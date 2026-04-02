@@ -23,6 +23,10 @@ MAX_NUM_ISSUES_DEFAULT = 10
 MAX_NUM_DAYS_AGO_DEFAULT = 90
 
 
+class NoProjectsForRepoError(Exception):
+    """Raised when a repo exists but has no Sentry projects via code mappings."""
+
+
 class SeerResponseError(TypedDict):
     error: str
 
@@ -93,7 +97,7 @@ def get_repo_and_projects(
     )
     projects = [config.project for config in repo_configs]
     if not projects:
-        raise ValueError("No Sentry projects found for repo")
+        raise NoProjectsForRepoError("No Sentry projects found for repo")
     return RepoProjects(
         organization_id=organization_id,
         provider=provider,
