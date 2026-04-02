@@ -239,7 +239,6 @@ class Symbolicator:
         if report.stored_id:
             session = get_attachments_session(self.project.organization_id, self.project.id)
             storage_url = get_symbolicator_url(session, report.stored_id)
-            storage_token = session.mint_token()
             json: dict[str, Any] = {
                 "platform": platform,
                 "sources": sources,
@@ -248,7 +247,6 @@ class Symbolicator:
                 "symbolicate": {
                     "type": "applecrashreport",
                     "storage_url": storage_url,
-                    "storage_token": storage_token,
                 },
             }
 
