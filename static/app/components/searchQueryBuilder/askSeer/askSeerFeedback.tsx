@@ -7,11 +7,21 @@ import {AskSeerLabel} from 'sentry/components/searchQueryBuilder/askSeer/compone
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {IconSeer, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
 export function AskSeerFeedback() {
+  const organization = useOrganization();
   const {setDisplayAskSeerFeedback, askSeerNLQueryRef, askSeerSuggestedQueryRef} =
     useSearchQueryBuilder();
 
-  const handleClick = () => {
+  const handleClick = (correct: 'yes' | 'no') => {
+    trackAnalytics('trace.explorer.ai_query_feedback', {
+      organization,
+      correct_query_results: correct,
+      natural_language_query: askSeerNLQueryRef.current ?? '',
+      query: askSeerSuggestedQueryRef.current ?? '',
+    });
     askSeerNLQueryRef.current = null;
     askSeerSuggestedQueryRef.current = null;
     setDisplayAskSeerFeedback(false);
@@ -27,7 +37,7 @@ export function AskSeerFeedback() {
         <Button
           size="zero"
           icon={<IconThumb />}
-          onClick={handleClick}
+          onClick={() => handleClick('yes')}
           aria-label="Yep, correct results"
         >
           Yep
@@ -35,7 +45,7 @@ export function AskSeerFeedback() {
         <Button
           size="zero"
           icon={<IconThumb direction="down" />}
-          onClick={handleClick}
+          onClick={() => handleClick('no')}
           aria-label="Nope, incorrect results"
         >
           Nope

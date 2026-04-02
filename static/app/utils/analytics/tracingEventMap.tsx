@@ -12,6 +12,11 @@ export type TracingEventParameters = {
     title: string;
   };
 
+  'trace.explorer.ai_query_feedback': {
+    correct_query_results: 'yes' | 'no';
+    natural_language_query: string;
+    query: string;
+  };
   'trace.explorer.cross_event_added': {
     type: CrossEventType;
   };
@@ -210,6 +215,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.metadata': 'Trace Load Metadata',
   'trace.load.empty_state': 'Trace Load Empty State',
   'trace.load.error_state': 'Trace Load Error State',
+  'trace.explorer.ai_query_feedback': 'Trace Explorer: AI Query Feedback',
   'trace.explorer.metadata': 'Improved Trace Explorer Pageload Metadata',
   'trace.explorer.cross_event_added': 'Trace Explorer: Cross Event Added',
   'trace.explorer.cross_event_changed': 'Trace Explorer: Cross Event Changed',
