@@ -25,16 +25,16 @@ describe('EAPSidebarCharts', () => {
     });
   });
 
-  it('renders Web Vitals widget when hasWebVitals is true', async () => {
+  it('renders Performance Score widget when hasWebVitals is true', async () => {
     render(<EAPSidebarCharts transactionName="test-txn" hasWebVitals />);
-    expect(await screen.findByText('Web Vitals')).toBeInTheDocument();
+    expect(await screen.findByText('Performance Score')).toBeInTheDocument();
     expect(await screen.findByText('Failure Rate')).toBeInTheDocument();
   });
 
-  it('does not render Web Vitals widget when hasWebVitals is false', async () => {
+  it('does not render Performance Score widget when hasWebVitals is false', async () => {
     render(<EAPSidebarCharts transactionName="test-txn" hasWebVitals={false} />);
     expect(await screen.findByText('Failure Rate')).toBeInTheDocument();
-    expect(screen.queryByText('Web Vitals')).not.toBeInTheDocument();
+    expect(screen.queryByText('Performance Score')).not.toBeInTheDocument();
   });
 
   it('renders performance score wheel widget', async () => {

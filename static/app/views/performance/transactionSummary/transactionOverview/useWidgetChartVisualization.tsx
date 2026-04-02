@@ -2,11 +2,7 @@ import {useTheme} from '@emotion/react';
 
 import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {
-  getAggregateArg,
-  getMeasurementSlug,
-  parseFunction,
-} from 'sentry/utils/discover/fields';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -16,6 +12,7 @@ import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import type {SpanProperty} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {
   filterToColor,
@@ -23,6 +20,7 @@ import {
 } from 'sentry/views/performance/transactionSummary/filter';
 import {transformData} from 'sentry/views/performance/transactionSummary/transactionOverview/durationPercentileChart/utils';
 import {EAPWidgetType} from 'sentry/views/performance/transactionSummary/transactionOverview/eapChartsWidget';
+import {EAP_WEB_VITALS} from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
 
 import {Chart as DurationPercentileChart} from './durationPercentileChart/chart';
 
@@ -259,13 +257,7 @@ function useWebVitalsVisualization({
     isError: isSpanSeriesError,
   } = useFetchSpanTimeSeries(
     {
-      yAxis: [
-        'p75(measurements.fcp)',
-        'p75(measurements.lcp)',
-        'p75(measurements.cls)',
-        'p75(measurements.ttfb)',
-        'p75(measurements.inp)',
-      ],
+      yAxis: EAP_WEB_VITALS.map(vital => `p75(${vital})` as SpanProperty),
       query: newQuery,
       interval: getInterval(selection.datetime, 'high'),
       enabled,
@@ -283,15 +275,7 @@ function useWebVitalsVisualization({
 
   const plottables =
     spanSeriesData?.timeSeries.map(series => {
-      const arg = getAggregateArg(series.yAxis);
-      let name = series.yAxis;
-      if (arg) {
-        const slug = getMeasurementSlug(arg);
-        if (slug) {
-          name = slug.toUpperCase();
-        }
-      }
-      return new Line(series, {name, alias: name});
+      return new Line(series);
     }) ?? [];
 
   return (

@@ -1,10 +1,10 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
@@ -89,7 +89,7 @@ function WebVitalsWidget({transactionName}: {transactionName: string}) {
 
   return (
     <Widget
-      Title={<SideBarWidgetTitle>{t('Web Vitals')}</SideBarWidgetTitle>}
+      Title={<Text bold>{t('Performance Score')}</Text>}
       Actions={
         <Widget.WidgetToolbar>
           {hasPrebuiltDashboards && dashboardUrl && (
@@ -167,7 +167,7 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
   if (isFailureRateSeriesPending || isFailureRateSeriesError) {
     return (
       <Widget
-        Title={<SideBarWidgetTitle>{t('Failure Rate')}</SideBarWidgetTitle>}
+        Title={<Text bold>{t('Failure Rate')}</Text>}
         TitleBadges={getFailureRateBadge()}
         Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
         borderless
@@ -181,7 +181,7 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
 
   return (
     <Widget
-      Title={<SideBarWidgetTitle>{t('Failure Rate')}</SideBarWidgetTitle>}
+      Title={<Text bold>{t('Failure Rate')}</Text>}
       TitleBadges={getFailureRateBadge()}
       Actions={
         <Widget.WidgetToolbar>
@@ -197,7 +197,3 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
     />
   );
 }
-
-const SideBarWidgetTitle = styled('div')`
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-`;

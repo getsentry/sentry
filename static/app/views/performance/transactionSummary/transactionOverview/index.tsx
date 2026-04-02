@@ -34,6 +34,7 @@ import {
 import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {useTransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 import {
+  EAP_WEB_VITALS,
   makeVitalGroups,
   PERCENTILE as VITAL_PERCENTILE,
 } from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
@@ -370,7 +371,7 @@ function getEAPTotalsEventView(
   _organization: Organization,
   eventView: EventView
 ): EventView {
-  const vitals = [WebVital.FCP, WebVital.LCP, WebVital.CLS];
+  const vitals = EAP_WEB_VITALS;
 
   const totalsColumns: QueryFieldValue[] = [
     {
