@@ -25,12 +25,7 @@ from sentry.seer.autofix.autofix import (
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.types import AutofixSelectRootCausePayload
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree
-from sentry.seer.models import (
-    SeerApiError,
-    SeerProjectPreference,
-    SeerRawPreferenceResponse,
-    SeerRepoDefinition,
-)
+from sentry.seer.models import SeerApiError, SeerProjectPreference, SeerRawPreferenceResponse
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -1044,19 +1039,19 @@ class TestResolveProjectPreference(TestCase):
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
 
-    def _mock_repo(self, name: str = "sentry", external_id: str = "123") -> SeerRepoDefinition:
-        return SeerRepoDefinition(
-            provider="integrations:github",
-            owner="getsentry",
-            name=name,
-            external_id=external_id,
-        )
+    def _mock_repo(self, name: str = "sentry", external_id: str = "123") -> dict:
+        return {
+            "provider": "integrations:github",
+            "owner": "getsentry",
+            "name": name,
+            "external_id": external_id,
+        }
 
     def _mock_preference(
         self,
         organization_id: int,
         project_id: int,
-        repos: list[SeerRepoDefinition] | None = None,
+        repos: list[dict] | None = None,
         stopping_point: str = "CODE_CHANGES",
     ) -> SeerProjectPreference:
         return SeerProjectPreference(
@@ -1085,7 +1080,9 @@ class TestResolveProjectPreference(TestCase):
         )
 
         assert result is not None
-        assert result.repositories == existing_repos
+        assert len(result.repositories) == 1
+        assert result.repositories[0].name == "seer"
+        assert result.repositories[0].external_id == "999"
         assert result.automated_run_stopping_point == "ROOT_CAUSE"
         mock_set_pref.assert_not_called()
         mock_write_sentry.assert_not_called()
@@ -1104,7 +1101,9 @@ class TestResolveProjectPreference(TestCase):
         assert result is not None
         assert result.project_id == self.project.id
         assert result.organization_id == self.organization.id
-        assert result.repositories == code_mapping_repos
+        assert len(result.repositories) == 1
+        assert result.repositories[0].name == "sentry"
+        assert result.repositories[0].external_id == "123"
         assert result.automated_run_stopping_point == "CODE_CHANGES"
 
     @patch("sentry.seer.autofix.autofix.write_preference_to_sentry_db")
