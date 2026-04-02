@@ -234,6 +234,16 @@ export function WidgetBuilderSlideout({
     });
   }, [initialState, onClose, state]);
 
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        onCloseWithModal();
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onCloseWithModal]);
+
   const breadcrumbs = customizeFromLibrary
     ? [
         {
