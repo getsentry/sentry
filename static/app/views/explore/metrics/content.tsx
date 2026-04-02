@@ -1,6 +1,7 @@
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Stack} from '@sentry/scraps/layout';
 
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -49,18 +50,20 @@ export default function MetricsContent() {
             : undefined
         }
       >
-        <Stack flex={1}>
-          <MetricsHeader />
-          {defined(onboardingProject) ? (
-            <MetricsTabOnboarding
-              organization={organization}
-              project={onboardingProject}
-              datePageFilterProps={datePageFilterProps}
-            />
-          ) : (
-            <MetricsTabContent datePageFilterProps={datePageFilterProps} />
-          )}
-        </Stack>
+        <AnalyticsArea name="explore.metrics">
+          <Stack flex={1}>
+            <MetricsHeader />
+            {defined(onboardingProject) ? (
+              <MetricsTabOnboarding
+                organization={organization}
+                project={onboardingProject}
+                datePageFilterProps={datePageFilterProps}
+              />
+            ) : (
+              <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+            )}
+          </Stack>
+        </AnalyticsArea>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );

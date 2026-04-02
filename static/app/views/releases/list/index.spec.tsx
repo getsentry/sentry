@@ -21,7 +21,7 @@ import {ReleasesStatusOption} from 'sentry/views/releases/list/releasesStatusOpt
 
 describe('ReleasesList', () => {
   const organization = OrganizationFixture({
-    features: ['search-query-builder-input-flow-changes', 'preprod-frontend-routes'],
+    features: ['preprod-frontend-routes'],
   });
   const projects = [ProjectFixture({features: ['releases']})];
   const semverVersionInfo = {

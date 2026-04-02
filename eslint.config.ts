@@ -38,8 +38,6 @@ import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactYouMightNotNeedAnEffect from 'eslint-plugin-react-you-might-not-need-an-effect';
 import regexp from 'eslint-plugin-regexp';
-// @ts-expect-error TS(7016): Could not find a declaration file
-import sentry from 'eslint-plugin-sentry';
 import testingLibrary from 'eslint-plugin-testing-library';
 // @ts-expect-error TS (7016): Could not find a declaration file
 import typescriptSortKeys from 'eslint-plugin-typescript-sort-keys';
@@ -458,7 +456,10 @@ export default typescript.config([
     name: 'plugin/@sentry/sentry',
     plugins: {'@sentry': sentryPlugin},
     rules: {
+      '@sentry/no-digits-in-tn': 'error',
+      '@sentry/no-dynamic-translations': 'error',
       '@sentry/no-static-translations': 'error',
+      '@sentry/no-styled-shortcut': 'error',
     },
   },
   {
@@ -745,16 +746,6 @@ export default typescript.config([
         'asc',
         {caseSensitive: true, natural: false, requiredFirst: true},
       ],
-    },
-  },
-  {
-    name: 'plugin/sentry',
-    // https://github.com/getsentry/eslint-config-sentry/tree/master/packages/eslint-plugin-sentry/docs/rules
-    plugins: {sentry},
-    rules: {
-      'sentry/no-digits-in-tn': 'error',
-      'sentry/no-dynamic-translations': 'error', // TODO(ryan953): There are no docs for this rule
-      'sentry/no-styled-shortcut': 'error',
     },
   },
   {
@@ -1262,95 +1253,111 @@ export default typescript.config([
           rules: [
             // --- figma code connect ---
             {
-              from: ['figma-code-connect'],
-              allow: ['core*'],
+              from: [{type: 'figma-code-connect'}],
+              allow: [{to: {type: 'core*'}}],
             },
             {
-              from: ['sentry*'],
-              allow: ['core*', 'sentry*'],
+              from: [{type: 'sentry*'}],
+              allow: [{to: {type: 'core*'}}, {to: {type: 'sentry*'}}],
             },
             {
-              from: ['getsentry*'],
-              allow: ['core*', 'getsentry*', 'sentry*'],
+              from: [{type: 'getsentry*'}],
+              allow: [
+                {to: {type: 'core*'}},
+                {to: {type: 'getsentry*'}},
+                {to: {type: 'sentry*'}},
+              ],
             },
             {
-              from: ['gsAdmin*'],
-              disallow: ['sentry-locale'],
-              allow: ['core*', 'gsAdmin*', 'sentry*', 'getsentry*'],
+              from: [{type: 'gsAdmin*'}],
+              disallow: [{to: {type: 'sentry-locale'}}],
+              allow: [
+                {to: {type: 'core*'}},
+                {to: {type: 'gsAdmin*'}},
+                {to: {type: 'sentry*'}},
+                {to: {type: 'getsentry*'}},
+              ],
             },
             {
-              from: ['test-sentry'],
-              allow: ['test-sentry', 'test', 'core*', 'sentry*'],
+              from: [{type: 'test-sentry'}],
+              allow: [
+                {to: {type: 'test-sentry'}},
+                {to: {type: 'test'}},
+                {to: {type: 'core*'}},
+                {to: {type: 'sentry*'}},
+              ],
             },
             {
               // todo does test-gesentry need test-sentry?
-              from: ['test-getsentry'],
+              from: [{type: 'test-getsentry'}],
               allow: [
-                'test-getsentry',
-                'test-sentry',
-                'test',
-                'core*',
-                'getsentry*',
-                'sentry*',
+                {to: {type: 'test-getsentry'}},
+                {to: {type: 'test-sentry'}},
+                {to: {type: 'test'}},
+                {to: {type: 'core*'}},
+                {to: {type: 'getsentry*'}},
+                {to: {type: 'sentry*'}},
               ],
             },
             {
-              from: ['test-gsAdmin'],
+              from: [{type: 'test-gsAdmin'}],
               allow: [
-                'test-gsAdmin',
-                'test-getsentry',
-                'test-sentry',
-                'test',
-                'core*',
-                'gsAdmin*',
-                'sentry*',
-                'getsentry*',
+                {to: {type: 'test-gsAdmin'}},
+                {to: {type: 'test-getsentry'}},
+                {to: {type: 'test-sentry'}},
+                {to: {type: 'test'}},
+                {to: {type: 'core*'}},
+                {to: {type: 'gsAdmin*'}},
+                {to: {type: 'sentry*'}},
+                {to: {type: 'getsentry*'}},
               ],
             },
             {
-              from: ['test'],
-              allow: ['test', 'test-sentry', 'sentry*'],
+              from: [{type: 'test'}],
+              allow: [
+                {to: {type: 'test'}},
+                {to: {type: 'test-sentry'}},
+                {to: {type: 'sentry*'}},
+              ],
             },
             {
-              from: ['configs'],
-              allow: ['configs', 'build-utils'],
+              from: [{type: 'configs'}],
+              allow: [{to: {type: 'configs'}}, {to: {type: 'build-utils'}}],
             },
             // --- stories ---
             {
-              from: ['story-files', 'story-book'],
-              allow: ['core*', 'sentry*', 'story-book'],
+              from: [{type: 'story-files'}, {type: 'story-book'}],
+              allow: [
+                {to: {type: 'core*'}},
+                {to: {type: 'sentry*'}},
+                {to: {type: 'story-book'}},
+              ],
             },
             // --- debug tools (e.g. notifications) ---
             {
-              from: ['debug-tools'],
-              allow: ['core*', 'sentry*', 'debug-tools'],
+              from: [{type: 'debug-tools'}],
+              allow: [
+                {to: {type: 'core*'}},
+                {to: {type: 'sentry*'}},
+                {to: {type: 'debug-tools'}},
+              ],
             },
             // --- core ---
             // todo: sentry* shouldn't be allowed
             {
-              from: ['core'],
-              allow: ['core*', 'sentry*'],
+              from: [{type: 'core'}],
+              allow: [{to: {type: 'core*'}}, {to: {type: 'sentry*'}}],
             },
-          ],
-        },
-      ],
-      'boundaries/entry-point': [
-        'error',
-        {
-          default: 'disallow',
-          rules: [
+            // --- core entry points (enforce isolation) ---
             {
-              target: ['core'],
-              allow: [
-                '*.{ts,tsx}', // core/renderToString.tsx at the core root etc.
-                '*/index.{ts,tsx}', // core/form/index.tsx, core/alert/index.tsx etc.
-                '**/*.png', // needed for story-files
-                '**/__stories__/*.{ts,tsx}', // story demo helpers imported by .mdx files
-              ],
-            },
-            {
-              target: ['!core'],
-              allow: '**/*',
+              to: {
+                type: 'core',
+                internalPath:
+                  '!(*.{ts,tsx}|*/index.{ts,tsx}|**/*.png|**/__stories__/*.{ts,tsx})',
+              },
+              disallow: {
+                from: {type: '*'},
+              },
             },
           ],
         },

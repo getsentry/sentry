@@ -11,6 +11,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchHeader';
 import {AskSeerSearchListBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchListBox';
 import {AskSeerSearchPopover} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchPopover';
@@ -147,6 +148,8 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     enableAISearch,
   } = useSearchQueryBuilder();
 
+  const analyticsArea = useAnalyticsArea();
+
   const {
     mutate: submitQuery,
     data,
@@ -157,6 +160,11 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     onError: (error, variables, onMutateResult, context) => {
       props.askSeerMutationOptions.onError?.(error, variables, onMutateResult, context);
       addErrorMessage(t('Failed to process AI query: %(error)s', {error: error.message}));
+      trackAnalytics('ai_query.error', {
+        organization,
+        area: analyticsArea,
+        natural_language_query: searchQuery,
+      });
     },
   });
 
@@ -212,6 +220,12 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
       if (key === 'none-of-these') {
         trackAnalytics(`${analyticsSource}.ai_query_rejected`, {
           organization,
+          natural_language_query: searchQuery,
+          num_queries_returned: data?.queries?.length ?? 0,
+        });
+        trackAnalytics('ai_query.rejected', {
+          organization,
+          area: analyticsArea,
           natural_language_query: searchQuery,
           num_queries_returned: data?.queries?.length ?? 0,
         });
@@ -284,6 +298,11 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
                 organization,
                 action: 'closed',
               });
+              trackAnalytics('ai_query.interface', {
+                organization,
+                area: analyticsArea,
+                action: 'closed',
+              });
               setDisplayAskSeerFeedback(false);
               setDisplayAskSeer(false);
             }
@@ -294,6 +313,12 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
             if (state.isOpen && state.selectionManager.focusedKey === 'none-of-these') {
               trackAnalytics(`${analyticsSource}.ai_query_rejected`, {
                 organization,
+                natural_language_query: searchQuery,
+                num_queries_returned: data?.queries?.length ?? 0,
+              });
+              trackAnalytics('ai_query.rejected', {
+                organization,
+                area: analyticsArea,
                 natural_language_query: searchQuery,
                 num_queries_returned: data?.queries?.length ?? 0,
               });
@@ -324,6 +349,11 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
             ) {
               trackAnalytics(`${analyticsSource}.ai_query_submitted`, {
                 organization,
+                natural_language_query: searchQuery.trim(),
+              });
+              trackAnalytics('ai_query.submitted', {
+                organization,
+                area: analyticsArea,
                 natural_language_query: searchQuery.trim(),
               });
               askSeerNLQueryRef.current = searchQuery.trim();
@@ -390,10 +420,16 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
         organization,
         natural_language_query: searchQuery.trim(),
       });
+      trackAnalytics('ai_query.submitted', {
+        organization,
+        area: analyticsArea,
+        natural_language_query: searchQuery.trim(),
+      });
       submitQuery(searchQuery.trim());
       setAutoSubmitSeer(false);
     }
   }, [
+    analyticsArea,
     analyticsSource,
     autoSubmitSeer,
     organization,
@@ -432,6 +468,11 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
           onClick={() => {
             trackAnalytics(`${analyticsSource}.ai_query_interface`, {
               organization,
+              action: 'closed',
+            });
+            trackAnalytics('ai_query.interface', {
+              organization,
+              area: analyticsArea,
               action: 'closed',
             });
             setDisplayAskSeerFeedback(false);

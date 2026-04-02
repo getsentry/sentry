@@ -170,7 +170,7 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
             assert workflow_resp_2["id"] == str(get_fake_id_from_object_id(self.workflow.id))
             assert workflow_resp_1["id"] == str(self.rule.id)
 
-    @with_feature("organizations:workflow-engine-projectrulesendpoint-get")
+    @with_feature("organizations:workflow-engine-issue-alert-endpoints-get")
     def test_workflow_engine_granular_flag(self) -> None:
         response = self.get_success_response(
             self.organization.slug,

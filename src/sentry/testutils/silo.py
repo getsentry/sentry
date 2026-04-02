@@ -378,7 +378,7 @@ def assume_test_silo_mode(
                 with cell_dir.swap_to_cell_by_name(cell_name):
                     yield
         else:
-            with override_settings(SENTRY_REGION=None):
+            with override_settings(SENTRY_LOCAL_CELL=None):
                 yield
 
 

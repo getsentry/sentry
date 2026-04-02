@@ -5,7 +5,7 @@ import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import type {BreakpointSize} from 'sentry/utils/theme';
 
-// eslint-disable-next-line boundaries/entry-point
+// eslint-disable-next-line boundaries/dependencies
 import {rc, useActiveBreakpoint, useResponsivePropValue, type Responsive} from './styles';
 
 const theme = ThemeFixture();
