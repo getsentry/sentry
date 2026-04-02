@@ -194,8 +194,10 @@ interface SlotProviderProps {
 function makeSlotProvider<T extends Slot>(
   context: React.Context<SlotContextValue<T> | null>
 ): (props: SlotProviderProps) => React.ReactNode {
+  const reducer = makeSlotReducer<T>();
+
   function SlotProvider({children}: SlotProviderProps) {
-    const [value, dispatch] = useReducer(makeSlotReducer<T>(), {});
+    const [value, dispatch] = useReducer(reducer, {});
 
     const contextValue = useMemo(
       () => [value, dispatch] satisfies SlotContextValue<T>,
