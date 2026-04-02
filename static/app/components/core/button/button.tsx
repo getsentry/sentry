@@ -8,6 +8,7 @@ import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 import {
   DO_NOT_USE_BUTTON_ICON_SIZES as BUTTON_ICON_SIZES,
@@ -16,7 +17,7 @@ import {
 import type {DO_NOT_USE_ButtonProps as ButtonProps} from './types';
 import {useButtonFunctionality} from './useButtonFunctionality';
 
-const MotionFlex = motion(Flex);
+const MotionFlex = motion.create(Flex);
 
 export type {ButtonProps};
 
@@ -114,13 +115,13 @@ export function Button({
                   opacity: 1,
                   scale: 1,
                   y: 0,
-                  transition: theme.motion.framer.smooth.fast,
+                  transition: testableTransition(theme.motion.framer.smooth.fast),
                 }}
                 exit={{
                   opacity: 0,
                   scale: 0.95,
                   y: `-${theme.space['2xs']}`,
-                  transition: theme.motion.framer.exit.fast,
+                  transition: testableTransition(theme.motion.framer.exit.fast),
                 }}
               >
                 <IndeterminateLoader variant="monochrome" aria-hidden />
