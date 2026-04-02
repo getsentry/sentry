@@ -553,25 +553,24 @@ export function LogsInfiniteTable({
           )}
         </LogTableBody>
       </LogTable>
-      {expanded && (
-        <FloatingBackToTopContainer
-          inReplay={!!embeddedOptions?.replay}
-          tableWidth={tableRef.current?.getBoundingClientRect().width ?? 0}
-        >
-          {!embeddedOptions?.replay && (
-            <BackToTopButton
-              virtualizer={virtualizer}
-              hidden={
-                isPending || ((firstItemIndex ?? 0) === 0 && (scrollOffset ?? 0) < 550)
-              }
-              setIsFunctionScrolling={setIsFunctionScrolling}
-            />
-          )}
-          {embeddedOptions?.replay && showJumpUpButton ? (
-            <JumpButtons jump="up" onClick={onClickToJump} tableHeaderHeight={0} />
-          ) : null}
-        </FloatingBackToTopContainer>
-      )}
+      <FloatingBackToTopContainer
+        position={expanded === undefined ? 'fixed' : 'absolute'}
+        inReplay={!!embeddedOptions?.replay}
+        tableWidth={tableRef.current?.getBoundingClientRect().width ?? 0}
+      >
+        {!embeddedOptions?.replay && (
+          <BackToTopButton
+            virtualizer={virtualizer}
+            hidden={
+              isPending || ((firstItemIndex ?? 0) === 0 && (scrollOffset ?? 0) < 550)
+            }
+            setIsFunctionScrolling={setIsFunctionScrolling}
+          />
+        )}
+        {embeddedOptions?.replay && showJumpUpButton ? (
+          <JumpButtons jump="up" onClick={onClickToJump} tableHeaderHeight={0} />
+        ) : null}
+      </FloatingBackToTopContainer>
       <FloatingBottomContainer
         tableWidth={tableRef.current?.getBoundingClientRect().width ?? 0}
       >
