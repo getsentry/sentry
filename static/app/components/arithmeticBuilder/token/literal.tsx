@@ -10,7 +10,7 @@ import {
   isTokenParenthesis,
   TokenKind,
 } from 'sentry/components/arithmeticBuilder/token';
-import {DeleteBlah} from 'sentry/components/arithmeticBuilder/token/deleteButton';
+import {DeleteButton} from 'sentry/components/arithmeticBuilder/token/deleteButton';
 import {
   GridCell,
   LeftGridCell,
@@ -58,7 +58,7 @@ export function ArithmeticTokenLiteral({
         <InternalInput item={item} state={state} token={token} />
       </LeftGridCell>
       <GridCell {...gridCellProps}>
-        <DeleteBlah token={token} label={t('Remove literal %s', token.text)} />
+        <DeleteButton token={token} label={t('Remove literal %s', token.text)} />
       </GridCell>
     </Row>
   );

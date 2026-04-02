@@ -48,18 +48,3 @@ export const GridCell = styled('div')`
 export const LeftGridCell = styled(GridCell)`
   padding-left: ${p => p.theme.space.xs};
 `;
-
-export const DeleteButton = styled('button')`
-  background: none;
-  border: none;
-  color: ${p => p.theme.tokens.content.secondary};
-  outline: none;
-  user-select: none;
-  padding-right: ${p => p.theme.space.xs};
-
-  :focus {
-    background-color: ${p => p.theme.colors.gray100};
-    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
-    outline: none;
-  }
-`;

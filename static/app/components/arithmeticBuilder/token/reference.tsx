@@ -9,7 +9,7 @@ import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
 import {useArithmeticBuilder} from 'sentry/components/arithmeticBuilder/context';
 import type {Token, TokenReference} from 'sentry/components/arithmeticBuilder/token';
 import {TokenKind} from 'sentry/components/arithmeticBuilder/token';
-import {DeleteBlah} from 'sentry/components/arithmeticBuilder/token/deleteButton';
+import {DeleteButton} from 'sentry/components/arithmeticBuilder/token/deleteButton';
 import {
   GridCell,
   LeftGridCell,
@@ -261,7 +261,7 @@ function DeleteReference({token, item, state}: DeleteReferenceProps) {
   const itemKey = state.collection.getKeyBefore(item.key)?.toString() ?? null;
 
   return (
-    <DeleteBlah
+    <DeleteButton
       token={token}
       focusOverrideKey={itemKey}
       label={t('Remove reference %s', token.label)}
