@@ -274,7 +274,7 @@ def index_repos(organization_id: int, *args, **kwargs) -> None:
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
 
-    logger.info("Successfully indexted repos for org", extra={"org_id": organization_id})
+    logger.info("Successfully indexed repos for org", extra={"org_id": organization_id})
 
 
 def get_allowed_org_ids_context_engine_indexing() -> list[int]:

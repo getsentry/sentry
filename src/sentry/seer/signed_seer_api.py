@@ -159,7 +159,7 @@ class RepoDetails(TypedDict):
     name: str
     external_id: str
     languages: list[str]
-    integration_id: str | None = None
+    integration_id: NotRequired[str | None]
 
 
 class ExplorerIndexOrgRepoRequest(TypedDict):
