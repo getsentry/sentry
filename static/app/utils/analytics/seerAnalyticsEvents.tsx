@@ -3,7 +3,6 @@ import type {Organization} from 'sentry/types/organization';
 export type SeerAnalyticsEventsParameters = {
   'ai_query.applied': {
     area: string;
-    organization: Organization;
     query: string;
     group_by_count?: number;
     visualize_count?: number;
@@ -11,23 +10,25 @@ export type SeerAnalyticsEventsParameters = {
   'ai_query.error': {
     area: string;
     natural_language_query: string;
-    organization: Organization;
+  };
+  'ai_query.feedback': {
+    area: string;
+    natural_language_query: string;
+    suggested_query: string;
+    type: 'positive' | 'negative';
   };
   'ai_query.interface': {
     action: 'opened' | 'closed' | 'consent_accepted';
     area: string;
-    organization: Organization;
   };
   'ai_query.rejected': {
     area: string;
     natural_language_query: string;
     num_queries_returned: number;
-    organization: Organization;
   };
   'ai_query.submitted': {
     area: string;
     natural_language_query: string;
-    organization: Organization;
   };
   'autofix.code_changes.re_run': {
     group_id: string;
@@ -150,6 +151,7 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'ai_query.interface': 'AI Query: Interface',
   'ai_query.rejected': 'AI Query: Rejected',
   'ai_query.submitted': 'AI Query: Submitted',
+  'ai_query.feedback': 'AI Query: Feedback',
   'autofix.coding_agent.launch': 'Autofix: Coding Agent Launch',
   'autofix.code_changes.re_run': 'Autofix: Code Changes Re-run',
   'autofix.create_pr_clicked': 'Autofix: Create PR Setup Clicked',
