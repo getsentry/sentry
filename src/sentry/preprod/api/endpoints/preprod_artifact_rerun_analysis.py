@@ -24,7 +24,7 @@ from sentry.preprod.models import (
 )
 from sentry.preprod.producer import PreprodFeature, produce_preprod_artifact_to_kafka
 from sentry.preprod.quotas import should_run_distribution, should_run_size
-from sentry.preprod.tasks import _dispatch_taskbroker
+from sentry.preprod.tasks import dispatch_taskbroker
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +81,7 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
         reset_artifact_data(head_artifact)
 
         if features.has("organizations:launchpad-taskbroker-rollout", organization):
-            dispatched = _dispatch_taskbroker(
+            dispatched = dispatch_taskbroker(
                 head_artifact.project.id, organization.id, head_artifact_id
             )
         else:
@@ -183,7 +183,7 @@ class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
 
         organization = preprod_artifact.project.organization
         if features.has("organizations:launchpad-taskbroker-rollout", organization):
-            dispatched = _dispatch_taskbroker(
+            dispatched = dispatch_taskbroker(
                 preprod_artifact.project.id, organization.id, preprod_artifact_id
             )
         else:

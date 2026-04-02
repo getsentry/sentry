@@ -166,7 +166,7 @@ def assemble_preprod_artifact(
             pass
 
     if features.has("organizations:launchpad-taskbroker-rollout", organization):
-        taskbroker_dispatched = _dispatch_taskbroker(project_id, org_id, artifact_id)
+        taskbroker_dispatched = dispatch_taskbroker(project_id, org_id, artifact_id)
         if not taskbroker_dispatched:
             return
     else:
@@ -1015,7 +1015,7 @@ def _dispatch_kafka(project_id: int, org_id: int, artifact_id: int, checksum: st
         return False
 
 
-def _dispatch_taskbroker(project_id: int, org_id: int, artifact_id: int) -> bool:
+def dispatch_taskbroker(project_id: int, org_id: int, artifact_id: int) -> bool:
     try:
         logger.info(
             "preprod.dispatch_taskbroker",

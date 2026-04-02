@@ -275,14 +275,14 @@ class PreprodArtifactRerunAnalysisTest(BaseRerunAnalysisTest):
         assert PreprodFeature.BUILD_DISTRIBUTION in call_kwargs["requested_features"]
 
     @patch(
-        "sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis._dispatch_taskbroker",
+        "sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.dispatch_taskbroker",
         return_value=True,
     )
     @patch(
         "sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.produce_preprod_artifact_to_kafka"
     )
     def test_rerun_dispatches_via_taskbroker_when_flag_enabled(
-        self, mock_produce_to_kafka, mock_dispatch_taskbroker
+        self, mock_produce_to_kafka, mockdispatch_taskbroker
     ):
         artifact = self.create_preprod_artifact(
             project=self.project,
@@ -297,7 +297,7 @@ class PreprodArtifactRerunAnalysisTest(BaseRerunAnalysisTest):
             self.get_success_response(self.organization.slug, artifact.id, status_code=200)
 
         mock_produce_to_kafka.assert_not_called()
-        mock_dispatch_taskbroker.assert_called_once()
+        mockdispatch_taskbroker.assert_called_once()
 
     @patch(
         "sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.produce_preprod_artifact_to_kafka"
@@ -426,14 +426,14 @@ class PreprodArtifactAdminRerunAnalysisTest(BaseRerunAnalysisTest):
         )
 
     @patch(
-        "sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis._dispatch_taskbroker",
+        "sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.dispatch_taskbroker",
         return_value=True,
     )
     @patch(
         "sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.produce_preprod_artifact_to_kafka"
     )
     def test_rerun_dispatches_via_taskbroker_when_flag_enabled(
-        self, mock_produce_to_kafka, mock_dispatch_taskbroker
+        self, mock_produce_to_kafka, mockdispatch_taskbroker
     ):
         artifact = self.create_preprod_artifact(
             project=self.project,
@@ -448,4 +448,4 @@ class PreprodArtifactAdminRerunAnalysisTest(BaseRerunAnalysisTest):
             self.get_success_response(preprod_artifact_id=artifact.id, status_code=200)
 
         mock_produce_to_kafka.assert_not_called()
-        mock_dispatch_taskbroker.assert_called_once()
+        mockdispatch_taskbroker.assert_called_once()
