@@ -29,6 +29,7 @@ class ActorType(enum.StrEnum):
     USER = "user"
     SYSTEM = "system"
     INTEGRATION = "integration"
+    UNKNOWN = "unknown"
 
 
 @dataclasses.dataclass(frozen=True)
@@ -44,7 +45,7 @@ class ViewerContext:
 
     organization_id: int | None = None
     user_id: int | None = None
-    actor_type: ActorType = ActorType.USER
+    actor_type: ActorType = ActorType.UNKNOWN
 
     # Carries scopes/kind for in-process permission checks.
     # NOT propagated across process/service boundaries.

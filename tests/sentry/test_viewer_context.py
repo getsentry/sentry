@@ -19,6 +19,7 @@ class TestActorType:
         assert ActorType.USER == "user"
         assert ActorType.SYSTEM == "system"
         assert ActorType.INTEGRATION == "integration"
+        assert ActorType.UNKNOWN == "unknown"
 
 
 class TestViewerContext:
@@ -26,7 +27,7 @@ class TestViewerContext:
         ctx = ViewerContext()
         assert ctx.organization_id is None
         assert ctx.user_id is None
-        assert ctx.actor_type is ActorType.USER
+        assert ctx.actor_type is ActorType.UNKNOWN
         assert ctx.token is None
 
     def test_frozen(self):
