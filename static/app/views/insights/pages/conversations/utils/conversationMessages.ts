@@ -9,6 +9,8 @@ import {
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
+const FILTERED = '[Filtered]';
+
 export interface ToolCall {
   hasError: boolean;
   name: string;
@@ -215,6 +217,10 @@ export function parseUserContent(node: AITraceSpanNode): string | null {
     return null;
   }
 
+  if (requestMessages === FILTERED) {
+    return FILTERED;
+  }
+
   try {
     const messagesArray: RequestMessage[] = JSON.parse(requestMessages);
     const userMessage = messagesArray.findLast(
@@ -233,6 +239,10 @@ export function parseAssistantContent(node: AITraceSpanNode): string | null {
   const outputMessages = getStringAttr(node, SpanFields.GEN_AI_OUTPUT_MESSAGES);
 
   if (outputMessages) {
+    if (outputMessages === FILTERED) {
+      return FILTERED;
+    }
+
     try {
       const messagesArray: RequestMessage[] = JSON.parse(outputMessages);
       const assistantMessage = messagesArray.findLast(

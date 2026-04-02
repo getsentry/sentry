@@ -252,6 +252,16 @@ describe('conversationMessages utilities', () => {
       const node = createMockNode({id: 'node-1'});
       expect(parseUserContent(node as any)).toBeNull();
     });
+
+    it('returns [Filtered] when input messages are scrubbed', () => {
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {
+          [SpanFields.GEN_AI_INPUT_MESSAGES]: '[Filtered]',
+        },
+      });
+      expect(parseUserContent(node as any)).toBe('[Filtered]');
+    });
   });
 
   describe('parseAssistantContent', () => {
@@ -303,6 +313,16 @@ describe('conversationMessages utilities', () => {
     it('returns null when no assistant content', () => {
       const node = createMockNode({id: 'node-1'});
       expect(parseAssistantContent(node as any)).toBeNull();
+    });
+
+    it('returns [Filtered] when output messages are scrubbed', () => {
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: '[Filtered]',
+        },
+      });
+      expect(parseAssistantContent(node as any)).toBe('[Filtered]');
     });
   });
 
