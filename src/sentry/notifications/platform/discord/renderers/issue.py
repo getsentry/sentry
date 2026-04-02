@@ -39,7 +39,12 @@ class IssueDiscordRenderer(NotificationRenderer[DiscordRenderable]):
                     project_id=group.project.id, event_id=data.event_id, group_id=data.group_id
                 )
                 if isinstance(event, Event):
+                    # Discord only supports GroupEvents, and we can't guarantee
+                    # the type passed by eventstore, so we convert base Events
+                    # to GroupEvents.
                     group_event = event.for_group(group)
+                else:
+                    group_event = event
             except Exception:
                 raise NotificationRenderError(f"Failed to retrieve event {data.event_id}")
 
