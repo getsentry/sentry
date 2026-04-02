@@ -1,3 +1,4 @@
+from typing import Any
 from unittest import mock
 
 from rest_framework import status
@@ -55,7 +56,7 @@ class OrganizationProjectDetectorIndexBaseTest(APITestCase):
         self.connected_workflow = self.create_workflow(
             organization_id=self.organization.id,
         )
-        self.valid_data = {
+        self.valid_data: dict[str, Any] = {
             "name": "Test Detector",
             "type": MetricIssue.slug,
             "dataSources": [
@@ -346,7 +347,7 @@ class OrganizationProjectDetectorIndexMonitorPostTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-    def _get_detector_post_data(self, **overrides):
+    def _get_detector_post_data(self, **overrides: Any) -> dict[str, Any]:
         data = {
             "type": MonitorIncidentType.slug,
             "name": "Test Monitor Detector",
