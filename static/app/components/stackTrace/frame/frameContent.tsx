@@ -54,11 +54,6 @@ export function FrameContent({
   }
 
   const contextLines = isExpanded ? (effectiveContext ?? frame.context ?? []) : [];
-  const maxLineNumber = contextLines.reduce(
-    (max, [lineNo]) => Math.max(max, lineNo ?? 0),
-    0
-  );
-  const _lineNumberDigits = String(maxLineNumber).length;
   const fileExtension = isExpanded ? (getFileExtension(frame.filename ?? '') ?? '') : '';
   const prismLines = usePrismTokensSourceContext({
     contextLines,
