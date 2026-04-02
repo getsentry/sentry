@@ -4,9 +4,14 @@ import pytest
 
 from fixtures.seer.webhooks import MOCK_RUN_ID, MOCK_SEER_WEBHOOKS
 from sentry.integrations.slack.message_builder.types import SlackAction
+from sentry.integrations.slack.utils.constants import SlackScope
 from sentry.notifications.platform.service import serialize_notification_data
 from sentry.notifications.platform.slack.provider import SlackRenderable
-from sentry.notifications.platform.templates.seer import SeerAutofixUpdate, SeerExplorerError
+from sentry.notifications.platform.templates.seer import (
+    SeerAutofixUpdate,
+    SeerExplorerError,
+    SeerExplorerResponse,
+)
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.slack.entrypoint import (
@@ -638,3 +643,71 @@ class SlackExplorerEntrypointTest(TestCase):
 
         # Still schedules the thread update even without a fresh integration
         mock_schedule.assert_called_once()
+
+    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")
+    def test_send_thread_update_explorer_response_missing_scope_has_footer(
+        self, mock_send_threaded_message
+    ):
+        data = SeerExplorerResponse(
+            run_id=12345,
+            organization_id=self.organization.id,
+            summary="Test summary",
+        )
+        install = self.integration.get_installation(organization_id=self.organization.id)
+        thread = SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)
+
+        send_thread_update(install=install, thread=thread, data=data)
+
+        mock_send_threaded_message.assert_called_once()
+        renderable = mock_send_threaded_message.call_args.kwargs["renderable"]
+        last_block = renderable["blocks"][-1]
+        assert last_block.type == "context"
+        footer_text = last_block.elements[0].text
+        assert "Reinstall" in footer_text
+        assert "Thread context is unavailable" in footer_text
+
+    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")
+    def test_send_thread_update_explorer_response_with_scope_no_footer(
+        self, mock_send_threaded_message
+    ):
+        from sentry.integrations.slack.integration import SlackIntegration
+
+        self.integration.metadata["scopes"] = [SlackScope.CHANNELS_HISTORY]
+        data = SeerExplorerResponse(
+            run_id=12345,
+            organization_id=self.organization.id,
+            summary="Test summary",
+        )
+        install = SlackIntegration(self.integration, self.organization.id)
+        thread = SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)
+
+        send_thread_update(install=install, thread=thread, data=data)
+
+        mock_send_threaded_message.assert_called_once()
+        renderable = mock_send_threaded_message.call_args.kwargs["renderable"]
+        for block in renderable["blocks"]:
+            assert block.type != "context"
+
+    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")
+    def test_send_thread_update_autofix_no_footer_regardless(self, mock_send_threaded_message):
+        data = SeerAutofixUpdate(
+            run_id=MOCK_RUN_ID,
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            group_id=self.group.id,
+            current_point=AutofixStoppingPoint.ROOT_CAUSE,
+            group_link=self.group.get_absolute_url(),
+        )
+        install = self.integration.get_installation(organization_id=self.organization.id)
+        thread = SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)
+
+        send_thread_update(install=install, thread=thread, data=data)
+
+        mock_send_threaded_message.assert_called_once()
+        renderable = mock_send_threaded_message.call_args.kwargs["renderable"]
+        for block in renderable["blocks"]:
+            if block.type == "context":
+                # Autofix context blocks (like debug run IDs) are fine;
+                # ensure none contain the missing-scope text.
+                for elem in block.elements:
+                    assert "Thread context is unavailable" not in getattr(elem, "text", "")

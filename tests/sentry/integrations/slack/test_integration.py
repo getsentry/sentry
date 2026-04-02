@@ -643,6 +643,56 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
             ts=self.thread_ts,
         )
 
+    def test_get_thread_history_private_channel_missing_groups_history(self) -> None:
+        self.integration.metadata["scopes"] = [SlackScope.CHANNELS_HISTORY]
+        result = self.installation.get_thread_history(
+            channel_id="G1234567890",
+            thread_ts=self.thread_ts,
+        )
+        assert result == []
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_replies")
+    def test_get_thread_history_private_channel_with_groups_history(
+        self, mock_conversations_replies: MagicMock
+    ) -> None:
+        self.integration.metadata["scopes"] = [SlackScope.GROUPS_HISTORY]
+        mock_conversations_replies.return_value = {
+            "ok": True,
+            "messages": [{"ts": self.thread_ts, "text": "Private message"}],
+        }
+        result = self.installation.get_thread_history(
+            channel_id="G1234567890",
+            thread_ts=self.thread_ts,
+        )
+        assert len(result) == 1
+        assert result[0]["text"] == "Private message"
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_replies")
+    def test_get_thread_history_dm_always_allowed(
+        self, mock_conversations_replies: MagicMock
+    ) -> None:
+        mock_conversations_replies.return_value = {
+            "ok": True,
+            "messages": [{"ts": self.thread_ts, "text": "DM message"}],
+        }
+        result = self.installation.get_thread_history(
+            channel_id="D1234567890",
+            thread_ts=self.thread_ts,
+        )
+        assert len(result) == 1
+        assert result[0]["text"] == "DM message"
+
+    def test_has_history_scope_public_channel(self) -> None:
+        self.integration.metadata["scopes"] = [SlackScope.CHANNELS_HISTORY]
+        assert self.installation.has_history_scope("C1234567890") is True
+
+    def test_has_history_scope_private_channel_missing(self) -> None:
+        self.integration.metadata["scopes"] = [SlackScope.CHANNELS_HISTORY]
+        assert self.installation.has_history_scope("G1234567890") is False
+
+    def test_has_history_scope_dm_always_true(self) -> None:
+        assert self.installation.has_history_scope("D1234567890") is True
+
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_replies")
     def test_get_thread_history_error_returns_empty_list(
         self, mock_conversations_replies: MagicMock

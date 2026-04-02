@@ -19,7 +19,7 @@ from sentry.notifications.platform.service import (
 )
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
-from sentry.notifications.platform.templates.seer import SeerAutofixUpdate
+from sentry.notifications.platform.templates.seer import SeerAutofixUpdate, SeerExplorerResponse
 from sentry.notifications.platform.types import NotificationData, NotificationProviderKey
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.metrics import (
@@ -38,6 +38,26 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+
+def _append_missing_scope_footer(
+    renderable: SlackRenderable, install: SlackIntegration
+) -> SlackRenderable:
+    """Append a context block warning that optional history scopes are missing."""
+    from slack_sdk.models.blocks import ContextBlock, MarkdownTextObject
+
+    settings_url = install.organization.absolute_url(
+        f"/settings/{install.organization.slug}/integrations/slack/"
+    )
+    footer_text = (
+        f"_Thread context is unavailable \u2014 optional scopes are disabled. "
+        f"<{settings_url}|Reinstall Sentry's Slack app> to enable this feature._"
+    )
+    footer_block = ContextBlock(elements=[MarkdownTextObject(text=footer_text)])
+    return SlackRenderable(
+        blocks=[*renderable["blocks"], footer_block],
+        text=renderable["text"],
+    )
 
 
 def send_thread_update(
@@ -66,6 +86,12 @@ def send_thread_update(
         renderable = NotificationService.render_template(
             data=data, template=template_cls(), provider=provider
         )
+
+        if isinstance(data, SeerExplorerResponse) and not install.has_history_scope(
+            thread["channel_id"]
+        ):
+            renderable = _append_missing_scope_footer(renderable, install)
+
         try:
             if ephemeral_user_id:
                 install.send_threaded_ephemeral_message(
