@@ -18,14 +18,12 @@ import {
   PRIMARY_HEADER_HEIGHT,
 } from './constants';
 
-const topBarSlot = slot(['title', 'actions', 'feedback'] as const);
+const topBarSlot = slot(['Title', 'Actions', 'Feedback'] as const);
 
 export const TopBarSlotProvider = topBarSlot.Provider;
 
-export const TopBarSlot = {
-  Title: topBarSlot.slot.title,
-  Actions: topBarSlot.slot.actions,
-  Feedback: topBarSlot.slot.feedback,
+const TopBarSlots = {
+  ...topBarSlot.slot,
 };
 
 export function TopBar() {
@@ -57,11 +55,11 @@ export function TopBar() {
       }}
     >
       <SizeProvider size="sm">
-        <TopBarSlot.Title.Root>
+        <TopBarSlots.Title.Root>
           {props => <Flex {...props} align="center" gap="sm" />}
-        </TopBarSlot.Title.Root>
+        </TopBarSlots.Title.Root>
 
-        <TopBarSlot.Actions.Root>
+        <TopBarSlots.Actions.Root>
           {props => {
             return (
               <Flex {...props} align="center" gap="md">
@@ -73,23 +71,23 @@ export function TopBar() {
               </Flex>
             );
           }}
-        </TopBarSlot.Actions.Root>
+        </TopBarSlots.Actions.Root>
 
-        <TopBarSlot.Feedback.Root>
+        <TopBarSlots.Feedback.Root>
           {props => (
             <Flex {...props}>
               {/* If no component registers a feedback button, show the default one */}
-              <TopBarSlot.Feedback.Fallback>
+              <TopBarSlots.Feedback.Fallback>
                 <FeedbackButton
                   aria-label={t('Give Feedback')}
                   feedbackOptions={{tags: {'feedback.source': 'top_navigation'}}}
                 >
                   {null}
                 </FeedbackButton>
-              </TopBarSlot.Feedback.Fallback>
+              </TopBarSlots.Feedback.Fallback>
             </Flex>
           )}
-        </TopBarSlot.Feedback.Root>
+        </TopBarSlots.Feedback.Root>
       </SizeProvider>
     </Flex>
   );
