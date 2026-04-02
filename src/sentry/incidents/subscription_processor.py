@@ -82,6 +82,14 @@ def has_downgraded(dataset: str, organization: Organization) -> bool:
         metrics.incr("incidents.alert_rules.ignore_update_missing_on_demand")
         return True
 
+    if not supports_metrics_issues:
+        # These should probably be downgraded, but we should know the impact first.
+        metrics.incr(
+            "incidents.alert_rules.no_incidents_not_downgraded",
+            sample_rate=1.0,
+            tags={"dataset": dataset},
+        )
+
     return False
 
 

@@ -1057,11 +1057,20 @@ class TestHasDowngraded:
         with self.fake_features(set()):
             assert has_downgraded(Dataset.EventsAnalyticsPlatform.value, self.org) is True
         mock_metrics.incr.assert_called_with(
-            "incidents.alert_rules.ignore_update_missing_incidents_performance"
+            "incidents.alert_rules.ignore_update_missing_incidents_eap"
+        )
+
+    def test_eap_with_only_explore_view(self, mock_metrics: MagicMock) -> None:
+        with self.fake_features({"organizations:visibility-explore-view"}):
+            assert has_downgraded(Dataset.EventsAnalyticsPlatform.value, self.org) is True
+        mock_metrics.incr.assert_called_with(
+            "incidents.alert_rules.ignore_update_missing_incidents_eap"
         )
 
     def test_eap_with_both_features(self, mock_metrics: MagicMock) -> None:
-        with self.fake_features({"organizations:incidents", "organizations:performance-view"}):
+        with self.fake_features(
+            {"organizations:incidents", "organizations:visibility-explore-view"}
+        ):
             assert has_downgraded(Dataset.EventsAnalyticsPlatform.value, self.org) is False
 
     def test_performance_metrics_without_on_demand_feature(self, mock_metrics: MagicMock) -> None:
@@ -1078,3 +1087,17 @@ class TestHasDowngraded:
     def test_unknown_dataset_not_downgraded(self, mock_metrics: MagicMock) -> None:
         with self.fake_features(set()):
             assert has_downgraded("unknown_dataset", self.org) is False
+        mock_metrics.incr.assert_called_with(
+            "incidents.alert_rules.no_incidents_not_downgraded",
+            sample_rate=1.0,
+            tags={"dataset": "unknown_dataset"},
+        )
+
+    def test_no_incidents_not_downgraded_emits_metric(self, mock_metrics: MagicMock) -> None:
+        with self.fake_features({"organizations:on-demand-metrics-extraction"}):
+            assert has_downgraded(Dataset.PerformanceMetrics.value, self.org) is False
+        mock_metrics.incr.assert_called_with(
+            "incidents.alert_rules.no_incidents_not_downgraded",
+            sample_rate=1.0,
+            tags={"dataset": Dataset.PerformanceMetrics.value},
+        )
