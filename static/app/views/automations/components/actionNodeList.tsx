@@ -62,7 +62,8 @@ export function ActionNodeList({
   onDeleteRow,
   updateAction,
 }: ActionNodeListProps) {
-  const {data: availableActions = []} = useAvailableActionsQuery();
+  const {data: availableActions = [], isLoading: isLoadingActions} =
+    useAvailableActionsQuery();
   const {errors, removeError} = useAutomationBuilderErrorContext();
   const {connectedDetectors} = useConnectedDetectors();
 
@@ -110,9 +111,12 @@ export function ActionNodeList({
   return (
     <Fragment>
       {actions.map(action => {
+        if (isLoadingActions) {
+          return null;
+        }
         const handler = getActionHandler(action, availableActions);
         if (!handler) {
-          const actionLabel = actionNodesMap.get(action.type)?.label || action.type;
+          const actionLabel = actionNodesMap.get(action.type)?.label;
           return (
             <AutomationBuilderRow
               key={`actionFilters.${conditionGroupId}.action.${action.id}`}
@@ -120,12 +124,18 @@ export function ActionNodeList({
                 onDeleteRow(action.id);
               }}
               hasError
-              errorMessage={t(
-                'The %s action is no longer available. Please remove and reconfigure this action.',
+              errorMessage={
                 actionLabel
-              )}
+                  ? t(
+                      'The %s action is no longer available. Please remove and reconfigure this action.',
+                      actionLabel
+                    )
+                  : t(
+                      'The integration is no longer available. Please remove and reconfigure this action.'
+                    )
+              }
             >
-              {actionLabel}
+              {actionLabel ?? t('Unknown integration')}
             </AutomationBuilderRow>
           );
         }
