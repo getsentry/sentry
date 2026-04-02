@@ -1,4 +1,4 @@
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {EAPSidebarCharts} from './eapSidebarCharts';
 
@@ -37,24 +37,31 @@ describe('EAPSidebarCharts', () => {
     expect(screen.queryByText('Web Vitals')).not.toBeInTheDocument();
   });
 
-  it('renders web vitals with correct values and state icons', async () => {
+  it('renders performance score wheel widget', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
         data: [
           {
-            'p75(measurements.fcp)': 500, // Good: <= 1000
-            'p75(measurements.lcp)': 3000, // Meh: > 2500, <= 4000
-            'p75(measurements.cls)': 0.35, // Poor: > 0.25
-            'p75(measurements.inp)': null, // Missing
-            'p75(measurements.ttfb)': 700, // Good: <= 800
+            'performance_score(measurements.score.lcp)': 0.89,
+            'performance_score(measurements.score.fcp)': 0.92,
+            'performance_score(measurements.score.inp)': 0.75,
+            'performance_score(measurements.score.cls)': 0.95,
+            'performance_score(measurements.score.ttfb)': 0.88,
+            'performance_score(measurements.score.total)': 0.87,
+            'count_scores(measurements.score.total)': 100,
+            'count_scores(measurements.score.lcp)': 100,
+            'count_scores(measurements.score.fcp)': 100,
+            'count_scores(measurements.score.inp)': 100,
+            'count_scores(measurements.score.cls)': 100,
+            'count_scores(measurements.score.ttfb)': 100,
           },
         ],
       },
       match: [
         (_url: string, options: Record<string, any>) =>
           Array.isArray(options.query?.field) &&
-          options.query.field.includes('p75(measurements.fcp)'),
+          options.query.field.includes('performance_score(measurements.score.total)'),
       ],
     });
 
@@ -72,36 +79,7 @@ describe('EAPSidebarCharts', () => {
 
     render(<EAPSidebarCharts transactionName="test-txn" hasWebVitals />);
 
-    // FCP - Good: value shown with IconHappy
-    expect(await screen.findByText('500.00ms')).toBeInTheDocument();
-    const fcpRow = screen.getByText('500.00ms').parentElement!;
-    expect(within(fcpRow).getByText('FCP')).toBeInTheDocument();
-    expect(
-      within(fcpRow).getByRole('img').querySelector('path')?.getAttribute('d')
-    ).toContain('5 9H11');
-
-    // LCP - Meh: value shown with IconMeh
-    const lcpRow = screen.getByText('3.00s').parentElement!;
-    expect(within(lcpRow).getByText('LCP')).toBeInTheDocument();
-    expect(
-      within(lcpRow).getByRole('img').querySelector('path')?.getAttribute('d')
-    ).toContain('10.25 9.5');
-
-    // CLS - Poor: value shown with IconSad
-    const clsRow = screen.getByText('0.35').parentElement!;
-    expect(within(clsRow).getByText('CLS')).toBeInTheDocument();
-    expect(
-      within(clsRow).getByRole('img').querySelector('path')?.getAttribute('d')
-    ).toContain('10.34 11 12H5');
-
-    // INP - Missing: em-dash shown, no icon
-    const inpLabel = screen.getByText('INP');
-    const inpRow = inpLabel.parentElement!;
-    expect(within(inpRow).getByText('\u2014')).toBeInTheDocument();
-    expect(within(inpRow).queryByRole('img')).not.toBeInTheDocument();
-
-    // TTFB - value shown
-    expect(screen.getByText('TTFB')).toBeInTheDocument();
-    expect(screen.getByText('700.00ms')).toBeInTheDocument();
+    // The wheel widget renders with the total score (0.87 * 100 = 87)
+    expect(await screen.findByText('87')).toBeInTheDocument();
   });
 });

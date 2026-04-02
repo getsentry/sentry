@@ -1,17 +1,14 @@
+import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
+import {Stack} from '@sentry/scraps/layout';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
-import {getMeasurementSlug} from 'sentry/utils/discover/fields';
-import {getDuration} from 'sentry/utils/duration/getDuration';
-import {FieldKind, WebVital} from 'sentry/utils/fields';
+import {FieldKind} from 'sentry/utils/fields';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -19,18 +16,15 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {usePrebuiltDashboardUrl} from 'sentry/views/dashboards/utils/usePrebuiltDashboardUrl';
+import {WidgetCardDataLoader} from 'sentry/views/dashboards/widgetCard/widgetCardDataLoader';
+import {SCORE_BREAKDOWN_WHEEL_WIDGET} from 'sentry/views/dashboards/widgetLibrary/webVitalsWidgets';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
+import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanFields} from 'sentry/views/insights/types';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
-import {
-  VitalState,
-  vitalStateIcons,
-  webVitalMeh,
-  webVitalPoor,
-} from 'sentry/views/performance/vitalDetail/utils';
 
 const REFERRER = 'eap-sidebar-charts';
 
@@ -75,34 +69,21 @@ function WebVitalsWidget({transactionName}: {transactionName: string}) {
     },
   });
 
-  const transactionSearch = new MutableSearch('');
-  transactionSearch.addFilterValue('transaction', transactionName);
-  transactionSearch.addFilterValue('is_transaction', 'true');
-
-  const {
-    data: vitalsData,
-    isPending,
-    isError,
-  } = useSpans(
-    {
-      search: transactionSearch,
-      fields: WEB_VITALS.map(v => `p75(${v})` as const),
-      pageFilters: selection,
-    },
-    REFERRER
-  );
-
-  if (isPending || isError) {
-    return (
-      <Widget
-        Title={<SideBarWidgetTitle>{t('Web Vitals')}</SideBarWidgetTitle>}
-        Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
-        borderless
-      />
+  const widget = useMemo(() => {
+    const conditions = new MutableSearch(
+      SCORE_BREAKDOWN_WHEEL_WIDGET.queries[0]!.conditions
     );
-  }
-
-  const row = vitalsData[0];
+    conditions.addFilterValue('transaction', transactionName);
+    return {
+      ...SCORE_BREAKDOWN_WHEEL_WIDGET,
+      queries: [
+        {
+          ...SCORE_BREAKDOWN_WHEEL_WIDGET.queries[0]!,
+          conditions: conditions.formatString(),
+        },
+      ],
+    };
+  }, [transactionName]);
 
   return (
     <Widget
@@ -117,99 +98,17 @@ function WebVitalsWidget({transactionName}: {transactionName: string}) {
         </Widget.WidgetToolbar>
       }
       Visualization={
-        <Stack gap="md" padding="md">
-          {WEB_VITALS.map(vital => {
-            const value = row?.[`p75(${vital})`];
-            const slug = getMeasurementSlug(vital);
-            const label = slug ? slug.toUpperCase() : vital;
-
-            if (value === null || value === undefined || !Number.isFinite(value)) {
-              return (
-                <Flex key={vital} justify="between" align="center">
-                  <Text variant="muted">{label}</Text>
-                  <Text variant="muted">{'\u2014'}</Text>
-                </Flex>
-              );
+        <WidgetCardDataLoader widget={widget} selection={selection}>
+          {({loading, tableResults, errorMessage}) => {
+            if (loading || errorMessage) {
+              return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
             }
-
-            const state = getVitalState(vital, value);
-
-            return (
-              <Flex key={vital} justify="between" align="center">
-                <Flex align="center" gap="xs">
-                  <Tooltip title={getThresholdTooltip(vital)}>
-                    {vitalStateIcons[state]}
-                  </Tooltip>
-                  <Text>{label}</Text>
-                </Flex>
-                <Text>{formatVitalValue(vital, value)}</Text>
-              </Flex>
-            );
-          })}
-        </Stack>
+            return <WheelWidgetVisualization tableResults={tableResults} />;
+          }}
+        </WidgetCardDataLoader>
       }
       borderless
     />
-  );
-}
-
-const WEB_VITALS = [
-  WebVital.FCP,
-  WebVital.LCP,
-  WebVital.CLS,
-  WebVital.INP,
-  WebVital.TTFB,
-] as const;
-
-function getVitalState(vital: (typeof WEB_VITALS)[number], value: number): VitalState {
-  if (value > webVitalPoor[vital]) {
-    return VitalState.POOR;
-  }
-  if (value > webVitalMeh[vital]) {
-    return VitalState.MEH;
-  }
-  return VitalState.GOOD;
-}
-
-function formatVitalValue(
-  vital: (typeof WEB_VITALS)[number],
-  value: number,
-  decimalPlaces?: number
-): string {
-  decimalPlaces = decimalPlaces === undefined ? 2 : decimalPlaces;
-  if (vital === WebVital.CLS) {
-    return value.toFixed(2);
-  }
-  // Time-based vitals are in milliseconds, getDuration expects seconds
-  return getDuration(value / 1000, decimalPlaces, true);
-}
-
-function getThresholdTooltip(vital: (typeof WEB_VITALS)[number]): React.ReactNode {
-  const mehThreshold = webVitalMeh[vital];
-  const poorThreshold = webVitalPoor[vital];
-  const formatThreshold = (v: number) => formatVitalValue(vital, v, 0);
-
-  return (
-    <Stack gap="xs">
-      <Flex align="center" gap="xs">
-        {vitalStateIcons[VitalState.GOOD]}
-        <Text>{t('Good: ≤ %s', formatThreshold(mehThreshold))}</Text>
-      </Flex>
-      <Flex align="center" gap="xs">
-        {vitalStateIcons[VitalState.MEH]}
-        <Text>
-          {t(
-            'Meh: %s – %s',
-            formatThreshold(mehThreshold),
-            formatThreshold(poorThreshold)
-          )}
-        </Text>
-      </Flex>
-      <Flex align="center" gap="xs">
-        {vitalStateIcons[VitalState.POOR]}
-        <Text>{t('Poor: > %s', formatThreshold(poorThreshold))}</Text>
-      </Flex>
-    </Stack>
   );
 }
 
