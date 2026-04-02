@@ -772,7 +772,6 @@ SENTRY_LOCALITIES: list[LocalityConfig] = []
 
 # TODO(cells): Superceded by SENTRY_LOCAL_CELL and SENTRY_CELLS. Remove once migration is complete.
 SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
-SENTRY_REGION_CONFIG: list[CellConfig] = []
 
 # Shared secret used to sign cross-region RPC requests.
 RPC_SHARED_SECRET: list[str] | None = None
@@ -3271,9 +3270,6 @@ if SILO_DEVSERVER:
         }
     ]
     SENTRY_MONOLITH_REGION = SENTRY_CELLS[0]["name"]
-
-    # TODO(cells): remove after getsentry updated
-    SENTRY_REGION_CONFIG = SENTRY_CELLS
 
     # Cross region RPC authentication
     RPC_SHARED_SECRET = [
