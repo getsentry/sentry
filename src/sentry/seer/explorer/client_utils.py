@@ -340,3 +340,33 @@ def poll_until_done(
 
         # Wait before next poll
         time.sleep(poll_interval)
+
+
+def _render_node(node: dict[str, Any], depth: int) -> str:
+    """Recursively render an LLMContextSnapshot node and its children as markdown."""
+    heading = "#" * min(depth + 1, 6)
+    lines = [f"{heading} {node.get('nodeType', 'unknown')}"]
+
+    data = node.get("data")
+    if isinstance(data, dict):
+        for key, value in data.items():
+            lines.append(f"- **{key}**: {orjson.dumps(value).decode()}")
+    elif data is not None:
+        lines.append(f"- {orjson.dumps(data).decode()}")
+
+    for child in node.get("children", []):
+        lines.append(_render_node(child, depth + 1))
+
+    return "\n".join(lines)
+
+
+def snapshot_to_markdown(snapshot: dict[str, Any]) -> str:
+    """Convert an LLMContextSnapshot dict to a markdown string.
+
+    Expected shape: ``{"version": int, "nodes": [{"nodeType": str, "data": ..., "children": [...]}]}``
+    The top-level nodes list contains a single root node (the page).
+    """
+    nodes = snapshot.get("nodes", [])
+    if not nodes:
+        return ""
+    return _render_node(nodes[0], 0)
