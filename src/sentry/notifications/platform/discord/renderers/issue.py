@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from sentry import eventstore
 from sentry.models.group import Group
-from sentry.models.rule import Rule
 from sentry.notifications.platform.discord.provider import DiscordRenderable
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.service import NotificationRenderError
@@ -44,24 +43,11 @@ class IssueDiscordRenderer(NotificationRenderer[DiscordRenderable]):
 
         rules = [data.rule.to_rule()] if data.rule else None
         assert len(rules) == 1, "Expected 1 rule, got {len(rules)}"
-        tags = cls._extract_tags_from_rule(rules[0])
 
         return DiscordIssuesMessageBuilder(
             group=group,
             event=event,
-            tags=set(tag.strip() for tag in tags.split(",")) if tags else None,
+            tags=data.tags,
             rules=rules,
             link_to_event=True,
         ).build(notification_uuid=data.notification_uuid)
-
-    @classmethod
-    def _extract_tags_from_rule(cls, rule: Rule) -> set[str] | None:
-        rule_actions = rule.data.get("actions", [])
-        if rule_actions is None or len(rule_actions) == 0:
-            return None
-
-        tags = rule_actions[0].get("tags", None)
-        if tags is None:
-            return None
-
-        return tags
