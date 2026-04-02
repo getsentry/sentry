@@ -1,18 +1,16 @@
 from __future__ import annotations
 
 import html
-import itertools
 import logging
 import re
 from collections.abc import Mapping
-from datetime import datetime, timedelta, timezone
 from typing import Any
 from urllib.parse import urlparse
 
 from django.http.request import QueryDict
 
 from sentry import analytics, features
-from sentry.api.serializers.snuba import calculate_time_frame, zerofill
+from sentry.api import client
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartType
 from sentry.integrations.messaging.metrics import (
@@ -25,17 +23,12 @@ from sentry.integrations.slack.analytics import SlackIntegrationChartUnfurl
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.unfurl.types import Handler, UnfurlableUrl, UnfurledUrl
+from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
-from sentry.models.project import Project
-from sentry.search.eap.types import SearchResolverConfig
-from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
-from sentry.snuba.spans_rpc import Spans
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import json
-from sentry.utils.dates import get_interval_from_range, parse_stats_period, parse_timestamp
-from sentry.utils.snuba import SnubaTSResult
 
 _logger = logging.getLogger(__name__)
 
@@ -60,30 +53,45 @@ LINE_PLOT_FIELDS = {
 TOP_N = 5
 
 
-def snuba_ts_result_to_event_stats(result: SnubaTSResult, column: str) -> dict[str, Any]:
+def timeseries_to_chart_data(resp_data: dict[str, Any], y_axis: str) -> dict[str, Any]:
     """
-    Converts a SnubaTSResult into the events-stats response format that
-    Chartcuterie expects.
-    """
-    data = [
-        (key, list(group))
-        for key, group in itertools.groupby(result.data["data"], key=lambda r: r["time"])
-    ]
-    rv = []
-    for k, v in data:
-        row = [{"count": r.get(column, 0)} for r in v]
-        rv.append((k, row))
+    Converts an events-timeseries StatsResponse into the events-stats format
+    that Chartcuterie expects.
 
-    res: dict[str, Any] = {
-        "data": zerofill(rv, result.start, result.end, result.rollup),
-        "isMetricsData": result.data.get("isMetricsData", False),
+    events-timeseries format:
+        {"timeSeries": [{"yAxis": "count()", "values": [{"timestamp": ms, "value": N}, ...]}]}
+
+    events-stats format (what Chartcuterie expects):
+        {"data": [(timestamp_sec, [{"count": N}]), ...], "start": sec, "end": sec}
+    """
+    time_series = resp_data.get("timeSeries", [])
+
+    # Find the series matching our y_axis
+    series = None
+    for ts in time_series:
+        if ts.get("yAxis") == y_axis:
+            series = ts
+            break
+
+    if not series or not series.get("values"):
+        return {"data": [], "start": 0, "end": 0, "isMetricsData": False}
+
+    values = series["values"]
+    data = []
+    for row in values:
+        # events-timeseries uses milliseconds, events-stats uses seconds
+        timestamp = int(row["timestamp"] / 1000)
+        data.append((timestamp, [{"count": row.get("value", 0)}]))
+
+    start = int(values[0]["timestamp"] / 1000) if values else 0
+    end = int(values[-1]["timestamp"] / 1000) if values else 0
+
+    return {
+        "data": data,
+        "start": start,
+        "end": end,
+        "isMetricsData": False,
     }
-
-    timeframe = calculate_time_frame(result.start, result.end, result.rollup)
-    res["start"] = timeframe["start"]
-    res["end"] = timeframe["end"]
-
-    return res
 
 
 def unfurl_explore(
@@ -134,6 +142,7 @@ def _unfurl_explore(
         y_axes = params.getlist("yAxis")
         if not y_axes:
             y_axes = [DEFAULT_Y_AXIS]
+            params.setlist("yAxis", y_axes)
 
         group_bys = params.getlist("field")
 
@@ -145,86 +154,28 @@ def _unfurl_explore(
                 style = ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE
             else:
                 style = ChartType.SLACK_DISCOVER_TOP5_PERIOD
+            params.setlist("topEvents", [str(TOP_N)])
         else:
             style = ChartType.SLACK_DISCOVER_TOTAL_PERIOD
 
-        # Compute time range
-        now = datetime.now(tz=timezone.utc)
-        stats_period = params.get("statsPeriod")
-        start_param = params.get("start")
-        end_param = params.get("end")
+        if not params.get("statsPeriod") and not params.get("start"):
+            params["statsPeriod"] = DEFAULT_PERIOD
 
-        if stats_period:
-            parsed_period = parse_stats_period(stats_period)
-            if parsed_period is not None:
-                delta = parsed_period
-            else:
-                delta = timedelta(days=14)
-            end = now
-            start = end - delta
-        elif start_param and end_param:
-            parsed_start = parse_timestamp(start_param)
-            parsed_end = parse_timestamp(end_param)
-            if parsed_start is not None and parsed_end is not None:
-                start = parsed_start
-                end = parsed_end
-                delta = end - start
-            else:
-                delta = timedelta(days=14)
-                end = now
-                start = end - delta
-        else:
-            delta = timedelta(days=14)
-            end = now
-            start = end - delta
-
-        rollup = get_interval_from_range(delta, False)
-        parsed_rollup = parse_stats_period(rollup)
-        granularity_secs = int(parsed_rollup.total_seconds()) if parsed_rollup else 3600
-
-        # Resolve project IDs
-        project_ids = [int(p) for p in params.getlist("project") if p]
-        if project_ids:
-            projects = list(
-                Project.objects.filter(organization=org, id__in=project_ids).values_list(
-                    "id", flat=True
-                )
-            )
-        else:
-            projects = list(
-                Project.objects.filter(organization=org).values_list("id", flat=True)[:10]
-            )
-
-        snuba_params = SnubaParams(
-            start=start,
-            end=end,
-            granularity_secs=granularity_secs,
-            organization=org,
-            projects=Project.objects.filter(id__in=projects),
-            environments=[],
-        )
-
-        query_string = params.get("query", "")
-
-        config = SearchResolverConfig(
-            auto_fields=False,
-            use_aggregate_conditions=True,
-        )
+        params["dataset"] = "spans"
+        params["referrer"] = Referrer.EXPLORE_SLACK_UNFURL.value
 
         try:
-            result = Spans.run_timeseries_query(
-                params=snuba_params,
-                query_string=query_string,
-                y_axes=y_axes,
-                referrer=Referrer.EXPLORE_SLACK_UNFURL.value,
-                config=config,
-                sampling_mode=None,
+            resp = client.get(
+                auth=ApiKey(organization_id=org.id, scope_list=["org:read"]),
+                user=user,
+                path=f"/organizations/{org_slug}/events-timeseries/",
+                params=params,
             )
         except Exception:
-            _logger.warning("Failed to load timeseries data for explore unfurl")
+            _logger.warning("Failed to load events-timeseries for explore unfurl")
             continue
 
-        stats = snuba_ts_result_to_event_stats(result, y_axes[0])
+        stats = timeseries_to_chart_data(resp.data, y_axes[0])
         chart_data = {"seriesName": y_axes[0], "stats": stats}
 
         try:
@@ -268,7 +219,7 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
     for field_json in aggregate_fields:
         try:
             parsed = json.loads(field_json)
-            if "yAxes" in parsed:
+            if "yAxes" in parsed and isinstance(parsed["yAxes"], list):
                 y_axes.extend(parsed["yAxes"])
             if "groupBy" in parsed and parsed["groupBy"]:
                 group_bys.append(parsed["groupBy"])
