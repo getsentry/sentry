@@ -742,6 +742,16 @@ class TestTaintTracking(BaseWorkflowTest):
         b = EvaluationStats(tainted=3, untainted=4)
         assert a + b == EvaluationStats(tainted=4, untainted=6)
 
+    # Temporary test to exercise all evaluate_workflows_action_filters paths
+    # with caching enabled
+    def test_action_filter_stats_excludes_delayed_workflows__with_cache(self) -> None:
+        with self.feature("organizations:workflow-engine-action-filters-cache"):
+            self.test_action_filter_stats_excludes_delayed_workflows()
+
+    def test_action_filter_stats_from_trigger_result__with_cache(self) -> None:
+        with self.feature("organizations:workflow-engine-action-filters-cache"):
+            self.test_action_filter_stats_from_trigger_result()
+
 
 @freeze_time(FROZEN_TIME)
 class TestWorkflowEnqueuing(BaseWorkflowTest):
@@ -1126,6 +1136,32 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
             max=timezone.now().timestamp(),
         )
         assert list(project_ids.keys()) == [self.project.id]
+
+    # Temporary tests to exercise all evaluate_workflows_action_filters paths
+    # with caching enabled
+    def test_activity__with_slow_conditions__with_cache(self) -> None:
+        with self.feature("organizations:workflow-engine-action-filters-cache"):
+            self.test_activity__with_slow_conditions()
+
+    def test_enqueues_when_slow_conditions__with_cache(self) -> None:
+        with self.feature("organizations:workflow-engine-action-filters-cache"):
+            self.test_enqueues_when_slow_conditions()
+
+    def test_with_slow_conditions__with_cache(self) -> None:
+        with self.feature("organizations:workflow-engine-action-filters-cache"):
+            self.test_with_slow_conditions()
+
+    def test_basic__with_filter__filtered__with_cache(self) -> None:
+        with self.feature("organizations:workflow-engine-action-filters-cache"):
+            self.test_basic__with_filter__filtered()
+
+    def test_basic__with_filter__passes__with_cache(self) -> None:
+        with self.feature("organizations:workflow-engine-action-filters-cache"):
+            self.test_basic__with_filter__passes()
+
+    def test_basic__no_filter__with_cache(self) -> None:
+        with self.feature("organizations:workflow-engine-action-filters-cache"):
+            self.test_basic__no_filter()
 
 
 class TestEnqueueWorkflows(BaseWorkflowTest):

@@ -3,6 +3,7 @@ import type {ButtonProps} from '@sentry/scraps/button';
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
 import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
+import type {InstallationInfo} from 'sentry/components/pipeline/pipelineIntegrationGitHub';
 import type {DateRange} from 'sentry/components/timeRangeSelector/dateRange';
 import type {SelectorItems} from 'sentry/components/timeRangeSelector/selectorItems';
 import type {SentryRouteObject} from 'sentry/router/types';
@@ -136,6 +137,15 @@ type FirstPartyIntegrationAlertProps = {
   wrapWithContainer?: boolean;
 };
 
+export type ScmGithubMultiOrgInstallProps = {
+  installations: InstallationInfo[];
+  onNewInstall: () => void;
+  onSelectInstallation: (installationId: string) => void;
+  isDisabled?: boolean;
+  newInstallDisabled?: boolean;
+  popupBlockedNotice?: React.ReactNode;
+};
+
 type FirstPartyIntegrationAdditionalCTAProps = {
   integrations: Integration[];
 };
@@ -223,6 +233,7 @@ type ComponentHooks = {
   'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
   'component:replay-settings-alert': () => React.ComponentType | null;
+  'component:scm-github-multi-org-install': () => React.ComponentType<ScmGithubMultiOrgInstallProps>;
   'component:seer-beta-closing-alert': () => React.ComponentType;
   'component:superuser-access-category': React.ComponentType<any>;
   'component:superuser-warning': React.ComponentType<any>;

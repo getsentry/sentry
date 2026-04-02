@@ -864,7 +864,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         queryset: BaseQuerySet[Workflow, Workflow] | BaseQuerySet[Rule, Rule]
         serializer: WorkflowEngineRuleSerializer | RuleSerializer
         if features.has(
-            "organizations:workflow-engine-projectrulesendpoint-get", project.organization
+            "organizations:workflow-engine-issue-alert-endpoints-get", project.organization
         ) or features.has("organizations:workflow-engine-rule-serializers", project.organization):
             queryset = Workflow.objects.filter(
                 detectorworkflow__detector__project=project,

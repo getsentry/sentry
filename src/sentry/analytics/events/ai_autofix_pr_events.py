@@ -9,6 +9,7 @@ class AiAutofixPrEvent(analytics.Event):
     run_id: int
     integration: str
     github_app: str
+    referrer: str | None = None
 
 
 @analytics.eventclass("ai.autofix.pr.closed")

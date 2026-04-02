@@ -108,6 +108,7 @@ export function ExploreTables(props: ExploreTablesProps) {
             <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
             <TabList.Item
               key={Tab.ATTRIBUTE_BREAKDOWNS}
+              textValue={t('Attribute Breakdowns')}
               disabled={defined(crossEvents) && crossEvents.length > 0}
             >
               {t('Attribute Breakdowns')}

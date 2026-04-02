@@ -64,7 +64,7 @@ All endpoints decorated with `@track_alert_endpoint_execution` are in scope for 
 
 ## Feature Flag Strategy
 
-`organizations:workflow-engine-rule-serializers` enables all backported paths at once (useful for testing). Per-endpoint flags (e.g. `organizations:workflow-engine-projectrulesendpoint-get`) allow independent prod rollout — each is OR'd with the broad flag. Naming convention: `organizations:workflow-engine-{lowercaseendpointclass}-{method}`.
+`organizations:workflow-engine-rule-serializers` enables all backported paths at once (useful for testing). Per-endpoint flags (e.g. `organizations:workflow-engine-combinedruleindex-get`) allow independent prod rollout — each is OR'd with the broad flag. Per-feature flags (e.g. `organizations:workflow-engine-issue-alert-endpoints-get`) allow a subset of endpoints scoped to a feature to be enabled to avoid a large number of individual flags. Naming convention: `organizations:workflow-engine-{lowercaseendpointclass}-{method}`.
 
 ## Unsupported legacy features
 

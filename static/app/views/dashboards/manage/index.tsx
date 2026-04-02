@@ -668,6 +668,7 @@ function ManageDashboards() {
                                     },
                                     {
                                       key: 'create-dashboard-agent',
+                                      textValue: t('Generate dashboard'),
                                       label: (
                                         <Flex gap="sm" align="center" as="span">
                                           {t('Generate dashboard')}

@@ -81,19 +81,43 @@ def _get_measurement_label(measurement: str, platform: str) -> str:
     return measurement.replace("_", " ").title()
 
 
+def _build_identifier_prefix(metadata: SizeAnalysisMetadata | None) -> str:
+    """Build an app identifier prefix like 'MyApp android (com.example.app) — '.
+
+    Returns empty string if no metadata is available.
+    """
+    if metadata is None:
+        return ""
+
+    head_artifact = metadata["head_artifact"]
+    parts: list[str] = []
+
+    mobile_app_info = head_artifact.get_mobile_app_info()
+    if mobile_app_info is not None and mobile_app_info.app_name:
+        parts.append(mobile_app_info.app_name)
+
+    parts.append(metadata["platform"])
+
+    if head_artifact.app_id:
+        parts.append(f"({head_artifact.app_id})")
+
+    return " ".join(parts) + " — "
+
+
 def _build_evidence_text(
     detector_config: dict[str, Any],
     evaluation_result: ProcessedDataConditionGroup,
     data_packet: SizeAnalysisDataPacket,
     platform: str,
 ) -> str:
-    """Build a single-line evidence string for Slack/Jira notifications.
+    """Build evidence string for Slack/Jira notifications.
 
-    Format: {measurement}, {threshold_type} > {threshold_value} ({actual_value})
-    Example: Install Size, Absolute Diff > 1.0 MB (+1.0 MB)
+    Format: {app_name}, {platform} ({bundle}) — {measurement}, {threshold_type} > {threshold} ({actual_value})
+    Example: MyApp, android (com.example.app) — Install Size, Absolute Diff > 1.0 MB (+1.0 MB)
     """
     from sentry.preprod.utils import format_bytes_base10
 
+    metadata = data_packet.packet.get("metadata")
     measurement = detector_config["measurement"]
     threshold_type = detector_config["threshold_type"]
     measurement_label = _get_measurement_label(measurement, platform)
@@ -134,7 +158,8 @@ def _build_evidence_text(
         sign = "+" if delta >= 0 else "-"
         actual_value = f"{sign}{delta_formatted}"
 
-    return f"{measurement_label}{threshold_part} ({actual_value})"
+    identifier = _build_identifier_prefix(metadata)
+    return f"{identifier}{measurement_label}{threshold_part} ({actual_value})"
 
 
 class SizeAnalysisMetadata(TypedDict):

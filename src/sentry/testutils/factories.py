@@ -379,10 +379,6 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
     def create_organization(name=None, owner=None, cell: Cell | str | None = None, **kwargs):
-        # TODO(cells): Remove once getsentry passes cell everywhere
-        if not cell:
-            cell = kwargs.pop("region", None)
-
         if not name:
             name = petname.generate(2, " ", letters=10).title()
 
@@ -397,7 +393,7 @@ class Factories:
                     cell_name = cell_obj.name
 
                 ctx.enter_context(
-                    override_settings(SILO_MODE=SiloMode.CELL, SENTRY_REGION=cell_name)
+                    override_settings(SILO_MODE=SiloMode.CELL, SENTRY_LOCAL_CELL=cell_name)
                 )
 
             with outbox_context(flush=False):
