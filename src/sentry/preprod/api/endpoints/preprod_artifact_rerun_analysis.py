@@ -151,14 +151,14 @@ class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
         try:
             data = orjson.loads(request.body)
         except (orjson.JSONDecodeError, TypeError):
-            return Response({"error": "Invalid JSON body"}, status=400)
+            return Response({"detail": "Invalid JSON body"}, status=400)
 
         preprod_artifact_id = data.get("preprod_artifact_id")
         try:
             preprod_artifact_id = int(preprod_artifact_id)
         except (ValueError, TypeError):
             return Response(
-                {"error": "preprod_artifact_id is required and must be a valid integer"},
+                {"detail": "preprod_artifact_id is required and must be a valid integer"},
                 status=400,
             )
 
@@ -166,7 +166,7 @@ class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
             preprod_artifact = PreprodArtifact.objects.get(id=preprod_artifact_id)
         except PreprodArtifact.DoesNotExist:
             return Response(
-                {"error": f"Preprod artifact {preprod_artifact_id} not found"}, status=404
+                {"detail": f"Preprod artifact {preprod_artifact_id} not found"}, status=404
             )
 
         analytics.record(

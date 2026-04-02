@@ -417,12 +417,12 @@ class PreprodArtifactAdminRerunAnalysisTest(BaseRerunAnalysisTest):
 
     def test_rerun_analysis_not_found(self) -> None:
         response = self.get_error_response(preprod_artifact_id=999999, status_code=404)
-        assert "not found" in response.data["error"]
+        assert "not found" in response.data["detail"]
 
     def test_rerun_analysis_invalid_id(self) -> None:
         response = self.get_error_response(preprod_artifact_id="invalid", status_code=400)
         assert (
-            "preprod_artifact_id is required and must be a valid integer" in response.data["error"]
+            "preprod_artifact_id is required and must be a valid integer" in response.data["detail"]
         )
 
     @patch(
