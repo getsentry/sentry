@@ -137,7 +137,7 @@ describe('AutomateSection', () => {
       </DetectorFormProvider>
     );
 
-    expect(screen.getByText('Alert')).toBeInTheDocument();
+    expect(await screen.findByText('Alert')).toBeInTheDocument();
 
     await userEvent.click(screen.getByText('Connect Existing Alerts'));
 
@@ -225,7 +225,7 @@ describe('AutomateSection', () => {
     );
 
     // Click "Create New Alert" button
-    await userEvent.click(screen.getByRole('button', {name: 'Create New Alert'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Create New Alert'}));
 
     // Wait for the drawer to open
     const drawer = await screen.findByRole('complementary', {

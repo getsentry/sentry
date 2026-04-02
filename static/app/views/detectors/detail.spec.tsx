@@ -304,8 +304,8 @@ describe('DetectorDetails', () => {
 
       expect(await screen.findByText('Recent Check-Ins')).toBeInTheDocument();
 
-      // Verify check-in data is displayed
-      expect(screen.getAllByText('Uptime')).toHaveLength(4); // breadcrumb + section heading + timeline legend + check-in row
+      // Verify check-in data is displayed - wait for table to fully render
+      await waitFor(() => expect(screen.getAllByText('Uptime')).toHaveLength(4)); // breadcrumb + section heading + timeline legend + check-in row
       expect(screen.getByText('200')).toBeInTheDocument();
       expect(screen.getByText('US East')).toBeInTheDocument();
       expect(screen.getAllByText('Failure')).toHaveLength(2); // timeline legend + check-in row

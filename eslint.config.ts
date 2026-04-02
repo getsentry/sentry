@@ -539,8 +539,13 @@ export default typescript.config([
       '@tanstack/query': pluginQuery,
     },
     rules: {
-      ...pluginQuery.configs.recommended.rules,
+      ...pluginQuery.configs.recommendedStrict.rules,
+      '@tanstack/query/prefer-query-options': 'off',
       '@tanstack/query/no-rest-destructuring': 'error',
+      '@tanstack/query/exhaustive-deps': [
+        'error',
+        {allowlist: {variables: ['api'], types: ['Client']}},
+      ],
     },
   },
   {

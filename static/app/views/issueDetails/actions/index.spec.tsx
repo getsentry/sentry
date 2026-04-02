@@ -399,7 +399,7 @@ describe('GroupActions', () => {
       expect(groupFetchApi).toHaveBeenCalledTimes(1);
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
     expect(issuesApi).toHaveBeenCalledWith(
       `/projects/${organization.slug}/project/issues/`,

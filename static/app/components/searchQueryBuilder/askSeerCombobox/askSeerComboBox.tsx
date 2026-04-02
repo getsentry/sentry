@@ -154,8 +154,8 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     isError,
   } = useMutation({
     ...props.askSeerMutationOptions,
-    onError: (error, variables, context) => {
-      props.askSeerMutationOptions.onError?.(error, variables, context);
+    onError: (error, variables, onMutateResult, context) => {
+      props.askSeerMutationOptions.onError?.(error, variables, onMutateResult, context);
       addErrorMessage(t('Failed to process AI query: %(error)s', {error: error.message}));
     },
   });
