@@ -1,8 +1,8 @@
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {BlockComponent} from 'sentry/views/seerExplorer/blockComponents';
 import type {Block} from 'sentry/views/seerExplorer/types';
 
@@ -13,8 +13,9 @@ interface CreateFromSeerLoadingProps {
 
 export function CreateFromSeerLoading({blocks, seerRunId}: CreateFromSeerLoadingProps) {
   const blocksToRender = blocks.slice(-3);
+  const hasPageFrame = useHasPageFrameFeature();
   return (
-    <Layout.Page withPadding background="secondary">
+    <Stack flex={1} padding="2xl 3xl" background={hasPageFrame ? undefined : 'secondary'}>
       <Flex direction="column" gap="lg" align="center" justify="center" flex="1">
         <Flex direction="column" gap="sm" width="640px">
           <Heading as="h3">{t('Generating Dashboard')}</Heading>
@@ -22,7 +23,11 @@ export function CreateFromSeerLoading({blocks, seerRunId}: CreateFromSeerLoading
             {t('Stay on this page while we get this made for you')}
           </Text>
           <Container overflow="hidden" maxHeight="500px" paddingTop="lg">
-            <Stack border="primary" radius="md" background="primary">
+            <Stack
+              border={blocks.length > 0 ? 'primary' : undefined}
+              radius="md"
+              background="primary"
+            >
               {blocksToRender.map((block, index) => (
                 <BlockComponent
                   key={block.id}
@@ -36,6 +41,6 @@ export function CreateFromSeerLoading({blocks, seerRunId}: CreateFromSeerLoading
           </Container>
         </Flex>
       </Flex>
-    </Layout.Page>
+    </Stack>
   );
 }

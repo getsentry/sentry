@@ -35,7 +35,7 @@ export const useDeleteGroupSearchView = (
           method: 'DELETE',
         }
       ),
-    onSuccess: (data, parameters, context) => {
+    onSuccess: (data, parameters, onMutateResult, context) => {
       // Invalidate the view in cache
       queryClient.invalidateQueries({
         queryKey: makeFetchGroupSearchViewKey({
@@ -52,11 +52,11 @@ export const useDeleteGroupSearchView = (
           return oldGroupSearchViews?.filter(view => view.id !== parameters.id) ?? [];
         }
       );
-      options.onSuccess?.(data, parameters, context);
+      options.onSuccess?.(data, parameters, onMutateResult, context);
     },
-    onError: (error, variables, context) => {
+    onError: (error, variables, onMutateResult, context) => {
       addErrorMessage(t('Failed to delete view'));
-      options.onError?.(error, variables, context);
+      options.onError?.(error, variables, onMutateResult, context);
     },
   });
 };

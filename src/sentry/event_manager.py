@@ -1447,7 +1447,7 @@ def handle_existing_grouphash(
     # this function had races around group creation which made this race
     # more user visible. For more context, see 84c6f75a and d0e22787, as
     # well as GH-5085.
-    group = Group.objects.get(id=existing_grouphash.group_id)
+    group = Group.objects.get_from_cache(id=existing_grouphash.group_id, use_replica=False)
 
     # As far as we know this has never happened, but in theory at least, the error event hashing
     # algorithm and other event hashing algorithms could come up with the same hash value in the
@@ -2508,6 +2508,7 @@ def save_attachment(
         sha1=file.sha1,
         # storage:
         blob_path=file.blob_path,
+        date_expires=datetime.now(timezone.utc) + timedelta(days=attachment.retention_days),
     )
 
     track_outcome(

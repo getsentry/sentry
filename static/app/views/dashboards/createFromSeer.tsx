@@ -2,11 +2,11 @@ import {memo, useCallback, useEffect, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Stack} from '@sentry/scraps/layout';
 
 import {validateDashboard} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -19,7 +19,8 @@ import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/hooks/useSeer
 import {makeSeerExplorerQueryKey} from 'sentry/views/seerExplorer/utils';
 
 import {WidgetErrorProvider} from './contexts/widgetErrorContext';
-import {DashboardChatPanel} from './dashboardChatPanel';
+import {applySeerWidgetDefaults} from './createFromSeerUtils';
+import {DashboardChatPanel, type WidgetError} from './dashboardChatPanel';
 import {EMPTY_DASHBOARD} from './data';
 import {DashboardDetailWithInjectedProps as DashboardDetail} from './detail';
 import {assignDefaultLayout, assignTempId, getInitialColumnDepths} from './layoutUtils';
@@ -81,7 +82,7 @@ function extractDashboardFromSession(
       return {
         title: data.title,
         widgets: assignDefaultLayout(
-          data.widgets.map(normalizeWidget).map(assignTempId),
+          applySeerWidgetDefaults(data.widgets.map(normalizeWidget)).map(assignTempId),
           getInitialColumnDepths()
         ),
       };
@@ -211,6 +212,7 @@ export default function CreateFromSeer() {
           widgets: dashboardData.widgets,
         };
         setDashboard(newDashboard);
+        reportedWidgetErrors.current.clear();
       }
     }
   }, [organization, seerRunId, isUpdating, sessionStatus, session, sessionUpdatedAt]);
@@ -219,6 +221,8 @@ export default function CreateFromSeer() {
 
   // Prevent repeat errors on the same widget
   const reportedWidgetErrors = useRef(new Set<string>());
+  // Maps widget tempId to error message
+  const widgetErrorsMap = useRef(new Map<string, WidgetError>());
 
   const handleWidgetError = useCallback(
     (widget: Widget, errorMessage: string) => {
@@ -227,6 +231,12 @@ export default function CreateFromSeer() {
         return;
       }
       reportedWidgetErrors.current.add(errorKey);
+      if (widget.tempId !== undefined) {
+        widgetErrorsMap.current.set(widget.tempId, {
+          widgetTitle: widget.title,
+          errorMessage,
+        });
+      }
 
       Sentry.withScope(scope => {
         scope.setFingerprint(['generated-dashboard-widget-query-error']);
@@ -246,8 +256,13 @@ export default function CreateFromSeer() {
   useEffect(() => {
     if (sessionStatus === 'error' || isError) {
       addErrorMessage(t('Failed to generate dashboard'));
+      Sentry.metrics.count('dashboards.seer.generation.session.error', 1, {
+        attributes: {
+          organization_slug: organization.slug,
+        },
+      });
     }
-  }, [sessionStatus, isError]);
+  }, [sessionStatus, isError, organization.slug]);
 
   const sendMessage = useCallback(
     async (message: string) => {
@@ -257,6 +272,7 @@ export default function CreateFromSeer() {
       setisUpdating(true);
       completedAtRef.current = null;
       hasValidatedRef.current = false;
+      reportedWidgetErrors.current.clear();
       try {
         const queryKey = makeSeerExplorerQueryKey(organization.slug, seerRunId);
         const {url} = parseQueryKey(queryKey);
@@ -276,13 +292,13 @@ export default function CreateFromSeer() {
 
   if (!hasFeature) {
     return (
-      <Layout.Page withPadding>
+      <Stack flex={1} padding="2xl 3xl">
         <Alert.Container>
           <Alert variant="warning" showIcon={false}>
             {t("You don't have access to this feature")}
           </Alert>
         </Alert.Container>
-      </Layout.Page>
+      </Stack>
     );
   }
 
@@ -293,6 +309,14 @@ export default function CreateFromSeer() {
   if (isLoading && !isUpdating) {
     return <CreateFromSeerLoading blocks={session?.blocks ?? []} seerRunId={seerRunId} />;
   }
+
+  const widgetErrors: WidgetError[] = dashboard.widgets.flatMap(widget => {
+    if (widget.tempId === undefined) {
+      return [];
+    }
+    const error = widgetErrorsMap.current.get(widget.tempId);
+    return error ? [error] : [];
+  });
 
   return (
     <ErrorBoundary>
@@ -307,6 +331,8 @@ export default function CreateFromSeer() {
           pendingUserInput={session?.pending_user_input}
           onSend={sendMessage}
           isUpdating={isUpdating}
+          isError={sessionStatus === 'error'}
+          widgetErrors={widgetErrors}
         />
       </WidgetErrorProvider>
     </ErrorBoundary>

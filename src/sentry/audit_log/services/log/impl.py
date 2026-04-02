@@ -44,10 +44,10 @@ class DatabaseBackedLogService(LogService):
                 raise
 
     def record_user_ip(self, *, event: UserIpEvent) -> None:
-        UserIP.objects.create_or_update(
+        UserIP.objects.update_or_create(
             user_id=event.user_id,
             ip_address=event.ip_address,
-            values=dict(
+            defaults=dict(
                 last_seen=event.last_seen,
                 country_code=event.country_code,
                 region_code=event.region_code,

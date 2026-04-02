@@ -6,12 +6,13 @@ import {Stack} from '@sentry/scraps/layout';
 import {FormContext} from 'sentry/components/forms/formContext';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
-import {Section} from 'sentry/components/workflowEngine/ui/section';
+import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t} from 'sentry/locale';
 import type {PreprodDetector} from 'sentry/types/workflowEngine/detectors';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
 import {DescribeSection} from 'sentry/views/detectors/components/forms/common/describeSection';
+import {ProjectSection} from 'sentry/views/detectors/components/forms/common/projectSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import {MobileBuildDetectSection} from 'sentry/views/detectors/components/forms/mobileBuild/detectSection';
 import {
@@ -40,9 +41,11 @@ function MobileBuildDetectorForm() {
 
   return (
     <Stack gap="2xl" maxWidth={theme.breakpoints.lg}>
+      <ProjectSection step={1} />
       <MobileBuildDetectSection />
       <Container>
-        <Section
+        <FormSection
+          step={4}
           title={t('Filters')}
           description={t(
             'Narrow down which builds are monitored by filtering on build attributes.'
@@ -58,12 +61,12 @@ function MobileBuildDetectorForm() {
             disallowLogicalOperators
             allowedKeys={STATUS_CHECK_ALLOWED_FILTER_KEYS}
           />
-        </Section>
+        </FormSection>
       </Container>
-      <MobileBuildPreviewSection />
-      <AssignSection />
-      <DescribeSection />
-      <AutomateSection />
+      <MobileBuildPreviewSection step={5} />
+      <AssignSection step={6} />
+      <DescribeSection step={7} />
+      <AutomateSection step={8} />
     </Stack>
   );
 }
@@ -74,7 +77,6 @@ export function NewPreprodDetectorForm() {
       detectorType="preprod_size_analysis"
       formDataToEndpointPayload={preprodFormDataToEndpointPayload}
       initialFormData={PREPROD_DEFAULT_FORM_DATA}
-      environment={false}
     >
       <MobileBuildDetectorForm />
     </NewDetectorLayout>
@@ -87,7 +89,6 @@ export function EditExistingPreprodDetectorForm({detector}: {detector: PreprodDe
       detector={detector}
       formDataToEndpointPayload={preprodFormDataToEndpointPayload}
       savedDetectorToFormData={preprodSavedDetectorToFormData}
-      environment={false}
     >
       <MobileBuildDetectorForm />
     </EditDetectorLayout>

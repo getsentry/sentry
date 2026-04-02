@@ -15,6 +15,7 @@ from urllib3.util.retry import Retry
 
 from sentry import features, options, ratelimits
 from sentry.constants import (
+    AUTO_OPEN_PRS_DEFAULT,
     SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     DataCategory,
     ObjectStatus,
@@ -41,6 +42,10 @@ from sentry.seer.models import (
 from sentry.seer.models.project_repository import (
     SeerProjectRepository,
     SeerProjectRepositoryBranchOverride,
+)
+from sentry.seer.models.seer_api_models import (
+    AutofixHandoffPoint,
+    SeerAutomationHandoffConfiguration,
 )
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.utils.cache import cache
@@ -393,6 +398,38 @@ def default_seer_project_preference(project: Project) -> SeerProjectPreference:
     )
 
 
+def get_org_default_seer_automation_handoff(
+    organization: Organization,
+) -> tuple[str, SeerAutomationHandoffConfiguration | None]:
+    """Get the default stopping point and automation handoff for an organization."""
+    stopping_point = organization.get_option(
+        "sentry:default_automated_run_stopping_point", SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+    )
+
+    auto_open_prs = organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT)
+
+    automation_handoff: SeerAutomationHandoffConfiguration | None = None
+    coding_agent = organization.get_option("sentry:seer_default_coding_agent")
+    coding_agent_integration_id = organization.get_option(
+        "sentry:seer_default_coding_agent_integration_id"
+    )
+    if coding_agent and coding_agent != "seer" and coding_agent_integration_id is not None:
+        automation_handoff = SeerAutomationHandoffConfiguration(
+            handoff_point=AutofixHandoffPoint.ROOT_CAUSE,
+            target=coding_agent,
+            integration_id=coding_agent_integration_id,
+            auto_create_pr=auto_open_prs,
+        )
+    # If Seer agent and auto open PRs, we can run up to open_pr.
+    elif auto_open_prs:
+        stopping_point = "open_pr"
+    # If Seer agent and no auto open PRs, we shouldn't go past code_changes.
+    elif stopping_point == "open_pr":
+        stopping_point = "code_changes"
+
+    return stopping_point, automation_handoff
+
+
 def get_project_seer_preferences(project_id: int) -> SeerRawPreferenceResponse:
     """
     Fetch Seer project preferences from the Seer API.
@@ -493,10 +530,11 @@ def resolve_repository_ids(
 
 
 def _write_preference_project_options(project: Project, preference: SeerProjectPreference) -> None:
-    project.update_option(
-        "sentry:seer_automated_run_stopping_point",
-        preference.automated_run_stopping_point or SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
-    )
+    stopping_point = preference.automated_run_stopping_point
+    if stopping_point and stopping_point != SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT:
+        project.update_option("sentry:seer_automated_run_stopping_point", stopping_point)
+    else:
+        project.delete_option("sentry:seer_automated_run_stopping_point")
 
     handoff = preference.automation_handoff
     if handoff is not None:
@@ -509,10 +547,10 @@ def _write_preference_project_options(project: Project, preference: SeerProjectP
             "sentry:seer_automation_handoff_auto_create_pr", handoff.auto_create_pr
         )
     else:
-        project.update_option("sentry:seer_automation_handoff_point", None)
-        project.update_option("sentry:seer_automation_handoff_target", None)
-        project.update_option("sentry:seer_automation_handoff_integration_id", None)
-        project.update_option("sentry:seer_automation_handoff_auto_create_pr", False)
+        project.delete_option("sentry:seer_automation_handoff_point")
+        project.delete_option("sentry:seer_automation_handoff_target")
+        project.delete_option("sentry:seer_automation_handoff_integration_id")
+        project.delete_option("sentry:seer_automation_handoff_auto_create_pr")
 
 
 def _write_preferences_to_sentry_db(
@@ -526,10 +564,13 @@ def _write_preferences_to_sentry_db(
         return
 
     with transaction.atomic(using=router.db_for_write(SeerProjectRepository)):
-        # Delete existing rows.
-        SeerProjectRepository.objects.filter(
-            project_id__in={project.id for project, _ in project_preferences}
-        ).delete()
+        project_ids = {project.id for project, _ in project_preferences}
+
+        # Lock project rows to serialize concurrent preference writes.
+        list(Project.objects.select_for_update().filter(id__in=project_ids).order_by("id"))
+
+        # Delete existing project repos and branch overrides.
+        SeerProjectRepository.objects.filter(project_id__in=project_ids).delete()
 
         # Collect project repos to create.
         project_repos_to_create: list[SeerProjectRepository] = []
@@ -870,36 +911,6 @@ def is_issue_category_eligible(group: Group) -> bool:
         GroupCategory.DB_QUERY,
         GroupCategory.HTTP_CLIENT,
     }
-
-
-def is_issue_eligible_for_seer_automation(group: Group) -> bool:
-    """Check if Seer automation is allowed for a given group based on permissions and issue type."""
-    from sentry import quotas
-
-    if not is_issue_category_eligible(group):
-        return False
-
-    if not features.has("organizations:gen-ai-features", group.organization):
-        return False
-
-    gen_ai_allowed = not group.organization.get_option("sentry:hide_ai_features")
-    if not gen_ai_allowed:
-        return False
-
-    project = group.project
-    if (
-        not project.get_option("sentry:seer_scanner_automation")
-        and not group.issue_type.always_trigger_seer_automation
-    ):
-        return False
-
-    has_budget: bool = quotas.backend.check_seer_quota(
-        org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
-    )
-    if not has_budget:
-        return False
-
-    return True
 
 
 AUTOFIX_AUTOTRIGGED_RATE_LIMIT_OPTION_MULTIPLIERS = {

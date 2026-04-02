@@ -9,6 +9,8 @@ import isEqualWith from 'lodash/isEqualWith';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {
   createDashboard,
   deleteDashboard,
@@ -62,7 +64,7 @@ import {useRouter} from 'sentry/utils/useRouter';
 import {
   cloneDashboard,
   getCurrentPageFilters,
-  getDashboardFiltersFromURL,
+  getMergedDashboardFilters,
   hasUnsavedFilterChanges,
   isWidgetUsingTransactionName,
   resetPageFilters,
@@ -294,9 +296,10 @@ class DashboardDetail extends Component<Props, State> {
           organization,
           widget,
           widgetLegendState: this.state.widgetLegendState,
-          dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
+          dashboardFilters: getMergedDashboardFilters(dashboard.filters, location),
           dashboardPermissions: dashboard.permissions,
           dashboardCreator: dashboard.createdBy,
+          isPrebuiltDashboard: defined(dashboard.prebuiltId),
           widgetInterval: this.props.widgetInterval,
           onClose: () => {
             // Filter out Widget Viewer Modal query params when exiting the Modal
@@ -846,7 +849,7 @@ class DashboardDetail extends Component<Props, State> {
           const newModifiedDashboard = {
             ...cloneDashboard(modifiedDashboard),
             ...getCurrentPageFilters(location),
-            filters: getDashboardFiltersFromURL(location) ?? modifiedDashboard.filters,
+            filters: getMergedDashboardFilters(modifiedDashboard.filters, location),
           };
           createDashboard(api, organization.slug, newModifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
@@ -985,7 +988,7 @@ class DashboardDetail extends Component<Props, State> {
           },
         }}
       >
-        <Layout.Page withPadding>
+        <Stack flex={1} padding="2xl 3xl">
           <OnDemandControlProvider location={location}>
             <MetricsResultsMetaProvider>
               <NoProjectMessage organization={organization}>
@@ -1060,7 +1063,7 @@ class DashboardDetail extends Component<Props, State> {
               </NoProjectMessage>
             </MetricsResultsMetaProvider>
           </OnDemandControlProvider>
-        </Layout.Page>
+        </Stack>
       </PageFiltersContainer>
     );
   }
@@ -1107,7 +1110,7 @@ class DashboardDetail extends Component<Props, State> {
     );
 
     const pageContent = (
-      <Layout.Page>
+      <Stack flex={1}>
         <OnDemandControlProvider location={location}>
           <MetricsResultsMetaProvider>
             <NoProjectMessage organization={organization}>
@@ -1211,9 +1214,10 @@ class DashboardDetail extends Component<Props, State> {
                               const newModifiedDashboard = {
                                 ...cloneDashboard(modifiedDashboard ?? dashboard),
                                 ...getCurrentPageFilters(location),
-                                filters:
-                                  getDashboardFiltersFromURL(location) ??
+                                filters: getMergedDashboardFilters(
                                   (modifiedDashboard ?? dashboard).filters,
+                                  location
+                                ),
                                 ...(defined(dashboard.prebuiltId) && {
                                   widgets: undefined,
                                 }),
@@ -1300,9 +1304,10 @@ class DashboardDetail extends Component<Props, State> {
                               }
                               setOpenWidgetTemplates={this.handleChangeWidgetBuilderView}
                               onClose={this.handleCloseWidgetBuilder}
-                              dashboardFilters={
-                                getDashboardFiltersFromURL(location) ?? dashboard.filters
-                              }
+                              dashboardFilters={getMergedDashboardFilters(
+                                dashboard.filters,
+                                location
+                              )}
                               dashboard={modifiedDashboard ?? dashboard}
                               onSave={this.handleSaveWidget}
                             />
@@ -1316,7 +1321,7 @@ class DashboardDetail extends Component<Props, State> {
             </NoProjectMessage>
           </MetricsResultsMetaProvider>
         </OnDemandControlProvider>
-      </Layout.Page>
+      </Stack>
     );
 
     return (

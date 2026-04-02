@@ -2,10 +2,10 @@ from typing import Any
 
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.processing_errors.grouptype import (
-    SourcemapCheckStatus,
+    ProcessingErrorCheckStatus,
+    ProcessingErrorPacketValue,
     SourcemapConfigurationType,
     SourcemapDetectorHandler,
-    SourcemapPacketValue,
 )
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models.data_condition import Condition
@@ -24,13 +24,13 @@ class TestSourcemapDetectorHandler(TestCase):
             organization=self.project.organization,
         )
         self.create_data_condition(
-            comparison=SourcemapCheckStatus.FAILURE,
+            comparison=ProcessingErrorCheckStatus.FAILURE,
             type=Condition.EQUAL,
             condition_result=DetectorPriorityLevel.HIGH,
             condition_group=condition_group,
         )
         self.create_data_condition(
-            comparison=SourcemapCheckStatus.SUCCESS,
+            comparison=ProcessingErrorCheckStatus.SUCCESS,
             type=Condition.EQUAL,
             condition_result=DetectorPriorityLevel.OK,
             condition_group=condition_group,
@@ -54,7 +54,7 @@ class TestSourcemapDetectorHandler(TestCase):
         errors: list | None = None,
         event_id: str = "abc123",
         platform: str = "javascript",
-    ) -> DataPacket[SourcemapPacketValue]:
+    ) -> DataPacket[ProcessingErrorPacketValue]:
         if errors is None:
             errors = []
         event_data: dict[str, Any] = {
@@ -64,14 +64,14 @@ class TestSourcemapDetectorHandler(TestCase):
         }
         return DataPacket(
             source_id=str(self.project.id),
-            packet=SourcemapPacketValue(
+            packet=ProcessingErrorPacketValue(
                 event_id=event_id,
                 event_data=event_data,
             ),
         )
 
     def handle_result(
-        self, detector: Detector, data_packet: DataPacket[SourcemapPacketValue]
+        self, detector: Detector, data_packet: DataPacket[ProcessingErrorPacketValue]
     ) -> DetectorEvaluationResult | None:
         handler = SourcemapDetectorHandler(detector)
         evaluation = handler.evaluate(data_packet)

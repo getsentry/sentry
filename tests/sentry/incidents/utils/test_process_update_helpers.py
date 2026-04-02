@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from sentry.incidents.utils.process_update_helpers import get_aggregation_value
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
-from sentry.search.events.datasets.discover import InvalidIssueSearchQuery
+from sentry.search.exceptions import InvalidIssueSearchQuery
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import get_entity_subscription_from_snuba_query
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
@@ -14,7 +14,7 @@ from sentry.testutils.cases import TestCase
 
 
 class InvalidIssueSearchQueryTest(TestCase):
-    def test_exception_stores_and_renders_invalid_ids(self):
+    def test_exception_stores_and_renders_invalid_ids(self) -> None:
         invalid_ids = ["PROJECT-123", "PROJECT-456"]
         exc = InvalidIssueSearchQuery(invalid_ids)
 
@@ -25,7 +25,7 @@ class InvalidIssueSearchQueryTest(TestCase):
 
 
 class GetAggregationValueTest(TestCase):
-    def test_missing_issue_ids_returns_none_gracefully(self):
+    def test_missing_issue_ids_returns_none_gracefully(self) -> None:
         now = timezone.now()
         start = now - timedelta(minutes=5)
         end = now

@@ -1,11 +1,11 @@
 import logging
 from collections import defaultdict
 from collections.abc import Mapping
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Any, Literal, NotRequired, TypedDict
 
 from sentry.uptime.subscriptions.regions import get_region_config
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -640,7 +640,9 @@ def query_trace_data(
 
     # 1 worker each for spans, errors, performance issues, and optionally uptime
     max_workers = 4 if include_uptime else 3
-    query_thread_pool = ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=max_workers)
+    query_thread_pool = ContextPropagatingThreadPoolExecutor(
+        thread_name_prefix=__name__, max_workers=max_workers
+    )
     with query_thread_pool:
         spans_future = query_thread_pool.submit(
             Spans.run_trace_query,

@@ -34,6 +34,7 @@ from sentry.constants import (
     AUTO_ENABLE_CODE_REVIEW,
     AUTO_OPEN_PRS_DEFAULT,
     CONSOLE_SDK_INVITE_QUOTA_DEFAULT,
+    DASHBOARDS_ASYNC_QUEUE_PARALLEL_LIMIT_DEFAULT,
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
@@ -57,6 +58,7 @@ from sentry.constants import (
     ROLLBACK_ENABLED_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
+    SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     SEER_DEFAULT_CODING_AGENT_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
     ObjectStatus,
@@ -511,6 +513,7 @@ class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResp
     ingestThroughTrustedRelaysOnly: bool
     enabledConsolePlatforms: list[str]
     consoleSdkInviteQuota: int
+    dashboardsAsyncQueueParallelLimit: int
 
 
 @extend_schema_serializer(exclude_fields=["availableRoles"])
@@ -556,8 +559,9 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     defaultSeerScannerAutomation: bool
     enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
-    defaultCodingAgent: str | None
+    defaultCodingAgent: str
     defaultCodingAgentIntegrationId: int | None
+    defaultAutomatedRunStoppingPoint: str
     autoEnableCodeReview: bool
     autoOpenPrs: bool
     defaultCodeReviewTriggers: list[str]
@@ -732,12 +736,14 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 )
             ),
             "defaultCodingAgent": obj.get_option(
-                "sentry:seer_default_coding_agent",
-                SEER_DEFAULT_CODING_AGENT_DEFAULT,
+                "sentry:seer_default_coding_agent", SEER_DEFAULT_CODING_AGENT_DEFAULT
             ),
             "defaultCodingAgentIntegrationId": obj.get_option(
-                "sentry:seer_default_coding_agent_integration_id",
-                None,
+                "sentry:seer_default_coding_agent_integration_id", None
+            ),
+            "defaultAutomatedRunStoppingPoint": obj.get_option(
+                "sentry:default_automated_run_stopping_point",
+                SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
             ),
             "autoOpenPrs": bool(
                 obj.get_option(
@@ -793,6 +799,11 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             CONSOLE_SDK_INVITE_QUOTA_DEFAULT,
         )
 
+        context["dashboardsAsyncQueueParallelLimit"] = obj.get_option(
+            "sentry:dashboards-async-queue-parallel-limit",
+            DASHBOARDS_ASYNC_QUEUE_PARALLEL_LIMIT_DEFAULT,
+        )
+
         if access.role is not None:
             context["role"] = access.role  # Deprecated
             context["orgRole"] = access.role
@@ -824,6 +835,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
         "consoleSdkInviteQuota",
+        "dashboardsAsyncQueueParallelLimit",
         "hasGranularReplayPermissions",
         "replayAccessMembers",
     ]

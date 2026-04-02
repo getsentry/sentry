@@ -34,7 +34,7 @@ describe('ApiNewToken', () => {
       url: `/api-tokens/1/`,
     });
 
-    await userEvent.type(screen.getByRole('textbox', {name: /name/i}), ' new');
+    await userEvent.type(await screen.findByRole('textbox', {name: /name/i}), ' new');
 
     await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
@@ -79,7 +79,7 @@ describe('ApiNewToken', () => {
       url: `/api-tokens/1/`,
     });
 
-    await userEvent.clear(screen.getByRole('textbox', {name: /name/i}));
+    await userEvent.clear(await screen.findByRole('textbox', {name: /name/i}));
 
     await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
@@ -126,7 +126,7 @@ describe('ApiNewToken', () => {
     });
 
     await userEvent.type(
-      screen.getByRole('textbox', {name: /name/i}),
+      await screen.findByRole('textbox', {name: /name/i}),
       'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in'
     );
 

@@ -9,9 +9,9 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
-import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {
@@ -83,15 +83,7 @@ export function ToolbarGroupByDropdown({
       style={{transform: CSS.Transform.toString(transform)}}
       {...attributes}
     >
-      {canDelete ? (
-        <Button
-          aria-label={t('Drag to reorder')}
-          priority="transparent"
-          size="zero"
-          icon={<IconGrabbable size="sm" />}
-          {...listeners}
-        />
-      ) : null}
+      {canDelete ? <DragReorderButton iconSize="sm" {...listeners} /> : null}
       <StyledCompactSelect
         data-test-id="editor-column"
         options={options}

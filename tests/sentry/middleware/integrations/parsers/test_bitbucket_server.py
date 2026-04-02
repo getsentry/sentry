@@ -19,21 +19,21 @@ from sentry.types.cell import Cell, RegionCategory
 class BitbucketServerRequestParserTest(TestCase):
     get_response = MagicMock(return_value=HttpResponse(content=b"no-error", status=200))
     factory = RequestFactory()
-    region = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
-    region_config = (region,)
+    cell = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
+    cell_config = (cell,)
 
-    @override_cells(region_config)
+    @override_cells(cell_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_routing_webhook(self) -> None:
-        region_route = reverse(
+        cell_route = reverse(
             "sentry-extensions-bitbucketserver-webhook",
             kwargs={"organization_id": self.organization.id, "integration_id": self.integration.id},
         )
         with outbox_runner():
-            request = self.factory.post(region_route)
+            request = self.factory.post(cell_route)
         parser = BitbucketServerRequestParser(request=request, response_handler=self.get_response)
 
-        # Missing region
+        # Missing cell
         OrganizationMapping.objects.get(organization_id=self.organization.id).update(cell_name="eu")
         with mock.patch.object(
             parser, "get_response_from_control_silo"
@@ -41,7 +41,7 @@ class BitbucketServerRequestParserTest(TestCase):
             parser.get_response()
             assert get_response_from_control_silo.called
 
-        # Valid region
+        # Valid cell
         OrganizationMapping.objects.get(organization_id=self.organization.id).update(cell_name="us")
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
@@ -51,5 +51,5 @@ class BitbucketServerRequestParserTest(TestCase):
         assert_webhook_payloads_for_mailbox(
             request=request,
             mailbox_name=f"bitbucket_server:{self.organization.id}",
-            region_names=[self.region.name],
+            cell_names=[self.cell.name],
         )

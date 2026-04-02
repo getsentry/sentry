@@ -55,15 +55,14 @@ from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
 from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id, to_valid_int_id_list
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
-from sentry.workflow_engine.endpoints.validators.detector_workflow import (
-    BulkDetectorWorkflowsValidator,
-    can_delete_detectors,
-    can_edit_detectors,
-)
 from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
     DetectorWorkflowMutationValidator,
 )
-from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
+from sentry.workflow_engine.endpoints.validators.utils import (
+    can_delete_detectors,
+    can_edit_detectors,
+    get_unknown_detector_type_error,
+)
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 
@@ -149,7 +148,7 @@ def get_detector_validator(
 class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
-        "POST": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
         "PUT": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
     }
@@ -351,26 +350,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        with transaction.atomic(router.db_for_write(Detector)):
-            detector = validator.save()
-
-            # Handle workflow connections in bulk
-            workflow_ids = request.data.get("workflowIds", [])
-            if workflow_ids:
-                bulk_validator = BulkDetectorWorkflowsValidator(
-                    data={
-                        "detector_id": detector.id,
-                        "workflow_ids": workflow_ids,
-                    },
-                    context={
-                        "organization": organization,
-                        "request": request,
-                    },
-                )
-                if not bulk_validator.is_valid():
-                    raise ValidationError({"workflowIds": bulk_validator.errors})
-
-                bulk_validator.save()
+        detector = validator.save()
 
         return Response(serialize(detector, request.user), status=status.HTTP_201_CREATED)
 

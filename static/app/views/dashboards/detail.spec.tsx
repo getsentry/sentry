@@ -503,7 +503,7 @@ describe('Dashboards > Detail', () => {
       await waitFor(() => expect(mockVisit).toHaveBeenCalledTimes(1));
 
       // Enter edit mode.
-      await userEvent.click(screen.getByRole('button', {name: 'edit-dashboard'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'edit-dashboard'}));
 
       // Remove the second and third widgets
       await userEvent.click(
@@ -1347,8 +1347,7 @@ describe('Dashboards > Detail', () => {
         organization: testData.organization,
       });
 
-      await waitFor(() => expect(screen.queryAllByText('Loading\u2026')).toEqual([]));
-      await userEvent.click(screen.getByRole('button', {name: 'All Envs'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'All Envs'}));
       expect(screen.getByRole('row', {name: 'alpha'})).toHaveAttribute(
         'aria-selected',
         'true'

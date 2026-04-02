@@ -223,7 +223,7 @@ class RelocationTaskTestCase(TestCase):
 @patch("sentry.backup.crypto.KeyManagementServiceClient")
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.uploading_complete.apply_async")
-@cell_silo_test(regions=SAAS_TO_SAAS_TEST_REGIONS)
+@cell_silo_test(cells=SAAS_TO_SAAS_TEST_REGIONS)
 class UploadingStartTest(RelocationTaskTestCase):
     def setUp(self) -> None:
         self.owner = self.create_user(
@@ -258,7 +258,7 @@ class UploadingStartTest(RelocationTaskTestCase):
             self.uuid = str(self.relocation.uuid)
 
     @override_settings(
-        SENTRY_MONOLITH_REGION=REQUESTING_TEST_REGION, SENTRY_REGION=REQUESTING_TEST_REGION
+        SENTRY_MONOLITH_REGION=REQUESTING_TEST_REGION, SENTRY_LOCAL_CELL=REQUESTING_TEST_REGION
     )
     @patch("sentry.relocation.tasks.process.cross_region_export_timeout_check.apply_async")
     def test_success_saas_to_saas(

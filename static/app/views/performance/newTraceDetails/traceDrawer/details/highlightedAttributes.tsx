@@ -14,13 +14,14 @@ import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTra
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
+import {resolveAgentName} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   getIsAiAgentSpan,
   getToolSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {SpanFields} from 'sentry/views/insights/types';
-import {tryParseJson} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import {tryParseJsonRecursive} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 type HighlightedAttribute = {
   name: string;
@@ -41,7 +42,7 @@ function getAIToolDefinitions(
 ): any[] | null {
   const toolDefinitions = attributes['gen_ai.tool.definitions'];
   if (toolDefinitions) {
-    const parsed = tryParseJson(toolDefinitions.toString());
+    const parsed = tryParseJsonRecursive(toolDefinitions.toString());
     if (Array.isArray(parsed)) {
       return parsed;
     }
@@ -49,7 +50,7 @@ function getAIToolDefinitions(
 
   const availableTools = attributes['gen_ai.request.available_tools'];
   if (availableTools) {
-    const parsed = tryParseJson(availableTools.toString());
+    const parsed = tryParseJsonRecursive(availableTools.toString());
     if (Array.isArray(parsed)) {
       return parsed;
     }
@@ -110,7 +111,7 @@ function getAISpanAttributes({
 
   const genAiOpType = attributes['gen_ai.operation.type'] as string | undefined;
 
-  const agentName = attributes['gen_ai.agent.name'] || attributes['gen_ai.function_id'];
+  const agentName = resolveAgentName(attributes);
   if (agentName) {
     highlightedAttributes.push({
       name: t('Agent Name'),

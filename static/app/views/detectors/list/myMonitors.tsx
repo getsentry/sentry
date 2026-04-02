@@ -18,7 +18,7 @@ export default function MyMonitorsList() {
   return (
     <SentryDocumentTitle title={TITLE}>
       <WorkflowEngineListLayout
-        actions={<DetectorListActions detectorType={null} />}
+        actions={<DetectorListActions />}
         title={TITLE}
         description={DESCRIPTION}
         docsUrl={DOCS_URL}

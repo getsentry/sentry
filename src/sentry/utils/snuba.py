@@ -9,7 +9,6 @@ import re
 import time
 from collections import namedtuple
 from collections.abc import Callable, Collection, Mapping, MutableMapping, Sequence
-from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
@@ -46,6 +45,7 @@ from sentry.snuba.events import Columns
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import validate_referrer
 from sentry.utils import json, metrics
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.dates import outside_retention_with_modified_start
 
 logger = logging.getLogger(__name__)
@@ -974,7 +974,13 @@ class SnubaQueryParams:
         # just subtract the NOT IN groups from the IN groups.
         if in_groups is not None:
             in_groups.difference_update(out_groups)
-            triple = ["group_id", "IN", get_all_merged_group_ids(in_groups)]
+
+            # An "group_id IN ()" clause breaks clickhouse.
+            # Better to make the exception (& expectations) clear.
+            if len(in_groups) > 0:
+                triple = ["group_id", "IN", get_all_merged_group_ids(in_groups)]
+            else:
+                raise SnubaError("Found empty intersection of group_ids")
         elif len(out_groups) > 0:
             triple = ["group_id", "NOT IN", out_groups]
 
@@ -1237,7 +1243,7 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
         span.set_tag("snuba.num_queries", len(snuba_requests_list))
 
         if len(snuba_requests_list) > 1:
-            with ThreadPoolExecutor(
+            with ContextPropagatingThreadPoolExecutor(
                 thread_name_prefix=__name__,
                 max_workers=10,
             ) as query_thread_pool:

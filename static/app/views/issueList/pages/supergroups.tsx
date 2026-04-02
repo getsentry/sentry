@@ -109,10 +109,13 @@ function Supergroups() {
   const supergroups = (response?.data ?? []).filter(sg => sg.group_ids.length > 1);
 
   const handleSupergroupClick = (supergroup: SupergroupDetail) => {
-    openDrawer(() => <SupergroupDetailDrawer supergroup={supergroup} />, {
-      ariaLabel: t('Supergroup details'),
-      drawerKey: 'supergroup-drawer',
-    });
+    openDrawer(
+      () => <SupergroupDetailDrawer supergroup={supergroup} matchedGroupIds={[]} />,
+      {
+        ariaLabel: t('Supergroup details'),
+        drawerKey: 'supergroup-drawer',
+      }
+    );
   };
 
   if (!hasTopIssuesUI) {
@@ -120,7 +123,7 @@ function Supergroups() {
   }
 
   return (
-    <Layout.Page>
+    <Stack flex={1}>
       <Layout.Header noActionWrap unified>
         <Layout.HeaderContent>
           <Flex align="center" gap="md">
@@ -172,7 +175,7 @@ function Supergroups() {
           )}
         </Layout.Main>
       </Layout.Body>
-    </Layout.Page>
+    </Stack>
   );
 }
 

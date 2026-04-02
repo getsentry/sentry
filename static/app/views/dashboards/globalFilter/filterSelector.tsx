@@ -183,6 +183,7 @@ export function FilterSelector({
   );
   const queryKey = useDebouncedValue(baseQueryKey);
 
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const queryResult = useQuery({
     queryKey,
     queryFn: async ctx => {
@@ -471,7 +472,7 @@ export function FilterSelector({
       trigger={triggerProps => (
         <Container maxWidth={FILTER_SELECTOR_MAX_WIDTH}>
           <OverlayTrigger.Button {...triggerProps}>
-            {renderFilterSelectorTrigger(stagedFilterValues)}
+            {renderFilterSelectorTrigger(activeFilterValues)}
           </OverlayTrigger.Button>
         </Container>
       )}

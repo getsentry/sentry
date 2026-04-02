@@ -76,28 +76,3 @@ export const BannerSummary = styled('p')`
     align-self: flex-end;
   }
 `;
-
-export const SuspectCommitHeader = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: ${p => p.theme.space.md};
-
-  & button,
-  & h3 {
-    color: ${p => p.theme.tokens.content.secondary};
-    font-size: ${p => p.theme.font.size.md};
-    font-weight: ${p => p.theme.font.weight.sans.medium};
-  }
-
-  & h3 {
-    margin-bottom: 0;
-  }
-
-  & button {
-    background: none;
-    border: 0;
-    outline: none;
-    padding: 0;
-  }
-`;

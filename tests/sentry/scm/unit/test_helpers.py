@@ -2,7 +2,7 @@ from sentry.scm.private.helpers import exec_provider_fn
 from tests.sentry.scm.test_fixtures import BaseTestProvider
 
 
-def test_exec_provider_fn():
+def test_exec_provider_fn() -> None:
     metrics = []
 
     def record_count(k, a, t):

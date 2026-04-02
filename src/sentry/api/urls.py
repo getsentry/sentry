@@ -17,7 +17,9 @@ from sentry.api.endpoints.organization_events_root_cause_analysis import (
 )
 from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
 from sentry.api.endpoints.organization_insights_tree import OrganizationInsightsTreeEndpoint
+from sentry.api.endpoints.organization_intercom_jwt import OrganizationIntercomJwtEndpoint
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
+from sentry.api.endpoints.organization_pipeline import OrganizationPipelineEndpoint
 from sentry.api.endpoints.organization_plugin_deprecation_info import (
     OrganizationPluginDeprecationInfoEndpoint,
 )
@@ -268,6 +270,9 @@ from sentry.integrations.api.endpoints.organization_integration_channels import 
 from sentry.integrations.api.endpoints.organization_integration_details import (
     OrganizationIntegrationDetailsEndpoint,
 )
+from sentry.integrations.api.endpoints.organization_integration_direct_enable import (
+    OrganizationIntegrationDirectEnableEndpoint,
+)
 from sentry.integrations.api.endpoints.organization_integration_issues import (
     OrganizationIntegrationIssuesEndpoint,
 )
@@ -332,6 +337,7 @@ from sentry.issues.endpoints import (
     ProjectGroupIndexEndpoint,
     ProjectGroupStatsEndpoint,
     ProjectStacktraceLinkEndpoint,
+    ProjectStacktraceSourceContextEndpoint,
     RelatedIssuesEndpoint,
     SharedGroupDetailsEndpoint,
     ShortIdLookupEndpoint,
@@ -1420,6 +1426,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         WaiveDataSecrecyEndpoint.as_view(),
         name="sentry-api-0-data-secrecy",
     ),
+    # Intercom JWT for identity verification
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/intercom-jwt/$",
+        OrganizationIntercomJwtEndpoint.as_view(),
+        name="sentry-api-0-organization-intercom-jwt",
+    ),
     # Incidents
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/incidents/(?P<incident_identifier>[^/]+)/$",
@@ -1962,6 +1974,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-integrations",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/integrations/direct-enable/(?P<provider_key>[^/]+)/$",
+        OrganizationIntegrationDirectEnableEndpoint.as_view(),
+        name="sentry-api-0-organization-integration-direct-enable",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/coding-agents/$",
         OrganizationCodingAgentsEndpoint.as_view(),
         name="sentry-api-0-organization-coding-agents",
@@ -2030,6 +2047,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/external-users/(?P<external_user_id>[^/]+)/$",
         ExternalUserDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-external-user-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/pipeline/(?P<pipeline_name>[^/]+)/$",
+        OrganizationPipelineEndpoint.as_view(),
+        name="sentry-api-0-organization-pipeline",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/integration-requests/$",
@@ -3252,6 +3274,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/stacktrace-link/$",
         ProjectStacktraceLinkEndpoint.as_view(),
         name="sentry-api-0-project-stacktrace-link",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/stacktrace-source-context/$",
+        ProjectStacktraceSourceContextEndpoint.as_view(),
+        name="sentry-api-0-project-stacktrace-source-context",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/repo-path-parsing/$",

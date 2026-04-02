@@ -10,8 +10,8 @@ import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMouseTracking} from 'sentry/utils/useMouseTracking';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {PerformanceScoreRing} from 'sentry/views/insights/browser/webVitals/components/performanceScoreRing';
+import {ORDER} from 'sentry/views/insights/browser/webVitals/types';
 import type {
   ProjectScore,
   WebVitals,
@@ -383,6 +383,7 @@ const ProgressRingDiffSubText = styled(ProgressRingSubText)<{value: number}>`
 // Hover element on mouse
 const PerformanceScoreRingTooltip = styled('div')<{x: number; y: number}>`
   position: absolute;
+  z-index: ${p => p.theme.zIndex.tooltip};
   background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};

@@ -4,7 +4,7 @@ from sentry.testutils.helpers.features import with_feature
 
 
 class PreprodArtifactEndpointTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.artifact = self.create_preprod_artifact(project=self.project)
@@ -13,17 +13,17 @@ class PreprodArtifactEndpointTest(APITestCase):
         return f"/api/0/organizations/{org_slug}/preprodartifacts/{artifact_id}/build-details/"
 
     @with_feature("organizations:preprod-frontend-routes")
-    def test_extracts_project_from_artifact(self):
+    def test_extracts_project_from_artifact(self) -> None:
         url = self._get_url(self.organization.slug, self.artifact.id)
         response = self.client.get(url)
         assert response.status_code == 200
 
-    def test_artifact_not_found_returns_404(self):
+    def test_artifact_not_found_returns_404(self) -> None:
         url = self._get_url(self.organization.slug, 999999)
         response = self.client.get(url)
         assert response.status_code == 404
 
-    def test_artifact_from_different_org_returns_404(self):
+    def test_artifact_from_different_org_returns_404(self) -> None:
         other_org = self.create_organization()
         other_project = self.create_project(organization=other_org)
         other_artifact = self.create_preprod_artifact(project=other_project)
@@ -32,7 +32,7 @@ class PreprodArtifactEndpointTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 404
 
-    def test_user_without_project_access_returns_404(self):
+    def test_user_without_project_access_returns_404(self) -> None:
         # Disable open membership so users without team membership truly lack project access
         self.organization.flags.allow_joinleave = False
         self.organization.save()
@@ -45,7 +45,7 @@ class PreprodArtifactEndpointTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 404
 
-    def test_artifact_from_inactive_project_returns_404(self):
+    def test_artifact_from_inactive_project_returns_404(self) -> None:
         self.project.status = ObjectStatus.PENDING_DELETION
         self.project.save()
 

@@ -575,6 +575,7 @@ class Referrer(StrEnum):
     API_PREPROD_TAG_VALUES_RPC = "api.preprod.tags-values.rpc"
     API_PROCESSING_ERRORS_TAG_KEYS_RPC = "api.processing-errors.tags-keys.rpc"
     API_PROCESSING_ERRORS_TAG_VALUES_RPC = "api.processing-errors.tags-values.rpc"
+    API_TRACE_ITEM_ATTRIBUTE_VALIDATE = "api.trace-item.attribute-validate"
     API_SPANS_TAG_KEYS = "api.spans.tags-keys"
     API_SPANS_TAG_KEYS_RPC = "api.spans.tags-keys.rpc"
     API_SPANS_TAG_VALUES = "api.spans.tags-values"
@@ -624,29 +625,8 @@ class Referrer(StrEnum):
     DELETIONS_GROUP = "deletions.group"
     DISCOVER = "discover"
     DISCOVER_SLACK_UNFURL = "discover.slack.unfurl"
-    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_BREAKDOWN = (
-        "dynamic-sampling.distribution.fetch-project-breakdown"
-    )
-    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_SDK_VERSIONS_INFO = (
-        "dynamic-sampling.distribution.fetch-project-sdk-versions-info"
-    )
-    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_STATS = (
-        "dynamic-sampling.distribution.fetch-project-stats"
-    )
-    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS_COUNT = (
-        "dynamic-sampling.distribution.fetch-transactions-count"
-    )
-    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS = (
-        "dynamic-sampling.distribution.fetch-transactions"
-    )
-    DYNAMIC_SAMPLING_DISTRIBUTION_GET_MOST_RECENT_DAY_WITH_TRANSACTIONS = (
-        "dynamic-sampling.distribution.get-most-recent-day-with-transactions"
-    )
     DYNAMIC_SAMPLING_COUNTERS_GET_ORG_TRANSACTION_VOLUMES = (
         "dynamic_sampling.counters.get_org_transaction_volumes"
-    )
-    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_ORGS_WITH_COUNT_PER_ROOT = (
-        "dynamic_sampling.distribution.fetch_orgs_with_count_per_root_total_volumes"
     )
     DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT = (
         "dynamic_sampling.distribution.fetch_projects_with_count_per_root_total_volumes"
@@ -654,11 +634,9 @@ class Referrer(StrEnum):
     DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION = (
         "dynamic_sampling.counters.fetch_projects_with_count_per_transaction_volumes"
     )
-    DYNAMIC_SAMPLING_COUNTERS_GET_ACTIVE_ORGS = "dynamic_sampling.counters.get_active_orgs"
     DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_TRANSACTION_TOTALS = (
         "dynamic_sampling.counters.fetch_projects_with_transaction_totals"
     )
-    DYNAMIC_SAMPLING_COUNTERS_FETCH_ACTIVE_ORGS = "dynamic_sampling.counters.fetch_active_orgs"
     DYNAMIC_SAMPLING_SETTINGS_GET_SPAN_COUNTS = "dynamic_sampling.settings.get_project_span_counts"
     ESCALATING_GROUPS = "sentry.issues.escalating"
     EVENTSTORE_GET_EVENT_BY_ID_NODESTORE = "eventstore.backend.get_event_by_id_nodestore"
@@ -697,6 +675,7 @@ class Referrer(StrEnum):
     INSIGHTS_TIME_SPENT_TOTAL_TIME = "insights.time_spent.total_time"
 
     METRIC_EXTRACTION_CARDINALITY_CHECK = "metric_extraction.cardinality_check"
+    BILLING_USAGE_SERVICE_CLICKHOUSE = "billing.usage_service.clickhouse"
     OUTCOMES_TIMESERIES = "outcomes.timeseries"
     OUTCOMES_TOTALS = "outcomes.totals"
     PREVIEW_GET_EVENTS = "preview.get_events"
@@ -858,6 +837,7 @@ class Referrer(StrEnum):
     )
     TAGSTORE__GET_TAG_KEYS = "tagstore.__get_tag_keys"
     TAGSTORE_GET_GROUP_LIST_TAG_VALUE = "tagstore.get_group_list_tag_value"
+    TAGSTORE_GET_GROUP_TAG_VALUE_COUNT = "tagstore.get_group_tag_value_count"
     TAGSTORE_GET_GROUP_TAG_VALUE_ITER = "tagstore.get_group_tag_value_iter"
     TAGSTORE_GET_GROUPS_USER_COUNTS = "tagstore.get_groups_user_counts"
     TAGSTORE_GET_GROUPS_USER_COUNTS_GROUP_SNOOZE = "tagstore.get_groups_user_counts.groupsnooze"

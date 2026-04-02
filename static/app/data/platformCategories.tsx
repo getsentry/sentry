@@ -118,6 +118,7 @@ export const backend: PlatformKey[] = [
   'python-falcon',
   'python-fastapi',
   'python-flask',
+  'python-litestar',
   'python-pylons',
   'python-pymongo',
   'python-pyramid',
@@ -384,6 +385,7 @@ export const withLoggingOnboarding = new Set<PlatformKey>([
   'python-fastapi',
   'python-flask',
   'python-gcpfunctions',
+  'python-litestar',
   'python-pylons',
   'python-pyramid',
   'python-quart',
@@ -394,6 +396,7 @@ export const withLoggingOnboarding = new Set<PlatformKey>([
   'python-tornado',
   'python-tryton',
   'python-wsgi',
+  'elixir',
   'react-native',
   'ruby',
   'ruby-rack',
@@ -404,7 +407,7 @@ export const withLoggingOnboarding = new Set<PlatformKey>([
 ]);
 
 // List of platforms that do not have logging support. We make use of this list in the product to not provide any Logging
-export const withoutLoggingSupport = new Set<PlatformKey>(['elixir', 'dotnet-xamarin']);
+export const withoutLoggingSupport = new Set<PlatformKey>(['dotnet-xamarin']);
 
 // List of platforms that have metrics onboarding checklist content
 export const withMetricsOnboarding = new Set<PlatformKey>([
@@ -479,6 +482,7 @@ export const withMetricsOnboarding = new Set<PlatformKey>([
   'python-fastapi',
   'python-flask',
   'python-gcpfunctions',
+  'python-litestar',
   'python-pyramid',
   'python-quart',
   'python-rq',
@@ -491,6 +495,7 @@ export const withMetricsOnboarding = new Set<PlatformKey>([
   'ruby',
   'ruby-rack',
   'ruby-rails',
+  'unity',
 ]);
 
 // List of platforms that do not have metrics support. We make use of this list in the product to not provide any Metrics
@@ -576,6 +581,7 @@ export const profiling: PlatformKey[] = [
   'python-fastapi',
   'python-flask',
   'python-gcpfunctions',
+  'python-litestar',
   'python-pylons',
   'python-pyramid',
   'python-quart',
@@ -691,6 +697,7 @@ export const replayBackendPlatforms: readonly PlatformKey[] = [
   'python-falcon',
   'python-fastapi',
   'python-flask',
+  'python-litestar',
   'python-pyramid',
   'python-quart',
   'python-sanic',
@@ -849,6 +856,8 @@ export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
   ...platformKeys.filter(id => id.startsWith('javascript')),
   ...platformKeys.filter(id => id.startsWith('node')),
   ...platformKeys.filter(id => id.startsWith('python')),
+  'deno',
+  'bun',
 ]);
 
 export const javascriptMetaFrameworks: readonly PlatformKey[] = [

@@ -1,18 +1,13 @@
-import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {useLocation} from 'sentry/utils/useLocation';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {useCrossPlatformProject} from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {ScreensOverview} from 'sentry/views/insights/mobile/screens/components/screensOverview';
 
 jest.mock('sentry/views/insights/mobile/common/queries/useCrossPlatformProject');
-jest.mock('sentry/components/pageFilters/usePageFilters');
-jest.mock('sentry/utils/useLocation');
 
 describe('ScreensOverview', () => {
   const organization = OrganizationFixture({
@@ -20,32 +15,28 @@ describe('ScreensOverview', () => {
   });
   const project = ProjectFixture();
 
-  jest.mocked(useLocation).mockReturnValue({
-    action: 'PUSH',
-    hash: '',
-    key: '',
-    pathname: '/organizations/org-slug/performance/mobile/mobile-vitals',
-    query: {
-      project: project.id,
-    },
-    search: '',
-    state: undefined,
-  } as Location);
-
-  jest.mocked(usePageFilters).mockReturnValue(
-    PageFilterStateFixture({
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [parseInt(project.id, 10)],
+  const initialRouterConfig = {
+    location: {
+      pathname: '/organizations/org-slug/performance/mobile/mobile-vitals',
+      query: {
+        project: project.id,
       },
-    })
-  );
+    },
+    route: '/organizations/:orgId/performance/mobile/mobile-vitals',
+  };
+
+  beforeEach(() => {
+    PageFiltersStore.onInitializeUrlState({
+      projects: [parseInt(project.id, 10)],
+      environments: [],
+      datetime: {
+        period: '10d',
+        start: null,
+        end: null,
+        utc: false,
+      },
+    });
+  });
 
   jest.mocked(useCrossPlatformProject).mockReturnValue({
     project,
@@ -61,7 +52,7 @@ describe('ScreensOverview', () => {
       url: `/organizations/${organization.slug}/releases/`,
       body: [],
     });
-    render(<ScreensOverview />, {organization});
+    render(<ScreensOverview />, {organization, initialRouterConfig});
 
     expect(await screen.findByPlaceholderText('Search for Screen')).toBeInTheDocument();
     expect(await screen.findByRole('table')).toBeInTheDocument();
@@ -141,7 +132,7 @@ describe('ScreensOverview', () => {
       body: [],
     });
 
-    render(<ScreensOverview />, {organization});
+    render(<ScreensOverview />, {organization, initialRouterConfig});
 
     await waitFor(() => {
       expect(metricsMock).toHaveBeenCalled();

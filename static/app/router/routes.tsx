@@ -309,12 +309,12 @@ function buildRoutes(): RouteObject[] {
     {
       path: '/stories/*',
       withOrgPath: true,
-      // eslint-disable-next-line boundaries/element-types -- storybook entrypoint
+      // eslint-disable-next-line boundaries/dependencies -- storybook entrypoint
       component: make(() => import('sentry/stories/view/index')),
     },
     {
       path: '/debug/notifications/:notificationSource?/',
-      // eslint-disable-next-line boundaries/element-types -- debug tools entrypoint
+      // eslint-disable-next-line boundaries/dependencies -- debug tools entrypoint
       component: make(() => import('sentry/debug/notifications/views/index')),
       withOrgPath: true,
     },
@@ -569,7 +569,7 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'seer/',
       name: t('Seer'),
-      // eslint-disable-next-line boundaries/element-types -- TODO: move to getsentry routes
+      // eslint-disable-next-line boundaries/dependencies -- TODO: move to getsentry routes
       component: make(() => import('getsentry/views/seerAutomation/projectDetails')),
     },
     {
@@ -1137,6 +1137,11 @@ function buildRoutes(): RouteObject[] {
       path: 'dynamic-sampling/',
       name: t('Dynamic Sampling'),
       component: make(() => import('sentry/views/settings/dynamicSampling')),
+    },
+    {
+      path: 'mcp-cli/',
+      name: t('MCP & CLI'),
+      component: make(() => import('sentry/views/settings/organizationMcpCli')),
     },
     {
       path: 'feature-flags/',
@@ -1737,6 +1742,19 @@ function buildRoutes(): RouteObject[] {
     children: discoverChildren,
   };
 
+  const errorsChildren: SentryRouteObject[] = [
+    {
+      index: true,
+      component: make(() => import('sentry/views/explore/errors/content')),
+    },
+  ];
+  const errorsRoutes: SentryRouteObject = {
+    path: '/errors/',
+    component: make(() => import('sentry/views/explore/errors')),
+    withOrgPath: true,
+    children: errorsChildren,
+  };
+
   // Redirects for old LLM monitoring routes
   const llmMonitoringRedirects: SentryRouteObject = {
     children: [
@@ -2320,6 +2338,11 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
+      path: 'errors/',
+      component: make(() => import('sentry/views/explore/errors')),
+      children: errorsChildren,
+    },
+    {
       path: 'saved-queries/',
       component: make(() => import('sentry/views/explore/savedQueries')),
     },
@@ -2518,6 +2541,10 @@ function buildRoutes(): RouteObject[] {
       component: make(
         () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')
       ),
+    },
+    {
+      path: 'autofix/recent/',
+      component: make(() => import('sentry/views/issueList/pages/autofix/recentlyRun')),
     },
     {
       path: 'supergroups/',
@@ -2777,6 +2804,7 @@ function buildRoutes(): RouteObject[] {
       releasesRoutes,
       statsRoutes,
       discoverRoutes,
+      errorsRoutes,
       performanceRoutes,
       domainViewRoutes,
       tracesRoutes,

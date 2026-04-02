@@ -10,7 +10,13 @@ import type {DistributedOmit} from 'type-fest';
 import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';
 import type {ButtonBarProps, ButtonProps} from '@sentry/scraps/button';
 import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {
+  Container,
+  Flex,
+  Stack,
+  type FlexProps,
+  type ContainerProps,
+} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {SizeProvider, useSizeContext} from '@sentry/scraps/sizeContext';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
@@ -138,7 +144,7 @@ function PrimaryNavigationList({children, ...props}: PrimaryNavigationListProps)
       margin="0"
       padding={hasPageFrame ? 'xs' : '0'}
       width="100%"
-      gap="xs"
+      gap={hasPageFrame ? '0' : 'xs'}
       align={layout === 'mobile' ? 'stretch' : 'center'}
       paddingTop={hasPageFrame ? undefined : 'md'}
       {...props}
@@ -173,7 +179,7 @@ interface PrimaryNavigationLinkProps
 
 function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
   const organization = useOrganization({allowNull: true});
-  const {layout} = usePrimaryNavigation();
+  const {layout, features} = usePrimaryNavigation();
   const hasPageFrame = useHasPageFrameFeature();
   const isMobilePageFrame = hasPageFrame && layout === 'mobile';
   // Reload the page when the frontend is stale to ensure users get the latest version
@@ -189,6 +195,10 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
     onMouseEnter: props.onMouseEnter,
     onMouseLeave: props.onMouseLeave,
     onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
+      // On touch devices with page frame, prevent navigation and let setActiveGroup handle the active state
+      if (isMobilePageFrame && !features.hover) {
+        e.preventDefault();
+      }
       trackAnalytics('navigation.primary_item_clicked', {
         item: props.analyticsKey,
         organization,
@@ -306,17 +316,24 @@ function PrimaryNavigationUnreadIndicator({
 }: PrimaryNavigationUnreadIndicatorProps) {
   const theme = useTheme();
   const {layout} = usePrimaryNavigation();
+  const hasPageFrame = useHasPageFrameFeature();
+  const indicatorPosition: Pick<
+    ContainerProps<'div'>,
+    'top' | 'right' | 'left'
+  > = hasPageFrame
+    ? layout === 'mobile'
+      ? {top: '0', right: '0'}
+      : {top: '0', right: '0'}
+    : layout === 'mobile'
+      ? {left: '11px', top: `-${theme.space['2xs']}`}
+      : {top: '0', right: '0'};
+
   return (
-    <Container
-      position="absolute"
-      top={layout === 'mobile' ? `-${theme.space.xs}` : '0'}
-      right={layout === 'mobile' ? 'auto' : '0px'}
-      left={layout === 'mobile' ? '11px' : 'auto'}
-    >
+    <Container position="absolute" {...indicatorPosition}>
       {p => (
         <StatusIndicator
           {...mergeProps(p, props)}
-          variant={variant === 'accent' ? 'info' : variant}
+          variant={variant}
           data-unread-indicator
         />
       )}
@@ -426,7 +443,7 @@ function NavigationButton(props: DistributedOmit<ButtonProps, 'size'>) {
       justify={layout === 'mobile' && !hasPageFrame ? 'start' : 'center'}
     >
       {p => (
-        <Button
+        <ButtonWithOverflowVisible
           {...p}
           {...props}
           {...(layout === 'mobile'
@@ -439,6 +456,18 @@ function NavigationButton(props: DistributedOmit<ButtonProps, 'size'>) {
     </Flex>
   );
 }
+
+/**
+ * @TODO(JonasBadalic) Scraps buttons have been setting overflow hidden onto the inner surface wrapper ever since
+ * we inherited that component, and we need to override that to ensure that the indicator is visible as it will
+ * otherwise clip the indicator and StatusIndicator animation. We need to unwind this and remove the overflow
+ * from buttons from ever being set.
+ */
+const ButtonWithOverflowVisible = styled(Button)`
+  > span:last-child {
+    overflow: initial;
+  }
+`;
 
 function PrimaryNavigationButtonBar(props: ButtonBarProps) {
   return <ButtonBar {...props} width="100%" />;
@@ -635,19 +664,23 @@ const DesktopNavigationLink = styled((props: LinkProps) => (
   }
 `;
 
-const DesktopPageFrameNavigationLink = styled((props: LinkProps) => (
-  <Flex
-    position="relative"
-    width="100%"
-    align="center"
-    direction="column"
-    justify="center"
-    gap="xs"
-    padding="xs"
-  >
-    {p => <Link {...mergeProps(p, props)} />}
-  </Flex>
-))`
+const DesktopPageFrameNavigationLink = styled((props: LinkProps) => {
+  const hasPageFrame = useHasPageFrameFeature();
+
+  return (
+    <Flex
+      position="relative"
+      width="100%"
+      align="center"
+      direction="column"
+      justify="center"
+      gap="xs"
+      padding={hasPageFrame ? 'xs xs md xs' : 'xs'}
+    >
+      {p => <Link {...mergeProps(p, props)} />}
+    </Flex>
+  );
+})`
   outline: none;
   box-shadow: none;
   transition: none;

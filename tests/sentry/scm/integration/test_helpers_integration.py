@@ -10,19 +10,16 @@ from sentry.scm.private.helpers import (
     fetch_repository,
     fetch_service_provider,
     initialize_provider,
-    is_rate_limited,
-    is_rate_limited_with_allocation_policy,
     map_integration_to_provider,
     map_repository_model_to_repository,
 )
 from sentry.scm.private.providers.github import GitHubProvider
-from sentry.scm.types import Referrer, Repository
+from sentry.scm.types import Repository
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import freeze_time
 
 
 class TestFetchRepository(TestCase):
-    def test_fetch_by_id_returns_repository(self):
+    def test_fetch_by_id_returns_repository(self) -> None:
         repo = RepositoryModel.objects.create(
             organization_id=self.organization.id,
             name="test-org/test-repo",
@@ -38,12 +35,12 @@ class TestFetchRepository(TestCase):
         assert result["organization_id"] == self.organization.id
         assert result["is_active"] is True
 
-    def test_fetch_by_id_returns_none_for_nonexistent(self):
+    def test_fetch_by_id_returns_none_for_nonexistent(self) -> None:
         result = fetch_repository(self.organization.id, 99999)
 
         assert result is None
 
-    def test_fetch_by_id_returns_none_for_wrong_organization(self):
+    def test_fetch_by_id_returns_none_for_wrong_organization(self) -> None:
         other_org = self.create_organization()
         repo = RepositoryModel.objects.create(
             organization_id=other_org.id,
@@ -57,7 +54,7 @@ class TestFetchRepository(TestCase):
 
         assert result is None
 
-    def test_fetch_by_provider_and_external_id_returns_repository(self):
+    def test_fetch_by_provider_and_external_id_returns_repository(self) -> None:
         RepositoryModel.objects.create(
             organization_id=self.organization.id,
             name="test-org/test-repo",
@@ -71,14 +68,14 @@ class TestFetchRepository(TestCase):
         assert result is not None
         assert result["name"] == "test-org/test-repo"
 
-    def test_fetch_by_provider_and_external_id_returns_none_for_nonexistent(self):
+    def test_fetch_by_provider_and_external_id_returns_none_for_nonexistent(self) -> None:
         result = fetch_repository(self.organization.id, ("github", "nonexistent"))
 
         assert result is None
 
 
 class TestMapRepositoryModelToRepository(TestCase):
-    def test_maps_all_fields_correctly(self):
+    def test_maps_all_fields_correctly(self) -> None:
         integration = self.create_integration(
             organization=self.organization,
             provider="github",
@@ -103,7 +100,7 @@ class TestMapRepositoryModelToRepository(TestCase):
 
 
 class TestMapIntegrationToProvider(TestCase):
-    def test_returns_github_provider_for_github_integration(self):
+    def test_returns_github_provider_for_github_integration(self) -> None:
         integration = self.create_integration(
             organization=self.organization,
             provider="github",
@@ -127,7 +124,7 @@ class TestMapIntegrationToProvider(TestCase):
 
         assert isinstance(provider, GitHubProvider)
 
-    def test_raises_error_for_unsupported_provider(self):
+    def test_raises_error_for_unsupported_provider(self) -> None:
         integration = self.create_integration(
             organization=self.organization,
             provider="integrations:github",
@@ -154,7 +151,7 @@ class TestMapIntegrationToProvider(TestCase):
 
 
 class TestFetchServiceProvider(TestCase):
-    def test_returns_provider_from_map_to_provider(self):
+    def test_returns_provider_from_map_to_provider(self) -> None:
         integration = self.create_integration(
             organization=self.organization,
             provider="github",
@@ -179,7 +176,7 @@ class TestFetchServiceProvider(TestCase):
 
         assert isinstance(provider, GitHubProvider)
 
-    def test_returns_none_for_nonexistent_integration(self):
+    def test_returns_none_for_nonexistent_integration(self) -> None:
         repository: Repository = {
             "integration_id": 99999,
             "name": "test-org/test-repo",
@@ -189,135 +186,6 @@ class TestFetchServiceProvider(TestCase):
         }
         result = fetch_service_provider(self.organization.id, repository)
         assert result is None
-
-
-class TestIsRateLimited(TestCase):
-    def test_returns_false_when_under_limit(self):
-        with freeze_time("2000-01-01"):
-            result = is_rate_limited(
-                organization_id=self.organization.id,
-                referrer="shared",
-                provider="github",
-                limit=5,
-                window=60,
-            )
-
-            assert result is False
-
-    def test_returns_true_when_limit_exceeded(self):
-        with freeze_time("2000-01-01"):
-            for _ in range(5):
-                is_rate_limited(
-                    organization_id=self.organization.id,
-                    referrer="shared",
-                    provider="github",
-                    limit=5,
-                    window=60,
-                )
-
-            result = is_rate_limited(
-                organization_id=self.organization.id,
-                referrer="shared",
-                provider="github",
-                limit=5,
-                window=60,
-            )
-
-            assert result is True
-
-    def test_different_keys_are_independent(self):
-        with freeze_time("2000-01-01"):
-            for _ in range(5):
-                is_rate_limited(
-                    organization_id=self.organization.id,
-                    referrer="shared",
-                    provider="github",
-                    limit=5,
-                    window=60,
-                )
-
-            result = is_rate_limited(
-                organization_id=self.organization.id,
-                referrer="emerge",
-                provider="github",
-                limit=5,
-                window=60,
-            )
-
-            assert result is False
-
-
-class TestIsRateLimitedWithAllocationPolicy(TestCase):
-    def test_returns_false_when_under_allocated_limit(self):
-        with freeze_time("2000-01-01"):
-            allocation_policy: dict[Referrer, int] = {"emerge": 10, "shared": 100}
-
-            result = is_rate_limited_with_allocation_policy(
-                organization_id=self.organization.id,
-                referrer="emerge",
-                provider="github",
-                window=60,
-                allocation_policy=allocation_policy,
-            )
-
-            assert result is False
-
-    def test_falls_back_to_shared_pool_when_allocation_exhausted(self):
-        with freeze_time("2000-01-01"):
-            allocation_policy: dict[Referrer, int] = {"emerge": 2, "shared": 100}
-
-            # Exhaust the dedicated allocation.
-            for _ in range(2):
-                is_rate_limited_with_allocation_policy(
-                    organization_id=self.organization.id,
-                    referrer="emerge",
-                    provider="github",
-                    window=60,
-                    allocation_policy=allocation_policy,
-                )
-
-            # Falls back to the shared pool which still has quota.
-            result = is_rate_limited_with_allocation_policy(
-                organization_id=self.organization.id,
-                referrer="emerge",
-                provider="github",
-                window=60,
-                allocation_policy=allocation_policy,
-            )
-
-            assert result is False
-
-    def test_returns_true_when_allocation_and_shared_pool_exhausted(self):
-        with freeze_time("2000-01-01"):
-            allocation_policy: dict[Referrer, int] = {"emerge": 1, "shared": 1}
-
-            # Exhaust the dedicated allocation.
-            is_rate_limited_with_allocation_policy(
-                organization_id=self.organization.id,
-                referrer="emerge",
-                provider="github",
-                window=60,
-                allocation_policy=allocation_policy,
-            )
-
-            # Exhaust the shared pool.
-            is_rate_limited_with_allocation_policy(
-                organization_id=self.organization.id,
-                referrer="emerge",
-                provider="github",
-                window=60,
-                allocation_policy=allocation_policy,
-            )
-
-            result = is_rate_limited_with_allocation_policy(
-                organization_id=self.organization.id,
-                referrer="emerge",
-                provider="github",
-                window=60,
-                allocation_policy=allocation_policy,
-            )
-
-            assert result is True
 
 
 def _make_active_repository(organization_id: int) -> Repository:
@@ -337,7 +205,7 @@ def _make_provider(is_rate_limited: bool = False):
 
 
 class TestInitializeProvider(TestCase):
-    def test_raises_repository_not_found(self):
+    def test_raises_repository_not_found(self) -> None:
         with pytest.raises(SCMCodedError) as exc_info:
             initialize_provider(
                 self.organization.id,
@@ -346,7 +214,7 @@ class TestInitializeProvider(TestCase):
             )
         assert exc_info.value.code == "repository_not_found"
 
-    def test_raises_repository_inactive(self):
+    def test_raises_repository_inactive(self) -> None:
         repository: Repository = {
             "integration_id": 1,
             "name": "test-org/test-repo",
@@ -363,7 +231,7 @@ class TestInitializeProvider(TestCase):
             )
         assert exc_info.value.code == "repository_inactive"
 
-    def test_raises_repository_organization_mismatch(self):
+    def test_raises_repository_organization_mismatch(self) -> None:
         repository = _make_active_repository(organization_id=99999)
 
         with pytest.raises(SCMCodedError) as exc_info:
@@ -374,7 +242,7 @@ class TestInitializeProvider(TestCase):
             )
         assert exc_info.value.code == "repository_organization_mismatch"
 
-    def test_raises_integration_not_found(self):
+    def test_raises_integration_not_found(self) -> None:
         repository = _make_active_repository(self.organization.id)
 
         with pytest.raises(SCMCodedError) as exc_info:
@@ -388,7 +256,7 @@ class TestInitializeProvider(TestCase):
 
 
 class TestExecProviderFn(TestCase):
-    def test_returns_provider_fn_result(self):
+    def test_returns_provider_fn_result(self) -> None:
         provider = _make_provider()
 
         result = exec_provider_fn(
@@ -398,7 +266,7 @@ class TestExecProviderFn(TestCase):
 
         assert result == "success"
 
-    def test_raises_rate_limit_exceeded(self):
+    def test_raises_rate_limit_exceeded(self) -> None:
         with pytest.raises(SCMCodedError) as exc_info:
             exec_provider_fn(
                 _make_provider(is_rate_limited=True),
@@ -406,7 +274,7 @@ class TestExecProviderFn(TestCase):
             )
         assert exc_info.value.code == "rate_limit_exceeded"
 
-    def test_scm_provider_exception_is_reraised(self):
+    def test_scm_provider_exception_is_reraised(self) -> None:
         """SCMError subclasses from provider_fn should pass through unwrapped."""
 
         def raise_scm_provider_exception():
@@ -418,7 +286,7 @@ class TestExecProviderFn(TestCase):
                 provider_fn=raise_scm_provider_exception,
             )
 
-    def test_scm_coded_error_is_reraised(self):
+    def test_scm_coded_error_is_reraised(self) -> None:
         """SCMCodedError from provider_fn should pass through unwrapped."""
 
         def raise_scm_coded_error():
@@ -431,7 +299,7 @@ class TestExecProviderFn(TestCase):
             )
         assert exc_info.value.code == "unsupported_integration"
 
-    def test_generic_exception_wrapped_in_scm_unhandled_exception(self):
+    def test_generic_exception_wrapped_in_scm_unhandled_exception(self) -> None:
         """Non-SCMError exceptions should be wrapped in SCMUnhandledException."""
 
         def raise_value_error():
@@ -445,7 +313,7 @@ class TestExecProviderFn(TestCase):
         assert isinstance(exc_info.value.__cause__, ValueError)
         assert "something unexpected" in str(exc_info.value.__cause__)
 
-    def test_key_error_wrapped_in_scm_unhandled_exception(self):
+    def test_key_error_wrapped_in_scm_unhandled_exception(self) -> None:
         """KeyError (e.g. from malformed response) should be wrapped."""
 
         def raise_key_error():
@@ -458,7 +326,7 @@ class TestExecProviderFn(TestCase):
             )
         assert isinstance(exc_info.value.__cause__, KeyError)
 
-    def test_runtime_error_wrapped_in_scm_unhandled_exception(self):
+    def test_runtime_error_wrapped_in_scm_unhandled_exception(self) -> None:
         """RuntimeError should be wrapped in SCMUnhandledException."""
 
         def raise_runtime_error():

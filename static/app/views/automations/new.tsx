@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/react';
 import {Observer} from 'mobx-react-lite';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -195,7 +195,7 @@ export default function AutomationNewSettings() {
     >
       <AutomationFormProvider>
         <AutomationDocumentTitle />
-        <Layout.Page>
+        <Stack flex={1}>
           <StyledLayoutHeader>
             <HeaderInner maxWidth={maxWidth}>
               <Layout.HeaderContent>
@@ -231,7 +231,7 @@ export default function AutomationNewSettings() {
               </AutomationBuilderErrorContext.Provider>
             </Layout.Main>
           </StyledBody>
-        </Layout.Page>
+        </Stack>
         <StickyFooter>
           <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
             <Observer>

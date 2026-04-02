@@ -1,14 +1,10 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {useLocation} from 'sentry/utils/useLocation';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {WebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/webVitalsDetailPanel';
-
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('WebVitalsDetailPanel', () => {
   const organization = OrganizationFixture();
@@ -16,17 +12,7 @@ describe('WebVitalsDetailPanel', () => {
   let eventsStatsMock: jest.Mock;
 
   beforeEach(() => {
-    jest.mocked(useLocation).mockReturnValue({
-      pathname: '',
-      search: '',
-      query: {},
-      hash: '',
-      state: undefined,
-      action: 'PUSH',
-      key: '',
-    });
-
-    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
 
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,

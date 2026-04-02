@@ -168,6 +168,7 @@ export function useSortedFilterKeyItems({
     getFieldDefinition,
     filterKeySections,
     disallowFreeText,
+    disallowLogicalOperators,
     replaceRawSearchKeys,
     matchKeySuggestions,
     enableAISearch,
@@ -177,8 +178,8 @@ export function useSortedFilterKeyItems({
   // Async key fetching with debounce when getTagKeys is provided
   const shouldFetchAsync = !!getTagKeys;
   const debouncedFilterValue = useDebouncedValue(filterValue);
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const {data: asyncKeys, isLoading: isQueryLoading} = useQuery({
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey: ['search-query-builder-tag-keys', debouncedFilterValue],
     queryFn: ctx => getTagKeys!(ctx.queryKey[1] ?? ''),
     enabled: shouldFetchAsync,
@@ -235,16 +236,18 @@ export function useSortedFilterKeyItems({
       };
     });
 
+    const logicFilterItems = disallowLogicalOperators ? [] : LOGIC_FILTER_ITEMS;
+
     if (includeSuggestions) {
       return [
         ...searchKeyItems,
         ...getFilterSearchValues(flatKeys, {getFieldDefinition}),
-        ...LOGIC_FILTER_ITEMS,
+        ...logicFilterItems,
       ];
     }
 
-    return [...searchKeyItems, ...LOGIC_FILTER_ITEMS];
-  }, [flatKeys, getFieldDefinition, includeSuggestions]);
+    return [...searchKeyItems, ...logicFilterItems];
+  }, [disallowLogicalOperators, flatKeys, getFieldDefinition, includeSuggestions]);
 
   const search = useFuzzySearch(searchableItems, FUZZY_SEARCH_OPTIONS);
 

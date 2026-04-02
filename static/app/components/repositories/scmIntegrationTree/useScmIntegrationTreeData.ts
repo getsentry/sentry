@@ -1,6 +1,7 @@
 import {useEffect, useMemo} from 'react';
 
 import {organizationRepositoriesInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
+import {organizationConfigIntegrationsQueryOptions} from 'sentry/components/repositories/scmIntegrationTree/organizationConfigIntegrationsQueryOptions';
 import type {
   IntegrationProvider,
   IntegrationRepository,
@@ -10,6 +11,7 @@ import type {
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useInfiniteQuery, useQueries, useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {organizationIntegrationsQueryOptions} from 'sentry/views/settings/seer/overview/utils/organizationIntegrationsQueryOptions';
 
 type ScmIntegrationTreeData = {
   connectedIdentifiers: Set<string>;
@@ -19,7 +21,7 @@ type ScmIntegrationTreeData = {
   refetchIntegrations: () => void;
   reposByIntegrationId: Record<string, IntegrationRepository[]>;
   reposPendingByIntegrationId: Record<string, boolean>;
-  reposQueryKey: unknown;
+  reposQueryOptions: ReturnType<typeof organizationRepositoriesInfiniteOptions>;
   scmIntegrations: OrganizationIntegration[];
   scmProviders: IntegrationProvider[];
 };
@@ -29,13 +31,7 @@ export function useScmIntegrationTreeData(): ScmIntegrationTreeData {
 
   // 1. Fetch all integration providers and filter to SCM
   const providersQuery = useQuery(
-    apiOptions.as<{providers: IntegrationProvider[]}>()(
-      '/organizations/$organizationIdOrSlug/config/integrations/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        staleTime: 0,
-      }
-    )
+    organizationConfigIntegrationsQueryOptions({organization})
   );
 
   const scmProviders = useMemo(
@@ -53,13 +49,10 @@ export function useScmIntegrationTreeData(): ScmIntegrationTreeData {
 
   // 2. Fetch installed integrations and filter to SCM providers
   const integrationsQuery = useQuery(
-    apiOptions.as<OrganizationIntegration[]>()(
-      '/organizations/$organizationIdOrSlug/integrations/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        staleTime: 0,
-      }
-    )
+    organizationIntegrationsQueryOptions({
+      organization,
+      features: ['commits'],
+    })
   );
 
   const scmIntegrations = useMemo(
@@ -71,13 +64,17 @@ export function useScmIntegrationTreeData(): ScmIntegrationTreeData {
   );
 
   // 3. Fetch already-connected repos, auto-paginate to get all
-  const reposQueryOptions = organizationRepositoriesInfiniteOptions({organization});
+  const reposQueryOptions = organizationRepositoriesInfiniteOptions({
+    organization,
+    staleTime: 0,
+  });
   const {
     data: reposPages,
     hasNextPage: reposHasNextPage,
     isFetchingNextPage: reposIsFetchingNextPage,
     fetchNextPage: reposFetchNextPage,
     isError: reposIsError,
+    refetch: reposRefetch,
   } = useInfiniteQuery(reposQueryOptions);
 
   useEffect(() => {
@@ -143,10 +140,14 @@ export function useScmIntegrationTreeData(): ScmIntegrationTreeData {
     scmIntegrations,
     connectedRepos,
     connectedIdentifiers,
-    refetchIntegrations: integrationsQuery.refetch,
+    refetchIntegrations: () => {
+      providersQuery.refetch();
+      integrationsQuery.refetch();
+      reposRefetch();
+    },
     reposByIntegrationId,
     reposPendingByIntegrationId,
-    reposQueryKey: reposQueryOptions.queryKey,
+    reposQueryOptions,
     isPending,
     isError,
   };

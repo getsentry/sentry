@@ -7,7 +7,10 @@ import {
   DASHBOARD_TITLE,
   FRONTEND_SDK_NAMES,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendOverview/settings';
-import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {
+  WIDGET_COLUMN_LABELS,
+  TABLE_MIN_HEIGHT,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SCORE_BREAKDOWN_WHEEL_WIDGET} from 'sentry/views/dashboards/widgetLibrary/webVitalsWidgets';
 import {getResourcesEventViewQuery} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
@@ -208,16 +211,16 @@ const TRANSACTIONS_TABLE: Widget = {
       ],
       fields: TABLE_FIELDS,
       fieldAliases: [
-        t('Starred'),
+        '',
         t('Transaction'),
         t('Project'),
         t('TPM'),
-        t('p50()'),
-        t('p75()'),
-        t('p95()'),
+        WIDGET_COLUMN_LABELS.p50,
+        WIDGET_COLUMN_LABELS.p75,
+        WIDGET_COLUMN_LABELS.p95,
         t('Failure Rate'),
         t('Users'),
-        t('Time Spent'),
+        WIDGET_COLUMN_LABELS.timeSpent,
         t('Performance Score'),
       ],
       columns: [

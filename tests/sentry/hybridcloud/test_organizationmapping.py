@@ -57,7 +57,7 @@ def assert_matching_organization_mapping(
 @control_silo_test(cells=create_test_cells("us"), include_monolith_run=True)
 class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCase):
     def test_upsert__create_if_not_found(self) -> None:
-        self.organization = self.create_organization(name="test name", slug="foobar", region="us")
+        self.organization = self.create_organization(name="test name", slug="foobar", cell="us")
 
         fixture_org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
         fixture_org_mapping.delete()
@@ -77,7 +77,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
         assert_matching_organization_mapping(org=self.organization)
 
     def test_upsert__customer_id(self) -> None:
-        self.organization = self.create_organization(name="test name", slug="foobar", region="us")
+        self.organization = self.create_organization(name="test name", slug="foobar", cell="us")
 
         fixture_org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
         fixture_org_mapping.delete()
@@ -123,7 +123,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
         assert_matching_organization_mapping(org=self.organization, customer_id=None)
 
     def test_upsert__reject_duplicate_slug(self) -> None:
-        self.organization = self.create_organization(slug="alreadytaken", region="us")
+        self.organization = self.create_organization(slug="alreadytaken", cell="us")
 
         fake_org_id = 7654321
         organization_mapping_service.upsert(
@@ -135,7 +135,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
         assert not OrganizationMapping.objects.filter(organization_id=fake_org_id).exists()
 
     def test_upsert__reject_org_slug_reservation_cell_mismatch(self) -> None:
-        self.organization = self.create_organization(slug="santry", region="us")
+        self.organization = self.create_organization(slug="santry", cell="us")
 
         organization_mapping_service.upsert(
             organization_id=self.organization.id,
@@ -148,7 +148,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
         assert_matching_organization_mapping(org=self.organization)
 
     def test_upsert__reject_org_slug_reservation_slug_mismatch(self) -> None:
-        self.organization = self.create_organization(slug="santry", region="us")
+        self.organization = self.create_organization(slug="santry", cell="us")
 
         organization_mapping_service.upsert(
             organization_id=self.organization.id,
@@ -160,7 +160,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
 
     def test_upsert__update_when_slug_matches_temporary_alias(self) -> None:
         user = self.create_user()
-        self.organization = self.create_organization(slug="santry", region="us", owner=user)
+        self.organization = self.create_organization(slug="santry", cell="us", owner=user)
         primary_slug_res = OrganizationSlugReservation.objects.get(
             organization_id=self.organization.id
         )
@@ -183,7 +183,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
         )
 
     def test_upsert__reject_when_no_slug_reservation_found(self) -> None:
-        self.organization = self.create_organization(slug="santry", region="us")
+        self.organization = self.create_organization(slug="santry", cell="us")
         with outbox_context(transaction.atomic(router.db_for_write(OrganizationSlugReservation))):
             OrganizationSlugReservation.objects.filter(
                 organization_id=self.organization.id
@@ -206,7 +206,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
 @cell_silo_test(cells=create_test_cells("us"), include_monolith_run=True)
 class OrganizationMappingReplicationTest(TransactionTestCase):
     def test_replicates_all_flags(self) -> None:
-        self.organization = self.create_organization(slug="santry", region="us")
+        self.organization = self.create_organization(slug="santry", cell="us")
         self.organization.flags = 255  # all flags set
         organization_mapping_service.upsert(
             organization_id=self.organization.id,

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
+import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
@@ -76,6 +76,24 @@ export function IssuesSecondaryNavigation() {
             )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
+        {organization.features.includes('seer-issue-view') && (
+          <Fragment>
+            <SecondaryNavigation.Separator />
+            <SecondaryNavigation.Section id="issues-autofix" title={t('Autofix')}>
+              <SecondaryNavigation.List>
+                <SecondaryNavigation.ListItem>
+                  <SecondaryNavigation.Link
+                    to={`${baseUrl}/autofix/recent/`}
+                    analyticsItemName="issues_autofix"
+                    end
+                  >
+                    {t('Recently Run')}
+                  </SecondaryNavigation.Link>
+                </SecondaryNavigation.ListItem>
+              </SecondaryNavigation.List>
+            </SecondaryNavigation.Section>
+          </Fragment>
+        )}
         <SecondaryNavigation.Separator />
         <SecondaryNavigation.Section id="issues-views-all">
           <SecondaryNavigation.List>
@@ -109,7 +127,7 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
     !hasRedirectOptOut && organization.features.includes('workflow-engine-ui');
 
   const alertsLink = shouldRedirectToWorkflowEngineUI
-    ? `${makeMonitorBasePathname(organization.slug)}?alertsRedirect=true`
+    ? `${makeAutomationBasePathname(organization.slug)}?alertsRedirect=true`
     : `${baseUrl}/alerts/rules/`;
 
   return (

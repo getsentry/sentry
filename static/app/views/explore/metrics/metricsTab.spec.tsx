@@ -130,6 +130,11 @@ describe('MetricsTabContent', () => {
       method: 'GET',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/validate/`,
+      method: 'POST',
+      body: {attributes: {}},
+    });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/stats_v2/`,
@@ -234,7 +239,7 @@ describe('MetricsTabContent', () => {
           table_result_sort: ['-timestamp'],
           user_queries: '',
           user_queries_count: 0,
-          aggregate_function: 'per_second',
+          aggregate_function: 'sum',
           confidences: ['null'],
           dataScanned: 'full',
           dataset: 'metrics',
@@ -269,7 +274,7 @@ describe('MetricsTabContent', () => {
         table_result_sort: ['-timestamp'],
         user_queries: '',
         user_queries_count: 0,
-        aggregate_function: 'per_second',
+        aggregate_function: 'sum',
         confidences: ['null'],
         dataScanned: 'full',
         dataset: 'metrics',
@@ -308,7 +313,7 @@ describe('MetricsTabContent', () => {
         'metrics.explorer.panel.metadata',
         expect.objectContaining({
           panel_index: 0,
-          aggregate_function: 'per_second',
+          aggregate_function: 'sum',
           group_bys: [],
           metric_name: 'foo',
           metric_type: 'distribution',

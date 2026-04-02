@@ -13,7 +13,6 @@ import {TimesTag} from 'sentry/components/group/inboxBadges/timesTag';
 import {UnhandledTag} from 'sentry/components/group/inboxBadges/unhandledTag';
 import {IssueReplayCount} from 'sentry/components/group/issueReplayCount';
 import {IssueSeerBadge} from 'sentry/components/group/issueSeerBadge';
-import {IssueSuperGroup} from 'sentry/components/group/issueSuperGroup';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -24,7 +23,6 @@ import {defined} from 'sentry/utils';
 import {getTitle} from 'sentry/utils/events';
 import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
-import {useSuperGroupForIssues} from 'sentry/utils/supergroup/useSuperGroupForIssues';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -75,17 +73,12 @@ export function GroupMetaRow({data, showAssignee, showLifetime = true}: Props) {
 
   const issuesPath = `/organizations/${organization.slug}/issues/`;
   const {getReplayCountForIssue} = useReplayCountForIssues();
-  const {getSuperGroupForIssue} = useSuperGroupForIssues();
 
   const showReplayCount =
     organization.features.includes('session-replay') &&
     projectCanLinkToReplay(organization, project) &&
     data.issueCategory &&
     !!getReplayCountForIssue(data.id, data.issueCategory);
-
-  const supergroup = organization.features.includes('top-issues-ui')
-    ? getSuperGroupForIssue(data.id)
-    : undefined;
 
   const autofixRunExists = getAutofixRunExists(data);
   const seerFixable = isIssueQuickFixable(data);
@@ -126,7 +119,6 @@ export function GroupMetaRow({data, showAssignee, showLifetime = true}: Props) {
       </CommentsLink>
     ) : null,
     showReplayCount ? <IssueReplayCount group={data} /> : null,
-    supergroup ? <IssueSuperGroup supergroup={supergroup} /> : null,
     showSeer ? <IssueSeerBadge group={data} key="issue-seer-badge" /> : null,
     logger ? (
       <LoggerAnnotation>
