@@ -655,9 +655,6 @@ importers:
       eslint-plugin-regexp:
         specifier: ^3.0.0
         version: 3.0.0(eslint@9.34.0(jiti@2.6.1))
-      eslint-plugin-sentry:
-        specifier: ^2.10.0
-        version: 2.10.0
       eslint-plugin-testing-library:
         specifier: ^7.16.0
         version: 7.16.0(eslint@9.34.0(jiti@2.6.1))(typescript@5.9.3)
@@ -5780,10 +5777,6 @@ packages:
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
     peerDependencies:
       eslint: '>=9.38.0'
-
-  eslint-plugin-sentry@2.10.0:
-    resolution: {integrity: sha512-QuCUr2B78Onr2GdXM4ncPlS2IBAB+lL5QwSPNvX5LcAoBtV7iFuhEY7DS4WqwgmJcRnI6g3/dKARpFuOILR35A==}
-    engines: {node: '>=0.10.0'}
 
   eslint-plugin-testing-library@7.16.0:
     resolution: {integrity: sha512-lHZI6/Olb2oZqxd1+s1nOLCtL2PXKrc1ERz6oDbUKS0xZAMFH3Fy6wJo75z3pXTop3BV6+loPi2MSjIYt3vpAg==}
@@ -15847,10 +15840,6 @@ snapshots:
       refa: 0.12.1
       regexp-ast-analysis: 0.7.1
       scslre: 0.3.0
-
-  eslint-plugin-sentry@2.10.0:
-    dependencies:
-      requireindex: 1.2.0
 
   eslint-plugin-testing-library@7.16.0(eslint@9.34.0(jiti@2.6.1))(typescript@5.9.3):
     dependencies:

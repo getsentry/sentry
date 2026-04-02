@@ -266,7 +266,6 @@
     "eslint-plugin-react-hooks": "6.1.0",
     "eslint-plugin-react-you-might-not-need-an-effect": "0.5.3",
     "eslint-plugin-regexp": "^3.0.0",
-    "eslint-plugin-sentry": "^2.10.0",
     "eslint-plugin-testing-library": "^7.16.0",
     "eslint-plugin-typescript-sort-keys": "^3.3.0",
     "eslint-plugin-unicorn": "^57.0.0",
