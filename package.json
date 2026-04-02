@@ -248,8 +248,8 @@
     "@types/d3-zoom": "^3.0.8",
     "@types/gettext-parser": "8.0.0",
     "@types/node": "^22.9.1",
-    "@typescript-eslint/rule-tester": "8.56.1",
-    "@typescript-eslint/utils": "8.56.1",
+    "@typescript-eslint/rule-tester": "8.58.0",
+    "@typescript-eslint/utils": "8.58.0",
     "@typescript/native-preview": "7.0.0-dev.20260112.1",
     "@volar/typescript": "^2.4.28",
     "babel-jest": "30.3.0",
@@ -286,7 +286,7 @@
     "stylelint": "16.10.0",
     "stylelint-config-recommended": "^14.0.1",
     "terser": "5.40.0",
-    "typescript-eslint": "8.56.1"
+    "typescript-eslint": "8.58.0"
   },
   "optionalDependencies": {
     "fsevents": "^2.3.3"
