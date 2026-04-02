@@ -67,8 +67,18 @@ async def _stream_response_and_close(response: httpx.Response) -> AsyncGenerator
     try:
         async for chunk in response.aiter_bytes(PROXY_CHUNK_SIZE):
             yield chunk
+    except RuntimeError as e:
+        if "Event loop is closed" not in str(e):
+            raise
+        # All data was received before this point. This error occurs in tests where
+        # Django's sync test client runs the async view on one event loop and
+        # close_streaming_response consumes the response on another, causing httpcore
+        # to attempt connection cleanup on the original (now-closed) loop.
     finally:
-        await response.aclose()
+        try:
+            await response.aclose()
+        except RuntimeError:
+            pass
 
 
 def _adapt_response(response: httpx.Response, remote_url: str) -> StreamingHttpResponse:
