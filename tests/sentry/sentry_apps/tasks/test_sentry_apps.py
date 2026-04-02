@@ -1922,16 +1922,18 @@ class TestSendMetricAlertWebhook(TestCase):
         )
 
         assert not safe_urlopen.called
-        assert_halt_metric(
+        assert_failure_metric(
             mock_record=mock_record,
-            error_msg=SentryAppWebhookHaltReason.MISSING_INSTALLATION,
+            error_msg=SentryAppSentryError(
+                message=SentryAppWebhookFailureReason.MISSING_INSTALLATION
+            ),
         )
-        # PREPARE_WEBHOOK (halt)
+        # PREPARE_WEBHOOK (failure)
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
         )
 
     @patch("sentry.sentry_apps.tasks.sentry_apps.analytics.record")
