@@ -830,7 +830,7 @@ export default typescript.config([
       'jest/no-disabled-tests': 'error', // `recommended` set this to warn, we've upgraded to error
       'jest/no-standalone-expect': [
         'error',
-        {additionalTestBlockFunctions: ['it.knownFlake']},
+        {additionalTestBlockFunctions: ['it.isKnownFlake']},
       ],
     },
   },

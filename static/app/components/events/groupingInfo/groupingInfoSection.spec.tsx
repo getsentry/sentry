@@ -45,7 +45,7 @@ describe('EventGroupingInfo', () => {
     });
   });
 
-  it.knownFlake('fetches and renders grouping info for errors', async () => {
+  it.isKnownFlake('fetches and renders grouping info for errors', async () => {
     render(<EventGroupingInfoSection {...defaultProps} />);
     await userEvent.click(
       screen.getByRole('button', {name: 'View Event Grouping Information Section'})

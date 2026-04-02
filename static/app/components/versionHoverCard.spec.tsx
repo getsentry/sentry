@@ -31,7 +31,7 @@ describe('VersionHoverCard', () => {
     });
   });
 
-  it.knownFlake('renders', async () => {
+  it.isKnownFlake('renders', async () => {
     render(
       <VersionHoverCard
         organization={organization}

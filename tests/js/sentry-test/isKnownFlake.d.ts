@@ -7,6 +7,6 @@ declare namespace jest {
      *
      * Available globally — no import needed.
      */
-    knownFlake(name: string, fn: jest.ProvidesCallback, timeout?: number): void;
+    isKnownFlake(name: string, fn: jest.ProvidesCallback, timeout?: number): void;
   }
 }

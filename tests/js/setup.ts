@@ -389,7 +389,7 @@ if (typeof globalThis.setImmediate === 'undefined') {
 }
 
 /**
- * it.knownFlake — wraps a known-flaky test for stress-testing in CI.
+ * it.isKnownFlake — wraps a known-flaky test for stress-testing in CI.
  *
  * When RERUN_KNOWN_FLAKY_TESTS is "true" (set by the "Frontend: Rerun Flaky
  * Tests" PR label), the test runs 50x inside a describe block. Otherwise it
@@ -398,7 +398,7 @@ if (typeof globalThis.setImmediate === 'undefined') {
 const FLAKY_RERUN_COUNT = 50;
 
 /* eslint-disable jest/valid-title */
-it.knownFlake = function knownFlake(
+it.isKnownFlake = function isKnownFlake(
   name: string,
   fn: jest.ProvidesCallback,
   timeout?: number
