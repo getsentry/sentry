@@ -683,11 +683,6 @@ describe('tokenizeExpression', () => {
     ],
     ['A+1', new Set(['A']), [s(0), r(0, 'A'), s(1), o(0, '+'), s(2), l(0, '1'), s(3)]],
     ['A-1', new Set(['A']), [s(0), r(0, 'A'), s(1), o(0, '-'), s(2), l(0, '1'), s(3)]],
-    [
-      'Alpha-1',
-      new Set(['Alpha']),
-      [s(0), r(0, 'Alpha'), s(1), o(0, '-'), s(2), l(0, '1'), s(3)],
-    ],
   ])('tokenizes references `%s`', (expression, references, expected) => {
     expect(tokenizeExpression(expression, references)).toEqual(expected);
   });
@@ -698,7 +693,6 @@ describe('tokenizeExpression', () => {
     ['A + B', new Set(['B']), [s(0, 'A'), o(0, '+'), s(1), r(0, 'B'), s(2)]],
     ['A + B', new Set<string>(), [s(0, 'A'), o(0, '+'), s(1, 'B')]],
     ['A + B', undefined, [s(0, 'A'), o(0, '+'), s(1, 'B')]],
-    ['Alpha-1', new Set(['B']), [s(0, 'Alpha-1')]],
   ])(
     'treats missing references as free text `%s`',
     (expression, references, expected) => {

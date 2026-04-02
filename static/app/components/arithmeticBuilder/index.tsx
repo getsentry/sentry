@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
 import {Input} from '@sentry/scraps/input';
 
@@ -37,7 +36,7 @@ interface ArithmeticBuilderProps {
   setExpression?: (expression: Expression) => void;
 }
 
-const VALID_REFERENCE_PATTERN = /^[a-zA-Z0-9]+$/;
+const VALID_REFERENCE_PATTERN = /^[A-Z]$/;
 
 export function ArithmeticBuilder({
   'data-test-id': dataTestId,
@@ -51,37 +50,17 @@ export function ArithmeticBuilder({
   disabled,
   references,
 }: ArithmeticBuilderProps) {
-  const validReferences = useMemo(() => {
-    if (!references) {
-      return new Set<string>();
-    }
-
-    const valid = new Set<string>();
-    const invalid = new Set<string>();
+  if (references) {
     for (const reference of references) {
-      if (VALID_REFERENCE_PATTERN.test(reference)) {
-        valid.add(reference);
-      } else {
-        invalid.add(reference);
+      if (!VALID_REFERENCE_PATTERN.test(reference)) {
+        throw new Error(`Invalid reference: ${reference}`);
       }
     }
-
-    if (invalid.size > 0) {
-      Sentry.captureMessage(
-        'Invalid reference(s) in arithmetic builder have been ignored',
-        {
-          extra: {
-            invalidReferences: Array.from(invalid),
-          },
-        }
-      );
-    }
-    return new Set(valid);
-  }, [references]);
+  }
 
   const {state, dispatch} = useArithmeticBuilderAction({
     initialExpression: expression || '',
-    references: validReferences,
+    references,
     updateExpression: setExpression,
   });
 
@@ -95,7 +74,7 @@ export function ArithmeticBuilder({
       functionArguments,
       getFieldDefinition,
       getSuggestedKey,
-      references: validReferences,
+      references,
     };
   }, [
     state,
@@ -104,7 +83,7 @@ export function ArithmeticBuilder({
     functionArguments,
     getFieldDefinition,
     getSuggestedKey,
-    validReferences,
+    references,
   ]);
 
   return (

@@ -209,13 +209,7 @@ function InternalInput({
           return;
         }
 
-        // We only replace the token with a reference if it is the only reference that matches the text
-        // This prevents us from automatically replacing a reference if it's a substring of another reference
-        const isOnlyReference =
-          [...(references ?? [])].filter(ref =>
-            ref.toLowerCase().includes(text.toLowerCase())
-          ).length === 1;
-        if (isTokenReference(tok) && isOnlyReference) {
+        if (isTokenReference(tok)) {
           dispatch({
             type: 'REPLACE_TOKEN',
             token,

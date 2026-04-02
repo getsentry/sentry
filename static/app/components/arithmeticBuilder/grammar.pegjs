@@ -10,13 +10,8 @@ token
   }
 
 reference
-  = val:ref_name &{ return tc.isReference(val); } {
+  = val:[A-Z] &{ return tc.isReference(val); } {
     return tc.tokenReference(val, location());
-  }
-
-ref_name
-  = [^()\t\n, \"+\-*/÷]+ {
-    return text();
   }
 
 func

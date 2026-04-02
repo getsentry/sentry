@@ -2,22 +2,21 @@ import {Fragment, useCallback, useEffect, useState} from 'react';
 
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('ArithmeticBuilder', story => {
   story('With References', () => {
-    const [expression, setExpression] = useState('A + B + Gamma');
+    const [expression, setExpression] = useState('A + B');
     const [isValid, setIsValid] = useState(true);
-    const [references, setReferences] = useState(
-      new Set<string>(['A', 'B', 'C', 'Gamma'])
-    );
+    const [references, setReferences] = useState(new Set<string>(['A', 'B', 'C']));
     const [parseError, setParseError] = useState('');
 
     const onExpressionChange = useCallback((expr: Expression) => {
       setExpression(expr.text);
     }, []);
 
-    // Expicitly check the new expression for validity since references
+    // Explicitly check the new expression for validity since references
     // changing is a responibility of the caller.
     useEffect(() => {
       setIsValid(new Expression(expression, references).isValid);
@@ -43,11 +42,13 @@ export default Storybook.story('ArithmeticBuilder', story => {
         </p>
 
         <label htmlFor="refs-input">
-          References JSON
+          References JSON. This setup will submit the references onBlur. If you trigger an
+          error case, you can update the references and it will re-mount the component.
           <textarea
+            key={JSON.stringify(references)}
             id="refs-input"
             defaultValue={JSON.stringify([...references])}
-            onChange={e => {
+            onBlur={e => {
               try {
                 const parsed = JSON.parse(e.target.value);
                 setReferences(new Set(parsed));
@@ -62,15 +63,17 @@ export default Storybook.story('ArithmeticBuilder', story => {
         </label>
 
         {parseError ? <p style={{color: 'red'}}>{parseError}</p> : null}
-
-        <ArithmeticBuilder
-          expression={expression}
-          setExpression={onExpressionChange}
-          references={references}
-          aggregations={[]}
-          functionArguments={[]}
-          getFieldDefinition={() => null}
-        />
+        <ErrorBoundary mini key={JSON.stringify([...references])}>
+          <ArithmeticBuilder
+            key={JSON.stringify([...references])}
+            expression={expression}
+            setExpression={onExpressionChange}
+            references={references}
+            aggregations={[]}
+            functionArguments={[]}
+            getFieldDefinition={() => null}
+          />
+        </ErrorBoundary>
 
         <div style={{marginTop: 8, fontFamily: 'monospace'}}>
           <p>Expression: {expression}</p>
