@@ -276,7 +276,7 @@ export function LogsInfiniteTable({
   const containerVirtualizer = useVirtualizer<HTMLElement, Element>({
     count: isContainedVirtualizer ? (data?.length ?? 0) : 0,
     estimateSize,
-    overscan: expanded ? 25 : 10,
+    overscan: expanded ? 50 : 25,
     getScrollElement: () => tableBodyRef?.current,
     getItemKey: (index: number) => data?.[index]?.[OurLogKnownFieldKey.ID] ?? index,
   });
