@@ -63,9 +63,11 @@ const SCHEMA_HINTS_HIDDEN_KEYS: string[] = [
 ];
 
 export enum SchemaHintsSources {
+  // TODO: change Explore to Spans because Explore is too broad and confusing here
   EXPLORE = 'explore',
   LOGS = 'logs',
   CONVERSATIONS = 'conversations',
+  ERRORS = 'errors',
 }
 
 export const getSchemaHintsListOrder = (source: SchemaHintsSources) => {
