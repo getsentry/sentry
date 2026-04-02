@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -22,7 +22,6 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
@@ -34,6 +33,7 @@ import {
 } from 'sentry/views/explore/components/styles';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
+import {useControlSectionExpanded} from 'sentry/views/explore/hooks/useControlSectionExpanded';
 import {useCrossEventQueries} from 'sentry/views/explore/hooks/useCrossEventQueries';
 import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
@@ -90,22 +90,6 @@ export function SpansTabOnboarding({
   );
 }
 
-function useControlSectionExpanded() {
-  const [controlSectionExpanded, _setControlSectionExpanded] = useLocalStorageState(
-    'explore-spans-toolbar',
-    'expanded'
-  );
-
-  const setControlSectionExpanded = useCallback(
-    (expanded: boolean) => {
-      _setControlSectionExpanded(expanded ? 'expanded' : '');
-    },
-    [_setControlSectionExpanded]
-  );
-
-  return [controlSectionExpanded === 'expanded', setControlSectionExpanded] as const;
-}
-
 interface SpanTabProps {
   datePageFilterProps: DatePageFilterProps;
 }
@@ -113,7 +97,9 @@ interface SpanTabProps {
 export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
   useVisitExplore();
 
-  const [controlSectionExpanded, setControlSectionExpanded] = useControlSectionExpanded();
+  const [controlSectionExpanded, setControlSectionExpanded] = useControlSectionExpanded(
+    'explore-spans-toolbar'
+  );
 
   return (
     <Fragment>
