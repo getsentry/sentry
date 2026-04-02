@@ -85,10 +85,18 @@ function LogsSectionContent() {
 
 const TableContainer = styled('div')`
   margin-top: ${p => p.theme.space.xl};
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 `;
 
 const StyledPanel = styled(Panel)`
   padding: ${p => p.theme.space.xl};
   padding-bottom: 0;
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 `;
