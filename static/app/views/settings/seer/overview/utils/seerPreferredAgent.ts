@@ -72,7 +72,7 @@ export function useFetchPreferredAgentOptions({
   });
 }
 
-export function usePreferredAgentMutationOptions({
+export function getPreferredAgentMutationOptions({
   organization,
 }: {
   organization: Organization;

@@ -27,7 +27,7 @@ import {useInfiniteQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {
-  usePreferredAgentMutationOptions,
+  getPreferredAgentMutationOptions,
   useFetchPreferredAgent,
   useFetchPreferredAgentOptions,
   useBulkMutateSelectedAgent,
@@ -152,7 +152,7 @@ function AgentNameForm({
 }) {
   const preferredAgent = useFetchPreferredAgent({organization});
   const codingAgentSelectOptions = useFetchPreferredAgentOptions({organization});
-  const codingAgentMutationOptions = usePreferredAgentMutationOptions({organization});
+  const codingAgentMutationOptions = getPreferredAgentMutationOptions({organization});
   const bulkMutateSelectedAgent = useBulkMutateSelectedAgent({
     projects: projects.filter(p => !projectsIdsWithPreferredAgent.has(p.id)),
   });

@@ -6,11 +6,12 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 import type {SeerPreferencesResponse} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {useMutation} from 'sentry/utils/queryClient';
 import {
   useBulkMutateSelectedAgent,
   useFetchPreferredAgent,
   useFetchPreferredAgentOptions,
-  usePreferredAgentMutationOptions,
+  getPreferredAgentMutationOptions,
 } from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
 
 describe('seerPreferredAgent', () => {
@@ -198,12 +199,13 @@ describe('seerPreferredAgent', () => {
       mockIntegrationsEndpoint();
       const orgPutRequest = mockOrgPutRequest();
 
-      const {result} = renderHookWithProviders(usePreferredAgentMutationOptions, {
-        initialProps: {organization},
+      const options = getPreferredAgentMutationOptions({organization});
+      const {result} = renderHookWithProviders(useMutation, {
+        initialProps: options,
       });
 
       act(() => {
-        result.current.mutationFn!({integration: 'seer'});
+        result.current.mutateAsync({integration: 'seer'});
       });
 
       await waitFor(() => expect(orgPutRequest).toHaveBeenCalledTimes(1));
@@ -228,12 +230,17 @@ describe('seerPreferredAgent', () => {
         provider: 'cursor',
       };
 
-      const {result} = renderHookWithProviders(usePreferredAgentMutationOptions, {
-        initialProps: {organization},
+      const options = getPreferredAgentMutationOptions({organization});
+      const {result} = renderHookWithProviders(useMutation, {
+        initialProps: options,
       });
 
       act(() => {
-        result.current.mutationFn!({integration});
+        result.current.mutateAsync({integration: 'seer'});
+      });
+
+      act(() => {
+        result.current.mutateAsync({integration});
       });
 
       await waitFor(() => expect(orgPutRequest).toHaveBeenCalledTimes(1));
