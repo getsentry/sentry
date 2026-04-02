@@ -213,7 +213,6 @@ function useNavigationActions(): CommandPaletteAction[] {
       },
       actions: [
         {
-          type: 'group' as const,
           display: {
             label: t('Issues'),
             icon: <IconIssues />,
@@ -221,7 +220,6 @@ function useNavigationActions(): CommandPaletteAction[] {
           actions: issuesChildren,
         },
         {
-          type: 'group' as const,
           display: {
             label: t('Explore'),
             icon: <IconCompass />,
@@ -229,7 +227,6 @@ function useNavigationActions(): CommandPaletteAction[] {
           actions: exploreChildren,
         },
         {
-          type: 'group' as const,
           display: {
             label: t('Dashboards'),
             icon: <IconDashboard />,
@@ -238,7 +235,6 @@ function useNavigationActions(): CommandPaletteAction[] {
         },
         organization.features.includes('performance-view')
           ? {
-              type: 'group' as const,
               display: {
                 label: t('Insights'),
                 icon: <IconGraph type="area" />,
@@ -247,7 +243,6 @@ function useNavigationActions(): CommandPaletteAction[] {
             }
           : undefined,
         {
-          type: 'group' as const,
           display: {
             label: t('Settings'),
             icon: <IconSettings />,
@@ -262,7 +257,6 @@ function useNavigationActions(): CommandPaletteAction[] {
           ),
         },
         {
-          type: 'group' as const,
           display: {
             label: t('Project Settings'),
             icon: <IconSettings />,
