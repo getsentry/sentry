@@ -553,14 +553,14 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 
 ## APIs
-/src/sentry/apidocs/                                        @getsentry/owners-api
-/src/sentry/api/urls.py                                     @getsentry/owners-api
-/api-docs/                                                  @getsentry/owners-api
-/tests/apidocs/                                             @getsentry/owners-api
-/.github/workflows/openapi.yml                              @getsentry/owners-api
-/.github/workflows/openapi-diff.yml                         @getsentry/owners-api
-/src/sentry/conf/api_pagination_allowlist_do_not_modify.py  @getsentry/owners-api
-/tests/sentry/api/test_path_params.py                       @getsentry/owners-api
+/src/sentry/apidocs/                                        @getsentry/docs
+/src/sentry/api/urls.py                                     @getsentry/enterprise
+/api-docs/                                                  @getsentry/docs
+/tests/apidocs/                                             @getsentry/docs
+/.github/workflows/openapi.yml                              @getsentry/docs
+/.github/workflows/openapi-diff.yml                         @getsentry/docs
+/src/sentry/conf/api_pagination_allowlist_do_not_modify.py  @getsentry/enterprise
+/tests/sentry/api/test_path_params.py                       @getsentry/enterprise
 ## End of APIs
 
 
