@@ -1215,7 +1215,7 @@ class TestResolveProjectPreference(TestCase):
     @patch("sentry.seer.autofix.autofix.write_preference_to_sentry_db")
     @patch("sentry.seer.autofix.autofix.set_project_seer_preference")
     @patch("sentry.seer.autofix.autofix.get_project_seer_preferences")
-    def test_falls_back_when_preference_has_empty_repos(
+    def test_returns_preference_with_empty_repos(
         self, mock_get_prefs, mock_set_pref, mock_write_sentry
     ):
         mock_get_prefs.return_value = SeerRawPreferenceResponse(
@@ -1231,11 +1231,10 @@ class TestResolveProjectPreference(TestCase):
         result = _resolve_project_preference(self.organization, self.project, fallback_repos)
 
         assert result is not None
-        assert len(result.repositories) == 1
-        assert result.repositories[0].name == "sentry"
-        assert result.automated_run_stopping_point == "code_changes"
-        mock_set_pref.assert_called_once()
-        mock_write_sentry.assert_called_once()
+        assert len(result.repositories) == 0
+        assert result.automated_run_stopping_point == "root_cause"
+        mock_set_pref.assert_not_called()
+        mock_write_sentry.assert_not_called()
 
 
 class TestCallAutofix(TestCase):

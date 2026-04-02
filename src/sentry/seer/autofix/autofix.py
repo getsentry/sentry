@@ -715,7 +715,7 @@ def _resolve_project_preference(
     """
     try:
         preference_response = get_project_seer_preferences(project.id)
-        if preference_response.preference and preference_response.preference.repositories:
+        if preference_response.preference:
             return preference_response.preference
     except (SeerApiError, SeerApiResponseValidationError):
         logger.exception(
