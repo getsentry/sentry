@@ -291,12 +291,27 @@ def collect_user_org_context(
     try:
         from sentry.models.apitoken import ApiToken
         from sentry.types.token import AuthTokenType
+        from sentry.users.models.user import User
+
+        # request.user may be an RpcUser proxy — ApiToken needs the real User model
+        real_user = User.objects.get(id=user.id)
 
         token = ApiToken.objects.create(
-            user=user,
+            user=real_user,
             token_type=AuthTokenType.USER,
             scoping_organization_id=organization.id,
-            scope_list=["org:read", "project:read", "event:read"],
+            scope_list=[
+                "org:read",
+                "org:write",
+                "project:read",
+                "project:write",
+                "event:read",
+                "event:write",
+                "alerts:read",
+                "alerts:write",
+                "member:read",
+                "team:read",
+            ],
             expires_at=timezone.now() + timedelta(hours=1),
         )
         user_auth_token = token.plaintext_token
