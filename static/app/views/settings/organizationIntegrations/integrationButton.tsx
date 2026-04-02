@@ -6,6 +6,7 @@ import {IconOpen} from 'sentry/icons';
 import type {Integration} from 'sentry/types/integrations';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
+import {DirectEnableButton} from 'sentry/views/settings/organizationIntegrations/directEnableButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 import {RequestIntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 
@@ -43,6 +44,15 @@ export function IntegrationButton({
     return (
       <RequestIntegrationButton name={provider.name} slug={provider.slug} type={type} />
     );
+  }
+  if (metadata.aspects.directEnable) {
+    return provider.canAdd ? (
+      <DirectEnableButton
+        providerSlug={provider.slug}
+        buttonProps={buttonProps}
+        userHasAccess={userHasAccess}
+      />
+    ) : null;
   }
   if (provider.canAdd) {
     return (

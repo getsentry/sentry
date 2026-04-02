@@ -2,6 +2,7 @@ import dataclasses
 import re
 from collections import OrderedDict, defaultdict
 from collections.abc import Sequence
+from ipaddress import ip_address, ip_interface, ip_network
 from typing import Callable
 
 from sentry.utils import metrics
@@ -44,6 +45,25 @@ class ParameterizationRegex:
         return rf"{prefix}(?P<{self.name}>{raw_pattern}){postfix}"
 
 
+def is_valid_ip(maybe_ip_str: str) -> bool:
+    # Validate the string by attempting to pass it to the three built-in factory functions for
+    # creating different types of ip address objects. If any of them succeeds, it's a valid IP. If
+    # all three raise an error, it's not.
+    for fn, kwargs in (
+        (ip_address, {}),
+        (ip_interface, {}),
+        (ip_network, {"strict": False}),  # `strict: False` allows host bits
+    ):
+        try:
+            fn(maybe_ip_str, **kwargs)
+        except ValueError:
+            pass
+        else:
+            return True
+
+    return False
+
+
 DEFAULT_PARAMETERIZATION_REGEXES = [
     ParameterizationRegex(
         name="email",
@@ -61,42 +81,6 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
                 (com|net|org|jp|de|uk|fr|br|it|ru|es|me|gov|pl|ca|au|cn|co|in|nl|edu|info|eu|ch|id|at|kr|cz|mx|be|tv|se|tr|tw|al|ua|ir|vn|cl|sk|ly|cc|to|no|fi|us|pt|dk|ar|hu|tk|gr|il|news|ro|my|biz|ie|za|nz|sg|ee|th|io|xyz|pe|bg|hk|rs|lt|link|ph|club|si|site|mobi|by|cat|wiki|la|ga|xxx|cf|hr|ng|jobs|online|kz|ug|gq|ae|is|lv|pro|fm|tips|ms|sa|app)
             )
             \b
-        """,
-    ),
-    ParameterizationRegex(
-        name="ip",
-        raw_pattern=r"""
-            # This negative lookbehind ensures two things (depending on the pattern):
-            #     - We don't match starting in the middle of a valid set of initial characters
-            #     - We don't match things like `::` when they appear in expressions like `SomeClass::someMethod()`
-            (?<![0-9a-zA-Z_])
-            (
-                ([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|
-                ([0-9a-fA-F]{1,4}:){1,7}:|
-                ([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|
-                ([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|
-                ([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|
-                ([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|
-                ([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|
-                [0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|
-                :((:[0-9a-fA-F]{1,4}){1,7}|:)|
-                fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|
-                ::(ffff(:0{1,4}){0,1}:){0,1}
-                ((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}
-                (25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|
-                ([0-9a-fA-F]{1,4}:){1,4}:
-                ((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}
-                (25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\b
-            )
-            # This negative lookahead works with the negative lookbehind above to block false
-            # positives on expressions of the form `SomeClass::someMethod()`, ensuring that even if
-            # the class name is valid hex, the method name being invalid will block the match
-            (?![0-9a-zA-Z])
-            |
-            (
-                \b((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}
-                (25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\b
-            )
         """,
     ),
     ParameterizationRegex(
@@ -199,6 +183,52 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         """,
     ),
     ParameterizationRegex(name="duration", raw_pattern=r"""\b(\d+ms) | (\d+(\.\d+)?s)\b"""),
+    # The IP pattern has to come after the date pattern, because times like 12:31:12 are also valid
+    # IPv6 addresses
+    ParameterizationRegex(
+        name="ip",
+        # The rules for IP address (specifically IPv6 addresses) are sufficiently complicated that
+        # trying to write a regex to handle all cases would be (indeed, has been) quite hard and
+        # error-prone. Instead, we use our regex to find things which look like they *might* be
+        # valid IPs, and then let python's built-in `ipaddress` functions verify that we're right.
+        raw_pattern=r"""
+            # IPv4-like strings
+            (::[fF]{4}:)? # Optional prefix mapping the IPv4 address which follows to IPv6 format
+            (
+                \b
+                (\d{1,3}\.){3} # Three sets of 1-3 digits, each followed by a literal dot
+                \d{1,3} # Final set of 1-3 digits
+                (/\d{1,2})? # Optional CIDR suffix
+                \b
+            )
+            |
+            # IPv6-like strings
+            #
+            # Note: We can't use word boundaries here as we did with IPv4s because IPv6s contain
+            # non-word characters. Instead, we use a negative lookbehind and a negative lookahead,
+            # respectively, to specify the beginning and end of the pattern. These protect against
+            # two things:
+            #   - Cases where the initial or end characters are all valid, but there are too many of
+            #     them. (IOW, we don't want to match `2345:...` inside of an otherwise-invalid IP
+            #     like `12345:...`, and the same applies to `...:1234` inside of `...:12345`.)
+            #   - Cases where `::` (which is a valid IPv6 address) appears inside of expressions
+            #     like `SomeClass::someMethod()`, especially when the characters bordering the `::`
+            #     are valid hex, like `Space::explore()`.
+            # This doesn't fix edge cases like `Fee::add()`, where it's all hex and also fewer than
+            # 5 characters on either side, but those are presumably pretty rare.
+            (?<![0-9a-zA-Z_]) # Negative lookbehind
+            (
+                ([0-9a-fA-F]{0,4}:){2,7} # Multiple sets of 0-4 hex chars, each followed by a colon
+                [0-9a-fA-F]{0,4} # Final set of 0-4 hex chars
+                (%\S+)? # Optional zone ID
+                (/\d{1,3})? # Optional CIDR suffix
+            )
+            (?![0-9a-zA-Z]) # Negative lookahead
+        """,
+        # Validate that the matched string actually is an IP address before replacing it. If not,
+        # leave it alone.
+        replacement_callback=lambda orig_value: "<ip>" if is_valid_ip(orig_value) else orig_value,
+    ),
     ParameterizationRegex(
         name="swift_txn_id",
         raw_pattern=r"""

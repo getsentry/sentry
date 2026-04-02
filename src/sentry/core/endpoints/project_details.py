@@ -119,6 +119,7 @@ class ProjectMemberSerializer(serializers.Serializer):
     preprodDistributionPrCommentsEnabledByCustomer = serializers.BooleanField(
         required=False, allow_null=True
     )
+    preprodSnapshotPrCommentsEnabled = serializers.BooleanField(required=False, allow_null=True)
     preprodSizeEnabledQuery = serializers.CharField(required=False, allow_null=True)
     preprodDistributionEnabledQuery = serializers.CharField(required=False, allow_null=True)
 
@@ -167,6 +168,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "preprodSnapshotStatusChecksFailOnAdded",
         "preprodSnapshotStatusChecksFailOnRemoved",
         "preprodDistributionPrCommentsEnabledByCustomer",
+        "preprodSnapshotPrCommentsEnabled",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -889,6 +891,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings[
                     "sentry:preprod_distribution_pr_comments_enabled_by_customer"
                 ] = result["preprodDistributionPrCommentsEnabledByCustomer"]
+        if "preprodSnapshotPrCommentsEnabled" in result:
+            if project.update_option(
+                "sentry:preprod_snapshot_pr_comments_enabled",
+                result["preprodSnapshotPrCommentsEnabled"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_pr_comments_enabled"] = result[
+                    "preprodSnapshotPrCommentsEnabled"
+                ]
         if "debugFilesRole" in result:
             if result["debugFilesRole"] is None:
                 project.delete_option("sentry:debug_files_role")

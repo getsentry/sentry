@@ -5,7 +5,11 @@ from django.db import IntegrityError
 from django.db.models import Q
 
 import sentry.hybridcloud.rpc.caching as caching_module
-from sentry.backup.dependencies import NormalizedModelName, dependencies, get_model_name
+from sentry.backup.dependencies import (
+    NormalizedModelName,
+    dependencies,
+    get_model_name,
+)
 from sentry.db.models.base import Model
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleActivity
@@ -31,7 +35,8 @@ from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.rule import Rule, RuleActivity
 from sentry.models.rulesnooze import RuleSnooze
-from sentry.models.savedsearch import SavedSearch
+from sentry.models.savedsearch import SavedSearch, Visibility
+from sentry.models.search_common import SearchType
 from sentry.models.tombstone import CellTombstone
 from sentry.monitors.models import Monitor
 from sentry.silo.base import SiloMode
@@ -261,10 +266,8 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         from_user = self.create_user("from-user@example.com")
         to_user = self.create_user("to-user@example.com")
         org = self.create_organization(name="conflict-org")
-
-        with outbox_runner():
-            with assume_test_silo_mode(SiloMode.CELL):
-                self.create_member(user=from_user, organization=org)
+        self.create_member(user=from_user, organization=org)
+        self.create_member(user=to_user, organization=org)
 
         with assume_test_silo_mode(SiloMode.CELL):
             project = self.create_project(organization=org)
@@ -306,6 +309,117 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         with assume_test_silo_mode(SiloMode.CELL):
             assert not GroupSubscription.objects.filter(group=group, user_id=from_user.id).exists()
             assert GroupSubscription.objects.filter(group=group, user_id=to_user.id).count() == 1
+
+    def test_merge_to_users_in_same_org_recentsearch_no_collision(self) -> None:
+        # from_user and to_user have different queries — no unique constraint conflict.
+        from_user = self.create_user("from@example.com")
+        to_user = self.create_user("to@example.com")
+        org = self.create_organization()
+        self.create_member(user=from_user, organization=org)
+        self.create_member(user=to_user, organization=org)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            from_search = RecentSearch.objects.create(
+                organization=org,
+                user_id=from_user.id,
+                type=SearchType.ISSUE.value,
+                query="from user query",
+            )
+            to_search = RecentSearch.objects.create(
+                organization=org,
+                user_id=to_user.id,
+                type=SearchType.ISSUE.value,
+                query="to user query",
+            )
+
+        with outbox_runner():
+            from_user.merge_to(to_user)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert RecentSearch.objects.filter(id=from_search.id, user_id=to_user.id).exists()
+            assert RecentSearch.objects.filter(id=to_search.id, user_id=to_user.id).exists()
+            assert not RecentSearch.objects.filter(user_id=from_user.id).exists()
+
+    def test_merge_recentsearch_collision_deletes_from_user_row(self) -> None:
+        # from_user and to_user have the same (org, type, query) — the from_user row must be
+        # deleted before the update to avoid violating the unique_together constraint.
+        from_user = self.create_user("from@example.com")
+        to_user = self.create_user("to@example.com")
+        org = self.create_organization()
+        self.create_member(user=from_user, organization=org)
+        self.create_member(user=to_user, organization=org)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            from_search = RecentSearch.objects.create(
+                organization=org,
+                user_id=from_user.id,
+                type=SearchType.ISSUE.value,
+                query="duplicate query",
+            )
+            to_search = RecentSearch.objects.create(
+                organization=org,
+                user_id=to_user.id,
+                type=SearchType.ISSUE.value,
+                query="duplicate query",
+            )
+
+        with outbox_runner():
+            from_user.merge_to(to_user)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert not RecentSearch.objects.filter(id=from_search.id).exists()
+            assert RecentSearch.objects.filter(id=to_search.id, user_id=to_user.id).exists()
+            assert not RecentSearch.objects.filter(user_id=from_user.id).exists()
+
+    def test_merge_savedsearch_unique_condition_preserved(self) -> None:
+        # SharedSearch has a conditional unique constraint.
+        # from_user and to_user both have saved searches that don't meet that condition,
+        # and both should be preserved, while the searches matching the condition should only
+        # have one retained.
+        from_user = self.create_user("from@example.com")
+        to_user = self.create_user("to@example.com")
+        org = self.create_organization()
+        self.create_member(user=from_user, organization=org)
+        self.create_member(user=to_user, organization=org)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            from_user_org = SavedSearch.objects.create(
+                organization=org,
+                owner_id=from_user.id,
+                type=SearchType.ISSUE.value,
+                query="duplicate query should be retained",
+                visibility=Visibility.ORGANIZATION,
+            )
+            from_user_pinned = SavedSearch.objects.create(
+                organization=org,
+                owner_id=from_user.id,
+                type=SearchType.ISSUE.value,
+                query="should be deleted because of visiblilty",
+                visibility=Visibility.OWNER_PINNED,
+            )
+            to_user_org = SavedSearch.objects.create(
+                organization=org,
+                owner_id=to_user.id,
+                type=SearchType.ISSUE.value,
+                query="duplicate query should be retained",
+                visibility=Visibility.ORGANIZATION,
+            )
+            to_user_pinned = SavedSearch.objects.create(
+                organization=org,
+                owner_id=to_user.id,
+                type=SearchType.ISSUE.value,
+                query="should be retained",
+                visibility=Visibility.OWNER_PINNED,
+            )
+
+        with outbox_runner():
+            from_user.merge_to(to_user)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert SavedSearch.objects.filter(id=from_user_org.id, owner_id=to_user.id).exists()
+            assert SavedSearch.objects.filter(id=to_user_org.id, owner_id=to_user.id).exists()
+            assert SavedSearch.objects.filter(id=to_user_pinned.id, owner_id=to_user.id).exists()
+            assert not SavedSearch.objects.filter(id=from_user_pinned.id).exists()
 
     @expect_models(
         ORG_MEMBER_MERGE_TESTED,

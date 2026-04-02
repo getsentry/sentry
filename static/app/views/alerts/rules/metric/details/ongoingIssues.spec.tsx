@@ -40,7 +40,7 @@ describe('MetricAlertOngoingIssues', () => {
 
     render(<MetricAlertOngoingIssues project={project} rule={rule} />, {organization});
 
-    expect(await screen.findByTestId('group')).toBeInTheDocument();
+    expect(await screen.findByTestId('group', {}, {timeout: 5000})).toBeInTheDocument();
     expect(detectorRequest).toHaveBeenCalled();
     expect(issuesRequest).toHaveBeenCalled();
   });

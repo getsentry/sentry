@@ -42,6 +42,7 @@
 /static/app/utils/                                      @getsentry/app-frontend
 /src/sentry/web/frontend/                               @getsentry/app-frontend
 /.agents/skills/sentry-javascript-bugs/                 @getsentry/app-frontend
+/.agents/skills/generate-snapshot-tests/                @getsentry/app-frontend
 
 ## Legal
 /LICENSE.md                                              @getsentry/owners-legal

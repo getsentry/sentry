@@ -62,7 +62,7 @@ describe('InvoiceDetails > Payment Form', () => {
 
     await waitFor(() => expect(mockget).toHaveBeenCalled());
     expect(screen.getByText('Pay Bill')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Cancel'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Pay Now'})).toBeInTheDocument();
     expect(
       screen.queryByText(
@@ -124,7 +124,7 @@ describe('InvoiceDetails > Payment Form', () => {
 
     expect(screen.getByText('Pay Bill')).toBeInTheDocument();
 
-    const button = screen.getByRole('button', {name: 'Pay Now'});
+    const button = await screen.findByRole('button', {name: 'Pay Now'});
     await userEvent.click(button);
     await waitFor(() => expect(reloadInvoice).toHaveBeenCalled());
     expect(reloadInvoice).toHaveBeenCalled();

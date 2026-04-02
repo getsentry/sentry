@@ -31,13 +31,15 @@ from sentry.preprod.api.models.project_preprod_build_details_models import (
     BuildDetailsVcsInfo,
 )
 from sentry.preprod.api.models.snapshots.project_preprod_snapshot_models import (
+    SnapshotApprovalInfo,
+    SnapshotApprover,
     SnapshotComparisonRunInfo,
     SnapshotDetailsApiResponse,
     SnapshotImageResponse,
 )
 from sentry.preprod.api.schemas import VCS_ERROR_MESSAGES, VCS_SCHEMA_PROPERTIES
 from sentry.preprod.helpers.deletion import delete_artifacts_and_eap_data
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.comparison_categorizer import (
     CategorizedComparison,
     categorize_comparison_images,
@@ -59,6 +61,7 @@ from sentry.preprod.vcs.status_checks.snapshots.tasks import (
 )
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.users.models.user import User
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -134,7 +137,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         except Exception:
             logger.exception(
                 "preprod_snapshot.delete_failed",
-                extra={"artifact_id": int(snapshot_id)},
+                extra={"artifact_id": artifact.id},
             )
             return Response(
                 {"detail": "Internal error deleting snapshot."},
@@ -155,7 +158,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         logger.info(
             "preprod_snapshot.deleted",
             extra={
-                "artifact_id": int(snapshot_id),
+                "artifact_id": artifact.id,
                 "user_id": request.user.id if request.user else None,
                 "files_deleted": result.files_deleted,
                 "size_metrics_deleted": result.size_metrics_deleted,
@@ -175,7 +178,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             artifact = PreprodArtifact.objects.select_related("commit_comparison").get(
                 id=snapshot_id, project__organization_id=organization.id
             )
-        except PreprodArtifact.DoesNotExist:
+        except (PreprodArtifact.DoesNotExist, ValueError):
             return Response({"detail": "Snapshot not found"}, status=404)
 
         try:
@@ -331,6 +334,77 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 duration_ms=int(duration.total_seconds() * 1000),
             )
 
+        approval_info: SnapshotApprovalInfo | None = None
+        all_approvals = list(
+            PreprodComparisonApproval.objects.filter(
+                preprod_artifact=artifact,
+                preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+            )
+        )
+        approved = [
+            a
+            for a in all_approvals
+            if a.approval_status == PreprodComparisonApproval.ApprovalStatus.APPROVED
+        ]
+
+        if approved:
+            sentry_user_ids = list({a.approved_by_id for a in approved if a.approved_by_id})
+            users_by_id = {u.id: u for u in User.objects.filter(id__in=sentry_user_ids)}
+
+            approver_list: list[SnapshotApprover] = []
+            seen_approver_keys: set[str] = set()
+            for approval in approved:
+                if approval.approved_by_id:
+                    key = f"sentry:{approval.approved_by_id}"
+                    if key in seen_approver_keys:
+                        continue
+                    seen_approver_keys.add(key)
+                    user = users_by_id.get(approval.approved_by_id)
+                    if user:
+                        approver_list.append(
+                            SnapshotApprover(
+                                id=str(user.id),
+                                name=user.get_display_name(),
+                                email=user.email,
+                                username=user.username,
+                                approved_at=approval.approved_at.isoformat()
+                                if approval.approved_at
+                                else None,
+                                source="sentry",
+                            )
+                        )
+                elif approval.extras and "github" in approval.extras:
+                    gh = approval.extras["github"]
+                    gh_id = gh.get("id")
+                    key = f"github:{gh_id or gh.get('login')}"
+                    if key in seen_approver_keys:
+                        continue
+                    seen_approver_keys.add(key)
+                    approver_list.append(
+                        SnapshotApprover(
+                            id=str(gh_id) if gh_id is not None else None,
+                            name=gh.get("login"),
+                            username=gh.get("login"),
+                            avatar_url=f"https://avatars.githubusercontent.com/u/{gh_id}"
+                            if gh_id is not None
+                            else None,
+                            approved_at=approval.approved_at.isoformat()
+                            if approval.approved_at
+                            else None,
+                            source="github",
+                        )
+                    )
+            approval_info = SnapshotApprovalInfo(
+                status="approved",
+                approvers=approver_list,
+            )
+        elif all_approvals:
+            # If records exist but none are APPROVED, they must be NEEDS_APPROVAL
+            approval_info = SnapshotApprovalInfo(
+                status="requires_approval",
+                approvers=[],
+            )
+
         return Response(
             SnapshotDetailsApiResponse(
                 head_artifact_id=str(artifact.id),
@@ -354,6 +428,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 errored=categorized.errored,
                 errored_count=len(categorized.errored),
                 comparison_run_info=run_info,
+                approval_info=approval_info,
             ).dict()
         )
 

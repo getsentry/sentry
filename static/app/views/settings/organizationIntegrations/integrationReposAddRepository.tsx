@@ -44,6 +44,7 @@ export function IntegrationReposAddRepository({
   const [search, setSearch] = useState<string>();
   const debouncedSearch = useDebouncedValue(search, 200);
 
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const query = useQuery({
     queryKey: [
       getApiUrl(

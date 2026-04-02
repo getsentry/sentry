@@ -157,8 +157,7 @@ describe('EventTagsAndScreenshot', () => {
     );
 
     expect(mockDetailedProject).toHaveBeenCalled();
-    expect(await tagsContainer.findByTestId('loading-indicator')).not.toBeInTheDocument();
-    expect(screen.getByTestId('event-tags-tree')).toBeInTheDocument();
+    expect(await screen.findByTestId('event-tags-tree')).toBeInTheDocument();
   }
 
   /**
@@ -224,9 +223,7 @@ describe('EventTagsAndScreenshot', () => {
         organization,
       });
       expect(mockDetailedProject).toHaveBeenCalled();
-      expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
-
-      let rows = screen.getAllByTestId('tag-tree-row');
+      let rows = await screen.findAllByTestId('tag-tree-row');
       expect(rows).toHaveLength(allTags.length);
 
       await userEvent.click(screen.getByTestId(TagFilter.APPLICATION));
@@ -263,9 +260,7 @@ describe('EventTagsAndScreenshot', () => {
         organization,
       });
       expect(mockDetailedProject).toHaveBeenCalled();
-      expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
-
-      const rows = screen.getAllByTestId('tag-tree-row');
+      const rows = await screen.findAllByTestId('tag-tree-row');
       expect(rows).toHaveLength(applicationTags.length);
 
       expect(screen.queryByTestId(TagFilter.CLIENT)).not.toBeInTheDocument();

@@ -2076,7 +2076,7 @@ class TestGetIssueEventTimeseries(APITransactionTestCase, SnubaTestCase):
             # Validate return value: (data, stats_period, interval).
             assert result is not None
             timeseries_data, returned_period, returned_interval = result
-            _validate_event_timeseries(timeseries_data)
+            _validate_event_timeseries(timeseries_data, expected_total=2)
             assert returned_period == stats_period
             assert returned_interval == interval
 
@@ -2107,6 +2107,11 @@ class TestGetIssueEventTimeseries(APITransactionTestCase, SnubaTestCase):
             data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
             self.store_event(data=data, project_id=self.project.id)
 
+            # Out of range event
+            data = load_data("python", timestamp=start - timedelta(minutes=1))
+            data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+            self.store_event(data=data, project_id=self.project.id)
+
             group = event.group
             assert isinstance(group, Group)
 
@@ -2132,7 +2137,7 @@ class TestGetIssueEventTimeseries(APITransactionTestCase, SnubaTestCase):
             # Validate return value: (data, stats_period, interval).
             assert result is not None
             timeseries_data, returned_period, returned_interval = result
-            _validate_event_timeseries(timeseries_data)
+            _validate_event_timeseries(timeseries_data, expected_total=2)
             assert returned_period == stats_period
             assert returned_interval == interval
 
