@@ -266,6 +266,8 @@ class SeerExplorerClient:
         if bool(artifact_schema) != bool(artifact_key):
             raise ValueError("artifact_key and artifact_schema must be provided together")
 
+        user_org_context = collect_user_org_context(self.user, self.organization, request=request)
+
         chat_body: ExplorerChatRequest = ExplorerChatRequest(
             organization_id=self.organization.id,
             query=prompt,
@@ -273,12 +275,20 @@ class SeerExplorerClient:
             insert_index=None,
             on_page_context=on_page_context,
             page_name=page_name,
-            user_org_context=collect_user_org_context(
-                self.user, self.organization, request=request
-            ),
+            user_org_context=user_org_context,
             intelligence_level=self.intelligence_level,
             is_interactive=self.is_interactive,
             enable_coding=self.enable_coding,
+            user_auth_token=user_org_context.get("user_auth_token"),
+        )
+
+        _token = user_org_context.get("user_auth_token")
+        logger.info(
+            "seer_explorer.start_run.auth_token",
+            extra={
+                "has_token": _token is not None,
+                "token_prefix": _token[:12] + "..." if _token else None,
+            },
         )
 
         if self.max_iterations is not None:

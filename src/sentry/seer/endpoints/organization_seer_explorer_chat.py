@@ -194,6 +194,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
                     on_page_context=on_page_context,
                     page_name=page_name,
                     override_ce_enable=override_ce_enable,
+                    request=request,
                 )
 
             return Response({"run_id": result_run_id})

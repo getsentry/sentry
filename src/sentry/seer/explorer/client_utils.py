@@ -9,12 +9,13 @@ from __future__ import annotations
 
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, NotRequired, TypedDict
 
 import orjson
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.utils import timezone
 from rest_framework.request import Request
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 
@@ -68,6 +69,7 @@ class ExplorerChatRequest(TypedDict):
     metadata: NotRequired[dict[str, Any]]
     is_context_engine_enabled: NotRequired[bool]
     max_iterations: NotRequired[int]
+    user_auth_token: NotRequired[str | None]
 
 
 class ExplorerRunsRequest(TypedDict):
@@ -284,6 +286,32 @@ def collect_user_org_context(
     # Get IP address from http request, if provided
     user_ip: str | None = request.META.get("REMOTE_ADDR") if request else None
 
+    # Create a short-lived API token for Seer to call back into Sentry on behalf of the user
+    user_auth_token: str | None = None
+    try:
+        from sentry.models.apitoken import ApiToken
+        from sentry.types.token import AuthTokenType
+
+        token = ApiToken.objects.create(
+            user=user,
+            token_type=AuthTokenType.USER,
+            scoping_organization_id=organization.id,
+            scope_list=["org:read", "project:read", "event:read"],
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+        user_auth_token = token.plaintext_token
+        logger.info(
+            "seer_explorer.auth_token_created",
+            extra={
+                "user_id": user.id,
+                "org_id": organization.id,
+                "token_prefix": user_auth_token[:12] + "..." if user_auth_token else None,
+                "expires_at": str(token.expires_at),
+            },
+        )
+    except Exception:
+        logger.exception("Failed to create short-lived API token for Seer Explorer")
+
     return {
         "org_slug": organization.slug,
         "user_id": user.id,
@@ -294,6 +322,7 @@ def collect_user_org_context(
         "user_teams": user_teams,
         "user_projects": user_projects,
         "all_org_projects": all_org_projects,
+        "user_auth_token": user_auth_token,
     }
 
 
