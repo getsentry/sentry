@@ -2,7 +2,7 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {useHotkeys} from '@sentry/scraps/hotkey';
 
-// eslint-disable-next-line boundaries/entry-point
+// eslint-disable-next-line boundaries/dependencies
 import {getKeyCode} from './keyMappings';
 
 describe('useHotkeys', () => {
