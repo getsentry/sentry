@@ -35,8 +35,8 @@ EXTRA_FILE_TO_TEST_MAPPING: dict[str, list[str]] = {
     ".github/CODEOWNERS": ["tests/sentry/api/test_api_owners.py"],
 }
 
-# Tests that should always be run, even if no files are changed.
-TESTS_TO_ALWAYS_RUN: set[str] = {
+# Tests that should always be run even if not explicitly selected.
+ALWAYS_RUN_TESTS: set[str] = {
     "tests/sentry/taskworker/test_config.py",
 }
 
@@ -170,7 +170,7 @@ def main() -> int:
             affected_test_files.update(existing_changed_test_files)
 
         # Include tests that should always be run
-        affected_test_files.update(TESTS_TO_ALWAYS_RUN)
+        affected_test_files.update(ALWAYS_RUN_TESTS)
 
     # Filter out any test files found via coverage lookup that no longer exist
     # (e.g. a deleted test file that covered the same source as another changed file).
