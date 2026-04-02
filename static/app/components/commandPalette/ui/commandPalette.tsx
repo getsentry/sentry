@@ -20,12 +20,7 @@ import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
 import {Text} from '@sentry/scraps/text';
 
 import {useCommandPaletteActions} from 'sentry/components/commandPalette/context';
-import type {
-  CommandPaletteActionCallbackWithKey,
-  CommandPaletteActionGroupWithKey,
-  CommandPaletteActionLinkWithKey,
-  CommandPaletteActionWithKey,
-} from 'sentry/components/commandPalette/types';
+import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
 import {
   useCommandPaletteDispatch,
   useCommandPaletteState,
@@ -65,9 +60,7 @@ type CommandPaletteActionWithListItemType = CommandPaletteActionWithKey & {
 };
 
 interface CommandPaletteProps {
-  onAction: (
-    action: CommandPaletteActionCallbackWithKey | CommandPaletteActionLinkWithKey
-  ) => void;
+  onAction: (action: CommandPaletteActionWithKey) => void;
 }
 
 export function CommandPalette(props: CommandPaletteProps) {
@@ -84,7 +77,7 @@ export function CommandPalette(props: CommandPaletteProps) {
   }
 
   const actions = useMemo<CommandPaletteActionWithListItemType[]>(() => {
-    const virtualRoot: CommandPaletteActionGroupWithKey = {
+    const virtualRoot: CommandPaletteActionWithKey = {
       ...state.action?.value.action,
       key: 'virtual-root',
       actions:
@@ -370,7 +363,7 @@ function score(
 }
 
 function scoreTree(
-  root: CommandPaletteActionGroupWithKey,
+  root: CommandPaletteActionWithKey,
   scores: Map<
     CommandPaletteActionWithKey['key'],
     {action: CommandPaletteActionWithKey; score: {matched: boolean; score: number}}

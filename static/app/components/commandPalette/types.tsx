@@ -21,7 +21,7 @@ export interface CommandPaletteActionLink extends Action {
   to: LocationDescriptor;
 }
 
-export interface CommandPaletteActionCallback extends Action {
+interface CommandPaletteActionCallback extends Action {
   /**
    * Execute a callback when the action is selected.
    * Use the `to` prop if you want to navigate to a route.
@@ -29,7 +29,7 @@ export interface CommandPaletteActionCallback extends Action {
   onAction: () => void;
 }
 
-export interface CommandPaletteAsyncAction extends Action {
+interface CommandPaletteAsyncAction extends Action {
   /**
    * Execute a callback when the action is selected.
    * Use the `to` prop if you want to navigate to a route.
@@ -39,7 +39,7 @@ export interface CommandPaletteAsyncAction extends Action {
   ) => UseQueryOptions<any, Error, readonly CommandPaletteAction[], any>;
 }
 
-export interface CommandPaletteAsyncActionGroup extends Action {
+interface CommandPaletteAsyncActionGroup extends Action {
   actions: CommandPaletteAsyncAction[];
   resource: (
     query: string
@@ -53,30 +53,34 @@ export type CommandPaletteAction =
   | CommandPaletteAsyncAction
   | CommandPaletteAsyncActionGroup;
 
-export interface CommandPaletteActionGroup extends Action {
+interface CommandPaletteActionGroup extends Action {
   /** Nested actions to show when this action is selected */
   actions: CommandPaletteAction[];
 }
 
 // Internally, a key is added to the actions in order to track them for registration and selection.
-export type CommandPaletteActionLinkWithKey = CommandPaletteActionLink & {key: string};
-export type CommandPaletteActionCallbackWithKey = CommandPaletteActionCallback & {
+type CommandPaletteActionLinkWithKey = CommandPaletteActionLink & {key: string};
+type CommandPaletteActionCallbackWithKey = CommandPaletteActionCallback & {
   key: string;
 };
-export type CommandPaletteAsyncActionWithKey = CommandPaletteAsyncAction & {
+type CommandPaletteAsyncActionWithKey = CommandPaletteAsyncAction & {
   key: string;
 };
-export type CommandPaletteAsyncActionGroupWithKey = CommandPaletteAsyncActionGroup & {
+type CommandPaletteAsyncActionGroupWithKey = CommandPaletteAsyncActionGroup & {
+  actions: CommandPaletteActionWithKey[];
   key: string;
 };
+
 export type CommandPaletteActionWithKey =
+  // Sync actions (to, callback, group)
   | CommandPaletteActionLinkWithKey
   | CommandPaletteActionCallbackWithKey
   | CommandPaletteActionGroupWithKey
+  // Async actions
   | CommandPaletteAsyncActionWithKey
   | CommandPaletteAsyncActionGroupWithKey;
 
-export interface CommandPaletteActionGroupWithKey extends CommandPaletteActionGroup {
+interface CommandPaletteActionGroupWithKey extends CommandPaletteActionGroup {
   actions: Array<
     | CommandPaletteActionLinkWithKey
     | CommandPaletteActionCallbackWithKey

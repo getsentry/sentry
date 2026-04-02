@@ -4,8 +4,7 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
 import type {
   CommandPaletteAction,
-  CommandPaletteActionCallbackWithKey,
-  CommandPaletteActionLinkWithKey,
+  CommandPaletteActionWithKey,
 } from 'sentry/components/commandPalette/types';
 import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
 import {useCommandPaletteActions} from 'sentry/components/commandPalette/useCommandPaletteActions';
@@ -21,11 +20,13 @@ export function CommandPaletteDemo() {
   const navigate = useNavigate();
 
   const handleAction = useCallback(
-    (action: CommandPaletteActionLinkWithKey | CommandPaletteActionCallbackWithKey) => {
+    (action: CommandPaletteActionWithKey) => {
       if ('to' in action) {
         navigate(normalizeUrl(action.to));
-      } else {
+      } else if ('onAction' in action) {
         action.onAction();
+      } else {
+        // @TODO: implement async actions
       }
     },
     [navigate]

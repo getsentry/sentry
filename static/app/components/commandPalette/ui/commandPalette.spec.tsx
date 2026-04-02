@@ -25,8 +25,7 @@ import * as modalActions from 'sentry/actionCreators/modal';
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
 import type {
   CommandPaletteAction,
-  CommandPaletteActionCallbackWithKey,
-  CommandPaletteActionLinkWithKey,
+  CommandPaletteActionWithKey,
 } from 'sentry/components/commandPalette/types';
 import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
 import {useCommandPaletteActions} from 'sentry/components/commandPalette/useCommandPaletteActions';
@@ -47,11 +46,13 @@ function GlobalActionsComponent({
   const navigate = useNavigate();
 
   const handleAction = useCallback(
-    (action: CommandPaletteActionLinkWithKey | CommandPaletteActionCallbackWithKey) => {
+    (action: CommandPaletteActionWithKey) => {
       if ('to' in action) {
         navigate(action.to);
-      } else {
+      } else if ('onAction' in action) {
         action.onAction();
+      } else {
+        // @TODO: implement async actions
       }
       closeModal();
     },

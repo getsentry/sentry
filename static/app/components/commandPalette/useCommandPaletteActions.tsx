@@ -3,13 +3,7 @@ import {useEffect, useId} from 'react';
 import {slugify} from 'sentry/utils/slugify';
 
 import {useCommandPaletteRegistration} from './context';
-import type {
-  CommandPaletteAction,
-  CommandPaletteActionCallbackWithKey,
-  CommandPaletteActionLinkWithKey,
-  CommandPaletteActionWithKey,
-  CommandPaletteActionGroupWithKey,
-} from './types';
+import type {CommandPaletteAction, CommandPaletteActionWithKey} from './types';
 
 function addKeysToActions(
   id: string,
@@ -37,11 +31,7 @@ function addKeysToActions(
 function addKeysToChildActions(
   parentKey: string,
   actions: CommandPaletteAction[]
-): Array<
-  | CommandPaletteActionLinkWithKey
-  | CommandPaletteActionCallbackWithKey
-  | CommandPaletteActionGroupWithKey
-> {
+): CommandPaletteActionWithKey[] {
   return actions.map(action => {
     const actionKey = `${parentKey}::${'actions' in action ? 'group' : 'to' in action ? 'navigate' : 'callback'}:${slugify(action.display.label)}`;
 
