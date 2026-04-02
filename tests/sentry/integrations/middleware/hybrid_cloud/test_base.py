@@ -128,7 +128,7 @@ class BaseRequestParserTest(TestCase):
             assert payload.mailbox_name == "slack:0"
             assert payload.request_path
             assert payload.request_method
-            assert payload.destination_type == DestinationType.SENTRY_REGION
+            assert payload.destination_type == DestinationType.SENTRY_CELL
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_options({"codecov.forward-webhooks.rollout": 1.0})

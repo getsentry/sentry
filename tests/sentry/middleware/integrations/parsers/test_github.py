@@ -188,7 +188,7 @@ class GithubRequestParserTest(TestCase):
             request=request,
             mailbox_name=f"github:{integration.id}",
             cell_names=[cell.name],
-            destination_types={DestinationType.SENTRY_REGION: 1},
+            destination_types={DestinationType.SENTRY_CELL: 1},
         )
         assert_webhook_payloads_for_mailbox(
             request=request,
@@ -224,7 +224,7 @@ class GithubRequestParserTest(TestCase):
             request=request,
             mailbox_name=f"github:{integration.id}",
             cell_names=[cell.name],
-            destination_types={DestinationType.SENTRY_REGION: 1},
+            destination_types={DestinationType.SENTRY_CELL: 1},
         )
         with pytest.raises(
             Exception,
@@ -265,7 +265,7 @@ class GithubRequestParserTest(TestCase):
             request=request,
             mailbox_name=f"github:{integration.id}",
             cell_names=[cell.name],
-            destination_types={DestinationType.SENTRY_REGION: 1},
+            destination_types={DestinationType.SENTRY_CELL: 1},
         )
         with pytest.raises(
             Exception,
@@ -341,7 +341,7 @@ class GithubRequestParserTest(TestCase):
             request=request,
             mailbox_name=f"github:{integration.id}",
             cell_names=[cell.name],
-            destination_types={DestinationType.SENTRY_REGION: 1},
+            destination_types={DestinationType.SENTRY_CELL: 1},
         )
 
 
