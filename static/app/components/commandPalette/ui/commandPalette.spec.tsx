@@ -23,16 +23,16 @@ jest.mock('@tanstack/react-virtual', () => ({
 import {closeModal} from 'sentry/actionCreators/modal';
 import * as modalActions from 'sentry/actionCreators/modal';
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
+import {useCommandPaletteActionsRegister} from 'sentry/components/commandPalette/context';
 import type {
   CommandPaletteAction,
   CommandPaletteActionWithKey,
 } from 'sentry/components/commandPalette/types';
 import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
-import {useCommandPaletteActions} from 'sentry/components/commandPalette/useCommandPaletteActions';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 function RegisterActions({actions}: {actions: CommandPaletteAction[]}) {
-  useCommandPaletteActions(actions);
+  useCommandPaletteActionsRegister(actions);
   return null;
 }
 

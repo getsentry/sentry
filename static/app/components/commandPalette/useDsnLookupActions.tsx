@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
+import {useCommandPaletteActionsRegister} from 'sentry/components/commandPalette/context';
 import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
-import {useCommandPaletteActions} from 'sentry/components/commandPalette/useCommandPaletteActions';
 import {
   DSN_PATTERN,
   getDsnNavTargets,
@@ -52,5 +52,5 @@ export function useDsnLookupActions(query: string): void {
     }));
   }, [isDsn, data]);
 
-  useCommandPaletteActions(actions);
+  useCommandPaletteActionsRegister(actions);
 }

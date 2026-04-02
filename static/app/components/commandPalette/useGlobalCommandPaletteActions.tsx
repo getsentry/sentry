@@ -1,9 +1,15 @@
+import {useState} from 'react';
+import {
+  SentryGlobalSearch,
+  type Result as SearchResult,
+} from '@sentry-internal/global-search';
+
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
+import {useCommandPaletteActionsRegister} from 'sentry/components/commandPalette/context';
 import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
-import {useCommandPaletteActions} from 'sentry/components/commandPalette/useCommandPaletteActions';
 import {
   IconAdd,
   IconCompass,
@@ -300,9 +306,11 @@ export function useGlobalCommandPaletteActions() {
   const {mutateAsync: mutateUserOptions} = useMutateUserOptions();
   const navigationToggleAction = useNavigationToggleCollapsed();
 
+  const [search] = useState(() => new SentryGlobalSearch(['docs', 'develop']));
+
   const navPrefix = `/organizations/${organization.slug}`;
 
-  useCommandPaletteActions([
+  useCommandPaletteActionsRegister([
     ...navigateActions,
     // BEGIN ADD ACTIONS
     {
@@ -336,7 +344,7 @@ export function useGlobalCommandPaletteActions() {
             label: t('Invite Members'),
             icon: <IconUser />,
           },
-          onAction: () => openInviteMembersModal(),
+          onAction: openInviteMembersModal,
         },
       ],
     },
@@ -379,6 +387,39 @@ export function useGlobalCommandPaletteActions() {
             window.open('https://sentry.io/changelog/', '_blank', 'noreferrer'),
         },
       ],
+      resource: (query: string) => {
+        return {
+          queryKey: ['command-palette-help-search', query, search],
+          queryFn: () => {
+            return search.query(
+              query,
+              {
+                searchAllIndexes: true,
+              },
+              {
+                analyticsTags: ['source:command-palette'],
+              }
+            );
+          },
+          placeholderData: (previousData: SearchResult[]) => previousData,
+          select: (data: SearchResult[]) => {
+            const actions: CommandPaletteAction[] = [];
+
+            for (const index of data) {
+              for (const hit of index.hits) {
+                actions.push({
+                  display: {
+                    label: hit.title ?? '',
+                  },
+                  to: hit.url,
+                });
+              }
+            }
+
+            return actions;
+          },
+        };
+      },
     },
     // END HELP ACTIONS
     {

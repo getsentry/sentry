@@ -19,7 +19,10 @@ import {InnerWrap} from '@sentry/scraps/menuListItem';
 import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
 import {Text} from '@sentry/scraps/text';
 
-import {useCommandPaletteActions} from 'sentry/components/commandPalette/context';
+import {
+  useCommandPaletteActions,
+  useCommandPaletteRegistration,
+} from 'sentry/components/commandPalette/context';
 import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
 import {
   useCommandPaletteDispatch,
@@ -30,6 +33,7 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IconArrow, IconClose, IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
+import {useQueries} from 'sentry/utils/queryClient';
 import {fzf} from 'sentry/utils/search/fzf';
 import type {Theme} from 'sentry/utils/theme';
 
@@ -70,6 +74,8 @@ export function CommandPalette(props: CommandPaletteProps) {
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
 
+  const {dispatch: registerDispatch} = useCommandPaletteRegistration();
+
   // Preload the empty state image so it's ready if/when there are no results
   // Guard against non-string imports (e.g. SVG objects in test environments)
   if (typeof errorIllustration === 'string') {
@@ -105,12 +111,32 @@ export function CommandPalette(props: CommandPaletteProps) {
     return flattenActions(virtualRoot, scores);
   }, [allActions, state.action, state.query]);
 
-  const filteredActionCount = useMemo(
-    () => actions.filter(a => a.listItemType === 'action').length,
-    [actions]
-  );
+  const analytics = useCommandPaletteAnalytics(actions.length);
 
-  const analytics = useCommandPaletteAnalytics(filteredActionCount);
+  const queryOptions = useMemo(() => {
+    const options = actions
+      .filter(action => 'resource' in action)
+      .map(action => {
+        return action.resource(state.query);
+      });
+
+    return options;
+  }, [actions, state.query]);
+
+  const queries = useQueries({
+    queries: queryOptions,
+  });
+
+  useLayoutEffect(() => {
+    if (!queries.length) {
+      return;
+    }
+    if (queries.some(query => query.isFetching)) {
+      return;
+    }
+
+    // @TODO: implement register and cleanup here
+  }, [queries, registerDispatch, queryOptions]);
 
   const sectionKeys = useMemo(() => {
     return new Set(
@@ -455,6 +481,7 @@ function flattenActions(
         action => scores?.get(action.key)?.score.matched
       );
 
+      // @TODO: If this is an async action, then we need to collect it so that we can fire the query
       if (!resultActions.length) {
         return [];
       }
