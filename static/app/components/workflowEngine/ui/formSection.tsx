@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 type FormSectionProps = {
@@ -10,6 +10,7 @@ type FormSectionProps = {
   className?: string;
   defaultExpanded?: boolean;
   description?: React.ReactNode;
+  step?: number;
   trailingItems?: React.ReactNode;
 };
 
@@ -18,6 +19,7 @@ export function FormSection({
   className,
   title,
   description,
+  step,
   trailingItems,
   defaultExpanded = true,
 }: FormSectionProps) {
@@ -30,17 +32,20 @@ export function FormSection({
       className={className}
     >
       <Disclosure.Title trailingItems={trailingItems}>
-        <Heading as="h3">{title}</Heading>
+        <Heading as="h3">
+          {step ? `${step}. ` : ''}
+          {title}
+        </Heading>
       </Disclosure.Title>
       <Disclosure.Content>
-        <Flex direction="column" gap="md">
+        <Stack gap="lg">
           {description && (
             <FormSectionDescription as="p" variant="secondary">
               {description}
             </FormSectionDescription>
           )}
-          {children}
-        </Flex>
+          <Stack gap="md">{children}</Stack>
+        </Stack>
       </Disclosure.Content>
     </Disclosure>
   );

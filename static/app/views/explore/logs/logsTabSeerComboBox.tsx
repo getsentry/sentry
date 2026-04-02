@@ -55,6 +55,7 @@ export function LogsTabSeerComboBox() {
   const organization = useOrganization();
   const analyticsArea = useAnalyticsArea();
   const queryParams = useQueryParams();
+  const analyticsArea = useAnalyticsArea();
   const {
     currentInputValueRef,
     query,
@@ -241,6 +242,12 @@ export function LogsTabSeerComboBox() {
         mode,
       });
 
+      trackAnalytics('ai_query.applied', {
+        organization,
+        area: analyticsArea,
+        query: queryToUse,
+        group_by_count: groupBys.length,
+      });
       trackAnalytics('ai_query.applied', {
         organization,
         area: analyticsArea,

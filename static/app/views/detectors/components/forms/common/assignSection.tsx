@@ -27,12 +27,12 @@ function AssigneeField({projectId}: {projectId?: string}) {
   );
 }
 
-export function AssignSection() {
+export function AssignSection({step}: {step?: number}) {
   const projectId = useFormField<string>('projectId');
 
   return (
     <Container>
-      <FormSection title={t('Assign')}>
+      <FormSection step={step} title={t('Assign')}>
         <AssigneeField projectId={projectId} />
       </FormSection>
     </Container>

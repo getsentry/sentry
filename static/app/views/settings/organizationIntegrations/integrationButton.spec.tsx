@@ -102,4 +102,31 @@ describe('AddIntegrationButton', () => {
 
     await userEvent.click(screen.getByText('Add Installation'));
   });
+
+  it('renders Enable Integration button when directEnable aspect is set and canAdd is true', () => {
+    provider.canAdd = true;
+    provider.metadata.aspects = {directEnable: true};
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/integrations/direct-enable/${provider.slug}/`,
+      method: 'POST',
+      body: {},
+    });
+
+    render(getComponent(), {organization: org});
+
+    expect(screen.getByRole('button', {name: 'Enable Integration'})).toBeInTheDocument();
+  });
+
+  it('renders nothing when directEnable aspect is set and canAdd is false (already installed)', () => {
+    provider.canAdd = false;
+    provider.metadata.aspects = {directEnable: true};
+
+    render(getComponent(), {organization: org});
+
+    expect(
+      screen.queryByRole('button', {name: 'Enable Integration'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
 });

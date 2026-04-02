@@ -1,4 +1,5 @@
 from sentry.integrations.slack.spec import SlackMessagingSpec
+from sentry.integrations.slack.staging.spec import SlackStagingMessagingSpec
 
 from .actions.form import *  # noqa: F401,F403
 from .actions.notification import *  # noqa: F401,F403
@@ -42,3 +43,4 @@ from .webhooks.command import *  # noqa: F401,F403
 from .webhooks.event import *  # noqa: F401,F403
 
 SlackMessagingSpec().initialize()
+SlackStagingMessagingSpec().initialize()

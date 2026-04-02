@@ -203,6 +203,7 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
     currentInputValueRef,
     disallowLogicalOperators,
   } = useSearchQueryBuilder();
+  const analyticsArea = useAnalyticsArea();
   const {sectionedItems} = useFilterKeyItems();
   const recentFilters = useRecentSearchFilters();
   const {data: recentSearches} = useRecentSearches();
@@ -426,6 +427,11 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
           area: analyticsArea,
           action: 'opened',
         });
+        trackAnalytics('ai_query.interface', {
+          organization,
+          area: analyticsArea,
+          action: 'opened',
+        });
         setDisplayAskSeer(true);
 
         if (currentInputValueRef.current?.trim()) {
@@ -438,6 +444,11 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
       }
 
       if (option.type === 'ask-seer-consent') {
+        trackAnalytics('ai_query.interface', {
+          organization,
+          area: analyticsArea,
+          action: 'consent_accepted',
+        });
         trackAnalytics('ai_query.interface', {
           organization,
           area: analyticsArea,

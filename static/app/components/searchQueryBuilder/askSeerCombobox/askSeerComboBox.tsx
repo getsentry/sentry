@@ -145,8 +145,8 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     isError,
   } = useMutation({
     ...props.askSeerMutationOptions,
-    onError: (error, variables, context) => {
-      props.askSeerMutationOptions.onError?.(error, variables, context);
+    onError: (error, variables, onMutateResult, context) => {
+      props.askSeerMutationOptions.onError?.(error, variables, onMutateResult, context);
       addErrorMessage(t('Failed to process AI query: %(error)s', {error: error.message}));
       trackAnalytics('ai_query.error', {
         organization,
@@ -206,6 +206,12 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
       if (typeof key !== 'string') return;
 
       if (key === 'none-of-these') {
+        trackAnalytics('ai_query.rejected', {
+          organization,
+          area: analyticsArea,
+          natural_language_query: searchQuery,
+          num_queries_returned: data?.queries?.length ?? 0,
+        });
         trackAnalytics('ai_query.rejected', {
           organization,
           area: analyticsArea,
@@ -282,6 +288,11 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
                 area: analyticsArea,
                 action: 'closed',
               });
+              trackAnalytics('ai_query.interface', {
+                organization,
+                area: analyticsArea,
+                action: 'closed',
+              });
               setDisplayAskSeerFeedback(false);
               setDisplayAskSeer(false);
             }
@@ -290,6 +301,12 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
             return;
           case 'Enter':
             if (state.isOpen && state.selectionManager.focusedKey === 'none-of-these') {
+              trackAnalytics('ai_query.rejected', {
+                organization,
+                area: analyticsArea,
+                natural_language_query: searchQuery,
+                num_queries_returned: data?.queries?.length ?? 0,
+              });
               trackAnalytics('ai_query.rejected', {
                 organization,
                 area: analyticsArea,
@@ -321,6 +338,11 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
               searchQuery.trim() !== null &&
               searchQuery.trim() !== ''
             ) {
+              trackAnalytics('ai_query.submitted', {
+                organization,
+                area: analyticsArea,
+                natural_language_query: searchQuery.trim(),
+              });
               trackAnalytics('ai_query.submitted', {
                 organization,
                 area: analyticsArea,
@@ -391,6 +413,11 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
         area: analyticsArea,
         natural_language_query: searchQuery.trim(),
       });
+      trackAnalytics('ai_query.submitted', {
+        organization,
+        area: analyticsArea,
+        natural_language_query: searchQuery.trim(),
+      });
       submitQuery(searchQuery.trim());
       setAutoSubmitSeer(false);
     }
@@ -431,6 +458,11 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
           icon={<IconClose />}
           onFocus={() => !state.isOpen && state.open()}
           onClick={() => {
+            trackAnalytics('ai_query.interface', {
+              organization,
+              area: analyticsArea,
+              action: 'closed',
+            });
             trackAnalytics('ai_query.interface', {
               organization,
               area: analyticsArea,

@@ -22,6 +22,7 @@ export const ASK_SEER_ITEM_KEY = 'ask_seer';
 export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
   const ref = useRef<HTMLDivElement>(null);
   const {setDisplayAskSeer, aiSearchBadgeType} = useSearchQueryBuilder();
+  const analyticsArea = useAnalyticsArea();
 
   const organization = useOrganization();
   const analyticsArea = useAnalyticsArea();
@@ -42,6 +43,11 @@ export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
 
   const handleClick = () => {
     if (optionDisableOverride) return;
+    trackAnalytics('ai_query.interface', {
+      organization,
+      area: analyticsArea,
+      action: 'opened',
+    });
     trackAnalytics('ai_query.interface', {
       organization,
       area: analyticsArea,

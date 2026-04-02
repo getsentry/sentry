@@ -266,6 +266,13 @@ export function SpansTabSeerComboBox() {
         group_by_count: groupBys.length,
         visualize_count: visualizations.length,
       });
+      trackAnalytics('ai_query.applied', {
+        organization,
+        area: analyticsArea,
+        query: queryToUse,
+        group_by_count: groupBys.length,
+        visualize_count: visualizations.length,
+      });
       navigate(url, {replace: true, preventScrollReset: true});
     },
     [

@@ -71,6 +71,7 @@ describe('ProjectDetail', () => {
 
   it('Render an error if project not found', async () => {
     ProjectsStore.loadInitialData([{...project, slug: 'different-slug'}]);
+    setupMockResponses();
 
     render(<ProjectDetail />, {
       organization,

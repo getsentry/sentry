@@ -11,15 +11,18 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
-from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute
+from sentry.models.group import Group
+from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute, ResolvedColumn
 from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import AdditionalQueries, EAPResponse, SearchResolverConfig
-from sentry.search.events.types import SAMPLING_MODES, SnubaParams
+from sentry.search.events.types import SAMPLING_MODES, SnubaData, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.utils.snuba import process_value
 
 logger = logging.getLogger(__name__)
+
+UNKNOWN_ISSUE = "UNKNOWN"
 
 
 class OccurrenceCategory(Enum):
@@ -244,6 +247,48 @@ class Occurrences(rpc_dataset_common.RPCBase):
             results.extend(time_dict.values())
 
         return results
+
+    @classmethod
+    def _fetch_issue_labels(
+        cls,
+        group_ids: list[int | None],
+        project_ids: list[int],
+    ) -> dict[int, str]:
+        resultant_map: dict[int, str] = {}
+        grp_ids: set[int] = set({grp_id for grp_id in (group_ids or []) if grp_id})
+        qs = Group.objects.filter(pk__in=grp_ids, project_id__in=project_ids).select_related(
+            "project"
+        )
+        for grp in qs:
+            resultant_map[grp.id] = grp.qualified_short_id or UNKNOWN_ISSUE
+        return resultant_map
+
+    @classmethod
+    def process_column_values(
+        cls,
+        column_value: Any,
+        final_data: SnubaData,
+        attribute: Any,
+        resolved_column: ResolvedColumn,
+        **context_kwargs: Any,
+    ) -> None:
+        if attribute == "issue":
+            group_ids: list[int | None] = [
+                getattr(result, str(result.WhichOneof("value"))) if not result.is_null else None
+                for result in column_value.results
+            ]
+            group_id_to_issue_map = cls._fetch_issue_labels(
+                group_ids, context_kwargs.get("project_ids", [])
+            )
+            for index, group_id in enumerate(group_ids):
+                issue_label = UNKNOWN_ISSUE
+                if group_id and group_id in group_id_to_issue_map:
+                    issue_label = group_id_to_issue_map[group_id]
+                final_data[index][attribute] = issue_label
+        else:
+            super().process_column_values(
+                column_value, final_data, attribute, resolved_column, **context_kwargs
+            )
 
     @classmethod
     def _build_category_filter(cls, category: OccurrenceCategory | None) -> TraceItemFilter | None:

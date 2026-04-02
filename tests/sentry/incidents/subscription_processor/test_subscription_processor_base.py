@@ -200,7 +200,13 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
             subscription = self.sub
         message = self.build_subscription_update(subscription, value=value, time_delta=time_delta)
         with (
-            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.feature(
+                [
+                    "organizations:incidents",
+                    "organizations:performance-view",
+                    "organizations:visibility-explore-view",
+                ]
+            ),
             self.capture_on_commit_callbacks(execute=True),
         ):
             return SubscriptionProcessor.process(subscription, message)
@@ -220,7 +226,13 @@ class TestSubscriptionProcessorLastUpdate(ProcessUpdateBaseClass):
         )
 
         with (
-            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.feature(
+                [
+                    "organizations:incidents",
+                    "organizations:performance-view",
+                    "organizations:visibility-explore-view",
+                ]
+            ),
             self.capture_on_commit_callbacks(execute=True),
         ):
             result = SubscriptionProcessor.process(self.sub, old_update_message)
@@ -250,7 +262,13 @@ class TestSubscriptionProcessorLastUpdate(ProcessUpdateBaseClass):
 
         message = self.build_subscription_update(subscription_without_detector, value=100)
         with (
-            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.feature(
+                [
+                    "organizations:incidents",
+                    "organizations:performance-view",
+                    "organizations:visibility-explore-view",
+                ]
+            ),
             self.capture_on_commit_callbacks(execute=True),
         ):
             result = SubscriptionProcessor.process(subscription_without_detector, message)
