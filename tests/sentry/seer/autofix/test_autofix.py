@@ -25,7 +25,12 @@ from sentry.seer.autofix.autofix import (
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.types import AutofixSelectRootCausePayload
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree
-from sentry.seer.models import SeerApiError, SeerProjectPreference, SeerRawPreferenceResponse
+from sentry.seer.models import (
+    SeerApiError,
+    SeerProjectPreference,
+    SeerRawPreferenceResponse,
+    SeerRepoDefinition,
+)
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -1039,19 +1044,19 @@ class TestResolveProjectPreference(TestCase):
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
 
-    def _mock_repo(self, name: str = "sentry", external_id: str = "123") -> dict:
-        return {
-            "provider": "integrations:github",
-            "owner": "getsentry",
-            "name": name,
-            "external_id": external_id,
-        }
+    def _mock_repo(self, name: str = "sentry", external_id: str = "123") -> SeerRepoDefinition:
+        return SeerRepoDefinition(
+            provider="integrations:github",
+            owner="getsentry",
+            name=name,
+            external_id=external_id,
+        )
 
     def _mock_preference(
         self,
         organization_id: int,
         project_id: int,
-        repos: list[dict] | None = None,
+        repos: list[SeerRepoDefinition] | None = None,
         stopping_point: str = "CODE_CHANGES",
     ) -> SeerProjectPreference:
         return SeerProjectPreference(
@@ -1118,7 +1123,7 @@ class TestResolveProjectPreference(TestCase):
     @patch("sentry.seer.autofix.autofix.set_project_seer_preference")
     @patch("sentry.seer.autofix.autofix.get_project_seer_preferences")
     def test_returns_none_on_get_api_error(self, mock_get_prefs, mock_set_pref, mock_write_sentry):
-        mock_get_prefs.side_effect = SeerApiError()
+        mock_get_prefs.side_effect = SeerApiError("test error", 500)
 
         result = _resolve_project_preference(self.organization, self.project, [self._mock_repo()])
 
@@ -1138,7 +1143,7 @@ class TestResolveProjectPreference(TestCase):
                 stopping_point="ROOT_CAUSE",
             )
         )
-        mock_set_pref.side_effect = SeerApiError()
+        mock_set_pref.side_effect = SeerApiError("test error", 500)
 
         result = _resolve_project_preference(self.organization, self.project, [self._mock_repo()])
 
