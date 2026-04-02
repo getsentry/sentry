@@ -40,15 +40,15 @@ function getContactSupportItem(organization: Organization): MenuItemProps | null
     return null;
   }
 
-  const useIntercom = organization.features.includes('intercom-support');
+  const hasIntercom = organization.features.includes('intercom-support');
 
-  // Use Intercom if feature flag is enabled (SDK handles initialization)
-  if (useIntercom) {
+  // Use Intercom if feature flag is enabled (lazily initialized on first click)
+  if (hasIntercom) {
     return {
       key: 'support',
       label: t('Contact Support'),
       onAction() {
-        showIntercom();
+        showIntercom(organization.slug);
         trackAnalytics('intercom_link.clicked', {
           organization,
           source: 'sidebar',

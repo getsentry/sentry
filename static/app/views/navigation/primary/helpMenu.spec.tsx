@@ -43,7 +43,7 @@ describe('PrimaryNavigationHelpMenu', () => {
     // Click Contact Support in the menu
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Contact Support'}));
 
-    expect(intercom.showIntercom).toHaveBeenCalled();
+    expect(intercom.showIntercom).toHaveBeenCalledWith(organization.slug);
     expect(zendesk.activateZendesk).not.toHaveBeenCalled();
   });
 
