@@ -1032,9 +1032,8 @@ def dispatch_taskbroker(project_id: int, org_id: int, artifact_id: int) -> bool:
             organization_id=str(org_id),
         )
         return True
-    except Exception as e:
+    except Exception:
         user_friendly_error_message = "Failed to dispatch preprod artifact event for analysis"
-        sentry_sdk.capture_exception(e)
         logger.exception(
             user_friendly_error_message,
             extra={
