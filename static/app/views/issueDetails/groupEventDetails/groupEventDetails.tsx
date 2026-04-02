@@ -132,11 +132,7 @@ function GroupEventDetails() {
     if (group.status === 'ignored') {
       return (
         <GroupStatusBannerWrapper>
-          <ArchivedBox
-            substatus={group.substatus}
-            statusDetails={group.statusDetails}
-            organization={organization}
-          />
+          <ArchivedBox substatus={group.substatus} statusDetails={group.statusDetails} />
         </GroupStatusBannerWrapper>
       );
     }
@@ -148,7 +144,6 @@ function GroupEventDetails() {
             statusDetails={group.statusDetails}
             activities={group.activity}
             project={project}
-            organization={organization}
           />
         </GroupStatusBannerWrapper>
       );

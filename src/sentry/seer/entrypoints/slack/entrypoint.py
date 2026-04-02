@@ -349,12 +349,10 @@ class SlackExplorerEntrypoint(
     ):
         from sentry.integrations.services.integration import integration_service
         from sentry.integrations.slack.integration import SlackIntegration
-        from sentry.integrations.types import IntegrationProviderSlug
 
         integration = integration_service.get_integration(
             integration_id=integration_id,
             organization_id=organization_id,
-            provider=IntegrationProviderSlug.SLACK.value,
             status=ObjectStatus.ACTIVE,
         )
         if not integration:

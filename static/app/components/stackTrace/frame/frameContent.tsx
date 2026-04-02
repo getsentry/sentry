@@ -2,7 +2,7 @@ import {Activity, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container, Grid} from '@sentry/scraps/layout';
+import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -47,11 +47,6 @@ export function FrameContent({sourceLineCoverage = []}: FrameContentProps) {
   }
 
   const contextLines = isExpanded ? (frame.context ?? []) : [];
-  const maxLineNumber = contextLines.reduce(
-    (max, [lineNo]) => Math.max(max, lineNo ?? 0),
-    0
-  );
-  const lineNumberDigits = String(maxLineNumber).length;
   const fileExtension = isExpanded ? (getFileExtension(frame.filename ?? '') ?? '') : '';
   const prismLines = usePrismTokensSourceContext({
     contextLines,
@@ -89,7 +84,6 @@ export function FrameContent({sourceLineCoverage = []}: FrameContentProps) {
               <FrameSourceRow
                 key={`${lineNumber}-${lineIndex}`}
                 isActive={lineNumber === frame.lineNo}
-                lineNumberDigits={lineNumberDigits}
               >
                 <Tooltip
                   skipWrapper
@@ -158,16 +152,16 @@ export function FrameContent({sourceLineCoverage = []}: FrameContentProps) {
 
 const FrameSourceGrid = styled('div')`
   display: grid;
+  grid-template-columns: minmax(min-content, max-content) 1fr;
   width: 100%;
   min-width: 0;
 `;
 
-const FrameSourceRow = styled(Grid)<{isActive: boolean; lineNumberDigits: number}>`
-  grid-template-columns:
-    calc(${p => Math.max(p.lineNumberDigits, 3) + 1}ch)
-    1fr;
+const FrameSourceRow = styled('div')<{isActive: boolean}>`
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   align-items: start;
-  column-gap: ${p => p.theme.space.sm};
   min-width: 0;
   background: ${p => (p.isActive ? p.theme.tokens.background.secondary : 'transparent')};
 `;
@@ -186,8 +180,7 @@ const FrameSourceLineNumber = styled('div')<{
   line-height: 1.8;
   text-align: right;
   user-select: none;
-  padding-left: ${p => p.theme.space.xs};
-  padding-right: ${p => p.theme.space.xs};
+  padding-inline: 1ch;
   border-right: 3px solid transparent;
 
   ${p =>
@@ -242,8 +235,9 @@ const FrameSourceCode = styled('code')`
   line-height: 1.8;
   display: block;
   min-width: 0;
+  padding-inline: 1ch;
   background: transparent;
-  padding: 0;
+  padding-block: 0;
   border-radius: 0;
 
   && {

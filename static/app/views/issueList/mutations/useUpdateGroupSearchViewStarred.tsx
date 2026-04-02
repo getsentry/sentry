@@ -37,11 +37,11 @@ export const useUpdateGroupSearchViewStarred = (
           data: {starred},
         }
       ),
-    onError: (error, variables, context) => {
+    onError: (error, variables, onMutateResult, context) => {
       addErrorMessage(
         variables.starred ? t('Failed to star view') : t('Failed to unstar view')
       );
-      options.onError?.(error, variables, context);
+      options.onError?.(error, variables, onMutateResult, context);
     },
     onSettled: (...args) => {
       queryClient.invalidateQueries({

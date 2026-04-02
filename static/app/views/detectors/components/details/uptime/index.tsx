@@ -8,7 +8,7 @@ import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {Placeholder} from 'sentry/components/placeholder';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
-import {Section} from 'sentry/components/workflowEngine/ui/section';
+import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
@@ -68,7 +68,7 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
           />
           <DetailsTimeline uptimeDetector={detector} onStatsLoaded={checkHasUnknown} />
           <DetectorDetailsOngoingIssues detector={detector} dateTimeSelection={null} />
-          <Section title={t('Recent Check-Ins')}>
+          <DetailSection title={t('Recent Check-Ins')}>
             <div>
               <UptimeChecksTable
                 detectorId={detector.id}
@@ -76,11 +76,11 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
                 traceSampling={detector.dataSources[0].queryObj.traceSampling}
               />
             </div>
-          </Section>
+          </DetailSection>
           <DetectorDetailsAutomations detector={detector} />
         </DetailLayout.Main>
         <DetailLayout.Sidebar>
-          <Section title={t('Detect')}>
+          <DetailSection title={t('Detect')}>
             <div>
               {tn(
                 '%s failed check.',
@@ -91,19 +91,19 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
             <CodeBlock
               hideCopyButton
             >{`${dataSource.queryObj.method} ${dataSource.queryObj.url}`}</CodeBlock>
-          </Section>
-          <Section title={t('Resolve')}>
+          </DetailSection>
+          <DetailSection title={t('Resolve')}>
             {tn(
               '%s successful check.',
               '%s consecutive successful checks.',
               detector.config.recoveryThreshold
             )}
-          </Section>
-          <Section title={t('Legend')}>
+          </DetailSection>
+          <DetailSection title={t('Legend')}>
             <DetailsTimelineLegend showMissedLegend={showMissedLegend} />
-          </Section>
+          </DetailSection>
           <Grid columns="max-content max-content" gap="3xl">
-            <Section title={t('Duration')}>
+            <DetailSection title={t('Duration')}>
               {summary === undefined ? (
                 <Text size="xl">
                   <Placeholder width="60px" height="1lh" />
@@ -113,8 +113,8 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
               ) : (
                 <UptimeDuration size="xl" summary={summary} />
               )}
-            </Section>
-            <Section title={t('Uptime')}>
+            </DetailSection>
+            <DetailSection title={t('Uptime')}>
               {summary === undefined ? (
                 <Text size="xl">
                   <Placeholder width="60px" height="1lh" />
@@ -130,7 +130,7 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
                   )}
                 />
               )}
-            </Section>
+            </DetailSection>
           </Grid>
           <DetectorDetailsAssignee owner={detector.owner} />
           <DetectorDetailsDescription description={detector.description} />

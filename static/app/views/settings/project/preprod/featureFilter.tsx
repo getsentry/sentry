@@ -88,6 +88,7 @@ export function FeatureFilter({
   const queryParams: Record<string, string | number> = {
     per_page: EXAMPLE_BUILDS_COUNT,
     project: project.id,
+    display: display ?? PreprodBuildsDisplay.SIZE,
   };
 
   if (localQuery) {

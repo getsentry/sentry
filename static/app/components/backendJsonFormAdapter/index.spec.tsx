@@ -109,9 +109,10 @@ describe('BackendJsonFormAdapter', () => {
     await userEvent.click(screen.getByRole('checkbox'));
 
     await waitFor(() => {
-      expect(mutationOptions.mutationFn).toHaveBeenCalledWith({
-        sync_enabled: true,
-      });
+      expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
+        {sync_enabled: true},
+        expect.anything()
+      );
     });
   });
 

@@ -14,7 +14,6 @@ from .rules.utils import (
     RuleType,
     get_enabled_user_biases,
     get_redis_client_for_ds,
-    get_rule_hash,
     get_supported_biases_ids,
     get_user_biases,
 )
@@ -25,7 +24,6 @@ __all__ = [
     "get_user_biases",
     "get_enabled_user_biases",
     "get_redis_client_for_ds",
-    "get_rule_hash",
     "record_latest_release",
     "RuleType",
     "ExtendedBoostedRelease",

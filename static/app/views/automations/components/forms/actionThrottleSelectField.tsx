@@ -4,7 +4,7 @@ import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {t} from 'sentry/locale';
 
 const FREQUENCY_OPTIONS = [
-  {value: 0, label: t('0 minutes')},
+  {value: 0, label: t('Get notified on every trigger')},
   {value: 5, label: t('5 minutes')},
   {value: 10, label: t('10 minutes')},
   {value: 30, label: t('30 minutes')},
@@ -21,7 +21,7 @@ type ActionIntervalSelectFieldProps = {
   label?: string;
 };
 
-export function ActionIntervalSelectField(props: ActionIntervalSelectFieldProps) {
+export function ActionThrottleSelectField(props: ActionIntervalSelectFieldProps) {
   return (
     <EmbeddedSelectField
       required
@@ -29,7 +29,7 @@ export function ActionIntervalSelectField(props: ActionIntervalSelectFieldProps)
       inline={false}
       clearable={false}
       options={FREQUENCY_OPTIONS}
-      label={t('Action Interval')}
+      label={t('Action Throttle')}
       {...props}
     />
   );

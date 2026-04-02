@@ -1,5 +1,6 @@
 import copy
 import math
+from contextlib import contextmanager
 from datetime import timedelta
 from functools import cached_property
 from unittest.mock import MagicMock, call, patch
@@ -11,8 +12,9 @@ from django.utils import timezone
 from urllib3.response import HTTPResponse
 
 from sentry.constants import ObjectStatus
-from sentry.incidents.subscription_processor import SubscriptionProcessor
+from sentry.incidents.subscription_processor import SubscriptionProcessor, has_downgraded
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
+from sentry.models.organization import Organization
 from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionSeasonality,
     AnomalyDetectionSensitivity,
@@ -63,33 +65,17 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.sub.project.delete()
         assert self.send_update(self.critical_threshold + 1) is False
 
-    @patch("sentry.incidents.subscription_processor.metrics")
-    def test_has_downgraded_incidents(self, mock_metrics: MagicMock) -> None:
+    @patch("sentry.incidents.subscription_processor.has_downgraded", return_value=True)
+    def test_process_update_returns_false_when_downgraded(
+        self, mock_has_downgraded: MagicMock
+    ) -> None:
         message = self.build_subscription_update(
             self.sub, value=self.critical_threshold + 1, time_delta=timedelta()
         )
 
         with self.capture_on_commit_callbacks(execute=True):
             assert SubscriptionProcessor.process(self.sub, message) is False
-            mock_metrics.incr.assert_has_calls(
-                [call("incidents.alert_rules.ignore_update_missing_incidents")]
-            )
-
-    @patch("sentry.incidents.subscription_processor.metrics")
-    def test_has_downgraded_incidents_performance(self, mock_metrics: MagicMock) -> None:
-        snuba_query = self.get_snuba_query(self.detector)
-        snuba_query.update(time_window=15 * 60, dataset=Dataset.Transactions.value)
-        snuba_query.save()
-
-        message = self.build_subscription_update(
-            self.sub, value=self.critical_threshold + 1, time_delta=timedelta()
-        )
-
-        with self.capture_on_commit_callbacks(execute=True):
-            assert SubscriptionProcessor.process(self.sub, message) is False
-            mock_metrics.incr.assert_has_calls(
-                [call("incidents.alert_rules.ignore_update_missing_incidents_performance")]
-            )
+        mock_has_downgraded.assert_called_once()
 
     @patch("sentry.incidents.subscription_processor.metrics")
     def test_invalid_aggregation_value(self, mock_metrics: MagicMock) -> None:
@@ -100,22 +86,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
         )
-
-    @patch("sentry.incidents.subscription_processor.metrics")
-    def test_has_downgraded_on_demand(self, mock_metrics: MagicMock) -> None:
-        snuba_query = self.get_snuba_query(self.detector)
-        snuba_query.update(time_window=15 * 60, dataset=Dataset.PerformanceMetrics.value)
-        snuba_query.save()
-
-        message = self.build_subscription_update(
-            self.sub, value=self.critical_threshold + 1, time_delta=timedelta()
-        )
-
-        with self.capture_on_commit_callbacks(execute=True):
-            assert SubscriptionProcessor.process(self.sub, message) is False
-            mock_metrics.incr.assert_has_calls(
-                [call("incidents.alert_rules.ignore_update_missing_on_demand")]
-            )
 
     @patch("sentry.incidents.subscription_processor.metrics")
     def test_skip_already_processed_update(self, mock_metrics: MagicMock) -> None:
@@ -1041,4 +1011,93 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
             [
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
+        )
+
+
+@patch("sentry.incidents.subscription_processor.metrics")
+class TestHasDowngraded:
+    org = MagicMock(spec=Organization)
+
+    @contextmanager
+    def fake_features(self, enabled: set[str]):
+        with patch("sentry.incidents.subscription_processor.features") as mock_features:
+            mock_features.has.side_effect = lambda name, *a, **kw: name in enabled
+            yield
+
+    def test_events_without_incidents_feature(self, mock_metrics: MagicMock) -> None:
+        with self.fake_features(set()):
+            assert has_downgraded(Dataset.Events.value, self.org) is True
+        mock_metrics.incr.assert_called_with(
+            "incidents.alert_rules.ignore_update_missing_incidents"
+        )
+
+    def test_events_with_incidents_feature(self, mock_metrics: MagicMock) -> None:
+        with self.fake_features({"organizations:incidents"}):
+            assert has_downgraded(Dataset.Events.value, self.org) is False
+
+    def test_transactions_without_any_features(self, mock_metrics: MagicMock) -> None:
+        with self.fake_features(set()):
+            assert has_downgraded(Dataset.Transactions.value, self.org) is True
+        mock_metrics.incr.assert_called_with(
+            "incidents.alert_rules.ignore_update_missing_incidents_performance"
+        )
+
+    def test_transactions_with_only_performance_view(self, mock_metrics: MagicMock) -> None:
+        with self.fake_features({"organizations:performance-view"}):
+            assert has_downgraded(Dataset.Transactions.value, self.org) is True
+        mock_metrics.incr.assert_called_with(
+            "incidents.alert_rules.ignore_update_missing_incidents_performance"
+        )
+
+    def test_transactions_with_both_features(self, mock_metrics: MagicMock) -> None:
+        with self.fake_features({"organizations:incidents", "organizations:performance-view"}):
+            assert has_downgraded(Dataset.Transactions.value, self.org) is False
+
+    def test_eap_without_features(self, mock_metrics: MagicMock) -> None:
+        with self.fake_features(set()):
+            assert has_downgraded(Dataset.EventsAnalyticsPlatform.value, self.org) is True
+        mock_metrics.incr.assert_called_with(
+            "incidents.alert_rules.ignore_update_missing_incidents_eap"
+        )
+
+    def test_eap_with_only_explore_view(self, mock_metrics: MagicMock) -> None:
+        with self.fake_features({"organizations:visibility-explore-view"}):
+            assert has_downgraded(Dataset.EventsAnalyticsPlatform.value, self.org) is True
+        mock_metrics.incr.assert_called_with(
+            "incidents.alert_rules.ignore_update_missing_incidents_eap"
+        )
+
+    def test_eap_with_both_features(self, mock_metrics: MagicMock) -> None:
+        with self.fake_features(
+            {"organizations:incidents", "organizations:visibility-explore-view"}
+        ):
+            assert has_downgraded(Dataset.EventsAnalyticsPlatform.value, self.org) is False
+
+    def test_performance_metrics_without_on_demand_feature(self, mock_metrics: MagicMock) -> None:
+        with self.fake_features(set()):
+            assert has_downgraded(Dataset.PerformanceMetrics.value, self.org) is True
+        mock_metrics.incr.assert_called_with(
+            "incidents.alert_rules.ignore_update_missing_on_demand"
+        )
+
+    def test_performance_metrics_with_on_demand_feature(self, mock_metrics: MagicMock) -> None:
+        with self.fake_features({"organizations:on-demand-metrics-extraction"}):
+            assert has_downgraded(Dataset.PerformanceMetrics.value, self.org) is False
+
+    def test_unknown_dataset_not_downgraded(self, mock_metrics: MagicMock) -> None:
+        with self.fake_features(set()):
+            assert has_downgraded("unknown_dataset", self.org) is False
+        mock_metrics.incr.assert_called_with(
+            "incidents.alert_rules.no_incidents_not_downgraded",
+            sample_rate=1.0,
+            tags={"dataset": "unknown_dataset"},
+        )
+
+    def test_no_incidents_not_downgraded_emits_metric(self, mock_metrics: MagicMock) -> None:
+        with self.fake_features({"organizations:on-demand-metrics-extraction"}):
+            assert has_downgraded(Dataset.PerformanceMetrics.value, self.org) is False
+        mock_metrics.incr.assert_called_with(
+            "incidents.alert_rules.no_incidents_not_downgraded",
+            sample_rate=1.0,
+            tags={"dataset": Dataset.PerformanceMetrics.value},
         )

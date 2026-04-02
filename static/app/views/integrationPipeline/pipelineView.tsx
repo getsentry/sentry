@@ -99,7 +99,7 @@ export function PipelineView({pipelineName, ...props}: Props) {
     window.superUserCookieName = data.superUserCookieName;
     window.superUserCookieDomain = data.superUserCookieDomain ?? undefined;
 
-    // eslint-disable-next-line boundaries/element-types -- getsentry entrypoint
+    // eslint-disable-next-line boundaries/dependencies -- getsentry entrypoint
     const registerHooksImport = import('getsentry/registerHooks');
     const {registerHooks} = await registerHooksImport;
     registerHooks();
