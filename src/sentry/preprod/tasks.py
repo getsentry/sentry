@@ -167,13 +167,13 @@ def assemble_preprod_artifact(
 
     if features.has("organizations:launchpad-taskbroker-rollout", organization):
         _dispatch_taskbroker_shadow(project_id, org_id, artifact_id)
-
-    kafka_dispatched = _dispatch_kafka(project_id, org_id, artifact_id, checksum)
-    if not kafka_dispatched:
-        return
+    else:
+        kafka_dispatched = _dispatch_kafka(project_id, org_id, artifact_id, checksum)
+        if not kafka_dispatched:
+            return
 
     logger.info(
-        "Finished preprod artifact row creation and kafka dispatch",
+        "Finished preprod artifact dispatch",
         extra={
             "preprod_artifact_id": artifact_id,
             "project_id": project_id,
