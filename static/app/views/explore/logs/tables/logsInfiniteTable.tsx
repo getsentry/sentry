@@ -263,10 +263,8 @@ export function LogsInfiniteTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchString, localOnlyItemFilters?.filterText]);
 
-  const isContainedVirtualizer = expanded !== undefined;
-
   const windowVirtualizer = useWindowVirtualizer({
-    count: isContainedVirtualizer ? 0 : (data?.length ?? 0),
+    count: expanded ? 0 : (data?.length ?? 0),
     estimateSize,
     overscan: 50,
     getItemKey: (index: number) => data?.[index]?.[OurLogKnownFieldKey.ID] ?? index,
@@ -274,14 +272,14 @@ export function LogsInfiniteTable({
   });
 
   const containerVirtualizer = useVirtualizer<HTMLElement, Element>({
-    count: isContainedVirtualizer ? (data?.length ?? 0) : 0,
+    count: expanded ? (data?.length ?? 0) : 0,
     estimateSize,
     overscan: expanded ? 25 : 10,
     getScrollElement: () => tableBodyRef?.current,
     getItemKey: (index: number) => data?.[index]?.[OurLogKnownFieldKey.ID] ?? index,
   });
 
-  const virtualizer = isContainedVirtualizer ? containerVirtualizer : windowVirtualizer;
+  const virtualizer = expanded ? containerVirtualizer : windowVirtualizer;
 
   useLayoutEffect(() => {
     virtualizer.measure();

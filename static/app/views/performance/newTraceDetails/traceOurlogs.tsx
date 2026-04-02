@@ -77,7 +77,7 @@ function LogsSectionContent() {
         <LinkButton to={logsUrl}>{t('Open in Logs')}</LinkButton>
       </Flex>
       <TableContainer>
-        <LogsInfiniteTable embedded />
+        <LogsInfiniteTable embedded expanded />
       </TableContainer>
     </Fragment>
   );
