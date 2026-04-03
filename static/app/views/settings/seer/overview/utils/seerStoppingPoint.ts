@@ -9,11 +9,12 @@ type SelectValue = 'off' | 'root_cause' | 'code';
 type SelectOptions = {label: string; value: SelectValue};
 
 export function getDefaultStoppingPointValue(organization: Organization): SelectValue {
-  return organization.defaultAutofixAutomationTuning === 'off'
-    ? 'off'
-    : organization.defaultAutomatedRunStoppingPoint === 'root_cause'
-      ? 'root_cause'
-      : 'code';
+  if ([null, undefined, 'off'].includes(organization.defaultAutofixAutomationTuning)) {
+    return 'off';
+  }
+  return organization.defaultAutomatedRunStoppingPoint === 'root_cause'
+    ? 'root_cause'
+    : 'code';
 }
 
 export function useFetchStoppingPointOptions({

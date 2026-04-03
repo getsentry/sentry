@@ -134,7 +134,7 @@ export function AutofixOverviewSection({canWrite, data, isPending, organization}
         projectsWithCreatePr={projectsWithCreatePr}
       />
 
-      <StoppingPointForm organization={organization} />
+      <StoppingPointForm organization={organization} canWrite={canWrite} />
     </FieldGroup>
   );
 }
