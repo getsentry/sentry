@@ -10,14 +10,14 @@ import {
 import {DEFAULT_TABLE_LIMIT} from './types';
 import type {Widget, WidgetLayout} from './types';
 
-export const DASHBOARD_ARTIFACT_KEY = 'dashboard';
+const DASHBOARD_ARTIFACT_KEY = 'dashboard';
 
-export type DashboardArtifact = {
+type DashboardArtifact = {
   title: string;
   widgets: WidgetArtifact[];
 };
 
-export type WidgetArtifact = {
+type WidgetArtifact = {
   display_type: Widget['displayType'];
   interval: string;
   layout: {h: number; min_h: number; w: number; x: number; y: number};
