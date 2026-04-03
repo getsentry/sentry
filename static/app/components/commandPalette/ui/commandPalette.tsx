@@ -41,6 +41,7 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 const MotionButton = motion.create(Button);
 const MotionIconSearch = motion.create(IconSearch);
+const MotionLoadingIndicator = motion.create(LoadingIndicator);
 
 function makeLeadingItemAnimation(theme: Theme) {
   return {
@@ -287,10 +288,16 @@ export function CommandPalette(props: CommandPaletteProps) {
                         )}
                       </Container>
                     ) : isLoading ? (
-                      <StyledLoadingIndicator
-                        data-test-id="command-palette-loading"
-                        size={14}
-                      />
+                      <Container
+                        position="absolute"
+                        left="-2px"
+                        {...makeLeadingItemAnimation(theme)}
+                      >
+                        <MotionLoadingIndicator
+                          data-test-id="command-palette-loading"
+                          size={14}
+                        />
+                      </Container>
                     ) : (
                       <MotionIconSearch
                         size="sm"
@@ -663,30 +670,6 @@ function CommandPaletteNoResults() {
     </Flex>
   );
 }
-
-const StyledLoadingIndicator = styled(LoadingIndicator)`
-  margin: 0;
-  left: 0;
-  top: 50%;
-  position: absolute;
-  transform: translate(-2px, -50%);
-  animation: showLoadingIndicator 0.3s ease-in-out forwards;
-
-  @keyframes showLoadingIndicator {
-    from {
-      opacity: 0;
-      transform: translate(-2px, -50%) scale(0.86);
-    }
-    to {
-      opacity: 1;
-      transform: translate(-2px, -50%) scale(1);
-    }
-  }
-
-  .loading-message {
-    display: none;
-  }
-`;
 
 const StyledInputLeadingItems = styled(InputGroup.LeadingItems)`
   left: ${p => p.theme.space.lg};
