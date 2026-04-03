@@ -4,7 +4,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
 
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_comparison_url, get_preprod_artifact_url
 
@@ -19,7 +19,7 @@ def format_snapshot_status_check_messages(
     overall_status: StatusCheckStatus,
     base_artifact_map: dict[int, PreprodArtifact],
     changes_map: dict[int, bool],
-    approvals_map: dict[int, object] | None = None,
+    approvals_map: dict[int, PreprodComparisonApproval] | None = None,
 ) -> tuple[str, str, str]:
     if not artifacts:
         raise ValueError("Cannot format messages for empty artifact list")
@@ -224,7 +224,7 @@ def _format_snapshot_summary(
     comparisons_map: dict[int, PreprodSnapshotComparison],
     base_artifact_map: dict[int, PreprodArtifact],
     changes_map: dict[int, bool],
-    approvals_map: dict[int, object] | None = None,
+    approvals_map: dict[int, PreprodComparisonApproval] | None = None,
 ) -> str:
     table_rows = []
 

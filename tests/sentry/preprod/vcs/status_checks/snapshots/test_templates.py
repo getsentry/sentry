@@ -4,7 +4,7 @@ import pytest
 
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
 from sentry.models.commitcomparison import CommitComparison
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.vcs.status_checks.snapshots.templates import (
     format_first_snapshot_status_check_messages,
@@ -49,6 +49,13 @@ class SnapshotStatusCheckTestBase(TestCase):
             image_count=image_count,
         )
         return artifact, metrics
+
+    def _create_approval(self, artifact: PreprodArtifact) -> PreprodComparisonApproval:
+        return PreprodComparisonApproval.objects.create(
+            preprod_artifact=artifact,
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        )
 
     def _create_comparison(
         self,
@@ -928,7 +935,7 @@ class SnapshotApprovalFormattingTest(SnapshotStatusCheckTestBase):
         snapshot_metrics_map = {head_artifact.id: head_metrics}
         comparisons_map = {head_metrics.id: comparison}
         changes_map = {head_artifact.id: True}
-        approvals_map = {head_artifact.id: object()}
+        approvals_map = {head_artifact.id: self._create_approval(head_artifact)}
 
         _, _, summary = format_snapshot_status_check_messages(
             [head_artifact],
@@ -977,7 +984,7 @@ class SnapshotApprovalFormattingTest(SnapshotStatusCheckTestBase):
         snapshot_metrics_map = {head_artifact.id: head_metrics}
         comparisons_map = {head_metrics.id: comparison}
         changes_map = {head_artifact.id: False}
-        approvals_map = {head_artifact.id: object()}
+        approvals_map = {head_artifact.id: self._create_approval(head_artifact)}
 
         _, _, summary = format_snapshot_status_check_messages(
             [head_artifact],
@@ -1010,7 +1017,7 @@ class SnapshotApprovalFormattingTest(SnapshotStatusCheckTestBase):
         snapshot_metrics_map = {head_artifact.id: head_metrics}
         comparisons_map = {head_metrics.id: comparison}
         changes_map = {head_artifact.id: True}
-        approvals_map = {head_artifact.id: object()}
+        approvals_map = {head_artifact.id: self._create_approval(head_artifact)}
 
         artifact_url = f"http://testserver/organizations/{self.organization.slug}/preprod/snapshots/{head_artifact.id}"
 
@@ -1060,7 +1067,7 @@ class SnapshotApprovalFormattingTest(SnapshotStatusCheckTestBase):
         snapshot_metrics_map = {head1.id: head1_metrics, head2.id: head2_metrics}
         comparisons_map = {head1_metrics.id: comparison1, head2_metrics.id: comparison2}
         changes_map = {head1.id: True, head2.id: True}
-        approvals_map = {head1.id: object()}  # only head1 approved
+        approvals_map = {head1.id: self._create_approval(head1)}  # only head1 approved
 
         _, _, summary = format_snapshot_status_check_messages(
             [head1, head2],
