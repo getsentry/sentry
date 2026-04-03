@@ -134,23 +134,6 @@ class DatabaseBackedRepositoryService(RepositoryService):
                 provider=provider,
             ).update(status=ObjectStatus.DISABLED)
 
-    def disable_repositories_by_external_ids(
-        self,
-        *,
-        organization_id: int,
-        integration_id: int,
-        provider: str,
-        external_ids: list[str],
-    ) -> None:
-        with transaction.atomic(router.db_for_write(Repository)):
-            Repository.objects.filter(
-                organization_id=organization_id,
-                integration_id=integration_id,
-                provider=provider,
-                external_id__in=external_ids,
-                status=ObjectStatus.ACTIVE,
-            ).update(status=ObjectStatus.DISABLED)
-
     def disassociate_organization_integration(
         self,
         *,

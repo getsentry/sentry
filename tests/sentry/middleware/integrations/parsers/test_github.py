@@ -141,52 +141,6 @@ class GithubRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
-    def test_installation_repositories_routes_to_control_silo(self) -> None:
-        request = self.factory.post(
-            self.path,
-            data={
-                "installation": {"id": "1"},
-                "repositories_added": [],
-                "repositories_removed": [],
-            },
-            content_type="application/json",
-            headers={
-                "X-GITHUB-EVENT": GithubWebhookType.INSTALLATION_REPOSITORIES.value,
-            },
-        )
-        parser = GithubRequestParser(request=request, response_handler=self.get_response)
-        assert parser.should_route_to_control_silo(parsed_event={}, request=request)
-
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_cells(cell_config)
-    def test_installation_routes_to_control_silo(self) -> None:
-        request = self.factory.post(
-            self.path,
-            data={"installation": {"id": "1"}},
-            content_type="application/json",
-            headers={
-                "X-GITHUB-EVENT": GithubWebhookType.INSTALLATION.value,
-            },
-        )
-        parser = GithubRequestParser(request=request, response_handler=self.get_response)
-        assert parser.should_route_to_control_silo(parsed_event={}, request=request)
-
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_cells(cell_config)
-    def test_push_does_not_route_to_control_silo(self) -> None:
-        request = self.factory.post(
-            self.path,
-            data={"installation": {"id": "1"}},
-            content_type="application/json",
-            headers={
-                "X-GITHUB-EVENT": GithubWebhookType.PUSH.value,
-            },
-        )
-        parser = GithubRequestParser(request=request, response_handler=self.get_response)
-        assert not parser.should_route_to_control_silo(parsed_event={}, request=request)
-
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_cells(cell_config)
     def test_webhook_outbox_creation(self) -> None:
         integration = self.get_integration()
         request = self.factory.post(

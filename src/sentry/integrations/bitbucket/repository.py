@@ -1,4 +1,3 @@
-from collections.abc import Mapping
 from typing import Any
 
 from sentry.integrations.types import IntegrationProviderSlug
@@ -48,7 +47,7 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider):
         return secret
 
     def build_repository_config(
-        self, organization: RpcOrganization, data: Mapping[str, Any]
+        self, organization: RpcOrganization, data: dict[str, Any]
     ) -> RepositoryConfig:
         installation = self.get_installation(data.get("installation"), organization.id)
         client = installation.get_client()

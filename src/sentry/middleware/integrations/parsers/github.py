@@ -77,10 +77,7 @@ class GithubRequestParser(BaseRequestParser):
     def should_route_to_control_silo(
         self, parsed_event: Mapping[str, Any], request: HttpRequest
     ) -> bool:
-        return request.META.get(GITHUB_WEBHOOK_TYPE_HEADER) in (
-            GithubWebhookType.INSTALLATION,
-            GithubWebhookType.INSTALLATION_REPOSITORIES,
-        )
+        return request.META.get(GITHUB_WEBHOOK_TYPE_HEADER) == GithubWebhookType.INSTALLATION
 
     @control_silo_function
     def get_integration_from_request(self) -> Integration | None:
