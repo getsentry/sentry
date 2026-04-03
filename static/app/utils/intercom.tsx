@@ -40,34 +40,40 @@ async function initIntercom(orgSlug: string): Promise<void> {
   }
 
   bootPromise = (async () => {
-    const intercomAppId = ConfigStore.get('intercomAppId');
-    if (!intercomAppId) {
-      throw new Error('Intercom app ID not configured');
+    try {
+      const intercomAppId = ConfigStore.get('intercomAppId');
+      if (!intercomAppId) {
+        throw new Error('Intercom app ID not configured');
+      }
+
+      // Fetch JWT for identity verification
+      const api = new Client();
+      const jwtData: IntercomJwtResponse = await api.requestPromise(
+        `/organizations/${orgSlug}/intercom-jwt/`
+      );
+
+      // Boot Intercom with user data
+      const {default: Intercom} = await import('@intercom/messenger-js-sdk');
+      Intercom({
+        app_id: intercomAppId,
+        user_id: jwtData.userData.userId,
+        user_hash: jwtData.jwt,
+        email: jwtData.userData.email,
+        name: jwtData.userData.name,
+        created_at: jwtData.userData.createdAt,
+        company: {
+          company_id: jwtData.userData.organizationId,
+          name: jwtData.userData.organizationName,
+        },
+        hide_default_launcher: true,
+      });
+
+      hasBooted = true;
+    } catch (error) {
+      // Reset so user can retry on next click
+      bootPromise = null;
+      throw error;
     }
-
-    // Fetch JWT for identity verification
-    const api = new Client();
-    const jwtData = await api.requestPromise<IntercomJwtResponse>(
-      `/organizations/${orgSlug}/intercom-jwt/`
-    );
-
-    // Boot Intercom with user data
-    const {default: Intercom} = await import('@intercom/messenger-js-sdk');
-    Intercom({
-      app_id: intercomAppId,
-      user_id: jwtData.userData.userId,
-      user_hash: jwtData.jwt,
-      email: jwtData.userData.email,
-      name: jwtData.userData.name,
-      created_at: jwtData.userData.createdAt,
-      company: {
-        company_id: jwtData.userData.organizationId,
-        name: jwtData.userData.organizationName,
-      },
-      hide_default_launcher: true,
-    });
-
-    hasBooted = true;
   })();
 
   return bootPromise;
@@ -81,18 +87,4 @@ export async function showIntercom(orgSlug: string): Promise<void> {
   await initIntercom(orgSlug);
   const {show} = await import('@intercom/messenger-js-sdk');
   show();
-}
-
-/**
- * Shutdown Intercom and reset state.
- * Call this when the user logs out or the organization changes.
- */
-export async function shutdownIntercom(): Promise<void> {
-  if (!hasBooted) {
-    return;
-  }
-  const {shutdown} = await import('@intercom/messenger-js-sdk');
-  shutdown();
-  hasBooted = false;
-  bootPromise = null;
 }
