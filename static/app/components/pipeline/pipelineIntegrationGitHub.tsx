@@ -153,14 +153,7 @@ function OrgSelectionStep({
     onCallback: handleInstallCallback,
   });
 
-  // TODO(epurkhiser): Once we remove the legacy django views the function that
-  // generates this sentinel "Integrate with a new github organization" can be
-  // changed to not add this and we can drop this value here also
-  const existingInstallations = installations.filter(
-    inst => inst.installationId !== '-1'
-  );
-
-  if (existingInstallations.length === 0) {
+  if (installations.length === 0) {
     return (
       <FreshInstallSteps
         isAdvancing={isAdvancing}
@@ -182,7 +175,7 @@ function OrgSelectionStep({
         )}
       </Text>
       <GitHubMultiOrgInstall
-        installations={existingInstallations}
+        installations={installations}
         onSelectInstallation={installationId =>
           advance({chosenInstallationId: installationId})
         }

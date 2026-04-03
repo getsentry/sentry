@@ -3,6 +3,7 @@ from unittest.mock import ANY, MagicMock, patch
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.utils import json
 
 
 @with_feature("organizations:seer-explorer")
@@ -226,6 +227,47 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             response = self.client.get(self.url)
 
         assert response.status_code == 403
+
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    def test_post_json_on_page_context_converted_to_markdown(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        mock_client = MagicMock()
+        mock_client.start_run.return_value = 456
+        mock_client_class.return_value = mock_client
+
+        snapshot = {
+            "version": 1,
+            "nodes": [
+                {
+                    "nodeType": "dashboard",
+                    "data": {"title": "My Dashboard", "widgetCount": 2},
+                    "children": [],
+                }
+            ],
+        }
+        data = {"query": "Help me", "on_page_context": json.dumps(snapshot)}
+        response = self.client.post(self.url, data, format="json")
+
+        assert response.status_code == 200
+        call_kwargs = mock_client.start_run.call_args[1]
+        context = call_kwargs["on_page_context"]
+        assert "# dashboard" in context
+        assert '- **title**: "My Dashboard"' in context
+
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    def test_post_ascii_on_page_context_passed_through(self, mock_client_class: MagicMock) -> None:
+        mock_client = MagicMock()
+        mock_client.start_run.return_value = 456
+        mock_client_class.return_value = mock_client
+
+        ascii_screenshot = "+--------+\n| chart  |\n+--------+"
+        data = {"query": "Help me", "on_page_context": ascii_screenshot}
+        response = self.client.post(self.url, data, format="json")
+
+        assert response.status_code == 200
+        call_kwargs = mock_client.start_run.call_args[1]
+        assert call_kwargs["on_page_context"] == ascii_screenshot
 
 
 @with_feature("organizations:seer-explorer")

@@ -3,6 +3,7 @@ from unittest.mock import patch
 import pytest
 
 from sentry.seer.fetch_issues.utils import (
+    NoProjectsForRepoError,
     RepoProjects,
     as_issue_details,
     bulk_serialize_for_seer,
@@ -75,7 +76,7 @@ class TestGetRepoAndProjects(TestCase):
             external_id="123",
         )
 
-        with pytest.raises(ValueError, match="No Sentry projects found for repo"):
+        with pytest.raises(NoProjectsForRepoError, match="No Sentry projects found for repo"):
             get_repo_and_projects(
                 organization_id=self.organization.id,
                 provider="integrations:github",

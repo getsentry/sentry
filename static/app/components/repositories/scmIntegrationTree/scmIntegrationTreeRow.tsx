@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState, type CSSProperties, type ReactNode} from 'react';
+import {Fragment, useState, type CSSProperties, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Badge, Tag} from '@sentry/scraps/badge';
@@ -10,6 +10,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {useCycleText} from 'sentry/components/loading/useCycleText';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import {ProviderConfigLink} from 'sentry/components/repositories/scmIntegrationTree/providerConfigLink';
@@ -24,7 +25,6 @@ import type {
 } from 'sentry/types/integrations';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useTimeout} from 'sentry/utils/useTimeout';
 import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
 
 // ---------------------------------------------------------------------------
@@ -458,30 +458,20 @@ function RemoveButton({
   );
 }
 
+const messages = [
+  t('Loading repos...'),
+  t('Loading a few repos...'),
+  t('Loading a lot more repos...'),
+  t('This is getting interesting...'),
+  t('Almost done...'),
+  t('Just kidding, still loading...'),
+];
 function LoadingReposMessage() {
-  const [messageIndex, setMessageIndex] = useState(0);
-  const {start} = useTimeout({
-    timeMs: 5000,
-    onTimeout: () => {
-      setMessageIndex(prev => prev + 1);
-      start();
-    },
-  });
-  useEffect(start, [start]);
-
-  const messages = [
-    t('Loading repos...'),
-    t('Loading a few repos...'),
-    t('Loading a lot more repos...'),
-    t('This is getting interesting...'),
-    t('Almost done...'),
-    t('Just kidding, still loading...'),
-  ];
-
+  const message = useCycleText({messages, delayMs: 5000});
   return (
     <Flex align="center" gap="sm">
       <Text size="sm" variant="muted">
-        {messages[Math.min(messageIndex, messages.length - 1)]}
+        {message}
       </Text>
       <LoadingIndicator size={16} />
     </Flex>

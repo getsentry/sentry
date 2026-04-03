@@ -147,6 +147,49 @@ def _reasonable_user_counts_match(control: dict[int, int], experimental: dict[in
     return all(experimental[group_id] <= control[group_id] for group_id in experimental)
 
 
+def _reasonable_release_tags_match(control: set[TagValue], experimental: set[TagValue]) -> bool:
+    exp_by_value: dict[str | None, TagValue] = {tv.value: tv for tv in experimental}
+    ctrl_by_value: dict[str | None, TagValue] = {}
+    for tv in control:
+        existing = ctrl_by_value.get(tv.value)
+        if existing is None or (tv.times_seen or 0) > (existing.times_seen or 0):
+            ctrl_by_value[tv.value] = tv
+
+    if not set(exp_by_value.keys()).issubset(set(ctrl_by_value.keys())):
+        return False
+
+    return all(
+        (exp_tv.times_seen or 0) <= (ctrl_by_value[value].times_seen or 0)
+        for value, exp_tv in exp_by_value.items()
+    )
+
+
+def _reasonable_group_list_tag_value_match(
+    control: dict[int, GroupTagValue],
+    experimental: dict[int, GroupTagValue],
+) -> bool:
+    if not set(experimental.keys()).issubset(set(control.keys())):
+        return False
+    for group_id in experimental:
+        ctrl = control[group_id]
+        exp = experimental[group_id]
+        if exp.times_seen > ctrl.times_seen:
+            return False
+        if (
+            exp.first_seen is not None
+            and ctrl.first_seen is not None
+            and exp.first_seen < ctrl.first_seen
+        ):
+            return False
+        if (
+            exp.last_seen is not None
+            and ctrl.last_seen is not None
+            and exp.last_seen > ctrl.last_seen
+        ):
+            return False
+    return True
+
+
 _SNUBA_TO_EAP_ORDERBY = {
     "first_seen": "min(timestamp)",
     "-first_seen": "-min(timestamp)",
@@ -182,49 +225,6 @@ def _reasonable_group_tag_value_iter_match(
         ):
             return False
     return True
-
-
-def _reasonable_group_list_tag_value_match(
-    control: dict[int, GroupTagValue],
-    experimental: dict[int, GroupTagValue],
-) -> bool:
-    if not set(experimental.keys()).issubset(set(control.keys())):
-        return False
-    for group_id in experimental:
-        ctrl = control[group_id]
-        exp = experimental[group_id]
-        if exp.times_seen > ctrl.times_seen:
-            return False
-        if (
-            exp.first_seen is not None
-            and ctrl.first_seen is not None
-            and exp.first_seen < ctrl.first_seen
-        ):
-            return False
-        if (
-            exp.last_seen is not None
-            and ctrl.last_seen is not None
-            and exp.last_seen > ctrl.last_seen
-        ):
-            return False
-    return True
-
-
-def _reasonable_release_tags_match(control: set[TagValue], experimental: set[TagValue]) -> bool:
-    exp_by_value: dict[str | None, TagValue] = {tv.value: tv for tv in experimental}
-    ctrl_by_value: dict[str | None, TagValue] = {}
-    for tv in control:
-        existing = ctrl_by_value.get(tv.value)
-        if existing is None or (tv.times_seen or 0) > (existing.times_seen or 0):
-            ctrl_by_value[tv.value] = tv
-
-    if not set(exp_by_value.keys()).issubset(set(ctrl_by_value.keys())):
-        return False
-
-    return all(
-        (exp_tv.times_seen or 0) <= (ctrl_by_value[value].times_seen or 0)
-        for value, exp_tv in exp_by_value.items()
-    )
 
 
 class _OptimizeKwargs(TypedDict, total=False):
