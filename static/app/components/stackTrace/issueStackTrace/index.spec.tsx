@@ -246,7 +246,9 @@ describe('IssueStackTrace', () => {
 
     await userEvent.hover(screen.getByLabelText('Line 112'));
 
-    expect(await screen.findByText('Line uncovered by tests')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getAllByText('Line uncovered by tests')).toHaveLength(2)
+    );
   });
 
   it('renders annotated text when exception value has PII scrubbing metadata', async () => {
