@@ -3549,13 +3549,13 @@ register(
 # batch that exceeds it will still run to completion. Setting it to 0
 # prevents any batches from running.
 register(
-    "workflow_engine.fire_history_cleanup.time_limit_seconds",
+    "workflow_engine.open_period_activity_cleanup.time_limit_seconds",
     type=Float,
     default=5.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "workflow_engine.fire_history_cleanup.batch_size",
+    "workflow_engine.open_period_activity_cleanup.batch_size",
     type=Int,
     default=10000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
