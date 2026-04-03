@@ -391,7 +391,7 @@ def make_lightweight_rca_cluster_request(
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v0/issues/supergroups/cluster-lightweight",
-        body=orjson.dumps(body),
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         timeout=timeout,
         viewer_context=viewer_context,
     )
