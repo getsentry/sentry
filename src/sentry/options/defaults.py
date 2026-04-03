@@ -1345,11 +1345,6 @@ register(
 
 # Supergroups / Lightweight RCA
 register(
-    "supergroups.active-rca-source",
-    default="explorer",
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "supergroups.lightweight-enabled-orgs",
     type=Sequence,
     default=[],
