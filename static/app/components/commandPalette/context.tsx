@@ -14,7 +14,7 @@ import {unreachable} from 'sentry/utils/unreachable';
 import {CommandPaletteStateProvider} from './ui/commandPaletteStateContext';
 import type {CommandPaletteAction, CommandPaletteActionWithKey} from './types';
 
-export function addKeysToActions(
+function addKeysToActions(
   actions: CommandPaletteAction[]
 ): CommandPaletteActionWithKey[] {
   return actions.map(action => {
@@ -81,7 +81,7 @@ const CommandPaletteRegistrationContext =
   createContext<CommandPaletteRegistration | null>(null);
 const CommandPaletteActionsContext = createContext<CommandPaletteActions | null>(null);
 
-export function useCommandPaletteRegistration(): CommandPaletteRegistration {
+function useCommandPaletteRegistration(): CommandPaletteRegistration {
   const ctx = useContext(CommandPaletteRegistrationContext);
   if (ctx === null) {
     throw new Error(
