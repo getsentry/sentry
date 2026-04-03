@@ -35,17 +35,14 @@ export function CommandPaletteDemo() {
     {
       display: {label: 'Go to Flex story'},
       to: '/stories/layout/flex/',
-      groupingKey: 'navigate',
     },
     {
       display: {label: 'Execute an action'},
-      groupingKey: 'help',
       onAction: () => {
         addSuccessMessage('Action executed');
       },
     },
     {
-      groupingKey: 'add',
       display: {label: 'Parent action'},
       actions: [
         {

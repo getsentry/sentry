@@ -11,6 +11,7 @@ import type {DataCategory} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import type {UseExperimentOptions, UseExperimentResult} from 'sentry/utils/useExperiment';
 import type {
   useDefaultMaxPickableDays,
   useMaxPickableDays,
@@ -350,6 +351,7 @@ type ReactHooks = {
     dataset: WidgetType;
   }) => number;
   'react-hook:use-default-max-pickable-days': typeof useDefaultMaxPickableDays;
+  'react-hook:use-experiment': (options: UseExperimentOptions) => UseExperimentResult;
   'react-hook:use-get-max-retention-days': () => number | undefined;
   'react-hook:use-max-pickable-days': typeof useMaxPickableDays;
   'react-hook:use-metric-detector-limit': () => {

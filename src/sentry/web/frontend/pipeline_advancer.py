@@ -46,7 +46,7 @@ TRAMPOLINE_HTML = """\
 
 def _render_trampoline(request: HttpRequest, pipeline: object) -> HttpResponse:
     """Render a minimal page that posts callback params back to the opener."""
-    params: dict[str, str] = {"source": "sentry-pipeline"}
+    params: dict[str, str] = {"_pipeline_source": "sentry-pipeline"}
     for key, values in parse_qs(request.META.get("QUERY_STRING", "")).items():
         if values:
             params[key] = values[0]

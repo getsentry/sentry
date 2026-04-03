@@ -436,9 +436,7 @@ def _record_delivery_time_metrics(payload: WebhookPayload) -> None:
     """Record delivery time metrics for a successfully delivered webhook payload."""
     duration = timezone.now() - payload.date_added
     cell_sent_to = (
-        payload.cell_name
-        if payload.destination_type == DestinationType.SENTRY_REGION
-        else "codecov"
+        payload.cell_name if payload.destination_type == DestinationType.SENTRY_CELL else "codecov"
     )
     tags = {"region_sent_to": cell_sent_to} | _get_github_delivery_time_tags(payload)
     metrics.distribution(
@@ -622,7 +620,7 @@ def perform_request(payload: WebhookPayload) -> None:
     destination_type = payload.destination_type
 
     match destination_type:
-        case DestinationType.SENTRY_REGION:
+        case DestinationType.SENTRY_CELL:
             assert payload.cell_name is not None
             cell = get_cell_by_name(name=payload.cell_name)
             perform_cell_request(cell, payload)
