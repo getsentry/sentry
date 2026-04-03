@@ -6,7 +6,6 @@ import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {StackView} from 'sentry/types/stacktrace';
 import {isNativePlatform} from 'sentry/utils/platform';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {Content} from './content';
 import {NativeContent} from './nativeContent';
@@ -39,7 +38,6 @@ export function StackTraceContent({
   threadId,
   lockAddress,
 }: Props) {
-  const hasStreamlinedUI = useHasStreamlinedUI();
   if (stackView === StackView.RAW) {
     return (
       <ErrorBoundary mini>
@@ -62,7 +60,7 @@ export function StackTraceContent({
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta}
           inlined={inlined}
-          hideIcon={inlined || hasStreamlinedUI}
+          hideIcon
           maxDepth={maxDepth}
         />
       </ErrorBoundary>
@@ -79,7 +77,7 @@ export function StackTraceContent({
         event={event}
         newestFirst={newestFirst}
         meta={meta}
-        hideIcon={inlined || hasStreamlinedUI}
+        hideIcon
         inlined={inlined}
         maxDepth={maxDepth}
         threadId={threadId}
