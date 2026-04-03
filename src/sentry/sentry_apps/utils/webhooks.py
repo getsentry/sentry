@@ -129,7 +129,7 @@ def find_alert_rule_action_ui_component(
     actions = [
         action
         for trigger in triggers
-        for action in trigger.get("actions", {})
+        for action in trigger.get("actions", [])
         if (action.get("type") == "sentry_app" and action.get("settings") is not None)
     ]
     return bool(len(actions))
