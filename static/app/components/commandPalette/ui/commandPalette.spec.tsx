@@ -224,6 +224,14 @@ describe('CommandPalette', () => {
       ).toBeInTheDocument();
     });
 
+    it('preserves spaces in typed query', async () => {
+      render(<GlobalActionsComponent actions={allActions} />);
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'test query');
+
+      expect(input).toHaveValue('test query');
+    });
+
     it('search is case-insensitive', async () => {
       render(<GlobalActionsComponent actions={allActions} />);
       const input = await screen.findByRole('textbox', {name: 'Search commands'});

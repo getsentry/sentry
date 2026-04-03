@@ -203,6 +203,11 @@ export function CommandPalette(props: CommandPaletteProps) {
     keyboardDelegate: delegate,
     shouldFocusWrap: true,
     ref: state.input,
+    // Type-ahead is designed for navigating list items by typing — it intercepts
+    // Space (via onKeyDownCapture) when there is already a search term, which
+    // prevents the space from being inserted into the text input. Disable it
+    // here because filtering is handled by the input's own onChange instead.
+    disallowTypeAhead: true,
   });
 
   const onActionSelection = useCallback(
