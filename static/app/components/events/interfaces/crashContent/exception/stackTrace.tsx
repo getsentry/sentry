@@ -88,7 +88,6 @@ export function StackTrace({
         newestFirst={newestFirst}
         event={event}
         meta={meta}
-        hideIcon
       />
     );
   }
@@ -105,7 +104,6 @@ export function StackTrace({
       threadId={threadId}
       frameSourceMapDebuggerData={frameSourceMapDebuggerData}
       hideSourceMapDebugger={stackType === StackType.MINIFIED}
-      hideIcon
     />
   );
 }

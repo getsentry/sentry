@@ -60,7 +60,6 @@ export function StackTraceContent({
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta}
           inlined={inlined}
-          hideIcon
           maxDepth={maxDepth}
         />
       </ErrorBoundary>
@@ -77,7 +76,6 @@ export function StackTraceContent({
         event={event}
         newestFirst={newestFirst}
         meta={meta}
-        hideIcon
         inlined={inlined}
         maxDepth={maxDepth}
         threadId={threadId}
