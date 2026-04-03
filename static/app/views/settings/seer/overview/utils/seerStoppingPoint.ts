@@ -118,42 +118,6 @@ export function getDefaultStoppingPointMutationOptions({
   });
 }
 
-function projectSeerPreferencesPayloadForStoppingPoint({
-  organization,
-  preference,
-  stoppingPoint,
-}: {
-  organization: Organization;
-  preference: ProjectSeerPreferences;
-  stoppingPoint: SelectValue;
-}): ProjectSeerPreferences | null {
-  const repositories = preference?.repositories ?? [];
-  const automationHandoff = preference?.automation_handoff;
-
-  // Turning automation off only changes project tuning; preferences stay as-is.
-  if (stoppingPoint === 'off') {
-    return null;
-  }
-
-  const automated_run_stopping_point =
-    stoppingPoint === 'root_cause'
-      ? ('root_cause' as const)
-      : organization.autoOpenPrs
-        ? ('open_pr' as const)
-        : ('code_changes' as const);
-
-  return {
-    repositories,
-    automated_run_stopping_point,
-    automation_handoff: automationHandoff
-      ? {
-          ...automationHandoff,
-          auto_create_pr: automated_run_stopping_point === 'open_pr',
-        }
-      : automationHandoff,
-  };
-}
-
 export function getProjectStoppingPointMutationOptions({
   organization,
   preference,
@@ -173,11 +137,6 @@ export function getProjectStoppingPointMutationOptions({
   return mutationOptions({
     mutationFn: async ({stoppingPoint}: {stoppingPoint: SelectValue}) => {
       const tuning = stoppingPoint === 'off' ? ('off' as const) : ('medium' as const);
-      const preferencePayload = projectSeerPreferencesPayloadForStoppingPoint({
-        organization,
-        preference,
-        stoppingPoint,
-      });
 
       const projectPromise = fetchMutation<Project>({
         method: 'PUT',
@@ -187,7 +146,28 @@ export function getProjectStoppingPointMutationOptions({
 
       let preferencePromise: Promise<SeerPreferencesResponse | undefined> =
         Promise.resolve(undefined);
-      if (preferencePayload) {
+      if (stoppingPoint !== 'off') {
+        const repositories = preference?.repositories ?? [];
+        const automationHandoff = preference?.automation_handoff;
+
+        const stoppingPointValue =
+          stoppingPoint === 'root_cause'
+            ? ('root_cause' as const)
+            : organization.autoOpenPrs
+              ? ('open_pr' as const)
+              : ('code_changes' as const);
+
+        const preferencePayload = {
+          repositories,
+          automated_run_stopping_point: stoppingPointValue,
+          automation_handoff: automationHandoff
+            ? {
+                ...automationHandoff,
+                auto_create_pr: stoppingPointValue === 'open_pr',
+              }
+            : automationHandoff,
+        };
+
         preferencePromise = fetchMutation<SeerPreferencesResponse>({
           method: 'POST',
           url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
