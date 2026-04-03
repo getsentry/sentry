@@ -1,12 +1,6 @@
 import {GroupFixture} from 'sentry-fixture/group';
 
-import type {Group} from 'sentry/types/group';
-
 import {aggregateSupergroupStats} from './aggregateSupergroupStats';
-
-function makeGroup(overrides: Partial<Group>): Group {
-  return GroupFixture(overrides);
-}
 
 describe('aggregateSupergroupStats', () => {
   it('returns null for empty groups', () => {
@@ -15,8 +9,8 @@ describe('aggregateSupergroupStats', () => {
 
   it('sums event and user counts', () => {
     const groups = [
-      makeGroup({count: '10', userCount: 3}),
-      makeGroup({count: '20', userCount: 7}),
+      GroupFixture({count: '10', userCount: 3}),
+      GroupFixture({count: '20', userCount: 7}),
     ];
     const result = aggregateSupergroupStats(groups, '24h');
     expect(result?.eventCount).toBe(30);
@@ -25,8 +19,8 @@ describe('aggregateSupergroupStats', () => {
 
   it('takes min firstSeen and max lastSeen', () => {
     const groups = [
-      makeGroup({firstSeen: '2024-01-05T00:00:00Z', lastSeen: '2024-01-10T00:00:00Z'}),
-      makeGroup({firstSeen: '2024-01-01T00:00:00Z', lastSeen: '2024-01-15T00:00:00Z'}),
+      GroupFixture({firstSeen: '2024-01-05T00:00:00Z', lastSeen: '2024-01-10T00:00:00Z'}),
+      GroupFixture({firstSeen: '2024-01-01T00:00:00Z', lastSeen: '2024-01-15T00:00:00Z'}),
     ];
     const result = aggregateSupergroupStats(groups, '24h');
     expect(result?.firstSeen).toBe('2024-01-01T00:00:00Z');
@@ -35,7 +29,7 @@ describe('aggregateSupergroupStats', () => {
 
   it('point-wise sums stats timeseries', () => {
     const groups = [
-      makeGroup({
+      GroupFixture({
         stats: {
           '24h': [
             [1000, 1],
@@ -43,7 +37,7 @@ describe('aggregateSupergroupStats', () => {
           ],
         },
       }),
-      makeGroup({
+      GroupFixture({
         stats: {
           '24h': [
             [1000, 3],
@@ -60,7 +54,7 @@ describe('aggregateSupergroupStats', () => {
   });
 
   it('returns null filtered fields when no groups have filters', () => {
-    const groups = [makeGroup({filtered: null})];
+    const groups = [GroupFixture({filtered: null})];
     const result = aggregateSupergroupStats(groups, '24h');
     expect(result?.filteredEventCount).toBeNull();
     expect(result?.filteredUserCount).toBeNull();
@@ -69,7 +63,7 @@ describe('aggregateSupergroupStats', () => {
 
   it('aggregates filtered stats separately', () => {
     const groups = [
-      makeGroup({
+      GroupFixture({
         count: '100',
         userCount: 50,
         stats: {
@@ -91,7 +85,7 @@ describe('aggregateSupergroupStats', () => {
           },
         },
       }),
-      makeGroup({
+      GroupFixture({
         count: '200',
         userCount: 80,
         stats: {
