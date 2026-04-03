@@ -550,15 +550,12 @@ class WorkflowEngineRuleSerializer(Serializer):
 
         sentry_app_installations_by_uuid: Mapping[str, RpcSentryAppComponentContext] = {}
         if self.prepare_component_fields:
-            sentry_app_uuids = []
-            for action in actions_with_handlers:
-                if action_to_action_data.get(action):
-                    for sentry_app_uuid in action_to_action_data[action].get(
-                        "sentryAppInstallationUuid"
-                    ):
-                        if sentry_app_uuid is not None:
-                            sentry_app_uuids.append(sentry_app_uuid)
-
+            sentry_app_uuids = [
+                action_to_action_data[action]["sentryAppInstallationUuid"]
+                for action in actions_with_handlers
+                if action_to_action_data.get(action)
+                and action_to_action_data[action].get("sentryAppInstallationUuid") is not None
+            ]
             install_contexts = app_service.get_component_contexts(
                 filter={"uuids": sentry_app_uuids, "organization_id": workflow.organization_id},
                 component_type="alert-rule-action",
