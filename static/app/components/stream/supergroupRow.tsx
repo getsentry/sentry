@@ -2,6 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
@@ -106,7 +107,17 @@ export function SupergroupRow({
 
       <ChartColumn>
         {aggregatedStats?.mergedStats && aggregatedStats.mergedStats.length > 0 ? (
-          <GroupStatusChart hideZeros stats={aggregatedStats.mergedStats} showMarkLine />
+          <GroupStatusChart
+            hideZeros
+            stats={aggregatedStats.mergedFilteredStats ?? aggregatedStats.mergedStats}
+            secondaryStats={
+              aggregatedStats.mergedFilteredStats
+                ? aggregatedStats.mergedStats
+                : undefined
+            }
+            showSecondaryPoints={aggregatedStats.mergedFilteredStats !== null}
+            showMarkLine
+          />
         ) : (
           <Placeholder height="36px" />
         )}
@@ -114,7 +125,14 @@ export function SupergroupRow({
 
       <EventsColumn>
         {aggregatedStats ? (
-          <PrimaryCount value={aggregatedStats.eventCount} />
+          <Stack position="relative">
+            <PrimaryCount
+              value={aggregatedStats.filteredEventCount ?? aggregatedStats.eventCount}
+            />
+            {aggregatedStats.filteredEventCount !== null && (
+              <SecondaryCount value={aggregatedStats.eventCount} />
+            )}
+          </Stack>
         ) : (
           <Placeholder height="18px" width="40px" />
         )}
@@ -122,7 +140,14 @@ export function SupergroupRow({
 
       <UsersColumn>
         {aggregatedStats ? (
-          <PrimaryCount value={aggregatedStats.userCount} />
+          <Stack position="relative">
+            <PrimaryCount
+              value={aggregatedStats.filteredUserCount ?? aggregatedStats.userCount}
+            />
+            {aggregatedStats.filteredUserCount !== null && (
+              <SecondaryCount value={aggregatedStats.userCount} />
+            )}
+          </Stack>
         ) : (
           <Placeholder height="18px" width="40px" />
         )}
@@ -255,6 +280,14 @@ const PrimaryCount = styled(Count)`
   display: flex;
   justify-content: right;
   margin-bottom: ${p => p.theme.space['2xs']};
+  font-variant-numeric: tabular-nums;
+`;
+
+const SecondaryCount = styled(({value, ...p}: any) => <Count {...p} value={value} />)`
+  font-size: ${p => p.theme.font.size.sm};
+  display: flex;
+  justify-content: right;
+  color: ${p => p.theme.tokens.content.secondary};
   font-variant-numeric: tabular-nums;
 `;
 
