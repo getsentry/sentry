@@ -111,17 +111,15 @@ interface SlotOutletProps<T extends Slot> {
   name: T;
 }
 
-interface SlotFallbackProps<T extends Slot> {
+interface SlotFallbackProps {
   children: React.ReactNode;
-  name: T;
 }
 
-type SlotProviderComponent<T extends Slot> =
-  React.FunctionComponent<SlotProviderProps> & {
-    Fallback: React.ComponentType<SlotFallbackProps<T>>;
-    Outlet: React.ComponentType<SlotOutletProps<T>>;
-    Slot: React.ComponentType<SlotConsumerProps<T>>;
-  };
+type SlotModule<T extends Slot> = React.FunctionComponent<SlotConsumerProps<T>> & {
+  Fallback: React.ComponentType<SlotFallbackProps>;
+  Outlet: React.ComponentType<SlotOutletProps<T>>;
+  Provider: React.ComponentType<SlotProviderProps>;
+};
 
 function makeSlotConsumer<T extends Slot>(
   context: React.Context<SlotContextValue<T> | null>
@@ -152,7 +150,8 @@ function makeSlotConsumer<T extends Slot>(
 }
 
 function makeSlotOutlet<T extends Slot>(
-  context: React.Context<SlotContextValue<T> | null>
+  context: React.Context<SlotContextValue<T> | null>,
+  outletNameContext: React.Context<T | null>
 ) {
   function SlotOutlet(props: SlotOutletProps<T>): React.ReactNode {
     const ctx = useContext(context);
@@ -174,7 +173,11 @@ function makeSlotOutlet<T extends Slot>(
       [dispatch, name]
     );
 
-    return props.children({ref});
+    return (
+      <outletNameContext.Provider value={name}>
+        {props.children({ref})}
+      </outletNameContext.Provider>
+    );
   }
 
   SlotOutlet.displayName = 'Slot.Outlet';
@@ -182,22 +185,26 @@ function makeSlotOutlet<T extends Slot>(
 }
 
 function makeSlotFallback<T extends Slot>(
-  context: React.Context<SlotContextValue<T> | null>
+  context: React.Context<SlotContextValue<T> | null>,
+  outletNameContext: React.Context<T | null>
 ) {
-  function SlotFallback(props: SlotFallbackProps<T>): React.ReactNode {
+  function SlotFallback({children}: SlotFallbackProps): React.ReactNode {
     const ctx = useContext(context);
     if (!ctx) {
       throw new Error('SlotContext not found');
     }
 
-    const [state] = ctx;
-    const {name} = props;
+    const name = useContext(outletNameContext);
+    if (name === null) {
+      throw new Error('Slot.Fallback must be rendered inside Slot.Outlet');
+    }
 
+    const [state] = ctx;
     if ((state[name]?.counter ?? 0) > 0 || !state[name]?.element) {
       return null;
     }
 
-    return createPortal(props.children, state[name]?.element);
+    return createPortal(children, state[name].element!);
   }
 
   SlotFallback.displayName = 'Slot.Fallback';
@@ -223,22 +230,31 @@ function makeSlotProvider<T extends Slot>(
   return SlotProvider as (props: SlotProviderProps) => React.ReactNode;
 }
 
-export function slot<T extends readonly Slot[]>(
-  names: T
-): SlotProviderComponent<T[number]> {
+export function slot<T extends readonly Slot[]>(names: T): SlotModule<T[number]> {
   type SlotName = T[number];
 
   const SlotContext = createContext<SlotContextValue<SlotName> | null>(null);
-  const Provider = makeSlotProvider<SlotName>(
-    SlotContext
-  ) as SlotProviderComponent<SlotName>;
+  const OutletNameContext = createContext<SlotName | null>(null);
 
-  Provider.Slot = makeSlotConsumer<SlotName>(SlotContext);
-  Provider.Outlet = makeSlotOutlet<SlotName>(SlotContext);
-  Provider.Fallback = makeSlotFallback<SlotName>(SlotContext);
+  const Slot = makeSlotConsumer<SlotName>(SlotContext) as SlotModule<SlotName>;
+  Slot.Provider = makeSlotProvider<SlotName>(SlotContext);
+  Slot.Outlet = makeSlotOutlet<SlotName>(SlotContext, OutletNameContext);
+  Slot.Fallback = makeSlotFallback<SlotName>(SlotContext, OutletNameContext);
 
   // Keep `names` reference to preserve the const-narrowed type T
   void names;
 
-  return Provider;
+  return Slot;
+}
+
+export function withSlots<
+  TComponent extends React.ComponentType<any>,
+  TSlot extends Slot,
+>(
+  Component: TComponent,
+  slotModule: SlotModule<TSlot>
+): TComponent & {Slot: SlotModule<TSlot>} {
+  const WithSlots = Component as TComponent & {Slot: SlotModule<TSlot>};
+  WithSlots.Slot = slotModule;
+  return WithSlots;
 }

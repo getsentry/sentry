@@ -5,7 +5,7 @@ import {Container, Flex} from '@sentry/scraps/layout';
 
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import {TopBarSlot} from 'sentry/views/navigation/topBar';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {SettingsBreadcrumb} from './settingsBreadcrumb';
@@ -26,12 +26,12 @@ export function SettingsLayout({children}: Props) {
     <SettingsColumn>
       {hasPageFrame ? (
         <Fragment>
-          <TopBarSlot.Slot name="Title">
+          <TopBar.Slot name="title">
             <StyledSettingsBreadcrumb params={params} routes={routes} />
-          </TopBarSlot.Slot>
-          <TopBarSlot.Slot name="Actions">
+          </TopBar.Slot>
+          <TopBar.Slot name="actions">
             <SettingsSearch />
-          </TopBarSlot.Slot>
+          </TopBar.Slot>
         </Fragment>
       ) : (
         <SettingsHeader>

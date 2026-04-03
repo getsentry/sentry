@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
-import {slot} from '@sentry/scraps/slot';
+import {slot, withSlots} from '@sentry/scraps/slot';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IconSeer} from 'sentry/icons';
@@ -18,9 +18,9 @@ import {
   PRIMARY_HEADER_HEIGHT,
 } from './constants';
 
-export const TopBarSlot = slot(['Title', 'Actions', 'Feedback'] as const);
+const Slot = slot(['title', 'actions', 'feedback'] as const);
 
-export function TopBar() {
+function TopBarContent() {
   const theme = useTheme();
   const organization = useOrganization({allowNull: true});
   const hasPageFrame = useHasPageFrameFeature();
@@ -49,14 +49,14 @@ export function TopBar() {
       }}
     >
       <SizeProvider size="sm">
-        <TopBarSlot.Outlet name="Title">
+        <Slot.Outlet name="title">
           {props => <Flex {...props} align="center" gap="sm" />}
-        </TopBarSlot.Outlet>
+        </Slot.Outlet>
 
         <Flex align="center" gap="sm">
-          <TopBarSlot.Outlet name="Actions">
+          <Slot.Outlet name="actions">
             {props => <Flex {...props} align="center" gap="sm" />}
-          </TopBarSlot.Outlet>
+          </Slot.Outlet>
 
           {organization && isSeerExplorerEnabled(organization) ? (
             <Button icon={<IconSeer />} onClick={openExplorerPanel}>
@@ -64,23 +64,25 @@ export function TopBar() {
             </Button>
           ) : null}
 
-          <TopBarSlot.Outlet name="Feedback">
+          <Slot.Outlet name="feedback">
             {props => (
               <Flex {...props}>
                 {/* If no component registers a feedback button, show the default one */}
-                <TopBarSlot.Fallback name="Feedback">
+                <Slot.Fallback>
                   <FeedbackButton
                     aria-label={t('Give Feedback')}
                     feedbackOptions={{tags: {'feedback.source': 'top_navigation'}}}
                   >
                     {null}
                   </FeedbackButton>
-                </TopBarSlot.Fallback>
+                </Slot.Fallback>
               </Flex>
             )}
-          </TopBarSlot.Outlet>
+          </Slot.Outlet>
         </Flex>
       </SizeProvider>
     </Flex>
   );
 }
+
+export const TopBar = withSlots(TopBarContent, Slot);

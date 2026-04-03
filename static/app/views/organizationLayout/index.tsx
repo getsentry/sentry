@@ -22,7 +22,7 @@ import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 import {useRegisterDomainViewUsage} from 'sentry/views/insights/common/utils/domainRedirect';
 import {Navigation} from 'sentry/views/navigation';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
-import {TopBar, TopBarSlot} from 'sentry/views/navigation/topBar';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
@@ -93,13 +93,13 @@ function AppLayout({organization}: LayoutProps) {
           <AppBodyContent>
             {organization && <OrganizationHeader organization={organization} />}
             <OrganizationDetailsBody>
-              <TopBarSlot>
+              <TopBar.Slot.Provider>
                 <TopBar />
                 <Layout.Page>
                   <Outlet />
                   <Footer />
                 </Layout.Page>
-              </TopBarSlot>
+              </TopBar.Slot.Provider>
             </OrganizationDetailsBody>
           </AppBodyContent>
         </ContentStack>
