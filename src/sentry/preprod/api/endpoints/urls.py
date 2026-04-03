@@ -21,6 +21,7 @@ from .organization_preprod_quota import OrganizationPreprodQuotaEndpoint
 from .organization_preprod_retention import OrganizationPreprodRetentionEndpoint
 from .preprod_artifact_admin_batch_delete import PreprodArtifactAdminBatchDeleteEndpoint
 from .preprod_artifact_admin_info import PreprodArtifactAdminInfoEndpoint
+from .preprod_artifact_approve import OrganizationPreprodArtifactApproveEndpoint
 from .preprod_artifact_rerun_analysis import (
     PreprodArtifactAdminRerunAnalysisEndpoint,
     PreprodArtifactRerunAnalysisEndpoint,
@@ -187,6 +188,12 @@ preprod_organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<artifact_id>[^/]+)/size-analysis/$",
         OrganizationPreprodPublicSizeAnalysisEndpoint.as_view(),
         name="sentry-api-0-organization-preprod-artifact-public-size-analysis",
+    ),
+    # Approvals
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<artifact_id>[^/]+)/approve/$",
+        OrganizationPreprodArtifactApproveEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-artifact-approve",
     ),
     # Snapshots
     re_path(

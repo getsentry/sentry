@@ -19,6 +19,7 @@ from sentry.utils import metrics
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.eap import hex_to_item_id
 from sentry.utils.kafka_config import get_topic_definition
+from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
@@ -51,7 +52,7 @@ def produce_processing_errors_to_eap(
     stored as attributes. This enables querying processing errors in EAP
     for configuration issue detection.
     """
-    trace_id = event_data.get("contexts", {}).get("trace", {}).get("trace_id")
+    trace_id = get_path(event_data, "contexts", "trace", "trace_id")
     if trace_id is None:
         logger.debug("Skipping EAP processing error production: missing trace_id")
         return

@@ -1,12 +1,11 @@
 import {useCallback, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -14,6 +13,7 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export function CreateFromSeerPrompt() {
   const organization = useOrganization();
@@ -21,6 +21,7 @@ export function CreateFromSeerPrompt() {
   const navigate = useNavigate();
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const hasPageFrame = useHasPageFrameFeature();
 
   const handleGenerate = useCallback(async () => {
     if (!prompt.trim()) {
@@ -61,7 +62,7 @@ export function CreateFromSeerPrompt() {
   }, [prompt, organization.slug, location.query, navigate]);
 
   return (
-    <Layout.Page withPadding background="secondary">
+    <Stack flex={1} padding="2xl 3xl" background={hasPageFrame ? undefined : 'secondary'}>
       <Flex direction="column" gap="lg" align="center" justify="center" flex="1">
         <Flex direction="column" gap="sm" width="640px">
           <Heading as="h3">{t('Describe your Dashboard')}</Heading>
@@ -100,6 +101,6 @@ export function CreateFromSeerPrompt() {
           </Container>
         </Flex>
       </Flex>
-    </Layout.Page>
+    </Stack>
   );
 }

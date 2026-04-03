@@ -42,7 +42,6 @@ export function useDsnLookupActions(query: string): void {
     }
 
     return getDsnNavTargets(data).map((target, i) => ({
-      type: 'navigate' as const,
       to: target.to,
       display: {
         label: target.label,

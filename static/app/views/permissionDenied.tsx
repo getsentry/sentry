@@ -1,9 +1,9 @@
 import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -26,7 +26,7 @@ export function PermissionDenied() {
 
   return (
     <SentryDocumentTitle title={t('Permission Denied')}>
-      <Layout.Page withPadding>
+      <Stack flex={1} padding="2xl 3xl">
         <LoadingError
           message={tct(
             `Your role does not have the necessary permissions to access this
@@ -38,7 +38,7 @@ export function PermissionDenied() {
             }
           )}
         />
-      </Layout.Page>
+      </Stack>
     </SentryDocumentTitle>
   );
 }

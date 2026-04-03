@@ -5,11 +5,10 @@ import {slugify} from 'sentry/utils/slugify';
 import {useCommandPaletteRegistration} from './context';
 import type {
   CommandPaletteAction,
-  CommandPaletteActionCallback,
   CommandPaletteActionCallbackWithKey,
-  CommandPaletteActionLink,
   CommandPaletteActionLinkWithKey,
   CommandPaletteActionWithKey,
+  CommandPaletteActionGroupWithKey,
 } from './types';
 
 function addKeysToActions(
@@ -17,12 +16,13 @@ function addKeysToActions(
   actions: CommandPaletteAction[]
 ): CommandPaletteActionWithKey[] {
   return actions.map(action => {
-    const actionKey = `${id}:${action.type}:${slugify(action.display.label)}`;
+    const kind = 'actions' in action ? 'group' : 'to' in action ? 'navigate' : 'callback';
+    const actionKey = `${id}:${kind}:${slugify(action.display.label)}`;
 
-    if (action.type === 'group') {
+    if ('actions' in action) {
       return {
         ...action,
-        actions: addKeysToChildActions(id, action.actions),
+        actions: addKeysToChildActions(actionKey, action.actions),
         key: actionKey,
       };
     }
@@ -35,14 +35,24 @@ function addKeysToActions(
 }
 
 function addKeysToChildActions(
-  id: string,
-  actions: Array<CommandPaletteActionLink | CommandPaletteActionCallback>
-): Array<CommandPaletteActionLinkWithKey | CommandPaletteActionCallbackWithKey> {
+  parentKey: string,
+  actions: CommandPaletteAction[]
+): Array<
+  | CommandPaletteActionLinkWithKey
+  | CommandPaletteActionCallbackWithKey
+  | CommandPaletteActionGroupWithKey
+> {
   return actions.map(action => {
-    const label = action.display.label.toLowerCase().replace(/ /g, '-');
-    const disambiguator =
-      action.type === 'navigate' ? `:${JSON.stringify(action.to)}` : '';
-    const actionKey = `${id}:${action.type}:${label}${disambiguator}`;
+    const actionKey = `${parentKey}::${'actions' in action ? 'group' : 'to' in action ? 'navigate' : 'callback'}:${slugify(action.display.label)}`;
+
+    if ('actions' in action) {
+      return {
+        ...action,
+        actions: addKeysToChildActions(actionKey, action.actions),
+        key: actionKey,
+      };
+    }
+
     return {
       ...action,
       key: actionKey,

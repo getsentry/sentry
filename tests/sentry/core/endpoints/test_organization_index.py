@@ -362,7 +362,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
 class OrganizationsCreateInRegionTest(OrganizationIndexTest):
     method = "post"
 
-    @override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_REGION="de")
+    @override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_LOCAL_CELL="de")
     def test_success(self) -> None:
         data = {"name": "hello world", "slug": "slug-world"}
         response = self.get_success_response(**data)

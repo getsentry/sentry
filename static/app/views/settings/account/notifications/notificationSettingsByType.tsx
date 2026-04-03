@@ -46,6 +46,9 @@ const typeMappedChildren: Record<string, string[]> = {
   quota: QUOTA_FIELDS.map(field => field.name),
 };
 
+// Ideally, we could just use SUPPORTED_PROVIDERS here, but 'msteams' is not widely tested.
+const ALLOWED_PROVIDERS = new Set(SUPPORTED_PROVIDERS.filter(p => p.includes('slack')));
+
 const getQueryParams = (notificationType: string) => {
   // if we need multiple settings on this page
   // then omit the type so we can load all settings
@@ -86,21 +89,22 @@ export function NotificationSettingsByType({notificationType}: Props) {
       ],
       {staleTime: 30_000}
     );
-  const {data: identities = [], status: identitiesStatus} = useApiQuery<Identity[]>(
-    [
-      getApiUrl('/users/$userId/identities/', {path: {userId: 'me'}}),
-      {query: {provider: 'slack'}},
-    ],
+  const {data: allIdentities = [], status: identitiesStatus} = useApiQuery<Identity[]>(
+    [getApiUrl('/users/$userId/identities/', {path: {userId: 'me'}})],
     {staleTime: 30_000}
   );
-  const {data: organizationIntegrations = [], status: organizationIntegrationStatus} =
+  const identities = allIdentities.filter(identity =>
+    ALLOWED_PROVIDERS.has(identity?.identityProvider?.type as SupportedProviders)
+  );
+
+  const {data: allOrgIntegrations = [], status: organizationIntegrationStatus} =
     useApiQuery<OrganizationIntegration[]>(
-      [
-        getApiUrl('/users/$userId/organization-integrations/', {path: {userId: 'me'}}),
-        {query: {provider: 'slack'}},
-      ],
+      [getApiUrl('/users/$userId/organization-integrations/', {path: {userId: 'me'}})],
       {staleTime: 30_000}
     );
+  const organizationIntegrations = allOrgIntegrations.filter(orgIntegration =>
+    ALLOWED_PROVIDERS.has(orgIntegration.provider.key as SupportedProviders)
+  );
   const {data: defaultSettings, status: defaultSettingsStatus} =
     useApiQuery<DefaultSettings>([getApiUrl('/notification-defaults/')], {
       staleTime: 30_000,
@@ -353,6 +357,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
   });
 
   const unlinkedSlackOrgs = getUnlinkedOrgs('slack');
+  const unlinkedSlackStagingOrgs = getUnlinkedOrgs('slack_staging');
   let notificationDetails = ACCOUNT_NOTIFICATION_FIELDS[notificationType]!;
   if (
     notificationType === 'quota' &&
@@ -384,7 +389,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
   const optionMutationOptions = (fieldName: string) =>
     mutationOptions({
       mutationFn: (data: Record<string, string>) =>
-        fetchMutation({
+        fetchMutation<NotificationOptionsObject>({
           method: 'PUT',
           url: '/users/me/notification-options/',
           data: {
@@ -394,7 +399,23 @@ export function NotificationSettingsByType({notificationType}: Props) {
             value: data[fieldName],
           },
         }),
-      onSuccess: () => trackTuningUpdated('general'),
+      onSuccess: notificationOption => {
+        trackTuningUpdated('general');
+        setApiQueryData<NotificationOptionsObject[]>(
+          queryClient,
+          notificationOptionsQueryKey(notificationType),
+          currentOptions => {
+            const existing = currentOptions ?? [];
+            const idx = existing.findIndex(opt => opt.id === notificationOption.id);
+            if (idx >= 0) {
+              return existing.map(opt =>
+                opt.id === notificationOption.id ? notificationOption : opt
+              );
+            }
+            return [...existing, notificationOption];
+          }
+        );
+      },
     });
 
   const providerChoices = (
@@ -417,6 +438,14 @@ export function NotificationSettingsByType({notificationType}: Props) {
           providers: data.provider,
         },
       }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [
+          getApiUrl('/users/$userId/notification-providers/', {path: {userId: 'me'}}),
+          {query: getQueryParams(notificationType)},
+        ],
+      });
+    },
   });
 
   const renderQuotaFields = () => {
@@ -508,6 +537,10 @@ export function NotificationSettingsByType({notificationType}: Props) {
                 {(field.state.value ?? initialProviders).includes('slack') &&
                 unlinkedSlackOrgs.length > 0 ? (
                   <UnlinkedAlert organizations={unlinkedSlackOrgs} />
+                ) : null}
+                {(field.state.value ?? initialProviders).includes('slack_staging') &&
+                unlinkedSlackStagingOrgs.length > 0 ? (
+                  <UnlinkedAlert organizations={unlinkedSlackStagingOrgs} />
                 ) : null}
                 <field.Layout.Row
                   label={t('Delivery Method')}

@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import type {AskSeerSearchQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
@@ -42,6 +42,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
   const organization = useOrganization();
+  const analyticsArea = useAnalyticsArea();
   const {
     currentInputValueRef,
     query,
@@ -81,10 +82,6 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
     initialSeerQuery =
       initialSeerQuery === '' ? inputValue : `${initialSeerQuery} ${inputValue}`;
   }
-
-  const usePollingEndpoint = organization.features.includes(
-    'gen-ai-search-agent-translate'
-  );
 
   // Get selected project IDs for the polling variant
   const selectedProjectIds = useMemo(() => {
@@ -239,6 +236,11 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         organization,
         query: queryToUse,
       });
+      trackAnalytics('ai_query.applied', {
+        organization,
+        area: analyticsArea,
+        query: queryToUse,
+      });
 
       // Apply the search query
       onSearch(queryToUse);
@@ -286,6 +288,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
       );
     },
     [
+      analyticsArea,
       askSeerSuggestedQueryRef,
       location,
       navigate,
@@ -299,28 +302,16 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
     return null;
   }
 
-  if (usePollingEndpoint) {
-    return (
-      <AskSeerPollingComboBox<AskSeerSearchQuery>
-        initialQuery={initialSeerQuery}
-        projectIds={selectedProjectIds}
-        strategy="Errors"
-        applySeerSearchQuery={applySeerSearchQuery}
-        transformResponse={transformResponse}
-        analyticsSource="errors"
-        feedbackSource="errors_ai_query"
-        fallbackMutationOptions={issueListAskSeerMutationOptions}
-      />
-    );
-  }
-
   return (
-    <AskSeerComboBox
+    <AskSeerPollingComboBox<AskSeerSearchQuery>
       initialQuery={initialSeerQuery}
-      askSeerMutationOptions={issueListAskSeerMutationOptions}
+      projectIds={selectedProjectIds}
+      strategy="Errors"
       applySeerSearchQuery={applySeerSearchQuery}
+      transformResponse={transformResponse}
       analyticsSource="errors"
       feedbackSource="errors_ai_query"
+      fallbackMutationOptions={issueListAskSeerMutationOptions}
     />
   );
 }

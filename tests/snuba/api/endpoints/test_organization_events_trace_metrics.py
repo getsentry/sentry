@@ -749,3 +749,93 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
 
         assert len(data) == 1
         assert data[0]["count(value,request_duration,distribution,none)"] == 1
+
+    def test_count_if_with_arbitrary_search_term(self):
+        trace_metrics = [
+            self.create_trace_metric("request_duration", 200.0, "distribution", metric_unit="none"),
+            self.create_trace_metric(
+                "request_duration",
+                200.0,
+                "distribution",
+                metric_unit="none",
+                attributes={"release": "abcdef"},
+            ),
+        ]
+        self.store_eap_items(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": ["count_if(`release:abcdef`,value,request_duration,distribution,none)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+
+        assert len(data) == 1
+        assert data[0]["count_if(`release:abcdef`,value,request_duration,distribution,none)"] == 1
+
+    def test_p50_if_with_arbitrary_search_term(self):
+        trace_metrics = [
+            self.create_trace_metric(
+                "request_duration", 1000000.0, "distribution", metric_unit="none"
+            ),
+            self.create_trace_metric(
+                "request_duration",
+                200.0,
+                "distribution",
+                metric_unit="none",
+                attributes={"release": "abcdef", "foobar": "barfoo"},
+            ),
+        ]
+        self.store_eap_items(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": [
+                    "p50_if(`release:abcdef and foobar:barfoo`,value,request_duration,distribution,none)"
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+
+        assert len(data) == 1
+        assert (
+            data[0][
+                "p50_if(`release:abcdef and foobar:barfoo`,value,request_duration,distribution,none)"
+            ]
+            == 200
+        )
+
+    def test_errors_if_query_in_query(self):
+        trace_metrics = [
+            self.create_trace_metric(
+                "request_duration", 1000000.0, "distribution", metric_unit="none"
+            ),
+            self.create_trace_metric(
+                "request_duration",
+                200.0,
+                "distribution",
+                metric_unit="none",
+                attributes={"release": "abcdef", "foobar": "barfoo"},
+            ),
+        ]
+        self.store_eap_items(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": [
+                    "p50_if(`release:abcdef and foobar:barfoo p50(`test`, test, test)`,value,request_duration,distribution,none)"
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 400, response.content

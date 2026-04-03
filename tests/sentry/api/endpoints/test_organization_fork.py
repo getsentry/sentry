@@ -45,7 +45,7 @@ class OrganizationForkTest(APITestCase):
         self.existing_org = self.create_organization(
             name=self.requested_org_slug,
             owner=self.existing_org_owner,
-            region=EXPORTING_TEST_REGION,
+            cell=EXPORTING_TEST_REGION,
         )
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})

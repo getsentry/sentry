@@ -55,7 +55,7 @@ describe('ResultsSearchQueryBuilder', () => {
 
     // Check that "p50" (a function tag) is NOT in the dropdown
     expect(
-      within(screen.getByRole('listbox')).queryByText('p50')
+      within(await screen.findByRole('listbox')).queryByText('p50')
     ).not.toBeInTheDocument();
   });
 

@@ -189,9 +189,12 @@ describe('ChoiceMapperAdapter', () => {
     await userEvent.click(await screen.findByText('Closed'));
 
     await waitFor(() => {
-      expect(mutationOptions.mutationFn).toHaveBeenCalledWith({
-        status_mapping: {repo1: {on_resolve: 'closed'}},
-      });
+      expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
+        {
+          status_mapping: {repo1: {on_resolve: 'closed'}},
+        },
+        expect.anything()
+      );
     });
   });
 
@@ -249,9 +252,12 @@ describe('ChoiceMapperAdapter', () => {
     await userEvent.click(await screen.findByText('Reopened'));
 
     await waitFor(() => {
-      expect(mutationOptions.mutationFn).toHaveBeenCalledWith({
-        status_mapping: {repo1: {on_resolve: 'closed', on_unresolve: 'reopened'}},
-      });
+      expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
+        {
+          status_mapping: {repo1: {on_resolve: 'closed', on_unresolve: 'reopened'}},
+        },
+        expect.anything()
+      );
     });
   });
 
@@ -286,9 +292,12 @@ describe('ChoiceMapperAdapter', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
 
     await waitFor(() => {
-      expect(mutationOptions.mutationFn).toHaveBeenCalledWith({
-        status_mapping: {},
-      });
+      expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
+        {
+          status_mapping: {},
+        },
+        expect.anything()
+      );
     });
   });
 
@@ -326,9 +335,12 @@ describe('ChoiceMapperAdapter', () => {
     await userEvent.click(await screen.findByText('Open'));
 
     await waitFor(() => {
-      expect(mutationOptions.mutationFn).toHaveBeenCalledWith({
-        status_mapping: {repo1: {on_resolve: 'open'}},
-      });
+      expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
+        {
+          status_mapping: {repo1: {on_resolve: 'open'}},
+        },
+        expect.anything()
+      );
     });
   });
 

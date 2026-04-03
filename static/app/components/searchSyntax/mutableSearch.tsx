@@ -188,10 +188,10 @@ function parseToFlatTokens(query: string): Token[] {
         let rawVal: string;
         let valueWasQuoted = false;
         let listValues: string[] | undefined;
-        if (t.value && t.value.type === ParserToken.VALUE_TEXT) {
+        if (t.value?.type === ParserToken.VALUE_TEXT) {
           rawVal = t.value.value;
           valueWasQuoted = t.value.quoted;
-        } else if (t.value && t.value.type === ParserToken.VALUE_TEXT_LIST) {
+        } else if (t.value?.type === ParserToken.VALUE_TEXT_LIST) {
           // Extract individual list items from the AST
           listValues = t.value.items
             .map(item => item.value?.value ?? '')

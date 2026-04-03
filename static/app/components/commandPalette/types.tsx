@@ -1,8 +1,6 @@
 import type {ReactNode} from 'react';
 import type {LocationDescriptor} from 'history';
 
-export type CommandPaletteGroupKey = 'search-result' | 'navigate' | 'add' | 'help';
-
 interface CommonCommandPaletteAction {
   display: {
     /** Primary text shown to the user */
@@ -12,10 +10,6 @@ interface CommonCommandPaletteAction {
     /** Icon to render for this action */
     icon?: ReactNode;
   };
-  /** Section to group the action in the palette */
-  groupingKey?: CommandPaletteGroupKey;
-  /** Whether this action should be hidden from the palette */
-  hidden?: boolean;
   /** Optional keywords to improve searchability */
   keywords?: string[];
 }
@@ -23,7 +17,6 @@ interface CommonCommandPaletteAction {
 export interface CommandPaletteActionLink extends CommonCommandPaletteAction {
   /** Navigate to a route when selected */
   to: LocationDescriptor;
-  type: 'navigate';
 }
 
 export interface CommandPaletteActionCallback extends CommonCommandPaletteAction {
@@ -32,19 +25,6 @@ export interface CommandPaletteActionCallback extends CommonCommandPaletteAction
    * Use the `to` prop if you want to navigate to a route.
    */
   onAction: () => void;
-  type: 'callback';
-}
-
-export type CommandPaletteActionChild =
-  | CommandPaletteActionCallback
-  | CommandPaletteActionLink;
-
-export interface CommandPaletteActionGroup<
-  T = CommandPaletteActionChild,
-> extends CommonCommandPaletteAction {
-  /** Nested actions to show when this action is selected */
-  actions: T[];
-  type: 'group';
 }
 
 export type CommandPaletteAction =
@@ -52,17 +32,28 @@ export type CommandPaletteAction =
   | CommandPaletteActionCallback
   | CommandPaletteActionGroup;
 
+export interface CommandPaletteActionGroup extends CommonCommandPaletteAction {
+  /** Nested actions to show when this action is selected */
+  actions: Array<
+    CommandPaletteActionLink | CommandPaletteActionCallback | CommandPaletteActionGroup
+  >;
+}
+
 // Internally, a key is added to the actions in order to track them for registration and selection.
 export type CommandPaletteActionLinkWithKey = CommandPaletteActionLink & {key: string};
 export type CommandPaletteActionCallbackWithKey = CommandPaletteActionCallback & {
   key: string;
 };
-type CommandPaletteActionGroupWithKey<T> = CommandPaletteActionGroup<T> & {
-  key: string;
-};
 export type CommandPaletteActionWithKey =
   | CommandPaletteActionLinkWithKey
   | CommandPaletteActionCallbackWithKey
-  | CommandPaletteActionGroupWithKey<
-      CommandPaletteActionLinkWithKey | CommandPaletteActionCallbackWithKey
-    >;
+  | CommandPaletteActionGroupWithKey;
+
+export interface CommandPaletteActionGroupWithKey extends CommandPaletteActionGroup {
+  actions: Array<
+    | CommandPaletteActionLinkWithKey
+    | CommandPaletteActionCallbackWithKey
+    | CommandPaletteActionGroupWithKey
+  >;
+  key: string;
+}
