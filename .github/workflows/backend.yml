@@ -92,23 +92,15 @@ jobs:
       has-selected-tests: ${{ steps.compute-tests.outputs.has-selected-tests }}
       test-count: ${{ steps.compute-tests.outputs.test-count }}
     steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
       - name: Get changed files
         id: changed
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files \
-            --paginate --jq '.[] | [.filename, .status, .previous_filename // ""] | @tsv' > /tmp/pr-files.tsv
-
-          CHANGED_FILES=$(cut -f1 /tmp/pr-files.tsv | tr '\n' ' ')
-          PREVIOUS_FILENAMES=$(awk -F'\t' '$2 == "renamed" && $3 != "" { print $3 }' /tmp/pr-files.tsv | tr '\n' ' ')
-
-          echo "Changed files: $CHANGED_FILES"
-          echo "Previous filenames: $PREVIOUS_FILENAMES"
-          echo "files=$CHANGED_FILES" >> "$GITHUB_OUTPUT"
-          echo "previous-filenames=$PREVIOUS_FILENAMES" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+            --paginate | python3 .github/workflows/scripts/parse-pr-files.py >> "$GITHUB_OUTPUT"
 
       - name: Setup Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
