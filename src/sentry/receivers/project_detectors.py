@@ -7,7 +7,7 @@ from django.db.models.signals import post_save
 from sentry import features
 from sentry.models.project import Project
 from sentry.signals import project_created
-from sentry.workflow_engine.processors.detector import (
+from sentry.workflow_engine.defaults.detectors import (
     UnableToAcquireLockApiError,
     ensure_default_anomaly_detector,
     ensure_default_detectors,
