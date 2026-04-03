@@ -1893,9 +1893,7 @@ class TestSendMetricAlertWebhook(TestCase):
         assert not safe_urlopen.called
         assert_failure_metric(
             mock_record=mock_record,
-            error_msg=SentryAppSentryError(
-                message=SentryAppWebhookFailureReason.MISSING_SENTRY_APP
-            ),
+            error_msg=SentryAppWebhookFailureReason.MISSING_SENTRY_APP,
         )
         # PREPARE_WEBHOOK (failure)
         assert_count_of_metric(
@@ -1908,7 +1906,6 @@ class TestSendMetricAlertWebhook(TestCase):
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_missing_installation(self, mock_record: MagicMock, safe_urlopen: MagicMock) -> None:
-        # Create a sentry app with no installation in this organization
         other_org = self.create_organization()
         uninstalled_app = self.create_sentry_app(organization=other_org)
 
@@ -1924,13 +1921,11 @@ class TestSendMetricAlertWebhook(TestCase):
         assert not safe_urlopen.called
         assert_failure_metric(
             mock_record=mock_record,
-            error_msg=SentryAppSentryError(
-                message=SentryAppWebhookFailureReason.MISSING_INSTALLATION
-            ),
+            error_msg=SentryAppWebhookFailureReason.MISSING_INSTALLATION,
         )
-        # PREPARE_WEBHOOK (failure)
+        # APP_CREATE (success) -> PREPARE_WEBHOOK (failure)
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
         )
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1

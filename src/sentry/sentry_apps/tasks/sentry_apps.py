@@ -69,6 +69,7 @@ from sentry.sentry_apps.utils.webhooks import (
     IssueAlertActionType,
     MetricAlertActionType,
     SentryAppResourceType,
+    find_alert_rule_action_ui_component,
 )
 from sentry.services.eventstore.models import BaseEvent, Event, GroupEvent
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
@@ -942,15 +943,7 @@ def _record_metric_alert_ui_component_analytics(
     sentry_app_id: int,
     app_platform_event: AppPlatformEvent,
 ) -> None:
-    triggers = (
-        app_platform_event.data.get("metric_alert", {}).get("alert_rule", {}).get("triggers", [])
-    )
-    has_ui_component = any(
-        action.get("type") == "sentry_app" and action.get("settings") is not None
-        for trigger in triggers
-        for action in trigger.get("actions", [])
-    )
-    if not has_ui_component:
+    if not find_alert_rule_action_ui_component(app_platform_event):
         return
     try:
         analytics.record(
@@ -1008,6 +1001,10 @@ def send_metric_alert_webhook(
         )
         if not installations:
             lifecycle.record_failure(SentryAppWebhookFailureReason.MISSING_INSTALLATION)
+            return
+
+        if len(installations) > 1:
+            lifecycle.record_failure(SentryAppWebhookFailureReason.MULTIPLE_INSTALLATIONS)
             return
 
         app_platform_event = AppPlatformEvent(
