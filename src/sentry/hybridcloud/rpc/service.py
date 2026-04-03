@@ -571,8 +571,15 @@ class _RemoteSiloCall:
         return settings.RPC_TIMEOUT
 
     def _send_to_remote_silo(self, use_test_client: bool) -> Any:
+        from sentry.viewer_context import get_viewer_context
+
+        vc = get_viewer_context()
+        meta: dict[str, Any] = {}
+        if vc is not None:
+            meta["viewer_context"] = vc.serialize()
+
         request_body = {
-            "meta": {},  # reserved for future use
+            "meta": meta,
             "args": self.serial_arguments,
         }
         data = json.dumps(request_body).encode(_RPC_CONTENT_CHARSET)
