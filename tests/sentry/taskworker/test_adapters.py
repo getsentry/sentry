@@ -1,10 +1,18 @@
+import contextlib
+
 import pytest
 from django.test.utils import override_settings
 from taskbroker_client.registry import TaskRegistry
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.silo.base import SiloMode
-from sentry.taskworker.adapters import SentryMetricsBackend, SentryRouter, make_producer
+from sentry.taskworker.adapters import (
+    SentryMetricsBackend,
+    SentryRouter,
+    ViewerContextHook,
+    make_producer,
+)
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context, viewer_context_scope
 
 
 @pytest.mark.django_db
@@ -51,3 +59,83 @@ def test_default_router_topic_control_silo() -> None:
         router = SentryRouter()
         topic = router.route_namespace("test.tasks.test_router.control")
         assert topic == Topic.TASKWORKER_CONTROL.value
+
+
+class TestViewerContextHook:
+    def test_on_dispatch_with_context(self) -> None:
+        hook = ViewerContextHook()
+        headers: dict[str, str] = {}
+        ctx = ViewerContext(organization_id=42, user_id=7, actor_type=ActorType.USER)
+        with viewer_context_scope(ctx):
+            hook.on_dispatch(headers)
+
+        assert headers["sentry-viewer-org"] == "42"
+        assert headers["sentry-viewer-user"] == "7"
+        assert headers["sentry-viewer-actor"] == "user"
+
+    def test_on_dispatch_without_context(self) -> None:
+        hook = ViewerContextHook()
+        headers: dict[str, str] = {}
+        hook.on_dispatch(headers)
+
+        assert "sentry-viewer-org" not in headers
+        assert "sentry-viewer-user" not in headers
+        assert "sentry-viewer-actor" not in headers
+
+    def test_on_dispatch_partial_context(self) -> None:
+        hook = ViewerContextHook()
+        headers: dict[str, str] = {}
+        ctx = ViewerContext(organization_id=42, actor_type=ActorType.SYSTEM)
+        with viewer_context_scope(ctx):
+            hook.on_dispatch(headers)
+
+        assert headers["sentry-viewer-org"] == "42"
+        assert "sentry-viewer-user" not in headers
+        assert headers["sentry-viewer-actor"] == "system"
+
+    def test_on_execute_restores_context(self) -> None:
+        hook = ViewerContextHook()
+        headers = {
+            "sentry-viewer-org": "42",
+            "sentry-viewer-user": "7",
+            "sentry-viewer-actor": "user",
+        }
+        with hook.on_execute(headers):
+            ctx = get_viewer_context()
+            assert ctx is not None
+            assert ctx.organization_id == 42
+            assert ctx.user_id == 7
+            assert ctx.actor_type == ActorType.USER
+
+        assert get_viewer_context() is None
+
+    def test_on_execute_no_headers(self) -> None:
+        hook = ViewerContextHook()
+        cm = hook.on_execute({})
+        assert isinstance(cm, contextlib.nullcontext)
+
+    def test_on_execute_partial_headers(self) -> None:
+        hook = ViewerContextHook()
+        headers = {"sentry-viewer-org": "99", "sentry-viewer-actor": "integration"}
+        with hook.on_execute(headers):
+            ctx = get_viewer_context()
+            assert ctx is not None
+            assert ctx.organization_id == 99
+            assert ctx.user_id is None
+            assert ctx.actor_type == ActorType.INTEGRATION
+
+    def test_roundtrip(self) -> None:
+        """Dispatch then execute produces the same ViewerContext."""
+        hook = ViewerContextHook()
+        headers: dict[str, str] = {}
+
+        original = ViewerContext(organization_id=123, user_id=456, actor_type=ActorType.USER)
+        with viewer_context_scope(original):
+            hook.on_dispatch(headers)
+
+        with hook.on_execute(headers):
+            restored = get_viewer_context()
+            assert restored is not None
+            assert restored.organization_id == original.organization_id
+            assert restored.user_id == original.user_id
+            assert restored.actor_type == original.actor_type

@@ -7,9 +7,11 @@ interfaces defined by the taskbroker-client library.
 
 from __future__ import annotations
 
+import contextlib
 import threading
+from collections.abc import MutableMapping
 from contextlib import contextmanager
-from typing import Generator
+from typing import Any, Generator
 
 from arroyo.backends.kafka import KafkaProducer
 from django.conf import settings
@@ -26,6 +28,7 @@ from sentry.utils import json
 from sentry.utils import metrics as sentry_metrics
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.memory import track_memory_usage as sentry_track_memory_usage
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context, viewer_context_scope
 
 
 class DjangoCacheAtMostOnceStore(AtMostOnceStore):
@@ -143,6 +146,39 @@ class SentryRouter(LibraryRouter):
         if name in self._route_map:
             return Topic(self._route_map[name]).value
         return self._default_topic.value
+
+
+class ViewerContextHook:
+    """
+    ContextHook that propagates ViewerContext through task headers.
+    """
+
+    HEADER_ORG = "sentry-viewer-org"
+    HEADER_USER = "sentry-viewer-user"
+    HEADER_ACTOR = "sentry-viewer-actor"
+
+    def on_dispatch(self, headers: MutableMapping[str, Any]) -> None:
+        ctx = get_viewer_context()
+        if ctx is None:
+            return
+        if ctx.organization_id is not None:
+            headers[self.HEADER_ORG] = str(ctx.organization_id)
+        if ctx.user_id is not None:
+            headers[self.HEADER_USER] = str(ctx.user_id)
+        headers[self.HEADER_ACTOR] = ctx.actor_type.value
+
+    def on_execute(self, headers: dict[str, str]) -> contextlib.AbstractContextManager[None]:
+        actor = headers.get(self.HEADER_ACTOR)
+        org = headers.get(self.HEADER_ORG)
+        user = headers.get(self.HEADER_USER)
+        if not actor and not org and not user:
+            return contextlib.nullcontext()
+        ctx = ViewerContext(
+            organization_id=int(org) if org else None,
+            user_id=int(user) if user else None,
+            actor_type=ActorType(actor) if actor else ActorType.UNKNOWN,
+        )
+        return viewer_context_scope(ctx)
 
 
 _producer_local = threading.local()
