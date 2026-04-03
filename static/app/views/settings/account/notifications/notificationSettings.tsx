@@ -108,7 +108,7 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
       setApiQueryData<NotificationFields>(
         queryClient,
         [NOTIFICATIONS_ENDPOINT],
-        existing => ({...existing!, ...variables})
+        existing => existing ? ({...existing, ...variables}) : undefined
       );
     },
   });
