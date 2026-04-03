@@ -149,13 +149,20 @@ class GeneratedWidget(BaseModel):
     interval: Intervals = Field(default="1h")
 
     @root_validator
-    def check_description_length(cls, values: dict[str, Any]) -> dict[str, Any]:
+    def check_text_widget_constraints(cls, values: dict[str, Any]) -> dict[str, Any]:
         display_type = values.get("display_type")
+        is_text = display_type == "text"
+
         description = values.get("description", "")
-        if display_type != "text" and len(description) > 255:
+        if not is_text and len(description) > 255:
             raise ValueError(
                 f"Description must not exceed 255 characters for non-text widgets (got {len(description)})"
             )
+
+        widget_type = values.get("widget_type")
+        if not is_text and widget_type is None:
+            raise ValueError("widget_type is required for non-text widgets")
+
         return values
 
 
