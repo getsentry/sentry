@@ -54,6 +54,5 @@ class SentryAppMetricAlertHandler(BaseMetricAlertHandler):
             metric_issue_context=metric_issue_context,
             incident_serialized_response=incident_serialized_response,
             organization=organization,
-            project_id=project.id,
             notification_uuid=notification_uuid,
         )

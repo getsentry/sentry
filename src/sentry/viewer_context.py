@@ -5,7 +5,7 @@ import contextvars
 import dataclasses
 import enum
 from collections.abc import Generator
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from sentry.auth.services.auth import AuthenticatedToken
@@ -50,6 +50,17 @@ class ViewerContext:
     # Carries scopes/kind for in-process permission checks.
     # NOT propagated across process/service boundaries.
     token: AuthenticatedToken | None = None
+
+    def serialize(self) -> dict[str, Any]:
+        """Serialize to a dict for cross-service headers (e.g. X-Viewer-Context)."""
+        result: dict[str, Any] = {"actor_type": self.actor_type.value}
+        if self.organization_id is not None:
+            result["organization_id"] = self.organization_id
+        if self.user_id is not None:
+            result["user_id"] = self.user_id
+        if self.token is not None:
+            result["token"] = {"kind": self.token.kind, "scopes": list(self.token.get_scopes())}
+        return result
 
 
 @contextlib.contextmanager

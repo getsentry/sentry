@@ -85,7 +85,6 @@ class TestSentryAppMetricAlertHandler(MetricAlertHandlerBase):
             alert_context=alert_context,
             metric_issue_context=metric_issue_context,
             organization=self.detector.project.organization,
-            project_id=self.detector.project.id,
             notification_uuid=notification_uuid,
             incident_serialized_response=get_incident_serializer(self.open_period),
         )
