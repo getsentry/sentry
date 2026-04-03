@@ -20,7 +20,6 @@ DISPLAY_TYPE_BLOCKLIST: set[str] = {
 # Most of these are deprecated, not selectable in the UI, or don't make sense for generated dashboards.
 WIDGET_TYPE_BLOCKLIST: set[str] = {
     "discover",
-    "custom-metrics",
     "metrics",
     "transaction-like",
     "preprod-app-size",
