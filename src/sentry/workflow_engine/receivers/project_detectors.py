@@ -1,6 +1,6 @@
 import logging
 from contextlib import contextmanager
-from typing import Iterator
+from typing import Any, Iterator
 
 import sentry_sdk
 from django.db.models.signals import post_save
@@ -51,6 +51,7 @@ def disable_default_detector_creation() -> Iterator[None]:
 def create_project_detectors(
     instance: Project,
     created: bool,
+    **kwargs: Any,
 ) -> None:
     if created:
         try:
