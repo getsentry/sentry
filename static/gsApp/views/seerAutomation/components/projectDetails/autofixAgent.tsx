@@ -171,7 +171,7 @@ function StoppingPointField({
   preference,
   project,
 }: {
-  agent: 'seer' | 'none' | CodingAgentIntegration;
+  agent: 'seer' | CodingAgentIntegration;
   canWrite: boolean;
   preference: ProjectSeerPreferences;
   project: Project;
@@ -198,7 +198,7 @@ function StoppingPointField({
 
   const initialValue = getProjectStoppingPointValue(project, preference);
   const options = useFetchStoppingPointOptions({
-    agent: agent === 'none' ? 'seer' : agent,
+    agent,
     organization,
   });
 
