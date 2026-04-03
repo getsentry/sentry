@@ -19,20 +19,21 @@ export function useSuperGroups(groupIds: string[]): {
   const organization = useOrganization();
   const requestedGroupIdsRef = useRef(groupIds);
   const hasTopIssuesUI = organization.features.includes('top-issues-ui');
-  const shouldReuseRequestedGroupIds = useMemo(() => {
-    const requestedGroupIds = requestedGroupIdsRef.current;
 
-    if (groupIds.length === 0 || requestedGroupIds.length < groupIds.length) {
-      return false;
+  const previousRequestedGroupIds = requestedGroupIdsRef.current;
+
+  // Stabilize the query key: if the new groupIds are a subset of what we
+  // already requested (groups were removed), reuse the previous set to
+  // avoid a redundant refetch.
+  const requestedGroupIds = useMemo(() => {
+    const prev = requestedGroupIdsRef.current;
+    if (groupIds.length === 0 || prev.length < groupIds.length) {
+      return groupIds;
     }
-
-    const requestedGroupIdSet = new Set(requestedGroupIds);
-    return groupIds.every(groupId => requestedGroupIdSet.has(groupId));
+    const prevSet = new Set(prev);
+    return groupIds.every(id => prevSet.has(id)) ? prev : groupIds;
   }, [groupIds]);
 
-  const requestedGroupIds = shouldReuseRequestedGroupIds
-    ? requestedGroupIdsRef.current
-    : groupIds;
   requestedGroupIdsRef.current = requestedGroupIds;
   const enabled = hasTopIssuesUI && requestedGroupIds.length > 0;
 
@@ -50,6 +51,13 @@ export function useSuperGroups(groupIds: string[]): {
     {
       staleTime: 30_000,
       enabled,
+      placeholderData: previousData => {
+        if (!previousData) {
+          return undefined;
+        }
+        const prevSet = new Set(previousRequestedGroupIds);
+        return groupIds.some(id => prevSet.has(id)) ? previousData : undefined;
+      },
     }
   );
 
@@ -57,7 +65,6 @@ export function useSuperGroups(groupIds: string[]): {
     if (!response?.data) {
       return {};
     }
-
     const result: SupergroupLookup = Object.fromEntries(groupIds.map(id => [id, null]));
     for (const sg of response.data) {
       for (const groupId of sg.group_ids) {
