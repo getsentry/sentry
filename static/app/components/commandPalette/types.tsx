@@ -16,6 +16,8 @@ interface Action {
   keywords?: string[];
 }
 
+type CMDKQueryOptions = UseQueryOptions<any, Error, CommandPaletteAction[], any>;
+
 export interface CommandPaletteActionLink extends Action {
   /** Navigate to a route when selected */
   to: LocationDescriptor;
@@ -34,16 +36,12 @@ interface CommandPaletteAsyncAction extends Action {
    * Execute a callback when the action is selected.
    * Use the `to` prop if you want to navigate to a route.
    */
-  resource: (
-    query: string
-  ) => UseQueryOptions<any, Error, readonly CommandPaletteAction[], any>;
+  resource: (query: string) => CMDKQueryOptions;
 }
 
 interface CommandPaletteAsyncActionGroup extends Action {
   actions: CommandPaletteAsyncAction[];
-  resource: (
-    query: string
-  ) => UseQueryOptions<any, Error, readonly CommandPaletteAsyncAction[], any>;
+  resource: (query: string) => CMDKQueryOptions;
 }
 
 export type CommandPaletteAction =

@@ -1,8 +1,5 @@
 import {useState} from 'react';
-import {
-  SentryGlobalSearch,
-  type Result as SearchResult,
-} from '@sentry-internal/global-search';
+import {SentryGlobalSearch} from '@sentry-internal/global-search';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 
@@ -26,6 +23,7 @@ import {
   IconPanel,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {queryOptions} from 'sentry/utils/queryClient';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -388,7 +386,7 @@ export function useGlobalCommandPaletteActions() {
         },
       ],
       resource: (query: string) => {
-        return {
+        return queryOptions({
           queryKey: ['command-palette-help-search', query, search],
           queryFn: () => {
             return search.query(
@@ -401,8 +399,7 @@ export function useGlobalCommandPaletteActions() {
               }
             );
           },
-          placeholderData: (previousData: SearchResult[]) => previousData,
-          select: (data: SearchResult[]) => {
+          select: data => {
             const actions: CommandPaletteAction[] = [];
 
             for (const index of data) {
@@ -418,7 +415,7 @@ export function useGlobalCommandPaletteActions() {
 
             return actions;
           },
-        };
+        });
       },
     },
     // END HELP ACTIONS

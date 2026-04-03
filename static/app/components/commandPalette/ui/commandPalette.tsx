@@ -19,10 +19,7 @@ import {InnerWrap} from '@sentry/scraps/menuListItem';
 import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
 import {Text} from '@sentry/scraps/text';
 
-import {
-  useCommandPaletteActions,
-  useCommandPaletteRegistration,
-} from 'sentry/components/commandPalette/context';
+import {useCommandPaletteActions} from 'sentry/components/commandPalette/context';
 import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
 import {
   useCommandPaletteDispatch,
@@ -73,8 +70,6 @@ export function CommandPalette(props: CommandPaletteProps) {
 
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
-
-  const {dispatch: registerDispatch} = useCommandPaletteRegistration();
 
   // Preload the empty state image so it's ready if/when there are no results
   // Guard against non-string imports (e.g. SVG objects in test environments)
@@ -136,7 +131,7 @@ export function CommandPalette(props: CommandPaletteProps) {
     }
 
     // @TODO: implement register and cleanup here
-  }, [queries, registerDispatch, queryOptions]);
+  }, [queries]);
 
   const sectionKeys = useMemo(() => {
     return new Set(
