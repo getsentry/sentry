@@ -382,8 +382,8 @@ export function useGlobalCommandPaletteActions() {
           display: {
             label: t('Project DSN Keys'),
             icon: <IconLock locked />,
-            keywords: [t('client keys')],
           },
+          keywords: [t('client keys'), t('dsn keys')],
           actions: projects.map(project => ({
             display: {
               label: project.name,
