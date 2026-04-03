@@ -30,12 +30,14 @@ import {
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {useCommandPaletteAnalytics} from 'sentry/components/commandPalette/useCommandPaletteAnalytics';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconArrow, IconClose, IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import {useQueries} from 'sentry/utils/queryClient';
 import {fzf} from 'sentry/utils/search/fzf';
 import type {Theme} from 'sentry/utils/theme';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 const MotionButton = motion.create(Button);
 const MotionIconSearch = motion.create(IconSearch);
@@ -252,6 +254,12 @@ export function CommandPalette(props: CommandPaletteProps) {
     [actions, analytics, dispatch, props, treeState]
   );
 
+  const debouncedQuery = useDebouncedValue(state.query, 300);
+
+  const isLoading =
+    state.query.length > 0 &&
+    (debouncedQuery !== state.query || asyncQueries.some(query => query.isFetching));
+
   return (
     <Fragment>
       <Flex direction="column" align="start" gap="md">
@@ -278,6 +286,11 @@ export function CommandPalette(props: CommandPaletteProps) {
                           />
                         )}
                       </Container>
+                    ) : isLoading ? (
+                      <StyledLoadingIndicator
+                        data-test-id="command-palette-loading"
+                        size={14}
+                      />
                     ) : (
                       <MotionIconSearch
                         size="sm"
@@ -650,6 +663,30 @@ function CommandPaletteNoResults() {
     </Flex>
   );
 }
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  margin: 0;
+  left: 0;
+  top: 50%;
+  position: absolute;
+  transform: translate(-2px, -50%);
+  animation: showLoadingIndicator 0.3s ease-in-out forwards;
+
+  @keyframes showLoadingIndicator {
+    from {
+      opacity: 0;
+      transform: translate(-2px, -50%) scale(0.86);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-2px, -50%) scale(1);
+    }
+  }
+
+  .loading-message {
+    display: none;
+  }
+`;
 
 const StyledInputLeadingItems = styled(InputGroup.LeadingItems)`
   left: ${p => p.theme.space.lg};
