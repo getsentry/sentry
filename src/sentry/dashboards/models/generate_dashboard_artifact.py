@@ -163,6 +163,9 @@ class GeneratedWidget(BaseModel):
         if not is_text and widget_type is None:
             raise ValueError("widget_type is required for non-text widgets")
 
+        if is_text and widget_type is not None:
+            raise ValueError("widget_type is not allowed for text widgets")
+
         return values
 
 
