@@ -12,7 +12,7 @@ import {useMutation} from 'sentry/utils/queryClient';
 import {
   useBulkMutateSelectedAgent,
   useFetchPreferredAgent,
-  useFetchPreferredAgentOptions,
+  useFetchAgentOptions,
   getPreferredAgentMutationOptions,
 } from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
 
@@ -133,7 +133,7 @@ describe('seerPreferredAgent', () => {
     it('includes "seer" as first option plus integration options', async () => {
       mockIntegrationsEndpoint();
 
-      const {result} = renderHookWithProviders(useFetchPreferredAgentOptions, {
+      const {result} = renderHookWithProviders(useFetchAgentOptions, {
         initialProps: {organization},
         organization,
       });
@@ -160,7 +160,7 @@ describe('seerPreferredAgent', () => {
         ],
       });
 
-      const {result} = renderHookWithProviders(useFetchPreferredAgentOptions, {
+      const {result} = renderHookWithProviders(useFetchAgentOptions, {
         initialProps: {organization},
         organization,
       });
@@ -177,7 +177,7 @@ describe('seerPreferredAgent', () => {
     it('returns only "seer" when there are no integrations', async () => {
       mockIntegrationsEndpoint({integrations: []});
 
-      const {result} = renderHookWithProviders(useFetchPreferredAgentOptions, {
+      const {result} = renderHookWithProviders(useFetchAgentOptions, {
         initialProps: {organization},
         organization,
       });

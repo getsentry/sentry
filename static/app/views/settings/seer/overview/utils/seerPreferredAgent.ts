@@ -51,7 +51,7 @@ export function useFetchPreferredAgent({organization}: {organization: Organizati
   return query;
 }
 
-export function useFetchPreferredAgentOptions({
+export function useFetchAgentOptions({
   organization,
   enabled = true,
 }: {

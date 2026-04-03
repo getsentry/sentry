@@ -29,7 +29,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {
   getPreferredAgentMutationOptions,
   useFetchPreferredAgent,
-  useFetchPreferredAgentOptions,
+  useFetchAgentOptions,
   useBulkMutateSelectedAgent,
 } from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
 import {useBulkMutateCreatePr} from 'sentry/views/settings/seer/seerAgentHooks';
@@ -159,7 +159,7 @@ function AgentNameForm({
   setIsBulkMutatingAgent: (value: boolean) => void;
 }) {
   const preferredAgent = useFetchPreferredAgent({organization});
-  const codingAgentSelectOptions = useFetchPreferredAgentOptions({organization});
+  const codingAgentSelectOptions = useFetchAgentOptions({organization});
   const codingAgentMutationOptions = getPreferredAgentMutationOptions({organization});
   const bulkMutateSelectedAgent = useBulkMutateSelectedAgent({
     projects: projects.filter(p => !projectsIdsWithPreferredAgent.has(p.id)),
@@ -407,7 +407,11 @@ function StoppingPointForm({organization}: {organization: Organization}) {
   });
 
   const initialValue = getDefaultStoppingPointValue(organization);
-  const options = useFetchStoppingPointOptions({organization});
+  const preferredAgent = useFetchPreferredAgent({organization});
+  const options = useFetchStoppingPointOptions({
+    agent: preferredAgent.data,
+    organization,
+  });
 
   return (
     <AutoSaveForm

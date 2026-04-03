@@ -1,11 +1,9 @@
 import {updateOrganization} from 'sentry/actionCreators/organizations';
+import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
-import {
-  useFetchPreferredAgent,
-  useFetchPreferredAgentOptions,
-} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
+import {useFetchAgentOptions} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
 
 type SelectValue = 'off' | 'root_cause' | 'code';
 type SelectOptions = {label: string; value: SelectValue};
@@ -20,14 +18,15 @@ export function getDefaultStoppingPointValue(organization: Organization): Select
 
 export function useFetchStoppingPointOptions({
   organization,
+  agent,
 }: {
+  agent: undefined | 'seer' | CodingAgentIntegration;
   organization: Organization;
 }): SelectOptions[] {
-  const isSeerAgent = organization.defaultCodingAgent === 'seer';
   const autoOpenPrs = organization.autoOpenPrs;
 
-  const preferredAgent = useFetchPreferredAgent({organization});
-  const codingAgentSelectOptions = useFetchPreferredAgentOptions({
+  const isSeerAgent = agent === 'seer';
+  const codingAgentSelectOptions = useFetchAgentOptions({
     organization,
     enabled: !isSeerAgent,
   });
@@ -45,8 +44,8 @@ export function useFetchStoppingPointOptions({
     ];
   }
 
-  const preferredAgentLabel = codingAgentSelectOptions.data?.find(
-    o => o.value === preferredAgent.data
+  const agentLabel = codingAgentSelectOptions.data?.find(
+    o => o.value === agent || (typeof o.value === 'object' && o.value.id === agent?.id)
   )?.label;
 
   return [
@@ -55,11 +54,11 @@ export function useFetchStoppingPointOptions({
     {
       value: 'code',
       label: autoOpenPrs
-        ? preferredAgentLabel
-          ? t('Draft a Pull Request with %s', preferredAgentLabel)
+        ? agentLabel
+          ? t('Draft a Pull Request with %s', agentLabel)
           : t('Draft a Pull Request')
-        : preferredAgentLabel
-          ? t('Propose Changes with %s', preferredAgentLabel)
+        : agentLabel
+          ? t('Propose Changes with %s', agentLabel)
           : t('Propose Changes'),
     },
   ];
