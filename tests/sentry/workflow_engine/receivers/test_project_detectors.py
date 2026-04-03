@@ -12,12 +12,12 @@ from sentry.signals import project_created
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.workflow_engine.models import DataSource, Detector
-from sentry.workflow_engine.models.data_condition import Condition, DataCondition
-from sentry.workflow_engine.processors.detector import (
+from sentry.workflow_engine.defaults.detectors import (
     ensure_default_anomaly_detector,
     ensure_performance_detectors,
 )
+from sentry.workflow_engine.models import DataSource, Detector
+from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.receivers.project_detectors import (
     create_default_anomaly_detector,
     disable_default_detector_creation,
@@ -261,7 +261,7 @@ class TestCreatePerformanceDetectors(TestCase):
             "performance_slow_db_query": frozenset({"ruby", "php"}),
         },
     )
-    def test_respects_default_enabled_state(self, mock_disabled_platforms):
+    def test_respects_default_enabled_state(self, _):
         """Test that detectors respect both platform-specific disabling and default enabled state."""
         with disable_default_detector_creation():
             project = self.create_project(platform="ruby")
