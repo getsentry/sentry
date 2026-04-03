@@ -60,7 +60,7 @@ export function aggregateSupergroupStats(
       filteredEventCount += parseInt(group.filtered.count, 10);
       filteredUserCount += group.filtered.userCount;
 
-      const filteredStats = group.filtered.stats[statsPeriod];
+      const filteredStats = group.filtered.stats?.[statsPeriod];
       if (filteredStats) {
         mergedFilteredStats = addTimeseries(mergedFilteredStats, filteredStats);
       }
@@ -76,7 +76,7 @@ export function aggregateSupergroupStats(
       lastSeen = gLastSeen;
     }
 
-    const stats = group.stats[statsPeriod];
+    const stats = group.stats?.[statsPeriod];
     if (stats) {
       mergedStats = addTimeseries(mergedStats, stats);
     }
