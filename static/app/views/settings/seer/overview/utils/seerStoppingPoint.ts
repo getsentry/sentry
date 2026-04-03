@@ -185,18 +185,16 @@ export function getProjectStoppingPointMutationOptions({
           queryClient,
           seerPrefsQueryKey
         );
-        if (!previous) {
-          return;
+        if (previous) {
+          setApiQueryData<SeerPreferencesResponse>(queryClient, seerPrefsQueryKey, {
+            ...previous,
+            preference: {
+              repositories: [],
+              ...previous.preference,
+              ...preferencePayload,
+            },
+          });
         }
-
-        setApiQueryData<SeerPreferencesResponse>(queryClient, seerPrefsQueryKey, {
-          preference: {
-            repositories: [],
-            ...previous.preference,
-            ...preferencePayload,
-          },
-          code_mapping_repos: previous.code_mapping_repos,
-        });
       }
     },
     onSettled: () => {
