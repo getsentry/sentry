@@ -18,13 +18,7 @@ import {
   PRIMARY_HEADER_HEIGHT,
 } from './constants';
 
-const topBarSlot = slot(['Title', 'Actions', 'Feedback'] as const);
-
-export const TopBarSlotProvider = topBarSlot.Provider;
-
-export const TopBarSlots = {
-  ...topBarSlot.slot,
-};
+export const TopBarSlot = slot(['Title', 'Actions', 'Feedback'] as const);
 
 export function TopBar() {
   const theme = useTheme();
@@ -55,16 +49,14 @@ export function TopBar() {
       }}
     >
       <SizeProvider size="sm">
-        <TopBarSlots.Title.Root>
+        <TopBarSlot.Outlet name="Title">
           {props => <Flex {...props} align="center" gap="sm" />}
-        </TopBarSlots.Title.Root>
+        </TopBarSlot.Outlet>
 
         <Flex align="center" gap="sm">
-          <TopBarSlots.Actions.Root>
-            {props => {
-              return <Flex {...props} align="center" gap="sm" />;
-            }}
-          </TopBarSlots.Actions.Root>
+          <TopBarSlot.Outlet name="Actions">
+            {props => <Flex {...props} align="center" gap="sm" />}
+          </TopBarSlot.Outlet>
 
           {organization && isSeerExplorerEnabled(organization) ? (
             <Button icon={<IconSeer />} onClick={openExplorerPanel}>
@@ -72,21 +64,21 @@ export function TopBar() {
             </Button>
           ) : null}
 
-          <TopBarSlots.Feedback.Root>
+          <TopBarSlot.Outlet name="Feedback">
             {props => (
               <Flex {...props}>
                 {/* If no component registers a feedback button, show the default one */}
-                <TopBarSlots.Feedback.Fallback>
+                <TopBarSlot.Fallback name="Feedback">
                   <FeedbackButton
                     aria-label={t('Give Feedback')}
                     feedbackOptions={{tags: {'feedback.source': 'top_navigation'}}}
                   >
                     {null}
                   </FeedbackButton>
-                </TopBarSlots.Feedback.Fallback>
+                </TopBarSlot.Fallback>
               </Flex>
             )}
-          </TopBarSlots.Feedback.Root>
+          </TopBarSlot.Outlet>
         </Flex>
       </SizeProvider>
     </Flex>

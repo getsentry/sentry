@@ -97,30 +97,47 @@ function makeSlotReducer<T extends Slot>(): SlotReducer<T> {
   };
 }
 
-interface SlotComponentProps {
+interface SlotProviderProps {
   children: React.ReactNode;
 }
 
-type SlotComponent<T extends Slot> = React.FunctionComponent<SlotComponentProps> & {
-  Fallback: ReturnType<typeof makeSlotFallback<T>>;
-  Root: ReturnType<typeof makeSlotRoot<T>>;
-};
+interface SlotConsumerProps<T extends Slot> {
+  children: React.ReactNode;
+  name: T;
+}
 
-function makeSlotComponent<T extends Slot>(
-  name: T,
+interface SlotOutletProps<T extends Slot> {
+  children: (props: {ref: React.RefCallback<HTMLElement | null>}) => React.ReactNode;
+  name: T;
+}
+
+interface SlotFallbackProps<T extends Slot> {
+  children: React.ReactNode;
+  name: T;
+}
+
+type SlotProviderComponent<T extends Slot> =
+  React.FunctionComponent<SlotProviderProps> & {
+    Fallback: React.ComponentType<SlotFallbackProps<T>>;
+    Outlet: React.ComponentType<SlotOutletProps<T>>;
+    Slot: React.ComponentType<SlotConsumerProps<T>>;
+  };
+
+function makeSlotConsumer<T extends Slot>(
   context: React.Context<SlotContextValue<T> | null>
 ) {
-  function SlotComponent(props: SlotComponentProps): React.ReactNode {
+  function SlotConsumer(props: SlotConsumerProps<T>): React.ReactNode {
     const ctx = useContext(context);
     if (!ctx) {
       throw new Error('SlotContext not found');
     }
 
     const [state, dispatch] = ctx;
+    const {name} = props;
     useLayoutEffect(() => {
       dispatch({type: 'increment counter', name});
       return () => dispatch({type: 'decrement counter', name});
-    }, [dispatch]);
+    }, [dispatch, name]);
 
     const element = state[name]?.element;
     if (!element) {
@@ -130,22 +147,14 @@ function makeSlotComponent<T extends Slot>(
     return createPortal(props.children, element);
   }
 
-  SlotComponent.Fallback = makeSlotFallback(name, context);
-  SlotComponent.Root = makeSlotRoot(name, context);
-  SlotComponent.displayName = `Slot.(${name})`;
-
-  return SlotComponent;
+  SlotConsumer.displayName = 'Slot.Consumer';
+  return SlotConsumer;
 }
 
-interface SlotRootProps {
-  children: (props: {ref: React.RefCallback<HTMLElement | null>}) => React.ReactNode;
-}
-
-function makeSlotRoot<T extends Slot>(
-  name: T,
+function makeSlotOutlet<T extends Slot>(
   context: React.Context<SlotContextValue<T> | null>
 ) {
-  return function SlotRoot(props: SlotRootProps): React.ReactNode {
+  function SlotOutlet(props: SlotOutletProps<T>): React.ReactNode {
     const ctx = useContext(context);
 
     if (!ctx) {
@@ -153,6 +162,7 @@ function makeSlotRoot<T extends Slot>(
     }
 
     const [, dispatch] = ctx;
+    const {name} = props;
     const ref = useCallback(
       (element: HTMLElement | null) => {
         if (!element) {
@@ -161,34 +171,37 @@ function makeSlotRoot<T extends Slot>(
         }
         dispatch({type: 'register', name, element});
       },
-      [dispatch]
+      [dispatch, name]
     );
 
     return props.children({ref});
-  };
+  }
+
+  SlotOutlet.displayName = 'Slot.Outlet';
+  return SlotOutlet;
 }
+
 function makeSlotFallback<T extends Slot>(
-  name: T,
   context: React.Context<SlotContextValue<T> | null>
 ) {
-  return function SlotFallback(props: SlotComponentProps): React.ReactNode {
+  function SlotFallback(props: SlotFallbackProps<T>): React.ReactNode {
     const ctx = useContext(context);
     if (!ctx) {
       throw new Error('SlotContext not found');
     }
 
     const [state] = ctx;
+    const {name} = props;
 
     if ((state[name]?.counter ?? 0) > 0 || !state[name]?.element) {
       return null;
     }
 
     return createPortal(props.children, state[name]?.element);
-  };
-}
+  }
 
-interface SlotProviderProps {
-  children: React.ReactNode;
+  SlotFallback.displayName = 'Slot.Fallback';
+  return SlotFallback;
 }
 
 function makeSlotProvider<T extends Slot>(
@@ -210,24 +223,22 @@ function makeSlotProvider<T extends Slot>(
   return SlotProvider as (props: SlotProviderProps) => React.ReactNode;
 }
 
-interface SlotModule<T extends readonly Slot[]> {
-  Provider: React.ComponentType<SlotProviderProps>;
-  slot: {[K in T[number]]: SlotComponent<K>};
-}
-
-export function slot<T extends readonly Slot[]>(names: T): SlotModule<T> {
+export function slot<T extends readonly Slot[]>(
+  names: T
+): SlotProviderComponent<T[number]> {
   type SlotName = T[number];
 
   const SlotContext = createContext<SlotContextValue<SlotName> | null>(null);
-  const SlotProvider = makeSlotProvider<SlotName>(SlotContext);
+  const Provider = makeSlotProvider<SlotName>(
+    SlotContext
+  ) as SlotProviderComponent<SlotName>;
 
-  const slots = {} as {[K in SlotName]: SlotComponent<K>};
-  for (const name of names) {
-    slots[name as SlotName] = makeSlotComponent<SlotName>(name, SlotContext);
-  }
+  Provider.Slot = makeSlotConsumer<SlotName>(SlotContext);
+  Provider.Outlet = makeSlotOutlet<SlotName>(SlotContext);
+  Provider.Fallback = makeSlotFallback<SlotName>(SlotContext);
 
-  return {
-    Provider: SlotProvider,
-    slot: slots,
-  };
+  // Keep `names` reference to preserve the const-narrowed type T
+  void names;
+
+  return Provider;
 }
