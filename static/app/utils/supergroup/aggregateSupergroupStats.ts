@@ -51,31 +51,32 @@ export function aggregateSupergroupStats(
   let mergedFilteredStats: TimeseriesValue[] | null = null;
 
   for (const group of groups) {
-    eventCount += parseInt(group.count, 10) || 0;
-    userCount += group.userCount || 0;
+    eventCount += parseInt(group.count, 10);
+    userCount += group.userCount;
 
     if (group.filtered) {
-      filteredEventCount =
-        (filteredEventCount ?? 0) + (parseInt(group.filtered.count, 10) || 0);
-      filteredUserCount = (filteredUserCount ?? 0) + (group.filtered.userCount || 0);
+      filteredEventCount ??= 0;
+      filteredUserCount ??= 0;
+      filteredEventCount += parseInt(group.filtered.count, 10);
+      filteredUserCount += group.filtered.userCount;
 
-      const filteredStats = group.filtered.stats?.[statsPeriod];
+      const filteredStats = group.filtered.stats[statsPeriod];
       if (filteredStats) {
         mergedFilteredStats = addTimeseries(mergedFilteredStats, filteredStats);
       }
     }
 
     const gFirstSeen = group.lifetime?.firstSeen ?? group.firstSeen;
-    if (gFirstSeen && (!firstSeen || gFirstSeen < firstSeen)) {
+    if (!firstSeen || gFirstSeen < firstSeen) {
       firstSeen = gFirstSeen;
     }
 
     const gLastSeen = group.lifetime?.lastSeen ?? group.lastSeen;
-    if (gLastSeen && (!lastSeen || gLastSeen > lastSeen)) {
+    if (!lastSeen || gLastSeen > lastSeen) {
       lastSeen = gLastSeen;
     }
 
-    const stats = group.stats?.[statsPeriod];
+    const stats = group.stats[statsPeriod];
     if (stats) {
       mergedStats = addTimeseries(mergedStats, stats);
     }
