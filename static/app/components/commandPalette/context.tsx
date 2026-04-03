@@ -14,7 +14,7 @@ import {unreachable} from 'sentry/utils/unreachable';
 import {CommandPaletteStateProvider} from './ui/commandPaletteStateContext';
 import type {CommandPaletteAction, CommandPaletteActionWithKey} from './types';
 
-function addKeysToActions(
+export function addKeysToActions(
   actions: CommandPaletteAction[]
 ): CommandPaletteActionWithKey[] {
   return actions.map(action => {
