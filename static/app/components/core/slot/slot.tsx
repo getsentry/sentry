@@ -204,7 +204,7 @@ function makeSlotFallback<T extends Slot>(
       return null;
     }
 
-    return createPortal(children, state[name].element!);
+    return createPortal(children, state[name].element);
   }
 
   SlotFallback.displayName = 'Slot.Fallback';
