@@ -1551,7 +1551,7 @@ class OrganizationCombinedRuleIndexWorkflowEngineTest(BaseAlertRuleSerializerTes
                 ],
             }
         ]
-        self.create_project_rule(
+        rule = self.create_project_rule(
             project=self.project,
             action_data=actions,
             include_legacy_rule_id=False,
@@ -1578,6 +1578,17 @@ class OrganizationCombinedRuleIndexWorkflowEngineTest(BaseAlertRuleSerializerTes
 
         assert len(response.data) == 1
         assert len(response.data[0]["actions"]) == 0
+
+        with self.feature("organizations:incidents"):
+            response = self.get_success_response(
+                self.organization.slug,
+                project=[self.project.id],
+            )
+            assert response.status_code == 200
+
+            assert len(response.data) == 1
+            assert len(response.data[0]["actions"]) == 0
+            assert response.data[0]["id"] == str(rule.id)
 
 
 class OrganizationCombinedRuleIndexParityTest(BaseAlertRuleSerializerTest, APITestCase):
