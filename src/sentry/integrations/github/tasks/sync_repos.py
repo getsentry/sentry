@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
     processing_deadline_duration=120,
     silo_mode=SiloMode.CONTROL,
 )
-@retry(exclude=(RepoExistsError, KeyError))
+@retry()
 def sync_repos_for_org(organization_integration_id: int) -> None:
     """
     Sync repositories for a single OrganizationIntegration.
@@ -76,14 +76,17 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
         return
 
     organization_id = oi.organization_id
-    rpc_org = organization_service.get(id=organization_id)
-    if rpc_org is None:
+    org_context = organization_service.get_organization_by_id(
+        id=organization_id, include_projects=False, include_teams=False
+    )
+    if org_context is None:
         logger.info(
             "sync_repos_for_org.missing_organization",
             extra={"organization_id": organization_id},
         )
         return
 
+    rpc_org = org_context.organization
     if not features.has("organizations:github-repo-auto-sync", rpc_org):
         return
 
