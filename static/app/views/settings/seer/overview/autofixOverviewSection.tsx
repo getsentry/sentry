@@ -35,8 +35,8 @@ import {
 import {useBulkMutateCreatePr} from 'sentry/views/settings/seer/seerAgentHooks';
 
 import {
-  getStoppingPointMutationOptions,
-  getStoppingPointValue,
+  getDefaultStoppingPointMutationOptions,
+  getDefaultStoppingPointValue,
   useFetchStoppingPointOptions,
 } from './utils/seerStoppingPoint';
 
@@ -402,9 +402,11 @@ function CreatePrForm({
 }
 
 function StoppingPointForm({organization}: {organization: Organization}) {
-  const stoppingPointMutationOpts = getStoppingPointMutationOptions({organization});
+  const stoppingPointMutationOpts = getDefaultStoppingPointMutationOptions({
+    organization,
+  });
 
-  const initialValue = getStoppingPointValue(organization);
+  const initialValue = getDefaultStoppingPointValue(organization);
   const options = useFetchStoppingPointOptions({organization});
 
   return (

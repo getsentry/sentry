@@ -10,7 +10,7 @@ import {
 type SelectValue = 'off' | 'root_cause' | 'code';
 type SelectOptions = {label: string; value: SelectValue};
 
-export function getStoppingPointValue(organization: Organization): SelectValue {
+export function getDefaultStoppingPointValue(organization: Organization): SelectValue {
   return organization.defaultAutofixAutomationTuning === 'off'
     ? 'off'
     : organization.defaultAutomatedRunStoppingPoint === 'root_cause'
@@ -65,7 +65,7 @@ export function useFetchStoppingPointOptions({
   ];
 }
 
-export function getStoppingPointMutationOptions({
+export function getDefaultStoppingPointMutationOptions({
   organization,
 }: {
   organization: Organization;
