@@ -1592,8 +1592,6 @@ def kick_off_lightweight_rca_cluster(job: PostProcessJob) -> None:
 
     event = job["event"]
     group = event.group
-    if group is None:
-        return
 
     enabled_orgs: list[int] = options.get("supergroups.lightweight-enabled-orgs")
     if group.organization.id not in enabled_orgs:
