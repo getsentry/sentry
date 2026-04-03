@@ -334,7 +334,7 @@ def _check_project_access[T](
 @cell_silo_endpoint
 class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEndpoint):
     workflow_engine_method_flags = {
-        "GET": "organizations:workflow-engine-orgalertruleindex-get",
+        "GET": "organizations:workflow-engine-orgalertruledetails-get",
     }
     owner = ApiOwner.ISSUES
     publish_status = {
