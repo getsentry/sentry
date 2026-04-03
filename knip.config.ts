@@ -12,6 +12,8 @@ const productionEntryPoints = [
   'static/app/gettingStartedDocs/**/*.{js,ts,tsx}',
   // this is imported with require.context
   'static/app/data/forms/*.tsx',
+  // frontend experiemnt framework may be unused when we have no experiemnets
+  'static/app/utils/useExperiment.tsx',
   // --- we should be able to get rid of those: ---
   // Only used in stories (so far)
   'static/app/components/core/quote/*.tsx',
@@ -68,13 +70,12 @@ const config: KnipConfig = {
   ignoreExportsUsedInFile: isProductionMode,
   ignoreDependencies: [
     'core-js',
+    'tslib', // subdependency of many packages, declare the latest version
     'jest-environment-jsdom', // used as testEnvironment in jest config
     'swc-plugin-component-annotate', // used in rspack config, needs better knip plugin
     '@swc/plugin-emotion', // used in rspack config, needs better knip plugin
     'buffer', // rspack.ProvidePlugin, needs better knip plugin
     'process', // rspack.ProvidePlugin, needs better knip plugin
-    '@types/webpack-env', // needed to make require.context work
-    '@types/gtag.js', // needed for global `gtag` namespace typings
     '@babel/preset-env', // Still used in jest
     '@babel/preset-react', // Still used in jest
     '@babel/preset-typescript', // Still used in jest

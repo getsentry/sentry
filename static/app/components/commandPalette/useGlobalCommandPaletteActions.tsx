@@ -2,14 +2,10 @@ import {ProjectAvatar} from '@sentry/scraps/avatar';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import type {
-  CommandPaletteAction,
-  CommandPaletteActionChild,
-} from 'sentry/components/commandPalette/types';
+import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
 import {useCommandPaletteActions} from 'sentry/components/commandPalette/useCommandPaletteActions';
 import {
   IconAdd,
-  IconChevron,
   IconCompass,
   IconDashboard,
   IconDiscord,
@@ -21,6 +17,7 @@ import {
   IconSettings,
   IconStar,
   IconUser,
+  IconPanel,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
@@ -49,7 +46,7 @@ function useNavigationActions(): CommandPaletteAction[] {
   const {data: starredDashboards = []} = useGetStarredDashboards();
   const {projects} = useProjects();
 
-  const issuesChildren: CommandPaletteActionChild[] = [
+  const issuesChildren: CommandPaletteAction[] = [
     {
       display: {
         label: t('Feed'),
@@ -83,40 +80,43 @@ function useNavigationActions(): CommandPaletteAction[] {
     })),
   ];
 
-  const exploreChildren: CommandPaletteActionChild[] = [
+  const exploreChildren: CommandPaletteAction[] = [
     {
       display: {
         label: t('Traces'),
       },
       to: `${prefix}/explore/traces/`,
     },
-    {
-      display: {
-        label: t('Logs'),
-      },
-      to: `${prefix}/explore/logs/`,
-      hidden: !organization.features.includes('ourlogs-enabled'),
-    },
+    organization.features.includes('ourlogs-enabled')
+      ? {
+          display: {
+            label: t('Logs'),
+          },
+          to: `${prefix}/explore/logs/`,
+        }
+      : undefined,
     {
       display: {
         label: t('Discover'),
       },
       to: `${prefix}/explore/discover/homepage/`,
     },
-    {
-      display: {
-        label: t('Profiles'),
-      },
-      to: `${prefix}/explore/profiling/`,
-      hidden: !organization.features.includes('profiling'),
-    },
-    {
-      display: {
-        label: t('Replays'),
-      },
-      to: `${prefix}/explore/replays/`,
-      hidden: !organization.features.includes('session-replay-ui'),
-    },
+    organization.features.includes('profiling')
+      ? {
+          display: {
+            label: t('Profiles'),
+          },
+          to: `${prefix}/explore/profiling/`,
+        }
+      : undefined,
+    organization.features.includes('session-replay-ui')
+      ? {
+          display: {
+            label: t('Replays'),
+          },
+          to: `${prefix}/explore/replays/`,
+        }
+      : undefined,
     {
       display: {
         label: t('Releases'),
@@ -129,25 +129,31 @@ function useNavigationActions(): CommandPaletteAction[] {
       },
       to: `${prefix}/explore/saved-queries/`,
     },
-  ];
+  ].filter(action => action !== undefined);
 
-  const dashboardsChildren: CommandPaletteActionChild[] = [
+  const dashboardsChildren: CommandPaletteAction[] = [
     {
       display: {
         label: t('All Dashboards'),
       },
       to: `${prefix}/dashboards/`,
     },
-    ...starredDashboards.map(dashboard => ({
+    {
       display: {
-        label: dashboard.title,
+        label: t('Starred Dashboards'),
         icon: <IconStar />,
       },
-      to: `${prefix}/dashboard/${dashboard.id}/`,
-    })),
+      actions: starredDashboards.map(dashboard => ({
+        display: {
+          label: dashboard.title,
+          icon: <IconStar />,
+        },
+        to: `${prefix}/dashboard/${dashboard.id}/`,
+      })),
+    },
   ];
 
-  const insightsChildren: CommandPaletteActionChild[] = [
+  const insightsChildren: CommandPaletteAction[] = [
     {
       display: {
         label: t('Frontend'),
@@ -184,95 +190,88 @@ function useNavigationActions(): CommandPaletteAction[] {
       },
       to: `${prefix}/insights/crons/`,
     },
-    {
-      display: {
-        label: t('Uptime'),
-      },
-      to: `${prefix}/insights/uptime/`,
-      hidden: !organization.features.includes('uptime'),
-    },
+    organization.features.includes('uptime')
+      ? {
+          display: {
+            label: t('Uptime'),
+          },
+          to: `${prefix}/insights/uptime/`,
+        }
+      : undefined,
     {
       display: {
         label: t('All Projects'),
       },
       to: `${prefix}/insights/projects/`,
     },
-  ];
-
-  const settingsChildren: CommandPaletteActionChild[] =
-    getUserOrgNavigationConfiguration().flatMap(item =>
-      item.items.map(settingsChildItem => ({
-        display: {
-          label: settingsChildItem.title,
-        },
-        to: settingsChildItem.path,
-      }))
-    );
-
-  const projectSettingsChildren: CommandPaletteActionChild[] =
-    organization.features.includes('cmd-k-supercharged')
-      ? projects.map(project => ({
-          display: {
-            label: project.name,
-            icon: <ProjectAvatar project={project} size={16} />,
-          },
-          to: `/settings/${slug}/projects/${project.slug}/`,
-        }))
-      : [];
+  ].filter(action => action !== undefined);
 
   return [
     {
-      groupingKey: 'navigate',
       display: {
-        label: t('Issues'),
-        icon: <IconIssues />,
+        label: t('Go to...'),
       },
-      actions: issuesChildren,
-    },
-    {
-      groupingKey: 'navigate',
-      display: {
-        label: t('Explore'),
-        icon: <IconCompass />,
-      },
-      actions: exploreChildren,
-    },
-    {
-      groupingKey: 'navigate',
-      display: {
-        label: t('Dashboards'),
-        icon: <IconDashboard />,
-      },
-      actions: dashboardsChildren,
-    },
-    {
-      groupingKey: 'navigate',
-      display: {
-        label: t('Insights'),
-        icon: <IconGraph type="area" />,
-      },
-      actions: insightsChildren,
-      hidden: !organization.features.includes('performance-view'),
-    },
-    {
-      groupingKey: 'navigate',
-      display: {
-        label: t('Settings'),
-        icon: <IconSettings />,
-      },
-      actions: settingsChildren,
-    },
-    organization.features.includes('cmd-k-supercharged')
-      ? {
-          groupingKey: 'navigate',
+      actions: [
+        {
+          display: {
+            label: t('Issues'),
+            icon: <IconIssues />,
+          },
+          actions: issuesChildren,
+        },
+        {
+          display: {
+            label: t('Explore'),
+            icon: <IconCompass />,
+          },
+          actions: exploreChildren,
+        },
+        {
+          display: {
+            label: t('Dashboards'),
+            icon: <IconDashboard />,
+          },
+          actions: dashboardsChildren,
+        },
+        organization.features.includes('performance-view')
+          ? {
+              display: {
+                label: t('Insights'),
+                icon: <IconGraph type="area" />,
+              },
+              actions: insightsChildren,
+            }
+          : undefined,
+        {
+          display: {
+            label: t('Settings'),
+            icon: <IconSettings />,
+          },
+          actions: getUserOrgNavigationConfiguration().flatMap(item =>
+            item.items.map(settingsChildItem => ({
+              display: {
+                label: settingsChildItem.title,
+              },
+              to: settingsChildItem.path,
+            }))
+          ),
+        },
+        {
           display: {
             label: t('Project Settings'),
             icon: <IconSettings />,
           },
-          actions: projectSettingsChildren,
-        }
-      : null,
-  ].filter(x => x !== null) as CommandPaletteAction[];
+          actions: projects.map(project => ({
+            display: {
+              label: project.name,
+              icon: <ProjectAvatar project={project} size={16} />,
+            },
+            to: `/settings/${slug}/projects/${project.slug}/`,
+          })),
+        },
+      ].filter(action => action !== undefined),
+    },
+  ];
 }
 
 function useNavigationToggleCollapsed(): CommandPaletteAction {
@@ -284,7 +283,7 @@ function useNavigationToggleCollapsed(): CommandPaletteAction {
       label: isCollapsed
         ? t('Expand Navigation Sidebar')
         : t('Collapse Navigation Sidebar'),
-      icon: <IconChevron isDouble direction={isCollapsed ? 'right' : 'left'} />,
+      icon: <IconPanel direction={isCollapsed ? 'right' : 'left'} />,
     },
     onAction: () => {
       setView(view === 'expanded' ? 'collapsed' : 'expanded');
@@ -305,107 +304,126 @@ export function useGlobalCommandPaletteActions() {
 
   useCommandPaletteActions([
     ...navigateActions,
+    // BEGIN ADD ACTIONS
     {
       display: {
-        label: t('Create Dashboard'),
-        icon: <IconAdd />,
-      },
-      groupingKey: 'add',
-      to: `${navPrefix}/dashboards/new/`,
-    },
-    {
-      display: {
-        label: t('Create Alert'),
-        icon: <IconAdd />,
-      },
-      groupingKey: 'add',
-      to: `${navPrefix}/issues/alerts/wizard/`,
-    },
-    {
-      groupingKey: 'add',
-      display: {
-        label: t('Create Project'),
-        icon: <IconAdd />,
-      },
-      to: `${navPrefix}/projects/new/`,
-    },
-    {
-      display: {
-        label: t('Invite Members'),
-        icon: <IconUser />,
-      },
-      groupingKey: 'add',
-      onAction: () => openInviteMembersModal(),
-    },
-    {
-      display: {
-        label: t('Open Documentation'),
-        icon: <IconDocs />,
-      },
-      groupingKey: 'help',
-      onAction: () => window.open('https://docs.sentry.io', '_blank', 'noreferrer'),
-    },
-    {
-      display: {
-        label: t('Join Discord'),
-        icon: <IconDiscord />,
-      },
-      groupingKey: 'help',
-      onAction: () => window.open('https://discord.gg/sentry', '_blank', 'noreferrer'),
-    },
-    {
-      display: {
-        label: t('Open GitHub Repository'),
-        icon: <IconGithub />,
-      },
-      groupingKey: 'help',
-      onAction: () =>
-        window.open('https://github.com/getsentry/sentry', '_blank', 'noreferrer'),
-    },
-    {
-      display: {
-        label: t('View Changelog'),
-        icon: <IconOpen />,
-      },
-      groupingKey: 'help',
-      onAction: () => window.open('https://sentry.io/changelog/', '_blank', 'noreferrer'),
-    },
-    navigationToggleAction,
-    {
-      display: {
-        label: t('Change Color Theme'),
-        icon: <IconSettings />,
+        label: t('Add'),
       },
       actions: [
         {
           display: {
-            label: t('System'),
+            label: t('Create Dashboard'),
+            icon: <IconAdd />,
           },
-          onAction: async () => {
-            addLoadingMessage(t('Saving…'));
-            await mutateUserOptions({theme: 'system'});
-            addSuccessMessage(t('Theme preference saved: System'));
-          },
+          to: `${navPrefix}/dashboards/new/`,
         },
         {
           display: {
-            label: t('Light'),
+            label: t('Create Alert'),
+            icon: <IconAdd />,
           },
-          onAction: async () => {
-            addLoadingMessage(t('Saving…'));
-            await mutateUserOptions({theme: 'light'});
-            addSuccessMessage(t('Theme preference saved: Light'));
-          },
+          to: `${navPrefix}/issues/alerts/wizard/`,
         },
         {
           display: {
-            label: t('Dark'),
+            label: t('Create Project'),
+            icon: <IconAdd />,
           },
-          onAction: async () => {
-            addLoadingMessage(t('Saving…'));
-            await mutateUserOptions({theme: 'dark'});
-            addSuccessMessage(t('Theme preference saved: Dark'));
+          to: `${navPrefix}/projects/new/`,
+        },
+        {
+          display: {
+            label: t('Invite Members'),
+            icon: <IconUser />,
           },
+          onAction: () => openInviteMembersModal(),
+        },
+      ],
+    },
+    // END ADD
+    // BEGIN HELP ACTIONS
+    {
+      display: {
+        label: t('Help'),
+      },
+      actions: [
+        {
+          display: {
+            label: t('Open Documentation'),
+            icon: <IconDocs />,
+          },
+          onAction: () => window.open('https://docs.sentry.io', '_blank', 'noreferrer'),
+        },
+        {
+          display: {
+            label: t('Join Discord'),
+            icon: <IconDiscord />,
+          },
+          onAction: () =>
+            window.open('https://discord.gg/sentry', '_blank', 'noreferrer'),
+        },
+        {
+          display: {
+            label: t('Open GitHub Repository'),
+            icon: <IconGithub />,
+          },
+          onAction: () =>
+            window.open('https://github.com/getsentry/sentry', '_blank', 'noreferrer'),
+        },
+        {
+          display: {
+            label: t('View Changelog'),
+            icon: <IconOpen />,
+          },
+          onAction: () =>
+            window.open('https://sentry.io/changelog/', '_blank', 'noreferrer'),
+        },
+      ],
+    },
+    // END HELP ACTIONS
+    {
+      display: {
+        label: t('Interface'),
+      },
+      actions: [
+        navigationToggleAction,
+        {
+          display: {
+            label: t('Change Color Theme'),
+            icon: <IconSettings />,
+          },
+          actions: [
+            {
+              display: {
+                label: t('System'),
+              },
+              onAction: async () => {
+                addLoadingMessage(t('Saving…'));
+                await mutateUserOptions({theme: 'system'});
+                addSuccessMessage(t('Theme preference saved: System'));
+              },
+            },
+            {
+              display: {
+                label: t('Light'),
+              },
+              onAction: async () => {
+                addLoadingMessage(t('Saving…'));
+                await mutateUserOptions({theme: 'light'});
+                addSuccessMessage(t('Theme preference saved: Light'));
+              },
+            },
+            {
+              display: {
+                label: t('Dark'),
+              },
+              onAction: async () => {
+                addLoadingMessage(t('Saving…'));
+                await mutateUserOptions({theme: 'dark'});
+                addSuccessMessage(t('Theme preference saved: Dark'));
+              },
+            },
+          ],
         },
       ],
     },

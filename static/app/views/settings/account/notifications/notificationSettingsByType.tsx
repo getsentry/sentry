@@ -389,7 +389,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
   const optionMutationOptions = (fieldName: string) =>
     mutationOptions({
       mutationFn: (data: Record<string, string>) =>
-        fetchMutation({
+        fetchMutation<NotificationOptionsObject>({
           method: 'PUT',
           url: '/users/me/notification-options/',
           data: {
@@ -399,7 +399,23 @@ export function NotificationSettingsByType({notificationType}: Props) {
             value: data[fieldName],
           },
         }),
-      onSuccess: () => trackTuningUpdated('general'),
+      onSuccess: notificationOption => {
+        trackTuningUpdated('general');
+        setApiQueryData<NotificationOptionsObject[]>(
+          queryClient,
+          notificationOptionsQueryKey(notificationType),
+          currentOptions => {
+            const existing = currentOptions ?? [];
+            const idx = existing.findIndex(opt => opt.id === notificationOption.id);
+            if (idx >= 0) {
+              return existing.map(opt =>
+                opt.id === notificationOption.id ? notificationOption : opt
+              );
+            }
+            return [...existing, notificationOption];
+          }
+        );
+      },
     });
 
   const providerChoices = (
@@ -422,6 +438,14 @@ export function NotificationSettingsByType({notificationType}: Props) {
           providers: data.provider,
         },
       }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [
+          getApiUrl('/users/$userId/notification-providers/', {path: {userId: 'me'}}),
+          {query: getQueryParams(notificationType)},
+        ],
+      });
+    },
   });
 
   const renderQuotaFields = () => {

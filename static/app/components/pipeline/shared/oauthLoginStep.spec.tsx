@@ -109,7 +109,7 @@ describe('OAuthLoginStep', () => {
 
     dispatchPipelineMessage({
       data: {
-        source: 'sentry-pipeline',
+        _pipeline_source: 'sentry-pipeline',
         code: 'auth-code-123',
         state: 'state-456',
         installation_id: 'inst-789',
@@ -153,7 +153,11 @@ describe('OAuthLoginStep', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Authorize GitLab'}));
 
     dispatchPipelineMessage({
-      data: {source: 'sentry-pipeline', code: 'auth-code-123', state: 'state-456'},
+      data: {
+        _pipeline_source: 'sentry-pipeline',
+        code: 'auth-code-123',
+        state: 'state-456',
+      },
       origin: 'https://evil.example.com',
     });
 
@@ -172,7 +176,11 @@ describe('OAuthLoginStep', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Authorize GitLab'}));
 
     dispatchPipelineMessage({
-      data: {source: 'sentry-pipeline', code: 'auth-code-123', state: 'state-456'},
+      data: {
+        _pipeline_source: 'sentry-pipeline',
+        code: 'auth-code-123',
+        state: 'state-456',
+      },
       source: null,
     });
 

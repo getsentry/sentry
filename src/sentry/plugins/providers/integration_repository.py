@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from datetime import timezone
-from typing import Any, ClassVar, TypedDict
+from typing import Any, ClassVar, NotRequired, TypedDict
 
 from dateutil.parser import parse as parse_date
 from rest_framework import status
@@ -25,6 +26,16 @@ from sentry.signals import repo_linked
 from sentry.users.models.user import User
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import metrics
+
+
+class RepositoryInputConfig(TypedDict):
+    """Input config passed to create_repositories / build_repository_config.
+    Providers may include additional keys beyond these."""
+
+    external_id: str
+    integration_id: int
+    identifier: str
+    installation: NotRequired[str]
 
 
 class RepositoryConfig(TypedDict):
@@ -107,7 +118,7 @@ class IntegrationRepositoryProvider:
 
     def create_repository(
         self,
-        repo_config: dict[str, Any],
+        repo_config: Mapping[str, Any],
         organization: RpcOrganization,
     ):
         result = self.build_repository_config(organization=organization, data=repo_config)
@@ -227,7 +238,7 @@ class IntegrationRepositoryProvider:
 
     def create_repositories(
         self,
-        configs: list[dict[str, Any]],
+        configs: list[RepositoryInputConfig],
         organization: RpcOrganization,
     ):
         external_id_to_repo_config: dict[str, RepositoryConfig] = {}
@@ -354,7 +365,7 @@ class IntegrationRepositoryProvider:
         return config
 
     def build_repository_config(
-        self, organization: RpcOrganization, data: dict[str, Any]
+        self, organization: RpcOrganization, data: Mapping[str, Any]
     ) -> RepositoryConfig:
         """
         Builds final dict containing all necessary data to create the repository

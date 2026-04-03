@@ -26,7 +26,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization as org_serializers
 from sentry.api.serializers.models.organization import (
     BaseOrganizationSerializer,
-    DetailedOrganizationSerializerWithProjectsAndTeams,
+    OrganizationWithProjectsAndTeamsSerializer,
     TrustedRelaySerializer,
 )
 from sentry.apidocs.constants import (
@@ -1138,7 +1138,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         parameters=[GlobalParams.ORG_ID_OR_SLUG, OrganizationParams.DETAILED],
         request=None,
         responses={
-            200: org_serializers.OrganizationSerializer,
+            200: org_serializers.OrganizationSummarySerializer,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -1153,14 +1153,14 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         # This param will be used to determine if we should include feature flags in the response
         include_feature_flags = request.GET.get("include_feature_flags", "0") != "0"
 
-        serializer = org_serializers.OrganizationSerializer
+        serializer = org_serializers.OrganizationSummarySerializer
 
         if request.access.has_scope("org:read") or is_active_staff(request):
             is_detailed = request.GET.get("detailed", "1") != "0"
 
-            serializer = org_serializers.DetailedOrganizationSerializer
+            serializer = org_serializers.OrganizationSerializer
             if is_detailed:
-                serializer = org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams
+                serializer = org_serializers.OrganizationWithProjectsAndTeamsSerializer
 
         context = serialize(
             organization,
@@ -1179,7 +1179,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         ],
         request=OrganizationDetailsPutSerializer,
         responses={
-            200: DetailedOrganizationSerializerWithProjectsAndTeams,
+            200: OrganizationWithProjectsAndTeamsSerializer,
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -1344,7 +1344,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             context = serialize(
                 organization,
                 request.user,
-                org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams(),
+                org_serializers.OrganizationWithProjectsAndTeamsSerializer(),
                 access=request.access,
                 include_feature_flags=include_feature_flags,
             )
@@ -1422,7 +1422,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         context = serialize(
             organization,
             request.user,
-            org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams(),
+            org_serializers.OrganizationWithProjectsAndTeamsSerializer(),
             access=request.access,
         )
         return self.respond(context, status=202)
