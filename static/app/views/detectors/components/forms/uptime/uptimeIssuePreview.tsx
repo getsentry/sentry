@@ -3,19 +3,21 @@ import {DetectorIssuePreview} from 'sentry/views/detectors/components/forms/comm
 import {IssuePreviewSection} from 'sentry/views/detectors/components/forms/common/issuePreviewSection';
 import {ownerToActor} from 'sentry/views/detectors/components/forms/common/ownerToActor';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
+import {useUptimeDetectorFormField} from 'sentry/views/detectors/components/forms/uptime/fields';
 
-import {useUptimeDetectorFormField} from './fields';
+const FALLBACK_ISSUE_TITLE = t('Downtime detected for …');
+const SUBTITLE = t('Your monitored domain is down');
 
 function useUptimeIssueTitle() {
   const url = useUptimeDetectorFormField('url');
 
   if (!url) {
-    return t('Downtime detected for ...');
+    return FALLBACK_ISSUE_TITLE;
   }
 
   const parsedUrl = URL.parse(url);
   if (!parsedUrl?.hostname) {
-    return t('Downtime detected for ...');
+    return FALLBACK_ISSUE_TITLE;
   }
 
   const path = parsedUrl.pathname === '/' ? '' : parsedUrl.pathname;
@@ -34,7 +36,7 @@ export function UptimeIssuePreview({step}: {step?: number}) {
     <IssuePreviewSection step={step}>
       <DetectorIssuePreview
         issueTitle={issueTitle}
-        subtitle={t('Your monitored domain is down')}
+        subtitle={SUBTITLE}
         assignee={assignee}
         project={project}
       />
