@@ -87,6 +87,21 @@ class RepositoryService(RpcService):
 
     @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
+    def disable_repositories_by_external_ids(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+        provider: str,
+        external_ids: list[str],
+    ) -> None:
+        """
+        Disables specific repositories by external_id for a given integration.
+        Only active repositories are affected. Code mappings and commits are preserved.
+        """
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
     def disassociate_organization_integration(
         self,
         *,
