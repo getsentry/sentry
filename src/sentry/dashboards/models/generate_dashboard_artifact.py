@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal, TypeAlias
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, root_validator, validator
 
 from sentry.models.dashboard import Dashboard
 from sentry.models.dashboard_widget import DashboardWidgetDisplayTypes, DashboardWidgetTypes
@@ -132,7 +132,7 @@ class GeneratedWidget(BaseModel):
     title: str = Field(..., max_length=255)  # Matches serializer
     description: str = Field(
         ...,
-        description="A short description of the widget. This is displayed in the dashboard UI as a hoverable tooltip.For text widget types, this is the markdown text content displayed to the user. Should not exceed 255 characters for non-text widgets. ",
+        description="A short description of the widget. This is displayed in the dashboard UI as a hoverable tooltip. For text widget types, this is the markdown text content displayed to the user. Should not exceed 255 characters for non-text widgets.",
     )
     display_type: DisplayType
     widget_type: WidgetType | None = Field(
@@ -148,6 +148,16 @@ class GeneratedWidget(BaseModel):
         description="For charts with group by columns, the maximum number series that can be displayed. For table widgets, the maximum number of rows that can be displayed. Categorical bar charts have a maximum limit of 25. For any other chart type, the maximum limit is 10. Default value is 5.",
     )
     interval: Intervals = Field(default="1h")
+
+    @root_validator
+    def check_description_length(cls, values: dict[str, Any]) -> dict[str, Any]:
+        display_type = values.get("display_type")
+        description = values.get("description", "")
+        if display_type != "text" and len(description) > 255:
+            raise ValueError(
+                f"Description must not exceed 255 characters for non-text widgets (got {len(description)})"
+            )
+        return values
 
 
 class GeneratedDashboard(BaseModel):
