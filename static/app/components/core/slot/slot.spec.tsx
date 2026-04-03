@@ -1,44 +1,41 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {slot} from './';
+import {slot, withSlots} from './';
 
 describe('slot', () => {
-  it('returns a Provider and slot components with Root and Fallback sub-components', () => {
+  it('returns a module with Provider, Outlet, and Fallback sub-components', () => {
     const SlotModule = slot(['header', 'footer'] as const);
+    expect(SlotModule).toBeDefined();
     expect(SlotModule.Provider).toBeDefined();
-    expect(SlotModule.slot.header).toBeDefined();
-    expect(SlotModule.slot.footer).toBeDefined();
-    expect(SlotModule.slot.header.Root).toBeDefined();
-    expect(SlotModule.slot.footer.Root).toBeDefined();
-    expect(SlotModule.slot.header.Fallback).toBeDefined();
-    expect(SlotModule.slot.footer.Fallback).toBeDefined();
+    expect(SlotModule.Outlet).toBeDefined();
+    expect(SlotModule.Fallback).toBeDefined();
   });
 
-  it('slot component renders children in place when no Root is registered', () => {
+  it('renders children in place when no Outlet is registered', () => {
     const SlotModule = slot(['header'] as const);
 
     render(
       <SlotModule.Provider>
-        <SlotModule.slot.header>
+        <SlotModule name="header">
           <span>inline content</span>
-        </SlotModule.slot.header>
+        </SlotModule>
       </SlotModule.Provider>
     );
 
     expect(screen.getByText('inline content')).toBeInTheDocument();
   });
 
-  it('slot component portals children to the Root element', () => {
+  it('portals children to the Outlet element', () => {
     const SlotModule = slot(['content'] as const);
 
     render(
       <SlotModule.Provider>
-        <SlotModule.slot.content.Root>
+        <SlotModule.Outlet name="content">
           {props => <div {...props} data-test-id="slot-target" />}
-        </SlotModule.slot.content.Root>
-        <SlotModule.slot.content>
+        </SlotModule.Outlet>
+        <SlotModule name="content">
           <span>portaled content</span>
-        </SlotModule.slot.content>
+        </SlotModule>
       </SlotModule.Provider>
     );
 
@@ -47,17 +44,17 @@ describe('slot', () => {
     );
   });
 
-  it('multiple slot components render their children independently', () => {
+  it('multiple slot consumers render their children independently', () => {
     const SlotModule = slot(['a', 'b'] as const);
 
     render(
       <SlotModule.Provider>
-        <SlotModule.slot.a>
+        <SlotModule name="a">
           <span>slot a content</span>
-        </SlotModule.slot.a>
-        <SlotModule.slot.b>
+        </SlotModule>
+        <SlotModule name="b">
           <span>slot b content</span>
-        </SlotModule.slot.b>
+        </SlotModule>
       </SlotModule.Provider>
     );
 
@@ -65,70 +62,63 @@ describe('slot', () => {
     expect(screen.getByText('slot b content')).toBeInTheDocument();
   });
 
-  it('slot component throws when rendered outside provider', () => {
+  it('consumer throws when rendered outside provider', () => {
     const SlotModule = slot(['nav'] as const);
 
     const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     expect(() =>
       render(
-        <SlotModule.slot.nav>
+        <SlotModule name="nav">
           <span>content</span>
-        </SlotModule.slot.nav>
+        </SlotModule>
       )
     ).toThrow('SlotContext not found');
 
     consoleError.mockRestore();
   });
 
-  it('Root throws when rendered outside provider', () => {
+  it('Outlet throws when rendered outside provider', () => {
     const SlotModule = slot(['aside'] as const);
 
     const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     expect(() =>
       render(
-        <SlotModule.slot.aside.Root>
-          {props => <div {...props} />}
-        </SlotModule.slot.aside.Root>
+        <SlotModule.Outlet name="aside">{props => <div {...props} />}</SlotModule.Outlet>
       )
     ).toThrow('SlotContext not found');
 
     consoleError.mockRestore();
   });
 
-  it('Root renders the element returned by the render prop', () => {
+  it('Outlet renders the element returned by the render prop', () => {
     const SlotModule = slot(['sidebar'] as const);
 
     render(
       <SlotModule.Provider>
-        <SlotModule.slot.sidebar.Root>
+        <SlotModule.Outlet name="sidebar">
           {props => <div {...props} data-test-id="sidebar-root" />}
-        </SlotModule.slot.sidebar.Root>
+        </SlotModule.Outlet>
       </SlotModule.Provider>
     );
 
     expect(screen.getByTestId('sidebar-root')).toBeInTheDocument();
   });
 
-  it('Root registers and unregisters the element on mount/unmount', () => {
+  it('Outlet registers and unregisters the element on mount/unmount', () => {
     const SlotModule = slot(['panel'] as const);
 
     const {unmount} = render(
       <SlotModule.Provider>
-        <SlotModule.slot.panel.Root>
+        <SlotModule.Outlet name="panel">
           {props => <div {...props} data-test-id="panel-root" />}
-        </SlotModule.slot.panel.Root>
+        </SlotModule.Outlet>
       </SlotModule.Provider>
     );
 
     expect(screen.getByTestId('panel-root')).toBeInTheDocument();
     expect(() => unmount()).not.toThrow();
-  });
-
-  it('slot component has the correct display name', () => {
-    const SlotModule = slot(['toolbar'] as const);
-    expect(SlotModule.slot.toolbar.displayName).toBe('Slot.(toolbar)');
   });
 
   it('provider renders its children', () => {
@@ -152,9 +142,9 @@ describe('slot', () => {
     expect(() =>
       render(
         <SlotModule1.Provider>
-          <SlotModule2.slot.zone>
+          <SlotModule2 name="zone">
             <span>content</span>
-          </SlotModule2.slot.zone>
+          </SlotModule2>
         </SlotModule1.Provider>
       )
     ).toThrow('SlotContext not found');
@@ -163,17 +153,20 @@ describe('slot', () => {
   });
 
   describe('Fallback', () => {
-    it('renders children into Root when no slot consumer is mounted', () => {
+    it('renders children into Outlet when no consumer is mounted', () => {
       const SlotModule = slot(['feedback'] as const);
 
       render(
         <SlotModule.Provider>
-          <SlotModule.slot.feedback.Root>
-            {props => <div {...props} data-test-id="feedback-root" />}
-          </SlotModule.slot.feedback.Root>
-          <SlotModule.slot.feedback.Fallback>
-            <span>default feedback</span>
-          </SlotModule.slot.feedback.Fallback>
+          <SlotModule.Outlet name="feedback">
+            {props => (
+              <div {...props} data-test-id="feedback-root">
+                <SlotModule.Fallback>
+                  <span>default feedback</span>
+                </SlotModule.Fallback>
+              </div>
+            )}
+          </SlotModule.Outlet>
         </SlotModule.Provider>
       );
 
@@ -182,20 +175,23 @@ describe('slot', () => {
       );
     });
 
-    it('does not render when a slot consumer is mounted', () => {
+    it('does not render when a consumer is mounted', () => {
       const SlotModule = slot(['feedback'] as const);
 
       render(
         <SlotModule.Provider>
-          <SlotModule.slot.feedback.Root>
-            {props => <div {...props} data-test-id="feedback-root" />}
-          </SlotModule.slot.feedback.Root>
-          <SlotModule.slot.feedback.Fallback>
-            <span>default feedback</span>
-          </SlotModule.slot.feedback.Fallback>
-          <SlotModule.slot.feedback>
+          <SlotModule.Outlet name="feedback">
+            {props => (
+              <div {...props} data-test-id="feedback-root">
+                <SlotModule.Fallback>
+                  <span>default feedback</span>
+                </SlotModule.Fallback>
+              </div>
+            )}
+          </SlotModule.Outlet>
+          <SlotModule name="feedback">
             <span>custom feedback</span>
-          </SlotModule.slot.feedback>
+          </SlotModule>
         </SlotModule.Provider>
       );
 
@@ -205,20 +201,6 @@ describe('slot', () => {
       );
     });
 
-    it('does not render when Root is not registered', () => {
-      const SlotModule = slot(['feedback'] as const);
-
-      render(
-        <SlotModule.Provider>
-          <SlotModule.slot.feedback.Fallback>
-            <span>default feedback</span>
-          </SlotModule.slot.feedback.Fallback>
-        </SlotModule.Provider>
-      );
-
-      expect(screen.queryByText('default feedback')).not.toBeInTheDocument();
-    });
-
     it('throws when rendered outside provider', () => {
       const SlotModule = slot(['x'] as const);
 
@@ -226,29 +208,47 @@ describe('slot', () => {
 
       expect(() =>
         render(
-          <SlotModule.slot.x.Fallback>
+          <SlotModule.Fallback>
             <span>fallback</span>
-          </SlotModule.slot.x.Fallback>
+          </SlotModule.Fallback>
         )
       ).toThrow('SlotContext not found');
 
       consoleError.mockRestore();
     });
+
+    it('throws when rendered outside Outlet', () => {
+      const SlotModule = slot(['x'] as const);
+
+      const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      expect(() =>
+        render(
+          <SlotModule.Provider>
+            <SlotModule.Fallback>
+              <span>fallback</span>
+            </SlotModule.Fallback>
+          </SlotModule.Provider>
+        )
+      ).toThrow('Slot.Fallback must be rendered inside Slot.Outlet');
+
+      consoleError.mockRestore();
+    });
   });
 
-  describe('Root ref stability', () => {
+  describe('Outlet ref stability', () => {
     it('ref callback passed to render prop is stable across re-renders', () => {
       const SlotModule = slot(['menu'] as const);
       const refs: Array<React.RefCallback<HTMLElement | null>> = [];
 
       function TestComponent() {
         return (
-          <SlotModule.slot.menu.Root>
+          <SlotModule.Outlet name="menu">
             {props => {
               refs.push(props.ref);
               return <div {...props} />;
             }}
-          </SlotModule.slot.menu.Root>
+          </SlotModule.Outlet>
         );
       }
 
@@ -265,6 +265,49 @@ describe('slot', () => {
       );
 
       expect(refs[0]).toBe(refs[refs.length - 1]);
+    });
+  });
+
+  describe('withSlots', () => {
+    it('attaches a Slot property to a component', () => {
+      const SlotModule = slot(['header'] as const);
+
+      function MyComponent() {
+        return <div data-test-id="my-component" />;
+      }
+
+      const WithSlots = withSlots(MyComponent, SlotModule);
+
+      expect(WithSlots.Slot).toBe(SlotModule);
+    });
+
+    it('renders the wrapped component and allows slot injection', () => {
+      const SlotModule = slot(['title'] as const);
+
+      function MyComponent() {
+        return (
+          <div data-test-id="my-component">
+            <SlotModule.Outlet name="title">
+              {props => <span {...props} data-test-id="title-outlet" />}
+            </SlotModule.Outlet>
+          </div>
+        );
+      }
+
+      const WithSlots = withSlots(MyComponent, SlotModule);
+
+      render(
+        <WithSlots.Slot.Provider>
+          <WithSlots />
+          <WithSlots.Slot name="title">
+            <span>injected title</span>
+          </WithSlots.Slot>
+        </WithSlots.Slot.Provider>
+      );
+
+      expect(screen.getByTestId('title-outlet')).toContainHTML(
+        '<span>injected title</span>'
+      );
     });
   });
 });
