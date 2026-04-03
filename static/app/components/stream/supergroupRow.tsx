@@ -283,10 +283,10 @@ const PrimaryCount = styled(Count)`
   font-variant-numeric: tabular-nums;
 `;
 
-const SecondaryCount = styled(({value, ...p}: any) => <Count {...p} value={value} />)`
+const SecondaryCount = styled(Count)`
   font-size: ${p => p.theme.font.size.sm};
   display: flex;
-  justify-content: right;
+  justify-content: flex-end;
   color: ${p => p.theme.tokens.content.secondary};
   font-variant-numeric: tabular-nums;
 `;
