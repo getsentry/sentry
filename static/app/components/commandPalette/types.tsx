@@ -83,7 +83,10 @@ type CommandPaletteActionCallbackWithKey = CommandPaletteActionCallback & {
 type CommandPaletteAsyncActionWithKey = CommandPaletteAsyncAction & {
   key: string;
 };
-type CommandPaletteAsyncActionGroupWithKey = CommandPaletteAsyncActionGroup & {
+type CommandPaletteAsyncActionGroupWithKey = Omit<
+  CommandPaletteAsyncActionGroup,
+  'actions'
+> & {
   actions: CommandPaletteActionWithKey[];
   key: string;
 };
