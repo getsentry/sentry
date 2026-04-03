@@ -175,6 +175,13 @@ export function CommandPalette(props: CommandPaletteProps) {
                   </Flex>
                 </Text>
               ),
+              details: action.display.details ? (
+                <Container style={{paddingLeft: '22px'}}>
+                  <Text size="sm" variant="muted">
+                    {action.display.details}
+                  </Text>
+                </Container>
+              ) : undefined,
               hideCheck: true,
               children: [],
             }}
@@ -353,7 +360,9 @@ export function CommandPalette(props: CommandPaletteProps) {
           }}
         </Flex>
       </Flex>
-      {treeState.collection.size === 0 ? (
+      {treeState.collection.size === 0 &&
+      // Don't show no results if we're still fetching data
+      asyncQueries.every(query => !query.isFetching) ? (
         <CommandPaletteNoResults />
       ) : (
         <ResultsList

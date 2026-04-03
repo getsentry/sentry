@@ -389,10 +389,7 @@ export function useGlobalCommandPaletteActions() {
               label: project.name,
               icon: <ProjectAvatar project={project} size={16} />,
             },
-            keywords: [
-              `${project.name} ${t('client keys')}`,
-              `${project.slug} ${t('dsn keys')}`,
-            ],
+            keywords: [`dsn ${project.name}`, `dsn ${project.slug}`],
             to: `/settings/${organization.slug}/projects/${project.slug}/keys/`,
           })),
         },
