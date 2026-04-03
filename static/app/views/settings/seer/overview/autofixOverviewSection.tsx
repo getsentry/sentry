@@ -34,6 +34,12 @@ import {
 } from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
 import {useBulkMutateCreatePr} from 'sentry/views/settings/seer/seerAgentHooks';
 
+import {
+  getStoppingPointMutationOptions,
+  getStoppingPointValue,
+  useFetchStoppingPointOptions,
+} from './utils/seerStoppingPoint';
+
 export function useAutofixOverviewData() {
   const organization = useOrganization();
 
@@ -127,6 +133,8 @@ export function AutofixOverviewSection({canWrite, data, isPending, organization}
         projects={projects}
         projectsWithCreatePr={projectsWithCreatePr}
       />
+
+      <StoppingPointForm organization={organization} />
     </FieldGroup>
   );
 }
@@ -387,6 +395,48 @@ function CreatePrForm({
               )}
             </Alert>
           )}
+        </Stack>
+      )}
+    </AutoSaveForm>
+  );
+}
+
+function StoppingPointForm({organization}: {organization: Organization}) {
+  const stoppingPointMutationOpts = getStoppingPointMutationOptions({organization});
+
+  const initialValue = getStoppingPointValue(organization);
+  const options = useFetchStoppingPointOptions({organization});
+
+  return (
+    <AutoSaveForm
+      name="stoppingPoint"
+      schema={z.object({
+        stoppingPoint: z.enum(['off', 'root_cause', 'code']),
+      })}
+      initialValue={initialValue}
+      mutationOptions={stoppingPointMutationOpts}
+    >
+      {field => (
+        <Stack gap="md">
+          <field.Layout.Row
+            label={t('Default Automation Steps')}
+            hintText={tct(
+              'For new projects, pick which steps Seer should run as new issues are collected. Depending on how [actionable:actionable] the issue is, Seer may stop at an earlier step.',
+              {
+                actionable: (
+                  <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works" />
+                ),
+              }
+            )}
+          >
+            <Container flexGrow={1}>
+              <field.Select
+                value={field.state.value}
+                onChange={field.handleChange}
+                options={options}
+              />
+            </Container>
+          </field.Layout.Row>
         </Stack>
       )}
     </AutoSaveForm>

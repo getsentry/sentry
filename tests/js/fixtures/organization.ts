@@ -54,6 +54,7 @@ export function OrganizationFixture(params: Partial<Organization> = {}): Organiz
     dataScrubberDefaults: false,
     dateCreated: new Date().toISOString(),
     debugFilesRole: '',
+    defaultAutomatedRunStoppingPoint: 'off',
     defaultCodeReviewTriggers: [],
     defaultCodingAgentIntegrationId: null,
     defaultCodingAgent: 'seer',
