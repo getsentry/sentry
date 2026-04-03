@@ -115,6 +115,7 @@ export interface Organization extends OrganizationSummary {
   enableSeerCoding?: boolean;
   enableSeerEnhancedAlerts?: boolean;
   enabledConsolePlatforms?: string[];
+  experiments?: Record<string, string>;
   extraOptions?: {
     traces: {
       checkSpanExtractionDate: boolean;
