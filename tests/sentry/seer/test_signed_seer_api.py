@@ -3,7 +3,13 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from django.test import override_settings
 
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.auth.services.auth import AuthenticatedToken
+from sentry.seer.signed_seer_api import (
+    SeerViewerContext,
+    _resolve_viewer_context,
+    make_signed_seer_api_request,
+)
+from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 REQUEST_BODY = b'{"b": 12, "thing": "thing"}'
 PATH = "/v0/some/url"
@@ -111,3 +117,79 @@ def test_times_request(mock_metrics_timer: MagicMock, path: str) -> None:
             "endpoint": PATH,
         },
     )
+
+
+class TestResolveViewerContext:
+    def test_both_none(self) -> None:
+        assert _resolve_viewer_context(None) is None
+
+    def test_contextvar_only(self) -> None:
+        ctx = ViewerContext(organization_id=42, user_id=7, actor_type=ActorType.USER)
+        with viewer_context_scope(ctx):
+            result = _resolve_viewer_context(None)
+
+        assert result is not None
+        assert result.organization_id == 42
+        assert result.user_id == 7
+        assert result.actor_type == ActorType.USER
+
+    def test_explicit_only(self) -> None:
+        result = _resolve_viewer_context(SeerViewerContext(organization_id=99, user_id=5))
+        assert result is not None
+        assert result.organization_id == 99
+        assert result.user_id == 5
+
+    def test_contextvar_with_token(self) -> None:
+        token = AuthenticatedToken(
+            kind="api_token",
+            scopes=["org:read", "project:write"],
+            allowed_origins=[],
+        )
+        ctx = ViewerContext(organization_id=42, user_id=7, actor_type=ActorType.USER, token=token)
+        with viewer_context_scope(ctx):
+            result = _resolve_viewer_context(None)
+
+        assert result is not None
+        assert result.token is not None
+        assert result.token.kind == "api_token"
+        assert set(result.token.get_scopes()) == {"org:read", "project:write"}
+
+    def test_explicit_overrides_contextvar(self) -> None:
+        ctx = ViewerContext(organization_id=42, user_id=7, actor_type=ActorType.USER)
+        with viewer_context_scope(ctx):
+            result = _resolve_viewer_context(SeerViewerContext(organization_id=42, user_id=99))
+
+        assert result is not None
+        assert result.organization_id == 42
+        assert result.user_id == 99
+        assert result.actor_type == ActorType.USER
+
+    @patch("sentry.seer.signed_seer_api.logger")
+    def test_mismatch_warns_and_strips_token(self, mock_logger: MagicMock) -> None:
+        token = AuthenticatedToken(
+            kind="api_token",
+            scopes=["org:read"],
+            allowed_origins=[],
+        )
+        ctx = ViewerContext(organization_id=42, user_id=7, actor_type=ActorType.USER, token=token)
+        with viewer_context_scope(ctx):
+            result = _resolve_viewer_context(SeerViewerContext(organization_id=999))
+
+        assert result is not None
+        assert result.organization_id == 999
+        assert result.token is None
+        mock_logger.warning.assert_called_once()
+        assert mock_logger.warning.call_args[0][0] == "seer.viewer_context_mismatch"
+
+    def test_no_mismatch_keeps_token(self) -> None:
+        token = AuthenticatedToken(
+            kind="api_token",
+            scopes=["org:read"],
+            allowed_origins=[],
+        )
+        ctx = ViewerContext(organization_id=42, user_id=7, actor_type=ActorType.USER, token=token)
+        with viewer_context_scope(ctx):
+            result = _resolve_viewer_context(SeerViewerContext(organization_id=42, user_id=7))
+
+        assert result is not None
+        assert result.token is not None
