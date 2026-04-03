@@ -15,21 +15,24 @@ import {
   bulkAutofixAutomationSettingsInfiniteOptions,
   type AutofixAutomationSettings,
 } from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
-import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
+import {type CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconSettings} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
-import {fetchMutation, useQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useInfiniteQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {
-  useAgentOptions,
-  useBulkMutateCreatePr,
+  getPreferredAgentMutationOptions,
+  useFetchPreferredAgent,
+  useFetchPreferredAgentOptions,
   useBulkMutateSelectedAgent,
-} from 'sentry/views/settings/seer/seerAgentHooks';
+} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
+import {useBulkMutateCreatePr} from 'sentry/views/settings/seer/seerAgentHooks';
 
 export function useAutofixOverviewData() {
   const organization = useOrganization();
@@ -81,6 +84,9 @@ export function AutofixOverviewSection({canWrite, data, isPending, organization}
   const {projects} = useProjects();
 
   const {projectsWithPreferredAgent = [], projectsWithCreatePr = []} = data ?? {};
+  const projectsIdsWithPreferredAgent = new Set(
+    projectsWithPreferredAgent.map(s => s.projectId)
+  );
 
   const [isBulkMutatingAgent, setIsBulkMutatingAgent] = useState(false);
   const [isBulkMutatingCreatePr, setIsBulkMutatingCreatePr] = useState(false);
@@ -108,7 +114,7 @@ export function AutofixOverviewSection({canWrite, data, isPending, organization}
         isBulkMutatingCreatePr={isBulkMutatingCreatePr}
         organization={organization}
         projects={projects}
-        projectsWithPreferredAgent={projectsWithPreferredAgent}
+        projectsIdsWithPreferredAgent={projectsIdsWithPreferredAgent}
       />
 
       <CreatePrForm
@@ -133,7 +139,7 @@ function AgentNameForm({
   isBulkMutatingCreatePr,
   organization,
   projects,
-  projectsWithPreferredAgent,
+  projectsIdsWithPreferredAgent,
 }: {
   canWrite: boolean;
   isBulkMutatingAgent: boolean;
@@ -141,74 +147,30 @@ function AgentNameForm({
   isPending: boolean;
   organization: Organization;
   projects: Project[];
-  projectsWithPreferredAgent: AutofixAutomationSettings[];
+  projectsIdsWithPreferredAgent: Set<string>;
   setIsBulkMutatingAgent: (value: boolean) => void;
 }) {
-  const {data: integrations} = useQuery(
-    organizationIntegrationsCodingAgents(organization)
-  );
-  const rawAgentOptions = useAgentOptions({
-    integrations: integrations?.integrations ?? [],
-  }).filter(option => option.value !== 'none');
-  const codingAgentOptions = rawAgentOptions.map(option => ({
-    value: option.value === 'seer' ? 'seer' : String(option.value.id),
-    label: option.label,
-  }));
-
-  const codingAgentMutationOpts = mutationOptions({
-    mutationFn: ({agentId}: {agentId: string}) => {
-      return fetchMutation<Organization>({
-        method: 'PUT',
-        url: `/organizations/${organization.slug}/`,
-        data:
-          agentId === 'seer'
-            ? {
-                defaultCodingAgent: agentId,
-                defaultCodingAgentIntegrationId: null,
-              }
-            : {
-                defaultCodingAgent: rawAgentOptions
-                  .filter(option => option.value !== 'seer')
-                  .find(option => option.value.id === agentId)?.value.provider,
-                defaultCodingAgentIntegrationId: agentId,
-              },
-      });
-    },
-    onSuccess: updateOrganization,
+  const preferredAgent = useFetchPreferredAgent({organization});
+  const codingAgentSelectOptions = useFetchPreferredAgentOptions({organization});
+  const codingAgentMutationOptions = getPreferredAgentMutationOptions({organization});
+  const bulkMutateSelectedAgent = useBulkMutateSelectedAgent({
+    projects: projects.filter(p => !projectsIdsWithPreferredAgent.has(p.id)),
   });
 
-  const preferredAgentValue = organization.defaultCodingAgentIntegrationId
-    ? String(organization.defaultCodingAgentIntegrationId)
-    : organization.defaultCodingAgent
-      ? organization.defaultCodingAgent
-      : 'seer';
-
-  const preferredAgentLabel = codingAgentOptions.find(
-    option => option.value === preferredAgentValue
+  const preferredAgentLabel = codingAgentSelectOptions.data?.find(
+    o => o.value === preferredAgent.data
   )?.label;
 
-  const preferredAgentIntegration =
-    preferredAgentValue === 'seer'
-      ? 'seer'
-      : rawAgentOptions
-          .filter(option => option.value !== 'seer')
-          .find(option => option.value.id === preferredAgentValue)?.value;
-
-  const preferredAgentProjectIds = new Set(
-    projectsWithPreferredAgent.map(s => s.projectId)
-  );
-  const projectsToUpdate = projects.filter(p => !preferredAgentProjectIds.has(p.id));
-
-  const bulkMutateSelectedAgent = useBulkMutateSelectedAgent({
-    projects: projectsToUpdate,
-  });
+  const initialValue = preferredAgent.data ? preferredAgent.data : ('seer' as const);
 
   return (
     <AutoSaveForm
-      name="agentId"
-      schema={z.object({agentId: z.string()})}
-      initialValue={preferredAgentValue}
-      mutationOptions={codingAgentMutationOpts}
+      name="integration"
+      schema={z.object({
+        integration: z.union([z.literal('seer'), z.custom<CodingAgentIntegration>()]),
+      })}
+      initialValue={initialValue}
+      mutationOptions={codingAgentMutationOptions}
     >
       {field => (
         <Stack gap="md">
@@ -219,12 +181,24 @@ function AgentNameForm({
             )}
           >
             <Container flexGrow={1}>
-              <field.Select
-                value={field.state.value}
-                onChange={field.handleChange}
-                disabled={!canWrite}
-                options={codingAgentOptions}
-              />
+              {preferredAgent.isPending || codingAgentSelectOptions.isPending ? (
+                <Placeholder height="36px" width="100%" />
+              ) : codingAgentSelectOptions.isError ? (
+                <Alert variant="danger">
+                  {t('Failed to fetch coding agent options')}
+                </Alert>
+              ) : (
+                <field.Select
+                  value={field.state.value as CodingAgentIntegration | 'seer'}
+                  onChange={field.handleChange}
+                  disabled={!canWrite}
+                  options={codingAgentSelectOptions.data}
+                  isValueEqual={(a, b) =>
+                    a === b ||
+                    (typeof a === 'object' && typeof b === 'object' && a.id === b.id)
+                  }
+                />
+              )}
             </Container>
           </field.Layout.Row>
 
@@ -236,13 +210,14 @@ function AgentNameForm({
                 !canWrite ||
                 isBulkMutatingAgent ||
                 isBulkMutatingCreatePr ||
-                !preferredAgentIntegration ||
-                projectsWithPreferredAgent.length === projects.length
+                preferredAgent.isPending ||
+                codingAgentSelectOptions.isPending ||
+                projectsIdsWithPreferredAgent.size === projects.length
               }
               onClick={async () => {
-                if (preferredAgentIntegration) {
+                if (preferredAgent.data) {
                   setIsBulkMutatingAgent(true);
-                  await bulkMutateSelectedAgent(preferredAgentIntegration, {});
+                  await bulkMutateSelectedAgent(preferredAgent.data);
                   setIsBulkMutatingAgent(false);
                 } else {
                   addErrorMessage(t('No coding agent integration found'));
@@ -252,25 +227,27 @@ function AgentNameForm({
               {tn(
                 'Set for the existing project',
                 'Set for all existing projects',
-                projectsWithPreferredAgent.length
+                projectsIdsWithPreferredAgent.size
               )}
             </Button>
-            <Text variant="secondary" size="sm">
-              {projects.length === 0
-                ? t('No projects found')
-                : projects.length === 1
-                  ? projectsWithPreferredAgent.length === 1
-                    ? t('Your existing project uses %s', preferredAgentLabel)
-                    : t('Your existing project does not use %s', preferredAgentLabel)
-                  : projects.length === projectsWithPreferredAgent.length
-                    ? t('All existing projects use %s', preferredAgentLabel)
-                    : t(
-                        '%s of %s existing projects use %s',
-                        projectsWithPreferredAgent.length,
-                        projects.length,
-                        preferredAgentLabel
-                      )}
-            </Text>
+            {preferredAgentLabel ? (
+              <Text variant="secondary" size="sm">
+                {projects.length === 0
+                  ? t('No projects found')
+                  : projects.length === 1
+                    ? projectsIdsWithPreferredAgent.size === 1
+                      ? t('Your existing project uses %s', preferredAgentLabel)
+                      : t('Your existing project does not use %s', preferredAgentLabel)
+                    : projects.length === projectsIdsWithPreferredAgent.size
+                      ? t('All existing projects use %s', preferredAgentLabel)
+                      : t(
+                          '%s of %s existing projects use %s',
+                          projectsIdsWithPreferredAgent.size,
+                          projects.length,
+                          preferredAgentLabel
+                        )}
+              </Text>
+            ) : null}
           </Flex>
         </Stack>
       )}

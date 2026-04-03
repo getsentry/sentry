@@ -561,9 +561,12 @@ def _write_preference_project_options(project: Project, preference: SeerProjectP
         project.update_option(
             "sentry:seer_automation_handoff_integration_id", handoff.integration_id
         )
-        project.update_option(
-            "sentry:seer_automation_handoff_auto_create_pr", handoff.auto_create_pr
-        )
+        if handoff.auto_create_pr:
+            project.update_option(
+                "sentry:seer_automation_handoff_auto_create_pr", handoff.auto_create_pr
+            )
+        else:
+            project.delete_option("sentry:seer_automation_handoff_auto_create_pr")
     else:
         project.delete_option("sentry:seer_automation_handoff_point")
         project.delete_option("sentry:seer_automation_handoff_target")
