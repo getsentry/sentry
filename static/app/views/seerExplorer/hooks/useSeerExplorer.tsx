@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -198,7 +199,8 @@ export const useSeerExplorer = () => {
       ) {
         try {
           screenshot = JSON.stringify(getLLMContext());
-        } catch {
+        } catch (e) {
+          Sentry.captureException(e);
           screenshot = captureAsciiSnapshot?.();
         }
       } else {
