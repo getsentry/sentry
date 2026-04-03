@@ -236,6 +236,13 @@ class SubscriptionProcessor:
             )
             return False
 
+        if not features.has("organizations:incidents", organization):
+            metrics.incr(
+                "incidents.alert_rules.no_incidents_not_downgraded",
+                sample_rate=1.0,
+                tags={"dataset": dataset},
+            )
+
         if subscription_update["timestamp"] <= self.last_update:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")
             return False

@@ -15,14 +15,18 @@ def is_metric_subscription_allowed(dataset: str, organization: Organization) -> 
     Returns True if allowed, False if the organization lacks the required features
     (e.g. after a plan downgrade).
     """
-    if not features.has("organizations:incidents", organization):
-        return False
+    if dataset == Dataset.Events.value:
+        return features.has("organizations:incidents", organization)
 
     if dataset == Dataset.Transactions.value:
-        return features.has("organizations:performance-view", organization)
+        return features.has("organizations:incidents", organization) and features.has(
+            "organizations:performance-view", organization
+        )
 
     if dataset == Dataset.EventsAnalyticsPlatform.value:
-        return features.has("organizations:visibility-explore-view", organization)
+        return features.has("organizations:incidents", organization) and features.has(
+            "organizations:visibility-explore-view", organization
+        )
 
     if dataset == Dataset.PerformanceMetrics.value:
         return features.has("organizations:on-demand-metrics-extraction", organization)
