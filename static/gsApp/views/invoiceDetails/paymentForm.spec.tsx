@@ -125,7 +125,7 @@ describe('InvoiceDetails > Payment Form', () => {
     await waitFor(() => expect(mockget).toHaveBeenCalled());
     expect(mockget).toHaveBeenCalled();
 
-    expect(screen.getByText('Pay Bill')).toBeInTheDocument();
+    expect(await screen.findByText('Pay Bill')).toBeInTheDocument();
 
     const button = await screen.findByRole('button', {name: 'Pay Now'});
     await userEvent.click(button);
