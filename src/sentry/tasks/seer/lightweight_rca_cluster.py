@@ -9,9 +9,7 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(
     name="sentry.tasks.seer.lightweight_rca_cluster.trigger_lightweight_rca_cluster_task",
-    queue="default",
-    max_retries=0,
-    taskworker_namespace=issues_tasks,
+    namespace=issues_tasks,
 )
 def trigger_lightweight_rca_cluster_task(group_id: int, **kwargs) -> None:
     from sentry.seer.supergroups.lightweight_rca_cluster import trigger_lightweight_rca_cluster
