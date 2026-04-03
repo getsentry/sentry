@@ -3544,7 +3544,7 @@ register(
     default=10000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Tuning knobs for the periodic fire-history cleanup task.
+# Tuning knobs for the periodic open-period-activity cleanup task.
 # time_limit is a wall-clock budget checked *between* batches, so a single
 # batch that exceeds it will still run to completion. Setting it to 0
 # prevents any batches from running.
