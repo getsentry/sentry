@@ -30,15 +30,18 @@ import {
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {useCommandPaletteAnalytics} from 'sentry/components/commandPalette/useCommandPaletteAnalytics';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconArrow, IconClose, IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import {useQueries} from 'sentry/utils/queryClient';
 import {fzf} from 'sentry/utils/search/fzf';
 import type {Theme} from 'sentry/utils/theme';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 const MotionButton = motion.create(Button);
 const MotionIconSearch = motion.create(IconSearch);
+const MotionContainer = motion.create(Container);
 
 function makeLeadingItemAnimation(theme: Theme) {
   return {
@@ -259,6 +262,12 @@ export function CommandPalette(props: CommandPaletteProps) {
     [actions, analytics, dispatch, props, treeState]
   );
 
+  const debouncedQuery = useDebouncedValue(state.query, 300);
+
+  const isLoading =
+    state.query.length > 0 &&
+    (debouncedQuery !== state.query || asyncQueries.some(query => query.isFetching));
+
   return (
     <Fragment>
       <Flex direction="column" align="start" gap="md">
@@ -268,7 +277,18 @@ export function CommandPalette(props: CommandPaletteProps) {
               <InputGroup {...p}>
                 <StyledInputLeadingItems>
                   <AnimatePresence mode="popLayout">
-                    {state.action ? (
+                    {isLoading ? (
+                      <MotionContainer
+                        position="absolute"
+                        left="-2px"
+                        {...makeLeadingItemAnimation(theme)}
+                      >
+                        <LoadingIndicator
+                          data-test-id="command-palette-loading"
+                          size={14}
+                        />
+                      </MotionContainer>
+                    ) : state.action ? (
                       <Container position="absolute" left="-8px">
                         {containerProps => (
                           <MotionButton

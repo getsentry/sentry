@@ -2,6 +2,8 @@ import {useCallback} from 'react';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+jest.unmock('lodash/debounce');
+
 jest.mock('@tanstack/react-virtual', () => ({
   useVirtualizer: ({count}: {count: number}) => {
     const virtualItems = Array.from({length: count}, (_, index) => ({
