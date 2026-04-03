@@ -641,21 +641,14 @@ class WorkflowEngineRuleSerializer(Serializer):
                     continue  # just keep iterating through the actions in case we have valid ones in there
             actions_with_handlers = list(action_to_handler.keys())
 
-            # action_to_action_data = {}
-            # for action in actions_with_handlers:
-            #     try:
-            #         action_to_action_data[action] = action_to_handler[action].build_rule_action_blob(
-            #             action, workflow.organization_id
-            #         )
-            #     except ValueError:
-            #         continue
-
-            action_to_action_data = {
-                action: action_to_handler[action].build_rule_action_blob(
-                    action, workflow.organization_id
-                )
-                for action in actions_with_handlers  # skip over actions w/o handlers
-            }
+            action_to_action_data = {}
+            for action in actions_with_handlers:
+                try:
+                    action_to_action_data[action] = action_to_handler[
+                        action
+                    ].build_rule_action_blob(action, workflow.organization_id)
+                except ValueError:
+                    continue
 
             sentry_app_installations_by_uuid = self._fetch_sentry_app_installations_by_uuid(
                 workflow, action_to_action_data, actions_with_handlers
@@ -670,7 +663,10 @@ class WorkflowEngineRuleSerializer(Serializer):
                     }
                 )
             for action in actions_with_handlers:
-                action_data = action_to_action_data[action]
+                action_data = action_to_action_data.get(action)
+                if not action_data:
+                    continue
+
                 action_data["name"] = action_to_handler[action].render_label(
                     workflow.organization_id, action_data
                 )

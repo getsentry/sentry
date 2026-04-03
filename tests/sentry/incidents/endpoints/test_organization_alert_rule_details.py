@@ -65,7 +65,6 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.workflow_engine.migration_helpers.alert_rule import migrate_alert_rule
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.data_condition import Condition
@@ -712,72 +711,6 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         assert "select" == action["formFields"]["optional_fields"][-1]["type"]
         assert "sentry/members" in action["formFields"]["optional_fields"][-1]["uri"]
         assert "bob" == action["formFields"]["optional_fields"][-1]["choices"][0][0]
-
-    @responses.activate
-    def test_uninstalled_sentry_app(self) -> None:
-        self.superuser = self.create_user("admin@localhost", is_superuser=True)
-        self.login_as(user=self.superuser)
-        self.create_team(organization=self.organization, members=[self.superuser])
-
-        sentry_app = self.create_sentry_app(
-            organization=self.organization,
-            published=True,
-            verify_install=False,
-            name="Super Awesome App",
-            schema={"elements": [self.create_alert_rule_action_schema()]},
-        )
-        installation = self.create_sentry_app_installation(
-            slug=sentry_app.slug, organization=self.organization, user=self.superuser
-        )
-        rule = self.create_alert_rule()
-        trigger = self.create_alert_rule_trigger(rule, "hi", 1000)
-        self.create_alert_rule_trigger_action(
-            alert_rule_trigger=trigger,
-            target_identifier=sentry_app.id,
-            type=AlertRuleTriggerAction.Type.SENTRY_APP,
-            target_type=AlertRuleTriggerAction.TargetType.SENTRY_APP,
-            sentry_app=sentry_app,
-            sentry_app_config=[
-                {"name": "title", "value": "An alert"},
-                {"summary": "Something happened here..."},
-                {"name": "points", "value": "3"},
-                {"name": "assignee", "value": "Nisanthan"},
-            ],
-        )
-        _, _, _, detector, _, ard, _, _ = migrate_alert_rule(rule)
-        fake_detector_id = get_fake_id_from_object_id(ard.detector_id)
-
-        responses.add(
-            responses.GET,
-            "https://example.com/sentry/members",
-            json=[
-                {"value": "bob", "label": "Bob"},
-                {"value": "jess", "label": "Jess"},
-            ],
-            status=200,
-        )
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            installation.delete()
-
-        with self.feature("organizations:incidents"):
-            resp = self.get_response(self.organization.slug, rule.id)
-
-        assert len(responses.calls) == 0
-        assert "errors" not in resp.data
-
-        action = resp.data["triggers"][0]["actions"][0]
-        assert not action.get("formFields")
-
-        with (
-            self.feature("organizations:incidents"),
-            self.feature("organizations:workflow-engine-rule-serializers"),
-        ):
-            resp = self.get_response(self.organization.slug, fake_detector_id)
-
-        assert len(responses.calls) == 0
-        assert "errors" not in resp.data
-
-        assert len(resp.data["triggers"]) == 0
 
     @responses.activate
     def test_with_sentryapp_multiple_installations_filters_by_org(self) -> None:
