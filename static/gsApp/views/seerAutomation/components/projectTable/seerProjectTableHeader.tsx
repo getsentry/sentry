@@ -34,7 +34,7 @@ interface Props {
 
 const COLUMNS = [
   {title: t('Project'), key: 'project', sortKey: 'project'},
-  {title: t('Autofix Handoff'), key: 'fixes'},
+  {title: t('Agent'), key: 'fixes', sortKey: 'agent'},
   {
     title: (
       <Flex gap="sm" align="center">
@@ -48,7 +48,7 @@ const COLUMNS = [
     ),
     key: 'pr_creation',
   },
-  {title: t('Repos'), key: 'repos'},
+  {title: t('Repos'), key: 'repos', sortKey: 'repo_count'},
 ];
 
 function getMutationCallbacks(count: number) {

@@ -20,8 +20,8 @@ import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useFetchAgentOptions} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
 import {
-  useAgentOptions,
   useMutateCreatePr,
   useMutateSelectedAgent,
   useSelectedAgentFromBulkSettings,
@@ -46,7 +46,7 @@ export function SeerProjectTableRow({
   const canWrite = useCanWriteSettings();
   const {isSelected, toggleSelected} = useListItemCheckboxContext();
 
-  const options = useAgentOptions({integrations: integrations ?? []});
+  const options = useFetchAgentOptions({organization});
   const autofixAgent = useSelectedAgentFromBulkSettings({
     autofixSettings: autofixSettings ?? {
       autofixAutomationTuning: 'off',
@@ -94,28 +94,24 @@ export function SeerProjectTableRow({
               size="xs"
               disabled={!canWrite}
               name="autofixAgent"
-              options={options}
+              options={options.data ?? []}
               value={autofixAgent}
-              onChange={(option: ReturnType<typeof useAgentOptions>[number]) => {
+              onChange={option => {
                 mutateSelectedAgent(option.value, {
                   onSuccess: () => {
                     addSuccessMessage(
-                      option.value === 'none'
-                        ? t('Removed autofix agent from %s', project.name)
-                        : tct('Started using [name] for [project]', {
-                            name: <strong>{option.label}</strong>,
-                            project: project.name,
-                          })
+                      tct('Selected [name] for [project]', {
+                        name: <strong>{option.label}</strong>,
+                        project: project.name,
+                      })
                     );
                   },
                   onError: () =>
                     addErrorMessage(
-                      option.value === 'none'
-                        ? t('Failed to update autofix agent')
-                        : tct('Failed to set [name] for [project]', {
-                            name: <strong>{option.label}</strong>,
-                            project: project.name,
-                          })
+                      tct('Failed to set [name] for [project]', {
+                        name: <strong>{option.label}</strong>,
+                        project: project.name,
+                      })
                     ),
                 });
               }}
@@ -125,53 +121,49 @@ export function SeerProjectTableRow({
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end">
         {autofixSettings ? (
-          autofixAgent === 'none' ? (
-            <span>{'\u2014'}</span>
-          ) : (
-            <Flex align="center" gap="sm">
-              {organization.enableSeerCoding === false && autofixAgent === 'seer' ? (
-                <InfoTip
-                  title={tct(
-                    '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
-                    {
-                      settings: (
-                        <Link
-                          to={`/settings/${organization.slug}/seer/#enableSeerCoding`}
-                        />
-                      ),
-                    }
-                  )}
-                  size="xs"
-                />
-              ) : null}
-
-              <Switch
-                disabled={
-                  !canWrite ||
-                  (organization.enableSeerCoding === false && autofixAgent === 'seer')
-                }
-                checked={isCreatePrEnabled}
-                onChange={e => {
-                  const value = e.target.checked;
-                  mutateCreatePr(autofixAgent, value, {
-                    onSuccess: () =>
-                      addSuccessMessage(
-                        value
-                          ? t('Enabled auto create pull requests for %s', project.name)
-                          : t('Disabled auto create pull requests for %s', project.name)
-                      ),
-                    onError: () =>
-                      addErrorMessage(
-                        t(
-                          'Failed to update auto create pull requests setting for %s',
-                          project.name
-                        )
-                      ),
-                  });
-                }}
+          <Flex align="center" gap="sm">
+            {organization.enableSeerCoding === false && autofixAgent === 'seer' ? (
+              <InfoTip
+                title={tct(
+                  '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
+                  {
+                    settings: (
+                      <Link
+                        to={`/settings/${organization.slug}/seer/#enableSeerCoding`}
+                      />
+                    ),
+                  }
+                )}
+                size="xs"
               />
-            </Flex>
-          )
+            ) : null}
+
+            <Switch
+              disabled={
+                !canWrite ||
+                (organization.enableSeerCoding === false && autofixAgent === 'seer')
+              }
+              checked={isCreatePrEnabled}
+              onChange={e => {
+                const value = e.target.checked;
+                mutateCreatePr(autofixAgent, value, {
+                  onSuccess: () =>
+                    addSuccessMessage(
+                      value
+                        ? t('Enabled auto create pull requests for %s', project.name)
+                        : t('Disabled auto create pull requests for %s', project.name)
+                    ),
+                  onError: () =>
+                    addErrorMessage(
+                      t(
+                        'Failed to update auto create pull requests setting for %s',
+                        project.name
+                      )
+                    ),
+                });
+              }}
+            />
+          </Flex>
         ) : (
           <Placeholder height="28px" width="36px" />
         )}

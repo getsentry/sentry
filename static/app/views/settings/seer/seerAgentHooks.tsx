@@ -80,10 +80,6 @@ export function useSelectedAgentFromBulkSettings({
   integrations: CodingAgentIntegration[];
 }) {
   return useMemo(() => {
-    // If we have autofixAutomationTuning==OFF then 'none' is picked
-    if (autofixSettings.autofixAutomationTuning === 'off') {
-      return 'none';
-    }
     // If we have nothing in preferences, then we have Seer
     if (!autofixSettings?.automationHandoff?.integration_id) {
       return 'seer';
@@ -93,11 +89,7 @@ export function useSelectedAgentFromBulkSettings({
       integration =>
         integration.id === String(autofixSettings.automationHandoff?.integration_id)
     );
-  }, [
-    autofixSettings.automationHandoff?.integration_id,
-    autofixSettings.autofixAutomationTuning,
-    integrations,
-  ]);
+  }, [autofixSettings.automationHandoff?.integration_id, integrations]);
 }
 
 function useApplyOptimisticUpdate({project}: {project: Project}) {
