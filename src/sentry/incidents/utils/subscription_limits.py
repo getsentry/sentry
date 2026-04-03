@@ -31,6 +31,7 @@ def is_metric_subscription_allowed(dataset: str, organization: Organization) -> 
     if dataset == Dataset.PerformanceMetrics.value:
         return features.has("organizations:on-demand-metrics-extraction", organization)
 
+    # Other datasets (e.g. Metrics/sessions) aren't gated here but probably should be.
     return True
 
 
