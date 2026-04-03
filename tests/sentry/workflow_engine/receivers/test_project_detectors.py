@@ -8,10 +8,6 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.issue_detection.performance_detection import PERFORMANCE_DETECTOR_CONFIG_MAPPINGS
 from sentry.models.project import Project
-from sentry.receivers.project_detectors import (
-    create_default_anomaly_detector,
-    disable_default_detector_creation,
-)
 from sentry.signals import project_created
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import TestCase
@@ -21,6 +17,10 @@ from sentry.workflow_engine.models.data_condition import Condition, DataConditio
 from sentry.workflow_engine.processors.detector import (
     ensure_default_anomaly_detector,
     ensure_performance_detectors,
+)
+from sentry.workflow_engine.receivers.project_detectors import (
+    create_default_anomaly_detector,
+    disable_default_detector_creation,
 )
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
