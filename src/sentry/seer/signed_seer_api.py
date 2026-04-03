@@ -11,6 +11,7 @@ from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics
+from sentry.viewer_context import get_viewer_context
 
 
 class SeerViewerContext(TypedDict, total=False):
@@ -47,6 +48,46 @@ seer_grouping_default_connection_pool = connection_from_url(
 )
 
 
+def _resolve_viewer_context(
+    explicit: SeerViewerContext | None,
+) -> dict[str, Any] | None:
+    """Build the viewer context payload for Seer requests.
+
+    Uses the contextvar as the base. If an explicit SeerViewerContext was
+    passed, its non-None fields win (with a warning on disagreement).
+    """
+    vc = get_viewer_context()
+    if vc is None and explicit is None:
+        return None
+
+    result: dict[str, Any] = {}
+    if vc is not None:
+        if vc.organization_id is not None:
+            result["organization_id"] = vc.organization_id
+        if vc.user_id is not None:
+            result["user_id"] = vc.user_id
+        result["actor_type"] = vc.actor_type.value
+        if vc.token is not None:
+            result["token"] = {"kind": vc.token.kind, "scopes": list(vc.token.get_scopes())}
+
+    if explicit:
+        has_mismatch = False
+        for field in ("organization_id", "user_id"):
+            val = explicit.get(field)  # type: ignore[literal-required]
+            if val is not None and field in result and result[field] != val:
+                logger.warning(
+                    "seer.viewer_context_mismatch",
+                    extra={"field": field, "contextvar": result[field], "explicit": val},
+                )
+                has_mismatch = True
+            if val is not None:
+                result[field] = val
+        if has_mismatch:
+            result.pop("token", None)
+
+    return result or None
+
+
 @sentry_sdk.tracing.trace
 def make_signed_seer_api_request(
     connection_pool: HTTPConnectionPool,
@@ -72,10 +113,11 @@ def make_signed_seer_api_request(
         **auth_headers,
     }
 
-    if viewer_context:
+    resolved_context = _resolve_viewer_context(viewer_context)
+    if resolved_context:
         if settings.SEER_API_SHARED_SECRET:
             try:
-                context_bytes = orjson.dumps(viewer_context)
+                context_bytes = orjson.dumps(resolved_context)
                 context_signature = sign_viewer_context(context_bytes)
                 headers["X-Viewer-Context"] = context_bytes.decode("utf-8")
                 headers["X-Viewer-Context-Signature"] = context_signature
