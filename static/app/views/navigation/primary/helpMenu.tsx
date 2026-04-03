@@ -1,3 +1,5 @@
+import {useEffect} from 'react';
+
 import {Flex} from '@sentry/scraps/layout';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
@@ -47,12 +49,17 @@ function getContactSupportItem(organization: Organization): MenuItemProps | null
     return {
       key: 'support',
       label: t('Contact Support'),
-      onAction() {
-        showIntercom(organization.slug);
+      async onAction() {
         trackAnalytics('intercom_link.clicked', {
           organization,
           source: 'sidebar',
         });
+        try {
+          await showIntercom(organization.slug);
+        } catch {
+          // Fall back to mailto
+          window.location.href = `mailto:${supportEmail}`;
+        }
       },
     };
   }
@@ -87,6 +94,13 @@ export function PrimaryNavigationHelpMenu() {
   const {startTour} = useNavigationTour();
   const {privacyUrl, termsUrl} = useLegacyStore(ConfigStore);
   const hasPageFrame = useHasPageFrameFeature();
+  const hasIntercom = organization.features.includes('intercom-support');
+
+  useEffect(() => {
+    if (hasIntercom) {
+      trackAnalytics('intercom_link.viewed', {organization, source: 'sidebar'});
+    }
+  }, [hasIntercom, organization]);
 
   const items = hasPageFrame
     ? getPageFrameItems({contactSupportItem, privacyUrl, termsUrl})
