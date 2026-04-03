@@ -1,11 +1,18 @@
+from typing import Any
 from unittest import mock
 
+from rest_framework import status
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.serializers import serialize
+from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.models.environment import Environment
+from sentry.monitors.grouptype import MonitorIncidentType
+from sentry.monitors.models import Monitor, ScheduleType, is_monitor_muted
+from sentry.monitors.serializers import MonitorSerializer
+from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import (
     QuerySubscription,
@@ -17,7 +24,13 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import cell_silo_test
 from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
-from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource, Detector
+from sentry.workflow_engine.models import (
+    DataCondition,
+    DataConditionGroup,
+    DataSource,
+    DataSourceDetector,
+    Detector,
+)
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.registry import data_source_type_registry
@@ -43,7 +56,7 @@ class OrganizationProjectDetectorIndexBaseTest(APITestCase):
         self.connected_workflow = self.create_workflow(
             organization_id=self.organization.id,
         )
-        self.valid_data = {
+        self.valid_data: dict[str, Any] = {
             "name": "Test Detector",
             "type": MetricIssue.slug,
             "dataSources": [
@@ -87,6 +100,21 @@ class OrganizationProjectDetectorIndexBaseTest(APITestCase):
 @cell_silo_test
 @with_feature("organizations:incidents")
 class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexBaseTest):
+    def test_reject_upsampled_count_aggregate(self) -> None:
+        """Users should not be able to submit upsampled_count() directly in ACI."""
+        data = {**self.valid_data}
+        data["dataSources"] = [
+            {**self.valid_data["dataSources"][0], "aggregate": "upsampled_count()"}
+        ]
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            **data,
+            status_code=400,
+        )
+        assert "upsampled_count() is not allowed as user input" in str(response.data)
+
     def test_missing_group_type(self) -> None:
         data = {**self.valid_data}
         del data["type"]
@@ -308,3 +336,132 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
             status_code=400,
         )
         assert response.data == {"name": ["This field is required."]}
+
+
+@cell_silo_test
+class OrganizationProjectDetectorIndexMonitorPostTest(APITestCase):
+    endpoint = "sentry-api-0-organization-project-detector-index"
+    method = "post"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+
+    def _get_detector_post_data(self, **overrides: Any) -> dict[str, Any]:
+        data = {
+            "type": MonitorIncidentType.slug,
+            "name": "Test Monitor Detector",
+            "dataSources": [
+                {
+                    "name": "Test Monitor",
+                    "config": {
+                        "schedule": "0 * * * *",
+                        "scheduleType": "crontab",
+                    },
+                }
+            ],
+        }
+        data.update(overrides)
+        return data
+
+    def test_create_monitor_incident_detector_validates_correctly(self) -> None:
+        data = self._get_detector_post_data()
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            **data,
+            status_code=201,
+        )
+
+        assert response.data["name"] == "Test Monitor Detector"
+        assert response.data["type"] == MonitorIncidentType.slug
+
+        monitor = Monitor.objects.get(organization_id=self.organization.id, slug="test-monitor")
+        assert monitor.name == "Test Monitor"
+        assert monitor.config["schedule"] == "0 * * * *"
+        assert monitor.config["schedule_type"] == ScheduleType.CRONTAB
+        assert monitor.project_id == self.project.id
+        assert monitor.organization_id == self.organization.id
+
+        detector = Detector.objects.get(id=response.data["id"])
+        assert detector.name == "Test Monitor Detector"
+        assert detector.type == MonitorIncidentType.slug
+        assert detector.project_id == self.project.id
+
+        data_source = DataSource.objects.get(
+            organization_id=self.organization.id,
+            type=DATA_SOURCE_CRON_MONITOR,
+            source_id=str(monitor.id),
+        )
+        assert DataSourceDetector.objects.filter(
+            data_source=data_source, detector=detector
+        ).exists()
+
+        data_sources = response.data["dataSources"]
+        assert len(data_sources) == 1
+        data_source_data = data_sources[0]
+        assert data_source_data["type"] == DATA_SOURCE_CRON_MONITOR
+        assert data_source_data["sourceId"] == str(monitor.id)
+
+        expected_monitor_data = serialize(monitor, user=self.user, serializer=MonitorSerializer())
+        assert data_source_data["queryObj"] == expected_monitor_data
+
+    def test_create_monitor_incident_detector_validation_error(self) -> None:
+        data = self._get_detector_post_data(
+            dataSources=[
+                {
+                    "config": {
+                        "schedule": "invalid cron",
+                        "scheduleType": "crontab",
+                    },
+                }
+            ]
+        )
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            **data,
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        assert "dataSources" in response.data
+        assert "Either name or slug must be provided" in str(response.data["dataSources"])
+
+    def test_create_monitor_with_optional_fields(self) -> None:
+        data = self._get_detector_post_data(
+            dataSources=[
+                {
+                    "name": "Full Config Monitor",
+                    "slug": "full-config-monitor",
+                    "status": "disabled",
+                    "isMuted": False,
+                    "config": {
+                        "schedule": "*/30 * * * *",
+                        "scheduleType": "crontab",
+                        "checkinMargin": 15,
+                        "maxRuntime": 120,
+                        "timezone": "America/New_York",
+                        "failureIssueThreshold": 3,
+                        "recoveryThreshold": 2,
+                    },
+                }
+            ],
+        )
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            **data,
+            status_code=201,
+        )
+
+        monitor = Monitor.objects.get(
+            organization_id=self.organization.id, slug="full-config-monitor"
+        )
+        assert monitor.name == "Full Config Monitor"
+        assert monitor.status == ObjectStatus.DISABLED
+        assert is_monitor_muted(monitor) is False
+        assert monitor.config["schedule"] == "*/30 * * * *"
+        assert monitor.config["checkin_margin"] == 15
+        assert monitor.config["max_runtime"] == 120
+        assert monitor.config["timezone"] == "America/New_York"
+        assert monitor.config["failure_issue_threshold"] == 3
+        assert monitor.config["recovery_threshold"] == 2

@@ -2,6 +2,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.seer.explorer.client_utils import (
     collect_user_org_context,
     has_seer_explorer_access_with_detail,
+    snapshot_to_markdown,
 )
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
@@ -184,3 +185,70 @@ class CollectUserOrgContextTest(TestCase):
 
         assert context is not None
         assert context.get("user_ip") == request.META.get("REMOTE_ADDR")
+
+
+class SnapshotToMarkdownTest(TestCase):
+    def test_single_node(self) -> None:
+        snapshot = {
+            "version": 1,
+            "nodes": [
+                {
+                    "nodeType": "dashboard",
+                    "data": {"title": "Backend Health", "widgetCount": 3},
+                    "children": [],
+                }
+            ],
+        }
+        result = snapshot_to_markdown(snapshot)
+        assert "# dashboard" in result
+        assert '- **title**: "Backend Health"' in result
+        assert "- **widgetCount**: 3" in result
+
+    def test_nested_nodes(self) -> None:
+        snapshot = {
+            "version": 1,
+            "nodes": [
+                {
+                    "nodeType": "dashboard",
+                    "data": {"title": "My Dashboard"},
+                    "children": [
+                        {
+                            "nodeType": "widget",
+                            "data": {"title": "Error Rate"},
+                            "children": [
+                                {
+                                    "nodeType": "chart",
+                                    "data": {"query": "count()"},
+                                    "children": [],
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
+        }
+        result = snapshot_to_markdown(snapshot)
+        assert "# dashboard" in result
+        assert "## widget" in result
+        assert "### chart" in result
+        assert '- **query**: "count()"' in result
+
+    def test_empty_nodes(self) -> None:
+        assert snapshot_to_markdown({"version": 1, "nodes": []}) == ""
+
+    def test_node_with_no_data(self) -> None:
+        snapshot = {
+            "version": 1,
+            "nodes": [{"nodeType": "dashboard", "data": None, "children": []}],
+        }
+        result = snapshot_to_markdown(snapshot)
+        assert result == "# dashboard"
+
+    def test_node_with_non_dict_data(self) -> None:
+        snapshot = {
+            "version": 1,
+            "nodes": [{"nodeType": "widget", "data": "some string", "children": []}],
+        }
+        result = snapshot_to_markdown(snapshot)
+        assert "# widget" in result
+        assert '- "some string"' in result

@@ -141,6 +141,14 @@ class SentryVisitor(ast.NodeVisitor):
             self.errors.append((node.lineno, node.col_offset, S001_fmt.format(node.attr)))
         elif node.attr in S004_methods:
             self.errors.append((node.lineno, node.col_offset, S004_msg))
+        elif (
+            node.attr == "ThreadPoolExecutor"
+            and isinstance(node.value, ast.Attribute)
+            and node.value.attr == "futures"
+            and isinstance(node.value.value, ast.Name)
+            and node.value.value.id == "concurrent"
+        ):
+            self.errors.append((node.lineno, node.col_offset, S016_msg))
 
         self.generic_visit(node)
 

@@ -1568,7 +1568,7 @@ class GetTagValuePaginatorForProjectsSemverBuildTest(BaseSemverTest):
         self.run_test("4", ["456"], env_2)
 
 
-class TestEAPGetGroupsUserCounts(TestCase, SnubaTestCase, OccurrenceTestCase):
+class TestEAPTagStorageQueries(TestCase, SnubaTestCase, OccurrenceTestCase):
     FROZEN_TIME = before_now(hours=24).replace(hour=6, minute=0, second=0)
 
     def setUp(self) -> None:
@@ -1865,3 +1865,49 @@ class TestEAPGetGroupsUserCounts(TestCase, SnubaTestCase, OccurrenceTestCase):
         )
 
         assert eap_result == {group_a.id: 1}
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_and_snuba_release_tags_match(self) -> None:
+        ts = (self.FROZEN_TIME - timedelta(minutes=5)).timestamp()
+
+        # Store events with release tags for two different releases
+        for _ in range(2):
+            self.store_events_to_snuba_and_eap(
+                "group-rel",
+                count=1,
+                timestamp=ts,
+                extra_event_data={
+                    "tags": {"sentry:release": "1.0"},
+                    "release": "1.0",
+                },
+            )
+        self.store_events_to_snuba_and_eap(
+            "group-rel",
+            count=1,
+            timestamp=ts,
+            extra_event_data={
+                "tags": {"sentry:release": "2.0"},
+                "release": "2.0",
+            },
+        )
+
+        start = self.FROZEN_TIME - timedelta(hours=1)
+
+        snuba_result = self.ts.get_release_tags(
+            self.organization.id, [self.project.id], None, ["1.0", "2.0"]
+        )
+        eap_result = self.ts._eap_get_release_tags(
+            self.organization.id, [self.project.id], None, ["1.0", "2.0"], start
+        )
+
+        snuba_by_value = {tv.value: tv for tv in snuba_result}
+        eap_by_value = {tv.value: tv for tv in eap_result}
+
+        assert set(snuba_by_value.keys()) == {"1.0", "2.0"}
+        assert set(eap_by_value.keys()) == set(snuba_by_value.keys())
+        assert snuba_by_value["1.0"].times_seen == eap_by_value["1.0"].times_seen == 2
+        assert snuba_by_value["2.0"].times_seen == eap_by_value["2.0"].times_seen == 1
+        assert snuba_by_value["1.0"].first_seen == eap_by_value["1.0"].first_seen
+        assert snuba_by_value["1.0"].last_seen == eap_by_value["1.0"].last_seen
+        assert snuba_by_value["2.0"].first_seen == eap_by_value["2.0"].first_seen
+        assert snuba_by_value["2.0"].last_seen == eap_by_value["2.0"].last_seen
