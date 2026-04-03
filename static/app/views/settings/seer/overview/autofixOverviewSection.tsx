@@ -401,7 +401,13 @@ function CreatePrForm({
   );
 }
 
-function StoppingPointForm({organization}: {organization: Organization}) {
+function StoppingPointForm({
+  organization,
+  canWrite,
+}: {
+  canWrite: boolean;
+  organization: Organization;
+}) {
   const stoppingPointMutationOpts = getDefaultStoppingPointMutationOptions({
     organization,
   });
@@ -437,6 +443,7 @@ function StoppingPointForm({organization}: {organization: Organization}) {
           >
             <Container flexGrow={1}>
               <field.Select
+                disabled={!canWrite}
                 value={field.state.value}
                 onChange={field.handleChange}
                 options={options}
