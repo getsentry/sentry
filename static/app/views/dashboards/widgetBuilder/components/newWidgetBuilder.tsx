@@ -92,7 +92,6 @@ export function WidgetBuilderV2({
   );
 
   const navigationElementRef = useRef<HTMLDivElement>(null);
-  const mainContentElementRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (navigationElementRef.current) return;
@@ -105,17 +104,31 @@ export function WidgetBuilderV2({
     }
   }, []);
 
+  const [mainContentPosition, setMainContentPosition] = useState<{
+    left: number;
+    top: number;
+  } | null>(null);
   useEffect(() => {
-    if (mainContentElementRef.current) return;
-
     const mainContentElement = document.querySelector('main');
+
+    const observer = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        if (entry.target === mainContentElement) {
+          const rect = entry.target.getBoundingClientRect();
+          setMainContentPosition({top: rect.top, left: rect.left});
+        }
+      }
+    });
     if (mainContentElement) {
-      mainContentElementRef.current = mainContentElement as HTMLDivElement;
+      observer.observe(mainContentElement);
     }
+
+    return () => {
+      observer.disconnect();
+    };
   }, []);
 
   const dimensions = useDimensions({elementRef: navigationElementRef});
-  const mainContentDimensions = useDimensions({elementRef: mainContentElementRef});
 
   const handleDragEnd = ({over}: any) => {
     setTranslate(snapPreviewToCorners(over));
@@ -179,12 +192,12 @@ export function WidgetBuilderV2({
                     ? isMediumScreen
                       ? {
                           left: 0,
-                          top: `${mainContentDimensions.top ?? 0}px`,
+                          top: `${mainContentPosition?.top ?? 0}px`,
                           willChange: 'top',
                         }
                       : {
                           left: `${dimensions.width ?? 0}px`,
-                          top: `${mainContentDimensions.top ?? 0}px`,
+                          top: `${mainContentPosition?.top ?? 0}px`,
                           willChange: 'left',
                         }
                     : undefined

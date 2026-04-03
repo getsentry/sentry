@@ -10,7 +10,7 @@ interface Props<Element extends HTMLElement> {
  * Returns a ref to be added to an element and returns the dimensions of that element
  */
 export function useDimensions<Element extends HTMLElement>({elementRef}: Props<Element>) {
-  const [dimensions, setDimensions] = useState({height: 0, width: 0, top: 0, left: 0});
+  const [dimensions, setDimensions] = useState({height: 0, width: 0});
 
   const element = elementRef.current;
 
@@ -19,8 +19,6 @@ export function useDimensions<Element extends HTMLElement>({elementRef}: Props<E
     setDimensions({
       height: element?.clientHeight || 0,
       width: element?.clientWidth || 0,
-      top: element?.offsetTop || 0,
-      left: element?.offsetLeft || 0,
     });
   }, [element]);
 
@@ -28,8 +26,6 @@ export function useDimensions<Element extends HTMLElement>({elementRef}: Props<E
     setDimensions({
       height: element?.clientHeight || 0,
       width: element?.clientWidth || 0,
-      top: element?.offsetTop || 0,
-      left: element?.offsetLeft || 0,
     });
   }, [element]);
 
