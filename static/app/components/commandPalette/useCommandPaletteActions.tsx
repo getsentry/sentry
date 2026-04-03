@@ -6,9 +6,9 @@ import {useCommandPaletteRegistration} from './context';
 import type {
   CommandPaletteAction,
   CommandPaletteActionCallbackWithKey,
-  CommandPaletteActionChild,
   CommandPaletteActionLinkWithKey,
   CommandPaletteActionWithKey,
+  CommandPaletteActionGroupWithKey,
 } from './types';
 
 function addKeysToActions(
@@ -22,7 +22,7 @@ function addKeysToActions(
     if ('actions' in action) {
       return {
         ...action,
-        actions: addKeysToChildActions(id, action.actions),
+        actions: addKeysToChildActions(actionKey, action.actions),
         key: actionKey,
       };
     }
@@ -35,14 +35,24 @@ function addKeysToActions(
 }
 
 function addKeysToChildActions(
-  id: string,
-  actions: CommandPaletteActionChild[]
-): Array<CommandPaletteActionLinkWithKey | CommandPaletteActionCallbackWithKey> {
+  parentKey: string,
+  actions: CommandPaletteAction[]
+): Array<
+  | CommandPaletteActionLinkWithKey
+  | CommandPaletteActionCallbackWithKey
+  | CommandPaletteActionGroupWithKey
+> {
   return actions.map(action => {
-    const label = action.display.label.toLowerCase().replace(/ /g, '-');
-    const disambiguator = 'to' in action ? `:${JSON.stringify(action.to)}` : '';
-    const kind = 'to' in action ? 'navigate' : 'callback';
-    const actionKey = `${id}:${kind}:${label}${disambiguator}`;
+    const actionKey = `${parentKey}::${'actions' in action ? 'group' : 'to' in action ? 'navigate' : 'callback'}:${slugify(action.display.label)}`;
+
+    if ('actions' in action) {
+      return {
+        ...action,
+        actions: addKeysToChildActions(actionKey, action.actions),
+        key: actionKey,
+      };
+    }
+
     return {
       ...action,
       key: actionKey,

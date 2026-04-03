@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -15,6 +16,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
 import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
@@ -48,6 +50,9 @@ type SeerExplorerChatResponse = {
 };
 
 const POLL_INTERVAL = 500; // Poll every 500ms
+
+/** Routes where the LLMContext tree provides structured page context. */
+const STRUCTURED_CONTEXT_ROUTES = new Set(['/dashboard/:dashboardId/']);
 
 const OPTIMISTIC_ASSISTANT_TEXTS = [
   'Looking around...',
@@ -110,6 +115,7 @@ export const useSeerExplorer = () => {
   const organization = useOrganization({allowNull: true});
   const orgSlug = organization?.slug;
   const captureAsciiSnapshot = useAsciiSnapshot();
+  const {getLLMContext} = useLLMContext();
   const [overrideCtxEngEnable, setOverrideCtxEngEnable] = useState<boolean>(true);
 
   const [runId, setRunId] = useSessionStorage<number | null>(
@@ -184,8 +190,22 @@ export const useSeerExplorer = () => {
       // explicitRunId: undefined = use current runId, null = force new run, number = use that run
       const effectiveRunId = explicitRunId === undefined ? runId : explicitRunId;
 
-      // Capture a coarse ASCII screenshot of the user's screen for extra context
-      const screenshot = captureAsciiSnapshot?.();
+      // Send structured LLMContext JSON on supported pages when the feature flag
+      // is enabled; fall back to a coarse ASCII screenshot otherwise.
+      let screenshot: string | undefined;
+      if (
+        STRUCTURED_CONTEXT_ROUTES.has(getPageReferrer()) &&
+        organization?.features.includes('context-engine-structured-page-context')
+      ) {
+        try {
+          screenshot = JSON.stringify(getLLMContext());
+        } catch (e) {
+          Sentry.captureException(e);
+          screenshot = captureAsciiSnapshot?.();
+        }
+      } else {
+        screenshot = captureAsciiSnapshot?.();
+      }
 
       setWaitingForResponse(true);
       setWasJustInterrupted(false);
@@ -279,6 +299,7 @@ export const useSeerExplorer = () => {
       apiData,
       deletedFromIndex,
       captureAsciiSnapshot,
+      getLLMContext,
       setRunId,
       getPageReferrer,
       organization,

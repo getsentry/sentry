@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from typing import Any
 
@@ -35,7 +36,7 @@ class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
         return config
 
     def build_repository_config(
-        self, organization: RpcOrganization, data: dict[str, Any]
+        self, organization: RpcOrganization, data: Mapping[str, Any]
     ) -> RepositoryConfig:
         installation = self.get_installation(data.get("installation"), organization.id)
         client = installation.get_client()

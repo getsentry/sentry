@@ -171,7 +171,7 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
           action: action.display.label,
           query: s.state.query,
           action_type: 'group',
-          group: action.groupingKey ?? '',
+          group: '',
           result_index: resultIndex,
           session_id: s.sessionId,
         });
