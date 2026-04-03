@@ -191,11 +191,19 @@ export const useSeerExplorer = () => {
 
       // Send structured LLMContext JSON on supported pages when the feature flag
       // is enabled; fall back to a coarse ASCII screenshot otherwise.
-      const screenshot =
+      let screenshot: string | undefined;
+      if (
         STRUCTURED_CONTEXT_ROUTES.has(getPageReferrer()) &&
         organization?.features.includes('context-engine-structured-page-context')
-          ? JSON.stringify(getLLMContext())
-          : captureAsciiSnapshot?.();
+      ) {
+        try {
+          screenshot = JSON.stringify(getLLMContext());
+        } catch {
+          screenshot = captureAsciiSnapshot?.();
+        }
+      } else {
+        screenshot = captureAsciiSnapshot?.();
+      }
 
       setWaitingForResponse(true);
       setWasJustInterrupted(false);
