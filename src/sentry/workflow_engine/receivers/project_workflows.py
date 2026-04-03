@@ -7,7 +7,8 @@ from sentry.models.rule import Rule
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.signals import alert_rule_created, project_created
 from sentry.users.services.user.model import RpcUser
-from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
+from sentry.workflow_engine.defaults.workflows import ensure_default_workflows
+from sentry.workflow_engine.models import AlertRuleWorkflow
 
 logger = logging.getLogger("sentry")
 
@@ -34,7 +35,12 @@ DEFAULT_RULE_DATA = {
 PLATFORMS_WITH_PRIORITY_ALERTS = ["python", "javascript"]
 
 
-def create_default_rules(project: Project, default_rules=True, RuleModel=Rule, **kwargs):
+# TODO - invert this so it's create_default_workflows
+def create_default_rules(
+    project: Project,
+    default_rules=True,
+    RuleModel=Rule,
+):
     if not default_rules:
         return
 
@@ -42,12 +48,17 @@ def create_default_rules(project: Project, default_rules=True, RuleModel=Rule, *
 
     with transaction.atomic(router.db_for_write(RuleModel)):
         rule = RuleModel.objects.create(project=project, label=DEFAULT_RULE_LABEL, data=rule_data)
+        workflows = ensure_default_workflows(project)
 
-        workflow = IssueAlertMigrator(rule).run()
-        logger.info(
-            "workflow_engine.default_issue_alert.migrated",
-            extra={"rule_id": rule.id, "workflow_id": workflow.id},
-        )
+        legacy_references = [
+            AlertRuleWorkflow(
+                rule_id=rule.id,
+                workflow=workflow,
+            )
+            for workflow in workflows
+        ]
+
+        AlertRuleWorkflow.objects.bulk_create(legacy_references)
 
     try:
         user: RpcUser = project.organization.get_default_owner()
@@ -71,4 +82,8 @@ def create_default_rules(project: Project, default_rules=True, RuleModel=Rule, *
     )
 
 
-project_created.connect(create_default_rules, dispatch_uid="create_default_rules", weak=False)
+project_created.connect(
+    create_default_rules,
+    dispatch_uid="create_default_rules",
+    weak=False,
+)
