@@ -882,6 +882,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.github.tasks.codecov_account_unlink",
     "sentry.integrations.github.tasks.link_all_repos",
     "sentry.integrations.github.tasks.pr_comment",
+    "sentry.integrations.github.tasks.sync_repos_on_install_change",
     "sentry.integrations.gitlab.tasks",
     "sentry.integrations.jira.tasks",
     "sentry.integrations.opsgenie.tasks",
@@ -3272,9 +3273,6 @@ if SILO_DEVSERVER:
         }
     ]
     SENTRY_MONOLITH_REGION = SENTRY_CELLS[0]["name"]
-
-    # TODO(cells): remove after getsentry updated
-    SENTRY_REGION_CONFIG = SENTRY_CELLS
 
     # Cross region RPC authentication
     RPC_SHARED_SECRET = [
