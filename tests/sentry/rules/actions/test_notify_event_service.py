@@ -277,7 +277,7 @@ class TestSendIncidentAlertNotification(TestCase):
         )
         self.notification_context = NotificationContext(
             id=1,
-            sentry_app_id=str(self.sentry_app.id),
+            sentry_app_id=self.sentry_app.id,
         )
         self.notification_uuid = str(uuid4())
 
@@ -295,7 +295,7 @@ class TestSendIncidentAlertNotification(TestCase):
 
         mock_task.delay.assert_called_once()
         call_kwargs = mock_task.delay.call_args.kwargs
-        assert call_kwargs["sentry_app_id"] == str(self.sentry_app.id)
+        assert call_kwargs["sentry_app_id"] == self.sentry_app.id
         assert call_kwargs["new_status"] == IncidentStatus.CRITICAL.value
         assert call_kwargs["organization_id"] == self.organization.id
         assert call_kwargs["project_id"] == self.project.id
