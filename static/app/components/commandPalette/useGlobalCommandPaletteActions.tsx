@@ -37,10 +37,12 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {queryOptions} from 'sentry/utils/queryClient';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {QUERY_API_CLIENT, queryOptions, useMutation} from 'sentry/utils/queryClient';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
 import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
@@ -320,6 +322,12 @@ function useNavigationToggleCollapsed(): CommandPaletteAction {
  */
 export function useGlobalCommandPaletteActions() {
   const organization = useOrganization();
+  const user = useUser();
+  const {mutate: exitSuperuser} = useMutation({
+    mutationFn: () =>
+      QUERY_API_CLIENT.requestPromise('/auth/superuser/', {method: 'DELETE'}),
+    onSuccess: () => window.location.reload(),
+  });
   const hasDsnLookup = organization.features.includes('cmd-k-dsn-lookup');
   const {projects} = useProjects();
   const navigateActions = useNavigationActions();
@@ -330,8 +338,51 @@ export function useGlobalCommandPaletteActions() {
 
   const navPrefix = `/organizations/${organization.slug}`;
 
+  const adminActions: CommandPaletteAction[] = user.isStaff
+    ? [
+        {
+          display: {
+            label: t('Admin'),
+          },
+          actions: [
+            {
+              display: {
+                label: t('Open _admin'),
+                icon: <IconOpen />,
+              },
+              onAction: () => window.open('/_admin/', '_blank', 'noreferrer'),
+            },
+            {
+              display: {
+                label: t('Open %s in _admin', organization.name),
+                icon: <IconOpen />,
+              },
+              onAction: () =>
+                window.open(
+                  `/_admin/organizations/${organization.slug}/`,
+                  '_blank',
+                  'noreferrer'
+                ),
+            },
+            ...(isActiveSuperuser()
+              ? [
+                  {
+                    display: {
+                      label: t('Exit Superuser'),
+                      icon: <IconLock locked={false} />,
+                    },
+                    onAction: () => exitSuperuser(),
+                  },
+                ]
+              : []),
+          ],
+        },
+      ]
+    : [];
+
   useCommandPaletteActionsRegister([
     ...navigateActions,
+    ...adminActions,
     // BEGIN ADD ACTIONS
     {
       display: {
