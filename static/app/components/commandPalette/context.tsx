@@ -109,7 +109,6 @@ function actionsReducer(
       const result = [...state];
 
       for (const newAction of reducerAction.actions) {
-        // @TODO(Jonas): this needs to support deep registering of actions
         const existingIndex = result.findIndex(action => action.key === newAction.key);
 
         if (existingIndex >= 0) {

@@ -16,7 +16,26 @@ interface Action {
   keywords?: string[];
 }
 
-type CMDKQueryOptions = UseQueryOptions<any, Error, CommandPaletteAction[], any>;
+/**
+ * Actions that can be returned from an async resource query.
+ * Async results cannot themselves carry a `resource` — chained async lookups
+ * are not supported. Use CommandPaletteAction for registering top-level actions.
+ */
+interface CommandPaletteAsyncResultGroup extends Action {
+  actions: CommandPaletteAsyncResult[];
+}
+
+export type CommandPaletteAsyncResult =
+  | CommandPaletteActionLink
+  | CommandPaletteActionCallback
+  | CommandPaletteAsyncResultGroup;
+
+export type CMDKQueryOptions = UseQueryOptions<
+  any,
+  Error,
+  CommandPaletteAsyncResult[],
+  any
+>;
 
 export interface CommandPaletteActionLink extends Action {
   /** Navigate to a route when selected */
@@ -40,7 +59,7 @@ interface CommandPaletteAsyncAction extends Action {
 }
 
 interface CommandPaletteAsyncActionGroup extends Action {
-  actions: CommandPaletteAsyncAction[];
+  actions: CommandPaletteAction[];
   resource: (query: string) => CMDKQueryOptions;
 }
 

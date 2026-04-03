@@ -1,12 +1,16 @@
 import {useState} from 'react';
 import {SentryGlobalSearch} from '@sentry-internal/global-search';
+import DOMPurify from 'dompurify';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {useCommandPaletteActionsRegister} from 'sentry/components/commandPalette/context';
-import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
+import type {
+  CommandPaletteAction,
+  CommandPaletteAsyncResult,
+} from 'sentry/components/commandPalette/types';
 import {
   IconAdd,
   IconCompass,
@@ -400,15 +404,26 @@ export function useGlobalCommandPaletteActions() {
             );
           },
           select: data => {
-            const actions: CommandPaletteAction[] = [];
+            const actions: CommandPaletteAsyncResult[] = [];
 
             for (const index of data) {
-              for (const hit of index.hits) {
+              // We'll limit async results to avoid overwhelming the UI
+              for (const hit of index.hits.slice(0, 3)) {
                 actions.push({
                   display: {
-                    label: hit.title ?? '',
+                    label: DOMPurify.sanitize(hit.title ?? '', {ALLOWED_TAGS: []}),
+                    details: DOMPurify.sanitize(
+                      hit.context?.context1 ?? hit.context?.context2 ?? '',
+                      {ALLOWED_TAGS: []}
+                    ),
+                    icon: <IconDocs />,
                   },
-                  to: hit.url,
+                  keywords: [hit.context?.context1, hit.context?.context2].filter(
+                    value => value !== undefined && typeof value === 'string'
+                  ),
+                  onAction: () => {
+                    window.open(hit.url, '_blank', 'noreferrer');
+                  },
                 });
               }
             }
@@ -419,6 +434,7 @@ export function useGlobalCommandPaletteActions() {
       },
     },
     // END HELP ACTIONS
+    // START UI ACTIONS
     {
       display: {
         label: t('Interface'),
@@ -465,5 +481,6 @@ export function useGlobalCommandPaletteActions() {
         },
       ],
     },
+    // END UI ACTIONS
   ]);
 }
