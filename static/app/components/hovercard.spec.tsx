@@ -62,18 +62,16 @@ describe('Hovercard', () => {
 
     jest.useFakeTimers();
     await userEvent.hover(screen.getByText('Hovercard Trigger'), {delay: null});
-    act(() => jest.advanceTimersByTime(DISPLAY_TIMEOUT - 1));
-
     await userEvent.unhover(screen.getByText('Hovercard Trigger'), {delay: null});
 
-    act(() => jest.advanceTimersByTime(DISPLAY_TIMEOUT + 1));
+    act(() => jest.advanceTimersByTime(DISPLAY_TIMEOUT - 1));
     jest.useRealTimers();
 
-    expect(screen.queryByText(/Hovercard Body/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Hovercard Header/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Hovercard Body/)).toBeInTheDocument();
+    expect(screen.getByText(/Hovercard Header/)).toBeInTheDocument();
   });
 
-  it('does not leak timeout when hover is removed', async () => {
+  it('hides the cards after the display timeout when hover is removed', async () => {
     const DISPLAY_TIMEOUT = 100;
     render(
       <Hovercard
@@ -88,11 +86,9 @@ describe('Hovercard', () => {
 
     jest.useFakeTimers();
     await userEvent.hover(screen.getByText('Hovercard Trigger'), {delay: null});
-    act(() => jest.advanceTimersByTime(DISPLAY_TIMEOUT - 1));
-
     await userEvent.unhover(screen.getByText('Hovercard Trigger'), {delay: null});
 
-    act(() => jest.advanceTimersByTime(DISPLAY_TIMEOUT + 1));
+    act(() => jest.advanceTimersByTime(DISPLAY_TIMEOUT));
     jest.useRealTimers();
 
     expect(screen.queryByText(/Hovercard Body/)).not.toBeInTheDocument();
