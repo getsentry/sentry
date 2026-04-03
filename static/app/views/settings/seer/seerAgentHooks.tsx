@@ -45,17 +45,11 @@ export function useAgentOptions({
 export function useSelectedAgentFromProjectSettings({
   integrations,
   preference,
-  project,
 }: {
   integrations: CodingAgentIntegration[];
   preference: ProjectSeerPreferences;
-  project: Project;
 }) {
   return useMemo(() => {
-    // If we have autofixAutomationTuning==OFF then 'none' is picked
-    if (project.autofixAutomationTuning === 'off') {
-      return 'none';
-    }
     // If we have nothing in preferences, then we have Seer
     if (!preference?.automation_handoff?.integration_id) {
       return 'seer';
@@ -65,11 +59,7 @@ export function useSelectedAgentFromProjectSettings({
       integration =>
         integration.id === String(preference.automation_handoff?.integration_id)
     );
-  }, [
-    preference?.automation_handoff?.integration_id,
-    project.autofixAutomationTuning,
-    integrations,
-  ]);
+  }, [preference.automation_handoff?.integration_id, integrations]);
 }
 
 export function useSelectedAgentFromBulkSettings({

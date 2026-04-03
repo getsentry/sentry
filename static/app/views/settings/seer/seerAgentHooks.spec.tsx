@@ -75,12 +75,9 @@ describe('seerAgentHooks', () => {
 
   describe('useSelectedAgentFromProjectSettings', () => {
     it('returns "none" when project autofixAutomationTuning is off', () => {
-      const p = ProjectFixture({...project, autofixAutomationTuning: 'off'});
-
       const {result} = renderHookWithProviders(useSelectedAgentFromProjectSettings, {
         initialProps: {
           preference: {repositories: []},
-          project: p,
           integrations: [],
         },
         organization,
@@ -93,7 +90,6 @@ describe('seerAgentHooks', () => {
       const {result} = renderHookWithProviders(useSelectedAgentFromProjectSettings, {
         initialProps: {
           preference: {repositories: []},
-          project,
           integrations: [],
         },
         organization,
@@ -117,7 +113,6 @@ describe('seerAgentHooks', () => {
               integration_id: 99,
             },
           },
-          project,
           integrations,
         },
         organization,
