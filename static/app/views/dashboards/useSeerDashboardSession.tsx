@@ -68,6 +68,7 @@ export function useSeerDashboardSession({
           onPostCompletePollEnd?.();
           return false;
         }
+        completedAtRef.current = null;
         return POLL_INTERVAL_MS;
       },
     }
