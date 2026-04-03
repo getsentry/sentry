@@ -41,7 +41,7 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 const MotionButton = motion.create(Button);
 const MotionIconSearch = motion.create(IconSearch);
-const MotionLoadingIndicator = motion.create(LoadingIndicator);
+const MotionContainer = motion.create(Container);
 
 function makeLeadingItemAnimation(theme: Theme) {
   return {
@@ -270,7 +270,18 @@ export function CommandPalette(props: CommandPaletteProps) {
               <InputGroup {...p}>
                 <StyledInputLeadingItems>
                   <AnimatePresence mode="popLayout">
-                    {state.action ? (
+                    {isLoading ? (
+                      <MotionContainer
+                        position="absolute"
+                        left="-2px"
+                        {...makeLeadingItemAnimation(theme)}
+                      >
+                        <LoadingIndicator
+                          data-test-id="command-palette-loading"
+                          size={14}
+                        />
+                      </MotionContainer>
+                    ) : state.action ? (
                       <Container position="absolute" left="-8px">
                         {containerProps => (
                           <MotionButton
@@ -286,17 +297,6 @@ export function CommandPalette(props: CommandPaletteProps) {
                             {...containerProps}
                           />
                         )}
-                      </Container>
-                    ) : isLoading ? (
-                      <Container
-                        position="absolute"
-                        left="-2px"
-                        {...makeLeadingItemAnimation(theme)}
-                      >
-                        <MotionLoadingIndicator
-                          data-test-id="command-palette-loading"
-                          size={14}
-                        />
                       </Container>
                     ) : (
                       <MotionIconSearch
