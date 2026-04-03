@@ -1,8 +1,23 @@
+import type {QueryClient} from '@tanstack/react-query';
+
 import {updateOrganization} from 'sentry/actionCreators/organizations';
+import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
+import {
+  makeProjectSeerPreferencesQueryKey,
+  type SeerPreferencesResponse,
+} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {t} from 'sentry/locale';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
-import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
+import type {Project} from 'sentry/types/project';
+import {
+  fetchMutation,
+  getApiQueryData,
+  mutationOptions,
+  setApiQueryData,
+} from 'sentry/utils/queryClient';
 import {useFetchAgentOptions} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
 
 type SelectValue = 'off' | 'root_cause' | 'code';
@@ -15,6 +30,16 @@ export function getDefaultStoppingPointValue(organization: Organization): Select
   return organization.defaultAutomatedRunStoppingPoint === 'root_cause'
     ? 'root_cause'
     : 'code';
+}
+
+export function getProjectStoppingPointValue(
+  project: Project,
+  preference: ProjectSeerPreferences
+): SelectValue {
+  if ([null, undefined, 'off'].includes(project.autofixAutomationTuning)) {
+    return 'off';
+  }
+  return preference.automated_run_stopping_point === 'root_cause' ? 'root_cause' : 'code';
 }
 
 export function useFetchStoppingPointOptions({
@@ -90,5 +115,120 @@ export function getDefaultStoppingPointMutationOptions({
       });
     },
     onSuccess: updateOrganization,
+  });
+}
+
+function projectSeerPreferencesPayloadForStoppingPoint({
+  organization,
+  preference,
+  stoppingPoint,
+}: {
+  organization: Organization;
+  preference: ProjectSeerPreferences;
+  stoppingPoint: SelectValue;
+}): ProjectSeerPreferences | null {
+  const repositories = preference?.repositories ?? [];
+  const automationHandoff = preference?.automation_handoff;
+
+  // Turning automation off only changes project tuning; preferences stay as-is.
+  if (stoppingPoint === 'off') {
+    return null;
+  }
+
+  const automated_run_stopping_point =
+    stoppingPoint === 'root_cause'
+      ? ('root_cause' as const)
+      : organization.autoOpenPrs
+        ? ('open_pr' as const)
+        : ('code_changes' as const);
+
+  return {
+    repositories,
+    automated_run_stopping_point,
+    automation_handoff: automationHandoff
+      ? {
+          ...automationHandoff,
+          auto_create_pr: automated_run_stopping_point === 'open_pr',
+        }
+      : automationHandoff,
+  };
+}
+
+export function getProjectStoppingPointMutationOptions({
+  organization,
+  preference,
+  project,
+  queryClient,
+}: {
+  organization: Organization;
+  preference: ProjectSeerPreferences;
+  project: Project;
+  queryClient: QueryClient;
+}) {
+  const seerPrefsQueryKey = makeProjectSeerPreferencesQueryKey(
+    organization.slug,
+    project.slug
+  );
+
+  return mutationOptions({
+    mutationFn: async ({stoppingPoint}: {stoppingPoint: SelectValue}) => {
+      const tuning = stoppingPoint === 'off' ? ('off' as const) : ('medium' as const);
+      const preferencePayload = projectSeerPreferencesPayloadForStoppingPoint({
+        organization,
+        preference,
+        stoppingPoint,
+      });
+
+      const projectPromise = fetchMutation<Project>({
+        method: 'PUT',
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        data: {autofixAutomationTuning: tuning},
+      });
+
+      let preferencePromise: Promise<SeerPreferencesResponse | undefined> =
+        Promise.resolve(undefined);
+      if (preferencePayload) {
+        preferencePromise = fetchMutation<SeerPreferencesResponse>({
+          method: 'POST',
+          url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+          data: preferencePayload as unknown as Record<string, unknown>,
+        });
+      }
+
+      return await Promise.all([projectPromise, preferencePromise]);
+    },
+    onSuccess: ([updatedProject, preferencePayload]) => {
+      ProjectsStore.onUpdateSuccess(updatedProject);
+
+      if (preferencePayload) {
+        const previous = getApiQueryData<SeerPreferencesResponse>(
+          queryClient,
+          seerPrefsQueryKey
+        );
+        if (!previous) {
+          return;
+        }
+
+        setApiQueryData<SeerPreferencesResponse>(queryClient, seerPrefsQueryKey, {
+          preference: {
+            repositories: [],
+            ...previous.preference,
+            ...preferencePayload,
+          },
+          code_mapping_repos: previous.code_mapping_repos,
+        });
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({queryKey: seerPrefsQueryKey});
+
+      const bulkAutofixAutomationSettingsQueryOptions =
+        bulkAutofixAutomationSettingsInfiniteOptions({
+          organization,
+        });
+      queryClient.invalidateQueries({
+        queryKey: bulkAutofixAutomationSettingsQueryOptions.queryKey,
+      });
+    },
   });
 }
