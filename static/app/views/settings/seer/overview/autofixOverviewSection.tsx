@@ -193,6 +193,10 @@ function AgentNameForm({
                   onChange={field.handleChange}
                   disabled={!canWrite}
                   options={codingAgentSelectOptions.data}
+                  isValueEqual={(a, b) =>
+                    a === b ||
+                    (typeof a === 'object' && typeof b === 'object' && a.id === b.id)
+                  }
                 />
               )}
             </Container>
