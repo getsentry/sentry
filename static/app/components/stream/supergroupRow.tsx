@@ -14,8 +14,8 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {AggregatedSupergroupStats} from 'sentry/utils/supergroup/aggregateSupergroupStats';
 import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
+import type {AggregatedSupergroupStats} from 'sentry/views/issueList/supergroups/aggregateSupergroupStats';
 import {SupergroupDetailDrawer} from 'sentry/views/issueList/supergroups/supergroupDrawer';
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 
