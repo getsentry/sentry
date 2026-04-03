@@ -30,6 +30,7 @@ import {
 import {PreviewSection} from 'sentry/views/detectors/components/forms/uptime/previewSection';
 import {UptimeRegionWarning} from 'sentry/views/detectors/components/forms/uptime/regionWarning';
 import {UptimeDetectorResolveSection} from 'sentry/views/detectors/components/forms/uptime/resolve';
+import {UptimeIssuePreview} from 'sentry/views/detectors/components/forms/uptime/uptimeIssuePreview';
 import {UptimeDetectorVerificationSection} from 'sentry/views/detectors/components/forms/uptime/verification';
 
 const ENVIRONMENT_CONFIG: EnvironmentConfig = {
@@ -70,6 +71,7 @@ function UptimeDetectorForm() {
       <UptimeDetectorResolveSection step={nextStep()} />
       <AssignSection step={nextStep()} />
       <DescribeSection step={nextStep()} />
+      <UptimeIssuePreview step={nextStep()} />
       <AutomateSection step={nextStep()} />
     </Stack>
   );
