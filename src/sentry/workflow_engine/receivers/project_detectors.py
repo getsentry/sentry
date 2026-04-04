@@ -63,6 +63,7 @@ def create_project_detectors(
 def create_default_anomaly_detector(
     project: Project,
     user: User | None = None,
+    **kwargs: Any,
 ) -> None:
     """
     Creates default anomaly detector when project is created, with the team as owner.
