@@ -8,7 +8,7 @@ from django.db.models.signals import post_save
 from sentry import features
 from sentry.models.project import Project
 from sentry.signals import project_created
-from sentry.types.actor import Actor
+from sentry.users.models.user import User
 from sentry.workflow_engine.defaults.detectors import (
     UnableToAcquireLockApiError,
     ensure_default_anomaly_detector,
@@ -62,7 +62,7 @@ def create_project_detectors(
 
 def create_default_anomaly_detector(
     project: Project,
-    user: Actor | None = None,
+    user: User | None = None,
 ) -> None:
     """
     Creates default anomaly detector when project is created, with the team as owner.

@@ -261,7 +261,7 @@ class TestCreatePerformanceDetectors(TestCase):
             "performance_slow_db_query": frozenset({"ruby", "php"}),
         },
     )
-    def test_respects_default_enabled_state(self, _):
+    def test_respects_default_enabled_state(self, _) -> None:
         """Test that detectors respect both platform-specific disabling and default enabled state."""
         with disable_default_detector_creation():
             project = self.create_project(platform="ruby")
