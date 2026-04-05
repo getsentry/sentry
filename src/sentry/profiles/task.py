@@ -9,7 +9,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from operator import itemgetter
 from time import time
-from typing import Any, TypedDict
+from typing import Any
 from uuid import UUID
 
 import msgpack
@@ -1093,11 +1093,6 @@ def clean_android_js_profile(profile: Profile) -> None:
     del p["event_id"]
     del p["release"]
     del p["dist"]
-
-
-class _ProjectKeyKwargs(TypedDict):
-    project_id: int
-    use_case: str
 
 
 @metrics.wraps("process_profile.track_outcome")
