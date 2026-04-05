@@ -58,7 +58,6 @@ from sentry.profiles.java import (
 from sentry.profiles.utils import (
     Profile,
     apply_stack_trace_rules_to_profile,
-    get_from_profiling_service,
 )
 from sentry.search.utils import DEVICE_CLASS
 from sentry.signals import first_profile_received
@@ -1073,62 +1072,6 @@ def _track_failed_outcome(profile: Profile, project: Project, reason: str) -> No
         categories=categories,
         reason=reason,
     )
-
-
-@metrics.wraps("process_profile.insert_vroom_profile")
-def _insert_vroom_profile(profile: Profile) -> bool:
-    with sentry_sdk.start_span(op="task.profiling.insert_vroom"):
-        try:
-            path = "/chunk" if "profiler_id" in profile else "/profile"
-            response = get_from_profiling_service(
-                method="POST",
-                path=path,
-                json_data=profile,
-                metric=(
-                    "profiling.profile.payload.size",
-                    {
-                        "type": "chunk" if "profiler_id" in profile else "profile",
-                        "platform": profile["platform"],
-                    },
-                ),
-            )
-
-            sentry_sdk.set_tag("vroom.response.status_code", str(response.status))
-
-            reason = "bad status"
-
-            if response.status == 204:
-                return True
-            elif response.status == 429:
-                reason = "gcs timeout"
-            elif response.status == 412:
-                reason = "duplicate profile"
-
-            metrics.incr(
-                "process_profile.insert_vroom_profile.error",
-                tags={
-                    "platform": profile["platform"],
-                    "reason": reason,
-                    "status_code": response.status,
-                },
-                sample_rate=1.0,
-            )
-            return False
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            metrics.incr(
-                "process_profile.insert_vroom_profile.error",
-                tags={"platform": profile["platform"], "reason": "encountered error"},
-                sample_rate=1.0,
-            )
-            return False
-
-
-def _push_profile_to_vroom(profile: Profile, project: Project) -> bool:
-    if _insert_vroom_profile(profile=profile):
-        return True
-    _track_failed_outcome(profile, project, "profiling_failed_vroom_insertion")
-    return False
 
 
 def prepare_android_js_profile(profile: Profile) -> None:
