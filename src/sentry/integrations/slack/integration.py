@@ -117,7 +117,7 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
                 channel=target.resource_id,
                 blocks=payload["blocks"],
                 text=payload["text"],
-                attachments=payload["attachments"],
+                attachments=payload.get("attachments", None),
                 unfurl_links=False,
                 unfurl_media=False,
             )
