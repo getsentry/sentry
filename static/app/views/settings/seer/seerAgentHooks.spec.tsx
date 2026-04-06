@@ -13,7 +13,6 @@ import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useA
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {
-  useAgentOptions,
   useBulkMutateCreatePr,
   useMutateCreatePr,
   useMutateSelectedAgent,
@@ -33,44 +32,6 @@ describe('seerAgentHooks', () => {
     MockApiClient.clearMockResponses();
     jest.resetAllMocks();
     ProjectsStore.reset();
-  });
-
-  describe('useAgentOptions', () => {
-    it('returns Seer, integration options', () => {
-      const integrations: CodingAgentIntegration[] = [
-        {id: '42', name: 'Cursor', provider: 'cursor'},
-      ];
-
-      const {result} = renderHookWithProviders(useAgentOptions, {
-        initialProps: {integrations},
-        organization,
-      });
-
-      const options = result.current;
-      expect(options).toHaveLength(3);
-      expect(options[0]).toEqual({value: 'seer', label: expect.any(String)});
-      expect(options[1]).toMatchObject({
-        value: {id: '42', name: 'Cursor', provider: 'cursor'},
-        label: 'Cursor',
-      });
-      expect(options[2]).toEqual({value: 'none', label: 'No Handoff'});
-    });
-
-    it('filters out integrations without id', () => {
-      const integrations: CodingAgentIntegration[] = [
-        {id: null, name: 'No Id', provider: 'other'},
-        {id: '1', name: 'With Id', provider: 'cursor'},
-      ];
-
-      const {result} = renderHookWithProviders(useAgentOptions, {
-        initialProps: {integrations},
-        organization,
-      });
-
-      const options = result.current;
-      expect(options).toHaveLength(3);
-      expect(options[1]!.value).toMatchObject({id: '1', name: 'With Id'});
-    });
   });
 
   describe('useSelectedAgentFromProjectSettings', () => {

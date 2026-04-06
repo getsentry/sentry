@@ -23,25 +23,6 @@ import {fetchDataQuery, fetchMutation, useQueryClient} from 'sentry/utils/queryC
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export function useAgentOptions({
-  integrations,
-}: {
-  integrations: CodingAgentIntegration[];
-}) {
-  return useMemo(() => {
-    return [
-      {value: 'seer' as const, label: t('Seer Agent')},
-      ...integrations
-        .filter(integration => integration.id)
-        .map(integration => ({
-          value: integration,
-          label: integration.name,
-        })),
-      {value: 'none' as const, label: t('No Handoff')},
-    ];
-  }, [integrations]);
-}
-
 export function useSelectedAgentFromProjectSettings({
   integrations,
   preference,
