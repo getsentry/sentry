@@ -28,7 +28,6 @@ import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay'
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
@@ -110,7 +109,6 @@ export function EventsContent(props: Props) {
     projectId,
     projects,
   } = props;
-  const routes = useRoutes();
   const theme = useTheme();
   const domainViewFilters = useDomainViewFilters();
   const shouldUseEAP = useTransactionSummaryEAP();
@@ -213,7 +211,6 @@ export function EventsContent(props: Props) {
       theme={theme}
       eventView={eventView}
       organization={organization}
-      routes={routes}
       location={location}
       setError={setError}
       columnTitles={titles}
