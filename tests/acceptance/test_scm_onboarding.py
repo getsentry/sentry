@@ -1,11 +1,15 @@
 from unittest import mock
 
 import pytest
+from django.core.serializers.json import DjangoJSONEncoder
 
+from sentry.api.serializers import serialize
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.project import Project
 from sentry.testutils.asserts import assert_existing_projects_status
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
+from sentry.utils import json
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -212,32 +216,20 @@ class ScmOnboardingTest(AcceptanceTestCase):
             assert self.browser.driver.execute_script("return window.__testOpenCalled")
 
             # Simulate the OAuth pipeline: create the integration in the DB,
-            # then inject a postMessage matching what dialog-complete.html sends.
+            # then serialize it with the same code path as pipeline.py:406
+            # to avoid mock-drift between the test data and the real serializer.
             integration = self.create_github_integration()
+            org_integration = OrganizationIntegration.objects.get(
+                integration=integration, organization_id=self.org.id
+            )
+            # Resolve Django lazy objects (translations, datetimes) so
+            # Selenium can JSON-serialize the data for execute_script.
+            serialized = json.loads(
+                json.dumps(serialize(org_integration, self.user), cls=DjangoJSONEncoder)
+            )
             self.browser.driver.execute_script(
                 "window.postMessage(arguments[0], window.location.origin);",
-                {
-                    "success": True,
-                    "data": {
-                        "id": str(integration.id),
-                        "name": "getsentry",
-                        "provider": {
-                            "key": "github",
-                            "name": "GitHub",
-                            "slug": "github",
-                            "canAdd": True,
-                            "canDisable": False,
-                            "features": ["commits", "alert-rule"],
-                            "aspects": {},
-                        },
-                        "status": "active",
-                        "organizationIntegrationStatus": "active",
-                        "accountType": None,
-                        "domainName": "github.com/getsentry",
-                        "gracePeriodEnd": None,
-                        "icon": None,
-                    },
-                },
+                {"success": True, "data": serialized},
             )
 
             # Wait for the component to process the message and show connected state.
