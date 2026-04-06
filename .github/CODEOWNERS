@@ -248,6 +248,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/snuba/subscriptions.py                        @getsentry/alerts-notifications
 /src/sentry/snuba/tasks.py                                @getsentry/alerts-notifications
 /tests/snuba/incidents/                                   @getsentry/alerts-notifications
+/src/sentry/rules/                                        @getsentry/alerts-notifications
 /tests/sentry/rules/                                      @getsentry/alerts-notifications
 /tests/sentry/snuba/test_query_subscription_consumer.py   @getsentry/alerts-notifications
 /tests/sentry/snuba/test_subscriptions.py                 @getsentry/alerts-notifications
@@ -643,7 +644,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/api/helpers/group_index/                        @getsentry/issue-workflow
 /src/sentry/api/helpers/source_map_helper.py                @getsentry/issue-workflow
 /src/sentry/api/endpoints/                                  @getsentry/issue-workflow
-/src/sentry/rules/                                          @getsentry/issue-detection-backend
 /src/sentry/processing_errors/                              @getsentry/issue-detection-backend
 /src/sentry/api/helpers/group_index/delete.py               @getsentry/issue-detection-backend
 /src/sentry/deletions/defaults/group.py                     @getsentry/issue-detection-backend
