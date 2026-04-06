@@ -7,8 +7,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {t} from 'sentry/locale';
 import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
-import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
-import {DescribeSection} from 'sentry/views/detectors/components/forms/common/describeSection';
+import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
 import {ProjectSection} from 'sentry/views/detectors/components/forms/common/projectSection';
 import {CronDetectorFormDetectSection} from 'sentry/views/detectors/components/forms/cron/detect';
 import {
@@ -34,8 +33,7 @@ const FORM_SECTIONS = [
   ProjectSection,
   CronDetectorFormDetectSection,
   CronDetectorFormResolveSection,
-  AssignSection,
-  DescribeSection,
+  IssueOwnershipSection,
   CronIssuePreview,
   AutomateSection,
 ];

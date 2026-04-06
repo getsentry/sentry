@@ -11,8 +11,7 @@ import {
 } from 'sentry/views/alerts/rules/uptime/previewCheckContext';
 import {useUptimeAssertionFeatures} from 'sentry/views/alerts/rules/uptime/useUptimeAssertionFeatures';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
-import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
-import {DescribeSection} from 'sentry/views/detectors/components/forms/common/describeSection';
+import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
 import {
   ProjectEnvironmentSection,
   type EnvironmentConfig,
@@ -67,8 +66,7 @@ function UptimeDetectorForm() {
       <UptimeDetectorFormDetectSection step={nextStep()} />
       {hasRuntimeAssertions && <UptimeDetectorVerificationSection step={nextStep()} />}
       <UptimeDetectorResolveSection step={nextStep()} />
-      <AssignSection step={nextStep()} />
-      <DescribeSection step={nextStep()} />
+      <IssueOwnershipSection step={nextStep()} />
       <UptimeIssuePreview step={nextStep()} />
       <AutomateSection step={nextStep()} />
     </Stack>
