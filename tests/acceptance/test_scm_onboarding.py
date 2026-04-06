@@ -3,6 +3,7 @@ from unittest import mock
 import pytest
 
 from sentry.models.project import Project
+from sentry.testutils.asserts import assert_existing_projects_status
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
@@ -103,11 +104,16 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.browser.wait_until_clickable(xpath='//button[contains(., "Create project")]')
             self.browser.click(xpath='//button[contains(., "Create project")]')
 
-            # Setup Docs
-            self.browser.wait_until('[data-test-id="onboarding-step-setup-docs"]')
+            # Setup Docs: verify SDK heading renders, not just the step container
+            self.browser.wait_until(xpath='//h2[text()="Configure Django SDK"]')
 
             project = Project.objects.get(organization=self.org)
             assert project.platform == "python-django"
+            assert project.name == "python-django"
+            assert project.slug == "python-django"
+            assert_existing_projects_status(
+                self.org, active_project_ids=[project.id], deleted_project_ids=[]
+            )
 
     def test_scm_onboarding_skip_integration(self) -> None:
         """Skip flow: welcome → skip connect → manual platform → create project."""
@@ -134,10 +140,15 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.browser.click(xpath='//button[contains(., "Create project")]')
 
             # Setup Docs
-            self.browser.wait_until('[data-test-id="onboarding-step-setup-docs"]')
+            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
 
             project = Project.objects.get(organization=self.org)
             assert project.platform == "javascript-react"
+            assert project.name == "javascript-react"
+            assert project.slug == "javascript-react"
+            assert_existing_projects_status(
+                self.org, active_project_ids=[project.id], deleted_project_ids=[]
+            )
 
     def test_scm_onboarding_with_integration_install(self) -> None:
         """Install flow: welcome → install GitHub → repo search → detected platform → create project."""
@@ -252,7 +263,96 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.browser.click(xpath='//button[contains(., "Create project")]')
 
             # Setup Docs
-            self.browser.wait_until('[data-test-id="onboarding-step-setup-docs"]')
+            self.browser.wait_until(xpath='//h2[text()="Configure Django SDK"]')
 
             project = Project.objects.get(organization=self.org)
             assert project.platform == "python-django"
+            assert project.name == "python-django"
+            assert project.slug == "python-django"
+            assert_existing_projects_status(
+                self.org, active_project_ids=[project.id], deleted_project_ids=[]
+            )
+
+    def test_scm_onboarding_detection_error_falls_back_to_manual_picker(self) -> None:
+        """When platform detection fails, user can still select a platform manually."""
+        self.create_github_integration()
+
+        mock_repos = [
+            {
+                "name": "sentry",
+                "identifier": "getsentry/sentry",
+                "default_branch": "master",
+            },
+        ]
+
+        with (
+            self.feature(
+                {
+                    "organizations:onboarding-scm": True,
+                    "organizations:integrations-github-platform-detection": True,
+                }
+            ),
+            mock.patch(
+                "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+                return_value=mock_repos,
+            ),
+            mock.patch(
+                "sentry.integrations.github.repository.GitHubRepositoryProvider._validate_repo",
+                return_value={"id": "12345"},
+            ),
+            mock.patch(
+                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms",
+                side_effect=Exception("GitHub API error"),
+            ),
+        ):
+            self.start_onboarding()
+
+            # SCM Connect: select a repo
+            self.browser.wait_until(xpath='//*[contains(text(), "Connected to")]')
+            input_el = self.browser.element('input[aria-autocomplete="list"]')
+            input_el.send_keys("sentry")
+            self.browser.wait_until('[data-test-id="menu-list-item-label"]')
+            self.browser.click('[data-test-id="menu-list-item-label"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
+            self.browser.click(xpath='//button[contains(., "Continue")]')
+
+            # Platform Features: detection failed, should show manual picker
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
+            self.browser.wait_until(xpath='//h3[text()="Select a platform"]')
+            input_el = self.browser.element('input[aria-autocomplete="list"]')
+            input_el.send_keys("React")
+            self.browser.wait_until(
+                xpath='//p[@data-test-id="menu-list-item-label"][text()="React"]'
+            )
+            self.browser.click(xpath='//p[@data-test-id="menu-list-item-label"][text()="React"]')
+            self.browser.click(xpath='//button[contains(., "Continue")]')
+
+            # Project Details
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-project-details"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Create project")]')
+            self.browser.click(xpath='//button[contains(., "Create project")]')
+
+            # Setup Docs
+            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
+
+            project = Project.objects.get(organization=self.org)
+            assert project.platform == "javascript-react"
+
+    def test_scm_onboarding_repo_search_no_results(self) -> None:
+        """Empty search results show a helpful message about permissions."""
+        self.create_github_integration()
+
+        with (
+            self.feature({"organizations:onboarding-scm": True}),
+            mock.patch(
+                "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+                return_value=[],
+            ),
+        ):
+            self.start_onboarding()
+
+            # SCM Connect: integration detected, search returns no results
+            self.browser.wait_until(xpath='//*[contains(text(), "Connected to")]')
+            input_el = self.browser.element('input[aria-autocomplete="list"]')
+            input_el.send_keys("nonexistent-repo")
+            self.browser.wait_until(xpath='//*[contains(text(), "No repositories found")]')
