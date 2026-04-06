@@ -788,7 +788,6 @@ class PushEventWebhookTest(APITestCase):
         )
 
         captured_contexts: list = []
-        original_handle = type(self)._original_push_handle = None
 
         from sentry.integrations.github.webhook import PushEventWebhook
 
