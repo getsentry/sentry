@@ -108,6 +108,8 @@ export function useUpgradeNowParams({organization, subscription, enabled = true}
         reservedSeerScanner: reserved.seerScanner,
         reservedSeerUsers: reserved.seerUsers,
         reservedSizeAnalyses: reserved.sizeAnalyses,
+        reservedInstallableBuilds: reserved.installableBuilds,
+        reservedTraceMetricBytes: reserved.traceMetricBytes,
       },
     };
   }, [billingConfig, isPending, subscription, enabled]);

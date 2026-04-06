@@ -351,6 +351,8 @@ describe('ProductSelectionAvailability', () => {
         reservedSeerScanner: undefined,
         reservedSeerUsers: undefined,
         reservedSizeAnalyses: 0,
+        reservedInstallableBuilds: 0,
+        reservedTraceMetricBytes: 0,
       };
       const mockPlan = PlanFixture({});
       const mockPreview = PreviewDataFixture({});
