@@ -646,6 +646,7 @@ class WorkflowEngineRuleSerializer(Serializer):
                         action
                     ].build_rule_action_blob(action, workflow.organization_id)
                 except ValueError:
+                    # if we have a missing sentry app installation but the action is still connected to the sentry app, we skip so we can return the rest of the rule
                     continue
 
             sentry_app_installations_by_uuid = self._fetch_sentry_app_installations_by_uuid(
