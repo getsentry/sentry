@@ -19,8 +19,7 @@ class TriggerLightweightRCAClusterTest(TestCase):
     def test_calls_seer_with_correct_payload(self, mock_request):
         mock_request.return_value.status = 200
 
-        with self.options({"supergroups.lightweight-enabled-orgs": [self.group.organization.id]}):
-            trigger_lightweight_rca_cluster(self.group)
+        trigger_lightweight_rca_cluster(self.group)
 
         mock_request.assert_called_once()
         body = mock_request.call_args.args[0]
@@ -34,26 +33,17 @@ class TriggerLightweightRCAClusterTest(TestCase):
         assert len(body["issue"]["events"]) == 1
 
     @patch("sentry.seer.supergroups.lightweight_rca_cluster.make_lightweight_rca_cluster_request")
-    def test_skips_when_org_not_enabled(self, mock_request):
-        with self.options({"supergroups.lightweight-enabled-orgs": []}):
-            trigger_lightweight_rca_cluster(self.group)
-
-        mock_request.assert_not_called()
-
-    @patch("sentry.seer.supergroups.lightweight_rca_cluster.make_lightweight_rca_cluster_request")
     def test_raises_on_seer_error(self, mock_request):
         mock_request.return_value.status = 500
 
-        with self.options({"supergroups.lightweight-enabled-orgs": [self.group.organization.id]}):
-            with pytest.raises(Exception):
-                trigger_lightweight_rca_cluster(self.group)
+        with pytest.raises(Exception):
+            trigger_lightweight_rca_cluster(self.group)
 
     @patch("sentry.seer.supergroups.lightweight_rca_cluster.make_lightweight_rca_cluster_request")
     def test_passes_viewer_context(self, mock_request):
         mock_request.return_value.status = 200
 
-        with self.options({"supergroups.lightweight-enabled-orgs": [self.group.organization.id]}):
-            trigger_lightweight_rca_cluster(self.group)
+        trigger_lightweight_rca_cluster(self.group)
 
         call_kwargs = mock_request.call_args.kwargs
         assert call_kwargs["viewer_context"]["organization_id"] == self.group.organization.id

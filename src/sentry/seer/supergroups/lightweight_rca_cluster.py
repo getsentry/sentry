@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 
-from sentry import options
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.eventstore import backend as eventstore
 from sentry.models.group import Group
@@ -23,10 +22,6 @@ def trigger_lightweight_rca_cluster(group: Group) -> None:
     Sends issue event data to Seer, which generates a lightweight root cause analysis
     and clusters the issue into supergroups based on embedding similarity.
     """
-    enabled_orgs: list[int] = options.get("supergroups.lightweight-enabled-orgs")
-    if group.organization.id not in enabled_orgs:
-        return
-
     event = group.get_recommended_event_for_environments()
     if not event:
         event = group.get_latest_event()
