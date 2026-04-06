@@ -84,7 +84,7 @@ describe('seerAgentHooks', () => {
   });
 
   describe('useSelectedAgentFromBulkSettings', () => {
-    it('returns "none" when autofixAutomationTuning is off', () => {
+    it('returns "seer" when automationHandoff undefined, doesnt look at autofixAutomationTuning', () => {
       const {result} = renderHookWithProviders(useSelectedAgentFromBulkSettings, {
         initialProps: {
           autofixSettings: {
@@ -99,7 +99,7 @@ describe('seerAgentHooks', () => {
         organization,
       });
 
-      expect(result.current).toBe('none');
+      expect(result.current).toBe('seer');
     });
 
     it('returns "seer" when no automationHandoff integration_id', () => {
