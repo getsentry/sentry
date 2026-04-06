@@ -1,6 +1,7 @@
 import logging
 
 from django.db import router, transaction
+from django.db.models import Model
 
 from sentry.models.project import Project
 from sentry.models.rule import Rule
@@ -38,8 +39,8 @@ PLATFORMS_WITH_PRIORITY_ALERTS = ["python", "javascript"]
 # TODO - invert this so it's create_default_workflows
 def create_default_rules(
     project: Project,
-    default_rules=True,
-    RuleModel=Rule,
+    default_rules: bool = True,
+    RuleModel: Model = Rule,
 ):
     if not default_rules:
         return

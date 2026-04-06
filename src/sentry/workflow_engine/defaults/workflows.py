@@ -96,6 +96,8 @@ def create_priority_workflow(org: Organization) -> Workflow:
             condition_group=action_filter,
         )
 
+    return workflow
+
 
 def ensure_default_workflows(project: Project) -> list[Workflow]:
     workflows: list[Workflow] = []

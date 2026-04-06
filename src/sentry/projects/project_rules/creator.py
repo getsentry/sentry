@@ -35,7 +35,7 @@ class ProjectRuleCreator:
         ensure_default_detectors(self.project)
 
         with transaction.atomic(router.db_for_write(Rule)):
-            workflows = ensure_default_workflows()
+            workflows = ensure_default_workflows(self.project)
             self.rule = self._create_rule()
 
             legacy_references = [
