@@ -219,7 +219,6 @@ describe('ProductUnavailableCTA', () => {
         reservedSeerScanner: undefined,
         reservedSeerUsers: undefined,
         reservedSizeAnalyses: undefined,
-        reservedInstallableBuilds: undefined,
         reservedTraceMetricBytes: undefined,
       };
       const mockPlan = PlanFixture({});

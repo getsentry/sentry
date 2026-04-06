@@ -698,7 +698,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Build Distributions'),
     productName: t('Build Distribution'),
     uid: 36,
-    isBilledCategory: true,
+    isBilledCategory: false,
     statsInfo: {...DEFAULT_STATS_INFO, showExternalStats: true},
     formatting: DEFAULT_COUNT_FORMATTING,
   },
