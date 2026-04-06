@@ -1,5 +1,6 @@
 from unittest import mock
 
+import pytest
 from django.core.serializers.json import DjangoJSONEncoder
 
 from sentry.api.serializers import serialize
@@ -9,6 +10,8 @@ from sentry.testutils.asserts import assert_existing_projects_status
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 from sentry.utils import json
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 @no_silo_test
