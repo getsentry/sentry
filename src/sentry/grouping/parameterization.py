@@ -311,23 +311,25 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
     ParameterizationRegex(
         name="quoted_str",
         raw_pattern=r"""
-            '([^']+)' | "([^"]+)"
+            # Lookbehind to ensure we'll only match the value half of `<key>=<value>`-type key-value
+            # pairs, rather than all quoted strings
+            (?<=[=])
+            (
+                '([^']+)' |
+                "([^"]+)"
+            )
         """,
-        # Using an `=` lookbehind guarantees we'll only match the value half of key-value pairs,
-        # rather than all quoted strings
-        lookbehind="=",
     ),
     ParameterizationRegex(
         name="bool",
         raw_pattern=r"""
-            True |
-            true |
-            False |
-            false
+            # Lookbehind to ensure we'll only match the value half of `<key>=<value>`-type key-value
+            # pairs, rather than all instances of the words 'true' and 'false'
+            (?<=[=])
+            (
+                True | true | False | false
+            )
         """,
-        # Using an `=` lookbehind guarantees we'll only match the value half of key-value pairs,
-        # rather than all instances of the words 'true' and 'false'.
-        lookbehind="=",
     ),
 ]
 
