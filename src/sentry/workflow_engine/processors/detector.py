@@ -14,6 +14,11 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
+
+# TODO - remove this import once getsentry can be updated
+from sentry.workflow_engine.defaults.detectors import (
+    ensure_default_detectors as ensure_default_detectors,
+)
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.types import (
