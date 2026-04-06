@@ -174,8 +174,18 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
 
         assert Detector.objects.filter(project=project, type=ErrorGroupType.slug).count() == 1
-        assert Detector.objects.filter(project=project, type=IssueStreamGroupType.slug).count() == 1
-        assert DetectorWorkflow.objects.filter(workflow=workflow).count() == 2
+
+        issue_stream_detectors = Detector.objects.filter(
+            project=project,
+            type=IssueStreamGroupType.slug,
+        )
+
+        assert len(issue_stream_detectors) == 1
+
+        # Ensuer we have 1 connection to the issue stream, this triggers for both monitors above.
+        result_connections = DetectorWorkflow.objects.filter(workflow=workflow)
+        assert result_connections.count() == 1
+        assert result_connections[0].detector_id == issue_stream_detectors[0].id
 
     @patch("sentry.analytics.record", wraps=record)
     def test_project_created_with_origin(self, record_analytics: MagicMock) -> None:

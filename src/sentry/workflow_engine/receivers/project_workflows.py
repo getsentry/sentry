@@ -1,7 +1,7 @@
 import logging
+from typing import Any
 
 from django.db import router, transaction
-from django.db.models import Model
 
 from sentry.models.project import Project
 from sentry.models.rule import Rule
@@ -36,24 +36,27 @@ DEFAULT_RULE_DATA = {
 PLATFORMS_WITH_PRIORITY_ALERTS = ["python", "javascript"]
 
 
-# TODO - invert this so it's create_default_workflows
-def create_default_rules(
+def create_default_workflows(
     project: Project,
     default_rules: bool = True,
-    RuleModel: Model = Rule,
-):
+    RuleModel: type[Rule] = Rule,
+    **kwargs: Any,
+) -> None:
+    rule_data = DEFAULT_RULE_DATA
+
     if not default_rules:
         return
 
-    rule_data = DEFAULT_RULE_DATA
-
     with transaction.atomic(router.db_for_write(RuleModel)):
+        workflows = ensure_default_workflows(project)
+
+        # TODO - we can remove the legacy code below once
+        # we launch the new UI (and stop referencing legacy models)
         rule = RuleModel.objects.create(
             project=project,
             label=DEFAULT_RULE_LABEL,
             data=rule_data,
         )
-        workflows = ensure_default_workflows(project)
 
         legacy_references = [
             AlertRuleWorkflow(
@@ -88,7 +91,7 @@ def create_default_rules(
 
 
 project_created.connect(
-    create_default_rules,
-    dispatch_uid="create_default_rules",
+    create_default_workflows,
+    dispatch_uid="create_default_workflows",
     weak=False,
 )

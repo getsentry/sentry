@@ -10,8 +10,7 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
 from sentry.types.actor import Actor
 from sentry.workflow_engine.defaults.detectors import ensure_default_detectors
-from sentry.workflow_engine.defaults.workflows import ensure_default_workflows
-from sentry.workflow_engine.models import AlertRuleWorkflow
+from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
 
 logger = logging.getLogger(__name__)
@@ -35,18 +34,16 @@ class ProjectRuleCreator:
         ensure_default_detectors(self.project)
 
         with transaction.atomic(router.db_for_write(Rule)):
-            workflows = ensure_default_workflows(self.project)
             self.rule = self._create_rule()
 
-            legacy_references = [
-                AlertRuleWorkflow(
-                    rule_id=self.rule.id,
-                    workflow=workflow,
-                )
-                for workflow in workflows
-            ]
-
-            AlertRuleWorkflow.objects.bulk_create(legacy_references)
+            # uncaught errors will rollback the transaction
+            workflow = IssueAlertMigrator(
+                self.rule, self.request.user.id if self.request else None
+            ).run()
+            logger.info(
+                "workflow_engine.issue_alert.migrated",
+                extra={"rule_id": self.rule.id, "workflow_id": workflow.id},
+            )
 
         return self.rule
 

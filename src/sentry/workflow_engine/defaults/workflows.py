@@ -4,6 +4,7 @@ from django.db import router, transaction
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.workflow_engine.defaults.detectors import _ensure_detector
 from sentry.workflow_engine.models import (
@@ -35,27 +36,31 @@ def connect_workflows_to_issue_stream(
         )
         for workflow in workflows
     ]
-    return DetectorWorkflow.objects.bulk_create(connections)
+    return DetectorWorkflow.objects.bulk_create(
+        connections,
+        ignore_conflicts=True,
+    )
 
 
 def create_priority_workflow(org: Organization) -> Workflow:
+    existing = Workflow.objects.filter(organization=org, name=DEFAULT_WORKFLOW_LABEL).first()
+    if existing:
+        return existing
+
     with transaction.atomic(router.db_for_write(Workflow)):
-        workflow, is_created = Workflow.objects.get_or_create(
-            organization=org,
-            name=DEFAULT_WORKFLOW_LABEL,
-            config={"frequency": 0},
-        )
-
-        if not is_created:
-            # if it exists, assume it was created correctly
-            return workflow
-
-        # Create the workflow trigger conditions
-        workflow.when_condition_group = DataConditionGroup.objects.create(
+        when_condition_group = DataConditionGroup.objects.create(
             logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT,
             organization=org,
         )
 
+        workflow = Workflow.objects.create(
+            organization=org,
+            name=DEFAULT_WORKFLOW_LABEL,
+            when_condition_group=when_condition_group,
+            config={"frequency": 0},
+        )
+
+        # Create the workflow trigger conditions
         conditions: list[DataCondition] = []
         conditions.append(
             DataCondition(
@@ -84,8 +89,10 @@ def create_priority_workflow(org: Organization) -> Workflow:
         action = Action.objects.create(
             type=Action.Type.EMAIL,
             config={
-                "target_type": "IssueOwners",
+                "target_type": ActionTarget.ISSUE_OWNERS,
                 "target_identifier": None,
+            },
+            data={
                 "fallthrough_type": FallthroughChoiceType.ACTIVE_MEMBERS.value,
             },
         )
@@ -104,8 +111,7 @@ def create_priority_workflow(org: Organization) -> Workflow:
 
 def ensure_default_workflows(project: Project) -> list[Workflow]:
     workflows: list[Workflow] = []
-
     workflows.append(create_priority_workflow(project.organization))
-
     connect_workflows_to_issue_stream(project, workflows)
+
     return workflows

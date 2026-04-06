@@ -22,14 +22,14 @@ from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 class TestConnectWorkflowsToIssueStream(TestCase):
     def test_creates_detector_workflow_connections(self) -> None:
-        project = self.create_project()
-        workflow1 = Workflow.objects.create(
-            organization=project.organization,
+        project = self.create_project(create_default_detectors=False)
+        workflow1 = self.create_workflow(
             name="Test Workflow 1",
-        )
-        workflow2 = Workflow.objects.create(
             organization=project.organization,
+        )
+        workflow2 = self.create_workflow(
             name="Test Workflow 2",
+            organization=project.organization,
         )
 
         connections = connect_workflows_to_issue_stream(project, [workflow1, workflow2])
@@ -45,8 +45,8 @@ class TestConnectWorkflowsToIssueStream(TestCase):
         assert detector.type == IssueStreamGroupType.slug
 
     def test_uses_issue_stream_detector(self) -> None:
-        project = self.create_project()
-        workflow = Workflow.objects.create(
+        project = self.create_project(create_default_detectors=False)
+        workflow = self.create_workflow(
             organization=project.organization,
             name="Test Workflow",
         )
@@ -65,17 +65,18 @@ class TestConnectWorkflowsToIssueStream(TestCase):
 
     def test_uses_preexisting_issue_stream_detector(self) -> None:
         """Integration test: verifies that if an issue stream detector already exists, it reuses it."""
-        project = self.create_project()
+        project = self.create_project(create_default_detectors=False)
 
         # Create the default detectors first (simulating project setup signal)
         default_detectors = ensure_default_detectors(project)
         existing_detector = default_detectors[IssueStreamGroupType.slug]
 
         # Now connect workflows - should use the existing detector
-        workflow = Workflow.objects.create(
+        workflow = self.create_workflow(
             organization=project.organization,
             name="Test Workflow",
         )
+
         connections = connect_workflows_to_issue_stream(project, [workflow])
 
         # Verify it used the pre-existing detector
@@ -91,7 +92,6 @@ class TestConnectWorkflowsToIssueStream(TestCase):
 class TestCreatePriorityWorkflow(TestCase):
     def test_creates_workflow_with_correct_name(self) -> None:
         org = self.create_organization()
-
         workflow = create_priority_workflow(org)
 
         assert workflow.name == "Send a notification for high priority issues"
@@ -99,7 +99,6 @@ class TestCreatePriorityWorkflow(TestCase):
 
     def test_creates_when_condition_group(self) -> None:
         org = self.create_organization()
-
         workflow = create_priority_workflow(org)
 
         assert workflow.when_condition_group is not None
@@ -107,7 +106,6 @@ class TestCreatePriorityWorkflow(TestCase):
 
     def test_creates_data_conditions(self) -> None:
         org = self.create_organization()
-
         workflow = create_priority_workflow(org)
 
         conditions = DataCondition.objects.filter(condition_group=workflow.when_condition_group)
@@ -128,8 +126,10 @@ class TestCreatePriorityWorkflow(TestCase):
 
         action = Action.objects.get(type=Action.Type.EMAIL)
         assert action.config == {
-            "target_type": "IssueOwners",
+            "target_type": 4,
             "target_identifier": None,
+        }
+        assert action.data == {
             "fallthrough_type": FallthroughChoiceType.ACTIVE_MEMBERS.value,
         }
 
