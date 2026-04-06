@@ -44,7 +44,7 @@ export function StaticReplayPreview({
       organization,
     }),
     query: {
-      referrer: getRouteStringFromRoutes(routes),
+      referrer: getRouteStringFromRoutes({routes}),
       t_main: focusTab ?? TabKey.ERRORS,
       t: initialTimeOffsetMs / 1000,
     },

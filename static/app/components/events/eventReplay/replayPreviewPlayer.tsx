@@ -73,7 +73,7 @@ export function ReplayPreviewPlayer({
   const isFullscreen = useIsFullscreen();
   const startOffsetMs = replay?.getStartOffsetMs() ?? 0;
 
-  const referrer = getRouteStringFromRoutes(routes);
+  const referrer = getRouteStringFromRoutes({routes});
   const fromFeedback = referrer === '/issues/feedback/';
 
   const {groupId} = useParams<{groupId: string}>();
@@ -118,7 +118,7 @@ export function ReplayPreviewPlayer({
               organization,
             }),
             query: {
-              referrer: getRouteStringFromRoutes(routes),
+              referrer: getRouteStringFromRoutes({routes}),
               t_main: fromFeedback ? TabKey.BREADCRUMBS : TabKey.ERRORS,
               t: (currentTime + startOffsetMs) / 1000,
               groupId,

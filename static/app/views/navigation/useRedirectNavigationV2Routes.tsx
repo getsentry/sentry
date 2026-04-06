@@ -33,7 +33,7 @@ function useShouldRedirect(oldPathPrefix: `/${string}`) {
 function useLogUnexpectedNavigationRedirect({shouldRedirect}: {shouldRedirect: boolean}) {
   const lastKnownRoute = useLastKnownRoute();
   const route = useRoutes();
-  const routeString = getRouteStringFromRoutes(route);
+  const routeString = getRouteStringFromRoutes({routes: route});
 
   useEffect(() => {
     if (shouldRedirect && lastKnownRoute !== routeString) {

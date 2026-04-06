@@ -42,7 +42,7 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
       return undefined;
     }
 
-    const route = getRouteStringFromRoutes(routes);
+    const route = getRouteStringFromRoutes({routes});
     const enrichScopeContext = (scope: Scope) => {
       scope.setExtra('route', route);
       scope.setExtra('orgFeatures', organization?.features ?? []);

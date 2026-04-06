@@ -376,7 +376,7 @@ export function ProjectPageFilter({
     organization,
   ]);
 
-  const routePath = useMemo(() => getRouteStringFromRoutes(routes), [routes]);
+  const routePath = useMemo(() => getRouteStringFromRoutes({routes}), [routes]);
 
   // Selection staging and commit behavior
   const selectionLimitExceeded = useMemo(() => {

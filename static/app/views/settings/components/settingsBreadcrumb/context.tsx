@@ -46,7 +46,7 @@ function BreadcrumbProvider({children}: ProviderProps) {
   useEffect(
     () =>
       setPathMap(oldPathMap => {
-        const routePath = getRouteStringFromRoutes(routes);
+        const routePath = getRouteStringFromRoutes({routes});
         const newPathMap = {...oldPathMap};
 
         for (const fullPath in newPathMap) {
@@ -62,7 +62,7 @@ function BreadcrumbProvider({children}: ProviderProps) {
 
   const setExplicitTitle = useCallback(
     ({routes: updateRoutes, title}: ExplicitTitleProps) => {
-      const key = getRouteStringFromRoutes(updateRoutes);
+      const key = getRouteStringFromRoutes({routes: updateRoutes});
 
       setExplicitPathMap(lastState => ({...lastState, [key]: title}));
 

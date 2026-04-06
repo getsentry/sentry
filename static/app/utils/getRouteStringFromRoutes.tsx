@@ -2,16 +2,20 @@ import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 
 type RouteWithPath = Omit<PlainRoute, 'path'> & Required<Pick<PlainRoute, 'path'>>;
 
+export type Props = {
+  routes?: PlainRoute[];
+};
+
 /**
  * Creates a route string from an array of `routes` from react-router
  *
  * It will look for the last route path that begins with a `/` and
  * concatenate all of the following routes. Skips any routes without a path
  *
- * @param {Array<{}>} routes An array of route objects from react-router
- * @return String Returns a route path
+ * @param params.routes An array of route objects from react-router
+ * @returns A route path string
  */
-export function getRouteStringFromRoutes(routes?: PlainRoute[]): string {
+export function getRouteStringFromRoutes({routes}: Props): string {
   if (!Array.isArray(routes)) {
     return '';
   }

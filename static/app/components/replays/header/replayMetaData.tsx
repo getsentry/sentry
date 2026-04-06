@@ -31,7 +31,7 @@ export function ReplayMetaData({
 
   const location = useLocation();
   const routes = useRoutes();
-  const referrer = getRouteStringFromRoutes(routes);
+  const referrer = getRouteStringFromRoutes({routes});
   const eventView = EventView.fromLocation(location);
 
   const breadcrumbTab = {

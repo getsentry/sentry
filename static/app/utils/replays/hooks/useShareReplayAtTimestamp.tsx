@@ -21,7 +21,7 @@ function ShareModal({currentTimeSec, Header, Body}: any) {
 
   const url = new URL(window.location.href);
   const {searchParams} = url;
-  searchParams.set('referrer', getRouteStringFromRoutes(routes));
+  searchParams.set('referrer', getRouteStringFromRoutes({routes}));
   searchParams.set(
     't',
     shareMode === 'user' ? String(customSeconds) : String(currentTimeSec)

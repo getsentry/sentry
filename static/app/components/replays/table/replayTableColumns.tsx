@@ -501,7 +501,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
   width: 'minmax(150px, 1fr)',
   Component: ({replay, to, className}) => {
     const routes = useRoutes();
-    const referrer = getRouteStringFromRoutes(routes);
+    const referrer = getRouteStringFromRoutes({routes});
 
     const organization = useOrganization();
     const project = useProjectFromId({project_id: replay.project_id ?? undefined});

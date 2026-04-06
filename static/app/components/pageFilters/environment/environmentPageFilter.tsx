@@ -129,7 +129,7 @@ export function EnvironmentPageFilter({
 
       trackAnalytics('environmentselector.update', {
         count: newValue.length,
-        path: getRouteStringFromRoutes(router.routes),
+        path: getRouteStringFromRoutes({routes: router.routes}),
         organization,
       });
 
@@ -158,7 +158,7 @@ export function EnvironmentPageFilter({
     (newValue: any) => {
       trackAnalytics('environmentselector.toggle', {
         action: newValue.length > value.length ? 'added' : 'removed',
-        path: getRouteStringFromRoutes(router.routes),
+        path: getRouteStringFromRoutes({routes: router.routes}),
         organization,
       });
     },
@@ -167,7 +167,7 @@ export function EnvironmentPageFilter({
 
   const onReplace = useCallback(() => {
     trackAnalytics('environmentselector.direct_selection', {
-      path: getRouteStringFromRoutes(router.routes),
+      path: getRouteStringFromRoutes({routes: router.routes}),
       organization,
     });
   }, [router.routes, organization]);

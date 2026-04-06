@@ -82,7 +82,7 @@ export function ExampleReplaysList({
     perPage: 3,
   });
 
-  const referrer = getRouteStringFromRoutes(routes);
+  const referrer = getRouteStringFromRoutes({routes});
   const linkEventView = EventView.fromLocation(location);
 
   return (

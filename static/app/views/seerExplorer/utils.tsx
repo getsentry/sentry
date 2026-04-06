@@ -853,7 +853,7 @@ export function getValidToolLinks(
 export function usePageReferrer(): {getPageReferrer: () => string} {
   // Track the normalized path of the current page (e.g. /issues/:groupId/) for analytics.
   const routes = useRoutes();
-  const routeString = getRouteStringFromRoutes(routes);
+  const routeString = getRouteStringFromRoutes({routes});
   const routeStringRef = useRef(routeString);
 
   useEffect(() => {

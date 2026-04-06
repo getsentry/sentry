@@ -28,7 +28,7 @@ const camelCaseRouteParameter = (word: string) => {
  * Organizations :orgid Alerts New :alerttype
  */
 export function getEventPath(routes: PlainRoute[]) {
-  const routeString = getRouteStringFromRoutes(routes);
+  const routeString = getRouteStringFromRoutes({routes});
   return routeString
     .split('/')
     .map(camelCaseRouteParameter)

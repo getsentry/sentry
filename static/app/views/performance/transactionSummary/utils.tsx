@@ -224,7 +224,7 @@ export function generateProfileLink() {
 }
 
 export function generateReplayLink(routes: Array<PlainRoute<any>>) {
-  const referrer = getRouteStringFromRoutes(routes);
+  const referrer = getRouteStringFromRoutes({routes});
 
   return (
     organization: Organization,

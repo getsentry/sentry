@@ -11,6 +11,6 @@ describe('getRouteStringFromRoutes', () => {
   ];
 
   it('can get a route string from routes array and skips routes that do not have a path', () => {
-    expect(getRouteStringFromRoutes(routes)).toBe('/organizations/:orgId/api-keys/');
+    expect(getRouteStringFromRoutes({routes})).toBe('/organizations/:orgId/api-keys/');
   });
 });

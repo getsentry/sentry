@@ -420,7 +420,7 @@ export function TimeRangeSelector({
 
                           trackAnalytics('dateselector.utc_changed', {
                             utc: newUtc,
-                            path: getRouteStringFromRoutes(routes),
+                            path: getRouteStringFromRoutes({routes}),
                             organization,
                           });
 

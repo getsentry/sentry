@@ -25,12 +25,12 @@ export function LastKnownRouteContextProvider({children}: Props) {
   const prevRoute = useRef(route);
   useEffect(() => {
     // only store the new value if it's not the "not found" route
-    if (getRouteStringFromRoutes(route) !== '/*') {
+    if (getRouteStringFromRoutes({routes: route}) !== '/*') {
       prevRoute.current = route;
     }
   }, [route]);
 
-  const lastKnownRoute = getRouteStringFromRoutes(prevRoute.current);
+  const lastKnownRoute = getRouteStringFromRoutes({routes: prevRoute.current});
 
   return <LastKnownRouteContext value={lastKnownRoute}>{children}</LastKnownRouteContext>;
 }

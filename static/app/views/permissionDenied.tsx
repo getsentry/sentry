@@ -15,7 +15,7 @@ const ERROR_NAME = 'Permission Denied';
 export function PermissionDenied() {
   const routes = useRoutes();
   useEffect(() => {
-    const route = getRouteStringFromRoutes(routes);
+    const route = getRouteStringFromRoutes({routes});
     Sentry.addBreadcrumb({
       category: 'auth',
       message: `${ERROR_NAME}${route ? ` : ${route}` : ''}`,
