@@ -51,13 +51,16 @@ export function useFetchPreferredAgent({organization}: {organization: Organizati
   return query;
 }
 
-export function useFetchPreferredAgentOptions({
+export function useFetchAgentOptions({
   organization,
+  enabled = true,
 }: {
   organization: Organization;
+  enabled?: boolean;
 }) {
   return useQuery({
     ...organizationIntegrationsCodingAgents(organization),
+    enabled,
     select: data => {
       return [
         {value: 'seer', label: t('Seer Agent')} as SelectValue<PreferredAgent>,

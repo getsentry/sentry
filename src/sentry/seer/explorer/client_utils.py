@@ -369,4 +369,7 @@ def snapshot_to_markdown(snapshot: dict[str, Any]) -> str:
     nodes = snapshot.get("nodes", [])
     if not nodes:
         return ""
-    return _render_node(nodes[0], 0)
+    preamble = (
+        "> This is a structured summary of the page the user is viewing, not an exact screenshot.\n"
+    )
+    return preamble + _render_node(nodes[0], 0)
