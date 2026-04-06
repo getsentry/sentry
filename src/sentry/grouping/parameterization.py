@@ -399,6 +399,9 @@ class Parameterizer:
         replacement_counts: defaultdict[str, int] = defaultdict(int)
         # Track whether any regex matches don't lead to a replacement
         found_false_positive = False
+        # Flag allowing us to only count false positives during the main parameterization, not the
+        # fallback run
+        emit_false_positive_metric = True
 
         def _handle_regex_match(match: re.Match[str]) -> str:
             # Ensure we're dealing with the flag from the outer scope, rather than shadowing it
@@ -433,6 +436,16 @@ class Parameterizer:
             else:
                 found_false_positive = True
 
+                # This is only true during the main combo-regex parameterization, not during
+                # fallback, so that we don't double-count these occurrences
+                if emit_false_positive_metric:
+                    # Track the number of false positive matches, and what pattern produced them. We
+                    # can compare this to the same key's `grouping.value_parameterized` metric below
+                    # to see how often our maybe-matches pan out to be actual matches.
+                    metrics.incr(
+                        "grouping.parameterization_false_positive", tags={"key": matched_key}
+                    )
+
             return replacement_string
 
         with metrics.timer(
@@ -451,6 +464,9 @@ class Parameterizer:
                 # Reset values before applying the patterns again
                 replacement_counts = defaultdict(int)
                 parameterized = input_str
+
+                # Prevent double-counting of false positives
+                emit_false_positive_metric = False
 
                 # Apply patterns one by one, with no short-circuiting
                 for regex_key, regex in self.compiled_regexes_by_name.items():
