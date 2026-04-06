@@ -46,7 +46,6 @@ SVGElement.prototype.getTotalLength ??= () => 1;
  * Skip all framer-motion animations in tests so components render immediately
  * without waiting for animation frames or transitions.
  */
-
 MotionGlobalConfig.skipAnimations = true;
 
 /**
