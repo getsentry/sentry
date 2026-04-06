@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Image} from '@sentry/scraps/image';
@@ -32,6 +32,25 @@ const BROADCAST_CATEGORIES: Record<NonNullable<Broadcast['category']>, string> =
   event: t('Event'),
   video: t('Video'),
 };
+
+function BroadcastImage({src, alt}: {alt: string; src: string}) {
+  const [loaded, setLoaded] = useState(false);
+
+  return (
+    <Fragment>
+      {!loaded && <Placeholder width="100%" height="140px" />}
+      <Image
+        width="100%"
+        src={src}
+        alt={alt}
+        radius="md"
+        loading="eager"
+        onLoad={() => setLoaded(true)}
+        style={loaded ? undefined : {display: 'none'}}
+      />
+    </Fragment>
+  );
+}
 
 function WhatsNewContent({
   unseenPostIds,
@@ -159,7 +178,7 @@ function WhatsNewContent({
                 </ExternalLink>
               </Text>
               {item.mediaUrl ? (
-                <Image width="100%" src={item.mediaUrl} alt={item.title} radius="md" />
+                <BroadcastImage src={item.mediaUrl} alt={item.title} />
               ) : null}
               {idx < broadcasts.length - 1 && <Stack.Separator />}
             </Stack>
