@@ -53,6 +53,7 @@ def create_priority_workflow(org: Organization) -> Workflow:
         # Create the workflow trigger conditions
         workflow.when_condition_group = DataConditionGroup.objects.create(
             logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT,
+            organization=org,
         )
 
         conditions: list[DataCondition] = []
@@ -77,6 +78,7 @@ def create_priority_workflow(org: Organization) -> Workflow:
         # Create the Action
         action_filter = DataConditionGroup.objects.create(
             logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT,
+            organization=org,
         )
 
         action = Action.objects.create(
