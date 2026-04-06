@@ -33,6 +33,7 @@ jobs:
       backend_api_urls: ${{ steps.changes.outputs.backend_api_urls }}
       backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
       migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
+      # When true, skip selective testing and run the full backend suite
       skip_selective_testing: "${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'Trigger: Override Selective Testing') }}"
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -75,6 +76,8 @@ jobs:
             devservices logs
           fi
 
+  # Selective testing - only on PRs, determine which tests to run based on coverage data.
+  # This job is skipped on push-to-master where the full suite runs instead.
   select-tests:
     if: >-
       needs.files-changed.outputs.backend == 'true' &&

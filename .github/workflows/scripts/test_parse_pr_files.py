@@ -20,13 +20,12 @@ from parse_pr_files import main
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 
-def _run(json_input: str, args: list[str] | None = None) -> dict[str, str]:
+def _run(json_input: str) -> dict[str, str]:
     """Run main() with json_input on stdin, return output as key-value dict."""
     buf = io.StringIO()
-    with mock.patch("sys.argv", ["parse-pr-files"] + (args or [])):
-        with mock.patch("sys.stdin", io.StringIO(json_input)):
-            with mock.patch("sys.stdout", buf):
-                main()
+    with mock.patch("sys.stdin", io.StringIO(json_input)):
+        with mock.patch("sys.stdout", buf):
+            main()
     return dict(line.split("=", 1) for line in buf.getvalue().strip().split("\n"))
 
 
@@ -79,11 +78,3 @@ class TestParsePrFiles:
         out = _run(page1 + "\n" + page2)
         assert out["files"] == "a.py b.py"
         assert out["previous-filenames"] == ""
-
-    def test_prefix(self):
-        out = _run(
-            '[{"filename": "b.py", "status": "renamed", "previous_filename": "a.py"}]',
-            ["--prefix", "sentry-"],
-        )
-        assert out["sentry-files"] == "b.py"
-        assert out["sentry-previous-filenames"] == "a.py"

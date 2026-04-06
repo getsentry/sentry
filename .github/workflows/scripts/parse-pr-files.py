@@ -6,34 +6,21 @@ Note: --paginate can emit multiple JSON arrays (one per page), so we handle
 concatenated arrays by decoding incrementally.
 
 Outputs two lines (suitable for appending to $GITHUB_OUTPUT):
-  <prefix>files=<space-separated filenames>
-  <prefix>previous-filenames=<space-separated old names for renamed files>
+  files=<space-separated filenames>
+  previous-filenames=<space-separated old names for renamed files>
 
 Usage:
     gh api repos/OWNER/REPO/pulls/N/files --paginate \
       | python3 parse-pr-files.py >> "$GITHUB_OUTPUT"
-
-    # With prefix for dispatch outputs:
-    gh api ... --paginate \
-      | python3 parse-pr-files.py --prefix sentry- >> "$GITHUB_OUTPUT"
 """
 
 from __future__ import annotations
 
-import argparse
 import json
 import sys
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--prefix",
-        default="",
-        help="Prefix for output key names (e.g. 'sentry-' produces 'sentry-files=')",
-    )
-    args = parser.parse_args()
-
     raw = sys.stdin.read()
     decoder = json.JSONDecoder()
     files = []
@@ -55,9 +42,8 @@ def main() -> None:
         if f.get("status") == "renamed" and f.get("previous_filename")
     ]
 
-    p = args.prefix
-    print(f"{p}files={' '.join(changed)}")
-    print(f"{p}previous-filenames={' '.join(previous)}")
+    print(f"files={' '.join(changed)}")
+    print(f"previous-filenames={' '.join(previous)}")
 
 
 if __name__ == "__main__":
