@@ -7,8 +7,6 @@ import BugBImage from 'sentry-images/spot/seer-config-bug-1.svg';
 
 import {Image} from '@sentry/scraps/image';
 
-import {testableTransition} from 'sentry/utils/testableTransition';
-
 export function WelcomeBackground() {
   return (
     <Container
@@ -16,7 +14,7 @@ export function WelcomeBackground() {
         animate: {},
         exit: {},
       }}
-      transition={testableTransition({staggerChildren: 0.2})}
+      transition={{staggerChildren: 0.2}}
     >
       <WelcomeBackgroundImages />
     </Container>
@@ -35,11 +33,11 @@ function WelcomeBackgroundImages() {
           animate: {
             opacity: 1,
             scale: 1,
-            transition: testableTransition({duration: 0.5}),
+            transition: {duration: 0.5},
           },
           exit: {y: -120, opacity: 0},
         }}
-        transition={testableTransition({duration: 0.9})}
+        transition={{duration: 0.9}}
       >
         <Image src={BugAImage} alt="" />
       </BugA>
@@ -52,13 +50,13 @@ function WelcomeBackgroundImages() {
           animate: {
             opacity: 1,
             scale: 1,
-            transition: testableTransition({duration: 0.5}),
+            transition: {duration: 0.5},
           },
           exit: {y: -200, opacity: 0},
         }}
-        transition={testableTransition({
+        transition={{
           duration: 1.1,
-        })}
+        }}
       >
         <Image src={BugBImage} alt="" />
       </BugB>
@@ -73,7 +71,7 @@ export function WelcomeBackgroundNewUi() {
         animate: {},
         exit: {},
       }}
-      transition={testableTransition({staggerChildren: 0.2})}
+      transition={{staggerChildren: 0.2}}
     >
       <WelcomeBackgroundImages />
     </ContainerNewUi>
