@@ -8,6 +8,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.github.webhook_types import GitHubInstallationRepo
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
@@ -120,9 +121,10 @@ def _sync_repos_for_org(
                 continue
 
         if repo_configs:
-            created_repos = []
+            created_repos: list[RpcRepository] = []
+            reactivated_repos: list[RpcRepository] = []
             try:
-                created_repos = integration_repo_provider.create_repositories(
+                created_repos, reactivated_repos = integration_repo_provider.create_repositories(
                     configs=repo_configs, organization=rpc_org
                 )
             except RepoExistsError:
@@ -137,6 +139,15 @@ def _sync_repos_for_org(
                     provider=integration.provider,
                 )
 
+            for reactivated_repo in reactivated_repos:
+                log_repo_change(
+                    event_name="REPO_ENABLED",
+                    organization_id=rpc_org.id,
+                    repo=reactivated_repo,
+                    source="GitHub webhook",
+                    provider=integration.provider,
+                )
+
     if repos_removed:
         # Look up repos before disabling to get their IDs and names
         external_ids = [str(repo["id"]) for repo in repos_removed]
@@ -145,7 +156,11 @@ def _sync_repos_for_org(
             integration_id=integration.id,
             providers=[provider],
         )
-        repo_by_eid = {r.external_id: r for r in existing_repos if r.external_id}
+        repo_by_eid = {
+            r.external_id: r
+            for r in existing_repos
+            if r.external_id and r.status == ObjectStatus.ACTIVE
+        }
 
         repository_service.disable_repositories_by_external_ids(
             organization_id=rpc_org.id,

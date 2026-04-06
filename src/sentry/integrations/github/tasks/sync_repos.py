@@ -16,6 +16,7 @@ from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
@@ -182,10 +183,13 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
                 if str(repo["id"]) in new_ids
             ]
             if repo_configs:
-                created_repos = []
+                created_repos: list[RpcRepository] = []
+                reactivated_repos: list[RpcRepository] = []
                 try:
-                    created_repos = integration_repo_provider.create_repositories(
-                        configs=repo_configs, organization=rpc_org
+                    created_repos, reactivated_repos = (
+                        integration_repo_provider.create_repositories(
+                            configs=repo_configs, organization=rpc_org
+                        )
                     )
                 except RepoExistsError:
                     pass
@@ -193,6 +197,15 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
                 for repo in created_repos:
                     log_repo_change(
                         event_name="REPO_ADDED",
+                        organization_id=organization_id,
+                        repo=repo,
+                        source="repository sync",
+                        provider=integration.provider,
+                    )
+
+                for repo in reactivated_repos:
+                    log_repo_change(
+                        event_name="REPO_ENABLED",
                         organization_id=organization_id,
                         repo=repo,
                         source="repository sync",
@@ -208,13 +221,13 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
             )
 
             for eid in removed_ids:
-                repo = repo_by_external_id.get(eid)
-                if repo:
+                removed_repo = repo_by_external_id.get(eid)
+                if removed_repo:
                     log_repo_change(
                         event_name="REPO_DISABLED",
                         organization_id=organization_id,
-                        repo=repo,
-                        source="repository sync",
+                        repo=removed_repo,
+                        source="automatic SCM syncing",
                         provider=integration.provider,
                     )
 
@@ -229,7 +242,7 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
                         event_name="REPO_ENABLED",
                         organization_id=organization_id,
                         repo=repo,
-                        source="repository sync",
+                        source="automatic SCM syncing",
                         provider=integration.provider,
                     )
 
