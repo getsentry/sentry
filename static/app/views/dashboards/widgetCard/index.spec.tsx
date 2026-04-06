@@ -1032,3 +1032,48 @@ describe('Dashboards > WidgetCard', () => {
     });
   });
 });
+
+describe('getQueryHint', () => {
+  const {getQueryHint} = require('sentry/views/dashboards/widgetCard');
+
+  it.each([
+    [DisplayType.LINE, 'timeseries'],
+    [DisplayType.AREA, 'timeseries'],
+    [DisplayType.BAR, 'timeseries'],
+  ])('returns timeseries hint for %s', (displayType, expected) => {
+    expect(getQueryHint(displayType)).toContain(expected);
+  });
+
+  it('returns table hint for TABLE', () => {
+    expect(getQueryHint(DisplayType.TABLE)).toContain('table query');
+  });
+
+  it('returns single aggregate hint for BIG_NUMBER', () => {
+    expect(getQueryHint(DisplayType.BIG_NUMBER)).toContain('single aggregate');
+    expect(getQueryHint(DisplayType.BIG_NUMBER)).toContain('value is included below');
+  });
+
+  it('returns table hint as default for unknown types', () => {
+    expect(getQueryHint(DisplayType.WHEEL)).toContain('table query');
+  });
+});
+
+describe('getWidgetData', () => {
+  const {getWidgetData} = require('sentry/views/dashboards/widgetCard');
+
+  it('returns table data for BIG_NUMBER when data is available', () => {
+    const tableData = [{count: 42}];
+    const data = {tableResults: [{title: 'test', data: tableData}]};
+    expect(getWidgetData(DisplayType.BIG_NUMBER, data)).toEqual({data: tableData});
+  });
+
+  it('returns empty object for BIG_NUMBER when no data', () => {
+    expect(getWidgetData(DisplayType.BIG_NUMBER, undefined)).toEqual({});
+  });
+
+  it('returns empty object for non-BIG_NUMBER types even with data', () => {
+    const data = {tableResults: [{title: 'test', data: [{count: 42}]}]};
+    expect(getWidgetData(DisplayType.LINE, data)).toEqual({});
+    expect(getWidgetData(DisplayType.TABLE, data)).toEqual({});
+  });
+});

@@ -52,6 +52,8 @@ import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widge
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import {VisualizationWidget} from './visualizationWidget';
@@ -140,12 +142,57 @@ type Data = {
   totalIssuesCount?: string;
 };
 
+/**
+ * Returns a hint for the Seer Explorer agent describing how to re-query this
+ * widget's data using a tool call, if the user wants to dig deeper.
+ */
+export function getQueryHint(displayType: DisplayType): string {
+  switch (displayType) {
+    case DisplayType.LINE:
+    case DisplayType.AREA:
+    case DisplayType.BAR:
+      return 'To dig deeper into this widget, run a timeseries query using y_axes (aggregates) + group_by (columns) + query (conditions)';
+    case DisplayType.TABLE:
+      return 'To dig deeper into this widget, run a table query using fields (aggregates + columns) + query (conditions) + sort (orderby)';
+    case DisplayType.BIG_NUMBER:
+      return 'To dig deeper into this widget, run a single aggregate query using fields (aggregates) + query (conditions); current value is included below';
+    default:
+      return 'To dig deeper into this widget, run a table query using fields (aggregates + columns) + query (conditions)';
+  }
+}
+
+export function getWidgetData(
+  displayType: DisplayType,
+  data: Data | undefined
+): Record<string, unknown> {
+  if (displayType === DisplayType.BIG_NUMBER && data?.tableResults?.[0]) {
+    return {data: data.tableResults[0].data};
+  }
+  return {};
+}
+
 function WidgetCard(props: Props) {
   const [data, setData] = useState<Data>();
   const [isLoadingTextVisible, setIsLoadingTextVisible] = useState(false);
   const navigate = useNavigate();
   const {dashboardId: currentDashboardId} = useParams<{dashboardId: string}>();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Push widget metadata into the LLM context tree for Seer Explorer.
+  useLLMContext({
+    title: props.widget.title,
+    displayType: props.widget.displayType,
+    widgetType: props.widget.widgetType,
+    queryHint: getQueryHint(props.widget.displayType),
+    queries: props.widget.queries.map(q => ({
+      name: q.name,
+      conditions: q.conditions,
+      aggregates: q.aggregates,
+      columns: q.columns,
+      orderby: q.orderby,
+    })),
+    ...getWidgetData(props.widget.displayType, data),
+  });
 
   const onDataFetched = (newData: Data) => {
     if (props.onDataFetched) {
@@ -435,7 +482,10 @@ function WidgetCard(props: Props) {
   );
 }
 
-export default withApi(withOrganization(withPageFilters(withSentryRouter(WidgetCard))));
+export default registerLLMContext(
+  'widget',
+  withApi(withOrganization(withPageFilters(withSentryRouter(WidgetCard))))
+);
 
 function useOnDemandWarning(props: {widget: TWidget}): string | null {
   const organization = useOrganization();
