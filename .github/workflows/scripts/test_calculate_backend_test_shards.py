@@ -98,6 +98,19 @@ class TestCountTestsInFile:
         )
         assert count_tests_in_file(p) == 2
 
+    def test_parametrize_empty_list(self, tmp_path):
+        p = _write(
+            tmp_path,
+            """\
+            import pytest
+
+            @pytest.mark.parametrize("x", [])
+            def test_vals(x):
+                pass
+            """,
+        )
+        assert count_tests_in_file(p) == 0
+
     def test_stacked_parametrize(self, tmp_path):
         p = _write(
             tmp_path,

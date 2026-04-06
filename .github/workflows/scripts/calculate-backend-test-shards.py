@@ -97,7 +97,9 @@ def count_tests_in_file(filepath: Path) -> int:
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith(
             "test_"
         ):
-            counts = filter(None, (_parametrize_count(d, scope) for d in node.decorator_list))
+            counts = (
+                c for d in node.decorator_list if (c := _parametrize_count(d, scope)) is not None
+            )
             total += math.prod(counts, start=1)
     return total
 
