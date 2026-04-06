@@ -1,3 +1,4 @@
+import type {Repository} from 'sentry/types/integrations';
 import type {PlatformKey} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchDataQuery, useQuery} from 'sentry/utils/queryClient';
@@ -15,8 +16,12 @@ interface PlatformDetectionResponse {
   platforms: DetectedPlatform[];
 }
 
-export function useScmPlatformDetection(repoId: string | undefined) {
+const SUPPORTED_PROVIDER = 'integrations:github';
+
+export function useScmPlatformDetection(repository: Repository | undefined) {
   const organization = useOrganization();
+  const repoId = repository?.id;
+  const isSupported = repository?.provider.id === SUPPORTED_PROVIDER;
 
   const query = useQuery({
     queryKey: [
@@ -32,14 +37,16 @@ export function useScmPlatformDetection(repoId: string | undefined) {
       return fetchDataQuery<PlatformDetectionResponse>(context);
     },
     staleTime: 30_000,
-    enabled: !!repoId,
+    enabled: !!repoId && isSupported,
   });
 
   const {data} = query;
 
   return {
     detectedPlatforms: data?.[0]?.platforms ?? [],
-    isPending: query.isPending,
+    // Use isLoading (isPending && isFetching) so that disabled queries
+    // (non-GitHub providers) report false instead of the idle-pending state.
+    isPending: query.isPending && query.fetchStatus !== 'idle',
     isError: query.isError,
   };
 }
