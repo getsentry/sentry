@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useState} from 'react';
-import {useMatches} from 'react-router-dom';
 
 import type {Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
@@ -18,8 +17,7 @@ export const DELAY_TIME_MS = 7000;
 
 type Props = Parameters<Hooks['react-hook:route-activated']>[0];
 
-export function useRouteActivatedHook({location}: Props) {
-  const matches = useMatches();
+export function useRouteActivatedHook({location, matches}: Props) {
   const [analyticsParams, _setRouteAnalyticsParams] = useState({});
   const [disableAnalytics, _setDisableRouteAnalytics] = useState(false);
   const [hasSentAnalytics, setHasSentAnalytics] = useState(false);
