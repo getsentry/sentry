@@ -20,7 +20,8 @@ export type Props =
  * It will look for the last route path that begins with a `/` and
  * concatenate all of the following routes. Skips any routes without a path
  *
- * @param params.routes An array of route objects from react-router
+ * @param params.matches An array of UIMatch objects from react-router-dom `useMatches()`
+ * @param @deprecated params.routes An array of route objects from react-router
  * @returns A route path string
  */
 export function getRouteStringFromRoutes({routes, matches}: Props): string {
