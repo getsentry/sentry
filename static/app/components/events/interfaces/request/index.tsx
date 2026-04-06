@@ -7,15 +7,16 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Text} from '@sentry/scraps/text';
 
-import {ClippedBox} from 'sentry/components/clippedBox';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {GraphQlRequestBody} from 'sentry/components/events/interfaces/request/graphQlRequestBody';
 import {getCurlCommand, getFullUrl} from 'sentry/components/events/interfaces/utils';
 import {
   KeyValueData,
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
+import {StructuredEventData} from 'sentry/components/structuredEventData';
+import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData';
 import {Truncate} from 'sentry/components/truncate';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -25,13 +26,8 @@ import {defined} from 'sentry/utils';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
-import {
-  getBodyContent,
-  RichHttpContentClippedBoxBodySection,
-} from './richHttpContentClippedBoxBodySection';
-import {RichHttpContentClippedBoxKeyValueList} from './richHttpContentClippedBoxKeyValueList';
+import {getTransformedData} from './getTransformedData';
 
 interface RequestProps {
   data: EntryRequest['data'];
@@ -44,49 +40,86 @@ interface RequestBodyProps extends RequestProps {
 
 type View = 'formatted' | 'curl';
 
-function RequestBodySection({data, event, meta}: RequestBodyProps) {
-  const hasStreamlinedUI = useHasStreamlinedUI();
+function getBodyContent({
+  data,
+  meta,
+  inferredContentType,
+}: {
+  data: EntryRequest['data']['data'];
+  inferredContentType: EntryRequest['data']['inferredContentType'];
+  meta: Record<any, any> | undefined;
+}) {
+  switch (inferredContentType) {
+    case 'application/json':
+      return (
+        <JsonEventData
+          data-test-id="rich-http-content-body-context-data"
+          data={data}
+          showCopyButton
+        />
+      );
+    case 'application/x-www-form-urlencoded':
+    case 'multipart/form-data': {
+      const transformedData = getTransformedData(data, meta).map(d => {
+        const [key, value] = d.data;
+        return {
+          key,
+          subject: key,
+          value,
+          meta: d.meta,
+        };
+      });
 
+      if (!transformedData.length) {
+        return null;
+      }
+
+      return (
+        <KeyValueList
+          data-test-id="rich-http-content-body-key-value-list"
+          data={transformedData}
+          isContextData
+        />
+      );
+    }
+
+    default:
+      return (
+        <pre data-test-id="rich-http-content-body-section-pre">
+          <StructuredEventData data={data} meta={meta} withAnnotatedText showCopyButton />
+        </pre>
+      );
+  }
+}
+
+function RequestBodySection({data, event, meta}: RequestBodyProps) {
   if (!defined(data.data)) {
     return null;
   }
 
   if (data.apiTarget === 'graphql' && typeof data.data.query === 'string') {
-    return hasStreamlinedUI ? (
+    return (
       <RequestCardPanel>
         <KeyValueData.Title>{t('Body')}</KeyValueData.Title>
         <GraphQlRequestBody data={data.data} {...{event, meta}} />
       </RequestCardPanel>
-    ) : (
-      <GraphQlRequestBody data={data.data} {...{event, meta}} />
     );
   }
 
-  if (hasStreamlinedUI) {
-    const contentBody = getBodyContent({
-      data: data.data,
-      meta: meta?.data,
-      inferredContentType: data.inferredContentType,
-    });
-    return (
-      <RequestCardPanel>
-        <KeyValueData.Title>{t('Body')}</KeyValueData.Title>
-        {contentBody}
-      </RequestCardPanel>
-    );
-  }
-
+  const contentBody = getBodyContent({
+    data: data.data,
+    meta: meta?.data,
+    inferredContentType: data.inferredContentType,
+  });
   return (
-    <RichHttpContentClippedBoxBodySection
-      data={data.data}
-      inferredContentType={data.inferredContentType}
-      meta={meta?.data}
-    />
+    <RequestCardPanel>
+      <KeyValueData.Title>{t('Body')}</KeyValueData.Title>
+      {contentBody}
+    </RequestCardPanel>
   );
 }
 
 export function Request({data, event}: RequestProps) {
-  const hasStreamlinedUI = useHasStreamlinedUI();
   const entryIndex = event.entries.findIndex(entry => entry.type === EntryType.REQUEST);
   const meta = event._meta?.entries?.[entryIndex]?.data;
 
@@ -133,99 +166,38 @@ export function Request({data, event}: RequestProps) {
     <TruncatedPathLink method={data.method} url={parsedUrl} fullUrl={fullUrl} />
   );
 
-  if (hasStreamlinedUI) {
-    return (
-      <FoldSection
-        sectionKey={SectionKey.REQUEST}
-        title={t('HTTP Request')}
-        actions={actions}
-      >
-        {title}
-        {view === 'curl' ? (
-          <CodeBlock language="bash">{getCurlCommand(data)}</CodeBlock>
-        ) : (
-          <Fragment>
-            <RequestBodySection data={data} event={event} meta={meta} />
-            <RequestDataCard
-              title={t('Query String')}
-              data={data.query}
-              meta={meta?.query}
-            />
-            <RequestDataCard
-              title={t('Fragment')}
-              data={data.fragment}
-              meta={undefined}
-            />
-            <RequestDataCard
-              title={t('Cookies')}
-              data={data.cookies}
-              meta={meta?.cookies}
-            />
-            <RequestDataCard
-              title={t('Headers')}
-              data={data.headers}
-              meta={meta?.headers}
-            />
-            <RequestDataCard title={t('Environment')} data={data.env} meta={meta?.env} />
-          </Fragment>
-        )}
-      </FoldSection>
-    );
-  }
-
   return (
-    <EventDataSection
-      type={SectionKey.REQUEST}
-      title={title}
+    <FoldSection
+      sectionKey={SectionKey.REQUEST}
+      title={t('HTTP Request')}
       actions={actions}
-      className="request"
     >
+      {title}
       {view === 'curl' ? (
         <CodeBlock language="bash">{getCurlCommand(data)}</CodeBlock>
       ) : (
         <Fragment>
-          {defined(data.query) && (
-            <RichHttpContentClippedBoxKeyValueList
-              title={t('Query String')}
-              data={data.query}
-              meta={meta?.query}
-              isContextData
-            />
-          )}
-          {defined(data.fragment) && (
-            <ClippedBox title={t('Fragment')}>
-              <ErrorBoundary mini>
-                <pre>{data.fragment}</pre>
-              </ErrorBoundary>
-            </ClippedBox>
-          )}
-          <RequestBodySection {...{data, event, meta}} />
-          {defined(data.cookies) && Object.keys(data.cookies).length > 0 && (
-            <RichHttpContentClippedBoxKeyValueList
-              defaultCollapsed
-              title={t('Cookies')}
-              data={data.cookies}
-              meta={meta?.cookies}
-            />
-          )}
-          {defined(data.headers) && (
-            <RichHttpContentClippedBoxKeyValueList
-              title={t('Headers')}
-              data={data.headers}
-              meta={meta?.headers}
-            />
-          )}
-          {defined(data.env) && (
-            <RichHttpContentClippedBoxKeyValueList
-              defaultCollapsed
-              title={t('Environment')}
-              data={data.env}
-              meta={meta?.env}
-            />
-          )}
+          <RequestBodySection data={data} event={event} meta={meta} />
+          <RequestDataCard
+            title={t('Query String')}
+            data={data.query}
+            meta={meta?.query}
+          />
+          <RequestDataCard title={t('Fragment')} data={data.fragment} meta={undefined} />
+          <RequestDataCard
+            title={t('Cookies')}
+            data={data.cookies}
+            meta={meta?.cookies}
+          />
+          <RequestDataCard
+            title={t('Headers')}
+            data={data.headers}
+            meta={meta?.headers}
+          />
+          <RequestDataCard title={t('Environment')} data={data.env} meta={meta?.env} />
         </Fragment>
       )}
-    </EventDataSection>
+    </FoldSection>
   );
 }
 
