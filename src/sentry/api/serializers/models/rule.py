@@ -31,9 +31,14 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import is_slow_condition
+from sentry.workflow_engine.models.data_condition_group_action import DataConditionGroupAction
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.processors.workflow_fire_history import get_last_fired_dates
 from sentry.workflow_engine.registry import condition_handler_registry
+from sentry.workflow_engine.typings.notification_action import (
+    ActionTargetType,
+    FallthroughChoiceType,
+)
 from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
 
 # Check for unsupported conditions which exist in Workflows, but are unsupported in Rules
@@ -48,6 +53,8 @@ UNSUPPORTED_CONDITIONS = [
     Condition.ISSUE_RESOLUTION_CHANGE.value,
     Condition.ISSUE_RESOLVED_TRIGGER.value,
 ]
+
+EMAIL_ACTION = "sentry.mail.actions.NotifyEmailAction"
 
 
 def generate_rule_label(project, rule, data):
@@ -277,24 +284,49 @@ class RuleSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user, **kwargs) -> RuleSerializerResponse:
+        from sentry.rules.conditions.event_frequency import EventFrequencyPercentCondition
+        # imported here due to circular dependency
+
         # Mark that we're using legacy Rule models
         report_used_legacy_models()
 
         environment = attrs["environment"]
-        all_conditions = [
-            dict(list(o.items()) + [("name", generate_rule_label(obj.project, obj, o))])
-            for o in obj.data.get("conditions", [])
-        ]
+        all_conditions = []
+        for o in obj.data.get("conditions", []):
+            normalized_data_condition = dict(o)
+            # EventFrequencyPercentCondition stores float values (e.g. 100.0) but the
+            # WorkflowEngineRuleSerializer normalizes integer-valued floats to int when
+            # rendering labels. Normalize here so both serializers produce consistent labels.
+            normalized_value = normalized_data_condition.get("value")
+            if (
+                normalized_data_condition.get("id") == EventFrequencyPercentCondition.id
+                and isinstance(normalized_value, float)
+                and normalized_value.is_integer()
+            ):
+                normalized_data_condition["value"] = int(normalized_value)
+            all_conditions.append(
+                dict(
+                    list(normalized_data_condition.items())
+                    + [("name", generate_rule_label(obj.project, obj, normalized_data_condition))]
+                )
+            )
 
         actions = []
         for action in obj.data.get("actions", []):
             try:
-                actions.append(
-                    dict(
-                        list(action.items())
-                        + [("name", generate_rule_label(obj.project, obj, action))]
-                    )
+                action_data = dict(
+                    list(action.items()) + [("name", generate_rule_label(obj.project, obj, action))]
                 )
+                # Normalize email Member/Team actions to match WorkflowEngineRuleSerializer output
+                if action_data.get("id") == EMAIL_ACTION and action_data.get("targetType") in (
+                    ActionTargetType.MEMBER.value,
+                    ActionTargetType.TEAM.value,
+                ):
+                    if action_data.get("targetIdentifier") is not None:
+                        action_data["targetIdentifier"] = str(action_data["targetIdentifier"])
+                    if "fallthroughType" not in action_data:
+                        action_data["fallthroughType"] = FallthroughChoiceType.ACTIVE_MEMBERS.value
+                actions.append(action_data)
             except serializers.ValidationError:
                 # Integrations can be deleted and we don't want to fail to load the rule
                 pass
@@ -367,15 +399,13 @@ class WorkflowEngineRuleSerializer(Serializer):
             )
         }
 
-    def _fetch_workflow_projects(
-        self, item_list: Sequence[Workflow]
-    ) -> dict[Workflow, set[Project]]:
-        workflow_to_projects: dict[Workflow, set[Project]] = defaultdict(set)
+    def _fetch_workflow_projects(self, item_list: Sequence[Workflow]) -> dict[int, set[Project]]:
+        workflow_to_projects: dict[int, set[Project]] = defaultdict(set)
         detector_workflows = DetectorWorkflow.objects.filter(
             workflow_id__in=[item.id for item in item_list]
-        ).prefetch_related("detector__project")
-        for detector_workflow in detector_workflows:
-            workflow_to_projects[detector_workflow.workflow].add(detector_workflow.detector.project)
+        ).select_related("detector__project")
+        for dw in detector_workflows:
+            workflow_to_projects[dw.workflow_id].add(dw.detector.project)
 
         return workflow_to_projects
 
@@ -425,8 +455,23 @@ class WorkflowEngineRuleSerializer(Serializer):
             return actor.identifier
         return None
 
-    def _fetch_actions(self, condition_group: DataConditionGroup) -> BaseQuerySet[Action]:
-        return Action.objects.filter(dataconditiongroupaction__condition_group=condition_group)
+    def _fetch_actions_by_dcg(self, condition_group_ids: Sequence[int]) -> dict[int, list[Action]]:
+        dcg_actions = (
+            DataConditionGroupAction.objects.filter(
+                condition_group_id__in=condition_group_ids,
+            )
+            .exclude(
+                action__status__in=[
+                    ObjectStatus.DELETION_IN_PROGRESS,
+                    ObjectStatus.PENDING_DELETION,
+                ],
+            )
+            .select_related("action")
+        )
+        result: dict[int, list[Action]] = defaultdict(list)
+        for dcg_action in dcg_actions:
+            result[dcg_action.condition_group_id].append(dcg_action.action)
+        return result
 
     def _generate_rule_conditions_filters(
         self, workflow: Workflow, project: Project, workflow_dcg: WorkflowDataConditionGroup
@@ -539,6 +584,15 @@ class WorkflowEngineRuleSerializer(Serializer):
         # Bulk fetch workflow -> rule ids
         workflow_rule_ids = self._fetch_workflow_rule_ids(item_list)
 
+        # Bulk fetch actions for all condition groups across all workflows
+        all_dcg_ids: list[int] = []
+        for wf in workflows:
+            all_dcg_ids.extend(
+                wdcg.condition_group_id
+                for wdcg in wf.prefetched_wdcgs  # type: ignore[attr-defined]
+            )
+        actions_by_dcg = self._fetch_actions_by_dcg(all_dcg_ids)
+
         last_triggered_lookup: dict[int, datetime] = {}
         if "lastTriggered" in self.expand:
             last_triggered_lookup = self._fetch_workflow_last_triggered(item_list)
@@ -552,7 +606,7 @@ class WorkflowEngineRuleSerializer(Serializer):
                 result[workflow]["owner"] = owner
 
             result[workflow]["environment"] = workflow.environment
-            result[workflow]["projects"] = list(workflow_to_projects[workflow])
+            result[workflow]["projects"] = list(workflow_to_projects[workflow.id])
             result[workflow]["rule_id"] = workflow_rule_ids.get(
                 workflow.id, get_fake_id_from_object_id(workflow.id)
             )
@@ -577,7 +631,7 @@ class WorkflowEngineRuleSerializer(Serializer):
             result[workflow]["filter_match"] = workflow_dcg.condition_group.logic_type
 
             # build up actions data
-            actions = self._fetch_actions(workflow_dcg.condition_group)
+            actions = actions_by_dcg.get(workflow_dcg.condition_group_id, [])
             action_to_handler = {}
             for action in actions:
                 try:
@@ -598,6 +652,13 @@ class WorkflowEngineRuleSerializer(Serializer):
             )
             serialized_actions = []
             errors = []
+
+            if len(prefetched_wdcgs) > 1:
+                errors.append(
+                    {
+                        "detail": "Multiple if/then blocks are not supported in this view. Only the first if/then block is displayed."
+                    }
+                )
             for action in actions_with_handlers:
                 action_data = action_to_action_data[action]
                 action_data["name"] = action_to_handler[action].render_label(
@@ -635,6 +696,15 @@ class WorkflowEngineRuleSerializer(Serializer):
                 if action_data.get("fallthrough_type"):
                     action_data["fallthroughType"] = action_data.get("fallthrough_type")
                     del action_data["fallthrough_type"]
+
+                # XXX: add default fallthroughType for email Team/Member actions
+                if (
+                    action.type == Action.Type.EMAIL.value
+                    and "fallthroughType" not in action_data
+                    and action_data.get("targetType")
+                    in (ActionTargetType.MEMBER.value, ActionTargetType.TEAM.value)
+                ):
+                    action_data["fallthroughType"] = FallthroughChoiceType.ACTIVE_MEMBERS.value
 
                 # XXX: add a targetIdentifier empty string for email only
                 if (
@@ -694,8 +764,8 @@ class WorkflowEngineRuleSerializer(Serializer):
             if len(errors):
                 result[workflow]["errors"] = errors
 
-            if workflow.id in last_triggered_lookup:
-                result[workflow]["last_triggered"] = last_triggered_lookup[workflow.id]
+            if "lastTriggered" in self.expand:
+                result[workflow]["last_triggered"] = last_triggered_lookup.get(workflow.id, None)
 
             result[workflow]["actions"] = serialized_actions
 

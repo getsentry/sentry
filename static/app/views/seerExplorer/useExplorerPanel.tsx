@@ -7,8 +7,9 @@ import {
   type ReactNode,
 } from 'react';
 
+import {useHotkeys} from '@sentry/scraps/hotkey';
+
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
-import {useHotkeys} from 'sentry/utils/useHotkeys';
 
 type ExplorerPanelContextValue = {
   closeExplorerPanel: () => void;

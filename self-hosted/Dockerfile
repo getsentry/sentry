@@ -78,6 +78,7 @@ RUN set -x \
 COPY . .
 RUN : \
     && python3 -m tools.fast_editable --path . \
+    && python3 -m compileall -q src/ \
     && sentry help | sed '1,/Commands:/d' | awk '{print $1}' >  /sentry-commands.txt
 
 COPY ./self-hosted/sentry.conf.py ./self-hosted/config.yml $SENTRY_CONF/

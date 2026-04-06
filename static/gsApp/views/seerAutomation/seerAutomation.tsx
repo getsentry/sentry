@@ -9,19 +9,26 @@ import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
+import {NoActiveSeerSubscriptionBanner} from 'getsentry/views/seerAutomation/components/noActiveSeerSubscriptionBanner';
 import {SeerAutomationDefault} from 'getsentry/views/seerAutomation/components/seerAutomationDefault';
 import {SeerAutomationProjectList} from 'getsentry/views/seerAutomation/components/seerAutomationProjectList';
 import {SeerConnectGitHubBanner} from 'getsentry/views/seerAutomation/components/seerConnectGitHubBanner';
+import {SettingsPageTabs} from 'getsentry/views/seerAutomation/components/settingsPageTabs';
 import {SeerAutomationSettings} from 'getsentry/views/seerAutomation/settings';
 
 export default function SeerAutomation() {
   const organization = useOrganization();
+  const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
+  const hasLegacySeer = organization.features.includes('seer-added');
+  const hasCodeReviewBeta = organization.features.includes('code-review-beta');
+  const showNoActiveSeerSubscriptionBanner =
+    !hasSeatBasedSeer && (hasLegacySeer || hasCodeReviewBeta);
 
   if (showNewSeer(organization)) {
     return <SeerAutomationSettings />;
   }
 
-  // Show the regular settings page
+  // Legacy cohorts continue to use the old automation page.
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Seer Automation')} orgSlug={organization.slug} />
@@ -35,7 +42,8 @@ export default function SeerAutomation() {
       <NoProjectMessage organization={organization}>
         <Stack gap="lg">
           <SeerConnectGitHubBanner />
-
+          {showNoActiveSeerSubscriptionBanner ? <NoActiveSeerSubscriptionBanner /> : null}
+          <SettingsPageTabs />
           <SeerAutomationProjectList />
           <br />
           <SeerAutomationDefault />

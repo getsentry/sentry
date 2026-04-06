@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -15,6 +16,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
 import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
@@ -48,6 +50,9 @@ type SeerExplorerChatResponse = {
 };
 
 const POLL_INTERVAL = 500; // Poll every 500ms
+
+/** Routes where the LLMContext tree provides structured page context. */
+const STRUCTURED_CONTEXT_ROUTES = new Set(['/dashboard/:dashboardId/']);
 
 const OPTIMISTIC_ASSISTANT_TEXTS = [
   'Looking around...',
@@ -110,6 +115,7 @@ export const useSeerExplorer = () => {
   const organization = useOrganization({allowNull: true});
   const orgSlug = organization?.slug;
   const captureAsciiSnapshot = useAsciiSnapshot();
+  const {getLLMContext} = useLLMContext();
   const [overrideCtxEngEnable, setOverrideCtxEngEnable] = useState<boolean>(true);
 
   const [runId, setRunId] = useSessionStorage<number | null>(
@@ -148,7 +154,7 @@ export const useSeerExplorer = () => {
   const [optimistic, setOptimistic] = useState<{
     assistantBlockId: string;
     assistantContent: string;
-    baselineSignature: string;
+    baselineUpdatedAt: string | undefined;
     insertIndex: number;
     userBlockId: string;
     userQuery: string;
@@ -184,8 +190,22 @@ export const useSeerExplorer = () => {
       // explicitRunId: undefined = use current runId, null = force new run, number = use that run
       const effectiveRunId = explicitRunId === undefined ? runId : explicitRunId;
 
-      // Capture a coarse ASCII screenshot of the user's screen for extra context
-      const screenshot = captureAsciiSnapshot?.();
+      // Send structured LLMContext JSON on supported pages when the feature flag
+      // is enabled; fall back to a coarse ASCII screenshot otherwise.
+      let screenshot: string | undefined;
+      if (
+        STRUCTURED_CONTEXT_ROUTES.has(getPageReferrer()) &&
+        organization?.features.includes('context-engine-structured-page-context')
+      ) {
+        try {
+          screenshot = JSON.stringify(getLLMContext());
+        } catch (e) {
+          Sentry.captureException(e);
+          screenshot = captureAsciiSnapshot?.();
+        }
+      } else {
+        screenshot = captureAsciiSnapshot?.();
+      }
 
       setWaitingForResponse(true);
       setWasJustInterrupted(false);
@@ -209,16 +229,6 @@ export const useSeerExplorer = () => {
         deletedFromIndex ?? (apiData?.session?.blocks.length || 0);
       const calculatedInsertIndex = insertIndex ?? effectiveMessageLength;
 
-      // Record current real blocks signature to know when to clear optimistic UI
-      const baselineSignature = JSON.stringify(
-        (apiData?.session?.blocks || []).map(b => [
-          b.id,
-          b.message.role,
-          b.message.content,
-          !!b.loading,
-        ])
-      );
-
       // Generate deterministic block IDs matching backend logic
       // Backend generates: `{prefix}-{index}-{content[:16].replace(' ', '-')}`
       const generateBlockId = (prefix: string, content: string, index: number) => {
@@ -235,7 +245,6 @@ export const useSeerExplorer = () => {
       setOptimistic({
         insertIndex: calculatedInsertIndex,
         userQuery: query,
-        baselineSignature,
         userBlockId: generateBlockId('user', query, calculatedInsertIndex),
         assistantBlockId: generateBlockId(
           'loading',
@@ -243,6 +252,7 @@ export const useSeerExplorer = () => {
           calculatedInsertIndex + 1
         ),
         assistantContent: assistantContent || 'Thinking...',
+        baselineUpdatedAt: apiData?.session?.updated_at,
       });
 
       try {
@@ -253,6 +263,7 @@ export const useSeerExplorer = () => {
             query,
             insert_index: calculatedInsertIndex,
             on_page_context: screenshot,
+            page_name: getPageReferrer(),
             override_ce_enable: overrideCtxEngEnable,
           },
         })) as SeerExplorerChatResponse;
@@ -288,6 +299,7 @@ export const useSeerExplorer = () => {
       apiData,
       deletedFromIndex,
       captureAsciiSnapshot,
+      getLLMContext,
       setRunId,
       getPageReferrer,
       organization,
@@ -455,24 +467,39 @@ export const useSeerExplorer = () => {
     return sessionData;
   }, [sessionData, deletedFromIndex, optimistic, runId]);
 
-  // Clear optimistic blocks once the real blocks change in poll results
+  // Clear optimistic blocks once the server has persisted the user message
+  // and produced a real assistant response after the insert point.
   useEffect(() => {
-    if (optimistic) {
-      const currentSignature = JSON.stringify(
-        (apiData?.session?.blocks || []).map(b => [
-          b.id,
-          b.message.role,
-          b.message.content,
-          !!b.loading,
-        ])
-      );
-      if (currentSignature !== optimistic.baselineSignature) {
-        setOptimistic(null);
-        // Reveal all real blocks immediately after the server responds
-        setDeletedFromIndex(null);
-      }
+    if (!optimistic) {
+      return undefined;
     }
-  }, [apiData?.session?.blocks, optimistic]);
+
+    if (apiData?.session?.updated_at === optimistic.baselineUpdatedAt) {
+      return undefined;
+    }
+
+    const serverBlocks = apiData?.session?.blocks || [];
+    const blockAtInsert = serverBlocks[optimistic.insertIndex];
+
+    const serverHasUserBlock =
+      blockAtInsert?.message.role === 'user' &&
+      blockAtInsert?.message.content === optimistic.userQuery;
+
+    if (!serverHasUserBlock) {
+      return undefined;
+    }
+
+    const hasAssistantResponse = serverBlocks
+      .slice(optimistic.insertIndex + 1)
+      .some(b => b.message.role === 'assistant');
+
+    if (hasAssistantResponse) {
+      setOptimistic(null);
+      setDeletedFromIndex(null);
+    }
+
+    return undefined;
+  }, [apiData?.session?.blocks, apiData?.session?.updated_at, optimistic]);
 
   // Detect PR creation errors and show error messages
   useEffect(() => {

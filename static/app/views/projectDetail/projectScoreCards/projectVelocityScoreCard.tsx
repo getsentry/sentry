@@ -1,4 +1,5 @@
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
@@ -195,7 +196,11 @@ export function ProjectVelocityScoreCard(props: Props) {
             </Button>
           </Widget.WidgetToolbar>
         }
-        Visualization={<Widget.WidgetError error={error} />}
+        Visualization={
+          <Container position="absolute" inset={0}>
+            <Widget.WidgetError error={error} />
+          </Container>
+        }
       />
     );
   }

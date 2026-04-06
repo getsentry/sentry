@@ -1,19 +1,51 @@
-import type {HTMLAttributes} from 'react';
+import {useContext, type HTMLAttributes} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container} from '@sentry/scraps/layout';
+import {
+  Container,
+  Stack,
+  type ContainerProps,
+  type FlexProps,
+} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
+
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {SecondaryNavigationContext} from 'sentry/views/navigation/secondaryNavigationContext';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 /**
  * Main container for a page.
  */
-export const Page = styled('main')<{withPadding?: boolean}>`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  ${p => p.withPadding && `padding: ${p.theme.space['2xl']} ${p.theme.space['3xl']}`};
-`;
+export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
+  const hasPageFrame = useHasPageFrameFeature();
+  const primaryNavigation = usePrimaryNavigation();
+  const secondaryNavigation = useContext(SecondaryNavigationContext);
+
+  const {withPadding, ...rest} = props;
+
+  if (hasPageFrame) {
+    return (
+      <Stack
+        as="main"
+        flex="1"
+        borderLeft={
+          secondaryNavigation?.view === 'expanded'
+            ? primaryNavigation.layout === 'sidebar'
+              ? 'primary'
+              : undefined
+            : undefined
+        }
+        background="primary"
+        {...rest}
+      />
+    );
+  }
+
+  return (
+    <Stack flex="1" padding={withPadding ? '2xl 3xl' : undefined} as="main" {...rest} />
+  );
+}
 
 /**
  * Header container for header content and header actions.
@@ -24,7 +56,22 @@ export const Page = styled('main')<{withPadding?: boolean}>`
  *
  * Use `noActionWrap` to disable wrapping if there are minimal actions.
  */
-export const Header = styled('header')<{
+export const Header = styled((props: ContainerProps<'header'>) => {
+  const hasPageFrame = useHasPageFrameFeature();
+
+  return (
+    <Container
+      as="header"
+      background={hasPageFrame ? undefined : 'primary'}
+      padding={
+        hasPageFrame
+          ? {sm: 'md lg 0 lg', md: 'lg xl 0 xl'}
+          : {sm: 'xl xl 0 xl', md: 'xl 3xl 0 3xl'}
+      }
+      {...props}
+    />
+  );
+})<{
   borderStyle?: 'dashed' | 'solid';
   noActionWrap?: boolean;
   /**
@@ -38,9 +85,6 @@ export const Header = styled('header')<{
   grid-template-columns: ${p =>
     p.noActionWrap ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'};
 
-  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl} 0 ${p => p.theme.space.xl};
-  background-color: ${p => p.theme.tokens.background.primary};
-
   ${p =>
     !p.unified &&
     css`
@@ -48,8 +92,6 @@ export const Header = styled('header')<{
     `}
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']} 0
-      ${p => p.theme.space['3xl']};
     grid-template-columns: minmax(0, 1fr) auto;
   }
 `;
@@ -62,14 +104,8 @@ export const HeaderContent = styled('div')<{unified?: boolean}>`
   display: flex;
   flex-direction: column;
   justify-content: normal;
-  margin-bottom: ${p => p.theme.space.md};
+  margin-bottom: ${p => (p.unified ? 0 : p.theme.space.md)};
   max-width: 100%;
-
-  ${p =>
-    p.unified &&
-    css`
-      margin-bottom: 0;
-    `}
 `;
 
 /**
@@ -130,18 +166,21 @@ export const HeaderTabs = styled(Tabs)`
 /**
  * Base container for 66/33 containers.
  */
-export const Body = styled('div')<{noRowGap?: boolean}>`
-  padding: ${p => p.theme.space.xl};
-  margin: 0;
-  background-color: ${p => p.theme.tokens.background.primary};
+export const Body = styled((props: ContainerProps<'div'> & {noRowGap?: boolean}) => {
+  const hasPageFrame = useHasPageFrameFeature();
+  return (
+    <Container
+      as="div"
+      margin="0"
+      background="primary"
+      padding={
+        hasPageFrame ? 'lg xl' : {sm: 'xl', md: props.noRowGap ? 'xl 3xl' : '2xl 3xl'}
+      }
+      {...props}
+    />
+  );
+})<{noRowGap?: boolean}>`
   flex-grow: 1;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${p =>
-      p.noRowGap
-        ? `${p.theme.space.xl} ${p.theme.space['3xl']}`
-        : `${p.theme.space['2xl']} ${p.theme.space['3xl']}`};
-  }
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     display: grid;

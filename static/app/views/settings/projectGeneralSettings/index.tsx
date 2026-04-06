@@ -365,6 +365,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
           fields={[
             fields.allowedDomains,
             fields.scrapeJavaScript,
+            fields.scmSourceContextEnabled,
             fields.securityToken,
             fields.securityTokenHeader,
             fields.verifySSL,

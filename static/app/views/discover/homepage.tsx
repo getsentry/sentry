@@ -11,7 +11,7 @@ import {getPageFilterStorage} from 'sentry/components/pageFilters/persistence';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {useApiQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';

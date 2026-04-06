@@ -10,9 +10,7 @@ Unsupported actions:
     * create_pull_request_draft
     * create_review
     * get_check_run
-    * get_git_commit
     * get_pull_request_diff
-    * get_tree
     * minimize_comment
     * request_review
     * resolve_review_thread
@@ -24,19 +22,26 @@ import datetime
 import functools
 from collections.abc import Callable
 from typing import Any, Iterable
+from urllib.parse import urlencode
 
 from sentry.integrations.gitlab.client import GitLabApiClient
-from sentry.scm.errors import SCMProviderException
+from sentry.integrations.gitlab.utils import GitLabApiClientPath
+from sentry.scm.errors import SCMCodedError, SCMProviderException
 from sentry.scm.types import (
     SHA,
     ActionResult,
+    ArchiveFormat,
+    ArchiveLink,
     Author,
     BranchName,
     Comment,
     Commit,
     CommitAuthor,
     FileContent,
+    GitCommitObject,
+    GitCommitTree,
     GitRef,
+    GitTree,
     PaginatedActionResult,
     PaginatedResponseMeta,
     PaginationParams,
@@ -52,6 +57,7 @@ from sentry.scm.types import (
     RequestOptions,
     ReviewComment,
     ReviewSide,
+    TreeEntry,
 )
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -68,6 +74,11 @@ AWARD_NAME_BY_REACTION: dict[Reaction, str] = {
 
 REACTION_BY_AWARD_NAME: dict[str, Reaction] = {
     award: reaction for reaction, award in AWARD_NAME_BY_REACTION.items()
+}
+
+GITLAB_ARCHIVE_FORMAT_MAP: dict[ArchiveFormat, str] = {
+    "tarball": ".tar.gz",
+    "zip": ".zip",
 }
 
 PULL_REQUEST_STATE_RETRIEVE_MAP: dict[PullRequestState, list[str]] = {
@@ -96,10 +107,10 @@ class GitLabProvider:
         self.organization_id = organization_id
         self.repository = repository
         external_id = repository["external_id"]
-        assert external_id is not None
-        prefix = "gitlab.com:"
-        assert external_id.startswith(prefix)
-        self._repo_id = external_id[len(prefix) :]
+        # External ID format is "{netloc}:{repo_id}", where netloc might contain a colon before a port number
+        if external_id is None or ":" not in external_id:
+            raise SCMCodedError(code="malformed_external_id")
+        self._repo_id = external_id.rsplit(":", maxsplit=1)[1]
 
     def is_rate_limited(self, referrer: Referrer) -> bool:
         return False  # Rate-limits temporarily disabled.
@@ -322,6 +333,68 @@ class GitLabProvider:
         return make_result(map_git_ref, raw)
 
     @catch_provider_exception
+    def get_tree(
+        self,
+        tree_sha: SHA,
+        recursive: bool = True,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[GitTree]:
+        """List the repository tree at a given ref.
+
+        GitLab's tree API takes a ref (commit SHA, branch, tag) rather than a
+        tree-object SHA.  We treat ``tree_sha`` as a ref so callers can pass a
+        commit SHA obtained from ``get_git_commit``.
+        """
+        raw = self.client.get_repository_tree(self._repo_id, ref=tree_sha, recursive=recursive)
+        return ActionResult(
+            data=GitTree(
+                sha=tree_sha,
+                tree=[map_tree_entry(e) for e in raw],
+                truncated=False,
+            ),
+            type="gitlab",
+            raw={"data": raw, "headers": None},
+            meta={},
+        )
+
+    @catch_provider_exception
+    def get_git_commit(
+        self,
+        sha: SHA,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[GitCommitObject]:
+        """Get a commit as a git object.
+
+        GitLab's commit endpoint does not expose the tree-object SHA.  We set
+        ``tree.sha`` to the commit SHA so that downstream code can pass it to
+        ``get_tree`` (which accepts any ref).
+        """
+        raw = self.client.get_commit(self._repo_id, sha)
+        return make_result(map_git_commit_object, raw)
+
+    @catch_provider_exception
+    def get_archive_link(
+        self,
+        ref: str,
+        archive_format: ArchiveFormat = "tarball",
+    ) -> ActionResult[ArchiveLink]:
+        fmt = GITLAB_ARCHIVE_FORMAT_MAP[archive_format]
+        path = GitLabApiClientPath.archive.format(project=self._repo_id, format=fmt)
+        url = GitLabApiClientPath.build_api_url(self.client.base_url, path)
+        if ref:
+            url = f"{url}?{urlencode({'sha': ref})}"
+        token_data = self.client.get_access_token()
+        token = token_data["access_token"] if token_data else None
+        data = ArchiveLink(url=url, headers={"Authorization": f"Bearer {token}"} if token else {})
+        return ActionResult(
+            data=data,
+            type="gitlab",
+            raw={"data": url, "headers": None},
+            meta={},
+        )
+
+    @catch_provider_exception
     def get_file_content(
         self,
         path: str,
@@ -524,7 +597,7 @@ def make_paginated_result[T](
     return PaginatedActionResult(
         data=[map_item(item) for item in raw_items],
         type="gitlab",
-        raw=raw,
+        raw={"data": raw, "headers": None},
         # No actual pagination for now
         meta=PaginatedResponseMeta(next_cursor=None),
     )
@@ -542,7 +615,7 @@ def make_result[T](
     return ActionResult(
         data=map_item(raw_item),
         type="gitlab",
-        raw=raw,
+        raw={"data": raw, "headers": None},
         meta={},
     )
 
@@ -634,6 +707,26 @@ def map_reaction_result(raw: dict[str, Any]) -> ReactionResult:
         id=str(raw["id"]),
         content=REACTION_BY_AWARD_NAME[raw["name"]],
         author=map_author(raw["user"]),
+    )
+
+
+def map_git_commit_object(raw: dict[str, Any]) -> GitCommitObject:
+    return GitCommitObject(
+        sha=raw["id"],
+        # GitLab's commit API does not return a tree-object SHA.  We use the
+        # commit SHA so callers can pass it to get_tree (which accepts any ref).
+        tree=GitCommitTree(sha=raw["id"]),
+        message=raw["message"],
+    )
+
+
+def map_tree_entry(raw: dict[str, Any]) -> TreeEntry:
+    return TreeEntry(
+        path=raw["path"],
+        mode=raw["mode"],
+        type=raw["type"],
+        sha=raw["id"],
+        size=None,
     )
 
 

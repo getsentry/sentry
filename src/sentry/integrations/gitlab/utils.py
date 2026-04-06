@@ -73,6 +73,8 @@ class GitLabApiClientPath:
     projects = "/projects"
     statuses = "/projects/{project}/statuses/{sha}"
     commit_statuses = "/projects/{project}/repository/commits/{sha}/statuses"
+    archive = "/projects/{project}/repository/archive{format}"
+    tree = "/projects/{project}/repository/tree"
     branches = "/projects/{project_id}/repository/branches"
     branch = "/projects/{project_id}/repository/branches/{branch}"
     user = "/user"

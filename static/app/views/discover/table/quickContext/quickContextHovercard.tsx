@@ -11,8 +11,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {EventData} from 'sentry/utils/discover/eventView';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventData, EventView} from 'sentry/utils/discover/eventView';
 import {getShortEventId} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 

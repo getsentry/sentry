@@ -72,7 +72,7 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
     timestamp,
     traceSlug: traceId,
     limit: 10000,
-    targetEventId: event.eventID,
+    targetEventId: event.id,
   });
   const params = useTraceQueryParams({
     timestamp,

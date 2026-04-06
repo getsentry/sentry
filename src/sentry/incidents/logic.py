@@ -1141,11 +1141,6 @@ class AlertRuleTriggerLabelAlreadyUsedError(Exception):
     pass
 
 
-class ProjectsNotAssociatedWithAlertRuleError(Exception):
-    def __init__(self, project_slugs: Collection[str]) -> None:
-        self.project_slugs = project_slugs
-
-
 def create_alert_rule_trigger(
     alert_rule: AlertRule,
     label: str,
@@ -1324,28 +1319,6 @@ def deduplicate_trigger_actions(
         )
         deduped.setdefault(key, action)
     return list(deduped.values())
-
-
-def _get_subscriptions_from_alert_rule(
-    alert_rule: AlertRule, projects: Collection[Project]
-) -> Iterable[QuerySubscription]:
-    """
-    Fetches subscriptions associated with an alert rule filtered by a list of projects.
-    Raises `ProjectsNotAssociatedWithAlertRuleError` if Projects aren't associated with
-    the AlertRule
-    :param alert_rule: The AlertRule to fetch subscriptions for
-    :param projects: The Project we want subscriptions for
-    :return: A list of QuerySubscriptions
-    """
-    excluded_subscriptions = _unpack_snuba_query(alert_rule).subscriptions.filter(
-        project__in=projects
-    )
-    if len(excluded_subscriptions) != len(projects):
-        invalid_slugs = {p.slug for p in projects} - {
-            s.project.slug for s in excluded_subscriptions
-        }
-        raise ProjectsNotAssociatedWithAlertRuleError(invalid_slugs)
-    return excluded_subscriptions
 
 
 def create_alert_rule_trigger_action(

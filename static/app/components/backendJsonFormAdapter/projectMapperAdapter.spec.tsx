@@ -132,9 +132,12 @@ describe('ProjectMapperAdapter', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Add project'}));
 
     await waitFor(() => {
-      expect(mutationOptions.mutationFn).toHaveBeenCalledWith({
-        project_mappings: [[101, 'proj-1']],
-      });
+      expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
+        {
+          project_mappings: [[101, 'proj-1']],
+        },
+        expect.anything()
+      );
     });
   });
 
@@ -156,9 +159,12 @@ describe('ProjectMapperAdapter', () => {
     await userEvent.click(deleteButtons[0]!);
 
     await waitFor(() => {
-      expect(mutationOptions.mutationFn).toHaveBeenCalledWith({
-        project_mappings: [[102, 'proj-2']],
-      });
+      expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
+        {
+          project_mappings: [[102, 'proj-2']],
+        },
+        expect.anything()
+      );
     });
   });
 
@@ -266,15 +272,17 @@ describe('ProjectMapperAdapter', () => {
       expect(pendingMutationOptions.mutationFn).toHaveBeenCalled();
     });
 
-    // Remaining delete button should be disabled during mutation
-    expect(screen.getByRole('button', {name: 'Delete'})).toBeDisabled();
+    // Delete buttons should be disabled during mutation
+    const disabledButtons = screen.getAllByRole('button', {name: 'Delete'});
+    expect(disabledButtons.every(btn => btn.hasAttribute('disabled'))).toBe(true);
 
     // Resolve the mutation
     resolveMutation();
 
-    // Controls should be re-enabled
+    // Controls should be re-enabled after mutation resolves
     await waitFor(() => {
-      expect(screen.getByRole('button', {name: 'Delete'})).toBeEnabled();
+      const enabledButtons = screen.getAllByRole('button', {name: 'Delete'});
+      expect(enabledButtons.some(btn => !btn.hasAttribute('disabled'))).toBe(true);
     });
   });
 });

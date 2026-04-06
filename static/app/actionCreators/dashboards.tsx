@@ -11,8 +11,9 @@ import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {fetchMutation, type QueryClient} from 'sentry/utils/queryClient';
-import {getQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
+import {getStarredDashboardsQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {
+  DashboardFilter,
   DisplayType,
   type DashboardDetails,
   type DashboardListItem,
@@ -21,12 +22,16 @@ import {
 import {flattenErrors} from 'sentry/views/dashboards/utils';
 import {getResultsLimit} from 'sentry/views/dashboards/widgetBuilder/utils';
 
-export function fetchDashboards(api: Client, orgSlug: string) {
+export function fetchDashboards(
+  api: Client,
+  orgSlug: string,
+  query?: {filter?: DashboardFilter; sort?: string}
+) {
   const promise: Promise<DashboardListItem[]> = api.requestPromise(
     `/organizations/${orgSlug}/dashboards/`,
     {
       method: 'GET',
-      query: {sort: 'myDashboardsAndRecentlyViewed'},
+      query: {sort: 'myDashboardsAndRecentlyViewed', ...query},
     }
   );
 
@@ -156,7 +161,7 @@ export async function updateDashboardFavorite(
       }
     );
     queryClient.invalidateQueries({
-      queryKey: getQueryKey(organization),
+      queryKey: getStarredDashboardsQueryKey(organization),
     });
     addSuccessMessage(isFavorited ? t('Added as favorite') : t('Removed as favorite'));
   } catch (response: any) {
@@ -265,7 +270,7 @@ export function deleteDashboard(
 
   promise.then(() => {
     queryClient.invalidateQueries({
-      queryKey: getQueryKey(organization),
+      queryKey: getStarredDashboardsQueryKey(organization),
     });
   });
 

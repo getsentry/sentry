@@ -3,7 +3,7 @@ import type {Location} from 'history';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {

@@ -11,6 +11,7 @@ import {
   NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
   SECONDARY_SIDEBAR_WIDTH,
 } from 'sentry/views/navigation/constants';
+import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
 const ALL_AVAILABLE_FEATURES = [
   'insight-modules',
@@ -64,10 +65,15 @@ describe('SecondarySidebar', () => {
   beforeEach(setupMocks);
 
   it('uses the default width when no persisted value is in localStorage', () => {
-    render(<Navigation />, {
-      organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
-      initialRouterConfig: {location: {pathname: '/organizations/org-slug/issues/'}},
-    });
+    render(
+      <SecondaryNavigationContextProvider>
+        <Navigation />
+      </SecondaryNavigationContextProvider>,
+      {
+        organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
+        initialRouterConfig: {location: {pathname: '/organizations/org-slug/issues/'}},
+      }
+    );
 
     const secondaryNav = screen.getByRole('navigation', {name: 'Secondary Navigation'});
     const sidebarContainer = secondaryNav.closest(
@@ -85,10 +91,15 @@ describe('SecondarySidebar', () => {
       String(persistedWidth)
     );
 
-    render(<Navigation />, {
-      organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
-      initialRouterConfig: {location: {pathname: '/organizations/org-slug/issues/'}},
-    });
+    render(
+      <SecondaryNavigationContextProvider>
+        <Navigation />
+      </SecondaryNavigationContextProvider>,
+      {
+        organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
+        initialRouterConfig: {location: {pathname: '/organizations/org-slug/issues/'}},
+      }
+    );
 
     const secondaryNav = screen.getByRole('navigation', {name: 'Secondary Navigation'});
     const sidebarContainer = secondaryNav.closest(

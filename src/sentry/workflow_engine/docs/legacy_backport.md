@@ -6,7 +6,7 @@ Reimplement legacy alerts API endpoints using workflow engine abstractions. Back
 
 ## The Plan
 
-Each legacy endpoint gets a parallel workflow engine implementation, gated behind `organizations:workflow-engine-rule-serializers`. The two implementations live side-by-side in the same endpoint class; the non-workflow engine code is kept untouched as much as possible.
+Each legacy endpoint gets a parallel workflow engine implementation, gated behind feature flags. The broad flag `organizations:workflow-engine-rule-serializers` enables the workflow engine path for all backported endpoints. Per-endpoint-method flags allow independent rollout of individual code paths (see [Feature Flag Strategy](#feature-flag-strategy) below). The two implementations live side-by-side in the same endpoint class; the non-workflow engine code is kept untouched as much as possible.
 
 **Read endpoints (GET)** query workflow engine models (`Detector`, `Workflow`, `DataSource`, `GroupOpenPeriod`) and use dedicated serializers that reconstruct the legacy response shape.
 
@@ -61,6 +61,10 @@ All endpoints decorated with `@track_alert_endpoint_execution` are in scope for 
 
 - `RuleSnoozeEndpoint`
 - `MetricRuleSnoozeEndpoint`
+
+## Feature Flag Strategy
+
+`organizations:workflow-engine-rule-serializers` enables all backported paths at once (useful for testing). Per-endpoint flags (e.g. `organizations:workflow-engine-combinedruleindex-get`) allow independent prod rollout — each is OR'd with the broad flag. Per-feature flags (e.g. `organizations:workflow-engine-issue-alert-endpoints-get`) allow a subset of endpoints scoped to a feature to be enabled to avoid a large number of individual flags. Naming convention: `organizations:workflow-engine-{lowercaseendpointclass}-{method}`.
 
 ## Unsupported legacy features
 

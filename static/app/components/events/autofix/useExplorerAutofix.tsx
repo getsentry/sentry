@@ -102,39 +102,6 @@ export function isSolutionArtifact(value: unknown): value is Artifact<SolutionAr
   return isString(data.one_line_summary) && isArrayOf(data.steps, isSolutionStep);
 }
 
-export interface ImpactItem {
-  evidence: string;
-  impact_description: string;
-  label: string;
-  rating: 'low' | 'medium' | 'high';
-}
-
-export interface ImpactAssessmentArtifact {
-  impacts: ImpactItem[];
-  one_line_description: string;
-}
-
-export interface SuspectCommit {
-  author_email: string;
-  author_name: string;
-  committed_date: string;
-  description: string;
-  message: string;
-  repo_name: string;
-  sha: string;
-}
-
-interface SuggestedAssignee {
-  email: string;
-  name: string;
-  why: string;
-}
-
-export interface TriageArtifact {
-  suggested_assignee?: SuggestedAssignee | null;
-  suspect_commit?: SuspectCommit | null;
-}
-
 export function isCodeChangesArtifact(value: unknown): value is ExplorerFilePatch[] {
   return isArrayOf(value, isExplorerFilePatch) && value.length > 0;
 }
@@ -446,7 +413,7 @@ export function isCodeChangesSection(section: AutofixSection): boolean {
   return section.step === 'code_changes';
 }
 
-export function isPullRequestSection(section: AutofixSection): boolean {
+export function isPullRequestsSection(section: AutofixSection): boolean {
   return section.step === 'pull_request';
 }
 
@@ -460,29 +427,25 @@ export type AutofixArtifact =
   | RepoPRState[]
   | ExplorerCodingAgentState[];
 
-export function getOrderedAutofixArtifacts(
-  runState: ExplorerAutofixState | null
-): AutofixArtifact[] {
-  return getOrderedAutofixSections(runState)
-    .map(section => {
-      if (isRootCauseSection(section)) {
-        return section.artifacts.findLast(isRootCauseArtifact) ?? null;
-      }
-      if (isSolutionSection(section)) {
-        return section.artifacts.findLast(isSolutionArtifact) ?? null;
-      }
-      if (isCodeChangesSection(section)) {
-        return section.artifacts.findLast(isCodeChangesArtifact) ?? null;
-      }
-      if (isPullRequestSection(section)) {
-        return section.artifacts.findLast(isPullRequestsArtifact) ?? null;
-      }
-      if (isCodingAgentsSection(section)) {
-        return section.artifacts.findLast(isCodingAgentsArtifact) ?? null;
-      }
-      return null;
-    })
-    .filter(defined);
+export function getAutofixArtifactFromSection(
+  section: AutofixSection
+): AutofixArtifact | null {
+  if (isRootCauseSection(section)) {
+    return section.artifacts.findLast(isRootCauseArtifact) ?? null;
+  }
+  if (isSolutionSection(section)) {
+    return section.artifacts.findLast(isSolutionArtifact) ?? null;
+  }
+  if (isCodeChangesSection(section)) {
+    return section.artifacts.findLast(isCodeChangesArtifact) ?? null;
+  }
+  if (isPullRequestsSection(section)) {
+    return section.artifacts.findLast(isPullRequestsArtifact) ?? null;
+  }
+  if (isCodingAgentsSection(section)) {
+    return section.artifacts.findLast(isCodingAgentsArtifact) ?? null;
+  }
+  return null;
 }
 
 function isLastMessageOfSection(message?: Block['message']): boolean {
@@ -550,6 +513,13 @@ export function useExplorerAutofix(
   const orgSlug = organization.slug;
 
   const [waitingForResponse, setWaitingForResponse] = useState(false);
+
+  /**
+   * Triggering coding agents take a while and explorer state doesn't update until the end.
+   * This means while the request on ongoing, we need to disable the UI to prevent users
+   * from clicking other steps.
+   */
+  const [waitingForCodingAgent, setWaitingForCodingAgent] = useState(false);
 
   const {data: apiData, isPending} = useApiQuery<ExplorerAutofixResponse>(
     makeExplorerAutofixQueryKey(orgSlug, groupId),
@@ -631,18 +601,21 @@ export function useExplorerAutofix(
   const createPR = useCallback(
     async (runId: number, repoName?: string) => {
       try {
+        const data: Record<string, any> = {
+          step: 'open_pr',
+          run_id: runId,
+        };
+        if (repoName) {
+          data.repo_name = repoName;
+        }
         await api.requestPromise(
-          getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-update/$runId/', {
-            path: {organizationIdOrSlug: orgSlug, runId},
+          getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
+            path: {organizationIdOrSlug: orgSlug, issueId: groupId},
           }),
           {
             method: 'POST',
-            data: {
-              payload: {
-                type: 'create_pr',
-                repo_name: repoName,
-              },
-            },
+            query: {mode: 'explorer'},
+            data,
           }
         );
 
@@ -663,6 +636,7 @@ export function useExplorerAutofix(
    */
   const reset = useCallback(() => {
     setWaitingForResponse(false);
+    setWaitingForCodingAgent(false);
     setApiQueryData<ExplorerAutofixResponse>(
       queryClient,
       makeExplorerAutofixQueryKey(orgSlug, groupId),
@@ -675,7 +649,7 @@ export function useExplorerAutofix(
    */
   const triggerCodingAgentHandoff = useCallback(
     async (runId: number, integration: CodingAgentIntegration) => {
-      setWaitingForResponse(true);
+      setWaitingForCodingAgent(true);
 
       trackAnalytics('coding_integration.send_to_agent_clicked', {
         organization,
@@ -775,7 +749,7 @@ export function useExplorerAutofix(
         addErrorMessage(e?.responseJSON?.detail ?? 'Failed to launch coding agent');
         throw e;
       } finally {
-        setWaitingForResponse(false);
+        setWaitingForCodingAgent(false);
       }
     },
     [api, orgSlug, groupId, queryClient, organization, user.id]
@@ -801,7 +775,8 @@ export function useExplorerAutofix(
     /**
      * Whether we're actively processing (used for UI indicators).
      */
-    isPolling: isActivelyProcessing(runState, waitingForResponse),
+    isPolling:
+      isActivelyProcessing(runState, waitingForResponse) || waitingForCodingAgent,
     /**
      * Start or continue an autofix step.
      */
@@ -819,4 +794,45 @@ export function useExplorerAutofix(
      */
     triggerCodingAgentHandoff,
   };
+}
+
+export function collectPatches(
+  patches: ExplorerFilePatch[]
+): Map<string, ExplorerFilePatch[]> {
+  const patchesByRepo = new Map<string, ExplorerFilePatch[]>();
+
+  for (const patch of patches) {
+    const existing = patchesByRepo.get(patch.repo_name) || [];
+    existing.push(patch);
+    patchesByRepo.set(patch.repo_name, existing);
+  }
+
+  for (const [repoName, repoPatches] of patchesByRepo) {
+    const cleanedPatches = cleanPatches(repoPatches);
+    if (cleanedPatches.length) {
+      patchesByRepo.set(repoName, cleanedPatches);
+    } else {
+      patchesByRepo.delete(repoName);
+    }
+  }
+
+  return patchesByRepo;
+}
+
+function cleanPatches(patches: ExplorerFilePatch[]): ExplorerFilePatch[] {
+  const cleanedPatches: ExplorerFilePatch[] = [];
+
+  const patchedFiles = new Set<string>();
+
+  patches.toReversed().forEach(patch => {
+    if (patchedFiles.has(patch.patch.path)) {
+      return;
+    }
+    patchedFiles.add(patch.patch.path);
+    cleanedPatches.push(patch);
+  });
+
+  return cleanedPatches.reverse().filter(patch => {
+    return patch.patch.added > 0 || patch.patch.removed > 0;
+  });
 }

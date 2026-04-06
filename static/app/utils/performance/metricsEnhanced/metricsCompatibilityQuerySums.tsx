@@ -1,6 +1,6 @@
 import omit from 'lodash/omit';
 
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import type {
   DiscoverQueryProps,
   GenericChildrenProps,

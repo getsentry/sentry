@@ -17,7 +17,9 @@ from sentry.api.endpoints.organization_events_root_cause_analysis import (
 )
 from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
 from sentry.api.endpoints.organization_insights_tree import OrganizationInsightsTreeEndpoint
+from sentry.api.endpoints.organization_intercom_jwt import OrganizationIntercomJwtEndpoint
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
+from sentry.api.endpoints.organization_pipeline import OrganizationPipelineEndpoint
 from sentry.api.endpoints.organization_plugin_deprecation_info import (
     OrganizationPluginDeprecationInfoEndpoint,
 )
@@ -268,6 +270,9 @@ from sentry.integrations.api.endpoints.organization_integration_channels import 
 from sentry.integrations.api.endpoints.organization_integration_details import (
     OrganizationIntegrationDetailsEndpoint,
 )
+from sentry.integrations.api.endpoints.organization_integration_direct_enable import (
+    OrganizationIntegrationDirectEnableEndpoint,
+)
 from sentry.integrations.api.endpoints.organization_integration_issues import (
     OrganizationIntegrationIssuesEndpoint,
 )
@@ -332,6 +337,7 @@ from sentry.issues.endpoints import (
     ProjectGroupIndexEndpoint,
     ProjectGroupStatsEndpoint,
     ProjectStacktraceLinkEndpoint,
+    ProjectStacktraceSourceContextEndpoint,
     RelatedIssuesEndpoint,
     SharedGroupDetailsEndpoint,
     ShortIdLookupEndpoint,
@@ -560,6 +566,9 @@ from sentry.seer.supergroups.endpoints.organization_supergroup_details import (
 from sentry.seer.supergroups.endpoints.organization_supergroups import (
     OrganizationSupergroupsEndpoint,
 )
+from sentry.seer.supergroups.endpoints.organization_supergroups_by_group import (
+    OrganizationSupergroupsByGroupEndpoint,
+)
 from sentry.sentry_apps.api.endpoints.group_external_issue_details import (
     GroupExternalIssueDetailsEndpoint,
 )
@@ -612,6 +621,7 @@ from sentry.sentry_apps.api.endpoints.sentry_internal_app_tokens import (
     SentryInternalAppTokensEndpoint,
 )
 from sentry.synapse.endpoints.org_cell_mappings import OrgCellMappingsEndpoint
+from sentry.synapse.endpoints.project_key_cell_mappings import ProjectKeyCellMappingsEndpoint
 from sentry.tempest.endpoints.tempest_credentials import TempestCredentialsEndpoint
 from sentry.tempest.endpoints.tempest_credentials_details import TempestCredentialsDetailsEndpoint
 from sentry.tempest.endpoints.tempest_ips import TempestIpsEndpoint
@@ -1417,6 +1427,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         WaiveDataSecrecyEndpoint.as_view(),
         name="sentry-api-0-data-secrecy",
     ),
+    # Intercom JWT for identity verification
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/intercom-jwt/$",
+        OrganizationIntercomJwtEndpoint.as_view(),
+        name="sentry-api-0-organization-intercom-jwt",
+    ),
     # Incidents
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/incidents/(?P<incident_identifier>[^/]+)/$",
@@ -1959,6 +1975,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-integrations",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/integrations/direct-enable/(?P<provider_key>[^/]+)/$",
+        OrganizationIntegrationDirectEnableEndpoint.as_view(),
+        name="sentry-api-0-organization-integration-direct-enable",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/coding-agents/$",
         OrganizationCodingAgentsEndpoint.as_view(),
         name="sentry-api-0-organization-coding-agents",
@@ -2027,6 +2048,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/external-users/(?P<external_user_id>[^/]+)/$",
         ExternalUserDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-external-user-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/pipeline/(?P<pipeline_name>[^/]+)/$",
+        OrganizationPipelineEndpoint.as_view(),
+        name="sentry-api-0-organization-pipeline",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/integration-requests/$",
@@ -2417,6 +2443,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/supergroups/$",
         OrganizationSupergroupsEndpoint.as_view(),
         name="sentry-api-0-organization-supergroups",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/supergroups/by-group/$",
+        OrganizationSupergroupsByGroupEndpoint.as_view(),
+        name="sentry-api-0-organization-supergroups-by-group",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/supergroups/(?P<supergroup_id>[^/]+)/$",
@@ -3246,6 +3277,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-stacktrace-link",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/stacktrace-source-context/$",
+        ProjectStacktraceSourceContextEndpoint.as_view(),
+        name="sentry-api-0-project-stacktrace-source-context",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/repo-path-parsing/$",
         ProjectRepoPathParsingEndpoint.as_view(),
         name="sentry-api-0-project-repo-path-parsing",
@@ -3624,6 +3660,11 @@ INTERNAL_URLS = [
         r"^org-cell-mappings/$",
         OrgCellMappingsEndpoint.as_view(),
         name="sentry-api-0-org-cell-mappings",
+    ),
+    re_path(
+        r"^projectkey-cell-mappings/$",
+        ProjectKeyCellMappingsEndpoint.as_view(),
+        name="sentry-api-0-projectkey-cell-mappings",
     ),
     *preprod_urls.preprod_internal_urlpatterns,
     *notification_platform_urls.internal_urlpatterns,

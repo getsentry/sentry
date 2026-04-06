@@ -1,10 +1,10 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import styled from '@emotion/styled';
 import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
@@ -329,33 +329,35 @@ export default function IntegrationDetailedView() {
       }
 
       return (
-        <IntegrationContext
-          value={{
-            provider,
-            type: integrationType,
-            installStatus: installationStatus,
-            analyticsParams: {
-              view: 'integrations_directory_integration_detail',
-              already_installed: installationStatus !== 'Not Installed',
-              ...(referrer && {referrer}),
-            },
-          }}
-        >
-          <StyledIntegrationButton
-            userHasAccess={userHasAccess}
-            onAddIntegration={onInstall}
-            onExternalClick={() => {
-              trackIntegrationAnalytics('integrations.installation_start', {
+        <Flex gap="md">
+          <IntegrationContext
+            value={{
+              provider,
+              type: integrationType,
+              installStatus: installationStatus,
+              analyticsParams: {
                 view: 'integrations_directory_integration_detail',
-                integration: integrationSlug,
-                integration_type: integrationType,
                 already_installed: installationStatus !== 'Not Installed',
-                organization,
-              });
+                ...(referrer && {referrer}),
+              },
             }}
-            buttonProps={buttonProps}
-          />
-        </IntegrationContext>
+          >
+            <IntegrationButton
+              userHasAccess={userHasAccess}
+              onAddIntegration={onInstall}
+              onExternalClick={() => {
+                trackIntegrationAnalytics('integrations.installation_start', {
+                  view: 'integrations_directory_integration_detail',
+                  integration: integrationSlug,
+                  integration_type: integrationType,
+                  already_installed: installationStatus !== 'Not Installed',
+                  organization,
+                });
+              }}
+              buttonProps={buttonProps}
+            />
+          </IntegrationContext>
+        </Flex>
       );
     },
     [
@@ -645,7 +647,3 @@ export default function IntegrationDetailedView() {
     </SentryDocumentTitle>
   );
 }
-
-const StyledIntegrationButton = styled(IntegrationButton)`
-  margin-bottom: ${p => p.theme.space.md};
-`;

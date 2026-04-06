@@ -36,6 +36,9 @@ class Locality:
 
     category: RegionCategory
 
+    new_org_cell: str
+    """The cell within this locality where new organizations are provisioned."""
+
     visible: bool = True
     """Whether the locality is visible in API responses."""
 
@@ -100,9 +103,9 @@ class Cell:
     """Whether the cell is visible in API responses"""
 
     def validate(self) -> None:
-        from sentry.utils.snowflake import REGION_ID
+        from sentry.utils.snowflake import CELL_ID
 
-        REGION_ID.validate(self.snowflake_id)
+        CELL_ID.validate(self.snowflake_id)
 
     def is_historic_monolith_region(self) -> bool:
         """Check whether this is a historic monolith region.
@@ -209,6 +212,13 @@ class CellDirectory:
                 f"cell-only={defined_cells - assigned_cells!r}"
             )
 
+        for loc in self.localities:
+            if loc.new_org_cell not in loc.cells:
+                raise CellConfigurationError(
+                    f"Locality {loc.name!r} has new_org_cell={loc.new_org_cell!r} "
+                    f"which is not in its cells={set(loc.cells)!r}"
+                )
+
 
 def _parse_raw_config(cell_config: list[CellConfig]) -> Iterable[Cell]:
     for config_value in cell_config:
@@ -253,6 +263,7 @@ def _parse_locality_config(
             name=config_value["name"],
             category=RegionCategory(config_value["category"]),
             cells=frozenset(config_value["cells"]),
+            new_org_cell=config_value["new_org_cell"],
             visible=bool(config_value.get("visible", True)),
         )
 
@@ -276,6 +287,7 @@ def load_from_config(
                         name=cell.name,
                         category=cell.category,
                         cells=frozenset([cell.name]),
+                        new_org_cell=cell.name,
                         visible=cell.visible,
                     )
                 )
@@ -313,7 +325,7 @@ def get_global_directory() -> CellDirectory:
     # For now, assume that all cell configs can be taken in through Django
     # settings. We may investigate other ways of delivering those configs in
     # production.
-    _global_directory = load_from_config(settings.SENTRY_REGION_CONFIG, settings.SENTRY_LOCALITIES)
+    _global_directory = load_from_config(settings.SENTRY_CELLS, settings.SENTRY_LOCALITIES)
     return _global_directory
 
 
@@ -421,12 +433,12 @@ def get_local_cell() -> Cell:
     if single_process_cell is not None:
         return single_process_cell
 
-    if not settings.SENTRY_REGION:
+    if not settings.SENTRY_LOCAL_CELL:
         if in_test_environment():
             return get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
         else:
-            raise Exception("SENTRY_REGION must be set when server is in REGION silo mode")
-    return get_cell_by_name(settings.SENTRY_REGION)
+            raise Exception("SENTRY_LOCAL_CELL must be set when server is in CELL silo mode")
+    return get_cell_by_name(settings.SENTRY_LOCAL_CELL)
 
 
 @control_silo_function

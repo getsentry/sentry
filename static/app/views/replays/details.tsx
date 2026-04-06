@@ -1,8 +1,7 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import invariant from 'invariant';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FullViewport} from 'sentry/components/layouts/fullViewport';
@@ -22,6 +21,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {ReplayDetailsProviders} from 'sentry/views/replays/detail/body/replayDetailsProviders';
 import {ReplayDetailsHeaderActions} from 'sentry/views/replays/detail/header/replayDetailsHeaderActions';
 import {ReplayDetailsMetadata} from 'sentry/views/replays/detail/header/replayDetailsMetadata';
@@ -30,14 +30,23 @@ import {ReplayDetailsUserBadge} from 'sentry/views/replays/detail/header/replayD
 import {ReplayDetailsPage} from 'sentry/views/replays/detail/page';
 
 export default function ReplayDetails() {
+  const hasPageFrame = useHasPageFrameFeature();
+
   return (
     <AnalyticsArea name="details">
       <ReplayAccess
         fallback={
           <Fragment>
-            <TopHeader justify="between" align="center" gap="md">
+            <Flex
+              borderBottom="secondary"
+              justify="between"
+              align="center"
+              gap="md"
+              wrap="wrap"
+              padding={hasPageFrame ? {sm: 'sm lg', md: 'md xl'} : 'sm lg'}
+            >
               {t('Replay Details')}
-            </TopHeader>
+            </Flex>
             <Layout.Body>
               <ReplayAccessFallbackAlert />
             </Layout.Body>
@@ -81,17 +90,31 @@ function ReplayDetailsContent() {
     ? `${replayRecord.user.display_name ?? t('Anonymous User')} — Session Replay — ${orgSlug}`
     : `Session Replay — ${orgSlug}`;
 
+  const hasPageFrame = useHasPageFrameFeature();
+
   const content = (
     <Fragment>
       <Flex direction="column">
-        <TopHeader justify="between" align="center" gap="md">
+        <Flex
+          borderBottom="secondary"
+          justify="between"
+          align="center"
+          gap="md"
+          wrap="wrap"
+          padding={hasPageFrame ? {sm: 'sm lg', md: 'md xl'} : 'sm lg'}
+        >
           <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
           <ReplayDetailsHeaderActions readerResult={readerResult} />
-        </TopHeader>
-        <BottonHeader justify="between" align="center">
+        </Flex>
+        <Flex
+          justify="between"
+          align="center"
+          padding={hasPageFrame ? {sm: 'md lg', md: 'md xl'} : 'md lg'}
+          borderBottom="secondary"
+        >
           <ReplayDetailsUserBadge readerResult={readerResult} />
           <ReplayDetailsMetadata readerResult={readerResult} />
-        </BottonHeader>
+        </Flex>
       </Flex>
       <ReplayDetailsPage readerResult={readerResult} />
     </Fragment>
@@ -99,26 +122,20 @@ function ReplayDetailsContent() {
 
   return (
     <SentryDocumentTitle title={title}>
-      <FullViewport>
-        {replay ? (
-          <ReplayDetailsProviders replay={replay} projectSlug={readerResult.projectSlug}>
-            {content}
-          </ReplayDetailsProviders>
-        ) : (
-          content
-        )}
-      </FullViewport>
+      <Stack flex={1}>
+        <FullViewport>
+          {replay ? (
+            <ReplayDetailsProviders
+              replay={replay}
+              projectSlug={readerResult.projectSlug}
+            >
+              {content}
+            </ReplayDetailsProviders>
+          ) : (
+            content
+          )}
+        </FullViewport>
+      </Stack>
     </SentryDocumentTitle>
   );
 }
-
-const TopHeader = styled(Flex)`
-  padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-  flex-wrap: wrap;
-`;
-
-const BottonHeader = styled(Flex)`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-`;

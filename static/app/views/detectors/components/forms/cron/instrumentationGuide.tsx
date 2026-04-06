@@ -16,7 +16,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import {Container as WorkflowEngineContainer} from 'sentry/components/workflowEngine/ui/container';
-import {Section} from 'sentry/components/workflowEngine/ui/section';
+import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/project';
@@ -158,7 +158,7 @@ export function InstrumentationGuide() {
   return (
     <Fragment>
       <WorkflowEngineContainer>
-        <Section title={t('Select Instrumentation Method')}>
+        <FormSection title={t('Select Instrumentation Method')}>
           <Text variant="muted">
             {t(
               'You may not need to manually create your Cron Monitors! Configure your SDK to automatically create cron monitors.'
@@ -186,12 +186,12 @@ export function InstrumentationGuide() {
               </Fragment>
             )}
           </Flex>
-        </Section>
+        </FormSection>
       </WorkflowEngineContainer>
 
       {showAutoInstrumentationGuide && (
         <WorkflowEngineContainer>
-          <Section
+          <FormSection
             title={t('Auto-Instrument with %s', platform.label)}
             trailingItems={
               <Flex align="center" gap="sm">
@@ -228,7 +228,7 @@ export function InstrumentationGuide() {
             <div ref={guideContainerRef}>
               <guide.Guide />
             </div>
-          </Section>
+          </FormSection>
         </WorkflowEngineContainer>
       )}
     </Fragment>

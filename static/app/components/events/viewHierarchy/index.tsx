@@ -12,7 +12,6 @@ import type {UseVirtualizedTreeProps} from 'sentry/utils/profiling/hooks/useVirt
 import {useVirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 import type {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {DetailsPanel} from './detailsPanel';
 import {RenderingSystem} from './renderingSystem';
@@ -100,7 +99,6 @@ function ViewHierarchy({
   nodeField,
 }: ViewHierarchyProps) {
   const organization = useOrganization();
-  const hasStreamlinedUI = useHasStreamlinedUI();
   const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
     null
   );
@@ -245,11 +243,7 @@ function ViewHierarchy({
     </Fragment>
   );
 
-  return hasStreamlinedUI ? (
-    <Container>{viewHierarchyContent}</Container>
-  ) : (
-    viewHierarchyContent
-  );
+  return <Container>{viewHierarchyContent}</Container>;
 }
 
 export {ViewHierarchy};

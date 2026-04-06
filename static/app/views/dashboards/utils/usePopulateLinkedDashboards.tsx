@@ -6,7 +6,11 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchDataQuery, useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
+import {
+  DashboardFilter,
+  type DashboardDetails,
+  type Widget,
+} from 'sentry/views/dashboards/types';
 import {
   PREBUILT_DASHBOARDS,
   PrebuiltDashboardId,
@@ -169,7 +173,7 @@ function makeDashboardsQueryKey(
     {
       query: {
         prebuiltId: prebuiltIds.sort(),
-        filter: 'showHidden',
+        filter: DashboardFilter.SHOW_HIDDEN,
       },
     },
   ];

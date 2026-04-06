@@ -4,6 +4,7 @@ from unittest.mock import ANY, MagicMock, Mock, patch
 
 import pytest
 from django.utils import timezone
+from taskbroker_client.state import CurrentTaskState
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.environment import Environment
@@ -13,7 +14,6 @@ from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.rules.conditions.event_frequency import ComparisonType
 from sentry.rules.match import MatchType
 from sentry.services.eventstore.models import Event, GroupEvent
-from sentry.taskworker.state import CurrentTaskState
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils import json
 from sentry.utils.snuba import RateLimitExceeded

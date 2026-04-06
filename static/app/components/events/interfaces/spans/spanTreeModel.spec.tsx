@@ -1,6 +1,6 @@
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
-import SpanTreeModel from 'sentry/components/events/interfaces/spans/spanTreeModel';
+import {SpanTreeModel} from 'sentry/components/events/interfaces/spans/spanTreeModel';
 import type {
   EnhancedProcessedSpanType,
   RawSpanType,
@@ -607,7 +607,7 @@ describe('SpanTreeModel', () => {
 
     // If statement here is required to avoid TS linting issues
     if (spans[1]!.type === 'span_group_siblings') {
-      expect(spans[1]!.spanSiblingGrouping!).toHaveLength(5);
+      expect(spans[1]!.spanSiblingGrouping).toHaveLength(5);
     }
   });
 

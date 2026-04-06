@@ -1,13 +1,17 @@
 import {useState} from 'react';
 
-import {Alert} from '@sentry/scraps/alert';
-import {Button} from '@sentry/scraps/button';
+import organizationDeletionIllustration from 'sentry-images/organizationDeletion.svg';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
-import * as Layout from 'sentry/components/layouts/thirds';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {LogoSentry} from 'sentry/components/logoSentry';
 import {t, tct} from 'sentry/locale';
 import {AlertStore} from 'sentry/stores/alertStore';
 import type {Organization} from 'sentry/types/organization';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -21,20 +25,46 @@ type BodyProps = {
 
 function DeletionInProgress({organization}: OrganizationProps) {
   return (
-    <Layout.Body>
-      <Layout.Main>
-        <Alert.Container>
-          <Alert variant="warning">
+    <Flex
+      direction="column"
+      align="center"
+      justify="center"
+      minHeight="100dvh"
+      style={{
+        backgroundImage: `url(${organizationDeletionIllustration})`,
+        backgroundSize: 'contain',
+        backgroundPosition: 'top center',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
+      <Flex
+        direction="column"
+        align="start"
+        gap="md"
+        maxWidth="580px"
+        padding="2xl"
+        background="primary"
+        radius="xl"
+      >
+        <LogoSentry height="24px" />
+        <Heading as="h1">{t('Deletion In Progress')}</Heading>
+        <Stack gap="lg" paddingTop="2xl">
+          <Text as="p" size="lg">
             {tct(
               'The [organization] organization is currently in the process of being deleted from Sentry.',
               {
                 organization: <strong>{organization.slug}</strong>,
               }
             )}
-          </Alert>
-        </Alert.Container>
-      </Layout.Main>
-    </Layout.Body>
+          </Text>
+          <Text as="p" size="sm" variant="muted">
+            {t(
+              "Once deletion begins, there's no recovering the data that has been removed."
+            )}
+          </Text>
+        </Stack>
+      </Flex>
+    </Flex>
   );
 }
 
@@ -50,7 +80,7 @@ function DeletionPending({organization}: OrganizationProps) {
         method: 'PUT',
         data: {cancelDeletion: true},
       });
-      window.location.reload();
+      testableWindowLocation.reload();
     } catch {
       setIsRestoring(false);
       AlertStore.addAlert({
@@ -62,44 +92,57 @@ function DeletionPending({organization}: OrganizationProps) {
   };
 
   return (
-    <Layout.Body>
-      <Layout.Main>
-        <h3>{t('Deletion Scheduled')}</h3>
-        <p>
-          {tct('The [organization] organization is currently scheduled for deletion.', {
-            organization: <strong>{organization.slug}</strong>,
-          })}
-        </p>
-
-        {organization.access.includes('org:admin') ? (
-          <div>
-            <p>
-              {t(
-                'Would you like to cancel this process and restore the organization back to the original state?'
+    <Flex
+      direction="column"
+      align="center"
+      justify="center"
+      minHeight="100dvh"
+      style={{
+        backgroundImage: `url(${organizationDeletionIllustration})`,
+        backgroundSize: 'contain',
+        backgroundPosition: 'top center',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
+      <Flex
+        direction="column"
+        align="start"
+        gap="md"
+        maxWidth="580px"
+        padding="2xl"
+        background="primary"
+        radius="xl"
+      >
+        <LogoSentry height="24px" />
+        <Heading as="h1">{t('Deletion Scheduled')}</Heading>
+        <Stack gap="lg" paddingTop="2xl">
+          <Text as="p" size="lg">
+            {tct('The [organization] organization is currently scheduled for deletion.', {
+              organization: <strong>{organization.slug}</strong>,
+            })}
+            {'\u00A0'}
+            {!organization.access.includes('org:admin') &&
+              t(
+                'If this is a mistake, contact an organization owner and ask them to restore this organization.'
               )}
-            </p>
-            <p>
+          </Text>
+
+          {organization.access.includes('org:admin') && (
+            <Flex direction="column" gap="sm" paddingTop="xl">
               <Button priority="primary" onClick={onRestore} disabled={isRestoring}>
                 {t('Restore Organization')}
               </Button>
-            </p>
-          </div>
-        ) : (
-          <p>
+            </Flex>
+          )}
+
+          <Text as="p" size="sm" variant="muted">
             {t(
-              'If this is a mistake, contact an organization owner and ask them to restore this organization.'
+              "Note: Restoration is available until the process begins. Once deletion begins, there's no recovering the data anymore."
             )}
-          </p>
-        )}
-        <p>
-          <small>
-            {t(
-              "Note: Restoration is available until the process begins. Once it does, there's no recovering the data that has been removed."
-            )}
-          </small>
-        </p>
-      </Layout.Main>
-    </Layout.Body>
+          </Text>
+        </Stack>
+      </Flex>
+    </Flex>
   );
 }
 

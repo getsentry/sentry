@@ -6,7 +6,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {DEFAULT_REPLAY_LIST_SORT} from 'sentry/components/replays/table/useReplayTableSort';
 import {IssueCategory, type Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';

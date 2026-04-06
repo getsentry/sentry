@@ -102,6 +102,10 @@ describe('Testing new onboarding ui', () => {
     expect(
       await screen.findByText("Waiting for this project's first trace")
     ).toBeInTheDocument();
+
+    expect(
+      screen.getByRole('button', {name: 'Take me to an example'})
+    ).toBeInTheDocument();
   });
 
   it('when the first trace is received, display a busy button "Take me to my trace"', async () => {

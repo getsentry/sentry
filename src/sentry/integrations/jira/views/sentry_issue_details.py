@@ -102,6 +102,8 @@ class JiraSentryIssueDetailsView(JiraSentryUIBaseView):
     """
     Handles requests (from the Sentry integration in Jira) for HTML to display when you
     click on "Sentry -> Linked Issues" in the RH sidebar of an issue in the Jira UI.
+
+    TODO(cells): Remove once all installs have migrated to JiraSentryIssueDetailsControlView.
     """
 
     html_file = "sentry/integrations/jira-issue.html"
@@ -187,7 +189,7 @@ class JiraSentryIssueDetailsControlView(JiraSentryUIBaseView):
     """
     Handles requests (from the Sentry integration in Jira) for HTML to display when you
     click on "Sentry -> Linked Issues" in the RH sidebar of an issue in the Jira UI.
-    Fans the request to all regions and returns the groups from all regions.
+    Fans the request to all cells and returns the groups from all cells.
     """
 
     html_file = "sentry/integrations/jira-issue-list.html"

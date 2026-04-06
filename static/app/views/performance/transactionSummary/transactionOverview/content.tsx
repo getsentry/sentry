@@ -13,6 +13,7 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
 import {IconWarning} from 'sentry/icons';
@@ -22,7 +23,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {
   formatTagKey,
   isRelativeSpanOperationBreakdownField,
@@ -42,6 +43,7 @@ import Tags from 'sentry/views/discover/results/tags';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
 import {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanFields} from 'sentry/views/insights/types';
 import {SegmentSpansTable} from 'sentry/views/performance/eap/segmentSpansTable';
@@ -57,6 +59,7 @@ import {EAPChartsWidget} from 'sentry/views/performance/transactionSummary/trans
 import {EAPSidebarCharts} from 'sentry/views/performance/transactionSummary/transactionOverview/eapSidebarCharts';
 import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
+  EAP_WEB_VITALS,
   makeVitalGroups,
   PERCENTILE as VITAL_PERCENTILE,
 } from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
@@ -108,7 +111,6 @@ function EAPSummaryContentInner({
   projectId,
   transactionName,
 }: Props) {
-  const theme = useTheme();
   const navigate = useNavigate();
   const spanCategory = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
 
@@ -152,13 +154,10 @@ function EAPSummaryContentInner({
   const hasWebVitals =
     isSummaryViewFrontendPageLoad(eventView, projects) ||
     (totalValues !== null &&
-      makeVitalGroups(theme).some(group =>
-        group.vitals.some(vital => {
-          const functionName = `percentile(${vital},${VITAL_PERCENTILE})`;
-          const field = functionName;
-          return Number.isFinite(totalValues[field]) && totalValues[field] !== 0;
-        })
-      ));
+      EAP_WEB_VITALS.some(vital => {
+        const field = `percentile(${vital},${VITAL_PERCENTILE})`;
+        return Number.isFinite(totalValues[field]) && totalValues[field] !== 0;
+      }));
 
   const isFrontendView = isSummaryViewFrontend(eventView, projects);
 
@@ -235,18 +234,12 @@ function EAPSummaryContentInner({
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
-  function renderSearchBar() {
-    return (
-      <TransactionSearchQueryBuilder
-        projects={projectIds}
-        initialQuery={query}
-        onSearch={handleSearch}
-        searchSource="transaction_summary"
-        disableLoadingTags // already loaded by the parent component
-        filterKeyMenuWidth={420}
-      />
-    );
-  }
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
+    projects: projectIds,
+    initialQuery: query,
+    onSearch: handleSearch,
+    searchSource: 'transaction_summary',
+  });
 
   return (
     <Fragment>
@@ -257,7 +250,12 @@ function EAPSummaryContentInner({
             <EnvironmentPageFilter />
             <DatePageFilter {...datePageFilterProps} />
           </PageFilterBar>
-          <StyledSearchBarWrapper>{renderSearchBar()}</StyledSearchBarWrapper>
+          <StyledSearchBarWrapper>
+            <TraceItemSearchQueryBuilder
+              {...spanSearchQueryBuilderProps}
+              disallowFreeText
+            />
+          </StyledSearchBarWrapper>
         </FilterActions>
         <EAPChartsWidgetContainer>
           <EAPChartsWidget transactionName={transactionName} query={query} />

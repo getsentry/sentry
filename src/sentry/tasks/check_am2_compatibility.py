@@ -6,6 +6,7 @@ from typing import Any
 
 import sentry_sdk
 from django.db.models import Q
+from taskbroker_client.retry import Retry
 
 from sentry.dynamic_sampling import get_redis_client_for_ds
 from sentry.exceptions import IncompatibleMetricsQuery
@@ -28,7 +29,6 @@ from sentry.snuba.metrics.extraction import (
 )
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import telemetry_experience_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils import json
 
 # The time range over which the check script queries the data for determining the compatibility state.

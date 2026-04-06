@@ -1,6 +1,7 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
+
+import {Tag} from '@sentry/scraps/badge';
+import {Text} from '@sentry/scraps/text';
 
 import type {PageFilters} from 'sentry/types/core';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -36,14 +37,12 @@ interface IssueViewQueryCountProps {
 
 export function IssueViewQueryCount({view, isActive}: IssueViewQueryCountProps) {
   const organization = useOrganization();
-  const theme = useTheme();
   const location = useLocation();
 
   const queryIssueViewParams = createIssueViewFromUrl({query: location.query});
 
   const {
     data: queryCount,
-    isLoading,
     isFetching,
     isError,
   } = useFetchIssueCounts({
@@ -68,50 +67,37 @@ export function IssueViewQueryCount({view, isActive}: IssueViewQueryCountProps) 
     ? 0
     : (queryCount?.[view.query] ?? queryCount?.[defaultQuery ?? ''] ?? 0);
 
+  if (isFetching) {
+    return null;
+  }
+
   return (
-    <QueryCountBubble
-      animate={{
-        backgroundColor: isFetching
-          ? [
-              theme.tokens.background.primary,
-              theme.colors.surface200,
-              theme.tokens.background.primary,
-            ]
-          : `#00000000`,
-      }}
-      transition={{
-        default: {
-          // Cuts animation short once the query has finished fetching
-          duration: isFetching ? 2 : 0,
-          repeat: isFetching ? Infinity : 0,
-          ease: 'easeInOut',
-        },
-      }}
-      data-issue-view-query-count
-    >
-      <motion.span
-        // Prevents count from fading in if it's already cached on mount
-        initial={{opacity: isLoading ? 0 : 1}}
-        animate={{opacity: isFetching ? 0 : 1}}
-      >
+    <StyledTag variant="muted" data-issue-view-query-count>
+      <Text variant="muted" size="xs" align="center" tabular>
         {count > TAB_MAX_COUNT ? `${TAB_MAX_COUNT}+` : count}
-      </motion.span>
-    </QueryCountBubble>
+      </Text>
+    </StyledTag>
   );
 }
-
-const QueryCountBubble = styled(motion.span)`
-  line-height: 20px;
-  font-size: ${p => p.theme.font.size.xs};
+const StyledTag = styled(Tag)`
+  border: 1px solid ${p => p.theme.tokens.border.neutral.muted};
+  background-color: ${p => p.theme.tokens.background.primary};
   padding: 0 ${p => p.theme.space.xs};
-  min-width: 20px;
-  display: flex;
-  height: 18px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  color: ${p => p.theme.tokens.content.secondary};
-  margin-left: 0;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
+  justify-content: end;
+
+  opacity: 0;
+  transform: scale(0.95);
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  animation: fadeIn 0.1s ease-in-out forwards;
 `;

@@ -267,7 +267,9 @@ export function BasicAutoSaveDemo() {
       await sleep(1000);
       return data;
     },
-    onSuccess: setServerState,
+    onSuccess: data => {
+      setServerState({displayName: data.displayName.toUpperCase()});
+    },
   });
 
   return (

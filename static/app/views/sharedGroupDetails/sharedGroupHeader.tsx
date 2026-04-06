@@ -53,7 +53,6 @@ export function SharedGroupHeader({group}: Props) {
           message={group.culprit}
           level={group.level}
           type={group.type}
-          data={group}
         />
       </Details>
     </Wrapper>

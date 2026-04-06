@@ -268,10 +268,10 @@ describe('TraceMetricsConfig', () => {
       expect(result).toHaveLength(4);
       // With multiple yAxes and groupings, series names should include function name
       // to uniquely identify them
-      expect(result[0]!.seriesName).toBe('frontend : avg(…)');
-      expect(result[1]!.seriesName).toBe('backend : avg(…)');
-      expect(result[2]!.seriesName).toBe('frontend : p50(…)');
-      expect(result[3]!.seriesName).toBe('backend : p50(…)');
+      expect(result[0]!.seriesName).toBe('frontend : avg(test_metric)');
+      expect(result[1]!.seriesName).toBe('backend : avg(test_metric)');
+      expect(result[2]!.seriesName).toBe('frontend : p50(test_metric)');
+      expect(result[3]!.seriesName).toBe('backend : p50(test_metric)');
     });
 
     it('uniquely identifies series with multiple groupings', () => {
@@ -349,10 +349,10 @@ describe('TraceMetricsConfig', () => {
 
       expect(result).toHaveLength(4);
       // Multiple groupings should be comma-separated, with function name appended
-      expect(result[0]!.seriesName).toBe('frontend,production : avg(…)');
-      expect(result[1]!.seriesName).toBe('frontend,staging : avg(…)');
-      expect(result[2]!.seriesName).toBe('frontend,production : p50(…)');
-      expect(result[3]!.seriesName).toBe('frontend,staging : p50(…)');
+      expect(result[0]!.seriesName).toBe('frontend,production : avg(test_metric)');
+      expect(result[1]!.seriesName).toBe('frontend,staging : avg(test_metric)');
+      expect(result[2]!.seriesName).toBe('frontend,production : p50(test_metric)');
+      expect(result[3]!.seriesName).toBe('frontend,staging : p50(test_metric)');
     });
 
     it('handles null groupBy values', () => {
@@ -398,8 +398,8 @@ describe('TraceMetricsConfig', () => {
 
       expect(result).toHaveLength(2);
       // Null values should be labeled "(no value)" and include function name for uniqueness
-      expect(result[0]!.seriesName).toBe('(no value) : avg(…)');
-      expect(result[1]!.seriesName).toBe('(no value) : p50(…)');
+      expect(result[0]!.seriesName).toBe('(no value) : avg(test_metric)');
+      expect(result[1]!.seriesName).toBe('(no value) : p50(test_metric)');
     });
 
     it('prefixes series names with query name using : separator for single aggregate and no groupings', () => {
@@ -586,10 +586,10 @@ describe('TraceMetricsConfig', () => {
 
       expect(result).toHaveLength(4);
       // With query name, multiple aggregates AND groupings, use > separator
-      expect(result[0]!.seriesName).toBe('My Query > frontend : avg(…)');
-      expect(result[1]!.seriesName).toBe('My Query > backend : avg(…)');
-      expect(result[2]!.seriesName).toBe('My Query > frontend : p50(…)');
-      expect(result[3]!.seriesName).toBe('My Query > backend : p50(…)');
+      expect(result[0]!.seriesName).toBe('My Query > frontend : avg(test_metric)');
+      expect(result[1]!.seriesName).toBe('My Query > backend : avg(test_metric)');
+      expect(result[2]!.seriesName).toBe('My Query > frontend : p50(test_metric)');
+      expect(result[3]!.seriesName).toBe('My Query > backend : p50(test_metric)');
     });
 
     it('distinguishes series from different widget queries using their query names', () => {

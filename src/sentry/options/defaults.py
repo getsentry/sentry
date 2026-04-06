@@ -405,6 +405,7 @@ register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR
 #  - retries: int | None = None,
 #  - timeout_ms: float | None = None,
 #  - connection_kwargs: Mapping[str, Any] | None = None,
+#  - token_generator: Mapping[str, Any] | None = None,
 #
 # For an always up-to-date list, see:
 # https://getsentry.github.io/objectstore/python/objectstore_client.html#objectstore_client.Client
@@ -687,6 +688,11 @@ register("slack.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Log unfurl payloads for debugging
 register("slack.log-unfurl-payload", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Slack Staging App
+register("slack-staging.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
+register("slack-staging.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register("slack-staging.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+
 # Issue Summary on Alerts (timeout in seconds)
 register("alerts.issue_summary_timeout", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Issue Summary Auto-trigger rate (max number of autofix runs auto-triggered per project per hour)
@@ -883,6 +889,9 @@ register("aws-lambda.python.layer-version", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("aws-lambda.host-region", default="us-east-2", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # the number of threads we should use to install Lambdas
 register("aws-lambda.thread-count", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Intercom Integration
+register("intercom.sentry-api-secret", flags=FLAG_NOSTORE | FLAG_CREDENTIAL, default="")
 
 # Snuba
 register(
@@ -1146,12 +1155,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "seer.similarity-backfill-killswitch.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "seer.similarity-embeddings-killswitch.enabled",
     default=False,
     type=Bool,
@@ -1266,20 +1269,6 @@ register(
 )
 
 register(
-    "seer.similarity.ingest.use_reranking",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "seer.similarity.similar_issues.use_reranking",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "seer.similarity.ingest.num_matches_to_request",
     type=Int,
     default=1,
@@ -1350,14 +1339,6 @@ register(
     "embeddings-grouping.seer.ratelimit",
     type=Int,
     default=0,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# seer embeddings backfill batch size
-register(
-    "embeddings-grouping.seer.backfill-batch-size",
-    type=Int,
-    default=10,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2412,63 +2393,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# List of organization IDs that should be using segment metrics for boost low volume transactions.
-register(
-    "dynamic-sampling.transactions.segment-metric-orgs",
-    default=[],
-    type=Sequence,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# When enabled, use segment metrics for ALL orgs in boost low volume transactions.
-register(
-    "dynamic-sampling.transactions.segment-metric.enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# List of organization IDs that should be using segment metrics for recalibrate_orgs.
-register(
-    "dynamic-sampling.recalibrate_orgs.segment-metric-orgs",
-    default=[],
-    type=Sequence,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# When enabled, use segment metrics for ALL orgs in recalibrate_orgs.
-register(
-    "dynamic-sampling.recalibrate_orgs.segment-metric.enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# List of organization IDs that should be using segment metrics for sliding_window_org.
-register(
-    "dynamic-sampling.sliding_window_org.segment-metric-orgs",
-    default=[],
-    type=Sequence,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# When enabled, use segment metrics for ALL orgs in sliding_window_org.
-register(
-    "dynamic-sampling.sliding_window_org.segment-metric.enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# List of organization IDs that should be using segment metrics for boost_low_volume_projects.
-register(
-    "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs",
-    default=[],
-    type=Sequence,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# When enabled, use segment metrics for ALL orgs in boost_low_volume_projects.
-register(
-    "dynamic-sampling.boost_low_volume_projects.segment-metric.enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-
 # === Hybrid cloud subsystem options ===
 # UI rollout
 register(
@@ -2545,6 +2469,16 @@ register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_
 register(
     "nodestore.set-subkeys.enable-set-cache-item",
     default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# TTL in seconds for nodestore cache entries. Event bodies are immutable
+# so longer TTLs are safe and improve cache hit rates for batch reads
+# (e.g. group events list endpoint).
+register(
+    "nodestore.cache-ttl",
+    default=300,
+    type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2681,6 +2615,29 @@ register(
 register(
     "sentry-apps.webhook.hard-timeout.sec",
     default=5.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Circuit breaker configuration for webhook endpoint failure detection.
+# Keys match RateBasedTripStrategyConfig + CircuitBreakerConfig
+register(
+    "sentry-apps.webhook.circuit-breaker.config",
+    type=Dict,
+    default={
+        "error_limit_window": 600,  # 10 minutes
+        "broken_state_duration": 300,  # 5 minutes
+        "threshold": 0.5,  # 50% error rate
+        "floor": 500,  # 500 errors before error rate check applies
+        "metrics_key": "sentry-app.webhook",  # to avoid high cardinality slug tag
+    },
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# When True, the circuit breaker tracks state and emits metrics but does not block requests.
+register(
+    "sentry-apps.webhook.circuit-breaker.dry-run",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3317,27 +3274,6 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Write payload sets to per-span distributed keys AND merged keys.
-# Flusher reads merged keys as before.
-register(
-    "spans.buffer.write-distributed-payloads",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Switch flusher to read from distributed keys instead of merged.
-register(
-    "spans.buffer.read-distributed-payloads",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Set to False to stop writing merged keys and skip set merges.
-# Disable after read-distributed-payloads is stable. Rollback: re-enable
-# this flag to resume merged writes before reverting read-distributed-payloads.
-register(
-    "spans.buffer.write-merged-payloads",
-    default=True,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # List of trace_ids to enable debug logging for. Empty = debug off.
 # When set, logs detailed metrics about zunionstore set sizes, key existence, and trace structure.
 register(
@@ -3346,12 +3282,6 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "spans.buffer.done-flush-conditional-zrem",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Segments consumer
 register(
     "spans.process-segments.consumer.enable",
@@ -3534,54 +3464,12 @@ register(
 )
 
 register(
-    "similarity.backfill_nodestore_use_multithread",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "similarity.backfill_nodestore_chunk_size",
-    default=5,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "similarity.backfill_nodestore_threads",
-    default=6,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "similarity.backfill_snuba_concurrent_requests",
-    default=20,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "similarity.backfill_seer_chunk_size",
-    default=30,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "similarity.backfill_seer_threads",
-    default=1,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "similarity.backfill_project_cohort_size",
     default=1000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "similarity.backfill_total_worker_count",
-    default=6,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "similarity.new_project_seer_grouping.enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "similarity.backfill_use_reranking",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -3683,6 +3571,22 @@ register(
 # generally set to 'as high as we think we can safely handle for a handful of orgs'.
 register(
     "workflow_engine.max_more_workflows_per_org",
+    type=Int,
+    default=10000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Tuning knobs for the periodic fire-history cleanup task.
+# time_limit is a wall-clock budget checked *between* batches, so a single
+# batch that exceeds it will still run to completion. Setting it to 0
+# prevents any batches from running.
+register(
+    "workflow_engine.fire_history_cleanup.time_limit_seconds",
+    type=Float,
+    default=5.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "workflow_engine.fire_history_cleanup.batch_size",
     type=Int,
     default=10000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3876,8 +3780,9 @@ register(
 
 # Taskbroker flags
 register(
-    "taskworker.enabled",
-    default=True,
+    "taskworker.producer.max_futures",
+    type=Int,
+    default=1000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -3885,18 +3790,6 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "taskworker.grpc_service_config",
-    type=String,
-    default="""{"loadBalancingConfig": [{"round_robin": {}}]}""",
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.fetch_next.disabled_pools",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 
 # Enable HTTP/2 transport in Sentry SDK
 register(
@@ -4200,4 +4093,20 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "integrations.jira.multi-cell-enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# ViewerContext — unified caller identity for all entrypoints.
+# Set via deploy config (SENTRY_OPTIONS); requires restart to change.
+register(
+    "viewer-context.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_NOSTORE,
 )

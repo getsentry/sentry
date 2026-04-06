@@ -1,5 +1,4 @@
 import {GroupFixture} from 'sentry-fixture/group';
-import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -66,33 +65,6 @@ describe('GroupTitle', () => {
     );
 
     expect(screen.queryByTestId('stacktrace-preview')).not.toBeInTheDocument();
-  });
-
-  it('does not render stacktrace preview when data is a tombstone', () => {
-    render(
-      <GroupTitle
-        data={{
-          id: '123',
-          level: 'error',
-          culprit:
-            'useOverflowTabs(webpack-internal:///./app/components/tabs/tabList.tsx)',
-          type: EventOrGroupType.ERROR,
-          metadata: {
-            value: 'numTabItems is not defined',
-            type: 'ReferenceError',
-            filename: 'webpack-internal:///./app/components/tabs/tabList.tsx',
-            function: 'useOverflowTabs',
-          },
-          actor: UserFixture(),
-          isTombstone: true,
-          dateAdded: '2025-06-25T00:00:00Z',
-        }}
-        withStackTracePreview
-      />
-    );
-
-    expect(screen.queryByTestId('stacktrace-preview')).not.toBeInTheDocument();
-    expect(screen.getByText('ReferenceError')).toBeInTheDocument();
   });
 
   describe('performance issue list', () => {

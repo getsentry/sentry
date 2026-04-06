@@ -8,6 +8,7 @@ import time
 from os import environ, path
 from urllib.parse import urlparse
 
+import docker.errors
 import ephemeral_port_reserve
 import pytest
 import requests
@@ -68,8 +69,7 @@ def relay_server_setup(live_server, tmpdir_factory):
     template_path = _get_template_dir()
     sources = ["config.yml", "credentials.json"]
 
-    worker_num = xdist._worker_num if xdist._worker_num is not None else 0
-    relay_port = ephemeral_port_reserve.reserve(ip="127.0.0.1", port=33331 + worker_num * 100)
+    relay_port = ephemeral_port_reserve.reserve(ip="127.0.0.1", port=0)
 
     redis_db = xdist.get_redis_db()
 
@@ -139,7 +139,18 @@ def relay_server(relay_server_setup, settings):
     with get_docker_client() as docker_client:
         container_name = _relay_server_container_name()
         _remove_container_if_exists(docker_client, container_name)
-        container = docker_client.containers.run(**options)
+        # Docker may not release the host port binding immediately after
+        # container removal; retry to ride out the race window.
+        for attempt in range(5):
+            try:
+                container = docker_client.containers.run(**options)
+                break
+            except docker.errors.APIError as e:
+                if "address already in use" in str(e) and attempt < 4:
+                    time.sleep(1 * 1.5**attempt)
+                    _remove_container_if_exists(docker_client, container_name)
+                    continue
+                raise
 
     _log.info("Waiting for Relay container to start")
 

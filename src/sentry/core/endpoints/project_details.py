@@ -57,7 +57,7 @@ from sentry.models.projectredirect import ProjectRedirect
 from sentry.notifications.utils import has_alert_integration
 from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
-from sentry.tasks.delete_seer_grouping_records import call_seer_delete_project_grouping_records
+from sentry.tasks.seer.delete_seer_grouping_records import call_seer_delete_project_grouping_records
 from sentry.tempest.utils import has_tempest_access
 
 logger = logging.getLogger(__name__)
@@ -111,11 +111,15 @@ class ProjectMemberSerializer(serializers.Serializer):
         required=False,
     )
     preprodSizeStatusChecksRules = serializers.JSONField(required=False)
+    preprodSnapshotStatusChecksEnabled = serializers.BooleanField(required=False)
+    preprodSnapshotStatusChecksFailOnAdded = serializers.BooleanField(required=False)
+    preprodSnapshotStatusChecksFailOnRemoved = serializers.BooleanField(required=False)
     preprodSizeEnabledByCustomer = serializers.BooleanField(required=False, allow_null=True)
     preprodDistributionEnabledByCustomer = serializers.BooleanField(required=False, allow_null=True)
     preprodDistributionPrCommentsEnabledByCustomer = serializers.BooleanField(
         required=False, allow_null=True
     )
+    preprodSnapshotPrCommentsEnabled = serializers.BooleanField(required=False, allow_null=True)
     preprodSizeEnabledQuery = serializers.CharField(required=False, allow_null=True)
     preprodDistributionEnabledQuery = serializers.CharField(required=False, allow_null=True)
 
@@ -160,7 +164,11 @@ class ProjectMemberSerializer(serializers.Serializer):
         "preprodDistributionEnabledQuery",
         "preprodSizeEnabledByCustomer",
         "preprodDistributionEnabledByCustomer",
+        "preprodSnapshotStatusChecksEnabled",
+        "preprodSnapshotStatusChecksFailOnAdded",
+        "preprodSnapshotStatusChecksFailOnRemoved",
         "preprodDistributionPrCommentsEnabledByCustomer",
+        "preprodSnapshotPrCommentsEnabled",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -251,6 +259,10 @@ E.g. `['release', 'environment']`""",
     targetSampleRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     dynamicSamplingBiases = DynamicSamplingBiasSerializer(required=False, many=True)
     tempestFetchScreenshots = serializers.BooleanField(required=False)
+    scmSourceContextEnabled = serializers.BooleanField(
+        required=False,
+        help_text="Enable on-demand source context fetching from SCM integrations for stack traces.",
+    )
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
@@ -465,6 +477,15 @@ E.g. `['release', 'environment']`""",
             raise serializers.ValidationError(
                 "Organization does not have the tempest feature enabled."
             )
+        return value
+
+    def validate_scmSourceContextEnabled(self, value):
+        if value:
+            organization = self.context["project"].organization
+            if not features.has("organizations:scm-source-context", organization):
+                raise serializers.ValidationError(
+                    "Organization does not have the SCM source context feature enabled."
+                )
         return value
 
     def validate_debugFilesRole(self, value):
@@ -755,6 +776,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:tempest_fetch_screenshots"] = result[
                     "tempestFetchScreenshots"
                 ]
+        if result.get("scmSourceContextEnabled") is not None:
+            if project.update_option(
+                "sentry:scm_source_context_enabled", result["scmSourceContextEnabled"]
+            ):
+                changed_proj_settings["sentry:scm_source_context_enabled"] = result[
+                    "scmSourceContextEnabled"
+                ]
         if result.get("targetSampleRate") is not None:
             if project.update_option(
                 "sentry:target_sample_rate", round(result["targetSampleRate"], 4)
@@ -831,6 +859,30 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:preprod_distribution_enabled_query"] = result[
                     "preprodDistributionEnabledQuery"
                 ]
+        if result.get("preprodSnapshotStatusChecksEnabled") is not None:
+            if project.update_option(
+                "sentry:preprod_snapshot_status_checks_enabled",
+                result["preprodSnapshotStatusChecksEnabled"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_status_checks_enabled"] = result[
+                    "preprodSnapshotStatusChecksEnabled"
+                ]
+        if result.get("preprodSnapshotStatusChecksFailOnAdded") is not None:
+            if project.update_option(
+                "sentry:preprod_snapshot_status_checks_fail_on_added",
+                result["preprodSnapshotStatusChecksFailOnAdded"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_status_checks_fail_on_added"] = (
+                    result["preprodSnapshotStatusChecksFailOnAdded"]
+                )
+        if result.get("preprodSnapshotStatusChecksFailOnRemoved") is not None:
+            if project.update_option(
+                "sentry:preprod_snapshot_status_checks_fail_on_removed",
+                result["preprodSnapshotStatusChecksFailOnRemoved"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_status_checks_fail_on_removed"] = (
+                    result["preprodSnapshotStatusChecksFailOnRemoved"]
+                )
         if "preprodDistributionPrCommentsEnabledByCustomer" in result:
             if project.update_option(
                 "sentry:preprod_distribution_pr_comments_enabled_by_customer",
@@ -839,6 +891,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings[
                     "sentry:preprod_distribution_pr_comments_enabled_by_customer"
                 ] = result["preprodDistributionPrCommentsEnabledByCustomer"]
+        if "preprodSnapshotPrCommentsEnabled" in result:
+            if project.update_option(
+                "sentry:preprod_snapshot_pr_comments_enabled",
+                result["preprodSnapshotPrCommentsEnabled"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_pr_comments_enabled"] = result[
+                    "preprodSnapshotPrCommentsEnabled"
+                ]
         if "debugFilesRole" in result:
             if result["debugFilesRole"] is None:
                 project.delete_option("sentry:debug_files_role")

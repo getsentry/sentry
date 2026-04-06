@@ -20,11 +20,18 @@ export async function dispatch({
   fileChanges,
   mergeCommitSha,
   sentryChangedFiles,
+  sentryPreviousFilenames,
+  targetWorkflow,
 }) {
   core.startGroup('Dispatching request to getsentry.');
 
+  const dispatches =
+    targetWorkflow !== undefined
+      ? [{workflow: targetWorkflow, pathFilterName: 'backend_all'}]
+      : DISPATCHES;
+
   await Promise.all(
-    DISPATCHES.map(({workflow, pathFilterName}) => {
+    dispatches.map(({workflow, pathFilterName}) => {
       const inputs = {
         pull_request_number: `${context.payload.pull_request.number}`, // needs to be string
         skip: `${fileChanges[pathFilterName] !== 'true'}`, // even though this is a boolean, it must be cast to a string
@@ -36,6 +43,7 @@ export async function dispatch({
 
         // Changed files for selective testing. Empty string means full suite.
         'sentry-changed-files': sentryChangedFiles || '',
+        'sentry-previous-filenames': sentryPreviousFilenames || '',
       };
 
       core.info(

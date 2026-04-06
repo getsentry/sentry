@@ -128,9 +128,14 @@ describe('TableAdapter', () => {
     await userEvent.click(document.body); // blur
 
     await waitFor(() => {
-      expect(mutationOptions.mutationFn).toHaveBeenCalledWith({
-        service_table: [{id: '1', service: 'Updated Service', integration_key: 'abc123'}],
-      });
+      expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
+        {
+          service_table: [
+            {id: '1', service: 'Updated Service', integration_key: 'abc123'},
+          ],
+        },
+        expect.anything()
+      );
     });
   });
 
@@ -173,9 +178,12 @@ describe('TableAdapter', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
     await waitFor(() => {
-      expect(mutationOptions.mutationFn).toHaveBeenCalledWith({
-        service_table: [{id: '2', service: 'Other Service', integration_key: 'def456'}],
-      });
+      expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
+        {
+          service_table: [{id: '2', service: 'Other Service', integration_key: 'def456'}],
+        },
+        expect.anything()
+      );
     });
   });
 
@@ -218,9 +226,14 @@ describe('TableAdapter', () => {
     await userEvent.keyboard('{Enter}');
 
     await waitFor(() => {
-      expect(mutationOptions.mutationFn).toHaveBeenCalledWith({
-        service_table: [{id: '1', service: 'Updated Service', integration_key: 'abc123'}],
-      });
+      expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
+        {
+          service_table: [
+            {id: '1', service: 'Updated Service', integration_key: 'abc123'},
+          ],
+        },
+        expect.anything()
+      );
     });
   });
 

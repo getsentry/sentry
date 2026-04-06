@@ -249,10 +249,10 @@ class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
         if not org_member:
             return Response(status=403)
 
-        DashboardLastVisited.objects.create_or_update(
+        DashboardLastVisited.objects.update_or_create(
             dashboard=dashboard,
             member=org_member,
-            values={"last_visited": timezone.now()},
+            defaults={"last_visited": timezone.now()},
         )
 
         return Response(status=204)

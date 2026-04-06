@@ -10,7 +10,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -34,11 +34,12 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-import {addBillingMetricUsage} from 'admin/components/addBillingMetricUsage';
 import {addGiftBudgetAction} from 'admin/components/addGiftBudgetAction';
 import {AddGiftEventsAction} from 'admin/components/addGiftEventsAction';
+import {triggerAddToStartupProgramModal} from 'admin/components/addToStartupProgramAction';
 import {CancelSubscriptionAction} from 'admin/components/cancelSubscriptionAction';
 import {triggerChangeBalanceModal} from 'admin/components/changeBalanceAction';
+import {openChangeDashboardsParallelLimitModal} from 'admin/components/changeDashboardsParallelLimitModal';
 import {triggerChangeDatesModal} from 'admin/components/changeDatesAction';
 import {triggerGoogleDomainModal} from 'admin/components/changeGoogleDomainAction';
 import {triggerChangePlanAction} from 'admin/components/changePlanAction';
@@ -62,17 +63,17 @@ import {openUpdateRetentionSettingsModal} from 'admin/components/customers/updat
 import {deleteBillingMetricHistory} from 'admin/components/deleteBillingMetricHistory';
 import type {ActionItem, BadgeItem} from 'admin/components/detailsPage';
 import {DetailsPage} from 'admin/components/detailsPage';
-import ForkCustomerAction from 'admin/components/forkCustomer';
+import {ForkCustomerAction} from 'admin/components/forkCustomer';
 import {triggerEndPeriodEarlyModal} from 'admin/components/nextBillingPeriodAction';
 import {triggerProvisionSubscription} from 'admin/components/provisionSubscriptionAction';
 import {refundVercelRequest} from 'admin/components/refundVercelRequestModal';
 import {SelectableContainer} from 'admin/components/selectableContainer';
 import SendWeeklyEmailAction from 'admin/components/sendWeeklyEmailAction';
-import SponsorshipAction from 'admin/components/sponsorshipAction';
-import SuspendAccountAction from 'admin/components/suspendAccountAction';
+import {SponsorshipAction} from 'admin/components/sponsorshipAction';
+import {SuspendAccountAction} from 'admin/components/suspendAccountAction';
 import {openToggleConsolePlatformsModal} from 'admin/components/toggleConsolePlatformsModal';
 import {toggleSpendAllocationModal} from 'admin/components/toggleSpendAllocationModal';
-import TrialSubscriptionAction from 'admin/components/trialSubscriptionAction';
+import {TrialSubscriptionAction} from 'admin/components/trialSubscriptionAction';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import type {BilledDataCategoryInfo, BillingConfig, Subscription} from 'getsentry/types';
 import {
@@ -486,6 +487,19 @@ export function CustomerDetails() {
             ...actionRequiresBillingAdmin,
           },
           {
+            key: 'addToStartupProgram',
+            name: 'Add to Startup Program',
+            help: 'Add credit for the Sentry for Startups program.',
+            skipConfirmModal: true,
+            onAction: () =>
+              triggerAddToStartupProgramModal({
+                orgId,
+                subscription,
+                onSuccess: reloadData,
+              }),
+            ...actionRequiresBillingAdmin,
+          },
+          {
             key: 'changeOverageNotification',
             name: subscription.hasOverageNotificationsDisabled
               ? 'Enable Overage Notification'
@@ -801,18 +815,6 @@ export function CustomerDetails() {
             },
           },
           {
-            key: 'addBillingMetricUsage',
-            name: 'Add Billing Metric Usage',
-            help: 'Create and add Billing Metric Usage.',
-            skipConfirmModal: true,
-            visible: hasAdminTestFeatures,
-            onAction: () =>
-              addBillingMetricUsage({
-                onSuccess: reloadData,
-                organization,
-              }),
-          },
-          {
             key: 'deleteBillingMetricHistory',
             name: 'Delete Billing Metric History',
             help: 'Delete billing metric history for a specific data category.',
@@ -854,6 +856,18 @@ export function CustomerDetails() {
               openUpdateRetentionSettingsModal({
                 organization,
                 subscription,
+                onSuccess: reloadData,
+              });
+            },
+          },
+          {
+            key: 'changeDashboardsParallelLimit',
+            name: 'Change Dashboard Parallel Query Limit',
+            help: 'Adjust how many dashboard widget queries can run in parallel for this organization.',
+            skipConfirmModal: true,
+            onAction: () => {
+              openChangeDashboardsParallelLimitModal({
+                organization,
                 onSuccess: reloadData,
               });
             },

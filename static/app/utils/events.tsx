@@ -44,7 +44,7 @@ export function eventTypeHasLogLevel(type: EventOrGroupType) {
   return EVENT_TYPES_WITH_LOG_LEVEL.has(type);
 }
 
-export function isTombstone(
+function isTombstone(
   maybe: BaseGroup | Event | GroupTombstoneHelper | SimpleGroup
 ): maybe is GroupTombstoneHelper {
   return 'isTombstone' in maybe && maybe.isTombstone;
@@ -517,6 +517,6 @@ export function eventIsProfilingIssue(event: BaseGroup | Event | GroupTombstoneH
   return evidenceData.templateName === 'profile';
 }
 
-export function isGroup(event: BaseGroup | Event): event is BaseGroup {
+function isGroup(event: BaseGroup | Event): event is BaseGroup {
   return (event as BaseGroup).status !== undefined;
 }

@@ -5,6 +5,7 @@ import logging
 
 from django.db import router
 from django.db.models import F
+from taskbroker_client.retry import Retry
 
 from sentry import audit_log, options
 from sentry.auth import manager
@@ -16,7 +17,6 @@ from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import auth_control_tasks, auth_tasks
-from sentry.taskworker.retry import Retry
 from sentry.types.cell import CellMappingNotFound
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service

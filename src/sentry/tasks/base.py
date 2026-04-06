@@ -7,18 +7,16 @@ from collections.abc import Callable
 from typing import Any, TypeVar
 
 import sentry_sdk
-from django.conf import settings
 from django.db.models import Model
-from taskbroker_client.constants import CompressionType as TaskbrokerCompressionType
+from taskbroker_client.constants import CompressionType
+from taskbroker_client.registry import TaskNamespace
+from taskbroker_client.retry import Retry, RetryTaskError, retry_task
+from taskbroker_client.state import current_task
+from taskbroker_client.task import P, R, Task
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.silo.base import SiloMode
-from sentry.taskworker.constants import CompressionType
-from sentry.taskworker.registry import TaskNamespace
-from sentry.taskworker.retry import Retry, RetryTaskError, retry_task
 from sentry.taskworker.silolimiter import TaskSiloLimit
-from sentry.taskworker.state import current_task
-from sentry.taskworker.task import P, R, Task
-from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.utils import metrics
 
 ModelT = TypeVar("ModelT", bound=Model)
@@ -115,9 +113,6 @@ def instrumented_task(
     silo_mode : SiloMode | None
         The silo that the task will run in. This should be the silo that the task was called from.
     """
-    if compression_type and settings.TASKWORKER_USE_LIBRARY:
-        # TODO(tasks) this shim is temporary and will be removed alongside TASKWORKER_USE_LIBRARY
-        compression_type = TaskbrokerCompressionType(compression_type.value)  # type: ignore[assignment]
 
     def wrapped(func: Callable[P, R]) -> Task[P, R]:
         task = namespace.register(

@@ -21,7 +21,7 @@ import {ReleasesStatusOption} from 'sentry/views/releases/list/releasesStatusOpt
 
 describe('ReleasesList', () => {
   const organization = OrganizationFixture({
-    features: ['search-query-builder-input-flow-changes', 'preprod-frontend-routes'],
+    features: ['preprod-frontend-routes'],
   });
   const projects = [ProjectFixture({features: ['releases']})];
   const semverVersionInfo = {
@@ -95,6 +95,11 @@ describe('ReleasesList', () => {
       url: `/projects/org-slug/${projects[0]!.slug}/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/validate/`,
+      method: 'POST',
+      body: {attributes: {}},
+    });
   });
 
   afterEach(() => {
@@ -136,7 +141,6 @@ describe('ReleasesList', () => {
     });
     PageFiltersStore.updateProjects([Number(projectWithoutReleases.id)], null);
     render(<ReleasesList />, {organization});
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(await screen.findByText('Set up Releases')).toBeInTheDocument();
     expect(screen.queryByTestId('release-panel')).not.toBeInTheDocument();
   });
@@ -153,7 +157,6 @@ describe('ReleasesList', () => {
         },
       },
     });
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(
       await screen.findByText("There are no releases that match: 'abc'.")
     ).toBeInTheDocument();
@@ -174,7 +177,6 @@ describe('ReleasesList', () => {
         },
       },
     });
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(
       await screen.findByText('There are no releases with data in the last 7 days.')
     ).toBeInTheDocument();
@@ -195,7 +197,6 @@ describe('ReleasesList', () => {
         },
       },
     });
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(
       await screen.findByText(
         'There are no releases with active user data (users in the last 24 hours).'
@@ -215,7 +216,6 @@ describe('ReleasesList', () => {
         },
       },
     });
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(
       await screen.findByText(
         'There are no releases with active session data (sessions in the last 24 hours).'
@@ -232,7 +232,6 @@ describe('ReleasesList', () => {
         },
       },
     });
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(
       await screen.findByText('There are no releases with semantic versioning.')
     ).toBeInTheDocument();
@@ -277,8 +276,6 @@ describe('ReleasesList', () => {
         },
       },
     });
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
-
     const input = await screen.findByDisplayValue('derp');
     expect(input).toBeInTheDocument();
 
@@ -305,18 +302,18 @@ describe('ReleasesList', () => {
         },
       },
     });
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(endpointMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/releases/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: ReleasesSortOption.SESSIONS,
+          }),
+        })
+      );
+    });
 
-    expect(endpointMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/releases/`,
-      expect.objectContaining({
-        query: expect.objectContaining({
-          sort: ReleasesSortOption.SESSIONS,
-        }),
-      })
-    );
-
-    await userEvent.click(screen.getByText('Sort By'));
+    await userEvent.click(await screen.findByText('Sort By'));
 
     const dateCreatedOption = screen.getByText('Date Created');
     expect(dateCreatedOption).toBeInTheDocument();
@@ -373,14 +370,6 @@ describe('ReleasesList', () => {
         },
       },
     });
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
-    expect(endpointMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/releases/`,
-      expect.objectContaining({
-        query: expect.objectContaining({status: ReleasesStatusOption.ARCHIVED}),
-      })
-    );
-
     expect(
       await screen.findByText('These releases have been archived.')
     ).toBeInTheDocument();

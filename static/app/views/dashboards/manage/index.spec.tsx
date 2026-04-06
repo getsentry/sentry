@@ -123,10 +123,7 @@ describe('Dashboards > Detail', () => {
 
     await userEvent.click(await screen.findByTestId('dashboard-create'));
 
-    expect(mockNavigate).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/dashboards/new/',
-      query: {},
-    });
+    expect(mockNavigate).toHaveBeenCalledWith('/organizations/org-slug/dashboards/new/');
   });
 
   it('can sort', async () => {

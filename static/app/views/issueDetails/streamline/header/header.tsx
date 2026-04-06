@@ -11,7 +11,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Count} from 'sentry/components/count';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {useFeedbackSDKIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
@@ -199,12 +199,7 @@ export function StreamlinedGroupHeader({event, group, project}: GroupHeaderProps
                 </StatLink>
               ))}
           </StatTitle>
-          <EventMessage
-            data={group}
-            level={group.level}
-            message={secondaryTitle}
-            type={group.type}
-          />
+          <EventMessage level={group.level} message={secondaryTitle} type={group.type} />
           {issueTypeConfig.eventAndUserCounts.enabled && (
             <Fragment>
               <StatCount value={eventCount} aria-label={t('Event count')} />

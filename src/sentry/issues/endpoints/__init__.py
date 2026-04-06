@@ -30,6 +30,7 @@ from .project_events import ProjectEventsEndpoint
 from .project_group_index import ProjectGroupIndexEndpoint
 from .project_group_stats import ProjectGroupStatsEndpoint
 from .project_stacktrace_link import ProjectStacktraceLinkEndpoint
+from .project_stacktrace_source_context import ProjectStacktraceSourceContextEndpoint
 from .related_issues import RelatedIssuesEndpoint
 from .shared_group_details import SharedGroupDetailsEndpoint
 from .source_map_debug import SourceMapDebugEndpoint
@@ -66,6 +67,7 @@ __all__ = (
     "ProjectGroupIndexEndpoint",
     "ProjectGroupStatsEndpoint",
     "ProjectStacktraceLinkEndpoint",
+    "ProjectStacktraceSourceContextEndpoint",
     "RelatedIssuesEndpoint",
     "SharedGroupDetailsEndpoint",
     "ShortIdLookupEndpoint",

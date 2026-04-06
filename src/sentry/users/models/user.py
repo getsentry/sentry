@@ -43,7 +43,7 @@ from sentry.locks import locks
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.organizations.services.organization import RpcRegionUser, organization_service
+from sentry.organizations.services.organization import RpcCellUser, organization_service
 from sentry.types.cell import find_all_cell_names, find_cells_for_user
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.lostpasswordhash import LostPasswordHash
@@ -367,16 +367,16 @@ class User(Model, AbstractBaseUser):
     def outboxes_for_user_update(
         identifier: int, is_user_delete: bool = False
     ) -> list[ControlOutboxBase]:
-        # User deletions must fan out to all regions to ensure cascade behavior
+        # User deletions must fan out to all cells to ensure cascade behavior
         # of anything with a HybridCloudForeignKey, even if the user is no longer
-        # a member of any organizations in that region.
+        # a member of any organizations in that cell.
         if is_user_delete:
-            user_regions = set(find_all_cell_names())
+            user_cells = set(find_all_cell_names())
         else:
-            user_regions = find_cells_for_user(identifier)
+            user_cells = find_cells_for_user(identifier)
 
         return OutboxCategory.USER_UPDATE.as_control_outboxes(
-            cell_names=user_regions,
+            cell_names=user_cells,
             object_identifier=identifier,
             shard_identifier=identifier,
         )
@@ -612,7 +612,7 @@ class User(Model, AbstractBaseUser):
         cell_caching_service.clear_key(key=get_user.key_from(self.id), cell_name=cell_name)
         cell_caching_service.clear_key(key=get_many_by_id.key_from(self.id), cell_name=cell_name)
         organization_service.update_cell_user(
-            user=RpcRegionUser(
+            user=RpcCellUser(
                 id=self.id,
                 is_active=self.is_active,
                 email=self.email,

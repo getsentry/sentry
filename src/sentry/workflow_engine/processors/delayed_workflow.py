@@ -10,6 +10,8 @@ from typing import Any
 import sentry_sdk
 from django.utils import timezone
 from pydantic import BaseModel, validator
+from taskbroker_client.retry import retry_task
+from taskbroker_client.state import current_task
 
 from sentry import features, nodestore
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -19,8 +21,6 @@ from sentry.models.project import Project
 from sentry.rules.conditions.event_frequency import COMPARISON_INTERVALS
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.post_process import should_retry_fetch
-from sentry.taskworker.retry import retry_task
-from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.registry import NoRegistrationExistsError

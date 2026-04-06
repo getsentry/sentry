@@ -114,7 +114,7 @@ describe('Cart', () => {
     const cart = await screen.findByTestId('cart');
     expect(cart).toHaveTextContent('Business Plan');
     expect(cart).toHaveTextContent('Pay-as-you-go spend limitup to $300/mo');
-    expect(cart).toHaveTextContent('Plan Total$89/mo');
+    await waitFor(() => expect(cart).toHaveTextContent('Plan Total$89/mo'));
     expect(cart).toHaveTextContent('Default Amount');
   });
 

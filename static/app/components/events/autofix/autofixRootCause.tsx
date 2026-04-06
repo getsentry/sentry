@@ -334,8 +334,12 @@ function SolutionActionButton({
         const actionLabel = needsSetup
           ? t('Setup %s', integration.name)
           : t('Send to %s', integration.name);
+        const textValue = hasDuplicateNames
+          ? `${actionLabel} (${integration.id ?? integration.provider})`
+          : actionLabel;
         return {
           key: `agent:${integration.id ?? integration.provider}`,
+          textValue,
           label: (
             <Flex gap="md" align="center">
               <PluginIcon pluginId={integration.provider} size={20} />
@@ -529,9 +533,11 @@ function AutofixRootCauseDisplay({
 
     setSolutionText('');
 
-    trackAnalytics('autofix.coding_agent.launch_from_root_cause', {
+    trackAnalytics('autofix.coding_agent.launch', {
       organization,
       group_id: groupId,
+      step: 'root_cause',
+      provider: integration.provider,
     });
     trackAnalytics('coding_integration.send_to_agent_clicked', {
       organization,

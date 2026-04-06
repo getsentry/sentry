@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
@@ -11,7 +11,7 @@ import {fetchTagValues} from 'sentry/actionCreators/tags';
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {CreateAlertButton} from 'sentry/components/createAlertButton';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -140,7 +140,7 @@ export function ProjectDetail() {
     function syncProjectWithSlug() {
       if (projectId && projectId !== projectQueryParam) {
         // if someone visits /organizations/sentry/projects/javascript/ (without ?project=XXX) we need to update URL and globalSelection with the right project ID
-        updateProjects([Number(projectId)], undefined);
+        updateProjects([Number(projectId)], undefined, undefined);
         navigate(
           {pathname: location.pathname, query: {...location.query, project: projectId}},
           {replace: true}
@@ -152,20 +152,20 @@ export function ProjectDetail() {
 
   if (!loadingProjects && !project) {
     return (
-      <Layout.Page withPadding>
+      <Stack flex={1} padding="2xl 3xl">
         <LoadingError
           message={t('This project could not be found.')}
           onRetry={onRetryProjects}
         />
-      </Layout.Page>
+      </Stack>
     );
   }
 
   if (!loadingProjects && project && !project.hasAccess) {
     return (
-      <Layout.Page>
+      <Stack flex={1}>
         <MissingProjectMembership organization={organization} project={project} />
-      </Layout.Page>
+      </Stack>
     );
   }
 
@@ -176,7 +176,7 @@ export function ProjectDetail() {
         skipLoadLastUsed
         showAbsolute={!hasOnlyBasicChart}
       >
-        <Layout.Page>
+        <Stack flex={1}>
           <NoProjectMessage organization={organization}>
             <Layout.Header unified>
               <Layout.HeaderContent unified>
@@ -308,7 +308,7 @@ export function ProjectDetail() {
               </Layout.Side>
             </Layout.Body>
           </NoProjectMessage>
-        </Layout.Page>
+        </Stack>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );

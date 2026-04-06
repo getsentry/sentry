@@ -8,7 +8,7 @@ import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 const themes = {light: lightTheme, dark: darkTheme};
 
 describe('Button', () => {
-  describe.each(['light', 'dark'] as const)('theme-%s', themeName => {
+  describe.each(['light', 'dark'] as const)('%s', themeName => {
     it.snapshot.each<ButtonProps['priority']>([
       'default',
       'primary',
@@ -16,16 +16,20 @@ describe('Button', () => {
       'warning',
       'link',
       'transparent',
-    ])('priority-%s', priority => (
-      <ThemeProvider theme={themes[themeName]}>
-        {/* Buttons need a bit of padding as rootElement.screenshot() clips to the
-          element's CSS border-box. For buttons, box-shadows/outlines/focus rings
-          extending outside #root get cut off. */}
+    ])(
+      '%s',
+      priority => (
+        <ThemeProvider theme={themes[themeName]}>
+          {/* Buttons need a bit of padding as rootElement.screenshot() clips to the
+            element's CSS border-box. For buttons, box-shadows/outlines/focus rings
+            extending outside #root get cut off. */}
 
-        <div style={{padding: 8}}>
-          <Button priority={priority}>{priority}</Button>
-        </div>
-      </ThemeProvider>
-    ));
+          <div style={{padding: 8}}>
+            <Button priority={priority}>{priority}</Button>
+          </div>
+        </ThemeProvider>
+      ),
+      priority => ({theme: themeName, priority: String(priority)})
+    );
   });
 });

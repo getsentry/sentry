@@ -2,7 +2,7 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {WidgetFixture} from 'sentry-fixture/widget';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
@@ -112,7 +112,7 @@ describe('WidgetCardConfidenceFooter', () => {
 
     const footer = await screen.findByText(/Estimated for top 2 groups from/i);
     expect(footer).toHaveTextContent('18 matches');
-    expect(footer).toHaveTextContent('500 spans');
+    await waitFor(() => expect(footer).toHaveTextContent('500 spans'));
   });
 
   it('excludes Other from spans top event metadata', async () => {
@@ -155,16 +155,17 @@ describe('WidgetCardConfidenceFooter', () => {
   it('renders metrics footer with raw counts from API', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {data: [{'count(value,duration,d,-)': 120}]},
+      body: {data: [{'count(value)': 120}]},
       match: [MockApiClient.matchQuery({sampling: 'NORMAL', dataset: 'tracemetrics'})],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {data: [{'count(value,duration,d,-)': 500}]},
+      body: {data: [{'count(value)': 500}]},
       match: [
         MockApiClient.matchQuery({
-          sampling: 'HIGHEST_ACCURACY',
+          sampling: 'NORMAL',
           dataset: 'tracemetrics',
+          referrer: 'api.explore.tracemetrics.raw-count.normal-extrapolated-total',
         }),
       ],
     });
@@ -180,8 +181,8 @@ describe('WidgetCardConfidenceFooter', () => {
           queries: [
             WidgetQueryFixture({
               conditions: 'transaction:checkout',
-              aggregates: ['avg(value,duration,d,-)'],
-              fields: ['avg(value,duration,d,-)'],
+              aggregates: ['avg(value,metric_name,distribution,millisecond)'],
+              fields: ['avg(value,metric_name,distribution,millisecond)'],
               columns: [],
             }),
           ],
@@ -192,7 +193,7 @@ describe('WidgetCardConfidenceFooter', () => {
 
     const footer = await screen.findByText(/Estimated from/i);
     expect(footer).toHaveTextContent('10 matches');
-    expect(footer).toHaveTextContent('500 data points');
+    await waitFor(() => expect(footer).toHaveTextContent('500 data points'));
   });
 
   it('renders logs footer with raw counts from API', async () => {
@@ -232,7 +233,7 @@ describe('WidgetCardConfidenceFooter', () => {
 
     const footer = await screen.findByText(/Estimated from/i);
     expect(footer).toHaveTextContent('10 matches');
-    expect(footer).toHaveTextContent('500 logs');
+    await waitFor(() => expect(footer).toHaveTextContent('500 logs'));
   });
 
   it('does not render footer for unsupported widget types', () => {

@@ -11,6 +11,10 @@ from sentry.workflow_engine.types import DataSourceTypeHandler
 T = TypeVar("T", bound=Model)
 
 
+# TODO - make this a typed dict
+DataSourceInput = dict[str, Any]
+
+
 class DataSourceCreator(Generic[T]):
     def __init__(self, create_fn: Callable[[], T]):
         self._create_fn = create_fn

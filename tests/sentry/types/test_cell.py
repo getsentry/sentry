@@ -39,7 +39,7 @@ class CellDirectoryTest(TestCase):
     CellDirectory, it uses a lot of `override_settings` in ways that most test
     cases shouldn't. If you are having difficulty with cell setup in other test
     cases, please don't follow this class as an example, but instead use the
-    utilities in testutils/silo.py and testutils/region.py.
+    utilities in testutils/silo.py and testutils/cell.py.
     """
 
     _INPUTS: list[CellConfig] = [
@@ -95,7 +95,7 @@ class CellDirectoryTest(TestCase):
             directory = load_from_config(self._INPUTS, [])
         assert directory.cells == frozenset(self._EXPECTED_OUTPUTS)
 
-    @override_settings(SILO_MODE=SiloMode.CELL, SENTRY_REGION="us")
+    @override_settings(SILO_MODE=SiloMode.CELL, SENTRY_LOCAL_CELL="us")
     def test_get_local_cell(self) -> None:
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS, [])
@@ -142,12 +142,12 @@ class CellDirectoryTest(TestCase):
             cell.validate()
 
     def test_locality_to_url(self) -> None:
-        locality = Locality("us", frozenset(["us"]), RegionCategory.MULTI_TENANT)
-        with override_settings(SILO_MODE=SiloMode.CELL, SENTRY_REGION="us"):
+        locality = Locality("us", frozenset(["us"]), RegionCategory.MULTI_TENANT, new_org_cell="us")
+        with override_settings(SILO_MODE=SiloMode.CELL, SENTRY_LOCAL_CELL="us"):
             assert locality.to_url("/avatar/abcdef/") == "http://us.testserver/avatar/abcdef/"
-        with override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_REGION=""):
+        with override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_LOCAL_CELL=""):
             assert locality.to_url("/avatar/abcdef/") == "http://us.testserver/avatar/abcdef/"
-        with override_settings(SILO_MODE=SiloMode.MONOLITH, SENTRY_REGION=""):
+        with override_settings(SILO_MODE=SiloMode.MONOLITH, SENTRY_LOCAL_CELL=""):
             assert locality.to_url("/avatar/abcdef/") == "http://testserver/avatar/abcdef/"
 
     @patch("sentry.types.cell.sentry_sdk")
@@ -167,7 +167,7 @@ class CellDirectoryTest(TestCase):
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
-            organization = self.create_organization(name="test name", region="us")
+            organization = self.create_organization(name="test name", cell="us")
 
             user = self.create_user()
             organization_service.add_organization_member(
@@ -189,8 +189,8 @@ class CellDirectoryTest(TestCase):
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
-            us_org_1 = self.create_organization(name="us test name 1", region="us")
-            us_org_2 = self.create_organization(name="us test name 2", region="us")
+            us_org_1 = self.create_organization(name="us test name 1", cell="us")
+            us_org_2 = self.create_organization(name="us test name 2", cell="us")
 
             sentry_app = self.create_sentry_app(
                 organization=self.organization,
@@ -204,8 +204,8 @@ class CellDirectoryTest(TestCase):
             actual_cells = find_cells_for_sentry_app(sentry_app=sentry_app)
             assert actual_cells == {"us"}
 
-            eu_org_1 = self.create_organization(name="eu test name", region="eu")
-            eu_org_2 = self.create_organization(name="eu test name", region="eu")
+            eu_org_1 = self.create_organization(name="eu test name", cell="eu")
+            eu_org_2 = self.create_organization(name="eu test name", cell="eu")
             self.create_sentry_app_installation(slug=sentry_app.slug, organization=eu_org_1)
             self.create_sentry_app_installation(slug=sentry_app.slug, organization=eu_org_2)
             actual_cells = find_cells_for_sentry_app(sentry_app=sentry_app)

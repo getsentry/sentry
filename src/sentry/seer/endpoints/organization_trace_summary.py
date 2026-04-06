@@ -47,11 +47,7 @@ class OrganizationTraceSummaryEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationTraceSummaryPermission,)
 
     def post(self, request: Request, organization: Organization) -> Response:
-        if not features.has(
-            "organizations:single-trace-summary", organization, actor=request.user
-        ) and not features.has(
-            "organizations:trace-spans-format", organization, actor=request.user
-        ):
+        if not features.has("organizations:single-trace-summary", organization, actor=request.user):
             return Response({"detail": "Feature flag not enabled"}, status=400)
 
         data: dict = orjson.loads(request.body) if request.body else {}

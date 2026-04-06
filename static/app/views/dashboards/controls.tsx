@@ -370,8 +370,7 @@ export function Controls({
                               'Are you sure you want to duplicate this dashboard?'
                             ),
                             priority: 'primary',
-                            onConfirm: () =>
-                              duplicatePrebuiltDashboard(dashboard.prebuiltId),
+                            onConfirm: () => duplicatePrebuiltDashboard(dashboard.id),
                           });
                         }}
                         icon={isLoading ? <LoadingIndicator size={14} /> : <IconCopy />}

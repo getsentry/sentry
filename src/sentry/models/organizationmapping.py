@@ -11,7 +11,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, sane_repr
 from sentry.db.models.base import Model, control_silo_model
 from sentry.db.models.indexes import IndexWithPostgresNameLimits
-from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH, REGION_NAME_LENGTH
+from sentry.hybridcloud.rpc import CELL_NAME_LENGTH, IDEMPOTENCY_KEY_LENGTH
 from sentry.models.organization import OrganizationStatus
 
 if TYPE_CHECKING:
@@ -39,7 +39,7 @@ class OrganizationMapping(Model):
     # If a record already exists with the same slug, the organization_id can only be
     # updated IF the idempotency key is identical.
     idempotency_key = models.CharField(max_length=IDEMPOTENCY_KEY_LENGTH)
-    cell_name = models.CharField(max_length=REGION_NAME_LENGTH, db_column="region_name")
+    cell_name = models.CharField(max_length=CELL_NAME_LENGTH, db_column="region_name")
 
     status = BoundedBigIntegerField(choices=OrganizationStatus.as_choices(), null=True)
 

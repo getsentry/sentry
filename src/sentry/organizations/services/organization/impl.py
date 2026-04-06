@@ -46,13 +46,13 @@ from sentry.organizations.services.organization import (
     OrganizationCheckService,
     OrganizationService,
     OrganizationSignalService,
+    RpcCellUser,
     RpcOrganization,
     RpcOrganizationFlagsUpdate,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
     RpcOrganizationSignal,
     RpcOrganizationSummary,
-    RpcRegionUser,
     RpcTeam,
     RpcUserInviteContext,
     RpcUserOrganizationContext,
@@ -639,7 +639,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def update_cell_user(
         self,
         *,
-        user: RpcRegionUser,
+        user: RpcCellUser,
         cell_name: str,
     ) -> None:
         # Normally, calling update on a QS for organization member fails because we need to ensure that updates to
@@ -649,10 +649,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
             OrganizationMember.objects.filter(user_id=user.id).update(
                 user_is_active=user.is_active, user_email=user.email
             )
-
-    # TODO(cells): Remove when callers updated
-    def update_region_user(self, *, user: RpcRegionUser, cell_name: str) -> None:
-        return self.update_cell_user(user=user, cell_name=cell_name)
 
     def get_option(self, *, organization_id: int, key: str) -> OptionValue:
         orm_organization = Organization.objects.get_from_cache(id=organization_id)

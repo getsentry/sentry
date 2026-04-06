@@ -223,7 +223,7 @@ class DispatchRemoteCallTest(TestCase):
         test_class = _RemoteSiloCall(
             service_name="organization_service",
             method_name="get_org_by_id",
-            region=None,
+            cell=None,
             serial_arguments={},
         )
 
@@ -238,7 +238,7 @@ class DispatchRemoteCallTest(TestCase):
             test_class = _RemoteSiloCall(
                 service_name="organization_service",
                 method_name="get_org_by_id",
-                region=None,
+                cell=None,
                 serial_arguments={},
             )
 
@@ -275,7 +275,7 @@ class DispatchRemoteCallTest(TestCase):
         test_class = _RemoteSiloCall(
             service_name="organization_service",
             method_name="get_org_by_id",
-            region=None,
+            cell=None,
             serial_arguments={},
         )
 
@@ -290,7 +290,7 @@ class DispatchRemoteCallTest(TestCase):
             test_class = _RemoteSiloCall(
                 service_name="organization_service",
                 method_name="get_org_by_id",
-                region=None,
+                cell=None,
                 serial_arguments={},
             )
 

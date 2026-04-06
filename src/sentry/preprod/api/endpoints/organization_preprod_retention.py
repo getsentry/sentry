@@ -72,6 +72,5 @@ class OrganizationPreprodRetentionEndpoint(OrganizationEndpoint):
             {
                 "size": size_retention,
                 "buildDistribution": build_distribution_retention,
-                "snapshots": 396,  # hardcoded for now
             }
         )

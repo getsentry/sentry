@@ -26,17 +26,17 @@ Report only **HIGH** and **MEDIUM** confidence findings. Do not report theoretic
 
 Determine what you're reviewing and load the relevant reference.
 
-| Code Type                                | Load Reference                                            |
-| ---------------------------------------- | --------------------------------------------------------- |
-| API endpoint (inherits from `*Endpoint`) | `${CLAUDE_SKILL_ROOT}/references/endpoint-patterns.md`    |
-| Serializer or form field                 | `${CLAUDE_SKILL_ROOT}/references/serializer-patterns.md`  |
-| Email template or HTML rendering         | `${CLAUDE_SKILL_ROOT}/references/output-sanitization.md`  |
-| Token, OAuth, or session handling        | `${CLAUDE_SKILL_ROOT}/references/token-lifecycle.md`      |
-| Role or permission logic                 | `${CLAUDE_SKILL_ROOT}/references/privilege-escalation.md` |
+| Code Type                                | Load Reference                       |
+| ---------------------------------------- | ------------------------------------ |
+| API endpoint (inherits from `*Endpoint`) | `references/endpoint-patterns.md`    |
+| Serializer or form field                 | `references/serializer-patterns.md`  |
+| Email template or HTML rendering         | `references/output-sanitization.md`  |
+| Token, OAuth, or session handling        | `references/token-lifecycle.md`      |
+| Role or permission logic                 | `references/privilege-escalation.md` |
 
 If the code spans multiple categories, load all relevant references.
 
-**Always load** `${CLAUDE_SKILL_ROOT}/references/enforcement-layers.md` — it documents where security checks can legitimately live in Sentry's request lifecycle. A check in any layer counts as enforcement.
+**Always load** `references/enforcement-layers.md` — it documents where security checks can legitimately live in Sentry's request lifecycle. A check in any layer counts as enforcement.
 
 ## Step 2: Check for the Top 6 Vulnerability Classes
 

@@ -9,10 +9,11 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
-import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
+import {getFieldDefinition} from 'sentry/utils/fields';
 import {
   ToolbarFooterButton,
   ToolbarHeader,
@@ -42,6 +43,7 @@ interface ToolbarGroupByDropdownProps {
   onColumnChange: (column: string) => void;
   onColumnDelete: () => void;
   options: Array<SelectOption<string>>;
+  fieldDefinitionType?: Parameters<typeof getFieldDefinition>[1];
   loading?: boolean;
   onClose?: () => void;
   onSearch?: (search: string) => void;
@@ -56,6 +58,7 @@ export function ToolbarGroupByDropdown({
   onSearch,
   loading,
   onClose,
+  fieldDefinitionType = 'span',
 }: ToolbarGroupByDropdownProps) {
   const {attributes, listeners, setNodeRef, transform} = useSortable({
     id: column.id,
@@ -80,21 +83,29 @@ export function ToolbarGroupByDropdown({
       style={{transform: CSS.Transform.toString(transform)}}
       {...attributes}
     >
-      {canDelete ? (
-        <Button
-          aria-label={t('Drag to reorder')}
-          priority="transparent"
-          size="zero"
-          icon={<IconGrabbable size="sm" />}
-          {...listeners}
-        />
-      ) : null}
+      {canDelete ? <DragReorderButton iconSize="sm" {...listeners} /> : null}
       <StyledCompactSelect
         data-test-id="editor-column"
         options={options}
         value={column.column ?? ''}
         onChange={handleColumnChange}
-        search={{onChange: onSearch}}
+        search={{
+          onChange: onSearch,
+          filter: (option, search) => {
+            const text =
+              option.textValue ?? (typeof option.label === 'string' ? option.label : '');
+            const normalizedText = text.toLowerCase();
+            const normalizedSearch = search.toLowerCase();
+            if (!normalizedText.includes(normalizedSearch)) {
+              return {score: 0};
+            }
+            const isExact = normalizedText === normalizedSearch;
+            const isKnown =
+              getFieldDefinition(String(option.value), fieldDefinitionType) !== null;
+            // exact+known=4, exact+unknown=3, partial+known=2, partial+unknown=1
+            return {score: (isExact ? 2 : 0) + (isKnown ? 2 : 1)};
+          },
+        }}
         trigger={triggerProps => (
           <OverlayTrigger.Button {...triggerProps} style={{width: '100%'}}>
             {label}

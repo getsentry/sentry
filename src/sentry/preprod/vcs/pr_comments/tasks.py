@@ -6,6 +6,7 @@ from enum import StrEnum
 from typing import Any
 
 from django.db import router, transaction
+from taskbroker_client.retry import Retry
 
 from sentry import features
 from sentry.models.commitcomparison import CommitComparison
@@ -17,7 +18,6 @@ from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigura
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
-from sentry.taskworker.retry import Retry
 
 logger = logging.getLogger(__name__)
 

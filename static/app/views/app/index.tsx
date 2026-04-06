@@ -1,4 +1,4 @@
-import {lazy, Suspense, useCallback, useEffect, useRef} from 'react';
+import {lazy, Suspense, useCallback, useEffect} from 'react';
 import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 
@@ -9,7 +9,7 @@ import {
 import {fetchGuides} from 'sentry/actionCreators/guides';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {initApiClientErrorHandling} from 'sentry/api';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {GlobalModal} from 'sentry/components/globalModal';
 import Hook from 'sentry/components/hook';
 import Indicators from 'sentry/components/indicators';
@@ -36,6 +36,7 @@ import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKInteg
 import {LastKnownRouteContextProvider} from 'sentry/views/lastKnownRouteContextProvider';
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 import {RouteAnalyticsContextProvider} from 'sentry/views/routeAnalyticsContextProvider';
+import {LLMContextProvider} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {ExplorerPanel} from 'sentry/views/seerExplorer/explorerPanel';
 import {ExplorerPanelProvider} from 'sentry/views/seerExplorer/useExplorerPanel';
 
@@ -231,10 +232,6 @@ export function App() {
     [preloadData]
   );
 
-  // Used to restore focus to the container after closing the modal
-  const mainContainerRef = useRef<HTMLDivElement>(null);
-  const handleModalClose = useCallback(() => mainContainerRef.current?.focus?.(), []);
-
   return (
     <Profiler id="App" onRender={onRenderCallback}>
       <UserTimezoneProvider>
@@ -243,14 +240,16 @@ export function App() {
             {renderOrganizationContextProvider(
               <AsyncSDKIntegrationContextProvider>
                 <GlobalFeedbackForm>
-                  <MainContainer tabIndex={-1} ref={mainContainerRef}>
+                  <MainContainer tabIndex={-1}>
                     <DemoToursProvider>
-                      <ExplorerPanelProvider>
-                        <GlobalModal onClose={handleModalClose} />
-                        <ExplorerPanel />
-                        <Indicators className="indicators-container" />
-                        <ErrorBoundary>{renderBody()}</ErrorBoundary>
-                      </ExplorerPanelProvider>
+                      <LLMContextProvider>
+                        <ExplorerPanelProvider>
+                          <GlobalModal />
+                          <ExplorerPanel />
+                          <Indicators className="indicators-container" />
+                          <ErrorBoundary>{renderBody()}</ErrorBoundary>
+                        </ExplorerPanelProvider>
+                      </LLMContextProvider>
                     </DemoToursProvider>
                   </MainContainer>
                 </GlobalFeedbackForm>

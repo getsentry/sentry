@@ -85,7 +85,7 @@ def _configure_test_env_cells() -> None:
         RegionCategory.MULTI_TENANT,
     )
 
-    settings.SENTRY_REGION = cell_name
+    settings.SENTRY_LOCAL_CELL = cell_name
     settings.SENTRY_MONOLITH_REGION = cell_name
 
     # This not only populates the environment with the default cell, but also
@@ -144,6 +144,14 @@ def pytest_configure(config: pytest.Config) -> None:
     integrationdocs.DOC_FOLDER = os.path.join(TEST_ROOT, os.pardir, "fixtures", "integration-docs")
 
     configure_split_db()
+
+    if os.environ.get("PYTEST_XDIST_WORKER"):
+        # On the rare case we hit a PostgreSQL deadlock, fail fast and let
+        # pytest --reruns retry it.
+        for alias in settings.DATABASES:
+            settings.DATABASES[alias].setdefault("OPTIONS", {})[  # type: ignore[index]
+                "options"
+            ] = "-c lock_timeout=180000"
 
     # Ensure we can test secure ssl settings
     settings.SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -352,33 +360,23 @@ def register_extensions() -> None:
 
 
 def pytest_sessionstart(session: pytest.Session) -> None:
-    from taskbroker_client.registry import TaskNamespace as TaskbrokerClientNamespace
-
-    from sentry.taskworker.registry import TaskNamespace
+    from taskbroker_client.registry import TaskNamespace
 
     # Store original send_task so tests that need it can restore it
     TaskNamespace._original_send_task = TaskNamespace.send_task  # type: ignore[attr-defined]
-    TaskbrokerClientNamespace._original_send_task = TaskbrokerClientNamespace.send_task  # type: ignore[attr-defined]
 
     # Prevent tests from producing real Kafka messages via the taskworker pipeline.
     # Tests use TaskRunner (TASKWORKER_ALWAYS_EAGER=True) or BurstTaskRunner
     # (_signal_send hook) which both operate before send_task in the call chain.
     TaskNamespace.send_task = lambda self, *args, **kwargs: None  # type: ignore[method-assign]
-    TaskbrokerClientNamespace.send_task = lambda self, *args, **kwargs: None  # type: ignore[method-assign]
 
 
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
-    from taskbroker_client.registry import TaskNamespace as TaskbrokerClientNamespace
-
-    from sentry.taskworker.registry import TaskNamespace
+    from taskbroker_client.registry import TaskNamespace
 
     if hasattr(TaskNamespace, "_original_send_task"):
         TaskNamespace.send_task = TaskNamespace._original_send_task  # type: ignore[method-assign]
         del TaskNamespace._original_send_task
-
-    if hasattr(TaskbrokerClientNamespace, "_original_send_task"):
-        TaskbrokerClientNamespace.send_task = TaskbrokerClientNamespace._original_send_task  # type: ignore[method-assign]
-        del TaskbrokerClientNamespace._original_send_task
 
 
 def pytest_runtest_setup(item: pytest.Item) -> None:

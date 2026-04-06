@@ -4,7 +4,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
 
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_comparison_url, get_preprod_artifact_url
 
@@ -18,6 +18,8 @@ def format_snapshot_status_check_messages(
     comparisons_map: dict[int, PreprodSnapshotComparison],
     overall_status: StatusCheckStatus,
     base_artifact_map: dict[int, PreprodArtifact],
+    changes_map: dict[int, bool],
+    approvals_map: dict[int, PreprodComparisonApproval] | None = None,
 ) -> tuple[str, str, str]:
     if not artifacts:
         raise ValueError("Cannot format messages for empty artifact list")
@@ -108,6 +110,8 @@ def format_snapshot_status_check_messages(
         snapshot_metrics_map,
         comparisons_map,
         base_artifact_map,
+        changes_map,
+        approvals_map=approvals_map,
     )
 
     return str(title), str(subtitle), str(summary)
@@ -136,6 +140,32 @@ def format_first_snapshot_status_check_messages(
 
     summary = _format_solo_snapshot_summary(artifacts, snapshot_metrics_map)
     summary += "\n\nThis looks like your first snapshot upload. Snapshot diffs will appear when we have a base upload to compare against. Make sure to upload snapshots from your main branch."
+
+    return str(title), str(subtitle), str(summary)
+
+
+def format_generated_snapshot_status_check_messages(
+    artifacts: list[PreprodArtifact],
+    snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
+) -> tuple[str, str, str]:
+    if not artifacts:
+        raise ValueError("Cannot format messages for empty artifact list")
+
+    title = _SNAPSHOT_TITLE_BASE
+
+    total_images = 0
+    for artifact in artifacts:
+        metrics = snapshot_metrics_map.get(artifact.id)
+        if metrics:
+            total_images += metrics.image_count
+
+    subtitle = ngettext(
+        "Generated %(count)d snapshot",
+        "Generated %(count)d snapshots",
+        total_images,
+    ) % {"count": total_images}
+
+    summary = _format_solo_snapshot_summary(artifacts, snapshot_metrics_map)
 
     return str(title), str(subtitle), str(summary)
 
@@ -193,6 +223,8 @@ def _format_snapshot_summary(
     snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
     comparisons_map: dict[int, PreprodSnapshotComparison],
     base_artifact_map: dict[int, PreprodArtifact],
+    changes_map: dict[int, bool],
+    approvals_map: dict[int, PreprodComparisonApproval] | None = None,
 ) -> str:
     table_rows = []
 
@@ -238,8 +270,14 @@ def _format_snapshot_summary(
             modified = comparison.images_changed
             renamed = comparison.images_renamed
             unchanged = comparison.images_unchanged
-            has_changes = modified > 0 or added > 0 or removed > 0 or renamed > 0
-            status = "⏳ Needs approval" if has_changes else "✅ Unchanged"
+            has_changes = changes_map.get(artifact.id, False)
+            is_approved = approvals_map is not None and artifact.id in approvals_map
+            if has_changes and is_approved:
+                status = "✅ Approved"
+            elif has_changes:
+                status = "⏳ Needs approval"
+            else:
+                status = "✅ Unchanged"
 
             def _section_cell(count: int, section: str) -> str:
                 if count > 0:

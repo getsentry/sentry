@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
@@ -115,30 +115,32 @@ export default function ReplaysListContainer() {
       <SentryDocumentTitle title="Session Replay" orgSlug={organization.slug}>
         <ReplayPreferencesContextProvider prefsStrategy={LocalStorageReplayPreferences}>
           <ReplayQueryParamsProvider>
-            <ReplaysHeader />
-            <PageFiltersContainer>
-              <Layout.Body>
-                <Layout.Main width="full">
-                  <Grid gap="xl" columns="100%">
-                    <ReplayListPageHeaderHook />
-                    {hasSessionReplay && hasSentReplays.hasSentOneReplay ? (
-                      <ReplayAccess fallback={<ReplayAccessFallbackAlert />}>
-                        <ReplayIndexContainer />
-                      </ReplayAccess>
-                    ) : (
-                      <Fragment>
-                        <Flex gap="xl" wrap="wrap">
-                          <ReplaysFilters />
-                          <ReplaysSearch />
-                          <SaveReplayQueryButton />
-                        </Flex>
-                        <ReplayOnboardingPanel />
-                      </Fragment>
-                    )}
-                  </Grid>
-                </Layout.Main>
-              </Layout.Body>
-            </PageFiltersContainer>
+            <Stack flex={1}>
+              <ReplaysHeader />
+              <PageFiltersContainer>
+                <Layout.Body>
+                  <Layout.Main width="full">
+                    <Grid gap="xl" columns="100%">
+                      <ReplayListPageHeaderHook />
+                      {hasSessionReplay && hasSentReplays.hasSentOneReplay ? (
+                        <ReplayAccess fallback={<ReplayAccessFallbackAlert />}>
+                          <ReplayIndexContainer />
+                        </ReplayAccess>
+                      ) : (
+                        <Fragment>
+                          <Flex gap="xl" wrap="wrap">
+                            <ReplaysFilters />
+                            <ReplaysSearch />
+                            <SaveReplayQueryButton />
+                          </Flex>
+                          <ReplayOnboardingPanel />
+                        </Fragment>
+                      )}
+                    </Grid>
+                  </Layout.Main>
+                </Layout.Body>
+              </PageFiltersContainer>
+            </Stack>
           </ReplayQueryParamsProvider>
         </ReplayPreferencesContextProvider>
       </SentryDocumentTitle>

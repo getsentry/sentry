@@ -8,9 +8,9 @@ import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {IconAdd} from 'sentry/icons';
 import {IconDelete} from 'sentry/icons/iconDelete';
-import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';
@@ -80,13 +80,7 @@ export function ToolbarVisualizeDropdown({
       {...attributes}
     >
       {dragColumnId === undefined ? null : (
-        <Button
-          aria-label={t('Drag to reorder')}
-          priority="transparent"
-          size="zero"
-          icon={<IconGrabbable size="sm" />}
-          {...listeners}
-        />
+        <DragReorderButton iconSize="sm" {...listeners} />
       )}
       {label}
       <AggregateCompactSelect
@@ -136,6 +130,7 @@ export function ToolbarVisualizeDropdown({
 interface ToolbarVisualizeAddProps {
   add: () => void;
   disabled: boolean;
+  display?: 'button' | 'link';
   label?: string;
 }
 
@@ -143,13 +138,14 @@ export function ToolbarVisualizeAddChart({
   add,
   disabled,
   label,
+  display = 'link',
 }: ToolbarVisualizeAddProps) {
   return (
     <ToolbarFooterButton
-      size="zero"
+      size={display === 'link' ? 'zero' : 'md'}
       icon={<IconAdd />}
       onClick={add}
-      priority="link"
+      priority={display === 'link' ? 'link' : undefined}
       aria-label={label ?? t('Add Chart')}
       disabled={disabled}
     >

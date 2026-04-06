@@ -2,20 +2,16 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.test import override_settings
-from taskbroker_client.constants import CompressionType as TaskbrokerCompressionType
-from taskbroker_client.registry import TaskRegistry as TaskbrokerTaskRegistry
-from taskbroker_client.task import Task as TaskbrokerTask
+from taskbroker_client.constants import CompressionType
+from taskbroker_client.registry import TaskRegistry
+from taskbroker_client.retry import Retry, RetryTaskError
+from taskbroker_client.state import CurrentTaskState
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.adapters import SentryMetricsBackend, SentryRouter, make_producer
-from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import exampletasks, test_tasks
-from sentry.taskworker.registry import TaskRegistry
-from sentry.taskworker.retry import Retry, RetryTaskError
-from sentry.taskworker.state import CurrentTaskState
-from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
-from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @instrumented_task(
@@ -197,7 +193,7 @@ def test_retry_timeout_enabled_taskbroker(capture_exception) -> None:
     assert capture_exception.call_count == 1
 
 
-@patch("sentry.taskworker.retry.current_task")
+@patch("taskbroker_client.retry.current_task")
 @patch("sentry_sdk.capture_exception")
 def test_retry_timeout_disabled_taskbroker(capture_exception, current_task) -> None:
     @retry(timeouts=False)
@@ -223,7 +219,7 @@ def test_retry_timeout_enabled(capture_exception) -> None:
     assert capture_exception.call_count == 1
 
 
-@patch("sentry.taskworker.retry.current_task")
+@patch("taskbroker_client.retry.current_task")
 @patch("sentry_sdk.capture_exception")
 def test_retry_timeout_disabled(capture_exception, current_task) -> None:
     current_task.retry.side_effect = ExpectedException("retry called")
@@ -240,7 +236,12 @@ def test_retry_timeout_disabled(capture_exception, current_task) -> None:
 
 
 def test_instrumented_task_parameters() -> None:
-    registry = TaskRegistry(application="sentry")
+    registry = TaskRegistry(
+        application="sentry",
+        producer_factory=make_producer,
+        router=SentryRouter(),
+        metrics=SentryMetricsBackend(),
+    )
     namespace = registry.create_namespace("registertest")
 
     @instrumented_task(
@@ -259,43 +260,6 @@ def test_instrumented_task_parameters() -> None:
     assert decorated.retry
     assert decorated.retry._times == 3
     assert decorated.retry._allowed_exception_types == (RuntimeError,)
-
-
-@django_db_all
-def test_instrumented_task_compression_type_translation() -> None:
-    """
-    instrumented_task should convert CompressionType to the taskbroker_client enum
-    when the setting is active.
-    """
-    with override_settings(TASKWORKER_USE_LIBRARY=True):
-        registry = TaskbrokerTaskRegistry(
-            application="sentry",
-            metrics=SentryMetricsBackend(),
-            router=SentryRouter(),
-            producer_factory=make_producer,
-        )
-        namespace = registry.create_namespace("registertest")
-
-        @instrumented_task(
-            name="hello_task",
-            namespace=namespace,  # type: ignore[arg-type]
-            retry=Retry(times=3, on=(RuntimeError,)),
-            processing_deadline_duration=60,
-            compression_type=CompressionType.ZSTD,
-        )
-        def hello_task():
-            pass
-
-    decorated = namespace.get("hello_task")
-    assert isinstance(decorated, TaskbrokerTask)
-    assert decorated
-    assert decorated.compression_type == TaskbrokerCompressionType.ZSTD
-    assert decorated.retry
-    assert decorated.retry._times == 3
-    assert decorated.retry._allowed_exception_types == (RuntimeError,)
-
-    payload = decorated.create_activation(args=("hello", "world"), kwargs={})
-    assert payload.parameters[0] != "{"
 
 
 @patch("sentry.tasks.base.current_task")

@@ -2,14 +2,14 @@ from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
 from sentry.preprod.snapshots.tasks import categorize_image_diff
 
 
-def _meta(name: str) -> ImageMetadata:
-    return ImageMetadata(image_file_name=name, width=100, height=200)
+def _meta(content_hash: str) -> ImageMetadata:
+    return ImageMetadata(content_hash=content_hash, width=100, height=200)
 
 
 class TestCategorizeImageDiff:
-    def test_basic_rename(self):
-        head = SnapshotManifest(images={"hash_a": _meta("new.png")})
-        base = SnapshotManifest(images={"hash_a": _meta("old.png")})
+    def test_basic_rename(self) -> None:
+        head = SnapshotManifest(images={"new.png": _meta("hash_a")})
+        base = SnapshotManifest(images={"old.png": _meta("hash_a")})
 
         result = categorize_image_diff(head, base)
 
@@ -17,9 +17,9 @@ class TestCategorizeImageDiff:
         assert result.added == set()
         assert result.removed == set()
 
-    def test_no_rename_when_hashes_differ(self):
-        head = SnapshotManifest(images={"hash_1": _meta("a.png")})
-        base = SnapshotManifest(images={"hash_2": _meta("b.png")})
+    def test_no_rename_when_hashes_differ(self) -> None:
+        head = SnapshotManifest(images={"a.png": _meta("hash_1")})
+        base = SnapshotManifest(images={"b.png": _meta("hash_2")})
 
         result = categorize_image_diff(head, base)
 
@@ -27,9 +27,9 @@ class TestCategorizeImageDiff:
         assert result.added == {"a.png"}
         assert result.removed == {"b.png"}
 
-    def test_same_name_same_hash_is_matched_not_renamed(self):
-        head = SnapshotManifest(images={"hash_a": _meta("screen.png")})
-        base = SnapshotManifest(images={"hash_a": _meta("screen.png")})
+    def test_same_name_same_hash_is_matched_not_renamed(self) -> None:
+        head = SnapshotManifest(images={"screen.png": _meta("hash_a")})
+        base = SnapshotManifest(images={"screen.png": _meta("hash_a")})
 
         result = categorize_image_diff(head, base)
 
@@ -38,19 +38,19 @@ class TestCategorizeImageDiff:
         assert result.removed == set()
         assert result.matched == {"screen.png"}
 
-    def test_mixed_renames_adds_removes(self):
+    def test_mixed_renames_adds_removes(self) -> None:
         head = SnapshotManifest(
             images={
-                "hash_shared": _meta("renamed.png"),
-                "hash_new": _meta("brand_new.png"),
-                "hash_same": _meta("unchanged.png"),
+                "renamed.png": _meta("hash_shared"),
+                "brand_new.png": _meta("hash_new"),
+                "unchanged.png": _meta("hash_same"),
             }
         )
         base = SnapshotManifest(
             images={
-                "hash_shared": _meta("old_name.png"),
-                "hash_gone": _meta("deleted.png"),
-                "hash_same": _meta("unchanged.png"),
+                "old_name.png": _meta("hash_shared"),
+                "deleted.png": _meta("hash_gone"),
+                "unchanged.png": _meta("hash_same"),
             }
         )
 
@@ -60,9 +60,9 @@ class TestCategorizeImageDiff:
         assert result.added == {"brand_new.png"}
         assert result.removed == {"deleted.png"}
 
-    def test_multiple_independent_renames(self):
-        head = SnapshotManifest(images={"hash_a": _meta("new_a.png"), "hash_b": _meta("new_b.png")})
-        base = SnapshotManifest(images={"hash_a": _meta("old_a.png"), "hash_b": _meta("old_b.png")})
+    def test_multiple_independent_renames(self) -> None:
+        head = SnapshotManifest(images={"new_a.png": _meta("hash_a"), "new_b.png": _meta("hash_b")})
+        base = SnapshotManifest(images={"old_a.png": _meta("hash_a"), "old_b.png": _meta("hash_b")})
 
         result = categorize_image_diff(head, base)
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
@@ -33,6 +33,7 @@ from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import CellSiloClient, SiloClientError
 from sentry.types.cell import Cell, find_cells_for_orgs, get_cell_by_name
 from sentry.utils import metrics
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.options import sample_modulo
 
 logger = logging.getLogger(__name__)
@@ -50,7 +51,7 @@ def create_async_request_payload(request: HttpRequest) -> dict[str, Any]:
     }
 
 
-class RegionResult:
+class CellResult:
     def __init__(
         self,
         response: HttpResponseBase | None = None,
@@ -124,9 +125,9 @@ class BaseRequestParser(ABC):
         ):
             cell_client = CellSiloClient(cell, retry=True)
             with MiddlewareOperationEvent(
-                operation_type=MiddlewareOperationType.GET_REGION_RESPONSE,
+                operation_type=MiddlewareOperationType.GET_CELL_RESPONSE,
                 integration_name=self.provider,
-                region=cell.name,
+                cell=cell.name,
             ).capture() as lifecycle:
                 lifecycle.add_extras(
                     {
@@ -138,7 +139,7 @@ class BaseRequestParser(ABC):
                 http_response = cell_client.proxy_request(incoming_request=self.request)
                 return http_response
 
-    def get_responses_from_cell_silos(self, cells: list[Cell]) -> dict[str, RegionResult]:
+    def get_responses_from_cell_silos(self, cells: list[Cell]) -> dict[str, CellResult]:
         """
         Used to handle the requests on a given list of cells (synchronously).
         Returns a dict of cell name to response/exception.
@@ -147,7 +148,7 @@ class BaseRequestParser(ABC):
 
         cell_to_response_map = {}
 
-        with ThreadPoolExecutor(max_workers=len(cells)) as executor:
+        with ContextPropagatingThreadPoolExecutor(max_workers=len(cells)) as executor:
             future_to_cell = {
                 executor.submit(self.get_response_from_cell_silo, cell): cell for cell in cells
             }
@@ -156,24 +157,22 @@ class BaseRequestParser(ABC):
                 try:
                     cell_response = future.result()
                 except Exception as e:
-                    cell_to_response_map[cell.name] = RegionResult(error=e)
+                    cell_to_response_map[cell.name] = CellResult(error=e)
                 else:
-                    cell_to_response_map[cell.name] = RegionResult(response=cell_response)
+                    cell_to_response_map[cell.name] = CellResult(response=cell_response)
 
         return cell_to_response_map
 
     def get_response_from_webhookpayload(
         self,
-        cells: list[Cell] | None = None,  # TODO(cells): make required once getsentry is updated
+        cells: list[Cell],
         identifier: int | str | None = None,
         integration_id: int | None = None,
-        regions: list[Cell] | None = None,  # TODO(cells): remove once getsentry is updated
     ) -> HttpResponseBase:
         """
         Used to create webhookpayloads for provided cells to handle the webhooks asynchronously.
         Responds to the webhook provider with a 202 Accepted status.
         """
-        cells = cells or regions or []
         if len(cells) < 1:
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
@@ -182,7 +181,7 @@ class BaseRequestParser(ABC):
         # this loop. Create all payloads first, then trigger a single drain.
         payloads = [
             WebhookPayload.create_from_request(
-                destination_type=DestinationType.SENTRY_REGION,
+                destination_type=DestinationType.SENTRY_CELL,
                 cell=cell.name,
                 provider=self.provider,
                 identifier=shard_identifier,
@@ -259,9 +258,9 @@ class BaseRequestParser(ABC):
         response_map = self.get_responses_from_cell_silos(cells=[first_cell])
         cell_result = response_map[first_cell.name]
         with MiddlewareOperationEvent(
-            operation_type=MiddlewareOperationType.GET_RESPONSE_FROM_FIRST_REGION,
+            operation_type=MiddlewareOperationType.GET_RESPONSE_FROM_FIRST_CELL,
             integration_name=self.provider,
-            region=first_cell.name,
+            cell=first_cell.name,
         ).capture() as lifecycle:
             lifecycle.add_extras(
                 {
@@ -281,7 +280,7 @@ class BaseRequestParser(ABC):
             result for result in response_map.values() if result.response is not None
         ]
         with MiddlewareOperationEvent(
-            operation_type=MiddlewareOperationType.GET_RESPONSE_FROM_ALL_REGIONS,
+            operation_type=MiddlewareOperationType.GET_RESPONSE_FROM_ALL_CELLS,
             integration_name=self.provider,
         ).capture() as lifecycle:
             lifecycle.add_extra("path", self.request.path)

@@ -26,7 +26,7 @@ interface DisabledProduct {
 
 export type DisabledProducts = Partial<Record<ProductSolution, DisabledProduct>>;
 
-function getDisabledProducts(organization: Organization): DisabledProducts {
+export function getDisabledProducts(organization: Organization): DisabledProducts {
   const disabledProducts: DisabledProducts = {};
   const hasSessionReplay = organization.features.includes('session-replay');
   const hasPerformance = organization.features.includes('performance-view');
@@ -432,6 +432,12 @@ export const platformProductAvailability = {
     ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
+  'python-litestar': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
   'python-gcpfunctions': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
@@ -489,7 +495,7 @@ export const platformProductAvailability = {
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
   ],
-  unity: [ProductSolution.LOGS],
+  unity: [ProductSolution.LOGS, ProductSolution.METRICS],
   unreal: [ProductSolution.LOGS],
 } as Record<PlatformKey, ProductSolution[]>;
 

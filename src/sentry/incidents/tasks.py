@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 from django.db import router, transaction
+from taskbroker_client.retry import Retry
 
 from sentry.incidents.models.alert_rule import AlertRuleStatus, AlertRuleTriggerAction
 from sentry.incidents.models.incident import (
@@ -20,7 +21,6 @@ from sentry.snuba.models import QuerySubscription
 from sentry.snuba.query_subscriptions.consumer import register_subscriber
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import alerts_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)

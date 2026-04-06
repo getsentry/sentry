@@ -72,7 +72,6 @@ function OnboardingItem({
         buttonProps={{
           ...overlayTriggerProps,
           onMouseEnter: refetch,
-          size: isMobile ? 'xs' : 'sm',
           icon: (
             <ProgressRingWrapper isMobile={isMobile}>
               <OnboardingProgressRing

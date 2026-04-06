@@ -1,11 +1,13 @@
-import {Fragment, useEffect, useRef} from 'react';
+import {useEffect, Fragment, useRef} from 'react';
+
+import {Stack} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {uniqueId} from 'sentry/utils/guid';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -137,7 +139,7 @@ export default function Create() {
   const title = t('New Alert Rule');
 
   return (
-    <Fragment>
+    <Stack flex={1}>
       <SentryDocumentTitle title={title} projectSlug={project.slug} />
       <Layout.Header>
         <Layout.HeaderContent>
@@ -228,6 +230,6 @@ export default function Create() {
           </Fragment>
         )}
       </Layout.Body>
-    </Fragment>
+    </Stack>
   );
 }

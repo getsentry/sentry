@@ -127,6 +127,7 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     priorityLockedAt: datetime | None
     seerFixabilityScore: float | None
     seerAutofixLastTriggered: datetime | None
+    seerExplorerAutofixLastTriggered: datetime | None
     project: GroupProjectResponse
     type: str
     issueType: str
@@ -363,6 +364,7 @@ class GroupSerializerBase(Serializer, ABC):
         share_id = attrs["share_id"]
         priority_label = PriorityLevel(obj.priority).to_str() if obj.priority else None
         issue_category = obj.issue_category_v2.name.lower()
+
         group_dict: BaseGroupSerializerResponse = {
             "id": str(obj.id),
             "shareId": share_id,
@@ -393,6 +395,7 @@ class GroupSerializerBase(Serializer, ABC):
             "priorityLockedAt": obj.priority_locked_at,
             "seerFixabilityScore": obj.seer_fixability_score,
             "seerAutofixLastTriggered": obj.seer_autofix_last_triggered,
+            "seerExplorerAutofixLastTriggered": obj.seer_explorer_autofix_last_triggered,
         }
 
         # This attribute is currently feature gated

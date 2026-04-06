@@ -166,7 +166,7 @@ export function EditAccessSelector({
     return null;
   };
 
-  const renderCollapsedAvatars = (avatarSize: number, numCollapsedAvatars: number) => {
+  const renderCollapsedAvatars = (_avatarSize: number, numCollapsedAvatars: number) => {
     return (
       <Tooltip
         title={renderCollapsedAvatarTooltip()}
@@ -180,7 +180,7 @@ export function EditAccessSelector({
           onMouseEnter={() => setIsCollapsedAvatarTooltipOpen(true)}
           onMouseLeave={() => setIsCollapsedAvatarTooltipOpen(false)}
         >
-          <CollapsedAvatars size={avatarSize}>
+          <CollapsedAvatars>
             {numCollapsedAvatars < 99 && <Plus>+</Plus>}
             {numCollapsedAvatars}
           </CollapsedAvatars>

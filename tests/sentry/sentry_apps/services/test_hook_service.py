@@ -437,7 +437,7 @@ class TestHookService(TestCase):
 class TestHookServiceBulkCreate(TestCase):
     def setUp(self) -> None:
         self.user = self.create_user()
-        self.org = self.create_organization(owner=self.user, region="us")
+        self.org = self.create_organization(owner=self.user, cell="us")
         self.project = self.create_project(name="foo", organization=self.org)
         self.sentry_app = self.create_sentry_app(
             organization_id=self.org.id, events=["issue.created"]
@@ -448,7 +448,7 @@ class TestHookServiceBulkCreate(TestCase):
         installation1 = self.create_sentry_app_installation(
             slug=self.sentry_app.slug, organization=self.org, user=self.user
         )
-        org2 = self.create_organization(name="Test Org 2", region="us")
+        org2 = self.create_organization(name="Test Org 2", cell="us")
         installation2 = self.create_sentry_app_installation(
             slug=self.sentry_app.slug, organization=org2, user=self.user
         )
@@ -468,7 +468,7 @@ class TestHookServiceBulkCreate(TestCase):
         ]
 
         result = hook_service.bulk_create_service_hooks_for_app(
-            region_name="us",
+            cell_name="us",
             application_id=self.sentry_app.application.id,
             events=["issue.created", "error.created"],
             installation_organization_ids=installation_org_pairs,
@@ -507,7 +507,7 @@ class TestHookServiceBulkCreate(TestCase):
 
         # Call bulk create with expandable events
         result = hook_service.bulk_create_service_hooks_for_app(
-            region_name="us",
+            cell_name="us",
             application_id=self.sentry_app.application.id,
             events=["issue", "comment"],  # These should expand
             installation_organization_ids=[
@@ -529,7 +529,7 @@ class TestHookServiceBulkCreate(TestCase):
     def test_bulk_create_service_hooks_for_app_empty_list(self) -> None:
         # Call with empty installation list
         result = hook_service.bulk_create_service_hooks_for_app(
-            region_name="us",
+            cell_name="us",
             application_id=self.sentry_app.application.id,
             events=["issue.created"],
             installation_organization_ids=[],
@@ -563,7 +563,7 @@ class TestHookServiceBulkCreate(TestCase):
 
         # Try to bulk create hook for same installation  should not create duplicate
         result = hook_service.bulk_create_service_hooks_for_app(
-            region_name="us",
+            cell_name="us",
             application_id=self.sentry_app.application.id,
             events=["error.created"],
             installation_organization_ids=[
@@ -613,7 +613,7 @@ class TestHookServiceBulkCreate(TestCase):
 
         # Call bulk create
         result = hook_service.bulk_create_service_hooks_for_app(
-            region_name="us",
+            cell_name="us",
             application_id=self.sentry_app.application.id,
             events=["issue.created"],
             installation_organization_ids=installation_org_pairs,

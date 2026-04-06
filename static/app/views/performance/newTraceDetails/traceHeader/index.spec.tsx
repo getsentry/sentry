@@ -5,7 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import {
   TraceMetaDataHeader,
@@ -29,12 +29,12 @@ const baseProps: Partial<TraceMetadataHeaderProps> = {
   metaResults: {
     data: {
       errors: 1,
-      logs: 0,
       performance_issues: 1,
+      projects: 1,
+      transactions: 1,
       transaction_child_count_map: {span1: 1},
       span_count: 1,
       span_count_map: {},
-      uptime_checks: 0,
     },
     errors: [],
     status: 'success',

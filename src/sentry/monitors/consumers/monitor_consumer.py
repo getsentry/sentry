@@ -4,7 +4,7 @@ import logging
 import uuid
 from collections import defaultdict
 from collections.abc import Mapping
-from concurrent.futures import ThreadPoolExecutor, wait
+from concurrent.futures import wait
 from copy import deepcopy
 from datetime import UTC, datetime
 from functools import partial
@@ -81,6 +81,7 @@ from sentry.monitors.utils import (
 from sentry.monitors.validators import ConfigValidator, MonitorCheckInValidator
 from sentry.types.actor import parse_and_validate_actor
 from sentry.utils import json, metrics
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome, track_outcome
 
@@ -1046,7 +1047,7 @@ def process_checkin_group(items: list[CheckinItem]) -> None:
 
 
 def process_batch(
-    executor: ThreadPoolExecutor, message: Message[ValuesBatch[KafkaPayload]]
+    executor: ContextPropagatingThreadPoolExecutor, message: Message[ValuesBatch[KafkaPayload]]
 ) -> None:
     """
     Receives batches of check-in messages. This function will take the batch
@@ -1142,7 +1143,7 @@ def process_single(message: Message[KafkaPayload | FilteredPayload]) -> None:
 
 
 class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    parallel_executor: ThreadPoolExecutor | None = None
+    parallel_executor: ContextPropagatingThreadPoolExecutor | None = None
 
     batched_parallel = False
     """
@@ -1168,7 +1169,7 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
     ) -> None:
         if mode == "batched-parallel":
             self.batched_parallel = True
-            self.parallel_executor = ThreadPoolExecutor(max_workers=max_workers)
+            self.parallel_executor = ContextPropagatingThreadPoolExecutor(max_workers=max_workers)
 
         if max_batch_size is not None:
             self.max_batch_size = max_batch_size

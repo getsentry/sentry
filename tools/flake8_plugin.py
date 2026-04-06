@@ -41,6 +41,8 @@ S013_msg = "S013 Use `django.contrib.postgres.fields.array.ArrayField` instead"
 
 S014_msg = "S014 Use `unittest.mock` instead"
 
+S016_msg = "S016 Use `from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor` instead of `concurrent.futures.ThreadPoolExecutor` to ensure contextvars propagation."
+
 
 # --- S015: do not hardcode current or future UTC year as test "now" ---
 # Flag year >= current UTC year at lint time. Module/class scope + freeze_time(datetime(...)).
@@ -113,6 +115,10 @@ class SentryVisitor(ast.NodeVisitor):
                 self.errors.append((node.lineno, node.col_offset, S012_msg))
             elif node.module == "sentry.db.models.fields.array":
                 self.errors.append((node.lineno, node.col_offset, S013_msg))
+            elif node.module == "concurrent.futures" and any(
+                x.name == "ThreadPoolExecutor" for x in node.names
+            ):
+                self.errors.append((node.lineno, node.col_offset, S016_msg))
 
         self.generic_visit(node)
 
@@ -135,6 +141,14 @@ class SentryVisitor(ast.NodeVisitor):
             self.errors.append((node.lineno, node.col_offset, S001_fmt.format(node.attr)))
         elif node.attr in S004_methods:
             self.errors.append((node.lineno, node.col_offset, S004_msg))
+        elif (
+            node.attr == "ThreadPoolExecutor"
+            and isinstance(node.value, ast.Attribute)
+            and node.value.attr == "futures"
+            and isinstance(node.value.value, ast.Name)
+            and node.value.value.id == "concurrent"
+        ):
+            self.errors.append((node.lineno, node.col_offset, S016_msg))
 
         self.generic_visit(node)
 

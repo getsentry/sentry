@@ -8,7 +8,7 @@ import {selectEvent} from 'sentry-test/selectEvent';
 import * as PageFilterPersistence from 'sentry/components/pageFilters/persistence';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {SavedSearchType} from 'sentry/types/group';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import Results from 'sentry/views/discover/results';
 import {
   DEFAULT_EVENT_VIEW,

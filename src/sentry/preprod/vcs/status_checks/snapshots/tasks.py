@@ -21,6 +21,7 @@ from sentry.preprod.vcs.status_checks.size.tasks import (
 )
 from sentry.preprod.vcs.status_checks.snapshots.templates import (
     format_first_snapshot_status_check_messages,
+    format_generated_snapshot_status_check_messages,
     format_missing_base_snapshot_status_check_messages,
     format_snapshot_status_check_messages,
 )
@@ -33,6 +34,10 @@ logger = logging.getLogger(__name__)
 
 # Action identifier for the "Approve" button on snapshot GitHub check runs.
 APPROVE_SNAPSHOT_ACTION_IDENTIFIER = "approve_snapshots"
+
+ENABLED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_enabled"
+FAIL_ON_ADDED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_added"
+FAIL_ON_REMOVED_OPTION_KEY = "sentry:preprod_snapshot_status_checks_fail_on_removed"
 
 
 @instrumented_task(
@@ -88,27 +93,21 @@ def create_preprod_snapshot_status_check_task(
         )
         return
 
-    # TODO(EME-911) Wireup enabled options once gating/billing comes into play
-
-    all_artifacts = list(preprod_artifact.get_sibling_artifacts_for_commit())
-
-    client, repository = get_status_check_client(preprod_artifact.project, commit_comparison)
-    if not client or not repository:
-        return
-
-    provider = get_status_check_provider(
-        client,
-        commit_comparison.provider,
-        preprod_artifact.project.organization_id,
-        preprod_artifact.project.organization.slug,
-        repository.integration_id,
-    )
-    if not provider:
+    status_checks_enabled = preprod_artifact.project.get_option(ENABLED_OPTION_KEY, default=True)
+    if not status_checks_enabled:
         logger.info(
-            "preprod.snapshot_status_checks.create.not_supported_provider",
-            extra={"provider": commit_comparison.provider},
+            "preprod.snapshot_status_checks.create.disabled",
+            extra={
+                "artifact_id": preprod_artifact.id,
+                "project_id": preprod_artifact.project.id,
+            },
         )
         return
+
+    fail_on_added = preprod_artifact.project.get_option(FAIL_ON_ADDED_OPTION_KEY, default=False)
+    fail_on_removed = preprod_artifact.project.get_option(FAIL_ON_REMOVED_OPTION_KEY, default=True)
+
+    all_artifacts = list(preprod_artifact.get_sibling_artifacts_for_commit())
 
     artifact_ids = [a.id for a in all_artifacts]
     snapshot_metrics_qs = PreprodSnapshotMetrics.objects.filter(
@@ -146,6 +145,50 @@ def create_preprod_snapshot_status_check_task(
     base_artifact_map = PreprodArtifact.get_base_artifacts_for_commit(all_artifacts)
 
     is_solo = not base_artifact_map
+
+    if not is_solo:
+        changes_map = _build_changes_map(
+            all_artifacts,
+            snapshot_metrics_map,
+            comparisons_map,
+            fail_on_added=fail_on_added,
+            fail_on_removed=fail_on_removed,
+        )
+        for artifact in all_artifacts:
+            if changes_map.get(artifact.id, False) and artifact.id not in approvals_map:
+                # exists()+create() instead of get_or_create: no unique constraint
+                # on this model, so duplicates from races are harmless (cleaned
+                # up by filter().delete()), while get_or_create would crash with
+                # MultipleObjectsReturned if duplicates already exist.
+                if not PreprodComparisonApproval.objects.filter(
+                    preprod_artifact=artifact,
+                    preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+                    approval_status=PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL,
+                ).exists():
+                    PreprodComparisonApproval.objects.create(
+                        preprod_artifact=artifact,
+                        preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+                        approval_status=PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL,
+                    )
+
+    client, repository = get_status_check_client(preprod_artifact.project, commit_comparison)
+    if not client or not repository:
+        return
+
+    provider = get_status_check_provider(
+        client,
+        commit_comparison.provider,
+        preprod_artifact.project.organization_id,
+        preprod_artifact.project.organization.slug,
+        repository.integration_id,
+    )
+    if not provider:
+        logger.info(
+            "preprod.snapshot_status_checks.create.not_supported_provider",
+            extra={"provider": commit_comparison.provider},
+        )
+        return
+
     approve_action_identifier: str | None = None
 
     if is_solo:
@@ -168,25 +211,37 @@ def create_preprod_snapshot_status_check_task(
                 all_artifacts,
                 snapshot_metrics_map,
             )
-        else:
-            # TODO(EME-921) Add logic to fail if there's any base_sha set but no base artifact
-            status = StatusCheckStatus.SUCCESS
+        elif commit_comparison.base_sha:
+            status = StatusCheckStatus.FAILURE
             title, subtitle, summary = format_missing_base_snapshot_status_check_messages(
+                all_artifacts,
+                snapshot_metrics_map,
+            )
+        else:
+            status = StatusCheckStatus.SUCCESS
+            title, subtitle, summary = format_generated_snapshot_status_check_messages(
                 all_artifacts,
                 snapshot_metrics_map,
             )
     else:
         status = _compute_snapshot_status(
-            all_artifacts, snapshot_metrics_map, comparisons_map, approvals_map
+            all_artifacts,
+            snapshot_metrics_map,
+            comparisons_map,
+            approvals_map,
+            changes_map,
         )
+
         title, subtitle, summary = format_snapshot_status_check_messages(
             all_artifacts,
             snapshot_metrics_map,
             comparisons_map,
             status,
             base_artifact_map,
+            changes_map,
+            approvals_map=approvals_map,
         )
-        if _has_snapshot_changes(all_artifacts, snapshot_metrics_map, comparisons_map):
+        if any(changes_map.values()):
             approve_action_identifier = APPROVE_SNAPSHOT_ACTION_IDENTIFIER
 
     completed_at: datetime | None = None
@@ -260,12 +315,27 @@ def create_preprod_snapshot_status_check_task(
     )
 
 
-def _has_snapshot_changes(
+def _comparison_has_changes(
+    comparison: PreprodSnapshotComparison,
+    fail_on_added: bool = False,
+    fail_on_removed: bool = True,
+) -> bool:
+    return (
+        comparison.images_changed > 0
+        or comparison.images_renamed > 0
+        or (fail_on_added and comparison.images_added > 0)
+        or (fail_on_removed and comparison.images_removed > 0)
+    )
+
+
+def _build_changes_map(
     artifacts: list[PreprodArtifact],
     snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
     comparisons_map: dict[int, PreprodSnapshotComparison],
-) -> bool:
-    """Check if any artifact has snapshot changes (added/removed/changed)."""
+    fail_on_added: bool = False,
+    fail_on_removed: bool = True,
+) -> dict[int, bool]:
+    changes_map: dict[int, bool] = {}
     for artifact in artifacts:
         metrics = snapshot_metrics_map.get(artifact.id)
         if not metrics:
@@ -273,15 +343,10 @@ def _has_snapshot_changes(
         comparison = comparisons_map.get(metrics.id)
         if not comparison or comparison.state != PreprodSnapshotComparison.State.SUCCESS:
             continue
-
-        if (
-            comparison.images_changed > 0
-            or comparison.images_added > 0
-            or comparison.images_removed > 0
-            or comparison.images_renamed > 0
-        ):
-            return True
-    return False
+        changes_map[artifact.id] = _comparison_has_changes(
+            comparison, fail_on_added, fail_on_removed
+        )
+    return changes_map
 
 
 def _compute_snapshot_status(
@@ -289,13 +354,8 @@ def _compute_snapshot_status(
     snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
     comparisons_map: dict[int, PreprodSnapshotComparison],
     approvals_map: dict[int, PreprodComparisonApproval],
+    changes_map: dict[int, bool],
 ) -> StatusCheckStatus:
-    """Compute the overall snapshot status check status.
-
-    - IN_PROGRESS if any comparison is pending/processing
-    - FAILURE if any comparison failed, or if any has changes and not approved
-    - SUCCESS if all comparisons succeeded with no changes, or all approved
-    """
     has_in_progress = False
 
     for artifact in artifacts:
@@ -314,12 +374,7 @@ def _compute_snapshot_status(
             case PreprodSnapshotComparison.State.FAILED:
                 return StatusCheckStatus.FAILURE
             case PreprodSnapshotComparison.State.SUCCESS:
-                if (
-                    comparison.images_changed > 0
-                    or comparison.images_added > 0
-                    or comparison.images_removed > 0
-                    or comparison.images_renamed > 0
-                ) and artifact.id not in approvals_map:
+                if changes_map.get(artifact.id, False) and artifact.id not in approvals_map:
                     return StatusCheckStatus.FAILURE
 
     if has_in_progress:

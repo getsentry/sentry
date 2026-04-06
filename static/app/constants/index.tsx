@@ -645,6 +645,22 @@ export const DATA_CATEGORY_INFO = {
     },
     formatting: DEFAULT_COUNT_FORMATTING,
   },
+  [DataCategoryExact.TRACE_METRIC_BYTE]: {
+    name: DataCategoryExact.TRACE_METRIC_BYTE,
+    plural: DataCategory.TRACE_METRIC_BYTE,
+    singular: 'traceMetricByte',
+    displayName: 'metric byte',
+    titleName: t('Metrics (Bytes)'),
+    productName: t('Metrics'),
+    uid: 37,
+    isBilledCategory: false,
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showExternalStats: true,
+      yAxisMinInterval: 1 * KILOBYTE,
+    },
+    formatting: BYTES_FORMATTING,
+  },
   [DataCategoryExact.SEER_USER]: {
     name: DataCategoryExact.SEER_USER,
     plural: DataCategory.SEER_USER,

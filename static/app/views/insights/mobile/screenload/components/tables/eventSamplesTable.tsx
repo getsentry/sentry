@@ -19,8 +19,7 @@ import {IconProfiling} from 'sentry/icons/iconProfiling';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import type {MetaType} from 'sentry/utils/discover/eventView';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView, MetaType} from 'sentry/utils/discover/eventView';
 import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -71,7 +70,7 @@ export function EventSamplesTable({
   const eventViewColumns = eventView.getColumns();
 
   function renderBodyCell(column: any, row: any): React.ReactNode {
-    if (!data?.meta || !data?.meta.fields) {
+    if (!data?.meta?.fields) {
       return row[column.key];
     }
 

@@ -85,8 +85,7 @@ class LocalCellCachingService(CellCachingService):
     def clear_key(
         self,
         *,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        cell_name: str,
         key: str,
     ) -> int:
         return _consume_generator(_delete_cache(key, SiloMode.CELL))

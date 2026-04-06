@@ -1,6 +1,4 @@
-from django.db import router, transaction
 from drf_spectacular.utils import extend_schema
-from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -27,9 +25,6 @@ from sentry.workflow_engine.endpoints.organization_workflow_index import (
 )
 from sentry.workflow_engine.endpoints.serializers.workflow_serializer import WorkflowSerializer
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
-from sentry.workflow_engine.endpoints.validators.detector_workflow import (
-    BulkWorkflowDetectorsValidator,
-)
 from sentry.workflow_engine.models import Workflow
 
 
@@ -103,34 +98,15 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
         )
 
         validator.is_valid(raise_exception=True)
+        validator.update(workflow, validator.validated_data)
 
-        with transaction.atomic(router.db_for_write(Workflow)):
-            validator.update(workflow, validator.validated_data)
-
-            detector_ids = request.data.get("detectorIds")
-            if detector_ids is not None:
-                bulk_validator = BulkWorkflowDetectorsValidator(
-                    data={
-                        "workflow_id": workflow.id,
-                        "detector_ids": detector_ids,
-                    },
-                    context={
-                        "organization": organization,
-                        "request": request,
-                    },
-                )
-                if not bulk_validator.is_valid():
-                    raise ValidationError({"detectorIds": bulk_validator.errors})
-
-                bulk_validator.save()
-
-            create_audit_entry(
-                request=request,
-                organization=organization,
-                target_object=workflow.id,
-                event=audit_log.get_event_id("WORKFLOW_EDIT"),
-                data=workflow.get_audit_log_data(),
-            )
+        create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=workflow.id,
+            event=audit_log.get_event_id("WORKFLOW_EDIT"),
+            data=workflow.get_audit_log_data(),
+        )
 
         workflow.refresh_from_db()
 

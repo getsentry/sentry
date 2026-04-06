@@ -93,6 +93,23 @@ export function WidgetBuilderTypeSelector({
     }
   };
 
+  const handleTextWidgetDisplayTypeChange = (newValue: DisplayType) => {
+    const defaultConfig = getDatasetConfig(state.dataset ?? WidgetType.ERRORS);
+    dispatch({
+      type: BuilderStateAction.SET_STATE,
+      payload: convertWidgetToBuilderState({
+        widgetType: state.dataset ?? WidgetType.ERRORS,
+        queries: [
+          (usesTimeSeriesData(newValue) && defaultConfig.defaultSeriesWidgetQuery) ||
+            defaultConfig.defaultWidgetQuery,
+        ],
+        displayType: newValue,
+        interval: '',
+        title: state.title ?? '',
+      }),
+    });
+  };
+
   return (
     <Fragment>
       <SectionHeader
@@ -121,7 +138,12 @@ export function WidgetBuilderTypeSelector({
             }
             setError?.({...error, displayType: undefined});
 
-            if (state.dataset === WidgetType.ISSUE) {
+            if (
+              state.displayType === DisplayType.TEXT &&
+              newValue?.value !== DisplayType.TEXT
+            ) {
+              handleTextWidgetDisplayTypeChange(newValue?.value);
+            } else if (state.dataset === WidgetType.ISSUE) {
               handleIssueWidgetDisplayTypeChange(newValue?.value);
             } else {
               dispatch({

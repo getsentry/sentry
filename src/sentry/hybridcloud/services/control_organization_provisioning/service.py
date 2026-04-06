@@ -21,8 +21,7 @@ class ControlOrganizationProvisioningRpcService(RpcService):
     def provision_organization(
         self,
         *,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        cell_name: str,
         org_provision_args: OrganizationProvisioningOptions,
     ) -> RpcOrganizationSlugReservation:
         """
@@ -39,19 +38,18 @@ class ControlOrganizationProvisioningRpcService(RpcService):
     def update_organization_slug(
         self,
         *,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        cell_name: str,
         organization_id: int,
         desired_slug: str,
         require_exact: bool = True,
     ) -> RpcOrganizationSlugReservation:
         """
         Updates an organization's slug via an outbox based confirmation flow to ensure that the control
-        and region silos stay in sync.
+        and cell silos stay in sync.
 
         Initially, the organization slug reservation is updated in control silo, which generates a replica
-        outbox to the desired region in order to ensure that a slug change in control _will eventually_
-        result in a slug change on the region side.
+        outbox to the desired cell in order to ensure that a slug change in control _will eventually_
+        result in a slug change on the cell side.
 
         :param cell_name: The cell where the organization exists
         :param organization_id: the ID of the organization whose slug to change
@@ -66,8 +64,7 @@ class ControlOrganizationProvisioningRpcService(RpcService):
     def bulk_create_organization_slug_reservations(
         self,
         *,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        cell_name: str,
         slug_mapping: dict[int, str],
     ) -> None:
         """

@@ -19,7 +19,12 @@ from sentry.api.serializers.models.organization import TrustedRelaySerializer
 from sentry.api.utils import generate_locality_url
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
-from sentry.constants import RESERVED_ORGANIZATION_SLUGS, ObjectStatus
+from sentry.constants import (
+    RESERVED_ORGANIZATION_SLUGS,
+    SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+    SEER_DEFAULT_CODING_AGENT_DEFAULT,
+    ObjectStatus,
+)
 from sentry.core.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling.types import DynamicSamplingMode
@@ -83,10 +88,10 @@ class MockAccess:
         return False
 
 
-regions = create_test_cells("us", "de")
+cells = create_test_cells("us", "de")
 
 
-@cell_silo_test(cells=regions, include_monolith_run=True)
+@cell_silo_test(cells=cells, include_monolith_run=True)
 class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestCase):
     @property
     def now(self):
@@ -672,8 +677,16 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
             )
             assert "onboarding" not in response.data["features"]
 
+    def test_invalid_stored_stopping_point_falls_back_to_default(self) -> None:
+        self.organization.update_option("sentry:default_automated_run_stopping_point", "root_cause")
+        response = self.get_success_response(self.organization.slug)
+        assert (
+            response.data["defaultAutomatedRunStoppingPoint"]
+            == SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+        )
 
-@cell_silo_test(cells=regions)
+
+@cell_silo_test(cells=cells)
 class OrganizationUpdateTest(OrganizationDetailsTestBase):
     method = "put"
 
@@ -1223,13 +1236,13 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         res = self.get_error_response(self.organization.slug, slug="taken", status_code=400)
         assert res.json()["slug"] == ['The slug "taken" is already in use.']
 
-    def test_org_mapping_already_taken_org_in_other_region(self) -> None:
-        de_region = regions[1]
-        assert de_region.name == "de"
+    def test_org_mapping_already_taken_org_in_other_cell(self) -> None:
+        de_cell = cells[1]
+        assert de_cell.name == "de"
 
         # Create an org, mapping, and slug reservation. For us to reach the RPC conflict,
         # we need to not have the org record in our database.
-        conflict = self.create_organization(slug="taken", region=de_region)
+        conflict = self.create_organization(slug="taken", cell=de_cell)
         Organization.objects.filter(id=conflict.id).delete()
 
         res = self.get_error_response(self.organization.slug, slug="taken", status_code=400)
@@ -1437,24 +1450,61 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                 == "Enabled platforms: PlayStation, Xbox; Disabled platforms: Nintendo Switch"
             )
 
-    def test_enable_pr_review_test_generation_default_false(self) -> None:
-        response = self.get_success_response(self.organization.slug)
-        assert response.data["enablePrReviewTestGeneration"] is False
+    @patch(
+        "sentry.tasks.console_platform_cleanup.remove_inaccessible_console_platform_sources.delay"
+    )
+    def test_console_platform_revocation_dispatches_cleanup_task(
+        self, mock_cleanup_task: MagicMock
+    ) -> None:
+        """Revoking console platforms dispatches the cleanup task with remaining platforms"""
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(organization=self.organization, user=staff_user, role="owner")
+        self.login_as(user=staff_user, staff=True)
 
-    def test_enable_pr_review_test_generation_can_be_disabled(self) -> None:
-        data = {"enablePrReviewTestGeneration": False}
+        self.organization.update_option(
+            "sentry:enabled_console_platforms", ["playstation", "nintendo-switch"]
+        )
+
+        data = {"enabledConsolePlatforms": ["playstation"]}
         self.get_success_response(self.organization.slug, **data)
 
-        assert self.organization.get_option("sentry:enable_pr_review_test_generation") is False
+        mock_cleanup_task.assert_called_once_with(self.organization.id, ["playstation"])
 
-    def test_enable_pr_review_test_generation_can_be_enabled(self) -> None:
-        # First disable it
-        self.organization.update_option("sentry:enable_pr_review_test_generation", False)
+    @patch(
+        "sentry.tasks.console_platform_cleanup.remove_inaccessible_console_platform_sources.delay"
+    )
+    def test_console_platform_addition_does_not_dispatch_cleanup_task(
+        self, mock_cleanup_task: MagicMock
+    ) -> None:
+        """Adding console platforms without revoking any does not dispatch the cleanup task"""
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(organization=self.organization, user=staff_user, role="owner")
+        self.login_as(user=staff_user, staff=True)
 
-        data = {"enablePrReviewTestGeneration": True}
+        data = {"enabledConsolePlatforms": ["playstation", "xbox"]}
         self.get_success_response(self.organization.slug, **data)
 
-        assert self.organization.get_option("sentry:enable_pr_review_test_generation") is True
+        mock_cleanup_task.assert_not_called()
+
+    @patch(
+        "sentry.tasks.console_platform_cleanup.remove_inaccessible_console_platform_sources.delay"
+    )
+    def test_console_platform_revoke_all_dispatches_cleanup_task(
+        self, mock_cleanup_task: MagicMock
+    ) -> None:
+        """Revoking all console platforms dispatches the cleanup task with empty list"""
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(organization=self.organization, user=staff_user, role="owner")
+        self.login_as(user=staff_user, staff=True)
+
+        self.organization.update_option(
+            "sentry:enabled_console_platforms", ["playstation", "nintendo-switch"]
+        )
+
+        data: dict[str, list[str]] = {"enabledConsolePlatforms": []}
+        self.get_success_response(self.organization.slug, **data)
+
+        mock_cleanup_task.assert_called_once_with(self.organization.id, [])
 
     def test_enable_seer_enhanced_alerts_default_true(self) -> None:
         response = self.get_success_response(self.organization.slug)
@@ -1509,6 +1559,158 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_success_response(self.organization.slug, **data)
 
         assert self.organization.get_option("sentry:enable_seer_coding") is False
+
+    def test_default_coding_agent_default(self) -> None:
+        response = self.get_success_response(self.organization.slug)
+        assert response.data["defaultCodingAgent"] == SEER_DEFAULT_CODING_AGENT_DEFAULT
+
+    def test_default_coding_agent_can_be_set_to_seer(self) -> None:
+        data = {"defaultCodingAgent": "seer"}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert self.organization.get_option("sentry:seer_default_coding_agent") == "seer"
+        assert response.data["defaultCodingAgent"] == "seer"
+
+    def test_default_coding_agent_can_be_set_to_cursor(self) -> None:
+        for value in ("cursor", "cursor_background_agent"):
+            data = {"defaultCodingAgent": value}
+            response = self.get_success_response(self.organization.slug, **data)
+            assert (
+                self.organization.get_option("sentry:seer_default_coding_agent")
+                == "cursor_background_agent"
+            )
+            assert response.data["defaultCodingAgent"] == "cursor_background_agent"
+
+    def test_default_coding_agent_can_be_set_to_claude(self) -> None:
+        for value in ("claude_code", "claude_code_agent"):
+            data = {"defaultCodingAgent": value}
+            response = self.get_success_response(self.organization.slug, **data)
+            assert (
+                self.organization.get_option("sentry:seer_default_coding_agent")
+                == "claude_code_agent"
+            )
+            assert response.data["defaultCodingAgent"] == "claude_code_agent"
+
+    def test_default_coding_agent_none_casts_to_seer(self) -> None:
+        data = {"defaultCodingAgent": None}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert self.organization.get_option("sentry:seer_default_coding_agent") == "seer"
+        assert response.data["defaultCodingAgent"] == "seer"
+
+    def test_default_coding_agent_none_resets_to_seer(self) -> None:
+        self.organization.update_option(
+            "sentry:seer_default_coding_agent", "cursor_background_agent"
+        )
+        data = {"defaultCodingAgent": None}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert self.organization.get_option("sentry:seer_default_coding_agent") == "seer"
+        assert response.data["defaultCodingAgent"] == "seer"
+
+    def test_default_coding_agent_rejects_invalid_choice(self) -> None:
+        data = {"defaultCodingAgent": "invalid_agent"}
+        self.get_error_response(self.organization.slug, status_code=400, **data)
+
+    def test_default_coding_agent_writing_default_value_stores_but_skips_audit_log(
+        self,
+    ) -> None:
+        # Sending the default value does not produce an audit log entry (by design:
+        # the ORG_OPTIONS loop only audits writes that differ from the default).
+        with assume_test_silo_mode_of(AuditLogEntry):
+            AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
+
+        data = {"defaultCodingAgent": SEER_DEFAULT_CODING_AGENT_DEFAULT}
+        self.get_success_response(self.organization.slug, **data)
+
+        assert (
+            self.organization.get_option("sentry:seer_default_coding_agent")
+            == SEER_DEFAULT_CODING_AGENT_DEFAULT
+        )
+        with assume_test_silo_mode_of(AuditLogEntry):
+            assert not AuditLogEntry.objects.filter(organization_id=self.organization.id).exists()
+
+    def test_default_coding_agent_integration_id_default_none(self) -> None:
+        response = self.get_success_response(self.organization.slug)
+        assert response.data["defaultCodingAgentIntegrationId"] is None
+
+    def test_default_coding_agent_integration_id_can_be_set(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="test-ext-id"
+        )
+        data = {"defaultCodingAgentIntegrationId": integration.id}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert (
+            self.organization.get_option("sentry:seer_default_coding_agent_integration_id")
+            == integration.id
+        )
+        assert response.data["defaultCodingAgentIntegrationId"] == integration.id
+
+    def test_default_coding_agent_integration_id_rejects_foreign_org(self) -> None:
+        other_org = self.create_organization()
+        integration = self.create_integration(
+            organization=other_org, provider="github", external_id="other-ext-id"
+        )
+        data = {"defaultCodingAgentIntegrationId": integration.id}
+        self.get_error_response(self.organization.slug, status_code=400, **data)
+
+    def test_default_coding_agent_integration_id_rejects_nonexistent_id(self) -> None:
+        data = {"defaultCodingAgentIntegrationId": 99999999}
+        self.get_error_response(self.organization.slug, status_code=400, **data)
+
+    def test_default_coding_agent_integration_id_coerces_string_input(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="test-ext-id-str"
+        )
+        data = {"defaultCodingAgentIntegrationId": str(integration.id)}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert (
+            self.organization.get_option("sentry:seer_default_coding_agent_integration_id")
+            == integration.id
+        )
+        assert response.data["defaultCodingAgentIntegrationId"] == integration.id
+
+    def test_default_coding_agent_integration_id_null_on_first_write_create_path(self) -> None:
+        # Tests the create path (no OrganizationOption row exists yet): sending null
+        # must store null rather than crashing via int(None).
+        data = {"defaultCodingAgentIntegrationId": None}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert (
+            self.organization.get_option("sentry:seer_default_coding_agent_integration_id") is None
+        )
+        assert response.data["defaultCodingAgentIntegrationId"] is None
+
+    def test_default_automated_run_stopping_point_default(self) -> None:
+        response = self.get_success_response(self.organization.slug)
+        assert (
+            response.data["defaultAutomatedRunStoppingPoint"]
+            == SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+        )
+
+    def test_default_automated_run_stopping_point_can_be_set(self) -> None:
+        for choice in ("code_changes", "open_pr"):
+            with self.subTest(choice=choice):
+                data = {"defaultAutomatedRunStoppingPoint": choice}
+                response = self.get_success_response(self.organization.slug, **data)
+                assert response.data["defaultAutomatedRunStoppingPoint"] == choice
+
+    def test_default_automated_run_stopping_point_rejects_invalid(self) -> None:
+        for invalid in ("solution", "invalid_point", "root_cause"):
+            with self.subTest(value=invalid):
+                data = {"defaultAutomatedRunStoppingPoint": invalid}
+                self.get_error_response(self.organization.slug, status_code=400, **data)
+
+    def test_default_automated_run_stopping_point_accepts_root_cause_with_flag(self) -> None:
+        with self.feature("organizations:root-cause-stopping-point"):
+            data = {"defaultAutomatedRunStoppingPoint": "root_cause"}
+            response = self.get_success_response(self.organization.slug, **data)
+            assert response.data["defaultAutomatedRunStoppingPoint"] == "root_cause"
+
+    def test_default_coding_agent_integration_id_can_be_cleared(self) -> None:
+        self.organization.update_option("sentry:seer_default_coding_agent_integration_id", 123)
+        data = {"defaultCodingAgentIntegrationId": None}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert (
+            self.organization.get_option("sentry:seer_default_coding_agent_integration_id") is None
+        )
+        assert response.data["defaultCodingAgentIntegrationId"] is None
 
     def test_granular_replay_permissions_flag_set(self) -> None:
         with assume_test_silo_mode_of(AuditLogEntry):

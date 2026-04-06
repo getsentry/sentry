@@ -1,10 +1,10 @@
-import {Fragment, useRef} from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
+import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
@@ -12,7 +12,6 @@ import {IssueViews} from 'sentry/views/navigation/secondary/sections/issues/issu
 
 export function IssuesSecondaryNavigation() {
   const organization = useOrganization();
-  const sectionRef = useRef<HTMLDivElement>(null);
   const baseUrl = `/organizations/${organization.slug}/issues`;
   const hasTopIssuesUI = organization.features.includes('top-issues-ui');
 
@@ -31,17 +30,17 @@ export function IssuesSecondaryNavigation() {
                 {t('Feed')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
+            {hasTopIssuesUI && (
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={`${baseUrl}/supergroups/`}
+                  analyticsItemName="issues_supergroups"
+                >
+                  {t('Supergroups')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
+            )}
           </SecondaryNavigation.List>
-          {hasTopIssuesUI && (
-            <SecondaryNavigation.ListItem>
-              <SecondaryNavigation.Link
-                to={`${baseUrl}/supergroups/`}
-                analyticsItemName="issues_supergroups"
-              >
-                {t('Supergroups')}
-              </SecondaryNavigation.Link>
-            </SecondaryNavigation.ListItem>
-          )}
         </SecondaryNavigation.Section>
         <SecondaryNavigation.Separator />
         <SecondaryNavigation.Section id="issues-types">
@@ -77,6 +76,24 @@ export function IssuesSecondaryNavigation() {
             )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
+        {organization.features.includes('seer-issue-view') && (
+          <Fragment>
+            <SecondaryNavigation.Separator />
+            <SecondaryNavigation.Section id="issues-autofix" title={t('Autofix')}>
+              <SecondaryNavigation.List>
+                <SecondaryNavigation.ListItem>
+                  <SecondaryNavigation.Link
+                    to={`${baseUrl}/autofix/recent/`}
+                    analyticsItemName="issues_autofix"
+                    end
+                  >
+                    {t('Recently Run')}
+                  </SecondaryNavigation.Link>
+                </SecondaryNavigation.ListItem>
+              </SecondaryNavigation.List>
+            </SecondaryNavigation.Section>
+          </Fragment>
+        )}
         <SecondaryNavigation.Separator />
         <SecondaryNavigation.Section id="issues-views-all">
           <SecondaryNavigation.List>
@@ -91,7 +108,7 @@ export function IssuesSecondaryNavigation() {
             </SecondaryNavigation.ListItem>
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
-        <IssueViews sectionRef={sectionRef} />
+        <IssueViews />
         <ConfigureSection baseUrl={baseUrl} />
       </SecondaryNavigation.Body>
     </Fragment>
@@ -110,7 +127,7 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
     !hasRedirectOptOut && organization.features.includes('workflow-engine-ui');
 
   const alertsLink = shouldRedirectToWorkflowEngineUI
-    ? `${makeMonitorBasePathname(organization.slug)}?alertsRedirect=true`
+    ? `${makeAutomationBasePathname(organization.slug)}?alertsRedirect=true`
     : `${baseUrl}/alerts/rules/`;
 
   return (

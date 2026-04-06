@@ -1,9 +1,11 @@
 import logging
+import threading
 import time
 from collections.abc import MutableMapping
 
 import pytest
-from confluent_kafka import Consumer, Producer
+from arroyo.processing import StreamProcessor
+from confluent_kafka import Producer
 from confluent_kafka.admin import AdminClient
 
 from sentry.testutils.pytest import xdist
@@ -72,7 +74,7 @@ def scope_consumers():
     be created once per test session).
 
     """
-    all_consumers: MutableMapping[str, Consumer | None] = {
+    all_consumers: MutableMapping[str, StreamProcessor | None] = {
         xdist.get_kafka_topic("ingest-events"): None,
         xdist.get_kafka_topic("outcomes"): None,
     }
@@ -84,7 +86,11 @@ def scope_consumers():
             try:
                 # stop the consumer
                 consumer.signal_shutdown()
-                consumer.run()
+                t = threading.Thread(target=consumer.run, daemon=True)
+                t.start()
+                t.join(timeout=5)
+                if t.is_alive():
+                    _log.warning("Consumer %s shutdown timed out, skipping", consumer_name)
             except Exception:
                 _log.warning("Failed to cleanup consumer %s", consumer_name)
 

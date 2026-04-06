@@ -724,8 +724,7 @@ if (IS_UI_DEV_ONLY) {
   // XXX: If you change this also change its sibiling in:
   // - static/index.ejs
   // - static/app/utils/extractSlug.tsx
-  const KNOWN_DOMAINS =
-    /(?:\.?)((?:localhost|dev\.getsentry\.net|sentry\.dev)(?::\d*)?)$/;
+  const KNOWN_DOMAINS = /\.?((?:localhost|dev\.getsentry\.net|sentry\.dev)(?::\d*)?)$/;
 
   const extractSlug = (hostname: string) => {
     const match = hostname.match(KNOWN_DOMAINS);
@@ -847,15 +846,18 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
 }
 
 if (IS_PRODUCTION) {
-  // This compression-webpack-plugin generates pre-compressed files
-  // ending in .gz, to be picked up and served by our internal static media
-  // server as well as nginx when paired with the gzip_static module.
-  appConfig.plugins?.push(
-    new CompressionPlugin({
-      algorithm: 'gzip',
-      test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
-    })
-  );
+  if (!IS_DEPLOY_PREVIEW) {
+    // This compression-webpack-plugin generates pre-compressed files
+    // ending in .gz, to be picked up and served by our internal static media
+    // server as well as nginx when paired with the gzip_static module.
+    // Skipped for deploy previews since Vercel handles compression itself.
+    appConfig.plugins?.push(
+      new CompressionPlugin({
+        algorithm: 'gzip',
+        test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
+      })
+    );
+  }
 
   // Enable sentry-webpack-plugin for production builds
   appConfig.plugins?.push(

@@ -20,7 +20,6 @@ import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 const sortByOptions = {
   'recent-first': t('Newest'),
@@ -72,7 +71,6 @@ export function TraceEventDataSection({
 }: Props) {
   const api = useApi();
   const organization = useOrganization();
-  const hasStreamlinedUI = useHasStreamlinedUI();
 
   const {
     displayOptions,
@@ -444,7 +442,7 @@ export function TraceEventDataSection({
   return (
     <SectionComponent
       type={type}
-      showPermalink={!hasStreamlinedUI}
+      showPermalink={false}
       title={title}
       disableCollapsePersistence
       actions={

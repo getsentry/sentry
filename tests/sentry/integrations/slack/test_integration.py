@@ -12,6 +12,7 @@ from sentry import audit_log
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack import SlackIntegration, SlackIntegrationProvider
+from sentry.integrations.slack.utils.constants import SlackScope
 from sentry.integrations.slack.utils.users import SLACK_GET_USERS_PAGE_SIZE
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider
@@ -87,6 +88,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         access_json = {
             "ok": True,
             "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+            "scope": ",".join(sorted(self.provider.identity_oauth_scopes)),
             "team": {"id": team_id, "name": "Example"},
             "authed_user": {"id": authorizing_user_id},
         }
@@ -611,3 +613,43 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
                 renderable=self.slack_renderable,
                 slack_user_id=self.slack_user_id,
             )
+
+    def test_get_thread_history_missing_scope_returns_empty(self) -> None:
+        result = self.installation.get_thread_history(
+            channel_id=self.channel_id,
+            thread_ts=self.thread_ts,
+        )
+        assert result == []
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_replies")
+    def test_get_thread_history_success(self, mock_conversations_replies: MagicMock) -> None:
+        self.integration.metadata["scopes"] = [SlackScope.CHANNELS_HISTORY]
+        mock_conversations_replies.return_value = {
+            "ok": True,
+            "messages": [
+                {"ts": self.thread_ts, "text": "Original message"},
+                {"ts": "1712345679.000001", "text": "Reply 1"},
+                {"ts": "1712345680.000002", "text": "Reply 2"},
+            ],
+        }
+        result = self.installation.get_thread_history(
+            channel_id=self.channel_id,
+            thread_ts=self.thread_ts,
+        )
+        assert len(result) == 3
+        assert result[0]["text"] == "Original message"
+        mock_conversations_replies.assert_called_once_with(
+            channel=self.channel_id,
+            ts=self.thread_ts,
+        )
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_replies")
+    def test_get_thread_history_error_returns_empty_list(
+        self, mock_conversations_replies: MagicMock
+    ) -> None:
+        self.integration.metadata["scopes"] = [SlackScope.CHANNELS_HISTORY]
+        mock_conversations_replies.side_effect = SlackApiError("channel_not_found", MagicMock())
+        result = self.installation.get_thread_history(
+            channel_id=self.channel_id, thread_ts=self.thread_ts
+        )
+        assert result == []

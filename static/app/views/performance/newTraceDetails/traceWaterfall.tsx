@@ -22,7 +22,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
@@ -40,6 +40,7 @@ import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/tr
 import {TraceOpenInExploreButton} from 'sentry/views/performance/newTraceDetails/traceOpenInExploreButton';
 import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfallStyles';
 import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/useDividerResizeSync';
+import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
 import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
 import {useTraceWaterfallScroll} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallScroll';
@@ -95,6 +96,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const {projects} = useProjects();
   const organization = useOrganization();
 
+  const isEAP = useIsEAPTraceEnabled();
+
   const traceDispatch = useTraceStateDispatch();
   const traceStateEmitter = useTraceStateEmitter();
 
@@ -136,6 +139,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     }
 
     const cleanup = props.tree.fetchAdditionalTraces({
+      type: isEAP ? 'eap' : 'non-eap',
       api,
       filters,
       replayTraces: props.replayTraces,

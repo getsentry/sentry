@@ -1,12 +1,10 @@
 import {Fragment, useEffect, useMemo} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, Query} from 'history';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import * as Layout from 'sentry/components/layouts/thirds';
 import {Placeholder} from 'sentry/components/placeholder';
 import {
   SelectedReplayIndexProvider,
@@ -34,7 +32,7 @@ import {IconPlay, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {useReplayList} from 'sentry/utils/replays/hooks/useReplayList';
@@ -43,7 +41,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {GroupReplaysPlayer} from 'sentry/views/issueDetails/groupReplays/groupReplaysPlayer';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import {useAllMobileProj} from 'sentry/views/replays/detail/useAllMobileProj';
 import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
 
@@ -92,7 +89,6 @@ export function GroupReplays({group}: Props) {
 function GroupReplaysContent({group}: Props) {
   const organization = useOrganization();
   const location = useLocation<ReplayListLocationQuery>();
-  const hasStreamlinedUI = useHasStreamlinedUI();
 
   const {eventView, fetchError, isFetching} = useReplaysFromIssue({
     group,
@@ -121,9 +117,9 @@ function GroupReplaysContent({group}: Props) {
   if (!eventView) {
     // Shown on load and no replay data available
     return (
-      <StyledLayoutPage withPadding hasStreamlinedUI={hasStreamlinedUI}>
+      <StyledLayoutPage flex={1} padding="2xl 3xl">
         <Stack>
-          {hasStreamlinedUI ? <ReplayFilterMessage /> : null}
+          <ReplayFilterMessage />
           <Flex align="center" gap="md">
             <IconUser size="sm" />
             {isFetching ? (
@@ -148,9 +144,9 @@ function GroupReplaysContent({group}: Props) {
 
   return (
     <SelectedReplayIndexProvider>
-      <StyledLayoutPage withPadding hasStreamlinedUI={hasStreamlinedUI}>
+      <StyledLayoutPage flex={1} padding="2xl 3xl">
         <Stack>
-          {hasStreamlinedUI ? <ReplayFilterMessage /> : null}
+          <ReplayFilterMessage />
           <Flex align="center" gap="md">
             <IconUser size="sm" />
             {replayCount > 50
@@ -328,17 +324,12 @@ function ReplayOverlay({
   );
 }
 
-const StyledLayoutPage = styled(Layout.Page)<{hasStreamlinedUI?: boolean}>`
+const StyledLayoutPage = styled(Stack)`
   background-color: ${p => p.theme.tokens.background.primary};
   gap: ${p => p.theme.space.lg};
-
-  ${p =>
-    p.hasStreamlinedUI &&
-    css`
-      border: 1px solid ${p.theme.tokens.border.primary};
-      border-radius: ${p.theme.radius.md};
-      padding: ${p.theme.space.lg};
-    `}
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+  padding: ${p => p.theme.space.lg};
 `;
 
 const StyledBreak = styled('hr')`

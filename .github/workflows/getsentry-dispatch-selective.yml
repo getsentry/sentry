@@ -30,7 +30,6 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           persist-credentials: false
-          fetch-depth: 0
 
       - name: permissions
         run: |
@@ -55,14 +54,10 @@ jobs:
 
       - name: Get changed files for selective testing
         id: changed-files
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          # pull_request_target checks out the base branch, so the fork's head
-          # SHA isn't available locally. Fetch the PR head ref first.
-          git fetch origin "pull/${{ github.event.number }}/head"
-          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
-          BASE_SHA="${{ github.event.pull_request.base.sha }}"
-
-          CHANGED_FILES=$(git diff --name-only "$BASE_SHA"..."$HEAD_SHA" | tr '\n' ' ')
+          CHANGED_FILES=$(gh api repos/${{ github.repository }}/pulls/${{ github.event.number }}/files --paginate --jq '.[].filename' | tr '\n' ' ')
           echo "Changed files: $CHANGED_FILES"
           echo "sentry-changed-files=$CHANGED_FILES" >> "$GITHUB_OUTPUT"
 
@@ -101,4 +96,5 @@ jobs:
               mergeCommitSha: '${{ steps.mergecommit.outputs.mergeCommitSha }}',
               fileChanges: ${{ toJson(steps.changes.outputs) }},
               sentryChangedFiles: process.env.SENTRY_CHANGED_FILES,
+              targetWorkflow: 'backend-selective.yml',
             });

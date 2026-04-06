@@ -11,6 +11,7 @@ from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics
+from sentry.viewer_context import ViewerContext, get_viewer_context
 
 
 class SeerViewerContext(TypedDict, total=False):
@@ -41,6 +42,73 @@ seer_anomaly_detection_default_connection_pool = connection_from_url(
     timeout=settings.SEER_DEFAULT_TIMEOUT,
 )
 
+seer_grouping_default_connection_pool = connection_from_url(
+    settings.SEER_GROUPING_URL,
+    timeout=settings.SEER_DEFAULT_TIMEOUT,
+)
+
+
+def _resolve_viewer_context(
+    explicit: SeerViewerContext | None = None,
+) -> ViewerContext | None:
+    """Merge explicit SeerViewerContext with the contextvar.
+
+    Converts the legacy SeerViewerContext into a ViewerContext, then merges
+    with the contextvar. Explicit non-None fields win. On disagreement,
+    logs a warning and strips the token for safety.
+    """
+    vc = get_viewer_context()
+
+    if explicit is None and vc is None:
+        return None
+    if explicit is None:
+        return vc
+
+    explicit_vc = ViewerContext(
+        organization_id=explicit.get("organization_id"),
+        user_id=explicit.get("user_id"),
+    )
+
+    if vc is None:
+        return explicit_vc
+
+    has_mismatch = False
+    org_id = vc.organization_id
+    user_id = vc.user_id
+
+    if explicit_vc.organization_id is not None:
+        if org_id is not None and org_id != explicit_vc.organization_id:
+            logger.warning(
+                "seer.viewer_context_mismatch",
+                extra={
+                    "field": "organization_id",
+                    "contextvar": org_id,
+                    "explicit": explicit_vc.organization_id,
+                },
+            )
+            has_mismatch = True
+        org_id = explicit_vc.organization_id
+
+    if explicit_vc.user_id is not None:
+        if user_id is not None and user_id != explicit_vc.user_id:
+            logger.warning(
+                "seer.viewer_context_mismatch",
+                extra={
+                    "field": "user_id",
+                    "contextvar": user_id,
+                    "explicit": explicit_vc.user_id,
+                },
+            )
+            has_mismatch = True
+        user_id = explicit_vc.user_id
+
+    return ViewerContext(
+        organization_id=org_id,
+        user_id=user_id,
+        actor_type=vc.actor_type,
+        token=None if has_mismatch else vc.token,
+    )
+
 
 @sentry_sdk.tracing.trace
 def make_signed_seer_api_request(
@@ -67,10 +135,11 @@ def make_signed_seer_api_request(
         **auth_headers,
     }
 
-    if viewer_context:
+    resolved = _resolve_viewer_context(viewer_context)
+    if resolved:
         if settings.SEER_API_SHARED_SECRET:
             try:
-                context_bytes = orjson.dumps(viewer_context)
+                context_bytes = orjson.dumps(resolved.serialize())
                 context_signature = sign_viewer_context(context_bytes)
                 headers["X-Viewer-Context"] = context_bytes.decode("utf-8")
                 headers["X-Viewer-Context-Signature"] = context_signature
@@ -132,6 +201,10 @@ class ExplorerIndexRequest(TypedDict):
     projects: list[ExplorerIndexProject]
 
 
+class ExplorerIndexSentryKnowledgeRequest(TypedDict):
+    replace_existing: bool
+
+
 class LlmGenerateRequest(TypedDict):
     provider: str
     model: str
@@ -151,6 +224,20 @@ def make_org_project_knowledge_index_request(
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v1/automation/explorer/index/org-project-knowledge",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+def make_index_sentry_knowledge_request(
+    body: ExplorerIndexSentryKnowledgeRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/automation/explorer/index/sentry-knowledge",
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
@@ -226,6 +313,7 @@ class SummarizeIssueRequest(TypedDict):
     organization_slug: str
     organization_id: int
     project_id: int
+    experiment_variant: NotRequired[str | None]
 
 
 class SupergroupsEmbeddingRequest(TypedDict):
@@ -245,6 +333,11 @@ class SupergroupsListRequest(TypedDict):
 class SupergroupsGetRequest(TypedDict):
     organization_id: int
     supergroup_id: int
+
+
+class SupergroupsGetByGroupIdsRequest(TypedDict):
+    organization_id: int
+    group_ids: list[int]
 
 
 class ServiceMapUpdateRequest(TypedDict):
@@ -374,6 +467,20 @@ def make_supergroups_get_request(
     )
 
 
+def make_supergroups_get_by_group_ids_request(
+    body: SupergroupsGetByGroupIdsRequest,
+    viewer_context: SeerViewerContext,
+    timeout: int | float | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v0/issues/supergroups/get-by-group-ids",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
 def make_service_map_update_request(
     body: ServiceMapUpdateRequest,
     timeout: int | float | None = None,
@@ -486,6 +593,26 @@ def make_compare_distributions_request(
     )
 
 
+class DeleteGroupingRecordsByProjectRequest(TypedDict):
+    project_id: int
+
+
+def make_delete_grouping_records_by_project_request(
+    body: DeleteGroupingRecordsByProjectRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    project_id = body["project_id"]
+    return make_signed_seer_api_request(
+        seer_grouping_default_connection_pool,
+        f"/v0/issues/similar-issues/grouping-record/delete/{project_id}",
+        body=b"",
+        method="GET",
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
 def sign_with_seer_secret(body: bytes) -> dict[str, str]:
     auth_headers: dict[str, str] = {}
     if settings.SEER_API_SHARED_SECRET:
@@ -500,6 +627,7 @@ def sign_with_seer_secret(body: bytes) -> dict[str, str]:
         logger.warning(
             "settings.SEER_API_SHARED_SECRET is not set. Unable to add auth headers for call to Seer."
         )
+        metrics.incr("seer.unsigned_request", sample_rate=1.0)
     return auth_headers
 
 

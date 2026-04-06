@@ -23,7 +23,7 @@ import {
 import {DOMAIN_VIEW_TITLES} from 'sentry/views/insights/pages/types';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
-import Tab from 'sentry/views/performance/transactionSummary/tabs';
+import {Tab} from 'sentry/views/performance/transactionSummary/tabs';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
@@ -360,7 +360,6 @@ function getInsightsModuleBreadcrumbs(
       });
       break;
 
-    case ModuleName.CACHE:
     default:
       break;
   }

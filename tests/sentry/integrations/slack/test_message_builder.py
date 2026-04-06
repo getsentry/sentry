@@ -230,9 +230,9 @@ def build_test_message_blocks(
 
     if rule:
         if legacy_rule_id:
-            context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: <http://testserver/organizations/{project.organization.slug}/alerts/rules/bar/{legacy_rule_id}/details/|{rule.label}>    Short ID: {group.qualified_short_id}"
+            context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: <http://testserver/organizations/{project.organization.slug}/issues/alerts/rules/bar/{legacy_rule_id}/details/|{rule.label}>    Short ID: {group.qualified_short_id}"
         else:
-            context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: <http://testserver/organizations/{project.organization.slug}/alerts/rules/bar/{rule.id}/details/|{rule.label}>    Short ID: {group.qualified_short_id}"
+            context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: <http://testserver/organizations/{project.organization.slug}/issues/alerts/rules/bar/{rule.id}/details/|{rule.label}>    Short ID: {group.qualified_short_id}"
     else:
         context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: BAR-{group.short_id}    Short ID: {group.qualified_short_id}"
     context = {
@@ -903,7 +903,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     @override_options({"alerts.issue_summary_timeout": 5})
     @with_feature({"organizations:gen-ai-features"})
-    def test_build_group_block_with_ai_summary(self):
+    def test_build_group_block_with_ai_summary(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -962,7 +962,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     @override_options({"alerts.issue_summary_timeout": 5})
     @with_feature({"organizations:gen-ai-features"})
-    def test_build_group_block_with_ai_summary_text_truncation(self):
+    def test_build_group_block_with_ai_summary_text_truncation(self) -> None:
         # Test case for multi-line exception text
         multiline_text = "First line of text\nSecond line of text\nThird line of text"
         event1 = self.store_event(

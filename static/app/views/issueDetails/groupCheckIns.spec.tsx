@@ -61,7 +61,7 @@ describe('GroupCheckIns', () => {
     });
     expect(await screen.findByText('All Check-Ins')).toBeInTheDocument();
     expect(
-      screen.getByText('No check-ins have been recorded for this time period.')
+      await screen.findByText('No check-ins have been recorded for this time period.')
     ).toBeInTheDocument();
   });
 
@@ -78,7 +78,7 @@ describe('GroupCheckIns', () => {
     });
     expect(await screen.findByText('All Check-Ins')).toBeInTheDocument();
     expect(screen.queryByText('No matching check-ins found')).not.toBeInTheDocument();
-    expect(screen.getByText('Showing 1-1 matching check-ins')).toBeInTheDocument();
+    expect(await screen.findByText('Showing 1-1 matching check-ins')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Previous Page'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Next Page'})).toBeInTheDocument();
 

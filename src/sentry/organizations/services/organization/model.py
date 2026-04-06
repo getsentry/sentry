@@ -361,9 +361,9 @@ class RpcUserInviteContext(RpcUserOrganizationContext):
     invite_organization_member_id: int | None = 0
 
 
-class RpcRegionUser(RpcModel):
+class RpcCellUser(RpcModel):
     """
-    Represents user information that may be propagated to each region that a user belongs to, often to make
+    Represents user information that may be propagated to each cell that a user belongs to, often to make
     more performant queries on organization member information.
     """
 

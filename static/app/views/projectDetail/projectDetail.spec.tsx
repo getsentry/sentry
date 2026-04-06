@@ -71,6 +71,7 @@ describe('ProjectDetail', () => {
 
   it('Render an error if project not found', async () => {
     ProjectsStore.loadInitialData([{...project, slug: 'different-slug'}]);
+    setupMockResponses();
 
     render(<ProjectDetail />, {
       organization,
@@ -144,6 +145,7 @@ describe('ProjectDetail', () => {
     await waitFor(() => {
       expect(pageFilters.updateProjects).toHaveBeenCalledWith(
         [Number(project.id)],
+        undefined,
         undefined
       );
     });

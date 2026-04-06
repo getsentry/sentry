@@ -21,25 +21,16 @@ _TEST_CELLS = (
 )
 
 
-@control_silo_test(regions=_TEST_CELLS)
+@control_silo_test(cells=_TEST_CELLS)
 class CellResolutionTest(TestCase):
     def setUp(self) -> None:
         self.target_cell = _TEST_CELLS[0]
-        self.organization = self.create_organization(region=self.target_cell)
+        self.organization = self.create_organization(cell=self.target_cell)
 
     def test_by_cell_name(self) -> None:
         resolver = ByCellName()
-        # Primary path: callers using the new cell_name parameter
         assert resolver.resolve({"cell_name": self.target_cell.name}) == self.target_cell
-        # Fallback: callers still using the old region_name parameter
-        assert resolver.resolve({"region_name": self.target_cell.name}) == self.target_cell
-        # When both are present, region_name takes precedence over cell_name
-        other_cell = _TEST_CELLS[1]
-        assert (
-            resolver.resolve({"cell_name": other_cell.name, "region_name": self.target_cell.name})
-            == self.target_cell
-        )
-        # When neither is passed, raise KeyError
+        # When no cell_name is passed, raise KeyError
         with pytest.raises(KeyError):
             resolver.resolve({})
 
@@ -84,6 +75,6 @@ class CellResolutionTest(TestCase):
                 cell_resolution.resolve({})
 
         with override_cells(_TEST_CELLS), override_settings(SENTRY_SINGLE_ORGANIZATION=True):
-            self.create_organization(region=_TEST_CELLS[1])
+            self.create_organization(cell=_TEST_CELLS[1])
             with pytest.raises(CellResolutionError):
                 cell_resolution.resolve({})

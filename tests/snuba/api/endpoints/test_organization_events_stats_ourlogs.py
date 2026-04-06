@@ -96,7 +96,10 @@ class OrganizationEventsStatsOurlogsEndpointTest(OrganizationEventsEndpointTestB
             },
         )
         assert response.status_code == 200, response.content
-        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 0}]] * 338
+        data = [attrs for time, attrs in response.data["data"]]
+        assert all(attrs == [{"count": 0}] for attrs in data)
+        # quantize_date_params applies a 0-60s jitter to end time which rounds up to the next hour
+        assert 338 <= len(data) <= 339
 
     def test_top_events(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]

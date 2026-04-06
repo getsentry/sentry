@@ -82,6 +82,12 @@ class ExperimentMode(StrEnum):
     SIMPLE = "simple"
     """Simple experiment mode: flag on = active, flag off = control."""
 
+    def get_assignment(self, flag_result: bool) -> str:
+        """Map a flag evaluation result to an experiment assignment string."""
+        match self:
+            case ExperimentMode.SIMPLE:
+                return "active" if flag_result else "control"
+
 
 class InvalidFeatureFlagConfiguration(Exception):
     pass

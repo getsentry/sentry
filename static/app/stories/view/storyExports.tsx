@@ -13,6 +13,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
+import {APIReference} from 'sentry/stories/apiReference';
 import {useQuery} from 'sentry/utils/queryClient';
 
 import {StoryFooter} from './storyFooter';
@@ -250,7 +251,7 @@ function StoryAPI(props: {documentation: TypeLoader.TypeLoaderResult | undefined
   return (
     <Fragment>
       {Object.entries(props.documentation.props ?? {}).map(([key, value]) => {
-        return <Storybook.APIReference key={key} componentProps={value} />;
+        return <APIReference key={key} componentProps={value} />;
       })}
     </Fragment>
   );

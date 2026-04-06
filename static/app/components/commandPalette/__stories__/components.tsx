@@ -1,54 +1,65 @@
-import {Fragment} from 'react';
-
-import {Button} from '@sentry/scraps/button';
+import {useCallback} from 'react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openCommandPalette} from 'sentry/actionCreators/modal';
-import {
-  makeCommandPaletteCallback,
-  makeCommandPaletteGroup,
-  makeCommandPaletteLink,
-} from 'sentry/components/commandPalette/makeCommandPaletteAction';
-import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
-import {useCommandPaletteActions} from 'sentry/components/commandPalette/useCommandPaletteActions';
+import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
+import {useCommandPaletteActionsRegister} from 'sentry/components/commandPalette/context';
+import type {
+  CommandPaletteAction,
+  CommandPaletteActionWithKey,
+} from 'sentry/components/commandPalette/types';
+import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 export function RegisterActions({actions}: {actions: CommandPaletteAction[]}) {
-  useCommandPaletteActions(actions);
+  useCommandPaletteActionsRegister(actions);
   return null;
 }
 
 export function CommandPaletteDemo() {
-  const demoActions = [
-    makeCommandPaletteLink({
+  const navigate = useNavigate();
+
+  const handleAction = useCallback(
+    (action: CommandPaletteActionWithKey) => {
+      if ('to' in action) {
+        navigate(normalizeUrl(action.to));
+      } else if ('onAction' in action) {
+        action.onAction();
+      } else {
+        // @TODO: implement async actions
+      }
+    },
+    [navigate]
+  );
+
+  const demoActions: CommandPaletteAction[] = [
+    {
       display: {label: 'Go to Flex story'},
       to: '/stories/layout/flex/',
-      groupingKey: 'navigate',
-    }),
-    makeCommandPaletteCallback({
+    },
+    {
       display: {label: 'Execute an action'},
-      groupingKey: 'help',
       onAction: () => {
         addSuccessMessage('Action executed');
       },
-    }),
-    makeCommandPaletteGroup({
-      groupingKey: 'add',
+    },
+    {
       display: {label: 'Parent action'},
       actions: [
-        makeCommandPaletteCallback({
+        {
           display: {label: 'Child action'},
           onAction: () => {
             addSuccessMessage('Child action executed');
           },
-        }),
+        },
       ],
-    }),
+    },
   ];
 
   return (
-    <Fragment>
+    <CommandPaletteProvider>
       <RegisterActions actions={demoActions} />
-      <Button onClick={() => openCommandPalette()}>Open Command Palette</Button>
-    </Fragment>
+      <CommandPalette onAction={handleAction} />
+    </CommandPaletteProvider>
   );
 }

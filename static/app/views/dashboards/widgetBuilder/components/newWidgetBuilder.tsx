@@ -17,7 +17,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -104,6 +104,30 @@ export function WidgetBuilderV2({
     }
   }, []);
 
+  const [mainContentPosition, setMainContentPosition] = useState<{
+    left: number;
+    top: number;
+  } | null>(null);
+  useEffect(() => {
+    const mainContentElement = document.querySelector('main');
+
+    const observer = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        if (entry.target === mainContentElement) {
+          const rect = entry.target.getBoundingClientRect();
+          setMainContentPosition({top: rect.top, left: rect.left});
+        }
+      }
+    });
+    if (mainContentElement) {
+      observer.observe(mainContentElement);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
   const dimensions = useDimensions({elementRef: navigationElementRef});
 
   const handleDragEnd = ({over}: any) => {
@@ -168,12 +192,12 @@ export function WidgetBuilderV2({
                     ? isMediumScreen
                       ? {
                           left: 0,
-                          top: `${dimensions.height ?? 0}px`,
+                          top: `${mainContentPosition?.top ?? 0}px`,
                           willChange: 'top',
                         }
                       : {
                           left: `${dimensions.width ?? 0}px`,
-                          top: 0,
+                          top: `${mainContentPosition?.top ?? 0}px`,
                           willChange: 'left',
                         }
                     : undefined

@@ -1,17 +1,9 @@
 import styled from '@emotion/styled';
 
-import {IconFatal} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 export function UnhandledTag() {
-  const hasStreamlinedUI = useHasStreamlinedUI();
-  return (
-    <UnhandledTagWrapper>
-      {!hasStreamlinedUI && <StyledIconFatal size="xs" variant="danger" />}
-      {t('Unhandled')}
-    </UnhandledTagWrapper>
-  );
+  return <UnhandledTagWrapper>{t('Unhandled')}</UnhandledTagWrapper>;
 }
 
 const UnhandledTagWrapper = styled('div')`
@@ -19,9 +11,4 @@ const UnhandledTagWrapper = styled('div')`
   align-items: center;
   white-space: nowrap;
   color: ${p => p.theme.tokens.content.danger};
-`;
-
-const StyledIconFatal = styled(IconFatal)`
-  margin-top: -2px;
-  margin-right: 3px;
 `;

@@ -13,13 +13,14 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import type {WebVital} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -29,6 +30,7 @@ import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {OverviewSpansTable} from 'sentry/views/performance/eap/overviewSpansTable';
 import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
@@ -47,6 +49,27 @@ import {
 import {EventsTable} from './eventsTable';
 import type {EventsDisplayFilterName} from './utils';
 import {getEventsFilterOptions} from './utils';
+
+function EAPSearchBar({
+  projects,
+  initialQuery,
+  onSearch,
+}: {
+  initialQuery: string;
+  onSearch: (query: string) => void;
+  projects: number[];
+}) {
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
+    projects,
+    initialQuery,
+    onSearch,
+    searchSource: 'transaction_events',
+  });
+
+  return (
+    <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} disallowFreeText />
+  );
+}
 
 type Props = {
   eventView: EventView;
@@ -90,8 +113,13 @@ export function EventsContent(props: Props) {
   const routes = useRoutes();
   const theme = useTheme();
   const domainViewFilters = useDomainViewFilters();
+  const shouldUseEAP = useTransactionSummaryEAP();
 
   const {eventView, titles} = useMemo(() => {
+    if (shouldUseEAP) {
+      return {eventView: originalEventView, titles: []};
+    }
+
     const eventViewClone = originalEventView.clone();
     const transactionsListTitles = TRANSACTIONS_LIST_TITLES.slice();
     const project = projects.find(p => p.id === projectId);
@@ -164,6 +192,7 @@ export function EventsContent(props: Props) {
       titles: transactionsListTitles,
     };
   }, [
+    shouldUseEAP,
     originalEventView,
     location,
     organization,
@@ -172,8 +201,6 @@ export function EventsContent(props: Props) {
     spanOperationBreakdownFilter,
     webVital,
   ]);
-
-  const shouldUseEAP = useTransactionSummaryEAP();
 
   const table = shouldUseEAP ? (
     <OverviewSpansTable
@@ -250,7 +277,7 @@ function Search(props: Props) {
   const shouldUseEAP = useTransactionSummaryEAP();
 
   const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.TRANSACTIONS],
+    dataCategories: [shouldUseEAP ? DataCategory.SPANS : DataCategory.TRANSACTIONS],
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
@@ -270,34 +297,46 @@ function Search(props: Props) {
         <DatePageFilter {...datePageFilterProps} />
       </PageFilterBar>
       <StyledSearchBarWrapper>
-        <TransactionSearchQueryBuilder
-          projects={projectIds}
-          initialQuery={query}
-          onSearch={handleSearch}
-          searchSource="transaction_events"
-        />
+        {shouldUseEAP ? (
+          <EAPSearchBar
+            projects={projectIds ?? []}
+            initialQuery={query}
+            onSearch={handleSearch}
+          />
+        ) : (
+          <TransactionSearchQueryBuilder
+            projects={projectIds}
+            initialQuery={query}
+            onSearch={handleSearch}
+            searchSource="transaction_events"
+          />
+        )}
       </StyledSearchBarWrapper>
-      <CompactSelect
-        trigger={triggerProps => (
-          <OverlayTrigger.Button {...triggerProps} prefix={t('Percentile')} />
-        )}
-        value={eventsDisplayFilterName}
-        onChange={opt => onChangeEventsDisplayFilter(opt.value)}
-        options={Object.entries(eventsFilterOptions).map(([name, filter]) => ({
-          value: name as EventsDisplayFilterName,
-          label: filter.label,
-        }))}
-      />
-      <LinkButton
-        to={eventView.getResultsViewUrlTarget(
-          organization,
-          false,
-          hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
-        )}
-        onClick={handleDiscoverButtonClick}
-      >
-        {t('Open in Discover')}
-      </LinkButton>
+      {!shouldUseEAP && (
+        <CompactSelect
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Percentile')} />
+          )}
+          value={eventsDisplayFilterName}
+          onChange={opt => onChangeEventsDisplayFilter(opt.value)}
+          options={Object.entries(eventsFilterOptions).map(([name, filter]) => ({
+            value: name as EventsDisplayFilterName,
+            label: filter.label,
+          }))}
+        />
+      )}
+      {!shouldUseEAP && (
+        <LinkButton
+          to={eventView.getResultsViewUrlTarget(
+            organization,
+            false,
+            hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
+          )}
+          onClick={handleDiscoverButtonClick}
+        >
+          {t('Open in Discover')}
+        </LinkButton>
+      )}
     </FilterActions>
   );
 }

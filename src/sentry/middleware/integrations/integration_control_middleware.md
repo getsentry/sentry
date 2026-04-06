@@ -2,7 +2,7 @@
 
 ## Background
 
-Hybrid Cloud requires running Sentry in two different instances which communicate with one another; Control and Region Silos. The integration authentication data (`Integration`, and `OrganizationIntegration` models) will be stored in the **Control Silo**, but the associated models integrations may affect will be stored in the **Region Silo** (e.g. `Repository`, `Commit`, `ExternalIssue`, `Organization`, etc.).
+Hybrid Cloud requires running Sentry in two different instances which communicate with one another; Control and Cell Silos. The integration authentication data (`Integration`, and `OrganizationIntegration` models) will be stored in the **Control Silo**, but the associated models integrations may affect will be stored in the **Cell Silo** (e.g. `Repository`, `Commit`, `ExternalIssue`, `Organization`, etc.).
 
 Incoming webhooks fired by integration providers notify us when changes occur in their system (e.g. someone assigns an issue in slack, or a PR resolving an issue is merged on GitHub). These are **always** received by the Control Silo, so we need parsers to intercept these requests to forward the data to the relevant silos.
 
@@ -17,9 +17,9 @@ The magic happens in the [`IntegrationControlMiddleware`](src/sentry/middleware/
 The parsers vary per integration but they follow the same basic steps:
 
 - Read the data in the request and infer if it can be responded to from the Control Silo. If so, fall through the above middleware.
-- If the request should be handled at one or more Region Silos instead, identify the `Integration` object from the request.
+- If the request should be handled at one or more Cell Silos instead, identify the `Integration` object from the request.
 - Next, identify the organizations that care about the webhook from looking at `OrganizationIntegration`s
-- Lastly, identify the relevant Region Silos we need to forward to from looking at the `OrganizationMapping`s.
+- Lastly, identify the relevant Cell Silos we need to forward to from looking at the `OrganizationMapping`s.
 - Now, depending on the payload we can choose how to respond to the initial request:
   - Some requests will require synchronous responses with an expected response pattern, (e.g. Slack).
   - Others don't care about the response, and we may opt to handle them asynchronously via the [`ControlOutbox` model](src/sentry/hybridcloud/models/outbox.py), (e.g. GitHub).
@@ -47,10 +47,10 @@ class ExampleRequestParser(BaseRequestParser):
 
         # If we're getting responses from multiple cells asynchronously...
         if '/async/' in self.request.path:
-            return self.get_responses_from_outbox_creation(regions=cells)
+            return self.get_response_from_webhookpayload(cells=cells)
 
         # If we're getting responses from multiple cells synchronously...
-        response_map = self.get_responses_from_cell_silos(cells=regions)
+        response_map = self.get_responses_from_cell_silos(cells=cells)
         # Require all forwarded requests to succeed...
         if not all([result.error is None for result in response_map.values()])
             return HttpResponse(status_code=200)

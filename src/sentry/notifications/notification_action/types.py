@@ -5,6 +5,8 @@ from dataclasses import asdict
 from typing import Any, NotRequired, Protocol, TypedDict
 
 from django.core.exceptions import ValidationError
+from taskbroker_client.retry import RetryTaskError
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
@@ -31,8 +33,6 @@ from sentry.shared_integrations.exceptions import (
     IntegrationConfigurationError,
     IntegrationFormError,
 )
-from sentry.taskworker.retry import RetryTaskError
-from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
 from sentry.workflow_engine.models import Action, AlertRuleWorkflow, Detector
@@ -507,7 +507,7 @@ class BaseMetricAlertHandler(ABC):
                 "notification_context": asdict(notification_context),
                 "alert_context": asdict(alert_context),
                 "metric_issue_context": asdict(metric_issue_context),
-                "open_period_context": asdict(open_period_context),
+                "open_period_context": open_period_context.dict(),
                 "trigger_status": trigger_status,
             },
         )

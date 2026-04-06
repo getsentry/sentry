@@ -43,8 +43,13 @@ export function transformLegacySeriesToTimeSeries(
   const mapped = mapAggregationTypeToValueTypeAndUnit(fieldType, yAxis);
   const seriesName = timeseriesResult.seriesName ?? yAxis;
   const valueType =
-    timeseriesResultsTypes?.[seriesName] ?? (mapped.valueType as AggregationOutputType);
-  const valueUnit = timeseriesResultsUnits?.[seriesName] ?? mapped.valueUnit;
+    timeseriesResultsTypes?.[seriesName] ??
+    timeseriesResultsTypes?.[yAxis] ??
+    (mapped.valueType as AggregationOutputType);
+  const valueUnit =
+    timeseriesResultsUnits?.[seriesName] ??
+    timeseriesResultsUnits?.[yAxis] ??
+    mapped.valueUnit;
 
   const splitSeriesName = seriesName.split(SERIES_NAME_PART_DELIMITER);
 

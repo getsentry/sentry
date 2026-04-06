@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {SentryMemberTeamSelectorField} from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
-import {Section} from 'sentry/components/workflowEngine/ui/section';
+import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t} from 'sentry/locale';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -27,14 +27,14 @@ function AssigneeField({projectId}: {projectId?: string}) {
   );
 }
 
-export function AssignSection() {
+export function AssignSection({step}: {step?: number}) {
   const projectId = useFormField<string>('projectId');
 
   return (
     <Container>
-      <Section title={t('Assign')}>
+      <FormSection step={step} title={t('Assign')}>
         <AssigneeField projectId={projectId} />
-      </Section>
+      </FormSection>
     </Container>
   );
 }

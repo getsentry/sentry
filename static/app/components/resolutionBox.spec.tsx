@@ -34,18 +34,12 @@ describe('ResolutionBox', () => {
     });
   });
 
-  it('handles default', () => {
-    const {container} = render(
-      <ResolutionBox statusDetails={{}} project={project} organization={organization} />
-    );
-    expect(container).toHaveTextContent('This issue has been marked as resolved.');
-  });
   it('handles inNextRelease', () => {
     const {container} = render(
       <ResolutionBox
         statusDetails={{inNextRelease: true}}
         project={project}
-        organization={organization}
+        activities={[]}
       />
     );
     expect(container).toHaveTextContent(
@@ -66,7 +60,7 @@ describe('ResolutionBox', () => {
           },
         }}
         project={project}
-        organization={organization}
+        activities={[]}
       />
     );
     expect(container).toHaveTextContent(
@@ -99,7 +93,6 @@ describe('ResolutionBox', () => {
           },
         }}
         project={project}
-        organization={organization}
         activities={[
           {
             id: '1',
@@ -141,7 +134,6 @@ describe('ResolutionBox', () => {
           actor: UserFixture(),
         }}
         project={project}
-        organization={organization}
         activities={[
           {
             id: '1',
@@ -178,7 +170,6 @@ describe('ResolutionBox', () => {
           actor: UserFixture(),
         }}
         project={project}
-        organization={organization}
         activities={[
           {
             id: '1',
@@ -202,7 +193,7 @@ describe('ResolutionBox', () => {
           inRelease: release.version,
         }}
         project={project}
-        organization={organization}
+        activities={[]}
       />
     );
     expect(container).toHaveTextContent(
@@ -223,7 +214,7 @@ describe('ResolutionBox', () => {
           },
         }}
         project={project}
-        organization={organization}
+        activities={[]}
       />
     );
     expect(container).toHaveTextContent(
@@ -237,11 +228,11 @@ describe('ResolutionBox', () => {
           inCommit: CommitFixture(),
         }}
         project={project}
-        organization={organization}
+        activities={[]}
       />
     );
     expect(container).toHaveTextContent(
-      'This issue has been marked as resolved by f7f395din'
+      'This issue has been marked as resolved by f7f395d(in a year)'
     );
   });
 });

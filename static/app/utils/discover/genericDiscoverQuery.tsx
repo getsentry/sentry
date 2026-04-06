@@ -6,8 +6,11 @@ import type {EventQuery} from 'sentry/actionCreators/events';
 import type {ResponseMeta} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import type EventView from 'sentry/utils/discover/eventView';
-import type {ImmutableEventView, LocationQuery} from 'sentry/utils/discover/eventView';
+import type {
+  EventView,
+  ImmutableEventView,
+  LocationQuery,
+} from 'sentry/utils/discover/eventView';
 import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import type {UseQueryOptions} from 'sentry/utils/queryClient';
@@ -403,8 +406,8 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
   const apiPayload = getPayload<T, P>(props);
   const additionalQueryKey = props.options?.additionalQueryKey ?? [];
 
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const res = useQuery<[T, string | undefined, ResponseMeta<T> | undefined], QueryError>({
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey: [...additionalQueryKey, route, apiPayload],
     queryFn: ({signal: _signal}) =>
       doDiscoverQuery<T>(api, url, apiPayload, {
