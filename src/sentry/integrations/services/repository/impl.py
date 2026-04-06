@@ -162,18 +162,18 @@ class DatabaseBackedRepositoryService(RepositoryService):
     ) -> None:
         with transaction.atomic(router.db_for_write(Repository)):
             # Get affected repos before nulling integration_id so we can clean up Seer
-            affected_repos = list(
+            repos = list(
                 Repository.objects.filter(
                     organization_id=organization_id, integration_id=integration_id
                 ).values_list("id", "external_id", "provider")
             )
-            affected_repo_ids = [repo_id for repo_id, _, _ in affected_repos]
+            repo_ids = [repo_id for repo_id, _, _ in repos]
 
             # Disassociate repos from the organization integration being deleted
-            Repository.objects.filter(id__in=affected_repo_ids).update(integration_id=None)
+            Repository.objects.filter(id__in=repo_ids).update(integration_id=None)
 
             # Delete Seer project preferences for the affected repos
-            SeerProjectRepository.objects.filter(repository_id__in=affected_repo_ids).delete()
+            SeerProjectRepository.objects.filter(repository_id__in=repo_ids).delete()
 
             # Delete Code Owners with a Code Mapping using the OrganizationIntegration
             ProjectCodeOwners.objects.filter(
@@ -190,7 +190,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
         # Delete Seer project preferences for the affected repos via Seer API
         repos_to_clean = [
             {"repo_external_id": external_id, "repo_provider": provider}
-            for _, external_id, provider in affected_repos
+            for _, external_id, provider in repos
             if external_id and provider
         ]
         if repos_to_clean:
