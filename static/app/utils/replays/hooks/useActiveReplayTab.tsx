@@ -1,5 +1,5 @@
 import {useCallback} from 'react';
-import {parseAsStringLiteral, useQueryState} from 'nuqs';
+import {createParser, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {defined} from 'sentry/utils';
@@ -10,33 +10,37 @@ export enum TabKey {
   BREADCRUMBS = 'breadcrumbs',
   CONSOLE = 'console',
   ERRORS = 'errors',
+  LOGS = 'logs',
   MEMORY = 'memory',
   NETWORK = 'network',
+  PLAYLIST = 'playlist',
   TAGS = 'tags',
   TRACE = 'trace',
-  LOGS = 'logs',
-  PLAYLIST = 'playlist',
 }
 
 function isReplayTab({tab, isVideoReplay}: {isVideoReplay: boolean; tab: string}) {
-  const supportedTabs = [
-    TabKey.AI,
-    TabKey.BREADCRUMBS,
-    TabKey.CONSOLE,
-    TabKey.ERRORS,
-    TabKey.LOGS,
-    TabKey.NETWORK,
-    TabKey.PLAYLIST,
-    TabKey.TAGS,
-    TabKey.TRACE,
-  ];
-
   if (isVideoReplay) {
-    return supportedTabs.includes(tab as TabKey);
+    const supportedVideoTabs = [
+      TabKey.AI,
+      TabKey.BREADCRUMBS,
+      TabKey.CONSOLE,
+      TabKey.ERRORS,
+      TabKey.LOGS,
+      TabKey.NETWORK,
+      TabKey.PLAYLIST,
+      TabKey.TAGS,
+      TabKey.TRACE,
+    ];
+    return supportedVideoTabs.includes(tab as TabKey);
   }
 
   return Object.values<string>(TabKey).includes(tab);
 }
+
+const tabKeyParser = createParser<TabKey>({
+  parse: value => parseAsStringLiteral(Object.values(TabKey)).parse(value.toLowerCase()),
+  serialize: value => value,
+});
 
 export function useActiveReplayTab({isVideoReplay = false}: {isVideoReplay?: boolean}) {
   const organization = useOrganization();
@@ -54,7 +58,7 @@ export function useActiveReplayTab({isVideoReplay = false}: {isVideoReplay?: boo
 
   const [tabParam, setTabParam] = useQueryState(
     't_main',
-    parseAsStringLiteral(Object.values(TabKey))
+    tabKeyParser.withDefault(defaultTab).withOptions({clearOnDefault: false})
   );
 
   return {
