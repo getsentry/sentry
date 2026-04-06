@@ -333,6 +333,9 @@ def _check_project_access[T](
 @extend_schema(tags=["Alerts"])
 @cell_silo_endpoint
 class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEndpoint):
+    workflow_engine_method_flags = {
+        "GET": "organizations:workflow-engine-orgalertruledetails-get",
+    }
     owner = ApiOwner.ISSUES
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
