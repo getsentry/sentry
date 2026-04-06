@@ -140,6 +140,22 @@ class TestCountTestsInFile:
         )
         assert count_tests_in_file(p) == 4
 
+    def test_annotated_assignment_variable(self, tmp_path):
+        p = _write(
+            tmp_path,
+            """\
+            from typing import Any
+            import pytest
+
+            CASES: list[dict[str, Any]] = [{"a": 1}, {"a": 2}, {"a": 3}]
+
+            @pytest.mark.parametrize("case", CASES)
+            def test_vals(case):
+                pass
+            """,
+        )
+        assert count_tests_in_file(p) == 3
+
     def test_stored_decorator(self, tmp_path):
         p = _write(
             tmp_path,
@@ -422,6 +438,19 @@ class TestCollectTestCount:
             d = tests / excluded
             d.mkdir()
             (d / "test_skip.py").write_text("def test_no(): pass\n")
+
+        assert collect_test_count() == 1
+
+    def test_ignored_dirs_prefix_does_not_over_match(self, tmp_path, monkeypatch):
+        """tests/js/ must not exclude tests/json/."""
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.delenv("SELECTED_TESTS_FILE", raising=False)
+
+        tests = tmp_path / "tests"
+        (tests / "js").mkdir(parents=True)
+        (tests / "js" / "test_skip.py").write_text("def test_no(): pass\n")
+        (tests / "json").mkdir()
+        (tests / "json" / "test_keep.py").write_text("def test_yes(): pass\n")
 
         assert collect_test_count() == 1
 

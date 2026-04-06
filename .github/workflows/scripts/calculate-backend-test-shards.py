@@ -21,7 +21,7 @@ MIN_SHARDS = 1
 MAX_SHARDS = 22
 DEFAULT_SHARDS = MAX_SHARDS
 
-IGNORED_DIRS = frozenset(("tests/acceptance", "tests/apidocs", "tests/js", "tests/tools"))
+IGNORED_DIRS = frozenset(("tests/acceptance/", "tests/apidocs/", "tests/js/", "tests/tools/"))
 
 
 def _resolve(node: ast.expr, scope: dict[str, ast.expr]) -> ast.expr:
@@ -84,13 +84,14 @@ def count_tests_in_file(filepath: Path) -> int:
     except SyntaxError:
         return len(_TEST_FUNC_RE.findall(source))
 
-    scope = {
-        target.id: node.value
-        for node in ast.iter_child_nodes(tree)
-        if isinstance(node, ast.Assign)
-        for target in node.targets
-        if isinstance(target, ast.Name)
-    }
+    scope: dict[str, ast.expr] = {}
+    for node in ast.iter_child_nodes(tree):
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    scope[target.id] = node.value
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and node.value:
+            scope[node.target.id] = node.value
 
     total = 0
     for node in ast.walk(tree):
