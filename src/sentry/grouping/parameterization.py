@@ -18,8 +18,6 @@ class ParameterizationRegex:
     name: str  # name of the pattern (also used as group name in combined regex)
     raw_pattern: str  # regex pattern w/o matching group name
     raw_pattern_experimental: str | None = None
-    lookbehind: str | None = None  # positive lookbehind prefix if needed
-    lookahead: str | None = None  # positive lookahead postfix if needed
     # Function which takes the matched value and returns the replacement value.
     replacement_callback: ParameterizationReplacementFunction | None = None
 
@@ -40,9 +38,7 @@ class ParameterizationRegex:
         """
         Returns the regex pattern with a named matching group and lookbehind/lookahead if needed.
         """
-        prefix = rf"(?<={self.lookbehind})" if self.lookbehind else ""
-        postfix = rf"(?={self.lookahead})" if self.lookahead else ""
-        return rf"{prefix}(?P<{self.name}>{raw_pattern}){postfix}"
+        return rf"(?P<{self.name}>{raw_pattern})"
 
 
 def is_valid_ip(maybe_ip_str: str) -> bool:
