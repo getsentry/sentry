@@ -851,9 +851,8 @@ describe('desktop navigation', () => {
 
           await userEvent.hover(screen.getByRole('link', {name: 'Explore'}));
 
-          expect(
-            await within(secondaryNav).findByRole('link', {name: 'Traces'})
-          ).toBeInTheDocument();
+          // Re-query secondary nav because AnimatePresence remounts it with a new key
+          expect(await screen.findByRole('link', {name: 'Traces'})).toBeInTheDocument();
         });
 
         it('shows hovered group content in the peek view when sidebar is collapsed', async () => {
