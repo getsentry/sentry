@@ -610,6 +610,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/gettingStartedDocs/                                                  @getsentry/value-discovery
 /static/app/types/project.tsx                                                    @getsentry/value-discovery
 /static/app/views/onboarding/                                                    @getsentry/value-discovery
+/tests/acceptance/test_scm_onboarding.py                                         @getsentry/value-discovery
 /tests/js/fixtures/detectedPlatform.ts                                           @getsentry/value-discovery
 /static/app/views/projectInstall/                                                @getsentry/value-discovery
 /src/sentry/onboarding_tasks/                                                    @getsentry/value-discovery
