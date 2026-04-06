@@ -18,6 +18,8 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
+DEFAULT_WORKFLOW_LABEL = "Send a notification for high priority issues"
+
 
 def connect_workflows_to_issue_stream(
     project: Project,
@@ -40,7 +42,7 @@ def create_priority_workflow(org: Organization) -> Workflow:
     with transaction.atomic(router.db_for_write(Workflow)):
         workflow, is_created = Workflow.objects.get_or_create(
             organization=org,
-            name="Send a notification for high priority issues",
+            name=DEFAULT_WORKFLOW_LABEL,
         )
 
         if not is_created:

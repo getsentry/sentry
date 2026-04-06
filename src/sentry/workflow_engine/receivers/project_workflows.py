@@ -47,7 +47,11 @@ def create_default_rules(
     rule_data = DEFAULT_RULE_DATA
 
     with transaction.atomic(router.db_for_write(RuleModel)):
-        rule = RuleModel.objects.create(project=project, label=DEFAULT_RULE_LABEL, data=rule_data)
+        rule = RuleModel.objects.create(
+            project=project,
+            label=DEFAULT_RULE_LABEL,
+            data=rule_data,
+        )
         workflows = ensure_default_workflows(project)
 
         legacy_references = [

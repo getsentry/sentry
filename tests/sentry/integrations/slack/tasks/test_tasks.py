@@ -16,10 +16,10 @@ from sentry.integrations.slack.tasks import (
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.rule import Rule
-from sentry.receivers.rules import DEFAULT_RULE_LABEL
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.skips import requires_snuba
+from sentry.workflow_engine.defaults.workflows import DEFAULT_WORKFLOW_LABEL
 from tests.sentry.integrations.slack.utils.test_mock_slack_response import mock_slack_response
 
 pytestmark = [requires_snuba]
@@ -100,7 +100,9 @@ class SlackTasksTest(TestCase):
         with self.tasks():
             find_channel_id_for_rule(**data)
 
-        rule = Rule.objects.exclude(label__in=[DEFAULT_RULE_LABEL]).get(project_id=self.project.id)
+        rule = Rule.objects.exclude(label__in=[DEFAULT_WORKFLOW_LABEL]).get(
+            project_id=self.project.id
+        )
         mock_set_value.assert_called_with("success", rule.id)
         assert rule.label == "New Rule"
         # check that the channel_id got added
@@ -144,7 +146,9 @@ class SlackTasksTest(TestCase):
         with self.tasks():
             find_channel_id_for_rule(**data)
 
-        rule = Rule.objects.exclude(label__in=[DEFAULT_RULE_LABEL]).get(project_id=self.project.id)
+        rule = Rule.objects.exclude(label__in=[DEFAULT_WORKFLOW_LABEL]).get(
+            project_id=self.project.id
+        )
         mock_set_value.assert_called_with("success", rule.id)
         assert rule.label == "New Rule"
         # check that the channel_id got added
@@ -192,7 +196,9 @@ class SlackTasksTest(TestCase):
         with self.tasks():
             find_channel_id_for_rule(**data)
 
-        rule = Rule.objects.exclude(label__in=[DEFAULT_RULE_LABEL]).get(project_id=self.project.id)
+        rule = Rule.objects.exclude(label__in=[DEFAULT_WORKFLOW_LABEL]).get(
+            project_id=self.project.id,
+        )
         mock_set_value.assert_called_with("success", rule.id)
         assert rule.label == "New Rule with Owner"
         assert rule.owner_team_id == team.id
