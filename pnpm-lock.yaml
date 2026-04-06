@@ -60,6 +60,9 @@ importers:
       '@emotion/styled':
         specifier: ^11.14.0
         version: 11.14.0(@emotion/react@11.14.0(@types/react@19.2.1)(react@19.2.3))(@types/react@19.2.1)(react@19.2.3)
+      '@intercom/messenger-js-sdk':
+        specifier: ^0.0.18
+        version: 0.0.18
       '@mdx-js/loader':
         specifier: ^3.1.0
         version: 3.1.0(acorn@8.16.0)(webpack@5.99.6(esbuild@0.25.10))
@@ -1969,6 +1972,9 @@ packages:
   '@humanwhocodes/retry@0.4.2':
     resolution: {integrity: sha512-xeO57FpIu4p1Ri3Jq/EXq4ClRm86dVF2z/+kvFnyqVYRavTZmaFaUBbWCOuuTh0o/g7DSsk6kc2vrS4Vl5oPOQ==}
     engines: {node: '>=18.18'}
+
+  '@intercom/messenger-js-sdk@0.0.18':
+    resolution: {integrity: sha512-OQbhnNh26cdI0ddIVh67JOGnSTFAHrbKF5atXuOeWpDF2Ups3O7Do1Oz42BrvQA/o0AZF+1Wqaxtc3kq70wc6w==}
 
   '@internationalized/date@3.11.0':
     resolution: {integrity: sha512-BOx5huLAWhicM9/ZFs84CzP+V3gBW6vlpM02yzsdYC7TGlZJX1OJiEEHcSayF00Z+3jLlm4w79amvSt6RqKN3Q==}
@@ -11308,6 +11314,8 @@ snapshots:
   '@humanwhocodes/retry@0.3.1': {}
 
   '@humanwhocodes/retry@0.4.2': {}
+
+  '@intercom/messenger-js-sdk@0.0.18': {}
 
   '@internationalized/date@3.11.0':
     dependencies:
