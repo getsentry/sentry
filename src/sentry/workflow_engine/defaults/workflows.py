@@ -43,6 +43,7 @@ def create_priority_workflow(org: Organization) -> Workflow:
         workflow, is_created = Workflow.objects.get_or_create(
             organization=org,
             name=DEFAULT_WORKFLOW_LABEL,
+            config={"frequency": 0},
         )
 
         if not is_created:
