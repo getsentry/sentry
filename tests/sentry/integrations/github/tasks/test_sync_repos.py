@@ -6,8 +6,8 @@ from taskbroker_client.retry import RetryTaskError
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
+from sentry.integrations.github.tasks.sync_repos import sync_repos_for_org
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.source_code_management.sync_repos import sync_repos_for_org
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
@@ -21,13 +21,13 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
     base_url = "https://api.github.com"
     key = "github"
 
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.oi = OrganizationIntegration.objects.get(
             organization_id=self.organization.id, integration=self.integration
         )
 
-    def _add_repos_response(self, repos: list[dict[str, object]]) -> None:
+    def _add_repos_response(self, repos):
         responses.add(
             responses.GET,
             self.base_url + "/installation/repositories?per_page=100",

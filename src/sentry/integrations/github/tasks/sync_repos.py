@@ -1,23 +1,19 @@
 """
-Periodic repo sync for SCM integrations.
+Periodic repo sync for GitHub integrations.
 
-The beat task (`scm_repo_sync_beat`) runs on a schedule and uses
-CursoredScheduler to iterate over all active SCM OrganizationIntegrations.
-For each one, it dispatches `sync_repos_for_org` which diffs the provider's
-repo list against Sentry's Repository table and creates/disables/re-enables
-as needed.
+The beat task (`github_repo_sync_beat`) runs on a schedule and uses
+CursoredScheduler to iterate over all active GitHub OrganizationIntegrations.
+For each one, it dispatches `sync_repos_for_org` which diffs GitHub's repo
+list against Sentry's Repository table and creates/disables/re-enables as needed.
 """
 
 import logging
-from collections.abc import Mapping
 from datetime import timedelta
-from typing import Any
 
 from taskbroker_client.retry import Retry
 
 from sentry import features
 from sentry.constants import ObjectStatus
-from sentry.features.exceptions import FeatureNotRegistered
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository.service import repository_service
@@ -28,7 +24,6 @@ from sentry.integrations.source_code_management.metrics import (
 from sentry.organizations.services.organization import organization_service
 from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
-    RepositoryInputConfig,
     get_integration_repository_provider,
 )
 from sentry.shared_integrations.exceptions import ApiError
@@ -38,37 +33,13 @@ from sentry.taskworker.namespaces import integrations_control_tasks
 from sentry.utils import metrics
 from sentry.utils.cursored_scheduler import CursoredScheduler
 
+from .link_all_repos import get_repo_config
+
 logger = logging.getLogger(__name__)
-
-# All SCM providers that support periodic repo sync
-SCM_PROVIDERS = [
-    "github",
-    "github_enterprise",
-    "gitlab",
-    "bitbucket",
-    "bitbucket_server",
-    "vsts",
-]
-
-
-def _get_repo_config(repo: Mapping[str, Any], integration_id: int) -> RepositoryInputConfig:
-    return {
-        "external_id": str(repo["id"]),
-        "integration_id": integration_id,
-        "identifier": repo["full_name"],
-    }
-
-
-def _has_feature(flag_name: str, org: Any) -> bool:
-    """Check a feature flag, returning False if the flag is not registered."""
-    try:
-        return features.has(flag_name, org)
-    except FeatureNotRegistered:
-        return False
 
 
 @instrumented_task(
-    name="sentry.integrations.source_code_management.sync_repos.sync_repos_for_org",
+    name="sentry.integrations.github.tasks.sync_repos.sync_repos_for_org",
     namespace=integrations_control_tasks,
     retry=Retry(times=3, delay=120),
     processing_deadline_duration=120,
@@ -79,8 +50,8 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
     """
     Sync repositories for a single OrganizationIntegration.
 
-    Fetches all repos from the SCM provider, diffs against Sentry's Repository
-    table, and creates/disables/re-enables repos as needed.
+    Fetches all repos from GitHub, diffs against Sentry's Repository table,
+    and creates/disables/re-enables repos as needed.
     """
     try:
         oi = OrganizationIntegration.objects.get(
@@ -116,26 +87,23 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
         return
 
     rpc_org = org_context.organization
-    provider_key = integration.provider
-
-    # Feature flags are per-provider: organizations:{provider}-repo-auto-sync
-    if not _has_feature(f"organizations:{provider_key}-repo-auto-sync", rpc_org):
+    if not features.has("organizations:github-repo-auto-sync", rpc_org):
         return
 
-    provider = f"integrations:{provider_key}"
-    dry_run = not _has_feature(f"organizations:{provider_key}-repo-auto-sync-apply", rpc_org)
+    provider = f"integrations:{integration.provider}"
+    dry_run = not features.has("organizations:github-repo-auto-sync-apply", rpc_org)
 
     with SCMIntegrationInteractionEvent(
         interaction_type=SCMIntegrationInteractionType.SYNC_REPOS,
         integration_id=integration.id,
         organization_id=organization_id,
-        provider_key=provider_key,
+        provider_key=integration.provider,
     ).capture():
         installation = integration.get_installation(organization_id=organization_id)
         client = installation.get_client()
 
         try:
-            provider_repos = client.get_repos()
+            github_repos = client.get_repos()
         except ApiError as e:
             if installation.is_rate_limited_error(e):
                 logger.info(
@@ -147,7 +115,7 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
                 )
             raise
 
-        provider_external_ids = {str(repo["id"]) for repo in provider_repos}
+        github_external_ids = {str(repo["id"]) for repo in github_repos}
 
         all_repos = repository_service.get_repositories(
             organization_id=organization_id,
@@ -159,22 +127,22 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
             r for r in all_repos if r.status == ObjectStatus.DISABLED and r.external_id
         ]
 
-        sentry_active_ids: set[str] = {r.external_id for r in active_repos}  # type: ignore[misc]
-        sentry_disabled_ids: set[str] = {r.external_id for r in disabled_repos}  # type: ignore[misc]
+        sentry_active_ids = {r.external_id for r in active_repos}
+        sentry_disabled_ids = {r.external_id for r in disabled_repos}
 
-        new_ids = provider_external_ids - sentry_active_ids - sentry_disabled_ids
-        removed_ids = sentry_active_ids - provider_external_ids
-        restored_ids = sentry_disabled_ids & provider_external_ids
+        new_ids = github_external_ids - sentry_active_ids - sentry_disabled_ids
+        removed_ids = sentry_active_ids - github_external_ids
+        restored_ids = sentry_disabled_ids & github_external_ids
 
         metric_tags = {
-            "provider": provider_key,
+            "provider": integration.provider,
             "dry_run": str(dry_run),
         }
         metrics.distribution("scm.repo_sync.new_repos", len(new_ids), tags=metric_tags)
         metrics.distribution("scm.repo_sync.removed_repos", len(removed_ids), tags=metric_tags)
         metrics.distribution("scm.repo_sync.restored_repos", len(restored_ids), tags=metric_tags)
         metrics.distribution(
-            "scm.repo_sync.provider_total", len(provider_external_ids), tags=metric_tags
+            "scm.repo_sync.provider_total", len(github_external_ids), tags=metric_tags
         )
         metrics.distribution(
             "scm.repo_sync.sentry_active", len(sentry_active_ids), tags=metric_tags
@@ -187,11 +155,11 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
             logger.info(
                 "scm.repo_sync.diff",
                 extra={
-                    "provider": provider_key,
+                    "provider": integration.provider,
                     "integration_id": integration.id,
                     "organization_id": organization_id,
                     "dry_run": dry_run,
-                    "provider_total": len(provider_external_ids),
+                    "provider_total": len(github_external_ids),
                     "sentry_active": len(sentry_active_ids),
                     "sentry_disabled": len(sentry_disabled_ids),
                     "new": len(new_ids),
@@ -205,9 +173,9 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
 
         if new_ids:
             integration_repo_provider = get_integration_repository_provider(integration)
-            repo_configs: list[RepositoryInputConfig] = [
-                _get_repo_config(repo, integration.id)
-                for repo in provider_repos
+            repo_configs = [
+                get_repo_config(repo, integration.id)
+                for repo in github_repos
                 if str(repo["id"]) in new_ids
             ]
             if repo_configs:
@@ -236,16 +204,16 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
 
 
 @instrumented_task(
-    name="sentry.integrations.source_code_management.sync_repos.scm_repo_sync_beat",
+    name="sentry.integrations.github.tasks.sync_repos.github_repo_sync_beat",
     namespace=integrations_control_tasks,
     silo_mode=SiloMode.CONTROL,
 )
-def scm_repo_sync_beat() -> None:
+def github_repo_sync_beat() -> None:
     scheduler = CursoredScheduler(
-        name="scm_repo_sync",
-        schedule_key="scm-repo-sync-beat",
+        name="github_repo_sync",
+        schedule_key="github-repo-sync-beat",
         queryset=OrganizationIntegration.objects.filter(
-            integration__provider__in=SCM_PROVIDERS,
+            integration__provider="github",
             integration__status=ObjectStatus.ACTIVE,
             status=ObjectStatus.ACTIVE,
         ),
