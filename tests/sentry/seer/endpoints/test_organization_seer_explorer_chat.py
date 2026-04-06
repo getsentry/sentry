@@ -76,6 +76,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             on_page_context=None,
             page_name=None,
             override_ce_enable=True,
+            request=ANY,
         )
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
