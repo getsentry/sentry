@@ -361,7 +361,7 @@ export function useGlobalCommandPaletteActions() {
               keywords: [t('superuser')],
               onAction: () =>
                 window.open(
-                  `/_admin/organizations/${organization.slug}/`,
+                  `/_admin/customers/${organization.slug}/`,
                   '_blank',
                   'noreferrer'
                 ),
@@ -373,6 +373,7 @@ export function useGlobalCommandPaletteActions() {
                       label: t('Exit Superuser'),
                       icon: <IconLock locked={false} />,
                     },
+                    keywords: [t('superuser')],
                     onAction: () => exitSuperuser(),
                   },
                 ]
