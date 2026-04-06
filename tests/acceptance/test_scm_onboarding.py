@@ -6,6 +6,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from sentry.api.serializers import serialize
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.project import Project
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.asserts import assert_existing_projects_status
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
@@ -294,7 +295,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             ),
             mock.patch(
                 "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms",
-                side_effect=Exception("GitHub API error"),
+                side_effect=ApiError("GitHub API error"),
             ),
         ):
             self.start_onboarding()
@@ -329,6 +330,11 @@ class ScmOnboardingTest(AcceptanceTestCase):
 
             project = Project.objects.get(organization=self.org)
             assert project.platform == "javascript-react"
+            assert project.name == "javascript-react"
+            assert project.slug == "javascript-react"
+            assert_existing_projects_status(
+                self.org, active_project_ids=[project.id], deleted_project_ids=[]
+            )
 
     def test_scm_onboarding_repo_search_no_results(self) -> None:
         """Empty search results show a helpful message about permissions."""
