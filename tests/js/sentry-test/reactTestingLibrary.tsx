@@ -29,7 +29,9 @@ import type {Organization} from 'sentry/types/organization';
 import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from 'sentry/utils/browserHistory';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {OrganizationContext} from 'sentry/views/organizationContext';
+import {LLMContextProvider} from 'sentry/views/seerExplorer/contexts/llmContext';
 
 import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';
 
@@ -119,11 +121,15 @@ function makeAllTheProviders(options: ProviderOptions) {
 
   return function ({children}: {children?: React.ReactNode}) {
     const content = (
-      <OrganizationContext value={optionalOrganization}>
-        <GlobalDrawer>
-          <AdditionalWrapper>{children}</AdditionalWrapper>
-        </GlobalDrawer>
-      </OrganizationContext>
+      <TopBar.Slot.Provider>
+        <LLMContextProvider>
+          <OrganizationContext value={optionalOrganization}>
+            <GlobalDrawer>
+              <AdditionalWrapper>{children}</AdditionalWrapper>
+            </GlobalDrawer>
+          </OrganizationContext>
+        </LLMContextProvider>
+      </TopBar.Slot.Provider>
     );
 
     const wrappedContent = <ProvideAriaRouter>{content}</ProvideAriaRouter>;

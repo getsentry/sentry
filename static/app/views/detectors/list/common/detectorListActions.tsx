@@ -5,6 +5,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
@@ -13,9 +14,10 @@ import {useCanCreateDetector} from 'sentry/views/detectors/utils/useCanCreateDet
 
 interface DetectorListActionsProps {
   children?: React.ReactNode;
+  detectorType?: DetectorType;
 }
 
-export function DetectorListActions({children}: DetectorListActionsProps) {
+export function DetectorListActions({children, detectorType}: DetectorListActionsProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
@@ -29,7 +31,7 @@ export function DetectorListActions({children}: DetectorListActionsProps) {
       <LinkButton
         to={{
           pathname: makeMonitorCreatePathname(organization.slug),
-          query: {project},
+          query: {project, detectorType},
         }}
         priority="primary"
         icon={<IconAdd />}

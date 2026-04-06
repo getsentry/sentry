@@ -315,8 +315,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.autofix._call_autofix")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.tasks.seer.autofix.check_autofix_status.apply_async")
+    @patch("sentry.seer.autofix.autofix._resolve_project_preference", return_value=None)
     def test_ai_autofix_post_endpoint(
         self,
+        mock_resolve_pref,
         mock_check_autofix_status,
         mock_get_trace_tree,
         mock_call,
@@ -401,8 +403,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.autofix._call_autofix")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.tasks.seer.autofix.check_autofix_status.apply_async")
+    @patch("sentry.seer.autofix.autofix._resolve_project_preference", return_value=None)
     def test_ai_autofix_post_without_code_mappings(
         self,
+        mock_resolve_pref,
         mock_check_autofix_status,
         mock_get_trace_tree,
         mock_call,
@@ -470,8 +474,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.autofix._call_autofix")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.tasks.seer.autofix.check_autofix_status.apply_async")
+    @patch("sentry.seer.autofix.autofix._resolve_project_preference", return_value=None)
     def test_ai_autofix_post_without_event_id(
         self,
+        mock_resolve_pref,
         mock_check_autofix_status,
         mock_get_trace_tree,
         mock_call,
@@ -554,8 +560,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.autofix._call_autofix")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.tasks.seer.autofix.check_autofix_status.apply_async")
+    @patch("sentry.seer.autofix.autofix._resolve_project_preference", return_value=None)
     def test_ai_autofix_post_without_event_id_no_recommended_event(
         self,
+        mock_resolve_pref,
         mock_check_autofix_status,
         mock_get_trace_tree,
         mock_call,
@@ -937,8 +945,10 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.autofix._call_autofix")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.tasks.seer.autofix.check_autofix_status.apply_async")
+    @patch("sentry.seer.autofix.autofix._resolve_project_preference", return_value=None)
     def test_post_routes_to_legacy_with_mode_param(
         self,
+        mock_resolve_pref,
         mock_check_autofix_status,
         mock_get_trace_tree,
         mock_call_autofix,

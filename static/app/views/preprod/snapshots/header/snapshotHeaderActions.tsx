@@ -147,7 +147,7 @@ export function SnapshotHeaderActions({
     <Flex align="center" gap="md">
       {data.approval_info &&
         (isApproved ? (
-          <Flex align="center" gap="sm">
+          <Flex align="center" gap="xl">
             <Tag variant="success" icon={<IconCheckmark />}>
               {t('Approved')}
             </Tag>

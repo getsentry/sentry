@@ -11,6 +11,7 @@ from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics
+from sentry.viewer_context import ViewerContext, get_viewer_context
 
 
 class SeerViewerContext(TypedDict, total=False):
@@ -47,6 +48,68 @@ seer_grouping_default_connection_pool = connection_from_url(
 )
 
 
+def _resolve_viewer_context(
+    explicit: SeerViewerContext | None = None,
+) -> ViewerContext | None:
+    """Merge explicit SeerViewerContext with the contextvar.
+
+    Converts the legacy SeerViewerContext into a ViewerContext, then merges
+    with the contextvar. Explicit non-None fields win. On disagreement,
+    logs a warning and strips the token for safety.
+    """
+    vc = get_viewer_context()
+
+    if explicit is None and vc is None:
+        return None
+    if explicit is None:
+        return vc
+
+    explicit_vc = ViewerContext(
+        organization_id=explicit.get("organization_id"),
+        user_id=explicit.get("user_id"),
+    )
+
+    if vc is None:
+        return explicit_vc
+
+    has_mismatch = False
+    org_id = vc.organization_id
+    user_id = vc.user_id
+
+    if explicit_vc.organization_id is not None:
+        if org_id is not None and org_id != explicit_vc.organization_id:
+            logger.warning(
+                "seer.viewer_context_mismatch",
+                extra={
+                    "field": "organization_id",
+                    "contextvar": org_id,
+                    "explicit": explicit_vc.organization_id,
+                },
+            )
+            has_mismatch = True
+        org_id = explicit_vc.organization_id
+
+    if explicit_vc.user_id is not None:
+        if user_id is not None and user_id != explicit_vc.user_id:
+            logger.warning(
+                "seer.viewer_context_mismatch",
+                extra={
+                    "field": "user_id",
+                    "contextvar": user_id,
+                    "explicit": explicit_vc.user_id,
+                },
+            )
+            has_mismatch = True
+        user_id = explicit_vc.user_id
+
+    return ViewerContext(
+        organization_id=org_id,
+        user_id=user_id,
+        actor_type=vc.actor_type,
+        token=None if has_mismatch else vc.token,
+    )
+
+
 @sentry_sdk.tracing.trace
 def make_signed_seer_api_request(
     connection_pool: HTTPConnectionPool,
@@ -72,10 +135,11 @@ def make_signed_seer_api_request(
         **auth_headers,
     }
 
-    if viewer_context:
+    resolved = _resolve_viewer_context(viewer_context)
+    if resolved:
         if settings.SEER_API_SHARED_SECRET:
             try:
-                context_bytes = orjson.dumps(viewer_context)
+                context_bytes = orjson.dumps(resolved.serialize())
                 context_signature = sign_viewer_context(context_bytes)
                 headers["X-Viewer-Context"] = context_bytes.decode("utf-8")
                 headers["X-Viewer-Context-Signature"] = context_signature

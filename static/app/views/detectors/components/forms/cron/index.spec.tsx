@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -85,6 +85,27 @@ describe('NewCronDetectorForm', () => {
     const createButton = screen.getByRole('button', {name: 'Create Monitor'});
     expect(createButton).toBeInTheDocument();
     expect(createButton).toBeDisabled();
+  });
+
+  it('renders issue preview and updates title when name changes', async () => {
+    renderForm();
+
+    // Issue preview section should render with fallback title
+    expect(await screen.findByTestId('issue-preview-section')).toBeInTheDocument();
+    expect(screen.getByText('Cron failure: …')).toBeInTheDocument();
+    expect(
+      screen.getByText('Your monitor is failing: A missed check-in was detected')
+    ).toBeInTheDocument();
+
+    // Edit the monitor name
+    const title = screen.getByText('New Monitor');
+    await userEvent.click(title);
+    const nameInput = screen.getByRole('textbox', {name: 'Monitor Name'});
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, 'My Cron Job{Enter}');
+
+    // Issue preview updates with the new name
+    expect(await screen.findByText('Cron failure: My Cron Job')).toBeInTheDocument();
   });
 
   it('shows form sections and enabled button when guide is set to "manual"', async () => {

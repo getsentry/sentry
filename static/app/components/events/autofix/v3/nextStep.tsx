@@ -355,6 +355,7 @@ function NextStepTemplate({
                 />
               )}
               position="bottom-end"
+              shouldCloseOnBlur={false}
               menuFooter={
                 <DropdownMenuFooter>
                   <MenuComponents.CTALinkButton

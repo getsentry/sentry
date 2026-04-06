@@ -26,6 +26,8 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {getSavedFiltersAsPageFilters} from 'sentry/views/dashboards/utils';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
 
 import {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
@@ -876,5 +878,42 @@ describe('Dashboards > Dashboard', () => {
     await waitFor(() => expect(eventsStatsMock).toHaveBeenCalled());
     const requestQuery = eventsStatsMock.mock.calls[0]![1]!.query!.query as string;
     expect(requestQuery).toContain('span.op:db');
+  });
+
+  it('registers dashboard node with metadata in LLM context snapshot', async () => {
+    const snapshotRef: {current: (() => LLMContextSnapshot) | null} = {current: null};
+
+    function SnapshotCapture() {
+      const {getLLMContext} = useLLMContext();
+      snapshotRef.current = getLLMContext;
+      return null;
+    }
+
+    render(
+      <div>
+        <Dashboard
+          dashboard={{...mockDashboard, title: 'LLM Test Dashboard'}}
+          onUpdate={() => undefined}
+          handleUpdateWidgetList={() => undefined}
+          handleAddCustomWidget={() => undefined}
+          widgetLimitReached={false}
+          isEditingDashboard={false}
+          widgetLegendState={widgetLegendState}
+        />
+        <SnapshotCapture />
+      </div>
+    );
+
+    await waitFor(() => {
+      const snapshot = snapshotRef.current!();
+      expect(snapshot.nodes).toHaveLength(1);
+      expect(snapshot.nodes[0]!.nodeType).toBe('dashboard');
+      expect(snapshot.nodes[0]!.data).toEqual(
+        expect.objectContaining({
+          title: 'LLM Test Dashboard',
+          widgetCount: 0,
+        })
+      );
+    });
   });
 });

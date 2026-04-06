@@ -21,6 +21,7 @@ import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDe
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 import {useCronsUpsertGuideState} from 'sentry/views/insights/crons/components/useCronsUpsertGuideState';
 
+import {CronIssuePreview} from './cronIssuePreview';
 import {PreviewSection} from './previewSection';
 
 function useIsShowingPlatformGuide() {
@@ -33,6 +34,7 @@ const FORM_SECTIONS = [
   CronDetectorFormDetectSection,
   CronDetectorFormResolveSection,
   IssueOwnershipSection,
+  CronIssuePreview,
   AutomateSection,
 ];
 
