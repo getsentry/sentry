@@ -350,6 +350,7 @@ export function useGlobalCommandPaletteActions() {
                 label: t('Open _admin'),
                 icon: <IconOpen />,
               },
+              keywords: [t('superuser')],
               onAction: () => window.open('/_admin/', '_blank', 'noreferrer'),
             },
             {
@@ -357,6 +358,7 @@ export function useGlobalCommandPaletteActions() {
                 label: t('Open %s in _admin', organization.name),
                 icon: <IconOpen />,
               },
+              keywords: [t('superuser')],
               onAction: () =>
                 window.open(
                   `/_admin/organizations/${organization.slug}/`,
