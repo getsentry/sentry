@@ -6,6 +6,7 @@ import {ProjectAvatar} from '@sentry/scraps/avatar';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
+import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {useCommandPaletteActionsRegister} from 'sentry/components/commandPalette/context';
 import type {
   CMDKQueryOptions,
@@ -366,6 +367,22 @@ export function useGlobalCommandPaletteActions() {
                   'noreferrer'
                 ),
             },
+            ...(isActiveSuperuser()
+              ? []
+              : [
+                  {
+                    display: {
+                      label: t('Open Superuser Modal'),
+                      icon: <IconLock locked />,
+                    },
+                    keywords: [t('superuser')],
+                    onAction: () =>
+                      openSudo({
+                        isSuperuser: true,
+                        needsReload: true,
+                      }),
+                  },
+                ]),
             ...(isActiveSuperuser()
               ? [
                   {
