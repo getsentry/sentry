@@ -22,7 +22,7 @@ import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useRouter} from 'sentry/utils/useRouter';
+import {useLocation} from 'sentry/utils/useLocation';
 
 enum SeriesName {
   ACCEPTED = 'Accepted',
@@ -434,7 +434,7 @@ type Props = {
 
 export const CustomerStats = memo(
   ({orgSlug, projectId, dataType, onDemandPeriodStart, onDemandPeriodEnd}: Props) => {
-    const router = useRouter();
+    const location = useLocation();
 
     const dataDatetime = useMemo((): DateTimeObject => {
       const {
@@ -442,7 +442,7 @@ export const CustomerStats = memo(
         end,
         utc: utcString,
         statsPeriod,
-      } = normalizeDateTimeParams(router.location.query, {
+      } = normalizeDateTimeParams(location.query, {
         allowEmptyPeriod: true,
         allowAbsoluteDatetime: true,
         allowAbsolutePageDatetime: true,
@@ -474,7 +474,7 @@ export const CustomerStats = memo(
       return {
         period: statsPeriod ?? '90d',
       };
-    }, [router.location.query, onDemandPeriodStart, onDemandPeriodEnd]);
+    }, [location.query, onDemandPeriodStart, onDemandPeriodEnd]);
 
     const statsEndpointUrl = getApiUrl(`/organizations/$organizationIdOrSlug/stats_v2/`, {
       path: {organizationIdOrSlug: orgSlug},
