@@ -4,7 +4,8 @@ import styled from '@emotion/styled';
 import {Stack} from '@sentry/scraps/layout';
 
 import {SentryMemberTeamSelectorField} from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
-import {TextareaField} from 'sentry/components/forms/fields/textareaField';
+import {FormField} from 'sentry/components/forms/formField';
+import {MarkdownTextArea} from 'sentry/components/markdownTextArea';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
@@ -33,21 +34,27 @@ export function IssueOwnershipSection({step}: {step?: number}) {
             flexibleControlStateSize
             memberOfProjectSlugs={memberOfProjectSlugs}
           />
-          <MinHeightTextarea
+          <DescriptionField
             name="description"
             label={t('Describe')}
+            hideControlState
+            flexibleControlStateSize
             help={t(
               'Add any additional context about this monitor for other team members.'
             )}
             stacked
             inline={false}
-            aria-label={t('description')}
-            placeholder={t(
-              'Example monitor description\n\nTo debug follow these steps:\n1. \u2026\n2. \u2026\n3. \u2026'
+          >
+            {fieldProps => (
+              <MarkdownTextArea
+                {...fieldProps}
+                aria-label={t('description')}
+                placeholder={t(
+                  'Example monitor description\n\nTo debug follow these steps:\n1. \u2026\n2. \u2026\n3. \u2026'
+                )}
+              />
             )}
-            rows={6}
-            autosize
-          />
+          </DescriptionField>
         </Stack>
       </FormSection>
     </Container>
@@ -58,10 +65,6 @@ const OwnershipField = styled(SentryMemberTeamSelectorField)`
   padding: ${p => p.theme.space.lg} 0;
 `;
 
-// Min height helps prevent resize after placeholder is replaced with user input
-const MinHeightTextarea = styled(TextareaField)`
+const DescriptionField = styled(FormField)`
   padding: ${p => p.theme.space.lg} 0;
-  textarea {
-    min-height: 140px;
-  }
 `;
