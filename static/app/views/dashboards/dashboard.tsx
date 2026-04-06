@@ -124,13 +124,18 @@ function DashboardInner({
   const organization = useOrganization();
   const api = useApi();
 
+  const {selection} = usePageFilters();
+
   // Push dashboard metadata into the LLM context tree for Seer Explorer.
   useLLMContext({
     title: dashboard.title,
     widgetCount: dashboard.widgets.length,
     filters: dashboard.filters,
+    isEditingDashboard,
+    dateRange: selection.datetime,
+    environments: selection.environments,
+    projects: selection.projects,
   });
-  const {selection} = usePageFilters();
   const {queue} = useWidgetQueryQueue();
   const layouts = useMemo<LayoutState>(() => {
     const desktopLayout = getDashboardLayout(dashboard.widgets);
