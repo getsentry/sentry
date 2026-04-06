@@ -1,6 +1,5 @@
 from unittest import mock
 
-import pytest
 from django.core.serializers.json import DjangoJSONEncoder
 
 from sentry.api.serializers import serialize
@@ -10,8 +9,6 @@ from sentry.testutils.asserts import assert_existing_projects_status
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 from sentry.utils import json
-
-pytestmark = pytest.mark.sentry_metrics
 
 
 @no_silo_test
@@ -216,7 +213,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             assert self.browser.driver.execute_script("return window.__testOpenCalled")
 
             # Simulate the OAuth pipeline: create the integration in the DB,
-            # then serialize it with the same code path as pipeline.py:406
+            # then serialize it with the same code path as IntegrationPipeline._dialog_response
             # to avoid mock-drift between the test data and the real serializer.
             integration = self.create_github_integration()
             org_integration = OrganizationIntegration.objects.get(
