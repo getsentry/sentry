@@ -88,7 +88,7 @@ describe('useAddIntegration', () => {
       const url = calls[0] as string;
       expect(url).toContain('account=my-account');
       expect(url).toContain('use_staging=1');
-      expect(calls![1]).toBe('sentryAddStagingIntegration');
+      expect(calls[1]).toBe('sentryAddStagingIntegration');
     });
 
     it('includes urlParams passed to startFlow', () => {
