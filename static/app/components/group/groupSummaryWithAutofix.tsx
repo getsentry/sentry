@@ -1,5 +1,6 @@
 import React, {useMemo} from 'react';
 import styled from '@emotion/styled';
+import type {Variants} from 'framer-motion';
 import {motion} from 'framer-motion';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -28,20 +29,19 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {testableTransition} from 'sentry/utils/testableTransition';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-const pulseAnimation = {
+const pulseAnimation: Variants = {
   initial: {opacity: 1},
   animate: {
     opacity: 0.6,
-    transition: testableTransition({
+    transition: {
       repeat: Infinity,
       repeatType: 'reverse',
       duration: 1,
-    }),
+    },
   },
 };
 

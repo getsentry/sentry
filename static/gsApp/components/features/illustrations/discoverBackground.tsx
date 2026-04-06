@@ -1,8 +1,7 @@
 import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {Transition} from 'framer-motion';
 import {motion} from 'framer-motion';
-
-import {testableTransition} from 'sentry/utils/testableTransition';
 
 // Computed using SVGGeometryElement.getTotalLength()
 const STROKE_LENGTH = 4445;
@@ -19,12 +18,12 @@ const strokeAnimation = {
     init: {strokeDashoffset: STROKE_LENGTH},
     animate: {strokeDashoffset: 0},
   },
-  transition: testableTransition({
+  transition: {
     type: 'tween',
     duration: 15,
     delay: 2.5,
     ease: 'linear',
-  }),
+  } satisfies Transition,
 };
 
 const StrokeBackground = styled(motion.path)``;
@@ -33,7 +32,7 @@ const strokeBackgroundAnimation = {
     init: {opacity: 0},
     animate: {opacity: 0.5},
   },
-  transition: testableTransition({duration: 1}),
+  transition: {duration: 1},
 };
 
 const Dot = styled(motion.g)``;
@@ -42,7 +41,6 @@ const dotAnimation = {
     init: {scale: 0.5, opacity: 0},
     animate: {scale: 1, opacity: 1},
   },
-  transition: testableTransition(),
 };
 
 const Guy1 = styled(motion.g)``;
@@ -51,7 +49,7 @@ const guy1Animation = {
     init: {opacity: 0, x: 20},
     animate: {opacity: 1, x: 0},
   },
-  transition: testableTransition({bounce: 0.15}),
+  transition: {bounce: 0.15},
 };
 
 const Guy2 = styled(motion.g)``;
@@ -60,7 +58,7 @@ const guy2Animation = {
     init: {opacity: 0, x: -20},
     animate: {opacity: 1, x: 0},
   },
-  transition: testableTransition({bounce: 0.15}),
+  transition: {bounce: 0.15},
 };
 
 const shake = keyframes`
@@ -86,11 +84,11 @@ const errorAsteroidAnimation = {
     init: {opacity: 0, x: 150, y: -150},
     animate: {opacity: 1, x: 0, y: 0},
   },
-  transition: testableTransition({
+  transition: {
     type: 'spring',
     delay: 1.8,
     bounce: 0.15,
-  }),
+  } satisfies Transition,
 };
 
 const ploom = keyframes`
@@ -129,10 +127,10 @@ const landBeforeTimeAnimation = {
     init: {opacity: 0, filter: 'saturation(0)'},
     animate: {opacity: 1, filter: 'saturation(1)'},
   },
-  transition: testableTransition({
+  transition: {
     type: 'tween',
     duration: 1.4,
-  }),
+  } satisfies Transition,
 };
 
 export function DiscoverBackground({anchorRef}: Props) {
@@ -140,7 +138,7 @@ export function DiscoverBackground({anchorRef}: Props) {
     <motion.svg
       initial="init"
       animate="animate"
-      variants={{animate: {transition: testableTransition({staggerChildren: 0.3})}}}
+      variants={{animate: {transition: {staggerChildren: 0.3}}}}
       viewBox="0 0 871 572"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -151,7 +149,6 @@ export function DiscoverBackground({anchorRef}: Props) {
         mask="url(#stroke_mask)"
         {...strokeBackgroundAnimation}
       />
-
       <Guy1 {...guy1Animation}>
         <g id="computer">
           <path
@@ -246,7 +243,6 @@ export function DiscoverBackground({anchorRef}: Props) {
           </g>
         </g>
       </Guy1>
-
       <Guy2 {...guy2Animation}>
         <g id="Vector_37">
           <path
@@ -355,7 +351,6 @@ export function DiscoverBackground({anchorRef}: Props) {
           </g>
         </g>
       </Guy2>
-
       <LandBeforeTime {...landBeforeTimeAnimation}>
         <path
           id="Vector"
@@ -511,7 +506,6 @@ export function DiscoverBackground({anchorRef}: Props) {
           />
         </g>
       </LandBeforeTime>
-
       <AsteroidShake>
         <ErrorAsteroid {...errorAsteroidAnimation}>
           <path
@@ -548,7 +542,6 @@ export function DiscoverBackground({anchorRef}: Props) {
           />
         </ErrorAsteroid>
       </AsteroidShake>
-
       <g>
         <Dot {...dotAnimation} transition={{delay: 6.5}}>
           <path
@@ -607,14 +600,12 @@ export function DiscoverBackground({anchorRef}: Props) {
           />
         </Dot>
       </g>
-
       <Stroke
         d="M811.8 198.05L804.87 177.51L796.14 198.56L783.05 151.85L773.29 173.41L761.49 99.23L733.76 199.46L718.88 151.08L704.5 187.27L665.74 114.37H654.71L606.71 192.15L576.42 166.73L528.16 194.97L414.45 52.77L450.13 25.81L476.05 57.39L402.64 92.81L390.32 67.65L370.81 95.38L339.24 31.98L296.89 113.6L280.46 81L390.58 136.19L418.3 113.34L457.31 175.46L477.59 158.01L507.63 259.4L544.59 228.08L590.79 385.69L612.35 341.02L628.27 381.83L677.29 271.2L694.75 341.02L710.15 310.48L744.29 446.78L781.25 329.99L821.55 347.95L808.97 391.07L751.48 366.18L661.64 522.24L641.62 481.94L612.61 558.18L563.07 429.83L548.44 468.08L506.09 356.42L548.18 329.47L484.78 529.94L466.56 479.63L381.85 525.06L312.03 463.97L299.45 463.72L258.38 564.85L251.45 526.09L245.81 548.94L242.73 531.48L239.13 544.32L210.13 428.04H197.81L170.86 540.98L152.12 469.88H140.57L131.58 502.73L117.72 447.8H107.46L77.17 542.52"
         stroke="#5C4376"
         mask="url(#stroke_mask)"
         {...strokeAnimation}
       />
-
       <mask id="stroke_mask">
         <rect id="bg" x="0" y="0" width="100%" height="100%" fill="#ffffff" />
         <path d="M421 490H440V511H421V490Z" fill="#000000" />
