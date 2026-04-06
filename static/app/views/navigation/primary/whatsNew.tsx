@@ -143,7 +143,21 @@ function WhatsNewContent({
                   </Tag>
                 ) : null}
               </Flex>
-              <Text>{item.message}</Text>
+              <Text>
+                {item.message}{' '}
+                <ExternalLink
+                  href={item.link}
+                  onClick={() =>
+                    trackAnalytics('whats_new.link_clicked', {
+                      organization,
+                      title: item.title,
+                      category: item.category,
+                    })
+                  }
+                >
+                  {t('Read more')}
+                </ExternalLink>
+              </Text>
               {item.mediaUrl ? (
                 <Image width="100%" src={item.mediaUrl} alt={item.title} radius="md" />
               ) : null}
@@ -173,13 +187,24 @@ export function PrimaryNavigationWhatsNew() {
       refetchOnWindowFocus: true,
     }
   );
-  const unseenPostIds = useMemo(
-    () =>
-      (Array.isArray(broadcasts) ? broadcasts : [])
-        .filter(item => !item.hasSeen)
-        .map(item => item.id),
+  const allBroadcasts = useMemo(
+    () => (Array.isArray(broadcasts) ? broadcasts : []),
     [broadcasts]
   );
+
+  const unseenPostIds = useMemo(
+    () => allBroadcasts.filter(item => !item.hasSeen).map(item => item.id),
+    [allBroadcasts]
+  );
+
+  const uniqueBroadcasts = useMemo(() => {
+    const seenTitles = new Set<string>();
+    return allBroadcasts.filter(item => {
+      if (seenTitles.has(item.title)) return false;
+      seenTitles.add(item.title);
+      return true;
+    });
+  }, [allBroadcasts]);
 
   const {
     isOpen,
@@ -203,7 +228,7 @@ export function PrimaryNavigationWhatsNew() {
           <WhatsNewContent
             unseenPostIds={unseenPostIds}
             isPending={isPending}
-            broadcasts={Array.isArray(broadcasts) ? broadcasts : []}
+            broadcasts={uniqueBroadcasts}
           />
         </PrimaryNavigation.ButtonOverlay>
       )}
