@@ -138,3 +138,121 @@ class ScmOnboardingTest(AcceptanceTestCase):
 
             project = Project.objects.get(organization=self.org)
             assert project.platform == "javascript-react"
+
+    def test_scm_onboarding_with_integration_install(self) -> None:
+        """Install flow: welcome → install GitHub → repo search → detected platform → create project."""
+        mock_repos = [
+            {
+                "name": "sentry",
+                "identifier": "getsentry/sentry",
+                "default_branch": "master",
+            },
+        ]
+
+        mock_platforms = [
+            {
+                "platform": "python-django",
+                "language": "Python",
+                "bytes": 50000,
+                "confidence": "high",
+                "priority": 1,
+            }
+        ]
+
+        with (
+            self.feature(
+                {
+                    "organizations:onboarding-scm": True,
+                    "organizations:integrations-github-platform-detection": True,
+                }
+            ),
+            mock.patch(
+                "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+                return_value=mock_repos,
+            ),
+            mock.patch(
+                "sentry.integrations.github.repository.GitHubRepositoryProvider._validate_repo",
+                return_value={"id": "12345"},
+            ),
+            mock.patch(
+                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms",
+                return_value=mock_platforms,
+            ),
+        ):
+            self.start_onboarding()
+
+            # SCM Connect: no integration installed, provider pills are shown.
+            # Override window.open so that AddIntegration stores `window` as the
+            # dialog reference.  When we later inject a postMessage from the same
+            # window, `message.source === this.dialog` passes.
+            self.browser.driver.execute_script(
+                """
+                window.__testOpenCalled = false;
+                window.open = function() {
+                    window.__testOpenCalled = true;
+                    return window;
+                };
+                """
+            )
+
+            # Wait for the providers to load, then click Install GitHub.
+            self.browser.wait_until(xpath='//button[contains(., "GitHub")]')
+            self.browser.click(xpath='//button[contains(., "GitHub")]')
+            assert self.browser.driver.execute_script("return window.__testOpenCalled")
+
+            # Simulate the OAuth pipeline: create the integration in the DB,
+            # then inject a postMessage matching what dialog-complete.html sends.
+            integration = self.create_github_integration()
+            self.browser.driver.execute_script(
+                "window.postMessage(arguments[0], window.location.origin);",
+                {
+                    "success": True,
+                    "data": {
+                        "id": str(integration.id),
+                        "name": "getsentry",
+                        "provider": {
+                            "key": "github",
+                            "name": "GitHub",
+                            "slug": "github",
+                            "canAdd": True,
+                            "canDisable": False,
+                            "features": ["commits", "alert-rule"],
+                            "aspects": {},
+                        },
+                        "status": "active",
+                        "organizationIntegrationStatus": "active",
+                        "accountType": None,
+                        "domainName": "github.com/getsentry",
+                        "gracePeriodEnd": None,
+                        "icon": None,
+                    },
+                },
+            )
+
+            # Wait for the component to process the message and show connected state.
+            self.browser.wait_until(xpath='//*[contains(text(), "Connected to")]')
+
+            # Repo search (same flow as happy path from here on).
+            input_el = self.browser.element('input[aria-autocomplete="list"]')
+            input_el.send_keys("sentry")
+            self.browser.wait_until('[data-test-id="menu-list-item-label"]')
+            self.browser.click('[data-test-id="menu-list-item-label"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
+            self.browser.click(xpath='//button[contains(., "Continue")]')
+
+            # Platform Features
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
+            self.browser.wait_until('[role="radio"]')
+            self.browser.click('[role="radio"]')
+            self.browser.click(xpath='//button[contains(., "Continue")]')
+
+            # Project Details
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-project-details"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Create project")]')
+            self.browser.click(xpath='//button[contains(., "Create project")]')
+
+            # Setup Docs
+            self.browser.wait_until('[data-test-id="onboarding-step-setup-docs"]')
+
+            project = Project.objects.get(organization=self.org)
+            assert project.platform == "python-django"
