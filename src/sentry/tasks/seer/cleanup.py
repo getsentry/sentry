@@ -33,7 +33,7 @@ def cleanup_seer_repository_preferences(
     This task removes a repository from Seer project preferences when the repository
     is deleted from an organization's integration.
     """
-    # Call Seer API to remove repository from organization preferences
+    # Call Seer API to remove repository from project preferences
     body = RemoveRepositoryRequest(
         organization_id=organization_id,
         repo_provider=repo_provider,
@@ -78,8 +78,6 @@ def bulk_cleanup_seer_repository_preferences(
     """
     Removes multiple repositories from Seer project preferences when the repository
     is deleted from an organization's integration.
-
-    Each entry in repos should have 'repo_external_id' and 'repo_provider' keys.
     """
     body = BulkRemoveRepositoriesRequest(
         organization_id=organization_id,
