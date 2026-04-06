@@ -1,9 +1,9 @@
 from unittest import mock
 
 import pytest
-from django.core.serializers.json import DjangoJSONEncoder
 
 from sentry.api.serializers import serialize
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.project import Project
 from sentry.shared_integrations.exceptions import ApiError
@@ -27,7 +27,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
         )
         self.login_as(self.user)
 
-    def create_github_integration(self):
+    def create_github_integration(self) -> Integration:
         integration = self.create_provider_integration(
             provider="github",
             name="getsentry",
@@ -37,7 +37,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
         integration.add_organization(self.org, self.user)
         return integration
 
-    def start_onboarding(self):
+    def start_onboarding(self) -> None:
         self.browser.get(f"/onboarding/{self.org.slug}/")
         self.browser.wait_until('[data-test-id="onboarding-step-welcome"]')
         self.browser.click('[data-test-id="onboarding-welcome-start"]')
@@ -225,9 +225,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             )
             # Resolve Django lazy objects (translations, datetimes) so
             # Selenium can JSON-serialize the data for execute_script.
-            serialized = json.loads(
-                json.dumps(serialize(org_integration, self.user), cls=DjangoJSONEncoder)
-            )
+            serialized = json.loads(json.dumps(serialize(org_integration, self.user)))
             self.browser.driver.execute_script(
                 "window.postMessage(arguments[0], window.location.origin);",
                 {"success": True, "data": serialized},
