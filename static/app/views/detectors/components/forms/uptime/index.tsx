@@ -27,6 +27,7 @@ import {
   uptimeFormDataToEndpointPayload,
   uptimeSavedDetectorToFormData,
 } from 'sentry/views/detectors/components/forms/uptime/fields';
+import {formatUptimeUrl} from 'sentry/views/detectors/components/forms/uptime/formatUptimeUrl';
 import {PreviewSection} from 'sentry/views/detectors/components/forms/uptime/previewSection';
 import {UptimeRegionWarning} from 'sentry/views/detectors/components/forms/uptime/regionWarning';
 import {UptimeDetectorResolveSection} from 'sentry/views/detectors/components/forms/uptime/resolve';
@@ -50,13 +51,10 @@ function UptimeDetectorForm() {
       return null;
     }
 
-    const parsedUrl = URL.parse(url);
-    if (!parsedUrl) {
+    const urlName = formatUptimeUrl(url);
+    if (!urlName) {
       return null;
     }
-
-    const path = parsedUrl.pathname === '/' ? '' : parsedUrl.pathname;
-    const urlName = `${parsedUrl.hostname}${path}`.replace(/\/$/, '');
 
     return t('Uptime check for %s', urlName);
   });

@@ -4,6 +4,7 @@ import {IssuePreviewSection} from 'sentry/views/detectors/components/forms/commo
 import {ownerToActor} from 'sentry/views/detectors/components/forms/common/ownerToActor';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
 import {useUptimeDetectorFormField} from 'sentry/views/detectors/components/forms/uptime/fields';
+import {formatUptimeUrl} from 'sentry/views/detectors/components/forms/uptime/formatUptimeUrl';
 
 const FALLBACK_ISSUE_TITLE = t('Downtime detected for …');
 const SUBTITLE = t('Your monitored domain is down');
@@ -15,13 +16,10 @@ function useUptimeIssueTitle() {
     return FALLBACK_ISSUE_TITLE;
   }
 
-  const parsedUrl = URL.parse(url);
-  if (!parsedUrl?.hostname) {
+  const displayUrl = formatUptimeUrl(url);
+  if (!displayUrl) {
     return FALLBACK_ISSUE_TITLE;
   }
-
-  const path = parsedUrl.pathname === '/' ? '' : parsedUrl.pathname;
-  const displayUrl = `${parsedUrl.hostname}${path}`.replace(/\/$/, '');
 
   return t('Downtime detected for %s', displayUrl);
 }
