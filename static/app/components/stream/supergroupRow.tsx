@@ -11,6 +11,10 @@ import {Count} from 'sentry/components/count';
 import {useDrawer} from 'sentry/components/globalDrawer';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {Placeholder} from 'sentry/components/placeholder';
+import {
+  CheckboxLabel,
+  SupergroupCheckbox,
+} from 'sentry/components/stream/supergroupCheckbox';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -60,6 +64,7 @@ export function SupergroupRow({
       <InteractionStateLayer />
       <IconArea>
         <AccentIcon size="md" />
+        <SupergroupCheckbox matchedGroupIds={matchedGroupIds} />
       </IconArea>
       <Summary>
         {supergroup.error_type ? (
@@ -167,6 +172,12 @@ const Wrapper = styled(PanelItem)<{highlighted: boolean}>`
   min-height: 82px;
   background: ${p =>
     p.highlighted ? p.theme.tokens.background.secondary : 'transparent'};
+
+  &:not(:hover):not(:has(input:checked)):not(:has(input:indeterminate)) {
+    ${CheckboxLabel} {
+      ${p => p.theme.visuallyHidden};
+    }
+  }
 `;
 
 const Summary = styled('div')`
@@ -185,10 +196,11 @@ const IconArea = styled('div')`
   align-self: flex-start;
   width: 32px;
   display: flex;
-  align-items: center;
-  justify-content: flex-end;
+  flex-direction: column;
+  align-items: flex-end;
   flex-shrink: 0;
   padding-top: ${p => p.theme.space.sm};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const AccentIcon = styled(IconStack)`
