@@ -114,7 +114,12 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         client = self.get_client()
         try:
             client.chat_postMessage(
-                channel=target.resource_id, blocks=payload["blocks"], text=payload["text"]
+                channel=target.resource_id,
+                blocks=payload["blocks"],
+                text=payload["text"],
+                attachments=payload["attachments"],
+                unfurl_links=False,
+                unfurl_media=False,
             )
         except SlackApiError as e:
             translate_slack_api_error(e)
@@ -134,6 +139,9 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
             channel=target.resource_id,
             blocks=payload["blocks"],
             text=payload["text"],
+            attachments=payload.get("attachments", None),
+            unfurl_links=False,
+            unfurl_media=False,
         )
 
         if threading_context.thread_ts is not None:

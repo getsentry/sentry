@@ -58,6 +58,7 @@ class SlackProviderThreadingContext(ProviderThreadingContext):
 
 class SlackRenderable(TypedDict):
     blocks: list[Block]
+    attachments: NotRequired[list[Block]]
     text: str
     color: NotRequired[str]
 
