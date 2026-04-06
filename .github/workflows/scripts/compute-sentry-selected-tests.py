@@ -50,7 +50,7 @@ TEST_DIRS = (
 # test.
 FULL_SUITE_TRIGGERS: list[str | re.Pattern[str]] = [
     re.compile(r"^src/sentry/testutils/pytest/"),
-    "conftest.py",
+    re.compile(r"(^|/)conftest\.py$"),
     "src/sentry/runner/initializer.py",
     "src/sentry/constants.py",
     # option defaults registered at startup via initialize_app()
