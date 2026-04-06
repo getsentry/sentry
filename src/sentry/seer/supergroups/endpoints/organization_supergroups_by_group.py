@@ -12,7 +12,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.models.group import Group
+from sentry.models.group import STATUS_QUERY_CHOICES, Group
 from sentry.models.organization import Organization
 from sentry.seer.signed_seer_api import (
     SeerViewerContext,
@@ -55,12 +55,21 @@ class OrganizationSupergroupsByGroupEndpoint(OrganizationEndpoint):
                 status=status_codes.HTTP_400_BAD_REQUEST,
             )
 
-        valid_group_ids = set(
-            Group.objects.filter(
-                id__in=group_ids,
-                project__organization=organization,
-            ).values_list("id", flat=True)
+        group_qs = Group.objects.filter(
+            id__in=group_ids,
+            project__organization=organization,
         )
+
+        status_param = request.GET.get("status")
+        if status_param is not None:
+            if status_param not in STATUS_QUERY_CHOICES:
+                return Response(
+                    {"detail": "Invalid status parameter"},
+                    status=status_codes.HTTP_400_BAD_REQUEST,
+                )
+            group_qs = group_qs.filter(status=STATUS_QUERY_CHOICES[status_param])
+
+        valid_group_ids = set(group_qs.values_list("id", flat=True))
         group_ids = [gid for gid in group_ids if gid in valid_group_ids]
 
         if not group_ids:
