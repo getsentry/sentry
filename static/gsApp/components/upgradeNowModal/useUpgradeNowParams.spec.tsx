@@ -59,6 +59,8 @@ describe('useUpgradeNowParams', () => {
           reservedSeerScanner: 0,
           reservedSeerUsers: 0,
           reservedSizeAnalyses: 100,
+          reservedInstallableBuilds: 25000,
+          reservedTraceMetricBytes: undefined,
         },
       })
     );
