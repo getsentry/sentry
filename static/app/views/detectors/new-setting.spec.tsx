@@ -957,6 +957,11 @@ describe('DetectorEdit', () => {
       await userEvent.click(bodyInput);
       await userEvent.paste('{"test": "data"}');
 
+      // Issue preview reflects the URL
+      expect(
+        screen.getByText('Downtime detected for uptime.example.com')
+      ).toBeInTheDocument();
+
       await selectEvent.openMenu(screen.getByLabelText('Select Environment'));
       expect(
         screen.queryByRole('menuitemradio', {name: 'All Environments'})

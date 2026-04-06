@@ -27,9 +27,11 @@ import {
   uptimeFormDataToEndpointPayload,
   uptimeSavedDetectorToFormData,
 } from 'sentry/views/detectors/components/forms/uptime/fields';
+import {formatUptimeUrl} from 'sentry/views/detectors/components/forms/uptime/formatUptimeUrl';
 import {PreviewSection} from 'sentry/views/detectors/components/forms/uptime/previewSection';
 import {UptimeRegionWarning} from 'sentry/views/detectors/components/forms/uptime/regionWarning';
 import {UptimeDetectorResolveSection} from 'sentry/views/detectors/components/forms/uptime/resolve';
+import {UptimeIssuePreview} from 'sentry/views/detectors/components/forms/uptime/uptimeIssuePreview';
 import {UptimeDetectorVerificationSection} from 'sentry/views/detectors/components/forms/uptime/verification';
 
 const ENVIRONMENT_CONFIG: EnvironmentConfig = {
@@ -49,13 +51,10 @@ function UptimeDetectorForm() {
       return null;
     }
 
-    const parsedUrl = URL.parse(url);
-    if (!parsedUrl) {
+    const urlName = formatUptimeUrl(url);
+    if (!urlName) {
       return null;
     }
-
-    const path = parsedUrl.pathname === '/' ? '' : parsedUrl.pathname;
-    const urlName = `${parsedUrl.hostname}${path}`.replace(/\/$/, '');
 
     return t('Uptime check for %s', urlName);
   });
@@ -70,6 +69,7 @@ function UptimeDetectorForm() {
       <UptimeDetectorResolveSection step={nextStep()} />
       <AssignSection step={nextStep()} />
       <DescribeSection step={nextStep()} />
+      <UptimeIssuePreview step={nextStep()} />
       <AutomateSection step={nextStep()} />
     </Stack>
   );
