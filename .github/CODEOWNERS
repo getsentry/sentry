@@ -462,11 +462,11 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/identity/                                                @getsentry/enterprise
 
 /src/sentry/integrations/                                            @getsentry/product-owners-settings-integrations @getsentry/ecosystem
-/src/sentry/integrations/api/endpoints/organization_code_mapping*.py                            @getsentry/issue-detection-backend
+/src/sentry/integrations/api/endpoints/organization_code_mapping*.py                            @getsentry/coding-workflows-sentry-backend
 /src/sentry/integrations/api/endpoints/organization_coding_agents.py                            @getsentry/machine-learning-ai
 /src/sentry/integrations/coding_agent/                                      @getsentry/machine-learning-ai
 /src/sentry/integrations/utils/codecov.py                            @getsentry/codecov
-/src/sentry/integrations/utils/stacktrace_link.py                            @getsentry/issue-detection-backend
+/src/sentry/integrations/utils/stacktrace_link.py                            @getsentry/coding-workflows-sentry-backend
 
 /src/sentry/mail/                                                    @getsentry/alerts-notifications
 /src/sentry/notifications/                                           @getsentry/alerts-notifications @getsentry/ecosystem
@@ -651,7 +651,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/event_manager.py                                @getsentry/issue-detection-backend
 /src/sentry/eventstore/models.py                            @getsentry/issue-detection-backend
 /src/sentry/grouping/                                       @getsentry/issue-detection-backend
-/src/sentry/issues/auto_source_code_config/                 @getsentry/issue-detection-backend
+/src/sentry/issues/auto_source_code_config/                 @getsentry/coding-workflows-sentry-backend
 /src/sentry/issues/endpoints/related_issues.py              @getsentry/issue-detection-backend
 /src/sentry/issues/ingest.py                                @getsentry/issue-detection-backend
 /src/sentry/issues/issue_occurrence.py                      @getsentry/issue-detection-backend
@@ -671,16 +671,16 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/tasks/auto_ongoing_issues.py                    @getsentry/issue-detection-backend
 /src/sentry/tasks/auto_remove_inbox.py                      @getsentry/issue-detection-backend
 /src/sentry/tasks/auto_resolve_issues.py                    @getsentry/issue-detection-backend
-/src/sentry/tasks/auto_source_code_config.py                @getsentry/issue-detection-backend
+/src/sentry/tasks/auto_source_code_config.py                @getsentry/coding-workflows-sentry-backend
 /src/sentry/tasks/check_new_issue_threshold_met.py          @getsentry/issue-detection-backend
 /src/sentry/tasks/clear_expired_resolutions.py              @getsentry/issue-detection-backend
 /src/sentry/tasks/clear_expired_rulesnoozes.py              @getsentry/issue-detection-backend
 /src/sentry/tasks/clear_expired_snoozes.py                  @getsentry/issue-detection-backend
-/src/sentry/tasks/codeowners/                               @getsentry/issue-detection-backend
-/src/sentry/tasks/commit_context.py                         @getsentry/issue-detection-backend
+/src/sentry/tasks/codeowners/                               @getsentry/coding-workflows-sentry-backend
+/src/sentry/tasks/commit_context.py                         @getsentry/coding-workflows-sentry-backend
 /src/sentry/tasks/seer/delete_seer_grouping_records.py      @getsentry/issue-detection-backend
 /src/sentry/tasks/embeddings_grouping/                      @getsentry/issue-detection-backend
-/src/sentry/tasks/groupowner.py                             @getsentry/issue-detection-backend
+/src/sentry/tasks/groupowner.py                             @getsentry/coding-workflows-sentry-backend
 /src/sentry/tasks/merge.py                                  @getsentry/issue-detection-backend
 /src/sentry/tasks/unmerge.py                                @getsentry/issue-detection-backend
 /src/sentry/tasks/weekly_escalating_forecast.py             @getsentry/issue-detection-backend
@@ -703,7 +703,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/deletions/test_group.py                       @getsentry/issue-detection-backend
 /tests/sentry/event_manager/                                @getsentry/issue-detection-backend
 /tests/sentry/grouping/                                     @getsentry/issue-detection-backend
-/tests/sentry/issues/auto_source_code_config/               @getsentry/issue-detection-backend
+/tests/sentry/issues/auto_source_code_config/               @getsentry/coding-workflows-sentry-backend
 /tests/sentry/issues/endpoints/                             @getsentry/issue-workflow
 /tests/sentry/issues/endpoints/test_related_issues.py       @getsentry/issue-detection-backend
 /tests/sentry/issues/test_ingest.py                         @getsentry/issue-detection-backend
@@ -726,9 +726,9 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/tasks/test_clear_expired_resolutions.py       @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_clear_expired_rulesnoozes.py       @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_clear_expired_snoozes.py           @getsentry/issue-detection-backend
-/tests/sentry/tasks/test_code_owners.py                     @getsentry/issue-detection-backend
-/tests/sentry/tasks/test_commit_context.py                  @getsentry/issue-detection-backend
-/tests/sentry/tasks/test_groupowner.py                      @getsentry/issue-detection-backend
+/tests/sentry/tasks/test_code_owners.py                     @getsentry/coding-workflows-sentry-backend
+/tests/sentry/tasks/test_commit_context.py                  @getsentry/coding-workflows-sentry-backend
+/tests/sentry/tasks/test_groupowner.py                      @getsentry/coding-workflows-sentry-backend
 /tests/sentry/tasks/test_merge.py                           @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_post_process.py                    @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_weekly_escalating_forecast.py      @getsentry/issue-detection-backend

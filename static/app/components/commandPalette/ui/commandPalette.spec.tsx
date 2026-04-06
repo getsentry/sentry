@@ -2,6 +2,8 @@ import {useCallback} from 'react';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+jest.unmock('lodash/debounce');
+
 jest.mock('@tanstack/react-virtual', () => ({
   useVirtualizer: ({count}: {count: number}) => {
     const virtualItems = Array.from({length: count}, (_, index) => ({
@@ -23,17 +25,16 @@ jest.mock('@tanstack/react-virtual', () => ({
 import {closeModal} from 'sentry/actionCreators/modal';
 import * as modalActions from 'sentry/actionCreators/modal';
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
+import {useCommandPaletteActionsRegister} from 'sentry/components/commandPalette/context';
 import type {
   CommandPaletteAction,
-  CommandPaletteActionCallbackWithKey,
-  CommandPaletteActionLinkWithKey,
+  CommandPaletteActionWithKey,
 } from 'sentry/components/commandPalette/types';
 import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
-import {useCommandPaletteActions} from 'sentry/components/commandPalette/useCommandPaletteActions';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 function RegisterActions({actions}: {actions: CommandPaletteAction[]}) {
-  useCommandPaletteActions(actions);
+  useCommandPaletteActionsRegister(actions);
   return null;
 }
 
@@ -47,11 +48,13 @@ function GlobalActionsComponent({
   const navigate = useNavigate();
 
   const handleAction = useCallback(
-    (action: CommandPaletteActionLinkWithKey | CommandPaletteActionCallbackWithKey) => {
+    (action: CommandPaletteActionWithKey) => {
       if ('to' in action) {
         navigate(action.to);
-      } else {
+      } else if ('onAction' in action) {
         action.onAction();
+      } else {
+        // @TODO: implement async actions
       }
       closeModal();
     },
