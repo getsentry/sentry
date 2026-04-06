@@ -4,6 +4,7 @@ from typing import Any
 
 from django.db import IntegrityError, router, transaction
 
+from sentry import features
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import enforce_constraints
@@ -11,6 +12,7 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.integrations.services.repository import RepositoryService, RpcRepository
 from sentry.integrations.services.repository.model import RpcCreateRepository
 from sentry.integrations.services.repository.serial import serialize_repository
+from sentry.models.organization import Organization
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.repository import Repository
 from sentry.seer.models.project_repository import SeerProjectRepository
@@ -173,7 +175,9 @@ class DatabaseBackedRepositoryService(RepositoryService):
             Repository.objects.filter(id__in=repo_ids).update(integration_id=None)
 
             # Delete Seer project preferences for the affected repos
-            SeerProjectRepository.objects.filter(repository_id__in=repo_ids).delete()
+            organization = Organization.objects.get_from_cache(id=organization_id)
+            if features.has("organizations:seer-project-settings-dual-write", organization):
+                SeerProjectRepository.objects.filter(repository_id__in=repo_ids).delete()
 
             # Delete Code Owners with a Code Mapping using the OrganizationIntegration
             ProjectCodeOwners.objects.filter(

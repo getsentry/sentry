@@ -58,6 +58,7 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
 
         assert OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
 
+    @with_feature("organizations:seer-project-settings-dual-write")
     def test_repository_and_identity(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
