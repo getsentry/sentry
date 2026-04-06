@@ -4106,7 +4106,7 @@ register(
 # Set via deploy config (SENTRY_OPTIONS); requires restart to change.
 register(
     "viewer-context.enabled",
-    default=False,
+    default=True,
     type=Bool,
     flags=FLAG_NOSTORE,
 )
