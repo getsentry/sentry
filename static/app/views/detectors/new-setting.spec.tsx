@@ -7,7 +7,13 @@ import {
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {OrganizationStore} from 'sentry/stores/organizationStore';
@@ -101,6 +107,27 @@ describe('DetectorEdit', () => {
       url: `/organizations/${organization.slug}/monitors-schedule-buckets/`,
       body: [],
     });
+  });
+
+  it('selects the first project when an invalid project is provided in the URL', async () => {
+    render(<DetectorNewSettings />, {
+      organization,
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          query: {detectorType: 'metric_issue', project: 'not-a-project-id'},
+        },
+      },
+    });
+
+    await screen.findByText('New Monitor');
+
+    // Verify the project dropdown has the first project selected
+    const projectSection = screen
+      .getByText(/Choose the Project and Environment/)
+      .closest('section')!;
+    expect(within(projectSection).getByText(project.slug)).toBeInTheDocument();
   });
 
   describe('Metric Detector', () => {
