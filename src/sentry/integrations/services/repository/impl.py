@@ -163,7 +163,6 @@ class DatabaseBackedRepositoryService(RepositoryService):
         integration_id: int,
     ) -> None:
         with transaction.atomic(router.db_for_write(Repository)):
-            # Get affected repos before nulling integration_id so we can clean up Seer
             repos = list(
                 Repository.objects.filter(
                     organization_id=organization_id, integration_id=integration_id
@@ -171,19 +170,20 @@ class DatabaseBackedRepositoryService(RepositoryService):
             )
             repo_ids = [repo_id for repo_id, _, _ in repos]
 
-            # Disassociate repos from the organization integration being deleted
-            Repository.objects.filter(id__in=repo_ids).update(integration_id=None)
+            if repo_ids:
+                # Disassociate repos from the organization integration being deleted
+                Repository.objects.filter(id__in=repo_ids).update(integration_id=None)
 
-            # Delete Seer project preferences for the affected repos.
-            # Organization may already be deleted if org deletion and integration
-            # uninstall overlap; skip SeerProjectRepository cleanup in that case
-            # since cascades will handle it.
-            try:
-                organization = Organization.objects.get_from_cache(id=organization_id)
-                if features.has("organizations:seer-project-settings-dual-write", organization):
-                    SeerProjectRepository.objects.filter(repository_id__in=repo_ids).delete()
-            except Organization.DoesNotExist:
-                pass
+                # Delete Seer project preferences for the affected repos.
+                # Organization may already be deleted if org deletion and integration
+                # uninstall overlap; skip SeerProjectRepository cleanup in that case
+                # since cascades will handle it.
+                try:
+                    organization = Organization.objects.get_from_cache(id=organization_id)
+                    if features.has("organizations:seer-project-settings-dual-write", organization):
+                        SeerProjectRepository.objects.filter(repository_id__in=repo_ids).delete()
+                except Organization.DoesNotExist:
+                    pass
 
             # Delete Code Owners with a Code Mapping using the OrganizationIntegration
             ProjectCodeOwners.objects.filter(
