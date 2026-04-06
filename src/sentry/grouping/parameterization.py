@@ -36,7 +36,7 @@ class ParameterizationRegex:
 
     def _get_pattern(self, raw_pattern: str) -> str:
         """
-        Returns the regex pattern with a named matching group and lookbehind/lookahead if needed.
+        Returns the regex pattern inside of a named matching group.
         """
         return rf"(?P<{self.name}>{raw_pattern})"
 
