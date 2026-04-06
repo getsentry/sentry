@@ -48,6 +48,7 @@ export function IssueOwnershipSection({step}: {step?: number}) {
             {fieldProps => (
               <MarkdownTextArea
                 {...fieldProps}
+                aria-label={t('description')}
                 placeholder={t(
                   'Example monitor description\n\nTo debug follow these steps:\n1. \u2026\n2. \u2026\n3. \u2026'
                 )}
