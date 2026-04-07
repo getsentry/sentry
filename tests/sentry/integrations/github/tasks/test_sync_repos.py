@@ -4,16 +4,14 @@ import pytest
 import responses
 from taskbroker_client.retry import RetryTaskError
 
-from sentry import audit_log
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.github.tasks.sync_repos import sync_repos_for_org
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
-from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
 @control_silo_test
@@ -62,13 +60,6 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
         assert repos[0].provider == "integrations:github"
         assert repos[1].name == "getsentry/snuba"
 
-        with assume_test_silo_mode_of(AuditLogEntry):
-            entries = AuditLogEntry.objects.filter(
-                organization_id=self.organization.id,
-                event=audit_log.get_event_id("REPO_ADDED"),
-            )
-            assert entries.count() == 2
-
     @responses.activate
     def test_disables_removed_repos(self, _: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
@@ -98,16 +89,6 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
                 organization_id=self.organization.id, external_id="1"
             ).exists()
 
-        with assume_test_silo_mode_of(AuditLogEntry):
-            assert AuditLogEntry.objects.filter(
-                organization_id=self.organization.id,
-                event=audit_log.get_event_id("REPO_DISABLED"),
-            ).exists()
-            assert AuditLogEntry.objects.filter(
-                organization_id=self.organization.id,
-                event=audit_log.get_event_id("REPO_ADDED"),
-            ).exists()
-
     @responses.activate
     def test_re_enables_restored_repos(self, _: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
@@ -131,12 +112,6 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
         with assume_test_silo_mode(SiloMode.CELL):
             repo.refresh_from_db()
             assert repo.status == ObjectStatus.ACTIVE
-
-        with assume_test_silo_mode_of(AuditLogEntry):
-            assert AuditLogEntry.objects.filter(
-                organization_id=self.organization.id,
-                event=audit_log.get_event_id("REPO_ENABLED"),
-            ).exists()
 
     @responses.activate
     def test_no_changes_needed(self, _: MagicMock) -> None:

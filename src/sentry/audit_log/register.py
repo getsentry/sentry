@@ -695,6 +695,3 @@ default_manager.add(
         template="updated autofix automation settings for {project_count} projects",
     )
 )
-default_manager.add(events.RepoAddedAuditLogEvent())
-default_manager.add(events.RepoDisabledAuditLogEvent())
-default_manager.add(events.RepoEnabledAuditLogEvent())
