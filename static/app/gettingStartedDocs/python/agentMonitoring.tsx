@@ -293,7 +293,7 @@ sentry_sdk.init(
       ],
     };
 
-    const selected = (params.platformOptions as any)?.integration ?? 'openai_agents';
+    const selected = (params.platformOptions as any)?.integration ?? 'openai';
     if (selected === 'openai') {
       return [openaiSdkStep];
     }
@@ -565,7 +565,7 @@ print(result.output)
       ],
     };
 
-    const selected = (params.platformOptions as any)?.integration ?? 'openai_agents';
+    const selected = (params.platformOptions as any)?.integration ?? 'openai';
     if (selected === 'openai') {
       return [openaiSdkVerifyStep];
     }
