@@ -551,12 +551,10 @@ class WorkflowEngineRuleSerializer(Serializer):
         sentry_app_installations_by_uuid: Mapping[str, RpcSentryAppComponentContext] = {}
         if self.prepare_component_fields:
             sentry_app_uuids = [
-                sentry_app_uuid
-                for sentry_app_uuid in (
-                    action_to_action_data[action].get("sentryAppInstallationUuid")
-                    for action in actions_with_handlers
-                )
-                if sentry_app_uuid is not None
+                action_to_action_data[action]["sentryAppInstallationUuid"]
+                for action in actions_with_handlers
+                if action_to_action_data.get(action)
+                and action_to_action_data[action].get("sentryAppInstallationUuid") is not None
             ]
             install_contexts = app_service.get_component_contexts(
                 filter={"uuids": sentry_app_uuids, "organization_id": workflow.organization_id},
@@ -640,12 +638,16 @@ class WorkflowEngineRuleSerializer(Serializer):
                 except Exception:
                     continue  # just keep iterating through the actions in case we have valid ones in there
             actions_with_handlers = list(action_to_handler.keys())
-            action_to_action_data = {
-                action: action_to_handler[action].build_rule_action_blob(
-                    action, workflow.organization_id
-                )
-                for action in actions_with_handlers  # skip over actions w/o handlers
-            }
+
+            action_to_action_data = {}
+            for action in actions_with_handlers:
+                try:
+                    action_to_action_data[action] = action_to_handler[
+                        action
+                    ].build_rule_action_blob(action, workflow.organization_id)
+                except ValueError:
+                    # if we have a missing sentry app installation but the action is still connected to the sentry app, we skip so we can return the rest of the rule
+                    continue
 
             sentry_app_installations_by_uuid = self._fetch_sentry_app_installations_by_uuid(
                 workflow, action_to_action_data, actions_with_handlers
@@ -660,7 +662,10 @@ class WorkflowEngineRuleSerializer(Serializer):
                     }
                 )
             for action in actions_with_handlers:
-                action_data = action_to_action_data[action]
+                action_data = action_to_action_data.get(action)
+                if not action_data:
+                    continue
+
                 action_data["name"] = action_to_handler[action].render_label(
                     workflow.organization_id, action_data
                 )
