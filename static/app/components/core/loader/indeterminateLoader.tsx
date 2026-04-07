@@ -7,8 +7,6 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import {testableTransition} from 'sentry/utils/testableTransition';
-
 // required to break import cycle
 // eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
 import {Text} from '../text/text';
@@ -131,7 +129,7 @@ export function IndeterminateLoader({
           initial={{opacity: 0}}
           animate={{opacity: 1}}
           exit={{opacity: 0}}
-          transition={testableTransition({duration: 0.3})}
+          transition={{duration: 0.3}}
         >
           <Text monospace variant="muted" size="lg">
             {currentMessage}

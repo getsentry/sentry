@@ -2,8 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useSuperGroups} from 'sentry/utils/supergroup/useSuperGroups';
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
+import {useSuperGroups} from 'sentry/views/issueList/supergroups/useSuperGroups';
 
 const organization = OrganizationFixture({features: ['top-issues-ui']});
 const API_URL = `/organizations/${organization.slug}/seer/supergroups/by-group/`;

@@ -326,6 +326,7 @@ describe('NotificationSettingsByType', () => {
         'continuous-profiling-billing',
         'seer-billing',
         'logs-billing',
+        'expose-category-trace-metric-byte',
         'seer-user-billing-launch',
       ],
     });
@@ -501,6 +502,7 @@ describe('NotificationSettingsByType', () => {
         // No continuous-profiling-billing feature
         // No seer-billing feature
         // No logs-billing feature
+        // No expose-category-trace-metric-byte feature
       ],
     });
     renderComponent({
@@ -525,6 +527,7 @@ describe('NotificationSettingsByType', () => {
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
     expect(screen.queryByText('Seer Budget')).not.toBeInTheDocument();
     expect(screen.queryByText('Logs')).not.toBeInTheDocument();
+    expect(screen.queryByText('Metrics (Bytes)')).not.toBeInTheDocument();
     expect(screen.queryByText('Active Contributors')).not.toBeInTheDocument();
   });
 });

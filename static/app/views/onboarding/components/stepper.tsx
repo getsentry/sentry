@@ -1,8 +1,6 @@
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {testableTransition} from 'sentry/utils/testableTransition';
-
 const StepperContainer = styled('div')`
   display: flex;
   flex-direction: row;
@@ -44,11 +42,11 @@ export function Stepper({currentStepIndex, numSteps, onClick, ...props}: Props) 
           {currentStepIndex === i && (
             <StepperTransitionIndicator
               layout
-              transition={testableTransition({
+              transition={{
                 type: 'spring',
                 stiffness: 175,
                 damping: 18,
-              })}
+              }}
               initial={false}
               layoutId="animation"
             />

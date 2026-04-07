@@ -23,7 +23,6 @@ import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {testableTransition} from 'sentry/utils/testableTransition';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -143,9 +142,9 @@ function OnboardingStepVariable(props: PropsWithChildren<OnboardingStepVariableP
       animate="animate"
       exit="exit"
       variants={{animate: {}}}
-      transition={testableTransition({
+      transition={{
         staggerChildren: 0.2,
-      })}
+      }}
       key={props.id}
       data-test-id={`onboarding-step-${props.id}`}
     >
@@ -351,12 +350,11 @@ export function OnboardingWithoutContext() {
           <BackMotionDiv
             initial="initial"
             animate="visible"
-            transition={testableTransition()}
             variants={{
               initial: {opacity: 0, visibility: 'hidden'},
               visible: {
                 opacity: 1,
-                transition: testableTransition({delay: 1}),
+                transition: {delay: 1},
                 transitionEnd: {
                   visibility: 'visible',
                 },
