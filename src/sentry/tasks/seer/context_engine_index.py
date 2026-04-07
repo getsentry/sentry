@@ -14,7 +14,10 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.events.types import SnubaParams
-from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
+from sentry.seer.autofix.utils import (
+    bulk_get_project_preferences,
+    get_autofix_repos_from_project_code_mappings,
+)
 from sentry.seer.explorer.context_engine_utils import (
     EVENT_COUNT_LOOKBACK_DAYS,
     ProjectEventCounts,
@@ -245,28 +248,40 @@ def index_repos(organization_id: int, *args, **kwargs) -> None:
     projects = list(
         Project.objects.filter(organization_id=organization_id, status=ObjectStatus.ACTIVE)
     )
+    project_map = {p.id: p for p in projects}
 
-    if not projects:
+    if not project_map:
         logger.info("No projects found for organization", extra={"org_id": organization_id})
         return
 
     org_repo_definitions: dict[tuple[str, str, str], RepoDetails] = {}
 
-    for project in projects:
-        repos = get_autofix_repos_from_project_code_mappings(project)
+    preferences_by_id = bulk_get_project_preferences(organization_id, list(project_map.keys()))
+
+    for project_id, project in project_map.items():
+        existing_pref = preferences_by_id.get(str(project_id))
+        project_pref_repos = existing_pref.get("repositories") or []
+        autofix_repos = get_autofix_repos_from_project_code_mappings(project_map[project_id])
+
+        language_map: dict[tuple[str, str, str], list[str]] = {}
+        for autofix_repo in autofix_repos:
+            key = (autofix_repo["provider"], autofix_repo["owner"], autofix_repo["name"])
+            language_map[key] = autofix_repo["languages"]
+
+        repos = project_pref_repos if project_pref_repos else autofix_repos
         for repo in repos:
             key = (repo["provider"], repo["owner"], repo["name"])
             if key in org_repo_definitions:
                 repo_definition = org_repo_definitions[key]
-                repo_definition["project_ids"].append(project.id)
+                repo_definition["project_ids"].append(project_id)
             else:
                 org_repo_definitions[key] = {
-                    "project_ids": [project.id],
+                    "project_ids": [project_id],
                     "provider": repo["provider"],
                     "owner": repo["owner"],
                     "name": repo["name"],
                     "external_id": repo["external_id"],
-                    "languages": repo["languages"],
+                    "languages": language_map.get(key, []),
                     "integration_id": repo["integration_id"],
                 }
 
