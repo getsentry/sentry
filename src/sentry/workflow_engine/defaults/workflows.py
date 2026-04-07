@@ -110,8 +110,7 @@ def create_priority_workflow(org: Organization) -> Workflow:
 
 
 def ensure_default_workflows(project: Project) -> list[Workflow]:
-    workflows: list[Workflow] = []
-    workflows.append(create_priority_workflow(project.organization))
+    workflows = [create_priority_workflow(project.organization)]
     connect_workflows_to_issue_stream(project, workflows)
 
     return workflows

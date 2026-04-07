@@ -182,7 +182,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         assert len(issue_stream_detectors) == 1
 
-        # Ensuer we have 1 connection to the issue stream, this triggers for both monitors above.
+        # Ensure we have 1 connection to the issue stream, this triggers for both monitors above.
         result_connections = DetectorWorkflow.objects.filter(workflow=workflow)
         assert result_connections.count() == 1
         assert result_connections[0].detector_id == issue_stream_detectors[0].id
