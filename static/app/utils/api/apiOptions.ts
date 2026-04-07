@@ -23,6 +23,12 @@ type PathParamOptions<TApiPath extends string> =
     ? {path?: never}
     : {path: Record<ExtractPathParams<TApiPath>, string | number> | SkipToken};
 
+const selectJson = <TData>(data: ApiResponse<TData>) => data.json;
+
+export const selectJsonWithHeaders = <TData>(
+  data: ApiResponse<TData>
+): ApiResponse<TData> => data;
+
 function _apiOptions<
   TManualData = never,
   TApiPath extends KnownApiUrls = KnownApiUrls,
@@ -46,7 +52,7 @@ function _apiOptions<
     queryFn: pathParams === skipToken ? skipToken : apiFetch<TActualData>,
     enabled: pathParams !== skipToken,
     staleTime,
-    select: data => data.json,
+    select: selectJson,
   });
 }
 
