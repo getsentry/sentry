@@ -1,8 +1,8 @@
-import type {ComponentProps, CSSProperties} from 'react';
+import type {ComponentProps} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, type Responsive} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Panel} from 'sentry/components/panels/panel';
@@ -130,11 +130,11 @@ export function EmptyStateText({
 }: {
   children: React.ReactNode;
   size: 'xl' | 'md';
-  textAlign?: CSSProperties['textAlign'];
+  textAlign?: Responsive<'left' | 'center' | 'right' | 'justify'>;
 }) {
   return (
     <Container>
-      <Text size={size} style={{textAlign}}>
+      <Text size={size} align={textAlign}>
         {children}
       </Text>
     </Container>
