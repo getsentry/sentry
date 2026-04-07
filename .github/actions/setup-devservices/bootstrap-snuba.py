@@ -228,7 +228,11 @@ def main() -> None:
     log(f"Phase 1 done ({time.monotonic() - start:.0f}s)")
 
     wait_for_devservices()
-    docker("stop", "snuba-snuba-1", timeout=30)
+    try:
+        docker("stop", "snuba-snuba-1", timeout=30)
+    except subprocess.TimeoutExpired:
+        log("WARNING: docker stop snuba-snuba-1 timed out, killing")
+        docker("kill", "snuba-snuba-1")
 
     log("Phase 2: starting per-worker Snuba API containers")
     rc = run_parallel(
