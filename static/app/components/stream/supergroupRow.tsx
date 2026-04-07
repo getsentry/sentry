@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
@@ -19,6 +19,7 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
+import {useOptionalIssueSelectionSummary} from 'sentry/views/issueList/issueSelectionContext';
 import type {AggregatedSupergroupStats} from 'sentry/views/issueList/supergroups/aggregateSupergroupStats';
 import {SupergroupDetailDrawer} from 'sentry/views/issueList/supergroups/supergroupDrawer';
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
@@ -37,6 +38,19 @@ export function SupergroupRow({
   memberList,
 }: SupergroupRowProps) {
   const matchedCount = matchedGroupIds.length;
+  const summary = useOptionalIssueSelectionSummary();
+  const selectedCount = useMemo(() => {
+    if (!summary) {
+      return 0;
+    }
+    let count = 0;
+    for (const id of matchedGroupIds) {
+      if (summary.records.get(id)) {
+        count++;
+      }
+    }
+    return count;
+  }, [summary, matchedGroupIds]);
   const {openDrawer, isDrawerOpen} = useDrawer();
   const [isActive, setIsActive] = useState(false);
   const handleClick = () => {
@@ -83,8 +97,14 @@ export function SupergroupRow({
           ) : null}
           {supergroup.code_area && matchedCount > 0 ? <Dot /> : null}
           {matchedCount > 0 ? (
-            <Text size="sm" variant="muted">
-              {matchedCount} / {supergroup.group_ids.length} {t('issues matched')}
+            <Text
+              size="sm"
+              variant={selectedCount > 0 ? 'default' : 'muted'}
+              bold={selectedCount > 0}
+            >
+              {selectedCount > 0
+                ? `${selectedCount} / ${supergroup.group_ids.length} ${t('issues selected')}`
+                : `${matchedCount} / ${supergroup.group_ids.length} ${t('issues matched')}`}
             </Text>
           ) : null}
         </MetaRow>
