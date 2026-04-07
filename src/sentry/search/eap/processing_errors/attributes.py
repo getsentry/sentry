@@ -63,7 +63,7 @@ PROCESSING_ERROR_ATTRIBUTE_DEFINITIONS = {
         ResolvedAttribute(
             public_alias="group_id",
             internal_name="group_id",
-            search_type="string",
+            search_type="integer",
         ),
     ]
 }

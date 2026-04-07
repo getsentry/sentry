@@ -105,7 +105,7 @@ def produce_processing_errors_to_eap(
                 attributes["title"] = title
 
             if group_id is not None:
-                attributes["group_id"] = str(group_id)
+                attributes["group_id"] = group_id
 
             item_id = hex_to_item_id(
                 uuid.uuid5(PROCESSING_ERROR_NAMESPACE, f"{event_data['event_id']}:{index}").hex
