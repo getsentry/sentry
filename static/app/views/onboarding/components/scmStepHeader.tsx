@@ -2,6 +2,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {AnimatedSentryLogo} from 'sentry/components/animatedSentryLogo';
 import {t} from 'sentry/locale';
 
 interface ScmStepHeaderProps {
@@ -21,6 +22,7 @@ export function ScmStepHeader({
 }: ScmStepHeaderProps) {
   return (
     <Stack align="center" gap="md">
+      <AnimatedSentryLogo progress={stepNumber / totalSteps} size={72} />
       <Flex align="center" gap="lg">
         <Text variant="muted" size="lg" bold density="comfortable">
           {t('Step %s of %s', stepNumber, totalSteps)}
