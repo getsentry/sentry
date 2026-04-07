@@ -13,6 +13,7 @@ import {usePopper} from 'react-popper';
 import {useTheme} from '@emotion/react';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 
+import {NODE_ENV} from 'sentry/constants';
 import type {Theme} from 'sentry/utils/theme';
 
 function makeDefaultPopperModifiers(arrowElement: HTMLElement | null, offset: number) {
@@ -251,7 +252,7 @@ function useHoverOverlay({
     maybeClearRefTimeout(delayHideTimeoutRef);
     maybeClearRefTimeout(delayOpenTimeoutRef);
 
-    if (delay === 0) {
+    if (delay === 0 || NODE_ENV === 'test') {
       setIsVisible(true);
       return;
     }

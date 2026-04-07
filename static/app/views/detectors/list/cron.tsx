@@ -244,7 +244,7 @@ export default function CronDetectorsList() {
     <MonitorViewContext.Provider value={contextValue}>
       <SentryDocumentTitle title={TITLE}>
         <WorkflowEngineListLayout
-          actions={<DetectorListActions />}
+          actions={<DetectorListActions detectorType="monitor_check_in_failure" />}
           title={TITLE}
           description={DESCRIPTION}
           docsUrl={DOCS_URL}

@@ -1,12 +1,12 @@
 import {useEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {Transition, Variants} from 'framer-motion';
 import {motion} from 'framer-motion';
 
 import {Prose} from '@sentry/scraps/text';
 
 import {Panel} from 'sentry/components/panels/panel';
-import {testableTransition} from 'sentry/utils/testableTransition';
 
 /**
  * The default wrapper for the detail text.
@@ -18,7 +18,7 @@ const DefaultWrapper = styled('div')`
   width: 500px;
 `;
 
-const subItemAnimation = {
+const subItemAnimation: Variants = {
   initial: {
     opacity: 0,
     x: 60,
@@ -26,15 +26,15 @@ const subItemAnimation = {
   animate: {
     opacity: 1,
     x: 0,
-    transition: testableTransition({
+    transition: {
       type: 'spring',
       duration: 0.4,
-    }),
+    },
   },
 };
 
 const Header = styled((props: React.ComponentProps<typeof motion.h2>) => (
-  <motion.h2 variants={subItemAnimation} transition={testableTransition()} {...props} />
+  <motion.h2 variants={subItemAnimation} {...props} />
 ))`
   display: flex;
   align-items: center;
@@ -43,7 +43,7 @@ const Header = styled((props: React.ComponentProps<typeof motion.h2>) => (
 `;
 
 const Body = styled((props: React.ComponentProps<typeof motion.div>) => (
-  <motion.div variants={subItemAnimation} transition={testableTransition()} {...props} />
+  <motion.div variants={subItemAnimation} {...props} />
 ))`
   margin-bottom: ${p => p.theme.space.xl};
 `;
@@ -190,13 +190,13 @@ export function PageOverlay({
 
   const Wrapper = customWrapper ?? DefaultWrapper;
 
-  const transition = testableTransition({
+  const transition: Transition = {
     delay: 1,
     duration: 1.2,
     ease: 'easeInOut',
     delayChildren: animateDelay ?? (BackgroundComponent ? 0.5 : 1.5),
     staggerChildren: 0.15,
-  });
+  };
 
   return (
     <MaskedContent {...props}>

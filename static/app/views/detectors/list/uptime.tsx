@@ -105,7 +105,7 @@ export default function UptimeDetectorsList() {
     <MonitorViewContext.Provider value={contextValue}>
       <SentryDocumentTitle title={TITLE}>
         <WorkflowEngineListLayout
-          actions={<DetectorListActions />}
+          actions={<DetectorListActions detectorType="uptime_domain_failure" />}
           title={TITLE}
           description={DESCRIPTION}
           docsUrl={DOCS_URL}

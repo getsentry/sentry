@@ -28,7 +28,7 @@ TRAMPOLINE_HTML = """\
     style="margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
     flex-direction:column;padding:2rem">
-<script type="module">
+<script type="module" nonce="{nonce}">
   const data = {data_json};
   if (window.opener) {{
     window.opener.postMessage(data, {origin});
@@ -46,7 +46,7 @@ TRAMPOLINE_HTML = """\
 
 def _render_trampoline(request: HttpRequest, pipeline: object) -> HttpResponse:
     """Render a minimal page that posts callback params back to the opener."""
-    params: dict[str, str] = {"source": "sentry-pipeline"}
+    params: dict[str, str] = {"_pipeline_source": "sentry-pipeline"}
     for key, values in parse_qs(request.META.get("QUERY_STRING", "")).items():
         if values:
             params[key] = values[0]
@@ -62,8 +62,10 @@ def _render_trampoline(request: HttpRequest, pipeline: object) -> HttpResponse:
     else:
         origin = "document.origin"
 
+    nonce = getattr(request, "csp_nonce", "")
+
     return HttpResponse(
-        TRAMPOLINE_HTML.format(data_json=data_json, origin=origin),
+        TRAMPOLINE_HTML.format(data_json=data_json, origin=origin, nonce=nonce),
         content_type="text/html",
     )
 

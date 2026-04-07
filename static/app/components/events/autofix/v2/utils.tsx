@@ -4,7 +4,6 @@ import {type MotionNodeAnimationOptions} from 'framer-motion';
 import {inlineCodeStyles} from '@sentry/scraps/code';
 
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {testableTransition} from 'sentry/utils/testableTransition';
 
 /**
  * Animation props for artifact cards and status cards.
@@ -13,7 +12,7 @@ export const cardAnimationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
   initial: {opacity: 0, height: 0, scale: 0.8},
   animate: {opacity: 1, height: 'auto', scale: 1},
-  transition: testableTransition({
+  transition: {
     duration: 0.12,
     height: {
       type: 'spring',
@@ -27,7 +26,7 @@ export const cardAnimationProps: MotionNodeAnimationOptions = {
       type: 'tween',
       ease: 'easeOut',
     },
-  }),
+  },
 };
 
 /**

@@ -253,11 +253,6 @@ src/sentry/stacktraces/processing.py
 src/sentry/status_checks/__init__.py
 src/sentry/status_checks/base.py
 src/sentry/status_checks/warnings.py
-src/sentry/synapse/__init__.py
-src/sentry/synapse/endpoints/__init__.py
-src/sentry/synapse/endpoints/authentication.py
-src/sentry/synapse/endpoints/org_cell_mappings.py
-src/sentry/synapse/paginator.py
 src/sentry/tagstore/__init__.py
 src/sentry/tagstore/base.py
 src/sentry/tagstore/exceptions.py
@@ -643,18 +638,6 @@ static/app/components/events/eventTagsAndScreenshot/tags.tsx
 static/app/components/events/eventViewHierarchy.spec.tsx
 static/app/components/events/eventViewHierarchy.tsx
 static/app/components/events/eventXrayDiff.tsx
-static/app/components/events/groupingInfo/groupingComponent.tsx
-static/app/components/events/groupingInfo/groupingComponentChildren.tsx
-static/app/components/events/groupingInfo/groupingComponentFrames.tsx
-static/app/components/events/groupingInfo/groupingComponentStacktrace.tsx
-static/app/components/events/groupingInfo/groupingInfo.tsx
-static/app/components/events/groupingInfo/groupingInfoSection.spec.tsx
-static/app/components/events/groupingInfo/groupingInfoSection.tsx
-static/app/components/events/groupingInfo/groupingSummary.tsx
-static/app/components/events/groupingInfo/groupingVariant.spec.tsx
-static/app/components/events/groupingInfo/groupingVariant.tsx
-static/app/components/events/groupingInfo/useEventGroupingInfo.tsx
-static/app/components/events/groupingInfo/utils.tsx
 static/app/components/events/meta/annotatedText/annotatedTextErrors.tsx
 static/app/components/events/meta/annotatedText/annotatedTextValue.tsx
 static/app/components/events/meta/annotatedText/filteredAnnotatedTextValue.tsx
@@ -789,8 +772,6 @@ static/app/components/list/index.tsx
 static/app/components/list/listItem.tsx
 static/app/components/list/utils.tsx
 static/app/components/listGroup.tsx
-static/app/components/loading/loadingContainer.spec.tsx
-static/app/components/loading/loadingContainer.tsx
 static/app/components/loadingError.stories.tsx
 static/app/components/loadingError.tsx
 static/app/components/loadingIndicator.stories.tsx
@@ -2258,7 +2239,6 @@ tests/sentry/receivers/outbox/test_control.py
 tests/sentry/receivers/test_analytics.py
 tests/sentry/receivers/test_core.py
 tests/sentry/receivers/test_data_forwarding.py
-tests/sentry/receivers/test_default_detector.py
 tests/sentry/receivers/test_featureadoption.py
 tests/sentry/receivers/test_onboarding.py
 tests/sentry/receivers/test_releases.py
@@ -2357,10 +2337,6 @@ tests/sentry/sudo/test_middleware.py
 tests/sentry/sudo/test_signals.py
 tests/sentry/sudo/test_utils.py
 tests/sentry/sudo/test_views.py
-tests/sentry/synapse/__init__.py
-tests/sentry/synapse/endpoints/__init__.py
-tests/sentry/synapse/endpoints/test_org_cell_mappings.py
-tests/sentry/synapse/test_paginator.py
 tests/sentry/tagstore/__init__.py
 tests/sentry/tagstore/test_types.py
 tests/sentry/tasks/__init__.py
@@ -2535,7 +2511,6 @@ tests/social_auth/test_utils.py
 tests/tools/__init__.py
 tests/tools/test_api_urls_to_typescript.py
 tests/tools/test_bump_action.py
-tests/tools/test_compute_selected_tests.py
 tests/tools/test_flake8_plugin.py
 tests/tools/test_lint_requirements.py
 tests/tools/test_pin_github_action.py

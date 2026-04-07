@@ -3,8 +3,6 @@ import styled from '@emotion/styled';
 import type {Variants} from 'framer-motion';
 import {motion} from 'framer-motion';
 
-import {testableTransition} from 'sentry/utils/testableTransition';
-
 const random = (min: number, max: number) =>
   Math.floor(Math.random() * (max - min)) + min;
 
@@ -13,11 +11,11 @@ const backgroundAnimateIn: Variants = {
   animate: {
     opacity: 1,
     scale: 1,
-    transition: testableTransition({
+    transition: {
       type: 'spring',
       damping: 8,
       stiffness: 60,
-    }),
+    },
   },
 };
 
@@ -40,7 +38,10 @@ const Background = styled(motion.g)`
 
 const animation: Variants = {
   initial: {opacity: 0, translateY: -100},
-  animate: {opacity: 1, translateY: 0, transition: testableTransition()},
+  animate: {
+    opacity: 1,
+    translateY: 0,
+  },
 };
 
 const fallingKeyframes = keyframes`

@@ -47,7 +47,7 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider):
         return config
 
     def build_repository_config(
-        self, organization: RpcOrganization, data: dict[str, Any]
+        self, organization: RpcOrganization, data: Mapping[str, Any]
     ) -> RepositoryConfig:
         return {
             "name": data["name"],

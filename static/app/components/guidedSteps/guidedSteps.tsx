@@ -371,7 +371,6 @@ const ChildrenWrapper = styled('div')<{isActive: boolean}>`
 `;
 
 const StepDetails = styled('div')`
-  overflow: hidden;
   grid-area: details;
   min-width: 0;
 `;

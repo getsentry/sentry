@@ -177,7 +177,7 @@ function renderBodyCell(
     );
   }
 
-  if (!meta || !meta?.fields) {
+  if (!meta?.fields) {
     return row[column.key];
   }
 

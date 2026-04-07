@@ -2,11 +2,7 @@ import {useEffect, useMemo, useRef} from 'react';
 import * as Sentry from '@sentry/react';
 import uniqueId from 'lodash/uniqueId';
 
-import type {
-  CommandPaletteActionCallbackWithKey,
-  CommandPaletteActionLinkWithKey,
-  CommandPaletteActionWithKey,
-} from 'sentry/components/commandPalette/types';
+import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
 import {
   getActionPath,
   type LinkedList,
@@ -36,7 +32,7 @@ function getLinkedListDepth(node: LinkedList | null): number {
  */
 export function useCommandPaletteAnalytics(filteredActionCount: number): {
   recordAction: (
-    action: CommandPaletteActionLinkWithKey | CommandPaletteActionCallbackWithKey,
+    action: CommandPaletteActionWithKey,
     resultIndex: number,
     group: string
   ) => void;
@@ -140,7 +136,7 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
   return useMemo(
     () => ({
       recordAction(
-        action: CommandPaletteActionLinkWithKey | CommandPaletteActionCallbackWithKey,
+        action: CommandPaletteActionWithKey,
         resultIndex: number,
         group: string
       ) {
@@ -171,7 +167,7 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
           action: action.display.label,
           query: s.state.query,
           action_type: 'group',
-          group: action.groupingKey ?? '',
+          group: '',
           result_index: resultIndex,
           session_id: s.sessionId,
         });

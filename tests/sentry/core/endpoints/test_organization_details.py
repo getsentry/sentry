@@ -677,6 +677,14 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
             )
             assert "onboarding" not in response.data["features"]
 
+    def test_invalid_stored_stopping_point_falls_back_to_default(self) -> None:
+        self.organization.update_option("sentry:default_automated_run_stopping_point", "root_cause")
+        response = self.get_success_response(self.organization.slug)
+        assert (
+            response.data["defaultAutomatedRunStoppingPoint"]
+            == SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+        )
+
 
 @cell_silo_test(cells=cells)
 class OrganizationUpdateTest(OrganizationDetailsTestBase):
@@ -1684,10 +1692,16 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                 assert response.data["defaultAutomatedRunStoppingPoint"] == choice
 
     def test_default_automated_run_stopping_point_rejects_invalid(self) -> None:
-        for invalid in ("root_cause", "solution", "invalid_point"):
+        for invalid in ("solution", "invalid_point", "root_cause"):
             with self.subTest(value=invalid):
                 data = {"defaultAutomatedRunStoppingPoint": invalid}
                 self.get_error_response(self.organization.slug, status_code=400, **data)
+
+    def test_default_automated_run_stopping_point_accepts_root_cause_with_flag(self) -> None:
+        with self.feature("organizations:root-cause-stopping-point"):
+            data = {"defaultAutomatedRunStoppingPoint": "root_cause"}
+            response = self.get_success_response(self.organization.slug, **data)
+            assert response.data["defaultAutomatedRunStoppingPoint"] == "root_cause"
 
     def test_default_coding_agent_integration_id_can_be_cleared(self) -> None:
         self.organization.update_option("sentry:seer_default_coding_agent_integration_id", 123)

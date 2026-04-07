@@ -417,9 +417,13 @@ describe('autofixOverviewSection', () => {
       it('shows "No projects found" when there are no projects', async () => {
         renderSection([], {projects: []});
 
-        // Each form section renders this text, so use findAllByText
-        const messages = await screen.findAllByText('No projects found');
-        expect(messages.length).toBeGreaterThanOrEqual(2);
+        // Each form section renders this text; AgentNameForm only shows it after
+        // the integrations query resolves, so use waitFor to retry until both appear
+        await waitFor(() => {
+          expect(screen.getAllByText('No projects found').length).toBeGreaterThanOrEqual(
+            2
+          );
+        });
       });
 
       it('shows "Your existing project uses Seer Agent" when 1 project uses preferred agent', async () => {

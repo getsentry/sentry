@@ -11,9 +11,7 @@ import {EventSearch} from 'sentry/views/issueDetails/streamline/eventSearch';
 const mockHandleSearch = jest.fn();
 
 describe('EventSearch', () => {
-  const organization = OrganizationFixture({
-    features: ['search-query-builder-input-flow-changes'],
-  });
+  const organization = OrganizationFixture();
   const project = ProjectFixture({
     environments: ['production', 'staging', 'developement'],
   });
@@ -53,8 +51,8 @@ describe('EventSearch', () => {
     const search = screen.getByRole('combobox', {name: 'Add a search term'});
     expect(search).toBeInTheDocument();
     await userEvent.type(search, `${tagKey}:`);
-    await userEvent.click(screen.getByRole('option', {name: 'is'}));
-    await userEvent.keyboard(`${tagValue}{enter}{enter}`);
+    await userEvent.click(await screen.findByRole('option', {name: tagValue}));
+    await userEvent.keyboard('{enter}');
 
     await waitFor(() => {
       expect(mockTagKeyQuery).toHaveBeenCalled();

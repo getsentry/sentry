@@ -1,9 +1,11 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {SettingsBreadcrumb} from './settingsBreadcrumb';
@@ -22,12 +24,23 @@ export function SettingsLayout({children}: Props) {
 
   return (
     <SettingsColumn>
-      <SettingsHeader>
-        <Flex align="center" justify="between">
-          <StyledSettingsBreadcrumb params={params} routes={routes} />
-          <SettingsSearch />
-        </Flex>
-      </SettingsHeader>
+      {hasPageFrame ? (
+        <Fragment>
+          <TopBar.Slot name="title">
+            <StyledSettingsBreadcrumb params={params} routes={routes} />
+          </TopBar.Slot>
+          <TopBar.Slot name="actions">
+            <SettingsSearch />
+          </TopBar.Slot>
+        </Fragment>
+      ) : (
+        <SettingsHeader>
+          <Flex align="center" justify="between">
+            <StyledSettingsBreadcrumb params={params} routes={routes} />
+            <SettingsSearch />
+          </Flex>
+        </SettingsHeader>
+      )}
 
       <Flex flex="1" maxWidth="1440px">
         <Container

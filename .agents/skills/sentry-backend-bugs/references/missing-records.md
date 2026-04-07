@@ -17,7 +17,7 @@ The most common sources of stale IDs:
 1. **Snuba/ClickHouse query results** -- Snuba stores issue IDs, project IDs, and group IDs that may be deleted from Postgres before Snuba data expires
 2. **Workflow engine references** -- Detectors, subscriptions, and alert rules reference objects deleted asynchronously
 3. **Integration state** -- SentryAppInstallation, ServiceHook, or ExternalActor deleted while alert rules still reference them
-4. **Cross-silo references** -- Region silo holds IDs that reference control silo objects (or vice versa) that may be deleted asynchronously
+4. **Cross-silo references** -- Cell silo holds IDs that reference control silo objects (or vice versa) that may be deleted asynchronously
 5. **Cached foreign keys** -- A ProjectKey cached in Redis still references a `project_id` for a deleted project
 6. **Monitor/cron references** -- Environment objects referenced by monitors that may be deleted
 
@@ -120,7 +120,7 @@ except Subscription.DoesNotExist:
 | Environment deleted while monitors reference it | High      | `Environment.objects.get(id=monitor.env_id)`    |
 | Integration uninstalled while rules active      | High      | Alert rules referencing deleted SentryApp       |
 | Cached FK target deleted                        | Medium    | `get_from_cache(id=fk_id)` after parent deleted |
-| Cross-silo object deleted asynchronously        | Medium    | Region silo references control silo object      |
+| Cross-silo object deleted asynchronously        | Medium    | Cell silo references control silo object        |
 
 ## Fix Patterns
 

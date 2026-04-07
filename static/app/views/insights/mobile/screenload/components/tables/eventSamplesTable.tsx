@@ -70,7 +70,7 @@ export function EventSamplesTable({
   const eventViewColumns = eventView.getColumns();
 
   function renderBodyCell(column: any, row: any): React.ReactNode {
-    if (!data?.meta || !data?.meta.fields) {
+    if (!data?.meta?.fields) {
       return row[column.key];
     }
 

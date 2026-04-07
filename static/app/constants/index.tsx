@@ -653,7 +653,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Metrics (Bytes)'),
     productName: t('Metrics'),
     uid: 37,
-    isBilledCategory: false,
+    isBilledCategory: true,
     statsInfo: {
       ...DEFAULT_STATS_INFO,
       showExternalStats: true,

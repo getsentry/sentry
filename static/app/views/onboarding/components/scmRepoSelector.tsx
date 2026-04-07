@@ -78,7 +78,9 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
       return t('Failed to search repositories. Please try again.');
     }
     if (debouncedSearch) {
-      return t('No repositories found.');
+      return t(
+        'No repositories found. Check your installation permissions to ensure your integration has access.'
+      );
     }
     return t('Type to search repositories');
   }

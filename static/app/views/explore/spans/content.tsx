@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import {Grid, Stack} from '@sentry/scraps/layout';
 
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -83,20 +84,22 @@ function ExploreContentInner() {
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
       <PageFiltersContainer maxPickableDays={datePageFilterProps.maxPickableDays}>
-        <Stack flex={1}>
-          <SpansTabWrapper>
-            <SpansTabHeader />
-            {defined(onboardingProject) ? (
-              <SpansTabOnboarding
-                organization={organization}
-                project={onboardingProject}
-                datePageFilterProps={datePageFilterProps}
-              />
-            ) : (
-              <SpansTabContent datePageFilterProps={datePageFilterProps} />
-            )}
-          </SpansTabWrapper>
-        </Stack>
+        <AnalyticsArea name="explore.spans">
+          <Stack flex={1}>
+            <SpansTabWrapper>
+              <SpansTabHeader />
+              {defined(onboardingProject) ? (
+                <SpansTabOnboarding
+                  organization={organization}
+                  project={onboardingProject}
+                  datePageFilterProps={datePageFilterProps}
+                />
+              ) : (
+                <SpansTabContent datePageFilterProps={datePageFilterProps} />
+              )}
+            </SpansTabWrapper>
+          </Stack>
+        </AnalyticsArea>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );

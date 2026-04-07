@@ -391,6 +391,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "sentry.middleware.auth.AuthenticationMiddleware",
+    "sentry.middleware.viewer_context.ViewerContextMiddleware",
     "sentry.middleware.ai_agent.AIAgentMiddleware",
     "sentry.middleware.integrations.IntegrationControlMiddleware",
     APIGW_MIDDLEWARE,
@@ -881,6 +882,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.github.tasks.codecov_account_unlink",
     "sentry.integrations.github.tasks.link_all_repos",
     "sentry.integrations.github.tasks.pr_comment",
+    "sentry.integrations.github.tasks.sync_repos_on_install_change",
     "sentry.integrations.gitlab.tasks",
     "sentry.integrations.jira.tasks",
     "sentry.integrations.opsgenie.tasks",
@@ -2225,6 +2227,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.bitbucket.integration.BitbucketIntegrationProvider",
     "sentry.integrations.bitbucket_server.integration.BitbucketServerIntegrationProvider",
     "sentry.integrations.slack.SlackIntegrationProvider",
+    "sentry.integrations.slack.staging.integration.SlackStagingIntegrationProvider",
     "sentry.integrations.github.integration.GitHubIntegrationProvider",
     "sentry.integrations.github_enterprise.integration.GitHubEnterpriseIntegrationProvider",
     "sentry.integrations.gitlab.integration.GitlabIntegrationProvider",
@@ -3261,7 +3264,7 @@ if SILO_DEVSERVER:
     # Addresses are hardcoded based on the defaults
     # we use in commands/devserver.
     region_port = os.environ.get("SENTRY_REGION_SILO_PORT", "8010")
-    SENTRY_REGION_CONFIG = [
+    SENTRY_CELLS = [
         {
             "name": "us",
             "snowflake_id": 1,
@@ -3269,7 +3272,7 @@ if SILO_DEVSERVER:
             "address": f"http://127.0.0.1:{region_port}",
         }
     ]
-    SENTRY_MONOLITH_REGION = SENTRY_REGION_CONFIG[0]["name"]
+    SENTRY_MONOLITH_REGION = SENTRY_CELLS[0]["name"]
 
     # Cross region RPC authentication
     RPC_SHARED_SECRET = [
