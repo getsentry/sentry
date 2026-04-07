@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import styled from '@emotion/styled';
 import type {InfiniteData} from '@tanstack/react-query';
+import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -24,7 +24,7 @@ import type {
   RepositoryProjectPathConfig,
 } from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {useFetchAllPages, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
