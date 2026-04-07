@@ -8,6 +8,7 @@ class VercelIdentityProvider(OAuth2Provider):
     key = "vercel"
     name = "Vercel"
 
+    oauth_authorize_url = "https://vercel.com/oauth/authorize"
     # https://vercel.com/docs/integrations/reference#using-the-vercel-api/exchange-code-for-access-token
     oauth_access_token_url = "https://api.vercel.com/v2/oauth/access_token"
 
