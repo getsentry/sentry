@@ -24,6 +24,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.models.project import Project
+from sentry.search.eap.constants import VALID_GRANULARITIES
 from sentry.search.eap.trace_metrics.validator import validate_trace_metrics_aggregate
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
@@ -50,6 +51,13 @@ UNSUPPORTED_QUERIES = {"release:latest"}
 
 # Allowed time windows (in seconds) for crash rate alerts
 CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS = [1800, 3600, 7200, 14400, 43200, 86400]
+
+MIN_EAP_ALERT_TIME_WINDOW_SECONDS = 300
+
+# Valid time windows for EAP alerts: valid Snuba granularities at or above the alert minimum.
+EAP_ALERTS_ALLOWED_TIME_WINDOWS = sorted(
+    g for g in VALID_GRANULARITIES if g >= MIN_EAP_ALERT_TIME_WINDOW_SECONDS
+)
 
 
 QUERY_TYPE_VALID_DATASETS = {
@@ -330,6 +338,8 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         # TODO(edward): Bypass snql query validation for EAP queries. Do we need validation for rpc requests?
         if dataset != Dataset.EventsAnalyticsPlatform:
             self._validate_snql_query(data, entity_subscription, projects)
+        else:
+            self._validate_time_window(data["time_window"], dataset)
 
     def _validate_snql_query(
         self,
@@ -391,9 +401,10 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                     "30min, 1h, 2h, 4h, 12h and 24h"
                 )
         if dataset == Dataset.EventsAnalyticsPlatform:
-            if time_window_seconds < 300:
+            if time_window_seconds not in EAP_ALERTS_ALLOWED_TIME_WINDOWS:
                 raise serializers.ValidationError(
-                    "Invalid Time Window: Time window for this alert type must be at least 5 minutes."
+                    f"Invalid Time Window: Allowed time windows (in seconds) for this alert type are: "
+                    f"{EAP_ALERTS_ALLOWED_TIME_WINDOWS}"
                 )
         return time_window_seconds
 
