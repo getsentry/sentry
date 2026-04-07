@@ -14,6 +14,7 @@ from sentry.incidents.typings.metric_detector import (
     OpenPeriodContext,
 )
 from sentry.integrations.metric_alerts import incident_attachment_info
+from sentry.integrations.slack.utils.notifications import send_incident_alert_notification
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -41,17 +42,23 @@ from sentry.workflow_engine.models import Action, Detector
 logger = logging.getLogger(__name__)
 
 
-def build_metric_alert_notification_data(
+def _send_via_notification_platform(
     notification_context: NotificationContext,
+    alert_context: AlertContext,
     metric_issue_context: MetricIssueContext,
     open_period_context: OpenPeriodContext,
-    organization: Organization,
     notification_uuid: str,
-    alert_rule_serialized_response: AlertRuleSerializerResponse | None,
-    incident_serialized_response: DetailedIncidentSerializerResponse | None,
-    detector_serialized_response: DetectorSerializerResponse | None,
-    alert_context: AlertContext,
-) -> MetricAlertNotificationData:
+    organization: Organization,
+    alert_rule_serialized_response: AlertRuleSerializerResponse,
+    detector_serialized_response: DetectorSerializerResponse,
+    incident_serialized_response: DetailedIncidentSerializerResponse,
+) -> None:
+    if notification_context.integration_id is None:
+        raise ValueError("Integration ID is None")
+
+    if notification_context.target_identifier is None:
+        raise ValueError("Slack channel is None")
+
     attachment_info = incident_attachment_info(
         organization=organization,
         alert_context=alert_context,
@@ -80,7 +87,7 @@ def build_metric_alert_notification_data(
         except Exception as e:
             sentry_sdk.capture_exception(e)
 
-    return MetricAlertNotificationData(
+    data = MetricAlertNotificationData(
         group_id=metric_issue_context.id,
         organization_id=organization.id,
         notification_uuid=notification_uuid,
@@ -93,12 +100,7 @@ def build_metric_alert_notification_data(
         chart_url=chart_url,
     )
 
-
-def build_slack_notification_target(
-    notification_context: NotificationContext,
-    organization: Organization,
-) -> IntegrationNotificationTarget:
-    return IntegrationNotificationTarget(
+    target = IntegrationNotificationTarget(
         provider_key=NotificationProviderKey.SLACK,
         resource_type=NotificationTargetResourceType.CHANNEL,
         resource_id=notification_context.target_identifier,
@@ -106,13 +108,7 @@ def build_slack_notification_target(
         organization_id=organization.id,
     )
 
-
-def build_metric_alert_threading_options(
-    notification_context: NotificationContext,
-    metric_issue_context: MetricIssueContext,
-    open_period_context: OpenPeriodContext,
-) -> ThreadingOptions:
-    return ThreadingOptions(
+    threading_options = ThreadingOptions(
         thread_key=ThreadKey(
             key_type=NotificationSource.METRIC_ALERT,
             key_data={
@@ -122,6 +118,10 @@ def build_metric_alert_threading_options(
             },
         ),
         reply_broadcast=(metric_issue_context.new_status == IncidentStatus.CRITICAL),
+    )
+
+    NotificationService[MetricAlertNotificationData](data=data).notify_sync(
+        targets=[target], threading_options=threading_options
     )
 
 
@@ -151,35 +151,6 @@ class SlackMetricAlertHandler(BaseMetricAlertHandler):
         detector_serialized_response = get_detector_serializer(detector)
         incident_serialized_response = get_detailed_incident_serializer(open_period)
 
-        if notification_context.integration_id is None:
-            raise ValueError("Slack integration_id is None")
-
-        if notification_context.target_identifier is None:
-            raise ValueError("Slack channel (target_identifier) is None")
-
-        data = build_metric_alert_notification_data(
-            notification_context=notification_context,
-            metric_issue_context=metric_issue_context,
-            open_period_context=open_period_context,
-            organization=organization,
-            notification_uuid=notification_uuid,
-            alert_rule_serialized_response=alert_rule_serialized_response,
-            incident_serialized_response=incident_serialized_response,
-            detector_serialized_response=detector_serialized_response,
-            alert_context=alert_context,
-        )
-
-        target = build_slack_notification_target(
-            notification_context=notification_context,
-            organization=organization,
-        )
-
-        threading_options = build_metric_alert_threading_options(
-            notification_context=notification_context,
-            metric_issue_context=metric_issue_context,
-            open_period_context=open_period_context,
-        )
-
         logger.info(
             "notification_action.execute_via_metric_alert_handler.slack",
             extra={
@@ -189,9 +160,30 @@ class SlackMetricAlertHandler(BaseMetricAlertHandler):
             },
         )
 
-        NotificationService(data=data).notify_target(
-            target=target, threading_options=threading_options
-        )
+        if NotificationService.has_access(organization, NotificationSource.METRIC_ALERT):
+            _send_via_notification_platform(
+                notification_context=notification_context,
+                alert_context=alert_context,
+                metric_issue_context=metric_issue_context,
+                open_period_context=open_period_context,
+                notification_uuid=notification_uuid,
+                organization=organization,
+                alert_rule_serialized_response=alert_rule_serialized_response,
+                detector_serialized_response=detector_serialized_response,
+                incident_serialized_response=incident_serialized_response,
+            )
+        else:
+            send_incident_alert_notification(
+                notification_context=notification_context,
+                alert_context=alert_context,
+                metric_issue_context=metric_issue_context,
+                open_period_context=open_period_context,
+                organization=organization,
+                notification_uuid=notification_uuid,
+                alert_rule_serialized_response=alert_rule_serialized_response,
+                incident_serialized_response=incident_serialized_response,
+                detector_serialized_response=detector_serialized_response,
+            )
 
 
 @metric_alert_handler_registry.register(Action.Type.SLACK_STAGING)

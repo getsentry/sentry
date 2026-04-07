@@ -88,6 +88,17 @@ interface AskSeerComboBoxProps<T extends QueryTokensProps> extends Omit<
   AriaComboBoxProps<unknown>,
   'children'
 > {
+  /**
+   * The source of the analytics event, must be a dot-separated identifier like "trace.
+   * explorer" or "issue.list"
+   * @example 'trace.explorer'
+   *
+   * The combobox has the following analytic events, that will need to be tracked with your provided analyticsSource:
+   * - `<analyticsSource>.ai_query_rejected`
+   * - `<analyticsSource>.ai_query_interface`
+   * - `<analyticsSource>.ai_query_submitted`
+   */
+  analyticsSource: string;
   applySeerSearchQuery: (item: T) => void;
   askSeerMutationOptions: MutationOptions<
     {
@@ -98,19 +109,12 @@ interface AskSeerComboBoxProps<T extends QueryTokensProps> extends Omit<
     Error,
     string
   >;
-  /**
-   * The owner of the feedback form, must be an underscore-separated identifier like
-   * "trace_explorer_ai_query" or "issue_list_ai_query"
-   *
-   * @example 'trace_explorer_ai_query'
-   */
-  feedbackSource: string;
   initialQuery: string;
 }
 
 export function AskSeerComboBox<T extends QueryTokensProps>({
   initialQuery,
-  feedbackSource,
+  analyticsSource,
   ...props
 }: AskSeerComboBoxProps<T>) {
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -161,7 +165,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
       openForm({
         messagePlaceholder: t('Why were these queries incorrect?'),
         tags: {
-          ['feedback.source']: feedbackSource,
+          ['feedback.source']: `ai_query.${analyticsArea}`,
           ['feedback.owner']: 'ml-ai',
           ['feedback.natural_language_query']: searchQuery,
           ['feedback.raw_result']: JSON.stringify(data?.queries).replace(/\n/g, ''),
@@ -206,6 +210,11 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
       if (typeof key !== 'string') return;
 
       if (key === 'none-of-these') {
+        trackAnalytics(`${analyticsSource}.ai_query_rejected`, {
+          organization,
+          natural_language_query: searchQuery,
+          num_queries_returned: data?.queries?.length ?? 0,
+        });
         trackAnalytics('ai_query.rejected', {
           organization,
           area: analyticsArea,
@@ -277,6 +286,10 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
         switch (e.key) {
           case 'Escape':
             if (!state.isOpen) {
+              trackAnalytics(`${analyticsSource}.ai_query_interface`, {
+                organization,
+                action: 'closed',
+              });
               trackAnalytics('ai_query.interface', {
                 organization,
                 area: analyticsArea,
@@ -290,6 +303,11 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
             return;
           case 'Enter':
             if (state.isOpen && state.selectionManager.focusedKey === 'none-of-these') {
+              trackAnalytics(`${analyticsSource}.ai_query_rejected`, {
+                organization,
+                natural_language_query: searchQuery,
+                num_queries_returned: data?.queries?.length ?? 0,
+              });
               trackAnalytics('ai_query.rejected', {
                 organization,
                 area: analyticsArea,
@@ -321,6 +339,10 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
               searchQuery.trim() !== null &&
               searchQuery.trim() !== ''
             ) {
+              trackAnalytics(`${analyticsSource}.ai_query_submitted`, {
+                organization,
+                natural_language_query: searchQuery.trim(),
+              });
               trackAnalytics('ai_query.submitted', {
                 organization,
                 area: analyticsArea,
@@ -386,6 +408,10 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
 
   useLayoutEffect(() => {
     if (autoSubmitSeer && searchQuery.trim()) {
+      trackAnalytics(`${analyticsSource}.ai_query_submitted`, {
+        organization,
+        natural_language_query: searchQuery.trim(),
+      });
       trackAnalytics('ai_query.submitted', {
         organization,
         area: analyticsArea,
@@ -396,6 +422,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     }
   }, [
     analyticsArea,
+    analyticsSource,
     autoSubmitSeer,
     organization,
     searchQuery,
@@ -431,6 +458,10 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
           icon={<IconClose />}
           onFocus={() => !state.isOpen && state.open()}
           onClick={() => {
+            trackAnalytics(`${analyticsSource}.ai_query_interface`, {
+              organization,
+              action: 'closed',
+            });
             trackAnalytics('ai_query.interface', {
               organization,
               area: analyticsArea,
@@ -492,7 +523,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
                   openForm({
                     messagePlaceholder: t('How can we make Seer search better for you?'),
                     tags: {
-                      ['feedback.source']: feedbackSource,
+                      ['feedback.source']: `ai_query.${analyticsArea}`,
                       ['feedback.owner']: 'ml-ai',
                     },
                   })

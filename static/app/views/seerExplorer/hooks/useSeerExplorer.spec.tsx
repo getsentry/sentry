@@ -2,12 +2,22 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {usePageReferrer} from 'sentry/views/seerExplorer/utils';
+
 import {useSeerExplorer} from './useSeerExplorer';
+
+jest.mock('sentry/views/seerExplorer/utils', () => ({
+  ...jest.requireActual('sentry/views/seerExplorer/utils'),
+  usePageReferrer: jest.fn(),
+}));
 
 describe('useSeerExplorer', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     sessionStorage.clear();
+    (usePageReferrer as jest.Mock).mockReturnValue({
+      getPageReferrer: () => '/issues/',
+    });
   });
 
   const organization = OrganizationFixture({
@@ -95,6 +105,72 @@ describe('useSeerExplorer', () => {
           }),
         })
       );
+    });
+
+    it('sends structured JSON on dashboard page with feature flag', async () => {
+      (usePageReferrer as jest.Mock).mockReturnValue({
+        getPageReferrer: () => '/dashboard/:dashboardId/',
+      });
+      const org = OrganizationFixture({
+        features: ['seer-explorer', 'context-engine-structured-page-context'],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/seer/explorer-chat/`,
+        method: 'GET',
+        body: {session: null},
+      });
+      const postMock = MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/seer/explorer-chat/`,
+        method: 'POST',
+        body: {run_id: 1},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/seer/explorer-chat/1/`,
+        method: 'GET',
+        body: {session: {blocks: [], run_id: 1, status: 'completed', updated_at: ''}},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization: org,
+      });
+      await act(async () => {
+        await result.current.sendMessage('q');
+      });
+
+      const ctx = postMock.mock.calls[0][1].data.on_page_context;
+      expect(JSON.parse(ctx)).toHaveProperty('nodes');
+    });
+
+    it('falls back to ASCII screenshot on non-dashboard page', async () => {
+      const org = OrganizationFixture({
+        features: ['seer-explorer', 'context-engine-structured-page-context'],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/seer/explorer-chat/`,
+        method: 'GET',
+        body: {session: null},
+      });
+      const postMock = MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/seer/explorer-chat/`,
+        method: 'POST',
+        body: {run_id: 1},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/seer/explorer-chat/1/`,
+        method: 'GET',
+        body: {session: {blocks: [], run_id: 1, status: 'completed', updated_at: ''}},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization: org,
+      });
+      await act(async () => {
+        await result.current.sendMessage('q');
+      });
+
+      // usePageReferrer returns '/issues/' by default (from beforeEach) — not in STRUCTURED_CONTEXT_ROUTES
+      const ctx = postMock.mock.calls[0][1].data.on_page_context;
+      expect(() => JSON.parse(ctx)).toThrow();
     });
 
     it('handles API errors gracefully', async () => {

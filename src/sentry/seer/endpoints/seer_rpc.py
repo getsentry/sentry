@@ -48,7 +48,6 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
-from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization, OrganizationStatus
@@ -115,6 +114,7 @@ from sentry.seer.explorer.tools import (
     rpc_get_trace_waterfall,
 )
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
+from sentry.seer.fetch_issues.utils import NoProjectsForRepoError, get_repo_and_projects
 from sentry.seer.issue_detection import create_issue_occurrence
 from sentry.seer.models.seer_api_models import SeerProjectPreference
 from sentry.seer.utils import filter_repo_by_provider
@@ -655,7 +655,7 @@ def trigger_coding_agent_launch(
 
 def has_repo_code_mappings(
     *, organization_id: int, provider: SeerSCMProvider, external_id: str, owner: str, name: str
-) -> dict[str, bool]:
+) -> dict[str, bool | dict[str, int]]:
     """
     Validate that a repository exists and belongs to the given organization.
 
@@ -667,19 +667,17 @@ def has_repo_code_mappings(
         name: The repository name (e.g., "sentry")
 
     Returns:
-        dict: {"has_code_mappings": bool}
+        dict: {"has_code_mappings": bool, "project_slug_to_id": dict[str, int]}
     """
-    repo = filter_repo_by_provider(organization_id, provider, external_id, owner, name).first()
+    try:
+        repo_projects = get_repo_and_projects(organization_id, provider, external_id, owner, name)
+    except (Repository.DoesNotExist, NoProjectsForRepoError):
+        return {"has_code_mappings": False, "project_slug_to_id": {}}
 
-    if not repo:
-        return {"has_code_mappings": False}
-
-    has_mappings = RepositoryProjectPathConfig.objects.filter(
-        organization_id=organization_id,
-        repository_id=repo.id,
-    ).exists()
-
-    return {"has_code_mappings": has_mappings}
+    project_slug_to_id = dict(
+        sorted((project.slug, project.id) for project in repo_projects.projects)
+    )
+    return {"has_code_mappings": True, "project_slug_to_id": project_slug_to_id}
 
 
 def validate_repo(

@@ -15,6 +15,7 @@ from sentry.incidents.utils.process_update_helpers import (
     get_comparison_aggregation_value,
     get_crash_rate_alert_metrics_aggregation_value_helper,
 )
+from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
 from sentry.incidents.utils.types import (
     DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
     AnomalyDetectionUpdate,
@@ -51,46 +52,6 @@ class MetricIssueDetectorConfig(TypedDict):
 
     comparison_delta: int | None
     detection_type: Literal["static", "percent", "dynamic"]
-
-
-def has_downgraded(dataset: str, organization: Organization) -> bool:
-    """
-    Check if the organization has downgraded since the subscription was created.
-    """
-    supports_metrics_issues = features.has("organizations:incidents", organization)
-    if dataset == Dataset.Events.value and not supports_metrics_issues:
-        metrics.incr("incidents.alert_rules.ignore_update_missing_incidents")
-        return True
-
-    supports_performance_view = features.has("organizations:performance-view", organization)
-    if dataset == Dataset.Transactions.value and not (
-        supports_metrics_issues and supports_performance_view
-    ):
-        metrics.incr("incidents.alert_rules.ignore_update_missing_incidents_performance")
-        return True
-
-    supports_explore_view = features.has("organizations:visibility-explore-view", organization)
-    if dataset == Dataset.EventsAnalyticsPlatform.value and not (
-        supports_metrics_issues and supports_explore_view
-    ):
-        metrics.incr("incidents.alert_rules.ignore_update_missing_incidents_eap")
-        return True
-
-    if dataset == Dataset.PerformanceMetrics.value and not features.has(
-        "organizations:on-demand-metrics-extraction", organization
-    ):
-        metrics.incr("incidents.alert_rules.ignore_update_missing_on_demand")
-        return True
-
-    if not supports_metrics_issues:
-        # These should probably be downgraded, but we should know the impact first.
-        metrics.incr(
-            "incidents.alert_rules.no_incidents_not_downgraded",
-            sample_rate=1.0,
-            tags={"dataset": dataset},
-        )
-
-    return False
 
 
 class SubscriptionProcessor:
@@ -268,8 +229,19 @@ class SubscriptionProcessor:
         dataset = self.subscription.snuba_query.dataset
         organization = self.subscription.project.organization
 
-        if has_downgraded(dataset, organization):
+        if not is_metric_subscription_allowed(dataset, organization):
+            metrics.incr(
+                "incidents.alert_rules.ignore_update_not_enabled",
+                tags={"dataset": dataset},
+            )
             return False
+
+        if not features.has("organizations:incidents", organization):
+            metrics.incr(
+                "incidents.alert_rules.no_incidents_not_downgraded",
+                sample_rate=1.0,
+                tags={"dataset": dataset},
+            )
 
         if subscription_update["timestamp"] <= self.last_update:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")

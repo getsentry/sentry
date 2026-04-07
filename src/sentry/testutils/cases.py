@@ -2978,7 +2978,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
 
         optional_org_id = f"&organizationId={org.id}" if alert_page_needs_org_id(alert_type) else ""
         assert (
-            blocks[-2]["elements"][0]["text"]
+            blocks[-1]["elements"][0]["text"]
             == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}{optional_org_id}|Notification Settings>"
         )
 

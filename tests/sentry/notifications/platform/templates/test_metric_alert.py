@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import OpenPeriodContext
 from sentry.notifications.platform.templates.metric_alert import (
     MetricAlertNotificationData,
@@ -26,7 +25,7 @@ def _make_notification_data(**overrides: Any) -> MetricAlertNotificationData:
             id=1,
             date_started=datetime(2024, 1, 1, tzinfo=timezone.utc),
         ),
-        "new_status": IncidentStatus.CRITICAL.value,
+        "new_status": 20,  # IncidentStatus.CRITICAL
         "title": "Critical: Test Alert",
         "title_link": "https://sentry.io/alerts/1/",
         "text": "123 events in the last 5 minutes",
@@ -79,7 +78,7 @@ class MetricAlertNotificationDataTest(TestCase):
             notification_uuid="round-trip-uuid",
             action_id=5,
             open_period_context=open_period_ctx,
-            new_status=IncidentStatus.CRITICAL.value,
+            new_status=20,  # IncidentStatus.CRITICAL
             title="Critical: My Alert",
             title_link="https://sentry.io/alerts/99/",
             text="100 events in the last minute",

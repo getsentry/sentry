@@ -154,6 +154,10 @@ class WorkflowEngineProjectAlertRuleEndpoint(ProjectAlertRuleEndpoint):
 
 
 class WorkflowEngineOrganizationAlertRuleEndpoint(OrganizationAlertRuleEndpoint):
+    # Subclasses may set a per-method granular flag (e.g. for GET) that is OR'd
+    # with the broad workflow-engine-rule-serializers flag.
+    workflow_engine_method_flags: dict[str, str] = {}
+
     def convert_args(
         self, request: Request, alert_rule_id: int, *args: Any, **kwargs: Any
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
@@ -169,7 +173,10 @@ class WorkflowEngineOrganizationAlertRuleEndpoint(OrganizationAlertRuleEndpoint)
         ):
             raise ResourceDoesNotExist
 
-        if features.has("organizations:workflow-engine-rule-serializers", organization):
+        method_flag = self.workflow_engine_method_flags.get(request.method or "")
+        if features.has("organizations:workflow-engine-rule-serializers", organization) or (
+            method_flag is not None and features.has(method_flag, organization)
+        ):
             try:
                 ard = AlertRuleDetector.objects.get(
                     alert_rule_id=validated_alert_rule_id,

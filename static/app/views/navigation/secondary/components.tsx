@@ -49,7 +49,6 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {testableTransition} from 'sentry/utils/testableTransition';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -631,13 +630,13 @@ function Collapsible(props: CollapsibleProps) {
           initial="collapsed"
           animate="expanded"
           exit="collapsed"
-          transition={testableTransition({
+          transition={{
             type: 'spring',
             damping: 50,
             stiffness: 600,
             bounce: 0,
             visualDuration: 0.4,
-          })}
+          }}
         >
           {/*
             We need to wrap the children in a div to prevent the parent's flex-direction: column-reverse

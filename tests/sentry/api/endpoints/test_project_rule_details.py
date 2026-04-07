@@ -1977,6 +1977,47 @@ class GetProjectRuleDetailsDeltaTest(ProjectRuleDetailsBaseTestCase):
         assert legacy_response.data["id"] == str(rule.id)
         assert_serializer_parity(old=legacy_response.data, new=we_response.data)
 
+    def test_snoozed_rule_for_everyone_parity(self) -> None:
+        rule = self.create_project_rule(
+            project=self.project,
+            name="Snoozed for everyone alert",
+            action_match="any",
+            frequency=60,
+            condition_data=[
+                {
+                    "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                    "name": "A new issue is created",
+                },
+            ],
+            action_data=[
+                {
+                    "targetType": "IssueOwners",
+                    "fallthroughType": "ActiveMembers",
+                    "id": "sentry.mail.actions.NotifyEmailAction",
+                    "targetIdentifier": "",
+                    "name": "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers",
+                }
+            ],
+        )
+        self.snooze_rule(owner_id=self.user.id, rule=rule)
+
+        legacy_response = self.get_success_response(
+            self.organization.slug, self.project.slug, rule.id, status_code=200
+        )
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            we_response = self.get_success_response(
+                self.organization.slug, self.project.slug, rule.id, status_code=200
+            )
+
+        assert legacy_response.data["id"] == str(rule.id)
+        assert legacy_response.data["snooze"]
+        assert legacy_response.data["snoozeForEveryone"]
+        assert_serializer_parity(
+            old=legacy_response.data,
+            new=we_response.data,
+            known_differences={"snoozeCreatedBy"},
+        )
+
     def test_dual_written_rule_with_filters_parity(self) -> None:
         rule = self.create_project_rule(
             project=self.project,

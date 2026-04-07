@@ -4,7 +4,7 @@ import pytest
 
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
 from sentry.models.commitcomparison import CommitComparison
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.vcs.status_checks.snapshots.templates import (
     format_first_snapshot_status_check_messages,
@@ -49,6 +49,13 @@ class SnapshotStatusCheckTestBase(TestCase):
             image_count=image_count,
         )
         return artifact, metrics
+
+    def _create_approval(self, artifact: PreprodArtifact) -> PreprodComparisonApproval:
+        return PreprodComparisonApproval.objects.create(
+            preprod_artifact=artifact,
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        )
 
     def _create_comparison(
         self,
@@ -913,3 +920,164 @@ class SnapshotMissingBaseFormattingTest(SnapshotStatusCheckTestBase):
             "\n\nNo base snapshots found to compare against. Make sure snapshots are uploaded from your main branch."
         )
         assert summary == expected
+
+
+@cell_silo_test
+class SnapshotApprovalFormattingTest(SnapshotStatusCheckTestBase):
+    def test_approved_artifact_shows_approved_status(self) -> None:
+        head_artifact, head_metrics = self._create_artifact_with_metrics()
+        base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
+
+        comparison = self._create_comparison(
+            head_metrics, base_metrics, images_changed=3, images_unchanged=7
+        )
+
+        snapshot_metrics_map = {head_artifact.id: head_metrics}
+        comparisons_map = {head_metrics.id: comparison}
+        changes_map = {head_artifact.id: True}
+        approvals_map = {head_artifact.id: self._create_approval(head_artifact)}
+
+        _, _, summary = format_snapshot_status_check_messages(
+            [head_artifact],
+            snapshot_metrics_map,
+            comparisons_map,
+            StatusCheckStatus.SUCCESS,
+            {},
+            changes_map,
+            approvals_map=approvals_map,
+        )
+
+        assert "✅ Approved" in summary
+        assert "⏳ Needs approval" not in summary
+
+    def test_unapproved_artifact_shows_needs_approval(self) -> None:
+        head_artifact, head_metrics = self._create_artifact_with_metrics()
+        base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
+
+        comparison = self._create_comparison(
+            head_metrics, base_metrics, images_changed=3, images_unchanged=7
+        )
+
+        snapshot_metrics_map = {head_artifact.id: head_metrics}
+        comparisons_map = {head_metrics.id: comparison}
+        changes_map = {head_artifact.id: True}
+
+        _, _, summary = format_snapshot_status_check_messages(
+            [head_artifact],
+            snapshot_metrics_map,
+            comparisons_map,
+            StatusCheckStatus.FAILURE,
+            {},
+            changes_map,
+            approvals_map=None,
+        )
+
+        assert "⏳ Needs approval" in summary
+        assert "✅ Approved" not in summary
+
+    def test_no_changes_shows_unchanged_regardless_of_approvals(self) -> None:
+        head_artifact, head_metrics = self._create_artifact_with_metrics()
+        base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
+
+        comparison = self._create_comparison(head_metrics, base_metrics, images_unchanged=10)
+
+        snapshot_metrics_map = {head_artifact.id: head_metrics}
+        comparisons_map = {head_metrics.id: comparison}
+        changes_map = {head_artifact.id: False}
+        approvals_map = {head_artifact.id: self._create_approval(head_artifact)}
+
+        _, _, summary = format_snapshot_status_check_messages(
+            [head_artifact],
+            snapshot_metrics_map,
+            comparisons_map,
+            StatusCheckStatus.SUCCESS,
+            {},
+            changes_map,
+            approvals_map=approvals_map,
+        )
+
+        assert "✅ Unchanged" in summary
+        assert "✅ Approved" not in summary
+
+    def test_approved_summary_table_format(self) -> None:
+        head_artifact, head_metrics = self._create_artifact_with_metrics(
+            app_id="com.example.app", app_name="My App"
+        )
+        base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
+        comparison = self._create_comparison(
+            head_metrics,
+            base_metrics,
+            images_changed=3,
+            images_added=1,
+            images_removed=2,
+            images_renamed=1,
+            images_unchanged=4,
+        )
+
+        snapshot_metrics_map = {head_artifact.id: head_metrics}
+        comparisons_map = {head_metrics.id: comparison}
+        changes_map = {head_artifact.id: True}
+        approvals_map = {head_artifact.id: self._create_approval(head_artifact)}
+
+        artifact_url = f"http://testserver/organizations/{self.organization.slug}/preprod/snapshots/{head_artifact.id}"
+
+        title, subtitle, summary = format_snapshot_status_check_messages(
+            [head_artifact],
+            snapshot_metrics_map,
+            comparisons_map,
+            StatusCheckStatus.SUCCESS,
+            {},
+            changes_map,
+            approvals_map=approvals_map,
+        )
+
+        assert title == "Snapshot Testing"
+        assert subtitle == "3 modified, 1 added, 2 removed, 1 renamed, 4 unchanged"
+
+        expected = (
+            "| Name | Added | Removed | Modified | Renamed | Unchanged | Status |\n"
+            "| :--- | :---: | :---: | :---: | :---: | :---: | :---: |\n"
+            f"| [My App]({artifact_url})<br>`com.example.app`"
+            f" | [{1}]({artifact_url}?section=added)"
+            f" | [{2}]({artifact_url}?section=removed)"
+            f" | [{3}]({artifact_url}?section=changed)"
+            f" | [{1}]({artifact_url}?section=renamed)"
+            f" | [{4}]({artifact_url}?section=unchanged)"
+            f" | ✅ Approved |"
+        )
+        assert summary == expected
+
+    def test_mixed_approved_and_unapproved_artifacts(self) -> None:
+        head1, head1_metrics = self._create_artifact_with_metrics(
+            app_id="com.example.approved", build_number=1
+        )
+        base1, base1_metrics = self._create_artifact_with_metrics(
+            app_id="com.example.base1", build_number=10
+        )
+        comparison1 = self._create_comparison(head1_metrics, base1_metrics, images_changed=2)
+
+        head2, head2_metrics = self._create_artifact_with_metrics(
+            app_id="com.example.unapproved", build_number=2
+        )
+        base2, base2_metrics = self._create_artifact_with_metrics(
+            app_id="com.example.base2", build_number=11
+        )
+        comparison2 = self._create_comparison(head2_metrics, base2_metrics, images_changed=1)
+
+        snapshot_metrics_map = {head1.id: head1_metrics, head2.id: head2_metrics}
+        comparisons_map = {head1_metrics.id: comparison1, head2_metrics.id: comparison2}
+        changes_map = {head1.id: True, head2.id: True}
+        approvals_map = {head1.id: self._create_approval(head1)}  # only head1 approved
+
+        _, _, summary = format_snapshot_status_check_messages(
+            [head1, head2],
+            snapshot_metrics_map,
+            comparisons_map,
+            StatusCheckStatus.FAILURE,
+            {},
+            changes_map,
+            approvals_map=approvals_map,
+        )
+
+        assert "✅ Approved" in summary
+        assert "⏳ Needs approval" in summary

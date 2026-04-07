@@ -5158,7 +5158,7 @@ describe('SearchQueryBuilder', () => {
           return displayAskSeer ? (
             <AskSeerComboBox
               initialQuery={query}
-              feedbackSource="test"
+              analyticsSource="test"
               applySeerSearchQuery={() => {}}
               askSeerMutationOptions={mutationOptions({
                 mutationFn: async (_value: string) => {
