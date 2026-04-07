@@ -5,10 +5,14 @@ import pytest
 from sentry.constants import ObjectStatus
 from sentry.deletions.tasks.scheduled import reattempt_deletions, run_scheduled_deletions
 from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTrigger
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
+from sentry.workflow_engine.migration_helpers.alert_rule import dual_write_alert_rule
 from sentry.workflow_engine.models import (
+    AlertRuleDetector,
+    AlertRuleWorkflow,
     DataCondition,
     DataConditionGroup,
     DataSource,
@@ -262,3 +266,34 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
             run_scheduled_deletions()
 
         assert not UptimeSubscription.objects.filter(id=uptime_sub_id).exists()
+
+
+class DeleteDualWrittenDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
+    def test_deleting_detector_deletes_associated_alert_rule(self) -> None:
+        alert_rule = self.create_alert_rule(
+            organization=self.organization,
+            projects=[self.project],
+        )
+        trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
+        dual_write_alert_rule(alert_rule)
+
+        snuba_query = alert_rule.snuba_query
+        subscription = QuerySubscription.objects.get(snuba_query=snuba_query)
+        detector = AlertRuleDetector.objects.get(alert_rule_id=alert_rule.id).detector
+        data_source = DataSource.objects.get(source_id=str(subscription.id))
+
+        detector.status = ObjectStatus.PENDING_DELETION
+        detector.save()
+        self.ScheduledDeletion.schedule(instance=detector, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Detector.objects.filter(id=detector.id).exists()
+        assert not AlertRuleDetector.objects.filter(alert_rule_id=alert_rule.id).exists()
+        assert not AlertRuleWorkflow.objects.filter(alert_rule_id=alert_rule.id).exists()
+        assert not AlertRule.objects.filter(id=alert_rule.id).exists()
+        assert not AlertRuleTrigger.objects.filter(id=trigger.id).exists()
+        assert not DataSource.objects.filter(id=data_source.id).exists()
+        assert not QuerySubscription.objects.filter(id=subscription.id).exists()
+        assert not SnubaQuery.objects.filter(id=snuba_query.id).exists()
