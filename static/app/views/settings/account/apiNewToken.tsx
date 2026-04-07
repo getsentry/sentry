@@ -11,7 +11,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {TextareaField} from 'sentry/components/forms/fields/textareaField';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -65,7 +65,7 @@ function getPermissionsPreview(permissions: Permissions): string {
   return Object.entries(permissions)
     .filter(([, access]) => access !== 'no-access')
     .map(([resource, access]) => `${resource.toLowerCase()}:${access}`)
-    .join('\n');
+    .join(', ');
 }
 
 export default function ApiNewToken() {
@@ -156,15 +156,12 @@ export default function ApiNewToken() {
                 displayedPermissions={DISPLAYED_PERMISSIONS}
               />
             </PanelBody>
-            <TextareaField
-              name="permissions-preview"
+            <FieldGroup
               label={t('Permissions Preview')}
               help={t('Your token will have the following scopes.')}
-              rows={3}
-              autosize
-              placeholder={permissionsPreview}
-              disabled
-            />
+            >
+              <div>{permissionsPreview || '—'}</div>
+            </FieldGroup>
           </Panel>
           <Flex justify="end" gap="md" padding="md">
             <Button onClick={handleGoBack}>{t('Cancel')}</Button>
