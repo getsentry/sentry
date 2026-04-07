@@ -277,6 +277,23 @@ class TeamWithProjectsSerializerTest(TestCase):
             "externalTeams": [],
         }
 
+    def test_project_on_multiple_teams_no_duplicate_features(self) -> None:
+        user = self.create_user(username="foo")
+        organization = self.create_organization()
+        team1 = self.create_team(organization=organization)
+        team2 = self.create_team(organization=organization)
+        # Project belongs to both teams
+        self.create_project(teams=[team1, team2], organization=organization, name="shared")
+
+        result = serialize([team1, team2], user, TeamWithProjectsSerializer())
+
+        for team_data in result:
+            for project_data in team_data["projects"]:
+                features = project_data["features"]
+                assert features == list(dict.fromkeys(features)), (
+                    f"Duplicate features found in project {project_data['slug']}: {features}"
+                )
+
 
 class TeamSCIMSerializerTest(TestCase):
     def test_simple_with_members(self) -> None:
