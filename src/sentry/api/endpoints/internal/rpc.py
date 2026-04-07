@@ -64,7 +64,7 @@ class InternalRpcServiceEndpoint(Endpoint):
                 sentry_sdk.capture_exception()
                 raise ParseError from e
 
-        meta = request.data.get("meta", {})
+        meta = request.data.get("meta") or {}
         vc_data = meta.get("viewer_context")
         vc_scope: contextlib.AbstractContextManager[None] = contextlib.nullcontext()
         if vc_data:
