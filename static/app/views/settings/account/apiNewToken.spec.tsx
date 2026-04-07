@@ -1,6 +1,15 @@
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {ApiTokenFixture} from 'sentry-fixture/apiToken';
+
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import ApiNewToken from 'sentry/views/settings/account/apiNewToken';
 
 describe('ApiNewToken', () => {
@@ -139,5 +148,54 @@ describe('ApiNewToken', () => {
         })
       )
     );
+  });
+
+  it('shows new token modal after successful creation', async () => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      method: 'POST',
+      url: '/api-tokens/',
+      body: ApiTokenFixture({token: 'sntrys_test_token_123'}),
+    });
+
+    render(<ApiNewToken />);
+    renderGlobalModal();
+
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Project'}), 'Read');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Token'}));
+
+    expect(await screen.findByLabelText('Generated token')).toHaveValue(
+      'sntrys_test_token_123'
+    );
+  });
+
+  it('displays permissions preview when scopes are selected', async () => {
+    render(<ApiNewToken />);
+
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Project'}), 'Read');
+    expect(screen.getByText(/project:read/)).toBeInTheDocument();
+
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Team'}), 'Admin');
+    expect(screen.getByText(/team:admin/)).toBeInTheDocument();
+  });
+
+  it('shows error message when token creation fails', async () => {
+    jest.spyOn(indicators, 'addErrorMessage');
+
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      method: 'POST',
+      url: '/api-tokens/',
+      statusCode: 400,
+    });
+
+    render(<ApiNewToken />);
+
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Project'}), 'Read');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Token'}));
+
+    await waitFor(() => expect(indicators.addErrorMessage).toHaveBeenCalled());
   });
 });

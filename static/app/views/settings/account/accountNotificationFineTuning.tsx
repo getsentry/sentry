@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import {parseAsString, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
@@ -20,6 +21,7 @@ import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types/project';
 import type {UserEmail} from 'sentry/types/user';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import {ACCOUNT_NOTIFICATION_FIELDS} from 'sentry/views/settings/account/notifications/fields';
@@ -113,26 +115,22 @@ export function AccountNotificationFineTuning() {
     (organizations.length === 1 ? organizations[0]?.id : undefined);
 
   const {
-    data: projects,
+    data: projectsResp,
     isPending: isPendingProjects,
     isError: isErrorProjects,
-    getResponseHeader: getProjectsResponseHeader,
-  } = useApiQuery<Project[]>(
-    [
-      getApiUrl('/projects/'),
-      {
-        query: {
-          organizationId,
-          cursor,
-          query,
-        },
+  } = useQuery({
+    ...apiOptions.as<Project[]>()('/projects/', {
+      query: {
+        organizationId,
+        cursor,
+        query,
       },
-    ],
-    {
       staleTime: 0,
-      enabled: Boolean(organizationId),
-    }
-  );
+    }),
+    enabled: Boolean(organizationId),
+    select: selectJsonWithHeaders,
+  });
+  const projects = projectsResp?.json;
 
   const {
     data: emails = [],
@@ -234,7 +232,7 @@ export function AccountNotificationFineTuning() {
           )}
         </Stack>
       </Panel>
-      {projects && <Pagination pageLinks={getProjectsResponseHeader?.('Link')} />}
+      {projects && <Pagination pageLinks={projectsResp?.headers.Link} />}
     </div>
   );
 }

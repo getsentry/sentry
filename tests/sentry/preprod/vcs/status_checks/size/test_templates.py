@@ -965,7 +965,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
 
         android_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{android_artifact.id}"
         ios_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{ios_artifact.id}"
-        settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/"
+        settings_url = (
+            f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/?tab=size"
+        )
 
         expected = f"""\
 ### Android Builds
@@ -1314,7 +1316,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
         artifact_url = (
             f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact.id}"
         )
-        settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/?expanded=rule-1"
+        settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/?tab=size&expanded=rule-1"
 
         expected = f"""\
 ## ❌ 1 Failed Size Check
@@ -1463,7 +1465,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
         artifact_url = (
             f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact.id}"
         )
-        settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/?expanded=rule-download-absolute&expanded=rule-install-diff&expanded=rule-download-percent"
+        settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/?tab=size&expanded=rule-download-absolute&expanded=rule-install-diff&expanded=rule-download-percent"
 
         expected = f"""\
 ## ❌ 3 Failed Size Checks
@@ -1576,7 +1578,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
         artifact2_url = (
             f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact2.id}"
         )
-        settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/?expanded=rule-1&expanded=rule-2"
+        settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/?tab=size&expanded=rule-1&expanded=rule-2"
 
         expected = f"""\
 ## ❌ 2 Failed Size Checks
@@ -1680,7 +1682,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 
         failed_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{failed_artifact.id}"
         passed_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{passed_artifact.id}"
-        settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/?expanded=rule-1"
+        settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/?tab=size&expanded=rule-1"
 
         expected = f"""\
 ## ❌ 1 Failed Size Check

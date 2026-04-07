@@ -5,8 +5,13 @@
 tokens = token*
 
 token
-  = spaces token:(paren / literal / op / func / free_text) spaces {
+  = spaces token:(paren / literal / op / reference / func / free_text) spaces {
     return token;
+  }
+
+reference
+  = val:[A-Z] &{ return tc.isReference(val); } {
+    return tc.tokenReference(val, location());
   }
 
 func

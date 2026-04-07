@@ -16,6 +16,10 @@ import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  useBulkMutateSelectedAgent,
+  useFetchAgentOptions,
+} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
 
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
@@ -91,15 +95,18 @@ export function ProjectTableHeader({
     [projects, selectedIds]
   );
 
+  const agentOptions = useFetchAgentOptions({organization});
+  const bulkMutateSelectedAgent = useBulkMutateSelectedAgent();
+
   return (
     <Fragment>
       <TableHeader>
-        {/* <SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell>
           <SelectAllCheckbox
             listItemCheckboxState={listItemCheckboxState}
             projects={projects}
           />
-        </SimpleTable.HeaderCell> */}
+        </SimpleTable.HeaderCell>
         {COLUMNS.map(({title, key, sortKey}) => (
           <SimpleTable.HeaderCell
             key={key}
@@ -134,6 +141,23 @@ export function ProjectTableHeader({
           </TableCellFirst>
           <TableCellsRemainingContent align="center" gap="md">
             <DropdownMenu
+              isDisabled={!canWrite}
+              size="xs"
+              items={
+                agentOptions.data?.map(({value, label}) => ({
+                  key: typeof value === 'object' ? value.provider : value,
+                  label,
+                  onAction: () => {
+                    const selectedProjects = projects.filter(p =>
+                      projectIds.includes(p.id)
+                    );
+                    bulkMutateSelectedAgent(selectedProjects, value);
+                  },
+                })) ?? []
+              }
+              triggerLabel={t('Agent')}
+            />
+            <DropdownMenu
               isDisabled={!canWrite || organization.enableSeerCoding === false}
               size="xs"
               items={[
@@ -156,7 +180,7 @@ export function ProjectTableHeader({
                     ),
                 },
               ]}
-              triggerLabel={t('Auto Create PRs')}
+              triggerLabel={t('Create PRs')}
             />
           </TableCellsRemainingContent>
         </TableHeader>
