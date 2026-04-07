@@ -18,8 +18,13 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useMutation, useQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  getProjectStoppingPointMutationOptions,
+  getProjectStoppingPointValue,
+  useFetchStoppingPointOptions,
+} from 'sentry/views/settings/seer/overview/utils/seerStoppingPoint';
 import {
   useAgentOptions,
   useMutateSelectedAgent,
@@ -144,10 +149,78 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
                 project={project}
               />
             ) : null}
+
+            {selected && selected !== 'none' ? (
+              <StoppingPointField
+                agent={selected}
+                canWrite={canWrite}
+                preference={preference}
+                project={project}
+              />
+            ) : null}
           </Fragment>
         )}
       </PanelBody>
     </PanelNoMargin>
+  );
+}
+
+function StoppingPointField({
+  agent,
+  canWrite,
+  preference,
+  project,
+}: {
+  agent: 'seer' | CodingAgentIntegration;
+  canWrite: boolean;
+  preference: ProjectSeerPreferences;
+  project: Project;
+}) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+
+  const stoppingPointMutationOpts = getProjectStoppingPointMutationOptions({
+    organization,
+    project,
+    preference,
+    queryClient,
+  });
+  const {mutate} = useMutation({
+    ...stoppingPointMutationOpts,
+    onSuccess: (data, variables, onMutateResult, context) => {
+      stoppingPointMutationOpts.onSuccess?.(data, variables, onMutateResult, context);
+      addSuccessMessage(t('Stopping point updated'));
+    },
+    onError: () => {
+      addErrorMessage(t('Failed to update stopping point'));
+    },
+  });
+
+  const initialValue = getProjectStoppingPointValue(project, preference);
+  const options = useFetchStoppingPointOptions({
+    agent,
+    organization,
+  });
+
+  return (
+    <SelectField
+      name="stoppingPoint"
+      disabled={!canWrite}
+      value={initialValue}
+      onChange={value => {
+        mutate({stoppingPoint: value});
+      }}
+      options={options}
+      label={t('Automation Steps')}
+      help={tct(
+        'Choose which steps Seer should run automatically on issues. Depending on how [actionable:actionable] the issue is, Seer may stop at an earlier step.',
+        {
+          actionable: (
+            <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works" />
+          ),
+        }
+      )}
+    />
   );
 }
 
