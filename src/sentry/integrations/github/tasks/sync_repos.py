@@ -21,11 +21,9 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
+from sentry.integrations.source_code_management.repo_audit import log_repo_change
 from sentry.organizations.services.organization import organization_service
-from sentry.plugins.providers.integration_repository import (
-    RepoExistsError,
-    get_integration_repository_provider,
-)
+from sentry.plugins.providers.integration_repository import get_integration_repository_provider
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
@@ -171,6 +169,8 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
         if dry_run:
             return
 
+        repo_by_external_id = {r.external_id: r for r in active_repos + disabled_repos}
+
         if new_ids:
             integration_repo_provider = get_integration_repository_provider(integration)
             repo_configs = [
@@ -179,12 +179,27 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
                 if str(repo["id"]) in new_ids
             ]
             if repo_configs:
-                try:
-                    integration_repo_provider.create_repositories(
-                        configs=repo_configs, organization=rpc_org
+                created_repos, reactivated_repos, _ = integration_repo_provider.create_repositories(
+                    configs=repo_configs, organization=rpc_org
+                )
+
+                for repo in created_repos:
+                    log_repo_change(
+                        event_name="REPO_ADDED",
+                        organization_id=organization_id,
+                        repo=repo,
+                        source="repository sync",
+                        provider=integration.provider,
                     )
-                except RepoExistsError:
-                    pass
+
+                for repo in reactivated_repos:
+                    log_repo_change(
+                        event_name="REPO_ENABLED",
+                        organization_id=organization_id,
+                        repo=repo,
+                        source="repository sync",
+                        provider=integration.provider,
+                    )
 
         if removed_ids:
             repository_service.disable_repositories_by_external_ids(
@@ -194,12 +209,30 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
                 external_ids=list(removed_ids),
             )
 
+            for eid in removed_ids:
+                removed_repo = repo_by_external_id.get(eid)
+                if removed_repo:
+                    log_repo_change(
+                        event_name="REPO_DISABLED",
+                        organization_id=organization_id,
+                        repo=removed_repo,
+                        source="automatic SCM syncing",
+                        provider=integration.provider,
+                    )
+
         if restored_ids:
             for repo in disabled_repos:
                 if repo.external_id in restored_ids:
                     repo.status = ObjectStatus.ACTIVE
                     repository_service.update_repository(
                         organization_id=organization_id, update=repo
+                    )
+                    log_repo_change(
+                        event_name="REPO_ENABLED",
+                        organization_id=organization_id,
+                        repo=repo,
+                        source="automatic SCM syncing",
+                        provider=integration.provider,
                     )
 
 
