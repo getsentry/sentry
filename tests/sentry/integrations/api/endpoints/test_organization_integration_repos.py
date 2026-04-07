@@ -187,6 +187,81 @@ class OrganizationIntegrationReposTest(APITestCase):
             "searchable": True,
         }
 
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_repositories", return_value=[]
+    )
+    def test_accessible_only_passes_param(self, get_repositories: MagicMock) -> None:
+        """When accessibleOnly=true, passes accessible_only to get_repositories."""
+        get_repositories.return_value = [
+            {"name": "rad-repo", "identifier": "Example/rad-repo", "default_branch": "main"},
+        ]
+        response = self.client.get(
+            self.path, format="json", data={"search": "rad", "accessibleOnly": "true"}
+        )
+
+        assert response.status_code == 200, response.content
+        get_repositories.assert_called_once_with("rad", accessible_only=True)
+        assert response.data == {
+            "repos": [
+                {
+                    "name": "rad-repo",
+                    "identifier": "Example/rad-repo",
+                    "defaultBranch": "main",
+                    "isInstalled": False,
+                },
+            ],
+            "searchable": True,
+        }
+
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_repositories", return_value=[]
+    )
+    def test_accessible_only_without_search(self, get_repositories: MagicMock) -> None:
+        """When accessibleOnly=true but no search, passes both params through."""
+        get_repositories.return_value = [
+            {"name": "rad-repo", "identifier": "Example/rad-repo", "default_branch": "main"},
+        ]
+        response = self.client.get(self.path, format="json", data={"accessibleOnly": "true"})
+
+        assert response.status_code == 200, response.content
+        get_repositories.assert_called_once_with(None, accessible_only=True)
+
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_repositories", return_value=[]
+    )
+    def test_accessible_only_with_installable_only(self, get_repositories: MagicMock) -> None:
+        """Both filters compose: accessible scopes the fetch, installable excludes installed repos."""
+        get_repositories.return_value = [
+            {"name": "rad-repo", "identifier": "Example/rad-repo", "default_branch": "main"},
+            {"name": "cool-repo", "identifier": "Example/cool-repo", "default_branch": "dev"},
+        ]
+
+        self.create_repo(
+            project=self.project,
+            integration_id=self.integration.id,
+            name="Example/rad-repo",
+        )
+
+        response = self.client.get(
+            self.path,
+            format="json",
+            data={"search": "Example", "accessibleOnly": "true", "installableOnly": "true"},
+        )
+
+        assert response.status_code == 200, response.content
+        get_repositories.assert_called_once_with("Example", accessible_only=True)
+        assert response.data == {
+            "repos": [
+                {
+                    "name": "cool-repo",
+                    "identifier": "Example/cool-repo",
+                    "defaultBranch": "dev",
+                    "isInstalled": False,
+                },
+            ],
+            "searchable": True,
+        }
+
     def test_no_repository_method(self) -> None:
         integration = self.create_integration(
             organization=self.org, provider="jira", name="Example", external_id="example:1"

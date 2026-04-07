@@ -6,8 +6,8 @@ from slack_sdk.models.blocks import ActionsBlock, ButtonElement, LinkButtonEleme
 from taskbroker_client.retry import Retry
 
 from sentry.identity.services.identity import identity_service
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.slack.views.link_identity import build_linking_url
-from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.seer.entrypoints.metrics import (
@@ -98,7 +98,7 @@ def process_mention_for_slack(
             return
 
         user = _resolve_user(
-            integration_external_id=entrypoint.integration.external_id,
+            integration=entrypoint.integration,
             slack_user_id=slack_user_id,
         )
         if not user:
@@ -152,13 +152,13 @@ def process_mention_for_slack(
 
 def _resolve_user(
     *,
-    integration_external_id: str,
+    integration: RpcIntegration,
     slack_user_id: str,
 ) -> RpcUser | None:
     """Resolve the Sentry user from a Slack user ID via linked identity."""
     provider = identity_service.get_provider(
-        provider_type=IntegrationProviderSlug.SLACK.value,
-        provider_ext_id=integration_external_id,
+        provider_type=integration.provider,
+        provider_ext_id=integration.external_id,
     )
     if not provider:
         return None

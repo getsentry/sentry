@@ -22,7 +22,7 @@ from sentry.api.paginator import DateTimePaginator, OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import (
     BaseOrganizationSerializer,
-    OrganizationSerializerResponse,
+    OrganizationSummarySerializerResponse,
 )
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.user_examples import UserExamples
@@ -88,7 +88,7 @@ class OrganizationIndexEndpoint(Endpoint):
         request=None,
         responses={
             200: inline_sentry_response_serializer(
-                "ListOrganizations", list[OrganizationSerializerResponse]
+                "ListOrganizations", list[OrganizationSummarySerializerResponse]
             ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -269,7 +269,7 @@ class OrganizationIndexEndpoint(Endpoint):
             )
 
             rpc_org = organization_provisioning_service.provision_organization_in_cell(
-                cell_name=settings.SENTRY_REGION or settings.SENTRY_MONOLITH_REGION,
+                cell_name=settings.SENTRY_LOCAL_CELL or settings.SENTRY_MONOLITH_REGION,
                 provisioning_options=provision_args,
             )
             org = Organization.objects.get(id=rpc_org.id)

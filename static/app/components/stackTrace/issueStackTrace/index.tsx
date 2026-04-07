@@ -181,6 +181,8 @@ function IssueStackTraceContent({
           rawStacktraceContent({
             data: isMinified ? (exc.rawStacktrace ?? exc.stacktrace) : exc.stacktrace,
             platform: event.platform,
+            exception: isStandalone ? undefined : exc,
+            isMinified,
           })
         )
         .join('\n\n'),
@@ -208,7 +210,7 @@ function IssueStackTraceContent({
                       ? (exc.rawStacktrace ?? exc.stacktrace)
                       : exc.stacktrace,
                     platform: event.platform,
-                    exception: exc,
+                    exception: isStandalone ? undefined : exc,
                     isMinified,
                   })
                 )

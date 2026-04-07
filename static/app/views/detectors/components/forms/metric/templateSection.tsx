@@ -33,7 +33,7 @@ const DATASET_LABELS: Record<DetectorDataset, string> = {
  */
 const CUSTOM_TEMPLATE_VALUE = '__custom__' as const;
 
-export function TemplateSection() {
+export function TemplateSection({step}: {step?: number}) {
   const formContext = useContext(FormContext);
   const datasetChoices = useDatasetChoices();
   const allowedDatasets = useMemo(
@@ -122,7 +122,7 @@ export function TemplateSection() {
 
   return (
     <Container>
-      <FormSection title={t('Choose Your Metric')}>
+      <FormSection step={step} title={t('Choose Your Metric')}>
         <CompactSelect
           options={templateOptions}
           value={currentTemplateValue}

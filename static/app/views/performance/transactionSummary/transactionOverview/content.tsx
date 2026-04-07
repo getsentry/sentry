@@ -59,6 +59,7 @@ import {EAPChartsWidget} from 'sentry/views/performance/transactionSummary/trans
 import {EAPSidebarCharts} from 'sentry/views/performance/transactionSummary/transactionOverview/eapSidebarCharts';
 import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
+  EAP_WEB_VITALS,
   makeVitalGroups,
   PERCENTILE as VITAL_PERCENTILE,
 } from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
@@ -110,7 +111,6 @@ function EAPSummaryContentInner({
   projectId,
   transactionName,
 }: Props) {
-  const theme = useTheme();
   const navigate = useNavigate();
   const spanCategory = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
 
@@ -154,13 +154,10 @@ function EAPSummaryContentInner({
   const hasWebVitals =
     isSummaryViewFrontendPageLoad(eventView, projects) ||
     (totalValues !== null &&
-      makeVitalGroups(theme).some(group =>
-        group.vitals.some(vital => {
-          const functionName = `percentile(${vital},${VITAL_PERCENTILE})`;
-          const field = functionName;
-          return Number.isFinite(totalValues[field]) && totalValues[field] !== 0;
-        })
-      ));
+      EAP_WEB_VITALS.some(vital => {
+        const field = `percentile(${vital},${VITAL_PERCENTILE})`;
+        return Number.isFinite(totalValues[field]) && totalValues[field] !== 0;
+      }));
 
   const isFrontendView = isSummaryViewFrontend(eventView, projects);
 

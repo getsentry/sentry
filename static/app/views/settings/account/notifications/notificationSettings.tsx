@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {mutationOptions} from '@tanstack/react-query';
+import {mutationOptions, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -17,7 +17,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {withOrganizations} from 'sentry/utils/withOrganizations';
 import type {NotificationSettingsType} from 'sentry/views/settings/account/notifications/constants';
 import {
@@ -45,6 +45,7 @@ interface NotificationSettingsProps {
 }
 
 function NotificationSettings({organizations}: NotificationSettingsProps) {
+  const queryClient = useQueryClient();
   const checkFeatureFlag = (flag: string) => {
     return organizations.some(org => org.features?.includes(flag));
   };
@@ -102,8 +103,13 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
         data,
       });
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       addSuccessMessage(t('Notification preferences saved'));
+      setApiQueryData<NotificationFields>(
+        queryClient,
+        [NOTIFICATIONS_ENDPOINT],
+        existing => (existing ? {...existing, ...variables} : undefined)
+      );
     },
   });
 

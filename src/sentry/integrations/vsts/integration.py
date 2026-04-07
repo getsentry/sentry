@@ -308,7 +308,10 @@ class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
     # RepositoryIntegration methods
 
     def get_repositories(
-        self, query: str | None = None, page_number_limit: int | None = None
+        self,
+        query: str | None = None,
+        page_number_limit: int | None = None,
+        accessible_only: bool = False,
     ) -> list[dict[str, Any]]:
         try:
             repos = self.get_client().get_repos()

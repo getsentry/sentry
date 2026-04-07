@@ -34,8 +34,7 @@ import {
 } from 'sentry/views/detectors/components/details/metric/transactionsDatasetWarning';
 import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
-import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
-import {DescribeSection} from 'sentry/views/detectors/components/forms/common/describeSection';
+import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
 import {ProjectEnvironmentSection} from 'sentry/views/detectors/components/forms/common/projectEnvironmentSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
@@ -74,14 +73,13 @@ function MetricDetectorForm() {
     <Stack gap="2xl" maxWidth={theme.breakpoints.xl}>
       <TransactionsDatasetWarningListener />
       <MigratedAlertWarningListener />
-      <ProjectEnvironmentSection />
-      <TemplateSection />
-      <CustomizeMetricSection />
-      <DetectSection />
-      <AssignSection />
-      <DescribeSection />
-      <MetricIssuePreview />
-      <AutomateSection />
+      <ProjectEnvironmentSection step={1} />
+      <TemplateSection step={2} />
+      <CustomizeMetricSection step={3} />
+      <DetectSection step={4} />
+      <IssueOwnershipSection step={5} />
+      <MetricIssuePreview step={6} />
+      <AutomateSection step={7} />
     </Stack>
   );
 }
@@ -396,7 +394,7 @@ function IntervalPicker() {
   );
 }
 
-function CustomizeMetricSection() {
+function CustomizeMetricSection({step}: {step?: number}) {
   const detectionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.detectionType
   );
@@ -408,7 +406,7 @@ function CustomizeMetricSection() {
 
   return (
     <Container>
-      <FormSection title={t('Customize Metric')}>
+      <FormSection step={step} title={t('Customize Metric')}>
         <Flex direction="column" gap="xs">
           <DatasetRow>
             <DatasetField
@@ -491,7 +489,7 @@ function CustomizeMetricSection() {
   );
 }
 
-function DetectSection() {
+function DetectSection({step}: {step?: number}) {
   const detectionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.detectionType
   );
@@ -511,7 +509,11 @@ function DetectSection() {
   return (
     <Container>
       <FormSection
+        step={step}
         title={t('Issue Detection')}
+        description={t(
+          'This determines the conditions that lead to the creation of an issue or event.'
+        )}
         trailingItems={
           showThresholdWarning ? (
             <WarningIcon

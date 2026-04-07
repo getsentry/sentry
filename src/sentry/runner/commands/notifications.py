@@ -66,39 +66,24 @@ def send_email(source: str, email: str) -> None:
     click.echo(f"Example '{source}' email sent to {email}.")
 
 
-@send_cmd.command("slack")
-@click.option(
-    "-s",
-    "--source",
-    help="Registered template source (see `sentry notifications list registry`)",
-    default="error-alert-service",
-)
-@click.option("-o", "--organization_slug", help="Organization slug")
-@click.option("-i", "--integration_name", help="Slack integration name", default=None)
-@click.option("-c", "--channel_name", help="Slack channel name", default=None)
-def send_slack(
-    source: str, organization_slug: str, integration_name: str | None, channel_name: str | None
+def _send_slack_notification(
+    source: str,
+    organization_slug: str,
+    integration_name: str | None,
+    channel_name: str | None,
+    provider_slug: str,
+    provider_key: Any,
+    provider_label: str,
 ) -> None:
-    """
-    Send a Slack notification.
-    """
     from sentry import options
-    from sentry.runner import configure
-
-    configure()
-
     from sentry.constants import ObjectStatus
     from sentry.integrations.models.integration import Integration
     from sentry.integrations.slack.utils.channel import get_channel_id
-    from sentry.integrations.types import IntegrationProviderSlug
     from sentry.models.organizationmapping import OrganizationMapping
     from sentry.notifications.platform.registry import template_registry
     from sentry.notifications.platform.service import NotificationService
     from sentry.notifications.platform.target import IntegrationNotificationTarget
-    from sentry.notifications.platform.types import (
-        NotificationProviderKey,
-        NotificationTargetResourceType,
-    )
+    from sentry.notifications.platform.types import NotificationTargetResourceType
 
     try:
         organization_mapping = OrganizationMapping.objects.get(slug=organization_slug)
@@ -109,7 +94,7 @@ def send_slack(
     integration_name = integration_name or options.get("slack.debug-workspace")
     if integration_name is None or integration_name == "":
         click.echo(
-            "\nThis command requires a slack integration name."
+            f"\nThis command requires a {provider_label} integration name."
             "\nProvide it with the `-i` flag or by setting `slack.debug-workspace` in .sentry/config.yml."
             f"\nBrowse the local integrations with `sentry notifications list integrations -o {organization_slug}`."
         )
@@ -117,12 +102,12 @@ def send_slack(
 
     try:
         integration = Integration.objects.get(
-            provider=IntegrationProviderSlug.SLACK.value,
+            provider=provider_slug,
             name=integration_name,
             status=ObjectStatus.ACTIVE,
         )
     except Integration.DoesNotExist:
-        click.echo(f"Slack integration '{integration_name}' not found!")
+        click.echo(f"{provider_label} integration '{integration_name}' not found!")
         return
 
     channel_name = channel_name or options.get("slack.debug-channel")
@@ -144,7 +129,7 @@ def send_slack(
         return
 
     slack_target = IntegrationNotificationTarget(
-        provider_key=NotificationProviderKey.SLACK,
+        provider_key=provider_key,
         resource_type=NotificationTargetResourceType.CHANNEL,
         integration_id=integration.id,
         resource_id=channel_data.channel_id,
@@ -153,7 +138,77 @@ def send_slack(
 
     template_cls = template_registry.get(source)
     NotificationService(data=template_cls.example_data).notify_sync(targets=[slack_target])
-    click.echo(f"Example '{source}' slack message sent to {integration.name}.")
+    click.echo(f"Example '{source}' {provider_label} message sent to {integration.name}.")
+
+
+@send_cmd.command("slack")
+@click.option(
+    "-s",
+    "--source",
+    help="Registered template source (see `sentry notifications list registry`)",
+    default="error-alert-service",
+)
+@click.option("-o", "--organization_slug", help="Organization slug")
+@click.option("-i", "--integration_name", help="Slack integration name", default=None)
+@click.option("-c", "--channel_name", help="Slack channel name", default=None)
+def send_slack(
+    source: str, organization_slug: str, integration_name: str | None, channel_name: str | None
+) -> None:
+    """
+    Send a Slack notification.
+    """
+
+    from sentry.runner import configure
+
+    configure()
+
+    from sentry.integrations.types import IntegrationProviderSlug
+    from sentry.notifications.platform.types import NotificationProviderKey
+
+    _send_slack_notification(
+        source=source,
+        organization_slug=organization_slug,
+        integration_name=integration_name,
+        channel_name=channel_name,
+        provider_slug=IntegrationProviderSlug.SLACK.value,
+        provider_key=NotificationProviderKey.SLACK,
+        provider_label="Slack",
+    )
+
+
+@send_cmd.command("slack-staging")
+@click.option(
+    "-s",
+    "--source",
+    help="Registered template source (see `sentry notifications list registry`)",
+    default="error-alert-service",
+)
+@click.option("-o", "--organization_slug", help="Organization slug")
+@click.option("-i", "--integration_name", help="Slack (Staging) integration name", default=None)
+@click.option("-c", "--channel_name", help="Slack channel name", default=None)
+def send_slack_staging(
+    source: str, organization_slug: str, integration_name: str | None, channel_name: str | None
+) -> None:
+    """
+    Send a Slack (Staging) notification.
+    """
+
+    from sentry.runner import configure
+
+    configure()
+
+    from sentry.integrations.types import IntegrationProviderSlug
+    from sentry.notifications.platform.types import NotificationProviderKey
+
+    _send_slack_notification(
+        source=source,
+        organization_slug=organization_slug,
+        integration_name=integration_name,
+        channel_name=channel_name,
+        provider_slug=IntegrationProviderSlug.SLACK_STAGING.value,
+        provider_key=NotificationProviderKey.SLACK_STAGING,
+        provider_label="Slack (Staging)",
+    )
 
 
 @send_cmd.command("msteams")

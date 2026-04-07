@@ -89,14 +89,15 @@ export function useRedirectPopupStep({
   );
 
   // Listen for postMessage from the trampoline page in the popup.
-  // The trampoline includes a `source: "sentry-pipeline"` key so we can
-  // distinguish it from unrelated messages (browser extensions, devtools, etc.).
+  // The trampoline includes a `_pipeline_source: "sentry-pipeline"` key so we
+  // can distinguish it from unrelated messages (browser extensions, devtools, etc.).
+  // Prefixed with underscore to avoid colliding with provider callback query params.
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
       if (!event.data || typeof event.data !== 'object') {
         return;
       }
-      if (event.data.source !== 'sentry-pipeline') {
+      if (event.data._pipeline_source !== 'sentry-pipeline') {
         return;
       }
 
@@ -119,7 +120,7 @@ export function useRedirectPopupStep({
       popupRef.current = null;
 
       setPopupStatus('not-open');
-      const {source: _source, ...callbackData} = event.data as Record<string, string>;
+      const {_pipeline_source, ...callbackData} = event.data as Record<string, string>;
       onCallback(callbackData);
     }
 

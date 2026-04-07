@@ -294,6 +294,29 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         )
         assert response.status_code == 400
 
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
+    )
+    def test_post_accepts_root_cause_stopping_point_with_flag(
+        self, mock_bulk_set_preferences, mock_bulk_get_preferences
+    ) -> None:
+        project = self.create_project(organization=self.organization)
+        mock_bulk_get_preferences.return_value = {}
+        mock_bulk_set_preferences.return_value = None
+
+        with self.feature("organizations:root-cause-stopping-point"):
+            response = self.client.post(
+                self.url,
+                {
+                    "projectIds": [project.id],
+                    "automatedRunStoppingPoint": "root_cause",
+                },
+            )
+        assert response.status_code == 204
+
     def test_post_rejects_projects_not_in_organization(self) -> None:
         project = self.create_project(organization=self.organization)
         other_org = self.create_organization()

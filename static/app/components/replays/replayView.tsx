@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -21,8 +22,10 @@ import {SentryPlayerRoot as ReplayPlayer} from 'sentry/components/replays/replay
 import {ReplayProcessingError} from 'sentry/components/replays/replayProcessingError';
 import {ReplaySidebarToggleButton} from 'sentry/components/replays/replaySidebarToggleButton';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
+import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconFatal} from 'sentry/icons/iconFatal';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+import {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useIsFullscreen} from 'sentry/utils/window/useIsFullscreen';
 import {Breadcrumbs} from 'sentry/views/replays/detail/breadcrumbs';
@@ -32,7 +35,9 @@ import {ReplayViewScale} from 'sentry/views/replays/detail/replayViewScale';
 
 type Props = {
   isLoading: boolean;
+  layout: LayoutKey;
   toggleFullscreen: () => void;
+  toggleLayout: () => void;
 };
 
 function FatalIconTooltip({error}: {error: Error | null}) {
@@ -43,7 +48,7 @@ function FatalIconTooltip({error}: {error: Error | null}) {
   );
 }
 
-export function ReplayView({toggleFullscreen, isLoading}: Props) {
+export function ReplayView({isLoading, layout, toggleFullscreen, toggleLayout}: Props) {
   const isFullscreen = useIsFullscreen();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const replay = useReplayReader();
@@ -97,7 +102,29 @@ export function ReplayView({toggleFullscreen, isLoading}: Props) {
                 isOpen={isSidebarOpen}
                 setIsOpen={setIsSidebarOpen}
               />
-            ) : null}
+            ) : (
+              <Button
+                size="xs"
+                icon={
+                  <IconChevron
+                    direction={layout === LayoutKey.VIDEO_ONLY ? 'left' : 'right'}
+                    isDouble
+                  />
+                }
+                aria-label={
+                  layout === LayoutKey.VIDEO_ONLY
+                    ? t('Open Sidebar')
+                    : t('Collapse Sidebar')
+                }
+                onClick={toggleLayout}
+                tooltipProps={{
+                  title:
+                    layout === LayoutKey.VIDEO_ONLY
+                      ? t('Open Sidebar')
+                      : t('Collapse Sidebar'),
+                }}
+              />
+            )}
           </ContextContainer>
           {isLoading ? (
             <FluidHeight>

@@ -40,9 +40,13 @@ export default function DetectorNewSettings() {
     );
   }
 
-  const project = projectId
-    ? projects.find(p => p.id === projectId)
-    : orderBy(projects, ['isMember', 'isBookmarked'], ['desc', 'desc'])[0];
+  const sortedProjects = orderBy(
+    projects,
+    ['isMember', 'isBookmarked'],
+    ['desc', 'desc']
+  );
+  const project =
+    (projectId ? projects.find(p => p.id === projectId) : null) ?? sortedProjects[0];
 
   if (!project) {
     return <LoadingError message={t('Project not found')} />;
