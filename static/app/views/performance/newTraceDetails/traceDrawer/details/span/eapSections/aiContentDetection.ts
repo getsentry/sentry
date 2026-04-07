@@ -10,7 +10,7 @@ type AIContentType =
 
 type ContentSegment =
   | {content: string; type: 'text'}
-  | {content: string; tagName: string; type: 'xml-tag'};
+  | {content: string; isBlock: boolean; tagName: string; type: 'xml-tag'};
 
 interface AIContentDetectionResult {
   type: AIContentType;
@@ -18,10 +18,7 @@ interface AIContentDetectionResult {
   wasFixed?: boolean;
 }
 
-/**
- * Best-effort conversion of a Python dict literal to a JSON-parseable string.
- * Returns the parsed object on success, or null if conversion fails.
- */
+/** Best-effort conversion of a Python dict literal to a JSON-parseable string. */
 export function tryParsePythonDict(text: string): Record<PropertyKey, unknown> | null {
   const trimmed = text.trim();
   if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
@@ -50,10 +47,7 @@ export function tryParsePythonDict(text: string): Record<PropertyKey, unknown> |
   }
 }
 
-/**
- * Splits text into segments of plain text and XML-like tag blocks.
- * Matches `<tagname>...</tagname>` patterns (including multiline content).
- */
+/** Splits text into segments of plain text and XML-like tag blocks. */
 export function parseXmlTagSegments(text: string): ContentSegment[] {
   const segments: ContentSegment[] = [];
   const xmlTagRegex = /<([a-zA-Z][\w-]*)>([\s\S]*?)<\/\1>/g;
@@ -63,10 +57,12 @@ export function parseXmlTagSegments(text: string): ContentSegment[] {
     if (match.index > lastIndex) {
       segments.push({type: 'text', content: text.slice(lastIndex, match.index)});
     }
+    const isBlock = match.index === 0 || /\n\s*$/.test(text.slice(0, match.index));
     segments.push({
       type: 'xml-tag',
       tagName: match[1]!,
       content: match[2]!,
+      isBlock,
     });
     lastIndex = match.index + match[0].length;
   }
@@ -76,6 +72,18 @@ export function parseXmlTagSegments(text: string): ContentSegment[] {
   }
 
   return segments;
+}
+
+/** Replaces inline XML tags with italic markdown, leaves block-level tags untouched. */
+export function preprocessInlineXmlTags(text: string): string {
+  const xmlTagRegex = /<([a-zA-Z][\w-]*)>([\s\S]*?)<\/\1>/g;
+  return text.replace(xmlTagRegex, (match, tagName, content, offset) => {
+    const isBlock = offset === 0 || /\n\s*$/.test(text.slice(0, offset));
+    if (isBlock) {
+      return match;
+    }
+    return `*${tagName}: ${content.trim()}*`;
+  });
 }
 
 const XML_TAG_REGEX = /<([a-zA-Z][\w-]*)>[\s\S]*?<\/\1>/;
@@ -91,16 +99,7 @@ const MARKDOWN_INDICATORS = [
   /^```/m, // code fences
 ];
 
-/**
- * Detects the content type of an AI response string.
- * Short-circuits on first match in priority order:
- * 1. Valid JSON (object/array)
- * 2. Python dict
- * 3. Partial/truncated JSON (fixable)
- * 4. Markdown with XML tags
- * 5. Markdown
- * 6. Plain text
- */
+/** Detects AI content type: JSON, Python dict, markdown-with-xml, markdown, or plain text. */
 export function detectAIContentType(text: string): AIContentDetectionResult {
   const trimmed = text.trim();
   if (!trimmed) {

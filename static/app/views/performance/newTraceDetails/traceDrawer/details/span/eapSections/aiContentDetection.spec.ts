@@ -1,6 +1,7 @@
 import {
   detectAIContentType,
   parseXmlTagSegments,
+  preprocessInlineXmlTags,
   tryParsePythonDict,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
 
@@ -127,39 +128,77 @@ describe('tryParsePythonDict', () => {
   });
 });
 
+describe('preprocessInlineXmlTags', () => {
+  it('replaces inline XML tags with italic markdown', () => {
+    const text = 'Before <thinking>inner thought</thinking> After';
+    expect(preprocessInlineXmlTags(text)).toBe(
+      'Before *thinking: inner thought* After'
+    );
+  });
+
+  it('leaves block-level tags at start of text untouched', () => {
+    const text = '<plan>step 1</plan> then more';
+    expect(preprocessInlineXmlTags(text)).toBe('<plan>step 1</plan> then more');
+  });
+
+  it('leaves block-level tags after newline untouched', () => {
+    const text = 'Some text\n<thinking>deep thought</thinking>';
+    expect(preprocessInlineXmlTags(text)).toBe(text);
+  });
+
+  it('handles mixed inline and block tags', () => {
+    const text =
+      'See the <code>details</code> here.\n<thinking>\ndeep thought\n</thinking>';
+    expect(preprocessInlineXmlTags(text)).toBe(
+      'See the *code: details* here.\n<thinking>\ndeep thought\n</thinking>'
+    );
+  });
+
+  it('trims whitespace from inline tag content', () => {
+    const text = 'before <tag>  spaced  </tag> after';
+    expect(preprocessInlineXmlTags(text)).toBe('before *tag: spaced* after');
+  });
+});
+
 describe('parseXmlTagSegments', () => {
-  it('splits text with XML tags into segments', () => {
+  it('marks inline XML tags with isBlock false', () => {
     const text = 'Before <thinking>inner thought</thinking> After';
     const segments = parseXmlTagSegments(text);
     expect(segments).toEqual([
       {type: 'text', content: 'Before '},
-      {type: 'xml-tag', tagName: 'thinking', content: 'inner thought'},
+      {type: 'xml-tag', tagName: 'thinking', content: 'inner thought', isBlock: false},
       {type: 'text', content: ' After'},
     ]);
   });
 
-  it('handles multiple XML tags', () => {
+  it('marks tag at start of text as block', () => {
     const text = '<plan>step 1</plan> then <result>done</result>';
     const segments = parseXmlTagSegments(text);
     expect(segments).toEqual([
-      {type: 'xml-tag', tagName: 'plan', content: 'step 1'},
+      {type: 'xml-tag', tagName: 'plan', content: 'step 1', isBlock: true},
       {type: 'text', content: ' then '},
-      {type: 'xml-tag', tagName: 'result', content: 'done'},
+      {type: 'xml-tag', tagName: 'result', content: 'done', isBlock: false},
     ]);
   });
 
-  it('handles multiline content inside tags', () => {
-    const text = '<thinking>\nline1\nline2\n</thinking>';
+  it('marks tag preceded by newline as block', () => {
+    const text = 'Some text\n<thinking>\nline1\nline2\n</thinking>';
     const segments = parseXmlTagSegments(text);
     expect(segments).toEqual([
-      {type: 'xml-tag', tagName: 'thinking', content: '\nline1\nline2\n'},
+      {type: 'text', content: 'Some text\n'},
+      {
+        type: 'xml-tag',
+        tagName: 'thinking',
+        content: '\nline1\nline2\n',
+        isBlock: true,
+      },
     ]);
   });
 
   it('returns single text segment when no XML tags', () => {
-    const text = 'just plain text';
-    const segments = parseXmlTagSegments(text);
-    expect(segments).toEqual([{type: 'text', content: 'just plain text'}]);
+    expect(parseXmlTagSegments('just plain text')).toEqual([
+      {type: 'text', content: 'just plain text'},
+    ]);
   });
 
   it('handles empty string', () => {
@@ -168,7 +207,22 @@ describe('parseXmlTagSegments', () => {
 
   it('handles tags with hyphens in names', () => {
     const text = '<my-tag>content</my-tag>';
-    const segments = parseXmlTagSegments(text);
-    expect(segments).toEqual([{type: 'xml-tag', tagName: 'my-tag', content: 'content'}]);
+    expect(parseXmlTagSegments(text)).toEqual([
+      {type: 'xml-tag', tagName: 'my-tag', content: 'content', isBlock: true},
+    ]);
+  });
+
+  it('extracts outer tag with nested tags preserved in content', () => {
+    const text =
+      '<bug_report>\n<location>file.ts</location>\n<description>a bug</description>\n</bug_report>';
+    expect(parseXmlTagSegments(text)).toEqual([
+      {
+        type: 'xml-tag',
+        tagName: 'bug_report',
+        content:
+          '\n<location>file.ts</location>\n<description>a bug</description>\n',
+        isBlock: true,
+      },
+    ]);
   });
 });
