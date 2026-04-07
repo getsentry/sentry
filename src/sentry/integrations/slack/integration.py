@@ -245,7 +245,7 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         self,
         *,
         channel_id: str,
-    ) -> dict[str, Any]:
+    ) -> dict:
         """
         Fetch conversations info from Slack API.
         """
@@ -255,6 +255,8 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
             conversations = client.conversations_info(
                 channel=channel_id,
             )
+
+            assert isinstance(conversations.data, dict)
             return conversations.data
         except SlackApiError as e:
             _logger.warning(
