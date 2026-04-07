@@ -184,35 +184,24 @@ describe('ApiNewToken', () => {
     render(<ApiNewToken />);
     renderGlobalModal();
 
-    const selectByValue = (name: string, value: string) =>
-      selectEvent.select(screen.getByRole('textbox', {name}), value);
-
-    await selectByValue('Project', 'Read');
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Project'}), 'Read');
 
     const createButton = screen.getByRole('button', {name: 'Create Token'});
     expect(createButton).toBeEnabled();
 
     await userEvent.click(createButton);
 
-    // Wait for the modal to appear (confirms mutation succeeded)
     expect(await screen.findByLabelText('Generated token')).toBeInTheDocument();
-
-    // Button should be disabled after successful creation
     expect(createButton).toBeDisabled();
   });
 
   it('displays permissions preview when scopes are selected', async () => {
     render(<ApiNewToken />);
 
-    const selectByValue = (name: string, value: string) =>
-      selectEvent.select(screen.getByRole('textbox', {name}), value);
-
-    await selectByValue('Project', 'Read');
-
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Project'}), 'Read');
     expect(screen.getByText(/project:read/)).toBeInTheDocument();
 
-    await selectByValue('Team', 'Admin');
-
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Team'}), 'Admin');
     expect(screen.getByText(/team:admin/)).toBeInTheDocument();
   });
 
