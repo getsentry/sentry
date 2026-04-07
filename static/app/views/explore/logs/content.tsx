@@ -26,7 +26,7 @@ import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
-import {useLogsTableExpandoFeatureFlag} from 'sentry/views/explore/logs/tables/useTableExpando';
+import {useTableExpando} from 'sentry/views/explore/logs/tables/useTableExpando';
 import {
   useQueryParamsId,
   useQueryParamsTitle,
@@ -36,7 +36,7 @@ import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnbo
 
 export default function LogsContent() {
   const organization = useOrganization();
-  const hasExpando = useLogsTableExpandoFeatureFlag();
+  const tableExpando = useTableExpando();
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.LOG_BYTE],
   });
@@ -66,7 +66,10 @@ export default function LogsContent() {
             analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
             source="location"
           >
-            <ViewportConstrainedPage constrained={hasExpando}>
+            <ViewportConstrainedPage
+              constrained={tableExpando.enabled}
+              hideFooter={tableExpando.expanded === true}
+            >
               <LogsHeader />
               <LogsPageDataProvider allowHighFidelity>
                 {defined(onboardingProject) ? (
@@ -76,7 +79,10 @@ export default function LogsContent() {
                     datePageFilterProps={datePageFilterProps}
                   />
                 ) : (
-                  <LogsTabContent datePageFilterProps={datePageFilterProps} />
+                  <LogsTabContent
+                    datePageFilterProps={datePageFilterProps}
+                    tableExpando={tableExpando}
+                  />
                 )}
               </LogsPageDataProvider>
             </ViewportConstrainedPage>

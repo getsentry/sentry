@@ -96,10 +96,11 @@ import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 // eslint-disable-next-line boundaries/dependencies
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
-import {useTableExpando} from './tables/useTableExpando';
+import type {TableExpando} from './tables/useTableExpando';
 
 type LogsTabProps = {
   datePageFilterProps: DatePageFilterProps;
+  tableExpando: TableExpando;
 };
 
 interface LogsSearchBarProps {
@@ -240,7 +241,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
   );
 });
 
-export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
+export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps) {
   const pageFilters = usePageFilters();
   const fields = useQueryParamsFields();
   const mode = useQueryParamsMode();
@@ -425,7 +426,6 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
   }, [pageFilters.selection.datetime]);
 
   const {infiniteLogsQueryResult} = useLogsPageData();
-  const expando = useTableExpando();
 
   return (
     <Fragment>
@@ -438,7 +438,7 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
           {sidebarOpen ? <LogsToolbar /> : null}
         </LogsControlSection>
         <ExploreContentSection gap="md">
-          {!expando.expanded && (
+          {!tableExpando.expanded && (
             <OverChartButtonGroup>
               <LogsSidebarCollapseButton
                 sidebarOpen={sidebarOpen}
@@ -467,7 +467,7 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
             timeseriesResult={timeseriesResult}
             tableResult={infiniteLogsQueryResult}
           />
-          {!expando.expanded && (
+          {!tableExpando.expanded && (
             <LogsGraphContainer>
               <LogsGraph
                 rawLogCounts={rawLogCounts}
@@ -518,14 +518,14 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
                     </Button>
                   }
                 />
-                {expando.enabled && expando.button}
+                {tableExpando.enabled && tableExpando.button}
               </TableActionsContainer>
             )}
           </LogsTableActionsContainer>
           <LogsItemContainer>
             {tableTab === 'logs' ? (
               <LogsInfiniteTable
-                expanded={expando.expanded}
+                expanded={tableExpando.expanded}
                 booleanAttributes={booleanAttributes}
                 stringAttributes={stringAttributes}
                 numberAttributes={numberAttributes}

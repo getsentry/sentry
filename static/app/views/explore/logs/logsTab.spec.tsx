@@ -16,7 +16,22 @@ import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
+import {useTableExpando} from 'sentry/views/explore/logs/tables/useTableExpando';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+
+function LogsTabContentHarness({
+  datePageFilterProps,
+}: {
+  datePageFilterProps: DatePageFilterProps;
+}) {
+  const tableExpando = useTableExpando();
+  return (
+    <LogsTabContent
+      datePageFilterProps={datePageFilterProps}
+      tableExpando={tableExpando}
+    />
+  );
+}
 
 const datePageFilterProps: DatePageFilterProps = {
   defaultPeriod: '7d' as const,
@@ -178,7 +193,7 @@ describe('LogsTabContent', () => {
   it('should call APIs as expected', async () => {
     render(
       <ProviderWrapper>
-        <LogsTabContent datePageFilterProps={datePageFilterProps} />
+        <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
       {initialRouterConfig, organization}
     );
@@ -230,7 +245,7 @@ describe('LogsTabContent', () => {
   it('should switch between modes', async () => {
     render(
       <ProviderWrapper>
-        <LogsTabContent datePageFilterProps={datePageFilterProps} />
+        <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
       {initialRouterConfig, organization}
     );
@@ -274,7 +289,7 @@ describe('LogsTabContent', () => {
   it('should pass caseInsensitive to the query', async () => {
     render(
       <ProviderWrapper>
-        <LogsTabContent datePageFilterProps={datePageFilterProps} />
+        <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
       {initialRouterConfig, organization}
     );
@@ -331,7 +346,7 @@ describe('LogsTabContent', () => {
     autorefreshEnabledRouterConfig.location.query[LOGS_AUTO_REFRESH_KEY] = 'enabled';
     render(
       <ProviderWrapper>
-        <LogsTabContent datePageFilterProps={datePageFilterProps} />
+        <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
       {
         initialRouterConfig: autorefreshEnabledRouterConfig,

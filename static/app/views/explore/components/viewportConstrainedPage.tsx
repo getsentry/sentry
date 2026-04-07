@@ -7,6 +7,7 @@ import {SHORT_VIEWPORT_HEIGHT} from 'sentry/utils/useIsShortViewport';
 
 interface ViewportConstrainedPageProps extends FlexProps<'main'> {
   constrained?: boolean;
+  hideFooter?: boolean;
 }
 
 /**
@@ -17,18 +18,26 @@ interface ViewportConstrainedPageProps extends FlexProps<'main'> {
  * (TopBar, Footer, etc.), and content within must manage its own
  * overflow (e.g. via scrollable table bodies).
  *
- * When constrained, the footer is also hidden at smaller viewport heights.
- * Similar to mobile, this is to leave more height space for essential UI.
+ * When constrained, the global footer sibling is hidden on smaller
+ * viewport heights and when `hideFooter` is set.
  */
 export function ViewportConstrainedPage({
   constrained = true,
-  ...props
+  hideFooter,
+  ...rest
 }: ViewportConstrainedPageProps) {
   if (!constrained) {
-    return <Layout.Page {...props} />;
+    return <Layout.Page {...rest} />;
   }
 
-  return <ConstrainedPage minHeight="0" overflow="hidden" {...props} />;
+  return (
+    <ConstrainedPage
+      minHeight="0"
+      overflow="hidden"
+      data-hide-footer={hideFooter ? '' : undefined}
+      {...rest}
+    />
+  );
 }
 
 const ConstrainedPage = styled(Layout.Page)`
@@ -38,5 +47,9 @@ const ConstrainedPage = styled(Layout.Page)`
     ~ footer {
       display: none;
     }
+  }
+
+  &[data-hide-footer] ~ footer {
+    display: none;
   }
 `;
