@@ -54,6 +54,21 @@ describe('apiOptions', () => {
     ]);
   });
 
+  it('should strip undefined values from options in queryKey', () => {
+    const options = apiOptions.as<unknown>()('/api-tokens/$tokenId/', {
+      staleTime: 0,
+      path: {tokenId: '123'},
+      query: {cursor: 'abc'},
+      method: undefined,
+    });
+
+    expect(options.queryKey).toEqual([
+      {infinite: false, version: 'v2'},
+      '/api-tokens/123/',
+      {query: {cursor: 'abc'}},
+    ]);
+  });
+
   it('should stringify number path params', () => {
     const options = apiOptions.as<unknown>()('/api-tokens/$tokenId/', {
       staleTime: 0,

@@ -23,8 +23,8 @@ type PathParamOptions<TApiPath extends string> =
     ? {path?: never}
     : {path: Record<ExtractPathParams<TApiPath>, string | number> | SkipToken};
 
-function hasDefinedValues(obj: Record<string, unknown>): boolean {
-  return Object.values(obj).some(v => v !== undefined);
+function stripUndefinedValues(obj: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined));
 }
 
 const selectJson = <TData>(data: ApiResponse<TData>) => data.json;
@@ -47,11 +47,13 @@ function _apiOptions<
     : [Options & PathParamOptions<TApiPath>]
 ) {
   const url = getApiUrl(path, ...([{path: pathParams}] as OptionalPathParams<TApiPath>));
+  const strippedOptions = stripUndefinedValues(options);
 
   return queryOptions({
-    queryKey: hasDefinedValues(options)
-      ? ([{infinite: false, version: 'v2'}, url, options] as ApiQueryKey)
-      : ([{infinite: false, version: 'v2'}, url] as ApiQueryKey),
+    queryKey:
+      Object.keys(strippedOptions).length > 0
+        ? ([{infinite: false, version: 'v2'}, url, strippedOptions] as ApiQueryKey)
+        : ([{infinite: false, version: 'v2'}, url] as ApiQueryKey),
     queryFn: pathParams === skipToken ? skipToken : apiFetch<TActualData>,
     enabled: pathParams !== skipToken,
     staleTime,
@@ -80,11 +82,13 @@ function _apiOptionsInfinite<
     : [Options & PathParamOptions<TApiPath>]
 ) {
   const url = getApiUrl(path, ...([{path: pathParams}] as OptionalPathParams<TApiPath>));
+  const strippedOptions = stripUndefinedValues(options);
 
   return infiniteQueryOptions({
-    queryKey: hasDefinedValues(options)
-      ? ([{infinite: true, version: 'v2'}, url, options] as InfiniteApiQueryKey)
-      : ([{infinite: true, version: 'v2'}, url] as InfiniteApiQueryKey),
+    queryKey:
+      Object.keys(strippedOptions).length > 0
+        ? ([{infinite: true, version: 'v2'}, url, strippedOptions] as InfiniteApiQueryKey)
+        : ([{infinite: true, version: 'v2'}, url] as InfiniteApiQueryKey),
     queryFn: pathParams === skipToken ? skipToken : apiFetchInfinite<TActualData>,
     getPreviousPageParam: parsePageParam('previous'),
     getNextPageParam: parsePageParam('next'),
