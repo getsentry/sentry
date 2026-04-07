@@ -24,7 +24,7 @@ import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLM
 import {DEEMPHASIS_VARIANT, LOADING_PLACEHOLDER} from './settings';
 import {ThresholdsIndicator} from './thresholdsIndicator';
 
-interface BigNumberWidgetVisualizationProps {
+type BigNumberWidgetVisualizationProps = {
   field: string;
   value: number | string;
   maximumValue?: number;
@@ -33,7 +33,7 @@ interface BigNumberWidgetVisualizationProps {
   thresholds?: Thresholds;
   type?: TabularValueType;
   unit?: TabularValueUnit;
-}
+};
 
 function BigNumberWidgetVisualizationInner(props: BigNumberWidgetVisualizationProps) {
   const {
