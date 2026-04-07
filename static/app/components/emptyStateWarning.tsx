@@ -2,12 +2,13 @@ import styled from '@emotion/styled';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {IconSearch} from 'sentry/icons';
+import type {IconVariant} from 'sentry/icons/svgIcon';
 
 type Props = {
   children?: React.ReactNode;
   className?: string;
   small?: boolean;
-  variant?: React.ComponentProps<typeof IconSearch>['variant'];
+  variant?: IconVariant;
   withIcon?: boolean;
 };
 
