@@ -135,7 +135,9 @@ class IssueAlertMigrator:
                 defaults={"config": {}, "name": ISSUE_STREAM_DETECTOR_NAME},
             )
 
-        return [error_detector, issue_stream_detector]
+        # We are not returning the error_detector here to simplify
+        # _connect_default_detectors
+        return [issue_stream_detector]
 
     def _connect_default_detectors(self, workflow: Workflow) -> None:
         default_detectors = self._create_detector_lookups()
@@ -151,7 +153,6 @@ class IssueAlertMigrator:
                 workflow=workflow,
             )
             for detector in default_detectors
-            if detector.type != ErrorGroupType.slug
         ]
 
         DetectorWorkflow.objects.bulk_create(
