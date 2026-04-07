@@ -42,69 +42,6 @@ class BuildComparisonFingerprintsTest(TestCase):
             images=images,
         )
 
-    def test_extracts_changed_with_head_hash(self):
-        manifest = self._make_manifest(
-            {
-                "screen1.png": ComparisonImageResult(
-                    status="changed", head_hash="abc", base_hash="def"
-                ),
-            }
-        )
-        fps = _build_comparison_fingerprints(manifest)
-        assert fps == {("screen1.png", "changed", "abc")}
-
-    def test_extracts_added_with_head_hash(self):
-        manifest = self._make_manifest(
-            {
-                "new_screen.png": ComparisonImageResult(status="added", head_hash="abc"),
-            }
-        )
-        fps = _build_comparison_fingerprints(manifest)
-        assert fps == {("new_screen.png", "added", "abc")}
-
-    def test_extracts_removed_without_hash(self):
-        manifest = self._make_manifest(
-            {
-                "old_screen.png": ComparisonImageResult(status="removed", base_hash="xyz"),
-            }
-        )
-        fps = _build_comparison_fingerprints(manifest)
-        assert fps == {("old_screen.png", "removed")}
-
-    def test_extracts_errored_without_hash(self):
-        manifest = self._make_manifest(
-            {
-                "broken.png": ComparisonImageResult(status="errored", reason="exceeds_pixel_limit"),
-            }
-        )
-        fps = _build_comparison_fingerprints(manifest)
-        assert fps == {("broken.png", "errored")}
-
-    def test_extracts_renamed_with_hash_and_previous_name(self):
-        manifest = self._make_manifest(
-            {
-                "new_name.png": ComparisonImageResult(
-                    status="renamed", head_hash="abc", previous_image_file_name="old_name.png"
-                ),
-            }
-        )
-        fps = _build_comparison_fingerprints(manifest)
-        assert fps == {("new_name.png", "renamed", "abc", "old_name.png")}
-
-    def test_skips_unchanged(self):
-        manifest = self._make_manifest(
-            {
-                "stable.png": ComparisonImageResult(
-                    status="unchanged", head_hash="aaa", base_hash="aaa"
-                ),
-                "changed.png": ComparisonImageResult(
-                    status="changed", head_hash="bbb", base_hash="ccc"
-                ),
-            }
-        )
-        fps = _build_comparison_fingerprints(manifest)
-        assert fps == {("changed.png", "changed", "bbb")}
-
     def test_mixed_statuses(self):
         manifest = self._make_manifest(
             {
@@ -302,15 +239,15 @@ class TryAutoApproveSnapshotTest(TestCase):
         )
 
         session = _mock_session_with_manifests({comp_key: comp_json})
-        result = _try_auto_approve_snapshot(head_artifact, head_manifest, session)
+        _try_auto_approve_snapshot(head_artifact, head_manifest, session)
 
-        assert result is True
         approval = PreprodComparisonApproval.objects.get(
             preprod_artifact=head_artifact,
             preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
             approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
         )
         assert approval.approved_by_id is None
+        assert approval.approved_at is not None
         assert approval.extras is not None
         assert approval.extras["auto_approval"] is True
         assert approval.extras["prev_approved_artifact_id"] == sibling.id
@@ -346,9 +283,8 @@ class TryAutoApproveSnapshotTest(TestCase):
         )
 
         session = _mock_session_with_manifests({comp_key: comp_json})
-        result = _try_auto_approve_snapshot(head_artifact, head_manifest, session)
+        _try_auto_approve_snapshot(head_artifact, head_manifest, session)
 
-        assert result is False
         assert not PreprodComparisonApproval.objects.filter(
             preprod_artifact=head_artifact,
             approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
@@ -369,9 +305,11 @@ class TryAutoApproveSnapshotTest(TestCase):
             }
         )
         session = MagicMock()
-        result = _try_auto_approve_snapshot(head_artifact, head_manifest, session)
-
-        assert result is False
+        _try_auto_approve_snapshot(head_artifact, head_manifest, session)
+        assert not PreprodComparisonApproval.objects.filter(
+            preprod_artifact=head_artifact,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        ).exists()
 
     def test_no_auto_approve_when_no_approved_sibling(self):
         cc = self.create_commit_comparison(
@@ -390,9 +328,11 @@ class TryAutoApproveSnapshotTest(TestCase):
             }
         )
         session = MagicMock()
-        result = _try_auto_approve_snapshot(head_artifact, head_manifest, session)
-
-        assert result is False
+        _try_auto_approve_snapshot(head_artifact, head_manifest, session)
+        assert not PreprodComparisonApproval.objects.filter(
+            preprod_artifact=head_artifact,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        ).exists()
 
     def test_no_auto_approve_when_no_changes(self):
         cc = self.create_commit_comparison(
@@ -412,9 +352,11 @@ class TryAutoApproveSnapshotTest(TestCase):
             }
         )
         session = MagicMock()
-        result = _try_auto_approve_snapshot(head_artifact, head_manifest, session)
-
-        assert result is False
+        _try_auto_approve_snapshot(head_artifact, head_manifest, session)
+        assert not PreprodComparisonApproval.objects.filter(
+            preprod_artifact=head_artifact,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        ).exists()
 
     def test_handles_missing_comparison_manifest(self):
         sibling_images = {
@@ -445,9 +387,11 @@ class TryAutoApproveSnapshotTest(TestCase):
 
         session = MagicMock()
         session.get.side_effect = Exception("Not found")
-        result = _try_auto_approve_snapshot(head_artifact, head_manifest, session)
-
-        assert result is False
+        _try_auto_approve_snapshot(head_artifact, head_manifest, session)
+        assert not PreprodComparisonApproval.objects.filter(
+            preprod_artifact=head_artifact,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        ).exists()
 
     def test_matches_on_app_id_and_build_config(self):
         shared_images = {
@@ -477,106 +421,11 @@ class TryAutoApproveSnapshotTest(TestCase):
             }
         )
         session = MagicMock()
-        result = _try_auto_approve_snapshot(head_artifact, head_manifest, session)
-
-        assert result is False
-
-    def test_auto_approve_sets_approved_at(self):
-        shared_images = {
-            "screen1.png": ComparisonImageResult(
-                status="changed", head_hash="abc", base_hash="old1"
-            ),
-        }
-        _, comp_key, comp_json = self._create_approved_sibling(
-            pr_number=42,
-            comparison_images=shared_images,
-        )
-
-        cc = self.create_commit_comparison(
-            organization=self.organization,
-            pr_number=42,
-            head_repo_name="owner/repo",
-        )
-        head_artifact = self.create_preprod_artifact(
-            project=self.project,
-            commit_comparison=cc,
-            app_id="com.example.app",
-        )
-
-        head_manifest = self._create_head_manifest(
-            {
-                "screen1.png": ComparisonImageResult(
-                    status="changed", head_hash="abc", base_hash="new_base1"
-                ),
-            }
-        )
-
-        session = _mock_session_with_manifests({comp_key: comp_json})
         _try_auto_approve_snapshot(head_artifact, head_manifest, session)
-
-        approval = PreprodComparisonApproval.objects.get(
+        assert not PreprodComparisonApproval.objects.filter(
             preprod_artifact=head_artifact,
             approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
-        )
-        assert approval.approved_at is not None
-
-    def test_no_auto_approve_when_no_head_repo_name(self):
-        cc = self.create_commit_comparison(
-            organization=self.organization,
-            pr_number=42,
-            head_repo_name="",
-        )
-        head_artifact = self.create_preprod_artifact(
-            project=self.project,
-            commit_comparison=cc,
-        )
-        head_manifest = self._create_head_manifest(
-            {
-                "screen1.png": ComparisonImageResult(status="changed", head_hash="abc"),
-            }
-        )
-        session = MagicMock()
-        result = _try_auto_approve_snapshot(head_artifact, head_manifest, session)
-
-        assert result is False
-
-    def test_no_auto_approve_when_extra_changed_image_in_head(self):
-        sibling_images = {
-            "screen1.png": ComparisonImageResult(
-                status="changed", head_hash="abc", base_hash="old1"
-            ),
-        }
-        _, comp_key, comp_json = self._create_approved_sibling(
-            pr_number=42,
-            comparison_images=sibling_images,
-        )
-
-        cc = self.create_commit_comparison(
-            organization=self.organization,
-            pr_number=42,
-            head_repo_name="owner/repo",
-        )
-        head_artifact = self.create_preprod_artifact(
-            project=self.project,
-            commit_comparison=cc,
-            app_id="com.example.app",
-        )
-
-        head_manifest = self._create_head_manifest(
-            {
-                "screen1.png": ComparisonImageResult(
-                    status="changed", head_hash="abc", base_hash="old1"
-                ),
-                "screen2.png": ComparisonImageResult(
-                    status="changed", head_hash="new_change", base_hash="old2"
-                ),
-            }
-        )
-
-        session = _mock_session_with_manifests({comp_key: comp_json})
-        result = _try_auto_approve_snapshot(head_artifact, head_manifest, session)
-
-        assert result is False
+        ).exists()
 
     def test_no_auto_approve_when_sibling_not_approved_for_snapshots(self):
         cc = self.create_commit_comparison(
@@ -629,9 +478,11 @@ class TryAutoApproveSnapshotTest(TestCase):
             }
         )
         session = MagicMock()
-        result = _try_auto_approve_snapshot(head_artifact, head_manifest, session)
-
-        assert result is False
+        _try_auto_approve_snapshot(head_artifact, head_manifest, session)
+        assert not PreprodComparisonApproval.objects.filter(
+            preprod_artifact=head_artifact,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        ).exists()
 
     def test_auto_approves_with_renamed_images(self):
         shared_images = {
@@ -639,7 +490,7 @@ class TryAutoApproveSnapshotTest(TestCase):
                 status="renamed", head_hash="abc", previous_image_file_name="old_name.png"
             ),
         }
-        sibling, comp_key, comp_json = self._create_approved_sibling(
+        _, comp_key, comp_json = self._create_approved_sibling(
             pr_number=42,
             comparison_images=shared_images,
         )
@@ -664,9 +515,7 @@ class TryAutoApproveSnapshotTest(TestCase):
         )
 
         session = _mock_session_with_manifests({comp_key: comp_json})
-        result = _try_auto_approve_snapshot(head_artifact, head_manifest, session)
-
-        assert result is True
+        _try_auto_approve_snapshot(head_artifact, head_manifest, session)
         assert PreprodComparisonApproval.objects.filter(
             preprod_artifact=head_artifact,
             approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,

@@ -136,14 +136,14 @@ def _try_auto_approve_snapshot(
     head_artifact: PreprodArtifact,
     comparison_manifest: ComparisonManifest,
     session: Session,
-) -> bool:
+) -> None:
     cc = head_artifact.commit_comparison
     if not cc or not cc.pr_number or not cc.head_repo_name:
-        return False
+        return
 
     head_fingerprints = _build_comparison_fingerprints(comparison_manifest)
     if not head_fingerprints:
-        return False
+        return
 
     approved_sibling = (
         PreprodArtifact.objects.filter(
@@ -162,7 +162,7 @@ def _try_auto_approve_snapshot(
     )
 
     if not approved_sibling:
-        return False
+        return
 
     sibling_comparison = (
         PreprodSnapshotComparison.objects.filter(
@@ -174,11 +174,11 @@ def _try_auto_approve_snapshot(
     )
 
     if not sibling_comparison:
-        return False
+        return
 
     sibling_comparison_key = (sibling_comparison.extras or {}).get("comparison_key")
     if not sibling_comparison_key:
-        return False
+        return
 
     try:
         sibling_manifest = ComparisonManifest(
@@ -193,7 +193,7 @@ def _try_auto_approve_snapshot(
                 "comparison_key": sibling_comparison_key,
             },
         )
-        return False
+        return
 
     sibling_fingerprints = _build_comparison_fingerprints(sibling_manifest)
 
@@ -205,7 +205,7 @@ def _try_auto_approve_snapshot(
                 "sibling_artifact_id": approved_sibling.id,
             },
         )
-        return False
+        return
 
     PreprodComparisonApproval.objects.create(
         preprod_artifact=head_artifact,
@@ -225,7 +225,6 @@ def _try_auto_approve_snapshot(
             "prev_approved_artifact_id": approved_sibling.id,
         },
     )
-    return True
 
 
 @instrumented_task(
