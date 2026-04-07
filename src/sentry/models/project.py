@@ -881,7 +881,9 @@ class Project(Model):
     def write_relocation_import(
         self, scope: ImportScope, flags: ImportFlags
     ) -> tuple[int, ImportKind] | None:
-        from sentry.receivers.project_detectors import disable_default_detector_creation
+        from sentry.workflow_engine.receivers.project_detectors import (
+            disable_default_detector_creation,
+        )
 
         with disable_default_detector_creation():
             return super().write_relocation_import(scope, flags)

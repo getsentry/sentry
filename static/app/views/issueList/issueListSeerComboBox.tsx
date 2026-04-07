@@ -255,7 +255,6 @@ export function IssueListSeerComboBox() {
       applySeerSearchQuery={applySeerSearchQuery}
       transformResponse={transformResponse}
       analyticsSource="issue.list"
-      feedbackSource="issue_list_ai_query"
       fallbackMutationOptions={issueListAskSeerMutationOptions}
     />
   );

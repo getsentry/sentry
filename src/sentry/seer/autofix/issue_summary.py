@@ -428,16 +428,15 @@ def run_automation(
         return
 
     # Check event count for ALERT source with seat-based tier
-    if is_seer_seat_based_tier_enabled(group.organization):
-        if source == SeerAutomationSource.ALERT:
-            # Use times_seen_with_pending if available (set by post_process), otherwise fall back
-            times_seen = (
-                group.times_seen_with_pending
-                if hasattr(group, "_times_seen_pending")
-                else group.times_seen
-            )
-            if times_seen < AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD:
-                return
+    if is_seer_seat_based_tier_enabled(group.organization) and source == SeerAutomationSource.ALERT:
+        # Use times_seen_with_pending if available (set by post_process), otherwise fall back
+        times_seen = (
+            group.times_seen_with_pending
+            if hasattr(group, "_times_seen_pending")
+            else group.times_seen
+        )
+        if times_seen < AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD:
+            return
 
     user_id = user.id if user else None
     auto_run_source = auto_run_source_map.get(source, "unknown_source")

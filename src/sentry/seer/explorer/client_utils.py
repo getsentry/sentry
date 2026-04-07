@@ -345,7 +345,7 @@ def poll_until_done(
 def _render_node(node: dict[str, Any], depth: int) -> str:
     """Recursively render an LLMContextSnapshot node and its children as markdown."""
     heading = "#" * min(depth + 1, 6)
-    lines = [f"{heading} {node.get('nodeType', 'unknown')}"]
+    lines = [f"{heading} {(node.get('nodeType') or 'unknown').capitalize()}"]
 
     data = node.get("data")
     if isinstance(data, dict):
@@ -369,4 +369,7 @@ def snapshot_to_markdown(snapshot: dict[str, Any]) -> str:
     nodes = snapshot.get("nodes", [])
     if not nodes:
         return ""
-    return _render_node(nodes[0], 0)
+    preamble = (
+        "> This is a structured summary of the page the user is viewing, not an exact screenshot.\n"
+    )
+    return preamble + _render_node(nodes[0], 0)

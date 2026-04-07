@@ -1,4 +1,5 @@
 import {HookStore} from 'sentry/stores/hookStore';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export interface UseExperimentResult {
   /**
@@ -34,10 +35,14 @@ export interface UseExperimentOptions {
 }
 
 /**
- * Open-source fallback: always returns control group with no exposure logging.
+ * Open-source fallback: gates on organization.features with no exposure logging.
  */
-function noopUseExperiment(_options: UseExperimentOptions): UseExperimentResult {
-  return {inExperiment: false, experimentAssignment: 'control'};
+function useNoopExperiment(options: UseExperimentOptions): UseExperimentResult {
+  const organization = useOrganization();
+  return {
+    inExperiment: organization.features.includes(options.feature),
+    experimentAssignment: 'control',
+  };
 }
 
 /**
@@ -77,6 +82,6 @@ function noopUseExperiment(_options: UseExperimentOptions): UseExperimentResult 
  */
 export function useExperiment(options: UseExperimentOptions): UseExperimentResult {
   const useExperimentHook =
-    HookStore.get('react-hook:use-experiment')[0] ?? noopUseExperiment;
+    HookStore.get('react-hook:use-experiment')[0] ?? useNoopExperiment;
   return useExperimentHook(options);
 }

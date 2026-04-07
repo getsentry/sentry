@@ -10,7 +10,7 @@ import {CRON_DEFAULT_RECOVERY_THRESHOLD} from 'sentry/views/detectors/components
 export function CronDetectorFormResolveSection({step}: {step?: number}) {
   return (
     <Container>
-      <FormSection step={step} title={t('Resolve')}>
+      <FormSection step={step} title={t('Issue Resolution')}>
         <RemoveFieldPadding>
           <NumberField
             name="recoveryThreshold"

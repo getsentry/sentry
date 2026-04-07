@@ -59,6 +59,22 @@ class TestDeleteWorkflow(HybridCloudTestMixin):
         self.workflow.status = ObjectStatus.PENDING_DELETION
         self.workflow.save()
 
+    def test_dangling_when_condition_group(self) -> None:
+        """Deletion succeeds when when_condition_group_id references a deleted DataConditionGroup."""
+        from sentry.workflow_engine.models import Workflow
+
+        # Simulate a dangling FK — points to a non-existent DataConditionGroup row
+        Workflow.objects_for_deletion.filter(id=self.workflow.id).update(
+            when_condition_group_id=999999
+        )
+
+        self.ScheduledDeletion.schedule(instance=self.workflow, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Workflow.objects_for_deletion.filter(id=self.workflow.id).exists()
+
     @pytest.mark.parametrize(
         "instance_attr",
         [

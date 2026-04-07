@@ -4,7 +4,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
 
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_comparison_url, get_preprod_artifact_url
 
@@ -19,6 +19,7 @@ def format_snapshot_status_check_messages(
     overall_status: StatusCheckStatus,
     base_artifact_map: dict[int, PreprodArtifact],
     changes_map: dict[int, bool],
+    approvals_map: dict[int, PreprodComparisonApproval] | None = None,
 ) -> tuple[str, str, str]:
     if not artifacts:
         raise ValueError("Cannot format messages for empty artifact list")
@@ -110,6 +111,7 @@ def format_snapshot_status_check_messages(
         comparisons_map,
         base_artifact_map,
         changes_map,
+        approvals_map=approvals_map,
     )
 
     return str(title), str(subtitle), str(summary)
@@ -222,6 +224,7 @@ def _format_snapshot_summary(
     comparisons_map: dict[int, PreprodSnapshotComparison],
     base_artifact_map: dict[int, PreprodArtifact],
     changes_map: dict[int, bool],
+    approvals_map: dict[int, PreprodComparisonApproval] | None = None,
 ) -> str:
     table_rows = []
 
@@ -268,7 +271,13 @@ def _format_snapshot_summary(
             renamed = comparison.images_renamed
             unchanged = comparison.images_unchanged
             has_changes = changes_map.get(artifact.id, False)
-            status = "⏳ Needs approval" if has_changes else "✅ Unchanged"
+            is_approved = approvals_map is not None and artifact.id in approvals_map
+            if has_changes and is_approved:
+                status = "✅ Approved"
+            elif has_changes:
+                status = "⏳ Needs approval"
+            else:
+                status = "✅ Unchanged"
 
             def _section_cell(count: int, section: str) -> str:
                 if count > 0:

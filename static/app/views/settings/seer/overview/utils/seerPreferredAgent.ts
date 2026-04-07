@@ -101,7 +101,7 @@ export function getPreferredAgentMutationOptions({
   });
 }
 
-export function useBulkMutateSelectedAgent({projects}: {projects: Project[]}) {
+export function useBulkMutateSelectedAgent() {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const autofixSettingsQueryOptions = bulkAutofixAutomationSettingsInfiniteOptions({
@@ -109,7 +109,7 @@ export function useBulkMutateSelectedAgent({projects}: {projects: Project[]}) {
   });
 
   return useCallback(
-    async (integration: PreferredAgent) => {
+    async (projects: Project[], integration: PreferredAgent) => {
       const results = await processInChunks({
         items: projects,
         chunkSize: 15,
@@ -184,6 +184,6 @@ export function useBulkMutateSelectedAgent({projects}: {projects: Project[]}) {
         }
       }
     },
-    [projects, organization, queryClient, autofixSettingsQueryOptions.queryKey]
+    [organization, queryClient, autofixSettingsQueryOptions.queryKey]
   );
 }
