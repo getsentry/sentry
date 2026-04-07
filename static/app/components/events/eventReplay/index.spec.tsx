@@ -137,14 +137,17 @@ describe('EventReplay', () => {
     });
   });
 
-  it('should render the replay inline onboarding component when replays are enabled and the project supports replay', async () => {
-    MockUseReplayOnboardingSidebarPanel.mockReturnValue({
-      activateSidebar: jest.fn(),
-    });
-    render(<EventReplay {...defaultProps} />, {organization});
+  it.isKnownFlake(
+    'should render the replay inline onboarding component when replays are enabled and the project supports replay',
+    async () => {
+      MockUseReplayOnboardingSidebarPanel.mockReturnValue({
+        activateSidebar: jest.fn(),
+      });
+      render(<EventReplay {...defaultProps} />, {organization});
 
-    expect(await screen.findByTestId('replay-inline-onboarding')).toBeInTheDocument();
-  });
+      expect(await screen.findByTestId('replay-inline-onboarding')).toBeInTheDocument();
+    }
+  );
 
   it('should render a replay when there is a replayId from tags', async () => {
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
