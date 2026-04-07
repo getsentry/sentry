@@ -279,7 +279,14 @@ jobs:
       - name: Wait for Snuba bootstrap
         if: env.XDIST_PER_WORKER_SNUBA == '1'
         run: |
-          while [ ! -f /tmp/snuba-bootstrap-exit ]; do sleep 2; done
+          SECONDS=0
+          while [ ! -f /tmp/snuba-bootstrap-exit ]; do
+            if [ $SECONDS -gt 600 ]; then
+              echo "::error::Timed out waiting for Snuba bootstrap after 600s"
+              exit 1
+            fi
+            sleep 2
+          done
           SNUBA_RC=$(cat /tmp/snuba-bootstrap-exit)
           if [ "$SNUBA_RC" -ne 0 ]; then
             echo "::error::Snuba per-worker bootstrap failed"

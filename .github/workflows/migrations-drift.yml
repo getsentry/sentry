@@ -27,21 +27,10 @@ jobs:
         with:
           ref: master
 
-      - name: Start devservices early
-        uses: ./.github/actions/setup-devservices
-        with:
-          mode: migrations
-
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         with:
           mode: migrations
-          skip-devservices: 'true'
-
-      - name: Wait for devservices
-        run: |
-          sentry init
-          ./.github/actions/setup-devservices/wait.sh
 
       - name: Apply migrations
         env:
