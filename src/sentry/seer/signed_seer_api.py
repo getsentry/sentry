@@ -192,6 +192,16 @@ class RemoveRepositoryRequest(TypedDict):
     repo_external_id: str
 
 
+class RepoIdentifier(TypedDict):
+    repo_provider: str
+    repo_external_id: str
+
+
+class BulkRemoveRepositoriesRequest(TypedDict):
+    organization_id: int
+    repositories: list[RepoIdentifier]
+
+
 class ExplorerIndexProject(TypedDict):
     org_id: int
     project_id: int
@@ -252,6 +262,20 @@ def make_remove_repository_request(
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v1/project-preference/remove-repository",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+def make_bulk_remove_repositories_request(
+    body: BulkRemoveRepositoriesRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/project-preference/bulk-remove-repositories",
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
@@ -321,13 +345,6 @@ class SupergroupsEmbeddingRequest(TypedDict):
     group_id: int
     project_id: int
     artifact_data: dict[str, Any]
-
-
-class SupergroupsListRequest(TypedDict):
-    organization_id: int
-    offset: NotRequired[int | None]
-    limit: NotRequired[int | None]
-    project_ids: NotRequired[list[int] | None]
 
 
 class SupergroupsGetRequest(TypedDict):
@@ -433,20 +450,6 @@ def make_supergroups_embedding_request(
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v0/issues/supergroups",
-        body=orjson.dumps(body),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
-
-
-def make_supergroups_list_request(
-    body: SupergroupsListRequest,
-    viewer_context: SeerViewerContext,
-    timeout: int | float | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        seer_autofix_default_connection_pool,
-        "/v0/issues/supergroups/list",
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,

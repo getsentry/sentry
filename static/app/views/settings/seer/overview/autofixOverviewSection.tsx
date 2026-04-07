@@ -161,9 +161,7 @@ function AgentNameForm({
   const preferredAgent = useFetchPreferredAgent({organization});
   const codingAgentSelectOptions = useFetchAgentOptions({organization});
   const codingAgentMutationOptions = getPreferredAgentMutationOptions({organization});
-  const bulkMutateSelectedAgent = useBulkMutateSelectedAgent({
-    projects: projects.filter(p => !projectsIdsWithPreferredAgent.has(p.id)),
-  });
+  const bulkMutateSelectedAgent = useBulkMutateSelectedAgent();
 
   const preferredAgentLabel = codingAgentSelectOptions.data?.find(
     o => o.value === preferredAgent.data
@@ -225,7 +223,10 @@ function AgentNameForm({
               onClick={async () => {
                 if (preferredAgent.data) {
                   setIsBulkMutatingAgent(true);
-                  await bulkMutateSelectedAgent(preferredAgent.data);
+                  await bulkMutateSelectedAgent(
+                    projects.filter(p => !projectsIdsWithPreferredAgent.has(p.id)),
+                    preferredAgent.data
+                  );
                   setIsBulkMutatingAgent(false);
                 } else {
                   addErrorMessage(t('No coding agent integration found'));

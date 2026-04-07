@@ -6,8 +6,16 @@ import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ExploreBodySearch} from 'sentry/views/explore/components/styles';
+import {
+  ExploreBodyContent,
+  ExploreBodySearch,
+} from 'sentry/views/explore/components/styles';
+import {
+  ErrorsContentSection,
+  ErrorsControlSection,
+} from 'sentry/views/explore/errors/body';
 import {ErrorsFilterSection} from 'sentry/views/explore/errors/filterContent';
+import {useControlSectionExpanded} from 'sentry/views/explore/hooks/useControlSectionExpanded';
 
 export default function ErrorsContent() {
   const organization = useOrganization();
@@ -22,6 +30,7 @@ export default function ErrorsContent() {
             <ErrorsFilterSection />
           </ExploreBodySearch>
         </PageFiltersContainer>
+        <ErrorsBody />
       </Layout.Page>
     </SentryDocumentTitle>
   );
@@ -39,5 +48,23 @@ function ErrorsHeader() {
         <FeedbackButton />
       </Layout.HeaderActions>
     </Layout.Header>
+  );
+}
+
+const ERRORS_TOOLBAR_STORAGE_KEY = 'explore-errors-toolbar';
+
+export function ErrorsBody() {
+  const [controlSectionExpanded, setControlSectionExpanded] = useControlSectionExpanded(
+    ERRORS_TOOLBAR_STORAGE_KEY
+  );
+
+  return (
+    <ExploreBodyContent>
+      <ErrorsControlSection controlSectionExpanded={controlSectionExpanded} />
+      <ErrorsContentSection
+        controlSectionExpanded={controlSectionExpanded}
+        setControlSectionExpanded={setControlSectionExpanded}
+      />
+    </ExploreBodyContent>
   );
 }
