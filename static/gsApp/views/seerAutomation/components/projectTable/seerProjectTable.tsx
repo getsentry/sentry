@@ -280,6 +280,6 @@ const FiltersContainer = styled('div')`
 `;
 
 const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: 3fr minmax(300px, 1fr) repeat(2, max-content);
+  grid-template-columns: max-content 3fr minmax(300px, 1fr) repeat(2, max-content);
   overflow: visible;
 `;

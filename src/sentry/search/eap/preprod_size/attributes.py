@@ -1,3 +1,5 @@
+from typing import Literal
+
 from sentry.search.eap import constants
 from sentry.search.eap.columns import ResolvedAttribute, datetime_processor
 from sentry.search.eap.common_columns import COMMON_COLUMNS
@@ -57,6 +59,11 @@ PREPROD_SIZE_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
+            public_alias="installable",
+            internal_name="has_installable_file",
+            search_type="boolean",
+        ),
+        ResolvedAttribute(
             public_alias="timestamp",
             internal_name="sentry.timestamp",
             internal_type=constants.DOUBLE,
@@ -64,4 +71,24 @@ PREPROD_SIZE_ATTRIBUTE_DEFINITIONS = {
             processor=datetime_processor,
         ),
     ]
+}
+
+PREPROD_SIZE_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[
+    Literal["string", "number", "boolean"], dict[str, str]
+] = {
+    "string": {
+        definition.internal_name: definition.public_alias
+        for definition in PREPROD_SIZE_ATTRIBUTE_DEFINITIONS.values()
+        if not definition.secondary_alias and definition.search_type == "string"
+    },
+    "boolean": {
+        definition.internal_name: definition.public_alias
+        for definition in PREPROD_SIZE_ATTRIBUTE_DEFINITIONS.values()
+        if not definition.secondary_alias and definition.search_type == "boolean"
+    },
+    "number": {
+        definition.internal_name: definition.public_alias
+        for definition in PREPROD_SIZE_ATTRIBUTE_DEFINITIONS.values()
+        if not definition.secondary_alias and definition.search_type != "string"
+    },
 }
