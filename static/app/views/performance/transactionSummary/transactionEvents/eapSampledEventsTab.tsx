@@ -1,10 +1,10 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -169,21 +169,19 @@ function FilterBar(props: FilterBarProps) {
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   return (
-    <FilterActions>
+    <Grid gap="xl" marginBottom="xl" columns={{sm: 'auto 1fr auto auto'}}>
       <PageFilterBar condensed>
         <EnvironmentPageFilter />
         <DatePageFilter {...datePageFilterProps} />
       </PageFilterBar>
-      <StyledSearchBarWrapper>
-        <SearchBar
-          projects={projectIds ?? []}
-          initialQuery={query}
-          onSearch={handleSearch}
-        />
-      </StyledSearchBarWrapper>
+      <SearchBar
+        projects={projectIds ?? []}
+        initialQuery={query}
+        onSearch={handleSearch}
+      />
       <PercentileSelect {...props} />
       <OpenInExploreButton {...props} />
-    </FilterActions>
+    </Grid>
   );
 }
 
@@ -285,23 +283,6 @@ function OpenInExploreButton({
 
   return <LinkButton to={exploreUrl}>{t('Open in Explore')}</LinkButton>;
 }
-
-const FilterActions = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.xl};
-  margin-bottom: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: auto 1fr auto auto;
-  }
-`;
-
-const StyledSearchBarWrapper = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    order: initial;
-    grid-column: auto;
-  }
-`;
 
 function useMaxDuration(
   transactionName: string,
