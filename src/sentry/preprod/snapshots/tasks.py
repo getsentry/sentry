@@ -7,6 +7,7 @@ from typing import NamedTuple
 import orjson
 from django.db import IntegrityError
 from django.utils import timezone
+from objectstore_client import Session
 from objectstore_client.client import RequestError
 from pydantic import ValidationError
 from taskbroker_client.retry import Retry
@@ -134,7 +135,7 @@ def _build_comparison_fingerprints(manifest: ComparisonManifest) -> set[tuple[st
 def _try_auto_approve_snapshot(
     head_artifact: PreprodArtifact,
     comparison_manifest: ComparisonManifest,
-    session: object,
+    session: Session,
 ) -> bool:
     cc = head_artifact.commit_comparison
     if not cc or not cc.pr_number or not cc.head_repo_name:

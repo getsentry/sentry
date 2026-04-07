@@ -311,6 +311,7 @@ class TryAutoApproveSnapshotTest(TestCase):
             approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
         )
         assert approval.approved_by_id is None
+        assert approval.extras is not None
         assert approval.extras["auto_approval"] is True
         assert approval.extras["prev_approved_artifact_id"] == sibling.id
 
