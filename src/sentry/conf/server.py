@@ -990,6 +990,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.workflow_engine.tasks.cleanup",
     "sentry.tasks.seer.explorer_index",
     "sentry.tasks.seer.context_engine_index",
+    "sentry.tasks.seer.lightweight_rca_cluster",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )

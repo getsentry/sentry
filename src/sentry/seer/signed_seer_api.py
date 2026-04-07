@@ -376,6 +376,14 @@ class SupergroupsEmbeddingRequest(TypedDict):
     artifact_data: dict[str, Any]
 
 
+class LightweightRCAClusterRequest(TypedDict):
+    group_id: int
+    issue: dict[str, Any]
+    organization_slug: str
+    organization_id: int
+    project_id: int
+
+
 class SupergroupsGetRequest(TypedDict):
     organization_id: int
     supergroup_id: int
@@ -496,6 +504,20 @@ def make_supergroups_embedding_request(
         seer_autofix_default_connection_pool,
         "/v0/issues/supergroups",
         body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+def make_lightweight_rca_cluster_request(
+    body: LightweightRCAClusterRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v0/issues/supergroups/cluster-lightweight",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         timeout=timeout,
         viewer_context=viewer_context,
     )
