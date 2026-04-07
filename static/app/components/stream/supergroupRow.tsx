@@ -38,19 +38,6 @@ export function SupergroupRow({
   memberList,
 }: SupergroupRowProps) {
   const matchedCount = matchedGroupIds.length;
-  const summary = useOptionalIssueSelectionSummary();
-  const selectedCount = useMemo(() => {
-    if (!summary) {
-      return 0;
-    }
-    let count = 0;
-    for (const id of matchedGroupIds) {
-      if (summary.records.get(id)) {
-        count++;
-      }
-    }
-    return count;
-  }, [summary, matchedGroupIds]);
   const {openDrawer, isDrawerOpen} = useDrawer();
   const [isActive, setIsActive] = useState(false);
   const handleClick = () => {
@@ -71,6 +58,20 @@ export function SupergroupRow({
     );
   };
 
+  const summary = useOptionalIssueSelectionSummary();
+  const selectedCount = useMemo(() => {
+    if (!summary) {
+      return 0;
+    }
+    let count = 0;
+    for (const id of matchedGroupIds) {
+      if (summary.records.get(id)) {
+        count++;
+      }
+    }
+    return count;
+  }, [summary, matchedGroupIds]);
+
   const highlighted = isActive && isDrawerOpen;
 
   return (
@@ -78,7 +79,10 @@ export function SupergroupRow({
       <InteractionStateLayer />
       <IconArea>
         <AccentIcon size="md" />
-        <SupergroupCheckbox matchedGroupIds={matchedGroupIds} />
+        <SupergroupCheckbox
+          matchedGroupIds={matchedGroupIds}
+          selectedCount={selectedCount}
+        />
       </IconArea>
       <Summary>
         {supergroup.error_type ? (
@@ -99,7 +103,7 @@ export function SupergroupRow({
           {matchedCount > 0 ? (
             <Text
               size="sm"
-              variant={selectedCount > 0 ? 'default' : 'muted'}
+              variant={selectedCount > 0 ? 'primary' : 'muted'}
               bold={selectedCount > 0}
             >
               {selectedCount > 0

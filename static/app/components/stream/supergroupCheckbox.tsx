@@ -1,40 +1,28 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 
 import {t} from 'sentry/locale';
-import {
-  useOptionalIssueSelectionActions,
-  useOptionalIssueSelectionSummary,
-} from 'sentry/views/issueList/issueSelectionContext';
+import {useOptionalIssueSelectionActions} from 'sentry/views/issueList/issueSelectionContext';
 
 interface SupergroupCheckboxProps {
   matchedGroupIds: string[];
+  selectedCount: number;
 }
 
-export function SupergroupCheckbox({matchedGroupIds}: SupergroupCheckboxProps) {
-  const summary = useOptionalIssueSelectionSummary();
+export function SupergroupCheckbox({
+  matchedGroupIds,
+  selectedCount,
+}: SupergroupCheckboxProps) {
   const actions = useOptionalIssueSelectionActions();
 
-  const checkedState = useMemo(() => {
-    if (!summary || matchedGroupIds.length === 0) {
-      return false;
-    }
-    let selectedCount = 0;
-    for (const id of matchedGroupIds) {
-      if (summary.records.get(id)) {
-        selectedCount++;
-      }
-    }
-    if (selectedCount === 0) {
-      return false;
-    }
-    if (selectedCount === matchedGroupIds.length) {
-      return true;
-    }
-    return 'indeterminate' as const;
-  }, [summary, matchedGroupIds]);
+  const checkedState =
+    selectedCount === 0
+      ? false
+      : selectedCount === matchedGroupIds.length
+        ? true
+        : ('indeterminate' as const);
 
   const handleChange = useCallback(
     (evt: React.MouseEvent) => {
@@ -45,7 +33,7 @@ export function SupergroupCheckbox({matchedGroupIds}: SupergroupCheckboxProps) {
     [actions, matchedGroupIds, checkedState]
   );
 
-  if (!summary || !actions) {
+  if (!actions) {
     return null;
   }
 
