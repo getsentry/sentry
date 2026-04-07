@@ -1,3 +1,9 @@
+import {useCallback} from 'react';
+import {z} from 'zod';
+
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {
@@ -6,21 +12,23 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
-import {TextField} from 'sentry/components/forms/fields/textField';
-import {Form} from 'sentry/components/forms/form';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types/user';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {
+  fetchMutation,
+  getApiQueryData,
+  setApiQueryData,
+  useApiQuery,
+  useMutation,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useMutateApiToken} from 'sentry/utils/useMutateApiToken';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -37,68 +45,112 @@ type FetchApiTokenResponse = InternalAppApiToken;
 const makeFetchApiTokenKey = ({tokenId}: FetchApiTokenParameters) =>
   [getApiUrl(`/api-tokens/$tokenId/`, {path: {tokenId}})] as const;
 
+const API_TOKEN_LIST_KEY = [getApiUrl('/api-tokens/')] as const;
+
+const schema = z.object({
+  name: z.string(),
+});
+
 function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
   const navigate = useNavigate();
-  const initialData = {
-    name: token.name,
-    tokenPreview: tokenPreview(token.tokenLastCharacters || '****'),
-  };
+  const queryClient = useQueryClient();
 
-  const handleGoBack = () => {
-    navigate(normalizeUrl(API_INDEX_ROUTE));
-  };
+  const handleGoBack = useCallback(
+    () => navigate(normalizeUrl(API_INDEX_ROUTE)),
+    [navigate]
+  );
 
-  const onSuccess = () => {
-    addSuccessMessage(t('Updated user auth token.'));
-    handleGoBack();
-  };
+  const mutation = useMutation({
+    mutationFn: (data: z.infer<typeof schema>) =>
+      fetchMutation({
+        url: `/api-tokens/${token.id}/`,
+        method: 'PUT',
+        data,
+      }),
+    onSuccess: (_data, {name}) => {
+      addSuccessMessage(t('Updated user auth token.'));
 
-  const onError = (error: any) => {
-    const message = t('Failed to update the user auth token.');
-    handleXhrErrorResponse(message, error);
-    addErrorMessage(message);
-  };
+      // Update get by id query
+      setApiQueryData(
+        queryClient,
+        makeFetchApiTokenKey({tokenId: token.id}),
+        (oldData: InternalAppApiToken | undefined) => {
+          if (!oldData) {
+            return oldData;
+          }
+          return {...oldData, name};
+        }
+      );
 
-  const {mutate: submitToken} = useMutateApiToken({
-    token,
-    onSuccess,
-    onError,
+      // Update get list query
+      if (getApiQueryData(queryClient, API_TOKEN_LIST_KEY)) {
+        setApiQueryData(
+          queryClient,
+          API_TOKEN_LIST_KEY,
+          (oldData: InternalAppApiToken[] | undefined) => {
+            if (!Array.isArray(oldData)) {
+              return oldData;
+            }
+            return oldData.map(oldToken =>
+              oldToken.id === token.id ? {...oldToken, name} : oldToken
+            );
+          }
+        );
+      }
+
+      handleGoBack();
+    },
+    onError: (error: RequestError) => {
+      const message = t('Failed to update the user auth token.');
+      handleXhrErrorResponse(message, error);
+      addErrorMessage(message);
+    },
+  });
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {name: token.name},
+    validators: {onDynamic: schema},
+    onSubmit: ({value}) => {
+      addLoadingMessage();
+      return mutation.mutateAsync(value).catch(() => {});
+    },
   });
 
   return (
-    <Form
-      apiMethod="PUT"
-      initialData={initialData}
-      apiEndpoint={`/api-tokens/${token.id}/`}
-      onSubmit={({name}) => {
-        addLoadingMessage();
+    <form.AppForm form={form}>
+      <form.FieldGroup title={t('Personal Token Details')}>
+        <form.AppField name="name">
+          {field => (
+            <field.Layout.Row
+              label={t('Name')}
+              hintText={t('A name to help you identify this token.')}
+            >
+              <field.Input value={field.state.value} onChange={field.handleChange} />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
 
-        return submitToken({
-          name,
-        });
-      }}
-      onCancel={handleGoBack}
-    >
-      <TextField
-        name="name"
-        label={t('Name')}
-        help={t('A name to help you identify this token.')}
-      />
+        <FieldGroup
+          label={t('Token')}
+          help={t('You can only view the token once after creation.')}
+        >
+          <div>{tokenPreview(token.tokenLastCharacters || '****')}</div>
+        </FieldGroup>
 
-      <TextField
-        name="tokenPreview"
-        label={t('Token')}
-        disabled
-        help={t('You can only view the token once after creation.')}
-      />
+        <FieldGroup
+          label={t('Scopes')}
+          help={t('You cannot change the scopes of an existing token.')}
+        >
+          <div>{token.scopes.slice().sort().join(', ')}</div>
+        </FieldGroup>
+      </form.FieldGroup>
 
-      <FieldGroup
-        label={t('Scopes')}
-        help={t('You cannot change the scopes of an existing token.')}
-      >
-        <div>{token.scopes.slice().sort().join(', ')}</div>
-      </FieldGroup>
-    </Form>
+      <Flex justify="end" gap="md" padding="md">
+        <Button onClick={handleGoBack}>{t('Cancel')}</Button>
+        <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
+      </Flex>
+    </form.AppForm>
   );
 }
 
@@ -132,22 +184,17 @@ function ApiTokenDetails() {
           }
         )}
       </TextBlock>
-      <Panel>
-        <PanelHeader>{t('Personal Token Details')}</PanelHeader>
 
-        <PanelBody>
-          {isError && (
-            <LoadingError
-              message={t('Failed to load personal token.')}
-              onRetry={refetchToken}
-            />
-          )}
+      {isError && (
+        <LoadingError
+          message={t('Failed to load personal token.')}
+          onRetry={refetchToken}
+        />
+      )}
 
-          {isPending && <LoadingIndicator />}
+      {isPending && <LoadingIndicator />}
 
-          {!isPending && !isError && token && <ApiTokenDetailsForm token={token} />}
-        </PanelBody>
-      </Panel>
+      {!isPending && !isError && token && <ApiTokenDetailsForm token={token} />}
     </div>
   );
 }

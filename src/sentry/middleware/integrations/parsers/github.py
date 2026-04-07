@@ -15,9 +15,9 @@ from sentry.integrations.github.webhook import (
     get_github_external_id,
 )
 from sentry.integrations.github.webhook_types import (
+    _CONTROL_ONLY_EVENTS,
     CELL_PROCESSED_GITHUB_EVENTS,
     GITHUB_WEBHOOK_TYPE_HEADER,
-    GithubWebhookType,
 )
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
@@ -77,7 +77,7 @@ class GithubRequestParser(BaseRequestParser):
     def should_route_to_control_silo(
         self, parsed_event: Mapping[str, Any], request: HttpRequest
     ) -> bool:
-        return request.META.get(GITHUB_WEBHOOK_TYPE_HEADER) == GithubWebhookType.INSTALLATION
+        return request.META.get(GITHUB_WEBHOOK_TYPE_HEADER) in _CONTROL_ONLY_EVENTS
 
     @control_silo_function
     def get_integration_from_request(self) -> Integration | None:

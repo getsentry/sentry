@@ -12,6 +12,7 @@ from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
+from sentry.workflow_engine.caches.action_filters import get_action_filters_by_workflows
 from sentry.workflow_engine.caches.workflow import get_workflows_by_detectors
 from sentry.workflow_engine.models import DataConditionGroup, Detector, DetectorWorkflow, Workflow
 from sentry.workflow_engine.models.data_condition import DataCondition
@@ -269,12 +270,24 @@ def evaluate_workflows_action_filters(
         queue_items_by_workflow.keys()
     )
 
-    action_conditions_to_workflow: dict[DataConditionGroup, Workflow] = {
-        wdcg.condition_group: wdcg.workflow
-        for wdcg in WorkflowDataConditionGroup.objects.select_related(
-            "workflow", "condition_group"
-        ).filter(workflow__in=all_workflows)
-    }
+    organization = event_data.event.project.organization
+
+    action_conditions_to_workflow: dict[DataConditionGroup, Workflow] = {}
+
+    if features.has("organizations:workflow-engine-action-filters-cache", organization):
+        all_workflows_lookup: dict[int, Workflow] = {w.id: w for w in all_workflows}
+        action_filters_by_workflows = get_action_filters_by_workflows(all_workflows)
+
+        for workflow_id, dcgs in action_filters_by_workflows.items():
+            for dcg in dcgs:
+                action_conditions_to_workflow[dcg] = all_workflows_lookup[workflow_id]
+    else:
+        action_conditions_to_workflow = {
+            wdcg.condition_group: wdcg.workflow
+            for wdcg in WorkflowDataConditionGroup.objects.select_related(
+                "workflow", "condition_group"
+            ).filter(workflow__in=all_workflows)
+        }
 
     filtered_action_groups: set[DataConditionGroup] = set()
 

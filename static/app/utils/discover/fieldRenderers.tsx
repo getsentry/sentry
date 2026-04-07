@@ -51,7 +51,7 @@ import {getShortEventId} from 'sentry/utils/events';
 import {formatRate} from 'sentry/utils/formatters';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {formatApdex} from 'sentry/utils/number/formatApdex';
-import {formatFloat} from 'sentry/utils/number/formatFloat';
+import {formatNumber} from 'sentry/utils/number/formatNumber';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {toPercent} from 'sentry/utils/number/toPercent';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
@@ -63,10 +63,7 @@ import {
   findLinkedDashboardForField,
   getLinkedDashboardUrl,
 } from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
-import {
-  NUMBER_MAX_FRACTION_DIGITS,
-  NUMBER_MIN_VALUE,
-} from 'sentry/views/dashboards/widgets/common/settings';
+import {NUMBER_MIN_VALUE} from 'sentry/views/dashboards/widgets/common/settings';
 import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
@@ -319,16 +316,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
           </NumberContainer>
         );
       }
-      return (
-        <NumberContainer>
-          {formatFloat(data[field], NUMBER_MAX_FRACTION_DIGITS).toLocaleString(
-            undefined,
-            {
-              maximumFractionDigits: NUMBER_MAX_FRACTION_DIGITS,
-            }
-          )}
-        </NumberContainer>
-      );
+      return <NumberContainer>{formatNumber(data[field])}</NumberContainer>;
     },
   },
   percentage: {

@@ -1,5 +1,6 @@
 import {useCallback, useMemo} from 'react';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import type {AskSeerSearchQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
@@ -41,6 +42,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
   const organization = useOrganization();
+  const analyticsArea = useAnalyticsArea();
   const {
     currentInputValueRef,
     query,
@@ -234,6 +236,11 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         organization,
         query: queryToUse,
       });
+      trackAnalytics('ai_query.applied', {
+        organization,
+        area: analyticsArea,
+        query: queryToUse,
+      });
 
       // Apply the search query
       onSearch(queryToUse);
@@ -281,6 +288,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
       );
     },
     [
+      analyticsArea,
       askSeerSuggestedQueryRef,
       location,
       navigate,
@@ -302,7 +310,6 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
       applySeerSearchQuery={applySeerSearchQuery}
       transformResponse={transformResponse}
       analyticsSource="errors"
-      feedbackSource="errors_ai_query"
       fallbackMutationOptions={issueListAskSeerMutationOptions}
     />
   );

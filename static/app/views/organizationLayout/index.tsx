@@ -93,11 +93,13 @@ function AppLayout({organization}: LayoutProps) {
           <AppBodyContent>
             {organization && <OrganizationHeader organization={organization} />}
             <OrganizationDetailsBody>
-              <TopBar />
-              <Layout.Page>
-                <Outlet />
-                <Footer />
-              </Layout.Page>
+              <TopBar.Slot.Provider>
+                <TopBar />
+                <Layout.Page>
+                  <Outlet />
+                  <Footer />
+                </Layout.Page>
+              </TopBar.Slot.Provider>
             </OrganizationDetailsBody>
           </AppBodyContent>
         </ContentStack>

@@ -225,6 +225,7 @@ export interface Config {
     latest: string;
     upgradeAvailable: boolean;
   };
+  intercomAppId?: string;
   partnershipAgreementPrompt?: {
     agreements: ParntershipAgreementType[];
     partnerDisplayName: string;

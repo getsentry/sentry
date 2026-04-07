@@ -24,7 +24,7 @@ export function SeerSettingsPageContent({children}: Props) {
 
   return (
     <Stack gap="lg">
-      <SeerWizardSetupBanner />
+      {organization.features.includes('seer-wizard') ? <SeerWizardSetupBanner /> : null}
       {showNoActiveSeerSubscriptionBanner ? <NoActiveSeerSubscriptionBanner /> : null}
 
       <SettingsPageTabs />

@@ -10,12 +10,12 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import type {SupergroupLookup} from 'sentry/utils/supergroup/useSuperGroups';
 import {useLocation} from 'sentry/utils/useLocation';
 import {IssueListActions} from 'sentry/views/issueList/actions';
 import {GroupListBody} from 'sentry/views/issueList/groupListBody';
 import {IssueSelectionProvider} from 'sentry/views/issueList/issueSelectionContext';
 import {NewViewEmptyState} from 'sentry/views/issueList/newViewEmptyState';
+import type {SupergroupLookup} from 'sentry/views/issueList/supergroups/useSuperGroups';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
 interface IssueListTableProps {

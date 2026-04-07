@@ -13,7 +13,7 @@ import type {ValidateDataConditionProps} from 'sentry/views/automations/componen
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
 export function EventAttributeDetails({condition}: {condition: DataCondition}) {
-  return tct("The event's [attribute] [match] [value]", {
+  return tct("The event's [attribute] attribute [match] [value]", {
     attribute: condition.comparison.attribute,
     match:
       MATCH_CHOICES.find(choice => choice.value === condition.comparison.match)?.label ||
@@ -23,7 +23,7 @@ export function EventAttributeDetails({condition}: {condition: DataCondition}) {
 }
 
 export function EventAttributeNode() {
-  return tct("The event's [attribute] [match] [value]", {
+  return tct("The event's [attribute] attribute [match] [value]", {
     attribute: <AttributeField />,
     match: <MatchField />,
     value: <ValueField />,

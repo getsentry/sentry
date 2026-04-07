@@ -89,6 +89,8 @@ class BuildsEndpoint(OrganizationEndpoint):
             display = request.GET.get("display")
             if display in ("size", "distribution"):
                 queryset = queryset.filter(preprodsnapshotmetrics__isnull=True)
+            elif display == "snapshot":
+                queryset = queryset.filter(preprodsnapshotmetrics__isnull=False)
         except InvalidSearchQuery as e:
             # CodeQL complains about str(e) below but ~all handlers
             # of InvalidSearchQuery do the same as this.

@@ -22,7 +22,7 @@ export default function MobileBuildDetectorsList() {
     <Feature features="organizations:preprod-size-monitors-frontend">
       <SentryDocumentTitle title={TITLE}>
         <WorkflowEngineListLayout
-          actions={<DetectorListActions />}
+          actions={<DetectorListActions detectorType="preprod_size_analysis" />}
           title={TITLE}
           description={DESCRIPTION}
           docsUrl={DOCS_URL}

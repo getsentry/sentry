@@ -108,24 +108,24 @@ describe('IssueListActions', () => {
       expect(screen.queryByRole('button', {name: 'Archive'})).not.toBeInTheDocument();
     });
 
-    it('shows action buttons when any items are selected', () => {
+    it('shows action buttons when any items are selected', async () => {
       render(<WrappedComponent selectedIds={['1']} />);
 
-      expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
+      expect(await screen.findByRole('button', {name: 'Resolve'})).toBeEnabled();
       expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
     });
 
-    it('shows select all checkbox as checked when all items are selected', () => {
+    it('shows select all checkbox as checked when all items are selected', async () => {
       render(<WrappedComponent selectedIds={['1', '2', '3']} />);
 
       // When all selected, label changes to "Deselect all"
-      expect(screen.getByRole('checkbox', {name: 'Deselect all'})).toBeChecked();
+      expect(await screen.findByRole('checkbox', {name: 'Deselect all'})).toBeChecked();
     });
 
-    it('shows select all checkbox as indeterminate when some items are selected', () => {
+    it('shows select all checkbox as indeterminate when some items are selected', async () => {
       render(<WrappedComponent selectedIds={['1']} />);
 
-      const checkbox = screen.getByRole('checkbox', {name: 'Select all'});
+      const checkbox = await screen.findByRole('checkbox', {name: 'Select all'});
       expect(checkbox).toBePartiallyChecked();
     });
   });

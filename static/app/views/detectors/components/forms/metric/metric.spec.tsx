@@ -137,10 +137,7 @@ describe('NewMetricDetectorForm', () => {
     ).toBeInTheDocument();
 
     // Change the assignee and verify it shows in the preview
-    await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Default assignee'}),
-      'Foo Bar'
-    );
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Assign'}), 'Foo Bar');
     expect(within(preview).getByText('FB')).toBeInTheDocument();
   });
 

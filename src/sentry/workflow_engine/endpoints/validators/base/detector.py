@@ -1,6 +1,6 @@
 import builtins
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
 from django.db import router, transaction
 from jsonschema import ValidationError as JSONSchemaValidationError
@@ -24,6 +24,10 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionGroupValidator,
     BaseDataConditionValidator,
 )
+from sentry.workflow_engine.endpoints.validators.base.data_condition_group import (
+    DataConditionGroupInput,
+)
+from sentry.workflow_engine.endpoints.validators.base.data_source import DataSourceInput
 from sentry.workflow_engine.endpoints.validators.utils import (
     connect_detectors_to_workflows,
     get_unknown_detector_type_error,
@@ -46,6 +50,17 @@ class DetectorQuota:
     has_exceeded: bool
     limit: int
     count: int
+
+
+class DetectorInput(TypedDict):
+    name: str
+    type: str
+    data_sources: NotRequired[list[DataSourceInput]]
+    config: NotRequired[dict[str, Any]]
+    condition_group: NotRequired[DataConditionGroupInput]
+    owner: NotRequired[str | int | None]
+    description: NotRequired[str]
+    enabled: NotRequired[bool]
 
 
 class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):

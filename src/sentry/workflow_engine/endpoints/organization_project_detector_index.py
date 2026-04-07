@@ -17,6 +17,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.project import Project
@@ -35,7 +36,7 @@ class OrganizationProjectDetectorPermission(ProjectPermission):
 @extend_schema(tags=["Monitors"])
 class OrganizationProjectDetectorIndexEndpoint(ProjectEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ALERTS_NOTIFICATIONS
     permission_classes = (OrganizationProjectDetectorPermission,)
@@ -54,6 +55,7 @@ class OrganizationProjectDetectorIndexEndpoint(ProjectEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=WorkflowEngineExamples.CREATE_DETECTOR,
     )
     def post(self, request: Request, project: Project) -> Response:
         """
