@@ -317,7 +317,9 @@ export function OnboardingWithoutContext() {
 
   const scmLogoIndex = stepObj ? SCM_LOGO_STEPS.indexOf(stepObj.id) : -1;
   const scmLogoProgress =
-    scmLogoIndex >= 0 ? scmLogoIndex / (SCM_LOGO_STEPS.length - 1) : null;
+    scmLogoIndex >= 0 && SCM_LOGO_STEPS.length > 1
+      ? scmLogoIndex / (SCM_LOGO_STEPS.length - 1)
+      : null;
 
   // Redirect to the first step if we end up in an invalid state
   const isInvalidDocsStep = stepId === 'setup-docs' && !projectSlug;
