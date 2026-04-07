@@ -184,8 +184,8 @@ class RpcServiceEndpointTest(APITestCase):
         assert ctx.user_id == 42
         assert ctx.actor_type == ActorType.USER
 
-    def test_viewer_context_none_when_meta_empty(self) -> None:
-        """No ViewerContext set when meta is empty."""
+    def test_viewer_context_unknown_when_meta_empty(self) -> None:
+        """Empty ViewerContext with UNKNOWN actor type when meta has no viewer_context."""
         organization = self.create_organization()
         captured_contexts: list[ViewerContext | None] = []
 
@@ -208,7 +208,11 @@ class RpcServiceEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert len(captured_contexts) == 1
-        assert captured_contexts[0] is None
+        ctx = captured_contexts[0]
+        assert ctx is not None
+        assert ctx.user_id is None
+        assert ctx.organization_id is None
+        assert ctx.actor_type == ActorType.UNKNOWN
 
     def test_viewer_context_roundtrip_through_meta(self) -> None:
         """ViewerContext set on the sending side arrives on the receiving side."""

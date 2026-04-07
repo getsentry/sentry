@@ -1,5 +1,3 @@
-import contextlib
-
 import pydantic
 import sentry_sdk
 from rest_framework import status
@@ -66,16 +64,16 @@ class InternalRpcServiceEndpoint(Endpoint):
 
         meta = request.data.get("meta") or {}
         vc_data = meta.get("viewer_context")
-        vc_scope: contextlib.AbstractContextManager[None] = contextlib.nullcontext()
+        vc = ViewerContext()
         if vc_data:
             try:
-                vc_scope = viewer_context_scope(ViewerContext.deserialize(vc_data))
+                vc = ViewerContext.deserialize(vc_data)
             except Exception as e:
                 sentry_sdk.capture_exception()
                 raise ParseError from e
 
         try:
-            with vc_scope, auth_context.applied_to_request(request):
+            with viewer_context_scope(vc), auth_context.applied_to_request(request):
                 result = dispatch_to_local_service(service_name, method_name, arguments)
         except RpcValidationException as e:
             return Response(
