@@ -30,7 +30,7 @@ import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {useElementWidth} from 'sentry/utils/useElementWidth';
+import {useDimensions} from 'sentry/utils/useDimensions';
 import {
   TableBodyCell,
   TableHead,
@@ -221,7 +221,7 @@ export function LogsInfiniteTable({
 
   const tableRef = useRef<HTMLTableElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
-  const tableWidth = useElementWidth(tableRef);
+  const {width: tableWidth} = useDimensions({elementRef: tableRef});
   const [expandedLogRows, setExpandedLogRows] = useState<Set<string>>(
     new Set(embeddedOptions?.openWithExpandedIds ?? [])
   );
