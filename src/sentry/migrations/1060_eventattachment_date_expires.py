@@ -7,6 +7,11 @@ import django.db.models.functions.datetime
 from django.db import migrations, models
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.objectstore import default_attachment_retention
+
+# Initial default applies to existing attachments. New rows will be written with
+# a runtime-defined default, so we follow-up with a static 30d default.
+_RETENTION_DAYS = default_attachment_retention()
 
 
 class Migration(CheckedMigration):
@@ -30,6 +35,17 @@ class Migration(CheckedMigration):
 
     operations = [
         migrations.AddField(
+            model_name="eventattachment",
+            name="date_expires",
+            field=models.DateTimeField(
+                db_default=django.db.models.expressions.CombinedExpression(
+                    django.db.models.functions.datetime.Now(),
+                    "+",
+                    models.Value(datetime.timedelta(days=_RETENTION_DAYS)),
+                ),
+            ),
+        ),
+        migrations.AlterField(
             model_name="eventattachment",
             name="date_expires",
             field=models.DateTimeField(
