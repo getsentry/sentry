@@ -263,11 +263,13 @@ def index_repos(organization_id: int, *args, **kwargs) -> None:
         project_pref_repos = existing_pref.get("repositories") or []
         autofix_repos = get_autofix_repos_from_project_code_mappings(project_map[project_id])
 
+        # Use autofix repos to get repo languages
         language_map: dict[tuple[str, str, str], list[str]] = {}
         for autofix_repo in autofix_repos:
             key = (autofix_repo["provider"], autofix_repo["owner"], autofix_repo["name"])
             language_map[key] = autofix_repo["languages"]
 
+        # Use seer project rpeferences if available, else fallback to autofix repos
         repos = project_pref_repos if project_pref_repos else autofix_repos
         for repo in repos:
             key = (repo["provider"], repo["owner"], repo["name"])
