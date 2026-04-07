@@ -771,10 +771,6 @@ SENTRY_CELLS: list[CellConfig] = []
 # Mapping of localities (e.g. "us", "de") to their constituent cells (e.g. "us1", "us2")
 SENTRY_LOCALITIES: list[LocalityConfig] = []
 
-# TODO(cells): Superceded by SENTRY_LOCAL_CELL and SENTRY_CELLS. Remove once migration is complete.
-SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
-SENTRY_REGION_CONFIG: list[CellConfig] = []
-
 # Shared secret used to sign cross-region RPC requests.
 RPC_SHARED_SECRET: list[str] | None = None
 
