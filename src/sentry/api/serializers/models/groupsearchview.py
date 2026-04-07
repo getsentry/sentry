@@ -68,7 +68,7 @@ class GroupSearchViewSerializer(Serializer):
         return attrs
 
     def serialize(self, obj, attrs, user, **kwargs) -> GroupSearchViewSerializerResponse:
-        projects = [-1] if obj.is_all_projects else list(obj.projects.values_list("id", flat=True))
+        projects = [-1] if obj.is_all_projects else [p.id for p in obj.projects.all()]
 
         return {
             "id": str(obj.id),

@@ -31,9 +31,13 @@ class OrganizationGroupSearchViewsStarredEndpoint(OrganizationEndpoint):
         """
 
         assert request.user.id is not None
-        starred_views = GroupSearchViewStarred.objects.filter(
-            organization=organization, user_id=request.user.id
-        ).select_related("group_search_view")
+        starred_views = (
+            GroupSearchViewStarred.objects.filter(
+                organization=organization, user_id=request.user.id
+            )
+            .select_related("group_search_view")
+            .prefetch_related("group_search_view__projects")
+        )
 
         return self.paginate(
             request=request,
