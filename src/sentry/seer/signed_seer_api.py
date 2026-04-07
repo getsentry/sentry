@@ -226,6 +226,35 @@ class LlmGenerateRequest(TypedDict):
     response_schema: NotRequired[dict[str, Any]]
 
 
+class RepoDetails(TypedDict):
+    project_ids: list[int]
+    provider: str
+    owner: str
+    name: str
+    external_id: str
+    languages: list[str]
+    integration_id: NotRequired[str | None]
+
+
+class ExplorerIndexOrgRepoRequest(TypedDict):
+    org_id: int
+    repos: list[RepoDetails]
+
+
+def make_org_repo_knowledge_index_request(
+    body: ExplorerIndexOrgRepoRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/automation/explorer/index/org-repo-knowledge",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
 def make_org_project_knowledge_index_request(
     body: OrgProjectKnowledgeIndexRequest,
     timeout: int | float | None = None,
