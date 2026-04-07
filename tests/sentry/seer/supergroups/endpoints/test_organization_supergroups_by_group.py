@@ -8,8 +8,6 @@ import orjson
 from sentry.models.group import GroupStatus
 from sentry.testutils.cases import APITestCase
 
-MOCK_PATCH = "sentry.seer.supergroups.endpoints.organization_supergroups_by_group.make_supergroups_get_by_group_ids_request"
-
 
 def mock_seer_response(data: dict[str, Any]) -> MagicMock:
     response = MagicMock()
@@ -29,7 +27,9 @@ class OrganizationSupergroupsByGroupEndpointTest(APITestCase):
         )
         self.resolved_group = self.create_group(project=self.project, status=GroupStatus.RESOLVED)
 
-    @patch(MOCK_PATCH)
+    @patch(
+        "sentry.seer.supergroups.endpoints.organization_supergroups_by_group.make_supergroups_get_by_group_ids_request"
+    )
     def test_status_filter_strips_resolved_from_response(self, mock_seer):
         extra_unresolved = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
         mock_seer.return_value = mock_seer_response(
