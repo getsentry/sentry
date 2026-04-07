@@ -263,6 +263,15 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         return blocks
 
     @classmethod
+    def render_missing_scope_footer(cls, settings_url: str) -> list[Block]:
+        """Return a context block warning that optional history scopes are missing."""
+        footer_text = (
+            f"_Thread context is unavailable \u2014 optional scopes are disabled. "
+            f"<{settings_url}|Reinstall Sentry's Slack app> to enable this feature._"
+        )
+        return [ContextBlock(elements=[MarkdownTextObject(text=footer_text)])]
+
+    @classmethod
     def render_autofix_button(cls, group: Group) -> InteractiveElement:
         """
         Returns an autofix button for manual RCA trigger.

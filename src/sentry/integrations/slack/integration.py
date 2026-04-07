@@ -218,29 +218,58 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         return has_scope
 
     def has_history_scope(self, channel_id: str) -> bool:
-        """Check whether this integration has the history scope needed for the given channel.
-
-        Unlike ``has_scope``, this does **not** log a warning so it can be
-        called on every outgoing message without noise.
         """
-        required_scope = self._get_required_history_scope(channel_id)
-        if required_scope is None:
+        Returns whether this integration is allowed to access the history in the channel.
+        """
+        history_scopes = [SlackScope.CHANNELS_HISTORY, SlackScope.GROUPS_HISTORY]
+        installed_scope_set = frozenset(self.model.metadata.get("scopes", []))
+        _logger.info(f"installed scope set: {installed_scope_set}")
+
+        if all(s in installed_scope_set for s in history_scopes):
             return True
-        return required_scope in self.model.metadata.get("scopes", [])
 
-    @staticmethod
-    def _get_required_history_scope(channel_id: str) -> SlackScope | None:
-        """Return the OAuth scope needed to read history in *channel_id*.
+        conversation_data = self.get_conversations_info(channel_id=channel_id)
+        _logger.info(f"conversation data: {conversation_data}")
 
-        Returns ``None`` when no extended scope is required (e.g. DMs, which
-        are covered by the base ``im:history`` scope).
+        channel_info = conversation_data.get("channel", {})
+        is_channel = channel_info.get("is_channel", False)
+        is_private = channel_info.get("is_private", False)
+
+        if is_channel and is_private:
+            _logger.warning(
+                f"Allowed to access channel history: {SlackScope.GROUPS_HISTORY in installed_scope_set}"
+            )
+            return SlackScope.GROUPS_HISTORY in installed_scope_set
+        if is_channel:
+            _logger.warning(
+                f"Allowed to access channel history: {SlackScope.CHANNELS_HISTORY in installed_scope_set}"
+            )
+            return SlackScope.CHANNELS_HISTORY in installed_scope_set
+
+        # shouldn't reach here unless channel_info is empty (most likely an api error), since a mention webhook should only come from channels
+        return False
+
+    def get_conversations_info(
+        self,
+        *,
+        channel_id: str,
+    ) -> dict[str, Any]:
         """
-        if channel_id.startswith("C"):
-            return SlackScope.CHANNELS_HISTORY
-        elif channel_id.startswith("G"):
-            return SlackScope.GROUPS_HISTORY
-        # DMs ("D" prefix) use im:history which is in the base scope set.
-        return None
+        Fetch conversations info from Slack API.
+        """
+        client = self.get_client()
+
+        try:
+            conversations = client.conversations_info(
+                channel=channel_id,
+            )
+            return conversations.data
+        except SlackApiError as e:
+            _logger.warning(
+                "slack.get_conversations_info.error",
+                extra={"channel_id": channel_id, "error": str(e)},
+            )
+            return {}
 
     def get_thread_history(
         self,
@@ -252,8 +281,7 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         Fetch thread replies using the conversations.replies API.
         Returns a list of message dicts, or an empty list on error.
         """
-        required_scope = self._get_required_history_scope(channel_id)
-        if required_scope is not None and not self.has_scope(required_scope):
+        if not self.has_history_scope(channel_id):
             return []
 
         client = self.get_client()
