@@ -167,9 +167,12 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         try:
             client.chat_postMessage(
                 channel=channel_id,
-                blocks=renderable["blocks"],
+                blocks=renderable["blocks"] if len(renderable["blocks"]) > 0 else None,
                 text=renderable["text"],
+                attachments=renderable.get("attachments"),
                 thread_ts=thread_ts,
+                unfurl_links=False,
+                unfurl_media=False,
             )
         except SlackApiError as e:
             translate_slack_api_error(e)
@@ -186,10 +189,13 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         try:
             client.chat_postEphemeral(
                 channel=channel_id,
-                blocks=renderable["blocks"],
+                blocks=renderable["blocks"] if len(renderable["blocks"]) > 0 else None,
+                attachments=renderable.get("attachments"),
                 text=renderable["text"],
                 thread_ts=thread_ts,
                 user=slack_user_id,
+                unfurl_links=False,
+                unfurl_media=False,
             )
         except SlackApiError as e:
             translate_slack_api_error(e)
@@ -207,7 +213,10 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
                 channel=channel_id,
                 ts=message_ts,
                 text=renderable["text"],
-                blocks=renderable["blocks"],
+                blocks=renderable["blocks"] if len(renderable["blocks"]) > 0 else None,
+                attachments=renderable.get("attachments"),
+                unfurl_links=False,
+                unfurl_media=False,
             )
         except SlackApiError as e:
             translate_slack_api_error(e)
