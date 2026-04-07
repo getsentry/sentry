@@ -9,13 +9,13 @@ import {LoadingStreamGroup, StreamGroup} from 'sentry/components/stream/group';
 import {SupergroupRow} from 'sentry/components/stream/supergroupRow';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
-import {aggregateSupergroupStats} from 'sentry/utils/supergroup/aggregateSupergroupStats';
-import type {SupergroupLookup} from 'sentry/utils/supergroup/useSuperGroups';
 import {useApi} from 'sentry/utils/useApi';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {aggregateSupergroupStats} from 'sentry/views/issueList/supergroups/aggregateSupergroupStats';
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
+import type {SupergroupLookup} from 'sentry/views/issueList/supergroups/useSuperGroups';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
 import {NoGroupsHandler} from './noGroupsHandler';

@@ -26,7 +26,6 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {testableTransition} from 'sentry/utils/testableTransition';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
@@ -306,13 +305,13 @@ function GroupSummaryCollapsed({
           <ExpandableContent
             initial={false}
             animate={{height: isExpanded ? 'auto' : 0}}
-            transition={testableTransition({
+            transition={{
               type: 'spring',
               damping: 50,
               stiffness: 600,
               bounce: 0,
               visualDuration: 0.4,
-            })}
+            }}
           >
             <Flex paddingTop="lg">
               <GroupSummaryFull

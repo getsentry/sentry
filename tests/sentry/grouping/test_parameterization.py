@@ -708,3 +708,12 @@ def test_replacement_callback_false_positive_triggers_individual_regex_fallback(
             )
             == 0
         )
+
+        # We also only counted the false positive once, even though we hit it both during the main
+        # combo-regex parameterization and during fallback
+        assert (
+            count_matching_calls(
+                mock_metrics_incr, "grouping.parameterization_false_positive", tags={"key": "ip"}
+            )
+            == 1
+        )

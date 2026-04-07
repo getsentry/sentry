@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
+import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
-import {useUrlParams} from 'sentry/utils/url/useUrlParams';
 
 const TABS = {
   details: t('Details'),
@@ -13,18 +13,19 @@ const TABS = {
 
 export type TabKey = keyof typeof TABS;
 
+export const networkDetailsTabParser = parseAsStringLiteral(
+  Object.keys(TABS) as TabKey[]
+).withDefault('details');
+
 function NetworkDetailsTabs() {
-  const {getParamValue, setParamValue} = useUrlParams('n_detail_tab', 'details');
-  const activeTab = getParamValue();
+  const [activeTab, setActiveTab] = useQueryState(
+    'n_detail_tab',
+    networkDetailsTabParser
+  );
 
   return (
     <TabsContainer>
-      <Tabs
-        value={activeTab}
-        onChange={tab => {
-          setParamValue(tab);
-        }}
-      >
+      <Tabs value={activeTab} onChange={tab => setActiveTab(tab)}>
         <TabList>
           {Object.entries(TABS).map(([tab, label]) => (
             <TabList.Item key={tab}>{label}</TabList.Item>

@@ -20,7 +20,6 @@ import {IconRefresh, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import {testableTransition} from 'sentry/utils/testableTransition';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -269,25 +268,25 @@ export function AutofixOutputStream({
         initial={{opacity: 0, height: 0}}
         animate={{opacity: 1, height: 'auto'}}
         exit={{opacity: 0, height: 0}}
-        transition={testableTransition({
+        transition={{
           duration: 0.2,
           height: {
             type: 'spring',
             bounce: 0.2,
           },
-        })}
+        }}
       >
         <ScaleContainer
           initial={{scaleY: 0.8}}
           animate={{scaleY: 1}}
           exit={{scaleY: 0.8}}
-          transition={testableTransition({
+          transition={{
             duration: 0.2,
             scaleY: {
               type: 'spring',
               bounce: 0.2,
             },
-          })}
+          }}
         >
           <VerticalLine />
           <Container required={responseRequired}>

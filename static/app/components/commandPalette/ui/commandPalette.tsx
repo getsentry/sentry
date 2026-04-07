@@ -21,9 +21,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {useCommandPaletteActions} from 'sentry/components/commandPalette/context';
 import type {
-  CommandPaletteActionCallbackWithKey,
-  CommandPaletteActionGroupWithKey,
-  CommandPaletteActionLinkWithKey,
+  CMDKQueryOptions,
   CommandPaletteActionWithKey,
 } from 'sentry/components/commandPalette/types';
 import {
@@ -32,14 +30,18 @@ import {
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {useCommandPaletteAnalytics} from 'sentry/components/commandPalette/useCommandPaletteAnalytics';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconArrow, IconClose, IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
+import {useQueries} from 'sentry/utils/queryClient';
 import {fzf} from 'sentry/utils/search/fzf';
 import type {Theme} from 'sentry/utils/theme';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 const MotionButton = motion.create(Button);
 const MotionIconSearch = motion.create(IconSearch);
+const MotionContainer = motion.create(Container);
 
 function makeLeadingItemAnimation(theme: Theme) {
   return {
@@ -65,9 +67,7 @@ type CommandPaletteActionWithListItemType = CommandPaletteActionWithKey & {
 };
 
 interface CommandPaletteProps {
-  onAction: (
-    action: CommandPaletteActionCallbackWithKey | CommandPaletteActionLinkWithKey
-  ) => void;
+  onAction: (action: CommandPaletteActionWithKey) => void;
 }
 
 export function CommandPalette(props: CommandPaletteProps) {
@@ -83,8 +83,8 @@ export function CommandPalette(props: CommandPaletteProps) {
     preload(errorIllustration, {as: 'image'});
   }
 
-  const actions = useMemo<CommandPaletteActionWithListItemType[]>(() => {
-    const virtualRoot: CommandPaletteActionGroupWithKey = {
+  const root: CommandPaletteActionWithKey = useMemo(() => {
+    return {
       ...state.action?.value.action,
       key: 'virtual-root',
       actions:
@@ -98,9 +98,42 @@ export function CommandPalette(props: CommandPaletteProps) {
         ...state.action?.value.action?.display,
       },
     };
+  }, [state.action, allActions]);
 
+  const [resourceActions, queries] = useMemo(() => {
+    const actions = collectResourceActions(root, !!state.query);
+    return [actions, actions.map(({resource}) => resource(state.query))];
+  }, [root, state.query]);
+
+  const asyncQueries = useQueries({
+    // Queries needs to be stable
+    queries,
+  });
+
+  const asyncChildrenMap = useMemo(() => {
+    if (asyncQueries.some(query => query.isFetching)) {
+      return new Map<string, CommandPaletteActionWithKey[]>();
+    }
+
+    const map = new Map<string, CommandPaletteActionWithKey[]>();
+    resourceActions.forEach(({key}, i) => {
+      const data = asyncQueries[i]?.data;
+      if (data?.length) {
+        map.set(
+          key,
+          data.map(
+            (action, j) =>
+              ({...action, key: `${key}:async:${j}`}) as CommandPaletteActionWithKey
+          )
+        );
+      }
+    });
+    return map;
+  }, [resourceActions, asyncQueries]);
+
+  const actions = useMemo<CommandPaletteActionWithListItemType[]>(() => {
     if (!state.query) {
-      return flattenActions(virtualRoot, null);
+      return flattenActions(root, null, asyncChildrenMap);
     }
 
     const scores = new Map<
@@ -108,16 +141,11 @@ export function CommandPalette(props: CommandPaletteProps) {
       {action: CommandPaletteActionWithKey; score: {matched: boolean; score: number}}
     >();
 
-    scoreTree(virtualRoot, scores, state.query.toLowerCase());
-    return flattenActions(virtualRoot, scores);
-  }, [allActions, state.action, state.query]);
+    scoreTree(root, scores, state.query.toLowerCase(), asyncChildrenMap);
+    return flattenActions(root, scores, asyncChildrenMap);
+  }, [root, state.query, asyncChildrenMap]);
 
-  const filteredActionCount = useMemo(
-    () => actions.filter(a => a.listItemType === 'action').length,
-    [actions]
-  );
-
-  const analytics = useCommandPaletteAnalytics(filteredActionCount);
+  const analytics = useCommandPaletteAnalytics(actions.length);
 
   const sectionKeys = useMemo(() => {
     return new Set(
@@ -150,6 +178,13 @@ export function CommandPalette(props: CommandPaletteProps) {
                   </Flex>
                 </Text>
               ),
+              details: action.display.details ? (
+                <Container style={{paddingLeft: '22px'}}>
+                  <Text size="sm" variant="muted">
+                    {action.display.details}
+                  </Text>
+                </Container>
+              ) : undefined,
               hideCheck: true,
               children: [],
             }}
@@ -232,6 +267,12 @@ export function CommandPalette(props: CommandPaletteProps) {
     [actions, analytics, dispatch, props, treeState]
   );
 
+  const debouncedQuery = useDebouncedValue(state.query, 300);
+
+  const isLoading =
+    state.query.length > 0 &&
+    (debouncedQuery !== state.query || asyncQueries.some(query => query.isFetching));
+
   return (
     <Fragment>
       <Flex direction="column" align="start" gap="md">
@@ -241,7 +282,18 @@ export function CommandPalette(props: CommandPaletteProps) {
               <InputGroup {...p}>
                 <StyledInputLeadingItems>
                   <AnimatePresence mode="popLayout">
-                    {state.action ? (
+                    {isLoading ? (
+                      <MotionContainer
+                        position="absolute"
+                        left="-2px"
+                        {...makeLeadingItemAnimation(theme)}
+                      >
+                        <LoadingIndicator
+                          data-test-id="command-palette-loading"
+                          size={14}
+                        />
+                      </MotionContainer>
+                    ) : state.action ? (
                       <Container position="absolute" left="-8px">
                         {containerProps => (
                           <MotionButton
@@ -333,12 +385,15 @@ export function CommandPalette(props: CommandPaletteProps) {
           }}
         </Flex>
       </Flex>
-      {treeState.collection.size === 0 ? (
+      {treeState.collection.size === 0 &&
+      // Don't show no results if we're still fetching data
+      asyncQueries.every(query => !query.isFetching) ? (
         <CommandPaletteNoResults />
       ) : (
         <ResultsList
           direction="column"
           width="100%"
+          paddingTop="xs"
           maxHeight="min(calc(100vh - 128px - 4rem), 400px)"
           overflow="auto"
         >
@@ -359,6 +414,44 @@ export function CommandPalette(props: CommandPaletteProps) {
   );
 }
 
+function collectResourceActions(
+  root: CommandPaletteActionWithKey,
+  isSearching: boolean
+): Array<{key: string; resource: (query: string) => CMDKQueryOptions}> {
+  const result: Array<{key: string; resource: (query: string) => CMDKQueryOptions}> = [];
+
+  if (isSearching) {
+    function dfs(node: CommandPaletteActionWithKey) {
+      if ('resource' in node) {
+        result.push({key: node.key, resource: node.resource});
+      }
+      if ('actions' in node) {
+        for (const child of node.actions) {
+          dfs(child);
+        }
+      }
+    }
+    dfs(root);
+    return result;
+  }
+
+  // Browse mode mirrors the flattenActions no-query path: root's children + their children
+  for (const action of 'actions' in root ? root.actions : [root]) {
+    if ('resource' in action) {
+      result.push({key: action.key, resource: action.resource});
+    }
+    if ('actions' in action) {
+      for (const child of action.actions) {
+        if ('resource' in child) {
+          result.push({key: child.key, resource: child.resource});
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
 function score(
   query: string,
   action: CommandPaletteActionWithKey
@@ -374,18 +467,23 @@ function score(
 }
 
 function scoreTree(
-  root: CommandPaletteActionGroupWithKey,
+  root: CommandPaletteActionWithKey,
   scores: Map<
     CommandPaletteActionWithKey['key'],
     {action: CommandPaletteActionWithKey; score: {matched: boolean; score: number}}
   >,
-  query: string
+  query: string,
+  asyncChildrenMap: Map<string, CommandPaletteActionWithKey[]>
 ): void {
   function dfs(node: CommandPaletteActionWithKey) {
     if ('actions' in node) {
       for (const action of node.actions) {
         dfs(action);
       }
+    }
+
+    for (const child of asyncChildrenMap.get(node.key) ?? []) {
+      dfs(child);
     }
 
     const scoreValue = score(query, node);
@@ -402,7 +500,8 @@ function flattenActions(
   scores: Map<
     CommandPaletteActionWithKey['key'],
     {action: CommandPaletteActionWithKey; score: {matched: boolean; score: number}}
-  > | null
+  > | null,
+  asyncChildrenMap: Map<string, CommandPaletteActionWithKey[]>
 ): CommandPaletteActionWithListItemType[] {
   const results: CommandPaletteActionWithListItemType[] = [];
 
@@ -413,12 +512,15 @@ function flattenActions(
         listItemType: 'actions' in action ? 'section' : 'action',
       });
 
+      const asyncChildren = asyncChildrenMap.get(action.key) ?? [];
+
       if ('actions' in action) {
-        for (const child of action.actions) {
-          results.push({
-            ...child,
-            listItemType: 'action',
-          });
+        for (const child of [...action.actions, ...asyncChildren]) {
+          results.push({...child, listItemType: 'action'});
+        }
+      } else {
+        for (const child of asyncChildren) {
+          results.push({...child, listItemType: 'action'});
         }
       }
     }
@@ -437,6 +539,10 @@ function flattenActions(
     } else {
       groups.push({...node, listItemType: 'action'});
     }
+
+    for (const child of asyncChildrenMap.get(node.key) ?? []) {
+      dfs(child);
+    }
   }
 
   dfs(root);
@@ -446,12 +552,20 @@ function flattenActions(
     let bScore = 0;
     if ('actions' in a) {
       aScore = Math.max(
-        ...a.actions.map(action => scores?.get(action.key)?.score.score ?? 0)
+        0,
+        ...a.actions.map(action => scores?.get(action.key)?.score.score ?? 0),
+        ...(asyncChildrenMap.get(a.key) ?? []).map(
+          action => scores?.get(action.key)?.score.score ?? 0
+        )
       );
     }
     if ('actions' in b) {
       bScore = Math.max(
-        ...b.actions.map(action => scores?.get(action.key)?.score.score ?? 0)
+        0,
+        ...b.actions.map(action => scores?.get(action.key)?.score.score ?? 0),
+        ...(asyncChildrenMap.get(b.key) ?? []).map(
+          action => scores?.get(action.key)?.score.score ?? 0
+        )
       );
     }
     return bScore - aScore;
@@ -462,11 +576,15 @@ function flattenActions(
       return [];
     }
     if ('actions' in result) {
-      const resultActions = result.actions.filter(
+      const matchedStaticChildren = result.actions.filter(
         action => scores?.get(action.key)?.score.matched
       );
+      const matchedAsyncChildren = (asyncChildrenMap.get(result.key) ?? []).filter(
+        action => scores?.get(action.key)?.score.matched
+      );
+      const allMatchedChildren = [...matchedStaticChildren, ...matchedAsyncChildren];
 
-      if (!resultActions.length) {
+      if (!allMatchedChildren.length) {
         return [];
       }
 
@@ -476,7 +594,7 @@ function flattenActions(
         // React duplicate-key error (both entries would otherwise share the
         // same key).
         {...result, key: `${result.key}:header`, listItemType: 'section'},
-        ...resultActions
+        ...allMatchedChildren
           .sort((a, b) => {
             if (!a || !b) {
               return 0;

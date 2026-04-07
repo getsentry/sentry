@@ -23,6 +23,12 @@ type PathParamOptions<TApiPath extends string> =
     ? {path?: never}
     : {path: Record<ExtractPathParams<TApiPath>, string | number> | SkipToken};
 
+const selectJson = <TData>(data: ApiResponse<TData>) => data.json;
+
+export const selectJsonWithHeaders = <TData>(
+  data: ApiResponse<TData>
+): ApiResponse<TData> => data;
+
 function _apiOptions<
   TManualData = never,
   TApiPath extends KnownApiUrls = KnownApiUrls,
@@ -46,7 +52,7 @@ function _apiOptions<
     queryFn: pathParams === skipToken ? skipToken : apiFetch<TActualData>,
     enabled: pathParams !== skipToken,
     staleTime,
-    select: data => data.json,
+    select: selectJson,
   });
 }
 
@@ -86,6 +92,50 @@ function _apiOptionsInfinite<
   });
 }
 
+/**
+ * Type-safe factory for TanStack Query options that hit Sentry API endpoints.
+ *
+ * By default, `select` extracts the JSON body. To also access response headers
+ * (e.g. `Link` for pagination), override with `selectJsonWithHeaders`.
+ *
+ * @example Basic usage
+ * ```ts
+ * const query = useQuery(
+ *   apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
+ *     path: {organizationIdOrSlug: organization.slug},
+ *     staleTime: 30_000,
+ *   })
+ * );
+ * // query.data is Project[]
+ * ```
+ *
+ * @example Conditional fetching
+ * ```ts
+ * const query = useQuery(
+ *   apiOptions.as<Project>()('/organizations/$organizationIdOrSlug/projects/$projectIdOrSlug/', {
+ *     path: projectSlug
+ *       ? {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug}
+ *       : skipToken,
+ *     staleTime: 30_000,
+ *   })
+ * );
+ * ```
+ *
+ * @example With response headers (pagination)
+ * ```ts
+ * const {data} = useQuery({
+ *   ...apiOptions.as<Item[]>()('/organizations/$organizationIdOrSlug/items/', {
+ *     path: {organizationIdOrSlug: organization.slug},
+ *     query: {cursor, per_page: 25},
+ *     staleTime: 0,
+ *   }),
+ *   select: selectJsonWithHeaders,
+ * });
+ * // data is ApiResponse<Item[]>
+ * const items = data?.json ?? [];
+ * const pageLinks = data?.headers.Link;
+ * ```
+ */
 export const apiOptions = {
   as:
     <TManualData>() =>

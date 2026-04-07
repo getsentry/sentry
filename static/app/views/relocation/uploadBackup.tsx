@@ -9,7 +9,6 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {Client} from 'sentry/api';
 import {IconDelete, IconFile, IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {testableTransition} from 'sentry/utils/testableTransition';
 import {useApi} from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
 import {StepHeading} from 'sentry/views/relocation/components/stepHeading';
@@ -112,7 +111,6 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
         {t('Upload Tarball to begin the relocation process')}
       </StepHeading>
       <motion.div
-        transition={testableTransition()}
         variants={{
           initial: {y: 30, opacity: 0},
           animate: {y: 0, opacity: 1},

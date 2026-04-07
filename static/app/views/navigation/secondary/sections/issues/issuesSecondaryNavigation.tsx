@@ -13,8 +13,6 @@ import {IssueViews} from 'sentry/views/navigation/secondary/sections/issues/issu
 export function IssuesSecondaryNavigation() {
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/issues`;
-  const hasTopIssuesUI = organization.features.includes('top-issues-ui');
-
   return (
     <Fragment>
       <SecondaryNavigation.Header>{t('Issues')}</SecondaryNavigation.Header>
@@ -30,16 +28,6 @@ export function IssuesSecondaryNavigation() {
                 {t('Feed')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
-            {hasTopIssuesUI && (
-              <SecondaryNavigation.ListItem>
-                <SecondaryNavigation.Link
-                  to={`${baseUrl}/supergroups/`}
-                  analyticsItemName="issues_supergroups"
-                >
-                  {t('Supergroups')}
-                </SecondaryNavigation.Link>
-              </SecondaryNavigation.ListItem>
-            )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         <SecondaryNavigation.Separator />

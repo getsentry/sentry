@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
+from django.conf import settings
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 
@@ -24,6 +25,12 @@ def ViewerContextMiddleware(
 
     def ViewerContextMiddleware_impl(request: HttpRequest) -> HttpResponseBase:
         if not enabled:
+            return get_response(request)
+
+        # This avoids touching user session, which means we avoid
+        # setting `Vary: Cookie` as a response header which will
+        # break HTTP caching entirely.
+        if request.path_info.startswith(settings.ANONYMOUS_STATIC_PREFIXES):
             return get_response(request)
 
         ctx = _viewer_context_from_request(request)

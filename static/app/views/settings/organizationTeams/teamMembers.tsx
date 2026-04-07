@@ -1,6 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {keepPreviousData} from '@tanstack/react-query';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {
@@ -28,14 +28,9 @@ import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Member, Organization, Team, TeamMember} from 'sentry/types/organization';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
+import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -51,7 +46,7 @@ import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermi
 
 import {getButtonHelpText} from './utils';
 
-function getTeamMembersQueryKey({
+function getTeamMembersApiOptions({
   organization,
   teamId,
   location,
@@ -59,18 +54,18 @@ function getTeamMembersQueryKey({
   location: ReturnType<typeof useLocation>;
   organization: Organization;
   teamId: string;
-}): ApiQueryKey {
-  return [
-    getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/members/`, {
-      path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamId},
-    }),
+}) {
+  return apiOptions.as<TeamMember[]>()(
+    '/teams/$organizationIdOrSlug/$teamIdOrSlug/members/',
     {
+      path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamId},
       query: {
         cursor: location.query.cursor,
         query: location.query.query,
       },
-    },
-  ];
+      staleTime: 30_000,
+    }
+  );
 }
 
 function AddMemberDropdown({
@@ -204,19 +199,17 @@ export default function TeamMembers() {
   const {team} = useTeamDetailsOutlet();
 
   const {
-    data: teamMembers = [],
+    data: teamMembersResp,
     isError: isTeamMembersError,
     isLoading: isTeamMembersLoading,
     refetch: refetchTeamMembers,
-    getResponseHeader: getTeamMemberResponseHeader,
-  } = useApiQuery<TeamMember[]>(
-    getTeamMembersQueryKey({organization, teamId: team.slug, location}),
-    {
-      staleTime: 30_000,
-    }
-  );
+  } = useQuery({
+    ...getTeamMembersApiOptions({organization, teamId: team.slug, location}),
+    select: selectJsonWithHeaders,
+  });
+  const teamMembers = teamMembersResp?.json ?? [];
 
-  const teamMembersPageLinks = getTeamMemberResponseHeader?.('Link');
+  const teamMembersPageLinks = teamMembersResp?.headers.Link;
 
   const hasOrgWriteAccess = hasEveryAccess(['org:write'], {organization, team});
   const hasTeamAdminAccess = hasEveryAccess(['team:admin'], {organization, team});
@@ -231,14 +224,16 @@ export default function TeamMembers() {
       });
     },
     onSuccess: (_data, variables) => {
-      setApiQueryData<TeamMember[]>(
-        queryClient,
-        getTeamMembersQueryKey({organization, teamId: team.slug, location}),
+      queryClient.setQueryData(
+        getTeamMembersApiOptions({organization, teamId: team.slug, location}).queryKey,
         existingData => {
           if (!existingData) {
             return existingData;
           }
-          return existingData.filter(member => member.id !== variables.memberId);
+          return {
+            ...existingData,
+            json: existingData.json.filter(member => member.id !== variables.memberId),
+          };
         }
       );
       addSuccessMessage(t('Successfully removed member from team.'));
@@ -262,24 +257,26 @@ export default function TeamMembers() {
     },
     onSuccess: (_data, variables) => {
       addSuccessMessage(t('Successfully changed role for team member.'));
-      setApiQueryData<TeamMember[]>(
-        queryClient,
-        getTeamMembersQueryKey({organization, teamId: team.slug, location}),
+      queryClient.setQueryData(
+        getTeamMembersApiOptions({organization, teamId: team.slug, location}).queryKey,
         existingData => {
           if (!existingData) {
             return existingData;
           }
 
-          return existingData.map(member => {
-            if (member.id === variables.memberId) {
-              return {
-                ...member,
-                teamRole: variables.newRole,
-              };
-            }
+          return {
+            ...existingData,
+            json: existingData.json.map(member => {
+              if (member.id === variables.memberId) {
+                return {
+                  ...member,
+                  teamRole: variables.newRole,
+                };
+              }
 
-            return member;
-          });
+              return member;
+            }),
+          };
         }
       );
     },
@@ -299,14 +296,16 @@ export default function TeamMembers() {
       });
     },
     onSuccess: (_data, {orgMember}) => {
-      setApiQueryData<TeamMember[]>(
-        queryClient,
-        getTeamMembersQueryKey({organization, teamId: team.slug, location}),
+      queryClient.setQueryData(
+        getTeamMembersApiOptions({organization, teamId: team.slug, location}).queryKey,
         existingData => {
           if (!existingData) {
             return existingData;
           }
-          return existingData.concat([orgMember]);
+          return {
+            ...existingData,
+            json: existingData.json.concat([orgMember]),
+          };
         }
       );
       addSuccessMessage(t('Successfully added member to team.'));

@@ -6,7 +6,7 @@ import type {Virtualizer} from '@tanstack/react-virtual';
 import {useVirtualizer, useWindowVirtualizer} from '@tanstack/react-virtual';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -662,26 +662,26 @@ function EmptyRenderer({
   if (bytesScanned && canResumeAutoFetch && resumeAutoFetch) {
     return (
       <TableStatus>
-        <EmptyStateWarning withIcon>
+        <EmptyStateWarning withIcon variant="accent">
           <EmptyStateText size="xl">{t('No logs found yet')}</EmptyStateText>
           <EmptyStateText size="md">
             {tct(
-              'We scanned [bytesScanned] already but did not find any matching logs yet.[break]You can narrow your time range or you can [continueScanning].',
-              {
-                bytesScanned: <FileSize bytes={bytesScanned} base={2} />,
-                break: <br />,
-                continueScanning: (
-                  <Button
-                    priority="link"
-                    onClick={resumeAutoFetch}
-                    aria-label={t('continue scanning')}
-                  >
-                    {t('Continue Scanning')}
-                  </Button>
-                ),
-              }
+              'We scanned [bytesScanned] so far but have not found anything matching your filters',
+              {bytesScanned: <FileSize bytes={bytesScanned} base={2} />}
             )}
           </EmptyStateText>
+          <EmptyStateText size="md">
+            {t('We can keep digging or you can narrow down your search.')}
+          </EmptyStateText>
+          <Container paddingTop="md">
+            <Button
+              priority="default"
+              onClick={resumeAutoFetch}
+              aria-label={t('continue scanning')}
+            >
+              {t('Continue Scanning')}
+            </Button>
+          </Container>
         </EmptyStateWarning>
       </TableStatus>
     );
@@ -689,11 +689,11 @@ function EmptyRenderer({
 
   return (
     <TableStatus>
-      <EmptyStateWarning withIcon>
+      <EmptyStateWarning withIcon variant="accent">
         <EmptyStateText size="xl">{t('No logs found')}</EmptyStateText>
         <EmptyStateText size="md">
           {tct(
-            'Try adjusting your filters or get started with sending logs by checking these [instructions]',
+            'Try adjusting your filters or get started with sending logs by checking these [instructions].',
             {
               instructions: (
                 <ExternalLink href={LOGS_INSTRUCTIONS_URL}>
