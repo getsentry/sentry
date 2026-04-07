@@ -90,7 +90,7 @@ export default function ApiNewToken() {
         data: {
           ...data,
           scopes: permissionStateToList(permissions).filter(
-            (v): v is string => v !== undefined
+            (v): v is NonNullable<typeof v> => v !== undefined
           ),
         },
       }),
