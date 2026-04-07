@@ -63,11 +63,11 @@ export function EAPSampledEventsTab() {
   const {selection} = usePageFilters();
 
   const eventsDisplayFilterName = decodeEventsDisplayFilterFromLocation(location);
-  const {
-    maxDuration,
-    percentileValues,
-    isLoading: isMaxDurationLoading,
-  } = useMaxDuration(transactionName, selection, eventsDisplayFilterName);
+  const {maxDuration, isLoading: isMaxDurationLoading} = useMaxDuration(
+    transactionName,
+    selection,
+    eventsDisplayFilterName
+  );
 
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
 
@@ -113,7 +113,6 @@ export function EAPSampledEventsTab() {
         eventsDisplayFilterName={eventsDisplayFilterName}
         onChangeEventsDisplayFilter={onChangeEventsDisplayFilter}
         maxDuration={maxDuration}
-        percentileValues={percentileValues}
         organization={organization}
         transactionName={transactionName}
       />
@@ -138,7 +137,6 @@ type FilterBarProps = {
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
   transactionName: string;
   maxDuration?: number;
-  percentileValues?: PercentileValues;
 };
 
 function FilterBar(props: FilterBarProps) {
@@ -214,17 +212,12 @@ function PercentileSelect({
   eventsDisplayFilterName,
   onChangeEventsDisplayFilter,
   spanOperationBreakdownFilter,
-  percentileValues,
 }: {
   eventsDisplayFilterName: EventsDisplayFilterName;
   onChangeEventsDisplayFilter: (eventsDisplayFilterName: EventsDisplayFilterName) => void;
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
-  percentileValues?: Record<EventsDisplayFilterName, number>;
 }) {
-  const eventsFilterOptions = getEventsFilterOptions(
-    spanOperationBreakdownFilter,
-    percentileValues
-  );
+  const eventsFilterOptions = getEventsFilterOptions(spanOperationBreakdownFilter);
   return (
     <CompactSelect
       trigger={triggerProps => (
@@ -335,7 +328,7 @@ function useMaxDuration(
   const maxDuration = hasDurationFilter
     ? percentileValues?.[eventsDisplayFilterName]
     : undefined;
-  return {maxDuration, percentileValues, isLoading};
+  return {maxDuration, isLoading};
 }
 
 const EAP_PERCENTILE_FIELDS = [
