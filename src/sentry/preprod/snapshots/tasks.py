@@ -695,7 +695,13 @@ def compare_snapshots(
         ):
             metrics.incr("preprod.snapshots.diff.zero_changes", sample_rate=1.0, tags=metric_tags)
 
-        _try_auto_approve_snapshot(head_artifact, comparison_manifest, session)
+        try:
+            _try_auto_approve_snapshot(head_artifact, comparison_manifest, session)
+        except Exception:
+            logger.exception(
+                "Auto-approve failed after successful comparison",
+                extra={"head_artifact_id": head_artifact_id},
+            )
 
         create_preprod_snapshot_status_check_task.apply_async(
             kwargs={
