@@ -171,8 +171,6 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
                 text=renderable["text"],
                 attachments=renderable.get("attachments"),
                 thread_ts=thread_ts,
-                unfurl_links=False,
-                unfurl_media=False,
             )
         except SlackApiError as e:
             translate_slack_api_error(e)
@@ -194,8 +192,6 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
                 text=renderable["text"],
                 thread_ts=thread_ts,
                 user=slack_user_id,
-                unfurl_links=False,
-                unfurl_media=False,
             )
         except SlackApiError as e:
             translate_slack_api_error(e)
