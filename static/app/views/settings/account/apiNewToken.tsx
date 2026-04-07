@@ -89,7 +89,9 @@ export default function ApiNewToken() {
         method: 'POST',
         data: {
           ...data,
-          scopes: permissionStateToList(permissions).filter(v => v !== null),
+          scopes: permissionStateToList(permissions).filter(
+            (v): v is string => v !== undefined
+          ),
         },
       }),
     onSuccess: token => {
