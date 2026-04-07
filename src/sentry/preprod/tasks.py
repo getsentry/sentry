@@ -562,6 +562,7 @@ def _assemble_preprod_artifact_size_analysis(
                 "was_created": was_created,
                 "project_id": project.id,
                 "organization_id": org_id,
+                "organization_slug": organization.slug,
             },
         )
 
