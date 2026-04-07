@@ -4,7 +4,6 @@ import pytest
 
 from fixtures.seer.webhooks import MOCK_RUN_ID, MOCK_SEER_WEBHOOKS
 from sentry.integrations.slack.message_builder.types import SlackAction
-from sentry.integrations.slack.utils.constants import SlackScope
 from sentry.notifications.platform.service import serialize_notification_data
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
@@ -645,8 +644,12 @@ class SlackExplorerEntrypointTest(TestCase):
         mock_schedule.assert_called_once()
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
+        return_value=False,
+    )
     def test_send_thread_update_explorer_response_missing_scope_has_footer(
-        self, mock_send_threaded_message
+        self, mock_has_history_scope, mock_send_threaded_message
     ):
         data = SeerExplorerResponse(
             run_id=12345,
@@ -667,18 +670,19 @@ class SlackExplorerEntrypointTest(TestCase):
         assert "Thread context is unavailable" in footer_text
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
+        return_value=True,
+    )
     def test_send_thread_update_explorer_response_with_scope_no_footer(
-        self, mock_send_threaded_message
+        self, mock_has_history_scope, mock_send_threaded_message
     ):
-        from sentry.integrations.slack.integration import SlackIntegration
-
-        self.integration.metadata["scopes"] = [SlackScope.CHANNELS_HISTORY]
         data = SeerExplorerResponse(
             run_id=12345,
             organization_id=self.organization.id,
             summary="Test summary",
         )
-        install = SlackIntegration(self.integration, self.organization.id)
+        install = self.integration.get_installation(organization_id=self.organization.id)
         thread = SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)
 
         send_thread_update(install=install, thread=thread, data=data)

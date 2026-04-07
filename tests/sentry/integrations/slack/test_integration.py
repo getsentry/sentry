@@ -614,7 +614,13 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
                 slack_user_id=self.slack_user_id,
             )
 
-    def test_get_thread_history_missing_scope_returns_empty(self) -> None:
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_info")
+    def test_get_thread_history_missing_scope_returns_empty(
+        self, mock_conversations_info: MagicMock
+    ) -> None:
+        mock_conversations_info.return_value = MagicMock(
+            data={"ok": True, "channel": {"is_channel": True, "is_private": False}}
+        )
         result = self.installation.get_thread_history(
             channel_id=self.channel_id,
             thread_ts=self.thread_ts,
@@ -622,8 +628,14 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
         assert result == []
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_replies")
-    def test_get_thread_history_success(self, mock_conversations_replies: MagicMock) -> None:
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_info")
+    def test_get_thread_history_success(
+        self, mock_conversations_info: MagicMock, mock_conversations_replies: MagicMock
+    ) -> None:
         self.integration.metadata["scopes"] = [SlackScope.CHANNELS_HISTORY]
+        mock_conversations_info.return_value = MagicMock(
+            data={"ok": True, "channel": {"is_channel": True, "is_private": False}}
+        )
         mock_conversations_replies.return_value = {
             "ok": True,
             "messages": [
@@ -643,8 +655,14 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
             ts=self.thread_ts,
         )
 
-    def test_get_thread_history_private_channel_missing_groups_history(self) -> None:
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_info")
+    def test_get_thread_history_private_channel_missing_groups_history(
+        self, mock_conversations_info: MagicMock
+    ) -> None:
         self.integration.metadata["scopes"] = [SlackScope.CHANNELS_HISTORY]
+        mock_conversations_info.return_value = MagicMock(
+            data={"ok": True, "channel": {"is_channel": True, "is_private": True}}
+        )
         result = self.installation.get_thread_history(
             channel_id="G1234567890",
             thread_ts=self.thread_ts,
@@ -652,10 +670,14 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
         assert result == []
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_replies")
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_info")
     def test_get_thread_history_private_channel_with_groups_history(
-        self, mock_conversations_replies: MagicMock
+        self, mock_conversations_info: MagicMock, mock_conversations_replies: MagicMock
     ) -> None:
         self.integration.metadata["scopes"] = [SlackScope.GROUPS_HISTORY]
+        mock_conversations_info.return_value = MagicMock(
+            data={"ok": True, "channel": {"is_channel": True, "is_private": True}}
+        )
         mock_conversations_replies.return_value = {
             "ok": True,
             "messages": [{"ts": self.thread_ts, "text": "Private message"}],
@@ -667,37 +689,33 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
         assert len(result) == 1
         assert result[0]["text"] == "Private message"
 
-    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_replies")
-    def test_get_thread_history_dm_always_allowed(
-        self, mock_conversations_replies: MagicMock
-    ) -> None:
-        mock_conversations_replies.return_value = {
-            "ok": True,
-            "messages": [{"ts": self.thread_ts, "text": "DM message"}],
-        }
-        result = self.installation.get_thread_history(
-            channel_id="D1234567890",
-            thread_ts=self.thread_ts,
-        )
-        assert len(result) == 1
-        assert result[0]["text"] == "DM message"
-
-    def test_has_history_scope_public_channel(self) -> None:
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_info")
+    def test_has_history_scope_public_channel(self, mock_conversations_info: MagicMock) -> None:
         self.integration.metadata["scopes"] = [SlackScope.CHANNELS_HISTORY]
+        mock_conversations_info.return_value = MagicMock(
+            data={"ok": True, "channel": {"is_channel": True, "is_private": False}}
+        )
         assert self.installation.has_history_scope("C1234567890") is True
 
-    def test_has_history_scope_private_channel_missing(self) -> None:
-        self.integration.metadata["scopes"] = [SlackScope.CHANNELS_HISTORY]
-        assert self.installation.has_history_scope("G1234567890") is False
-
-    def test_has_history_scope_dm_always_true(self) -> None:
-        assert self.installation.has_history_scope("D1234567890") is True
-
-    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_replies")
-    def test_get_thread_history_error_returns_empty_list(
-        self, mock_conversations_replies: MagicMock
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_info")
+    def test_has_history_scope_private_channel_missing(
+        self, mock_conversations_info: MagicMock
     ) -> None:
         self.integration.metadata["scopes"] = [SlackScope.CHANNELS_HISTORY]
+        mock_conversations_info.return_value = MagicMock(
+            data={"ok": True, "channel": {"is_channel": True, "is_private": True}}
+        )
+        assert self.installation.has_history_scope("G1234567890") is False
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_replies")
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_info")
+    def test_get_thread_history_error_returns_empty_list(
+        self, mock_conversations_info: MagicMock, mock_conversations_replies: MagicMock
+    ) -> None:
+        self.integration.metadata["scopes"] = [SlackScope.CHANNELS_HISTORY]
+        mock_conversations_info.return_value = MagicMock(
+            data={"ok": True, "channel": {"is_channel": True, "is_private": False}}
+        )
         mock_conversations_replies.side_effect = SlackApiError("channel_not_found", MagicMock())
         result = self.installation.get_thread_history(
             channel_id=self.channel_id, thread_ts=self.thread_ts

@@ -223,27 +223,19 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         """
         history_scopes = [SlackScope.CHANNELS_HISTORY, SlackScope.GROUPS_HISTORY]
         installed_scope_set = frozenset(self.model.metadata.get("scopes", []))
-        _logger.info(f"installed scope set: {installed_scope_set}")
 
         if all(s in installed_scope_set for s in history_scopes):
             return True
 
         conversation_data = self.get_conversations_info(channel_id=channel_id)
-        _logger.info(f"conversation data: {conversation_data}")
 
         channel_info = conversation_data.get("channel", {})
         is_channel = channel_info.get("is_channel", False)
         is_private = channel_info.get("is_private", False)
 
         if is_channel and is_private:
-            _logger.warning(
-                f"Allowed to access channel history: {SlackScope.GROUPS_HISTORY in installed_scope_set}"
-            )
             return SlackScope.GROUPS_HISTORY in installed_scope_set
         if is_channel:
-            _logger.warning(
-                f"Allowed to access channel history: {SlackScope.CHANNELS_HISTORY in installed_scope_set}"
-            )
             return SlackScope.CHANNELS_HISTORY in installed_scope_set
 
         # shouldn't reach here unless channel_info is empty (most likely an api error), since a mention webhook should only come from channels
