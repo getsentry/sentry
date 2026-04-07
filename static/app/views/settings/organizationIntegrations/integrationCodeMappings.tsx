@@ -180,10 +180,14 @@ export function IntegrationCodeMappings({integration}: {integration: Integration
     data: fetchedRepos = [],
     isPending: isPendingReposQuery,
     isError: isErrorRepos,
+    hasNextPage: hasNextReposPage,
     isFetchingNextPage: isFetchingNextReposPage,
   } = repositoriesQuery;
 
-  const isPendingRepos = isPendingReposQuery || isFetchingNextReposPage;
+  const isPendingRepos =
+    isPendingReposQuery ||
+    isFetchingNextReposPage ||
+    (!!hasNextReposPage && !isErrorRepos);
 
   const pathConfigs = useMemo(() => {
     return sortBy(fetchedPathConfigs, [
