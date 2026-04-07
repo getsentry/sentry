@@ -131,9 +131,7 @@ describe('tryParsePythonDict', () => {
 describe('preprocessInlineXmlTags', () => {
   it('replaces inline XML tags with italic markdown', () => {
     const text = 'Before <thinking>inner thought</thinking> After';
-    expect(preprocessInlineXmlTags(text)).toBe(
-      'Before *thinking: inner thought* After'
-    );
+    expect(preprocessInlineXmlTags(text)).toBe('Before *thinking: inner thought* After');
   });
 
   it('leaves block-level tags at start of text untouched', () => {
@@ -161,9 +159,7 @@ describe('preprocessInlineXmlTags', () => {
 
   it('strips nested XML tags from inline tag content', () => {
     const text = 'Text <outer>before <inner>nested</inner> after</outer> more';
-    expect(preprocessInlineXmlTags(text)).toBe(
-      'Text *outer: before nested after* more'
-    );
+    expect(preprocessInlineXmlTags(text)).toBe('Text *outer: before nested after* more');
   });
 });
 
@@ -220,8 +216,7 @@ describe('parseXmlTagSegments', () => {
       {
         type: 'xml-tag',
         tagName: 'bug_report',
-        content:
-          '\n<location>file.ts</location>\n<description>a bug</description>\n',
+        content: '\n<location>file.ts</location>\n<description>a bug</description>\n',
       },
     ]);
   });
