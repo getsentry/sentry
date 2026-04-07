@@ -1,4 +1,11 @@
-import {Fragment, useCallback, useMemo, useState, type RefCallback} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type RefCallback,
+} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
