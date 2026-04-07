@@ -1,33 +1,39 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Literal, TypeAlias
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, root_validator, validator
 
 from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard_widget import DashboardWidgetDisplayTypes, DashboardWidgetTypes
 
 GRID_WIDTH = 6
 
-# Hardcode maintained lists for now, not all display types are well suited for dashboard generation.
-DisplayType = Literal[
-    "line",
-    "area",
-    "stacked_area",
-    "bar",
-    "table",
-    "big_number",
-    "top_n",
-    "categorical_bar",
-]
+DISPLAY_TYPE_BLOCKLIST: set[str] = {
+    "details",
+    "server_tree",
+    "rage_and_dead_clicks",
+    "wheel",
+    "agents_traces_table",
+}
 
-# Hardcode maintained lists for now, not all widget types are well suited for dashboard generation.
-WidgetType = Literal[
-    "issue",
-    "error-events",
-    "spans",
-    "logs",
-    "tracemetrics",
-]
+# Most of these are deprecated, not selectable in the UI, or don't make sense for generated dashboards.
+WIDGET_TYPE_BLOCKLIST: set[str] = {
+    "discover",
+    "metrics",
+    "transaction-like",
+    "preprod-app-size",
+}
+
+_ALLOWED_DISPLAY_TYPES = tuple(
+    t for t in DashboardWidgetDisplayTypes.TYPE_NAMES if t not in DISPLAY_TYPE_BLOCKLIST
+)
+_ALLOWED_WIDGET_TYPES = tuple(
+    t for t in DashboardWidgetTypes.TYPE_NAMES if t not in WIDGET_TYPE_BLOCKLIST
+)
+
+DisplayType: TypeAlias = Literal[tuple(_ALLOWED_DISPLAY_TYPES)]  # type: ignore[valid-type]
+WidgetType: TypeAlias = Literal[tuple(_ALLOWED_WIDGET_TYPES)]  # type: ignore[valid-type]
 
 Intervals = Literal["5m", "15m", "30m", "1h", "4h", "12h", "24h"]
 
@@ -89,7 +95,9 @@ class GeneratedWidgetLayout(BaseModel):
         le=GRID_WIDTH,
     )
     h: int = Field(
-        default=2, description="Height in rows (1+). A height of 2 is approximately 256px.", ge=1
+        default=2,
+        description="Height in rows (1+). A height of 2 is approximately 256px. For non big_number widgets, this should be at least 2.",
+        ge=1,
     )
     min_h: int = Field(default=2, description="Minimum height in rows (1+).")
 
@@ -122,12 +130,13 @@ class GeneratedWidget(BaseModel):
 
     title: str = Field(..., max_length=255)  # Matches serializer
     description: str = Field(
-        ..., max_length=255
-    )  # Length matches serializer, required field for generation
-    display_type: DisplayType
-    widget_type: WidgetType = Field(
         ...,
-        description="Dataset to query. Use 'spans' as the default — it covers most use cases. Use 'error-events' for error-specific data, 'issue' for issue tracking, 'logs' for log data, 'tracemetrics' for trace metrics.",
+        description="A short description of the widget. This is displayed in the dashboard UI as a hoverable tooltip. For text widget types, this is the markdown text content displayed to the user. Should not exceed 255 characters for non-text widgets.",
+    )
+    display_type: DisplayType
+    widget_type: WidgetType | None = Field(
+        ...,
+        description="Dataset to query. Use 'spans' as the default — it covers most use cases. Use 'error-events' for error-specific data, 'issue' for issue tracking, 'logs' for log data, 'tracemetrics' for trace metrics. Text widgets do not have a widget_type and should be set to None. Required for non-text widgets.",
     )
     queries: list[GeneratedWidgetQuery]
     layout: GeneratedWidgetLayout
@@ -138,6 +147,26 @@ class GeneratedWidget(BaseModel):
         description="For charts with group by columns, the maximum number series that can be displayed. For table widgets, the maximum number of rows that can be displayed. Categorical bar charts have a maximum limit of 25. For any other chart type, the maximum limit is 10. Default value is 5.",
     )
     interval: Intervals = Field(default="1h")
+
+    @root_validator
+    def check_text_widget_constraints(cls, values: dict[str, Any]) -> dict[str, Any]:
+        display_type = values.get("display_type")
+        is_text = display_type == "text"
+
+        description = values.get("description", "")
+        if not is_text and len(description) > 255:
+            raise ValueError(
+                f"Description must not exceed 255 characters for non-text widgets (got {len(description)})"
+            )
+
+        widget_type = values.get("widget_type")
+        if not is_text and widget_type is None:
+            raise ValueError("widget_type is required for non-text widgets")
+
+        if is_text and widget_type is not None:
+            raise ValueError("widget_type is not allowed for text widgets")
+
+        return values
 
 
 class GeneratedDashboard(BaseModel):
