@@ -389,6 +389,7 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
                     {
                         "name": depot_name,
                         "identifier": depot_path,
+                        "external_id": "",  # Perforce derives external_id from the user-provided depot path, not the API response
                         "default_branch": None,  # Perforce uses depot paths, not branch refs
                     }
                 )
