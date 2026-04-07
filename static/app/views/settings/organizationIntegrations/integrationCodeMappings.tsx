@@ -172,8 +172,8 @@ export function IntegrationCodeMappings({integration}: {integration: Integration
         staleTime: 10_000,
       }
     ),
-    select: (data: InfiniteData<ApiResponse<Repository[]>>) =>
-      data.pages.flatMap((page: ApiResponse<Repository[]>) => page.json),
+    select: (data) =>
+      data.pages.flatMap((page) => page.json),
   });
   useFetchAllPages({result: repositoriesQuery});
 
