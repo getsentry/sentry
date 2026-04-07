@@ -42,7 +42,6 @@ export class SQLishFormatter {
 
     try {
       const result = fn();
-      sentrySpan?.end();
       return result;
     } catch (error: any) {
       Sentry.withScope(scope => {
@@ -63,6 +62,8 @@ export class SQLishFormatter {
 
       // If we fail to parse the SQL, return the original string
       return sql as unknown as T;
+    } finally {
+      sentrySpan?.end();
     }
   }
 }
