@@ -162,6 +162,8 @@ const GroupExtra = styled('div')`
     color: ${p => p.theme.tokens.interactive.link.accent.hover};
   }
 
+  /* Adds a 1px vertical separator between visible siblings, automatically
+     skipping children that render null */
   & > * + * {
     margin-left: ${p => p.theme.space.sm};
     padding-left: ${p => p.theme.space.sm};
