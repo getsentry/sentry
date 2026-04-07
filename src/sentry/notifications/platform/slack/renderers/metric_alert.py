@@ -43,9 +43,10 @@ class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
             *blocks, fallback_text=fallback_text, color=color
         )
 
-        attachment_blocks = [
-            {"blocks": slack_body.get("blocks", []), "color": slack_body.get("color", "")}
-        ]
+        attachment_blocks = [{"blocks": slack_body.get("blocks", [])}]
+
+        if color:
+            attachment_blocks[0]["color"] = color
 
         renderable = SlackRenderable(
             blocks=[],
