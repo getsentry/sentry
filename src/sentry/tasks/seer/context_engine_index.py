@@ -261,7 +261,7 @@ def index_repos(organization_id: int, *args, **kwargs) -> None:
     for project_id, project in project_map.items():
         existing_pref = preferences_by_id.get(str(project_id), {})
         project_pref_repos = existing_pref.get("repositories") or []
-        autofix_repos = get_autofix_repos_from_project_code_mappings(project_map[project_id])
+        autofix_repos = get_autofix_repos_from_project_code_mappings(project)
 
         # Use autofix repos to get repo languages
         language_map: dict[tuple[str, str, str], list[str]] = {}
@@ -284,13 +284,16 @@ def index_repos(organization_id: int, *args, **kwargs) -> None:
                     "name": repo["name"],
                     "external_id": repo["external_id"],
                     "languages": language_map.get(key, []),
-                    "integration_id": repo["integration_id"],
+                    "integration_id": repo.get("integration_id"),
                 }
 
+    viewer_context = SeerViewerContext(organization_id=organization_id)
     response = make_org_repo_knowledge_index_request(
         ExplorerIndexOrgRepoRequest(
             org_id=organization.id, repos=list(org_repo_definitions.values())
-        )
+        ),
+        timeout=30,
+        viewer_context=viewer_context,
     )
 
     if response.status >= 400:
