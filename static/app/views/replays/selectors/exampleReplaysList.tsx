@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -17,7 +18,6 @@ import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {useReplayList} from 'sentry/utils/replays/hooks/useReplayList';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
@@ -32,7 +32,7 @@ export function ExampleReplaysList({
   projectId: number;
   selectorQuery: string;
 }) {
-  const routes = useRoutes();
+  const matches = useMatches();
   const organization = useOrganization();
 
   const {project, environment, start, statsPeriod, utc, end} = location.query;
@@ -82,7 +82,7 @@ export function ExampleReplaysList({
     perPage: 3,
   });
 
-  const referrer = getRouteStringFromRoutes(routes);
+  const referrer = getRouteStringFromRoutes({matches});
   const linkEventView = EventView.fromLocation(location);
 
   return (

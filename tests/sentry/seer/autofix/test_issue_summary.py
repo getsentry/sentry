@@ -960,14 +960,14 @@ class TestTriggerAutofixTaskLightweightRca(APITestCase, SnubaTestCase):
         event_data = load_data("python")
         self.event = self.store_event(data=event_data, project_id=self.project.id)
 
-    @patch("sentry.seer.autofix.issue_summary.trigger_lightweight_rca")
+    @patch("sentry.seer.autofix.issue_summary.trigger_explorer_lightweight_rca")
     @patch("sentry.seer.autofix.issue_summary.trigger_autofix_explorer", return_value=42)
     def test_lightweight_rca_called_on_explorer_path(
         self,
         mock_explorer,
-        mock_lightweight_rca,
+        mock_explorer_lightweight_rca,
     ):
-        """trigger_lightweight_rca is called when the explorer path is taken"""
+        """trigger_explorer_lightweight_rca is called when the explorer path is taken"""
         _trigger_autofix_task(
             group_id=self.group.id,
             event_id=self.event.event_id,
@@ -976,18 +976,18 @@ class TestTriggerAutofixTaskLightweightRca(APITestCase, SnubaTestCase):
         )
 
         mock_explorer.assert_called_once()
-        mock_lightweight_rca.assert_called_once_with(self.group)
+        mock_explorer_lightweight_rca.assert_called_once_with(self.group)
 
-    @patch("sentry.seer.autofix.issue_summary.trigger_lightweight_rca")
+    @patch("sentry.seer.autofix.issue_summary.trigger_explorer_lightweight_rca")
     @patch(
         "sentry.seer.autofix.issue_summary.trigger_autofix", return_value=Mock(data={"run_id": 42})
     )
     def test_lightweight_rca_not_called_on_legacy_path(
         self,
         mock_autofix,
-        mock_lightweight_rca,
+        mock_explorer_lightweight_rca,
     ):
-        """trigger_lightweight_rca is NOT called on the legacy autofix path"""
+        """trigger_explorer_lightweight_rca is NOT called on the legacy autofix path"""
         with self.feature(
             {
                 "organizations:seer-explorer": False,
@@ -1002,17 +1002,17 @@ class TestTriggerAutofixTaskLightweightRca(APITestCase, SnubaTestCase):
             )
 
         mock_autofix.assert_called_once()
-        mock_lightweight_rca.assert_not_called()
+        mock_explorer_lightweight_rca.assert_not_called()
 
-    @patch("sentry.seer.autofix.issue_summary.trigger_lightweight_rca")
+    @patch("sentry.seer.autofix.issue_summary.trigger_explorer_lightweight_rca")
     @patch("sentry.seer.autofix.issue_summary.trigger_autofix_explorer", return_value=42)
     def test_lightweight_rca_failure_does_not_block_explorer(
         self,
         mock_explorer,
-        mock_lightweight_rca,
+        mock_explorer_lightweight_rca,
     ):
-        """Failure in trigger_lightweight_rca doesn't prevent the explorer autofix from completing"""
-        mock_lightweight_rca.side_effect = Exception("lightweight RCA failed")
+        """Failure in trigger_explorer_lightweight_rca doesn't prevent the explorer autofix from completing"""
+        mock_explorer_lightweight_rca.side_effect = Exception("lightweight RCA failed")
 
         _trigger_autofix_task(
             group_id=self.group.id,
@@ -1022,7 +1022,7 @@ class TestTriggerAutofixTaskLightweightRca(APITestCase, SnubaTestCase):
         )
 
         mock_explorer.assert_called_once()
-        mock_lightweight_rca.assert_called_once_with(self.group)
+        mock_explorer_lightweight_rca.assert_called_once_with(self.group)
 
 
 class TestFetchUserPreference:

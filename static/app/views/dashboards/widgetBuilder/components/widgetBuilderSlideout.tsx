@@ -12,6 +12,7 @@ import isEqual from 'lodash/isEqual';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
@@ -19,6 +20,7 @@ import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
 import {t, tctCode} from 'sentry/locale';
@@ -99,6 +101,7 @@ export function WidgetBuilderSlideout({
 }: WidgetBuilderSlideoutProps) {
   const organization = useOrganization();
   const location = useLocation();
+  const {visible: isModalVisible} = useGlobalModal();
   const {state, dispatch} = useWidgetBuilderContext();
   const [initialState] = useState(state);
   const [customizeFromLibrary, setCustomizeFromLibrary] = useState(false);
@@ -233,6 +236,19 @@ export function WidgetBuilderSlideout({
       onConfirm: onClose,
     });
   }, [initialState, onClose, state]);
+
+  useHotkeys([
+    {
+      match: 'Escape',
+      skipPreventDefault: true,
+      callback: (evt: KeyboardEvent) => {
+        if (!isModalVisible) {
+          evt.preventDefault();
+          onCloseWithModal();
+        }
+      },
+    },
+  ]);
 
   const breadcrumbs = customizeFromLibrary
     ? [

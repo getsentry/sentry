@@ -103,6 +103,7 @@ class ViewerContextMiddlewareTest(TestCase):
         super().setUp()
         self.factory = RequestFactory()
 
+    @override_options({"viewer-context.enabled": False})
     def test_skipped_when_disabled(self):
         captured: list = []
 
@@ -110,7 +111,6 @@ class ViewerContextMiddlewareTest(TestCase):
             captured.append(get_viewer_context())
             return MagicMock(status_code=200)
 
-        # Default: viewer-context.enabled is False
         middleware = ViewerContextMiddleware(get_response)
 
         request = self.factory.get("/")

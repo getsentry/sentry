@@ -192,6 +192,16 @@ class RemoveRepositoryRequest(TypedDict):
     repo_external_id: str
 
 
+class RepoIdentifier(TypedDict):
+    repo_provider: str
+    repo_external_id: str
+
+
+class BulkRemoveRepositoriesRequest(TypedDict):
+    organization_id: int
+    repositories: list[RepoIdentifier]
+
+
 class ExplorerIndexProject(TypedDict):
     org_id: int
     project_id: int
@@ -214,6 +224,35 @@ class LlmGenerateRequest(TypedDict):
     temperature: float
     max_tokens: int
     response_schema: NotRequired[dict[str, Any]]
+
+
+class RepoDetails(TypedDict):
+    project_ids: list[int]
+    provider: str
+    owner: str
+    name: str
+    external_id: str
+    languages: list[str]
+    integration_id: NotRequired[str | None]
+
+
+class ExplorerIndexOrgRepoRequest(TypedDict):
+    org_id: int
+    repos: list[RepoDetails]
+
+
+def make_org_repo_knowledge_index_request(
+    body: ExplorerIndexOrgRepoRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/automation/explorer/index/org-repo-knowledge",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
 
 
 def make_org_project_knowledge_index_request(
@@ -252,6 +291,20 @@ def make_remove_repository_request(
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v1/project-preference/remove-repository",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+def make_bulk_remove_repositories_request(
+    body: BulkRemoveRepositoriesRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/project-preference/bulk-remove-repositories",
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
@@ -323,11 +376,12 @@ class SupergroupsEmbeddingRequest(TypedDict):
     artifact_data: dict[str, Any]
 
 
-class SupergroupsListRequest(TypedDict):
+class LightweightRCAClusterRequest(TypedDict):
+    group_id: int
+    issue: dict[str, Any]
+    organization_slug: str
     organization_id: int
-    offset: NotRequired[int | None]
-    limit: NotRequired[int | None]
-    project_ids: NotRequired[list[int] | None]
+    project_id: int
 
 
 class SupergroupsGetRequest(TypedDict):
@@ -338,6 +392,22 @@ class SupergroupsGetRequest(TypedDict):
 class SupergroupsGetByGroupIdsRequest(TypedDict):
     organization_id: int
     group_ids: list[int]
+
+
+class SupergroupDetailData(TypedDict):
+    id: int
+    title: str
+    summary: str
+    error_type: str
+    code_area: str
+    group_ids: list[int]
+    project_ids: list[int]
+    created_at: str
+    updated_at: str
+
+
+class SupergroupsByGroupIdsResponse(TypedDict):
+    data: list[SupergroupDetailData]
 
 
 class ServiceMapUpdateRequest(TypedDict):
@@ -439,15 +509,15 @@ def make_supergroups_embedding_request(
     )
 
 
-def make_supergroups_list_request(
-    body: SupergroupsListRequest,
-    viewer_context: SeerViewerContext,
+def make_lightweight_rca_cluster_request(
+    body: LightweightRCAClusterRequest,
     timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
-        "/v0/issues/supergroups/list",
-        body=orjson.dumps(body),
+        "/v0/issues/supergroups/cluster-lightweight",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         timeout=timeout,
         viewer_context=viewer_context,
     )

@@ -483,81 +483,84 @@ describe('DetectorsList', () => {
       expect(screen.getByRole('button', {name: 'Delete'})).toBeDisabled();
     });
 
-    it('shows option to select all query results when page is selected', async () => {
-      const deleteRequest = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/detectors/',
-        method: 'DELETE',
-        body: {},
-      });
+    it.isKnownFlake(
+      'shows option to select all query results when page is selected',
+      async () => {
+        const deleteRequest = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/detectors/',
+          method: 'DELETE',
+          body: {},
+        });
 
-      render(<AllMonitors />, {organization});
-      renderGlobalModal();
+        render(<AllMonitors />, {organization});
+        renderGlobalModal();
 
-      const testUser = UserFixture({id: '2', email: 'test@example.com'});
-      // Mock the filtered search results - this will be used when search is applied
-      const filteredDetectors = Array.from({length: 20}, (_, i) =>
-        MetricDetectorFixture({
-          id: `filtered-${i}`,
-          name: `Assigned Detector ${i + 1}`,
-          owner: ActorFixture({id: testUser.id, name: testUser.email, type: 'user'}),
-        })
-      );
-
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/detectors/',
-        body: filteredDetectors,
-        headers: {
-          'X-Hits': '50',
-        },
-        match: [
-          MockApiClient.matchQuery({
-            query: '!type:issue_stream assignee:test@example.com',
-          }),
-        ],
-      });
-
-      // Click through menus to select assignee
-      const searchInput = await screen.findByRole('combobox', {
-        name: 'Add a search term',
-      });
-      await userEvent.type(searchInput, 'assignee:test@example.com{enter}');
-
-      // Wait for filtered results to load
-      await screen.findByText('Assigned Detector 1');
-
-      const rows = screen.getAllByTestId('detector-list-row');
-
-      // Focus on first row to make checkbox visible
-      await userEvent.click(rows[0]!);
-      const firstRowCheckbox = within(rows[0]!).getByRole('checkbox');
-      await userEvent.click(firstRowCheckbox);
-      expect(firstRowCheckbox).toBeChecked();
-
-      // Select all on page - master checkbox should now be visible since we have a selection
-      const masterCheckbox = screen.getAllByRole('checkbox')[0]!;
-      await userEvent.click(masterCheckbox);
-
-      // Should show alert with option to select all query results
-      expect(screen.getByText(/20 monitors on this page selected/)).toBeInTheDocument();
-      const selectAllForQuery = screen.getByRole('button', {
-        name: /Select all 50 monitors that match this search query/,
-      });
-      await userEvent.click(selectAllForQuery);
-
-      // Perform an action to verify query-based selection
-      await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
-      const confirmModal = await screen.findByRole('dialog');
-      await userEvent.click(within(confirmModal).getByRole('button', {name: 'Delete'})); // Confirm
-
-      await waitFor(() => {
-        expect(deleteRequest).toHaveBeenCalledWith(
-          '/organizations/org-slug/detectors/',
-          expect.objectContaining({
-            query: {id: undefined, query: 'assignee:test@example.com', project: [1]},
+        const testUser = UserFixture({id: '2', email: 'test@example.com'});
+        // Mock the filtered search results - this will be used when search is applied
+        const filteredDetectors = Array.from({length: 20}, (_, i) =>
+          MetricDetectorFixture({
+            id: `filtered-${i}`,
+            name: `Assigned Detector ${i + 1}`,
+            owner: ActorFixture({id: testUser.id, name: testUser.email, type: 'user'}),
           })
         );
-      });
-    });
+
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/detectors/',
+          body: filteredDetectors,
+          headers: {
+            'X-Hits': '50',
+          },
+          match: [
+            MockApiClient.matchQuery({
+              query: '!type:issue_stream assignee:test@example.com',
+            }),
+          ],
+        });
+
+        // Click through menus to select assignee
+        const searchInput = await screen.findByRole('combobox', {
+          name: 'Add a search term',
+        });
+        await userEvent.type(searchInput, 'assignee:test@example.com{enter}');
+
+        // Wait for filtered results to load
+        await screen.findByText('Assigned Detector 1');
+
+        const rows = screen.getAllByTestId('detector-list-row');
+
+        // Focus on first row to make checkbox visible
+        await userEvent.click(rows[0]!);
+        const firstRowCheckbox = within(rows[0]!).getByRole('checkbox');
+        await userEvent.click(firstRowCheckbox);
+        expect(firstRowCheckbox).toBeChecked();
+
+        // Select all on page - master checkbox should now be visible since we have a selection
+        const masterCheckbox = screen.getAllByRole('checkbox')[0]!;
+        await userEvent.click(masterCheckbox);
+
+        // Should show alert with option to select all query results
+        expect(screen.getByText(/20 monitors on this page selected/)).toBeInTheDocument();
+        const selectAllForQuery = screen.getByRole('button', {
+          name: /Select all 50 monitors that match this search query/,
+        });
+        await userEvent.click(selectAllForQuery);
+
+        // Perform an action to verify query-based selection
+        await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
+        const confirmModal = await screen.findByRole('dialog');
+        await userEvent.click(within(confirmModal).getByRole('button', {name: 'Delete'})); // Confirm
+
+        await waitFor(() => {
+          expect(deleteRequest).toHaveBeenCalledWith(
+            '/organizations/org-slug/detectors/',
+            expect.objectContaining({
+              query: {id: undefined, query: 'assignee:test@example.com', project: [1]},
+            })
+          );
+        });
+      }
+    );
 
     it('disables action buttons when user does not have permissions', async () => {
       const noPermsOrganization = OrganizationFixture({

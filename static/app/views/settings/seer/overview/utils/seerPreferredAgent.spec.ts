@@ -295,11 +295,10 @@ describe('seerPreferredAgent', () => {
 
       const {result} = renderHookWithProviders(useBulkMutateSelectedAgent, {
         organization,
-        initialProps: {projects: [project]},
       });
 
       await act(async () => {
-        await result.current('seer');
+        await result.current([project], 'seer');
       });
 
       expect(projectPutRequest).toHaveBeenCalledWith(
@@ -328,11 +327,10 @@ describe('seerPreferredAgent', () => {
 
       const {result} = renderHookWithProviders(useBulkMutateSelectedAgent, {
         organization,
-        initialProps: {projects: [project]},
       });
 
       await act(async () => {
-        await result.current(integration);
+        await result.current([project], integration);
       });
 
       expect(projectPutRequest).toHaveBeenCalledWith(
@@ -368,10 +366,9 @@ describe('seerPreferredAgent', () => {
 
       const {result} = renderHookWithProviders(useBulkMutateSelectedAgent, {
         organization,
-        initialProps: {projects: [project]},
       });
       await act(async () => {
-        await result.current(integration);
+        await result.current([project], integration);
       });
 
       expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
@@ -392,11 +389,10 @@ describe('seerPreferredAgent', () => {
 
       const {result} = renderHookWithProviders(useBulkMutateSelectedAgent, {
         organization,
-        initialProps: {projects: [project]},
       });
 
       await act(async () => {
-        await result.current('seer');
+        await result.current([project], 'seer');
       });
 
       expect(updateSuccessSpy).toHaveBeenCalledWith({
@@ -427,11 +423,10 @@ describe('seerPreferredAgent', () => {
 
       const {result} = renderHookWithProviders(useBulkMutateSelectedAgent, {
         organization,
-        initialProps: {projects: [project]},
       });
 
       await act(async () => {
-        await result.current('seer');
+        await result.current([project], 'seer');
       });
 
       expect(addErrorMessageSpy).toHaveBeenCalledWith(
@@ -461,11 +456,10 @@ describe('seerPreferredAgent', () => {
 
       const {result} = renderHookWithProviders(useBulkMutateSelectedAgent, {
         organization,
-        initialProps: {projects: [project]},
       });
 
       await act(async () => {
-        await result.current('seer');
+        await result.current([project], 'seer');
       });
 
       expect(addErrorMessageSpy).toHaveBeenCalledWith(

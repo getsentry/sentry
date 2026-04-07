@@ -824,6 +824,10 @@ export default typescript.config([
       'jest/expect-expect': 'off', // Disabled as we have many tests which render as simple validations
       'jest/no-conditional-expect': 'off', // TODO(ryan953): Fix violations then delete this line
       'jest/no-disabled-tests': 'error', // `recommended` set this to warn, we've upgraded to error
+      'jest/no-standalone-expect': [
+        'error',
+        {additionalTestBlockFunctions: ['it.isKnownFlake']},
+      ],
     },
   },
   {

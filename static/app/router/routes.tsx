@@ -2245,11 +2245,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'summary/:projectId/',
-      component: make(() => import('sentry/views/profiling/profileSummary')),
-    },
-    {
-      path: 'profile/:projectId/differential-flamegraph/',
-      component: make(() => import('sentry/views/profiling/differentialFlamegraph')),
+      component: make(() => import('sentry/views/profiling/profileSummaryRedirect')),
     },
     traceView,
     {
@@ -2545,10 +2541,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'autofix/recent/',
       component: make(() => import('sentry/views/issueList/pages/autofix/recentlyRun')),
-    },
-    {
-      path: 'supergroups/',
-      component: make(() => import('sentry/views/issueList/pages/supergroups')),
     },
     {
       path: 'views/:viewId/',

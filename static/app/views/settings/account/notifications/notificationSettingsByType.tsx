@@ -98,12 +98,13 @@ export function NotificationSettingsByType({notificationType}: Props) {
   );
 
   const {data: allOrgIntegrations = [], status: organizationIntegrationStatus} =
-    useApiQuery<OrganizationIntegration[]>(
+    useApiQuery<Array<OrganizationIntegration | null>>(
       [getApiUrl('/users/$userId/organization-integrations/', {path: {userId: 'me'}})],
       {staleTime: 30_000}
     );
-  const organizationIntegrations = allOrgIntegrations.filter(orgIntegration =>
-    ALLOWED_PROVIDERS.has(orgIntegration.provider.key as SupportedProviders)
+  const organizationIntegrations = allOrgIntegrations.filter(
+    (orgIntegration): orgIntegration is OrganizationIntegration =>
+      ALLOWED_PROVIDERS.has(orgIntegration?.provider.key as SupportedProviders)
   );
   const {data: defaultSettings, status: defaultSettingsStatus} =
     useApiQuery<DefaultSettings>([getApiUrl('/notification-defaults/')], {
@@ -251,6 +252,10 @@ export function NotificationSettingsByType({notificationType}: Props) {
       organization.features?.includes('logs-billing')
     );
 
+    const hasTraceMetricsBilling = organizations.some(organization =>
+      organization.features?.includes('expose-category-trace-metric-byte')
+    );
+
     const hasSeerUserBilling = organizations.some(organization =>
       organization.features?.includes('seer-user-billing-launch')
     );
@@ -280,6 +285,9 @@ export function NotificationSettingsByType({notificationType}: Props) {
         return false;
       }
       if (field.name.startsWith('quotaLogBytes') && !includeLogs) {
+        return false;
+      }
+      if (field.name.startsWith('quotaTraceMetricBytes') && !hasTraceMetricsBilling) {
         return false;
       }
       if (field.name.startsWith('quotaSeerUsers') && !hasSeerUserBilling) {

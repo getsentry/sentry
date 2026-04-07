@@ -5,11 +5,13 @@ from typing import TYPE_CHECKING
 
 from django.utils import timezone
 
-from sentry import features
+from sentry import analytics, features
+from sentry.analytics.events.autofix_events import AiAutofixPrCreatedCompletedEvent
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.autofix.autofix_agent import (
+    STEP_CONFIGS,
     AutofixStep,
     trigger_autofix_explorer,
     trigger_coding_agent_handoff,
@@ -136,6 +138,8 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         # to find which step just completed
         webhook_action_type: SeerActionType | None = None
 
+        is_pr_created = False
+
         if current_step is not None:
             artifact = cls.find_latest_artifact_for_step(state, current_step)
             if artifact is not None:
@@ -166,6 +170,15 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                     }
                     for pull_request in state.repo_pr_states.values()
                 ]
+                is_pr_created = True
+                analytics.record(
+                    AiAutofixPrCreatedCompletedEvent(
+                        organization_id=organization.id,
+                        project_id=group.project_id,
+                        group_id=group.id,
+                        referrer=None if current_referrer is None else current_referrer.value,
+                    )
+                )
             else:
                 webhook_action_type = SeerActionType.CODING_COMPLETED
                 diffs_by_repo = state.get_diffs_by_repo()
@@ -230,11 +243,21 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                 },
             )
 
-        if current_step is not None:
+        if current_step is not None and not is_pr_created:
             referrer = current_referrer.value if current_referrer is not None else None
             metrics.incr(
                 "autofix.explorer.complete", tags={"step": current_step.value, "referrer": referrer}
             )
+            completed_event_cls = STEP_CONFIGS[current_step].completed_event
+            if completed_event_cls is not None:
+                analytics.record(
+                    completed_event_cls(
+                        organization_id=organization.id,
+                        project_id=group.project_id,
+                        group_id=group.id,
+                        referrer=referrer,
+                    )
+                )
 
     @classmethod
     def _maybe_trigger_supergroups_embedding(

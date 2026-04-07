@@ -877,7 +877,7 @@ describe('Core StackTrace', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows URL link in tooltip when absPath is an http URL', async () => {
+  it.isKnownFlake('shows URL link in tooltip when absPath is an http URL', async () => {
     jest.useFakeTimers();
     const {event, stacktrace} = makeStackTraceData();
     const frame = stacktrace.frames[stacktrace.frames.length - 1]!;

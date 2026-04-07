@@ -1374,6 +1374,14 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Supergroups / Lightweight RCA
+register(
+    "supergroups.lightweight-enabled-orgs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # ## sentry.killswitches
 #
 # The following options are documented in sentry.killswitches in more detail
@@ -3193,6 +3201,12 @@ register(
     default=10 * 1024 * 1024,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# When enabled, oversized segments are split into chunks instead of being dropped.
+register(
+    "spans.buffer.chunk-oversized-segments",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # TTL for keys in Redis. This is a downside protection in case of bugs.
 register(
     "spans.buffer.redis-ttl",
@@ -3575,18 +3589,18 @@ register(
     default=10000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Tuning knobs for the periodic fire-history cleanup task.
+# Tuning knobs for the periodic open-period-activity cleanup task.
 # time_limit is a wall-clock budget checked *between* batches, so a single
 # batch that exceeds it will still run to completion. Setting it to 0
 # prevents any batches from running.
 register(
-    "workflow_engine.fire_history_cleanup.time_limit_seconds",
+    "workflow_engine.open_period_activity_cleanup.time_limit_seconds",
     type=Float,
     default=5.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "workflow_engine.fire_history_cleanup.batch_size",
+    "workflow_engine.open_period_activity_cleanup.batch_size",
     type=Int,
     default=10000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -4106,7 +4120,7 @@ register(
 # Set via deploy config (SENTRY_OPTIONS); requires restart to change.
 register(
     "viewer-context.enabled",
-    default=False,
+    default=True,
     type=Bool,
     flags=FLAG_NOSTORE,
 )
