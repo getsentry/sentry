@@ -4,6 +4,7 @@ from typing import Any
 
 from django.db import IntegrityError, router, transaction
 
+from sentry import features
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import enforce_constraints
@@ -11,8 +12,11 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.integrations.services.repository import RepositoryService, RpcRepository
 from sentry.integrations.services.repository.model import RpcCreateRepository
 from sentry.integrations.services.repository.serial import serialize_repository
+from sentry.models.organization import Organization
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.repository import Repository
+from sentry.seer.models.project_repository import SeerProjectRepository
+from sentry.tasks.seer.cleanup import bulk_cleanup_seer_repository_preferences
 from sentry.users.services.user.model import RpcUser
 
 
@@ -159,10 +163,27 @@ class DatabaseBackedRepositoryService(RepositoryService):
         integration_id: int,
     ) -> None:
         with transaction.atomic(router.db_for_write(Repository)):
-            # Disassociate repos from the organization integration being deleted
-            Repository.objects.filter(
-                organization_id=organization_id, integration_id=integration_id
-            ).update(integration_id=None)
+            repos = list(
+                Repository.objects.filter(
+                    organization_id=organization_id, integration_id=integration_id
+                ).values_list("id", "external_id", "provider")
+            )
+            repo_ids = [repo_id for repo_id, _, _ in repos]
+
+            if repo_ids:
+                # Disassociate repos from the organization integration being deleted
+                Repository.objects.filter(id__in=repo_ids).update(integration_id=None)
+
+                # Delete Seer project preferences for the affected repos.
+                # Organization may already be deleted if org deletion and integration
+                # uninstall overlap; skip SeerProjectRepository cleanup in that case
+                # since cascades will handle it.
+                try:
+                    organization = Organization.objects.get_from_cache(id=organization_id)
+                    if features.has("organizations:seer-project-settings-dual-write", organization):
+                        SeerProjectRepository.objects.filter(repository_id__in=repo_ids).delete()
+                except Organization.DoesNotExist:
+                    pass
 
             # Delete Code Owners with a Code Mapping using the OrganizationIntegration
             ProjectCodeOwners.objects.filter(
@@ -175,3 +196,17 @@ class DatabaseBackedRepositoryService(RepositoryService):
             RepositoryProjectPathConfig.objects.filter(
                 organization_integration_id=organization_integration_id
             ).delete()
+
+        # Delete Seer project preferences for the affected repos via Seer API
+        repos_to_clean = [
+            {"repo_external_id": external_id, "repo_provider": provider}
+            for _, external_id, provider in repos
+            if external_id and provider
+        ]
+        if repos_to_clean:
+            bulk_cleanup_seer_repository_preferences.apply_async(
+                kwargs={
+                    "organization_id": organization_id,
+                    "repos": repos_to_clean,
+                }
+            )

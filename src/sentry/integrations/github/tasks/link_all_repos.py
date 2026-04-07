@@ -13,7 +13,6 @@ from sentry.integrations.source_code_management.metrics import (
 )
 from sentry.organizations.services.organization import organization_service
 from sentry.plugins.providers.integration_repository import (
-    RepoExistsError,
     RepositoryInputConfig,
     get_integration_repository_provider,
 )
@@ -40,7 +39,7 @@ def get_repo_config(repo: Mapping[str, Any], integration_id: int) -> RepositoryI
     processing_deadline_duration=60,
     silo_mode=SiloMode.CONTROL,
 )
-@retry(exclude=(RepoExistsError, KeyError))
+@retry(exclude=(KeyError,))
 def link_all_repos(
     integration_key: str,
     integration_id: int,
@@ -88,14 +87,15 @@ def link_all_repos(
                 missing_repos.append(repo)
                 continue
 
-        try:
+        _created_repos, _reactivated_repos, existing_repos = (
             integration_repo_provider.create_repositories(
                 configs=repo_configs, organization=rpc_org
             )
-        except RepoExistsError as e:
+        )
+        if existing_repos:
             lifecycle.record_halt(
                 str(LinkAllReposHaltReason.REPOSITORY_NOT_CREATED),
-                {"missing_repos": e.repos, "integration_id": integration_id},
+                {"missing_repos": existing_repos, "integration_id": integration_id},
             )
 
         if missing_repos:
