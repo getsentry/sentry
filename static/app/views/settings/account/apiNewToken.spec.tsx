@@ -161,10 +161,7 @@ describe('ApiNewToken', () => {
     render(<ApiNewToken />);
     renderGlobalModal();
 
-    const selectByValue = (name: string, value: string) =>
-      selectEvent.select(screen.getByRole('textbox', {name}), value);
-
-    await selectByValue('Project', 'Read');
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Project'}), 'Read');
 
     await userEvent.click(screen.getByRole('button', {name: 'Create Token'}));
 
@@ -217,10 +214,7 @@ describe('ApiNewToken', () => {
 
     render(<ApiNewToken />);
 
-    const selectByValue = (name: string, value: string) =>
-      selectEvent.select(screen.getByRole('textbox', {name}), value);
-
-    await selectByValue('Project', 'Read');
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Project'}), 'Read');
 
     await userEvent.click(screen.getByRole('button', {name: 'Create Token'}));
 
