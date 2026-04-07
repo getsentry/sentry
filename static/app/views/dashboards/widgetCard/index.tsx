@@ -64,6 +64,7 @@ import {
   useTransactionsDeprecationWarning,
 } from './widgetCardContextMenu';
 import {WidgetFrame} from './widgetFrame';
+import {getWidgetQueryLLMHint} from './widgetLLMContext';
 
 export type OnDataFetchedParams = {
   tableResults?: TableDataWithTitle[];
@@ -142,35 +143,6 @@ type Data = {
   totalIssuesCount?: string;
 };
 
-/**
- * Returns a hint for the Seer Explorer agent describing how to re-query this
- * widget's data using a tool call, if the user wants to dig deeper.
- */
-export function getQueryHint(displayType: DisplayType): string {
-  switch (displayType) {
-    case DisplayType.LINE:
-    case DisplayType.AREA:
-    case DisplayType.BAR:
-      return 'To dig deeper into this widget, run a timeseries query using y_axes (aggregates) + group_by (columns) + query (conditions)';
-    case DisplayType.TABLE:
-      return 'To dig deeper into this widget, run a table query using fields (aggregates + columns) + query (conditions) + sort (orderby)';
-    case DisplayType.BIG_NUMBER:
-      return 'To dig deeper into this widget, run a single aggregate query using fields (aggregates) + query (conditions); current value is included below';
-    default:
-      return 'To dig deeper into this widget, run a table query using fields (aggregates + columns) + query (conditions)';
-  }
-}
-
-export function getWidgetData(
-  displayType: DisplayType,
-  data: Data | undefined
-): Record<string, unknown> {
-  if (displayType === DisplayType.BIG_NUMBER && data?.tableResults?.[0]) {
-    return {data: data.tableResults[0].data};
-  }
-  return {};
-}
-
 function WidgetCard(props: Props) {
   const [data, setData] = useState<Data>();
   const [isLoadingTextVisible, setIsLoadingTextVisible] = useState(false);
@@ -190,7 +162,7 @@ function WidgetCard(props: Props) {
     title: props.widget.title,
     displayType: resolvedDisplayType,
     widgetType: props.widget.widgetType,
-    queryHint: getQueryHint(resolvedDisplayType),
+    queryHint: getWidgetQueryLLMHint(resolvedDisplayType),
     queries: props.widget.queries.map(q => ({
       name: q.name,
       conditions: q.conditions,
@@ -198,7 +170,6 @@ function WidgetCard(props: Props) {
       columns: q.columns,
       orderby: q.orderby,
     })),
-    ...getWidgetData(resolvedDisplayType, data),
   });
 
   const onDataFetched = (newData: Data) => {

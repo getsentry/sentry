@@ -18,6 +18,8 @@ import type {
   TabularValueUnit,
   Thresholds,
 } from 'sentry/views/dashboards/widgets/common/types';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {DEEMPHASIS_VARIANT, LOADING_PLACEHOLDER} from './settings';
 import {ThresholdsIndicator} from './thresholdsIndicator';
@@ -33,7 +35,7 @@ interface BigNumberWidgetVisualizationProps {
   unit?: TabularValueUnit;
 }
 
-export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualizationProps) {
+function BigNumberWidgetVisualizationInner(props: BigNumberWidgetVisualizationProps) {
   const {
     field,
     value,
@@ -43,6 +45,10 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
     type,
     unit,
   } = props;
+
+  // Push parsed display values into the LLM context tree for Seer Explorer.
+  // These are already computed by the parent — no raw data involved.
+  useLLMContext({field, value, type, unit, thresholds: props.thresholds});
 
   const theme = useTheme();
 
@@ -206,6 +212,11 @@ const LoadingPlaceholder = styled('span')`
   font-size: ${p => p.theme.font.size.lg};
 `;
 
-BigNumberWidgetVisualization.LoadingPlaceholder = function () {
-  return <LoadingPlaceholder>{LOADING_PLACEHOLDER}</LoadingPlaceholder>;
-};
+export const BigNumberWidgetVisualization = Object.assign(
+  registerLLMContext('chart', BigNumberWidgetVisualizationInner),
+  {
+    LoadingPlaceholder() {
+      return <LoadingPlaceholder>{LOADING_PLACEHOLDER}</LoadingPlaceholder>;
+    },
+  }
+);
