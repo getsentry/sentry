@@ -91,27 +91,29 @@ class OrganizationSupergroupsByGroupEndpoint(OrganizationEndpoint):
 
         data: SupergroupsByGroupIdsResponse = orjson.loads(response.data)
 
+        if not status_param:
+            return Response(data)
+
         # Seer returns all group_ids per supergroup regardless of status.
         # We can't filter before the Seer call because Seer expands group_ids
         # to include the full supergroup membership, not just the requested IDs.
         # Instead, collect every group_id from the response, check status in
         # bulk, and strip out non-matching ones.
-        if status_param is not None:
-            all_response_group_ids: set[int] = set()
-            for sg in data["data"]:
-                all_response_group_ids.update(sg["group_ids"])
+        all_response_group_ids: set[int] = set()
+        for sg in data["data"]:
+            all_response_group_ids.update(sg["group_ids"])
 
-            matching_ids = set(
-                Group.objects.filter(
-                    id__in=all_response_group_ids,
-                    project__organization=organization,
-                    status=STATUS_QUERY_CHOICES[status_param],
-                ).values_list("id", flat=True)
-            )
+        matching_ids = set(
+            Group.objects.filter(
+                id__in=all_response_group_ids,
+                project__organization=organization,
+                status=STATUS_QUERY_CHOICES[status_param],
+            ).values_list("id", flat=True)
+        )
 
-            for sg in data["data"]:
-                sg["group_ids"] = [gid for gid in sg["group_ids"] if gid in matching_ids]
-            # Drop supergroups that have no matching groups after filtering
-            data["data"] = [sg for sg in data["data"] if sg["group_ids"]]
+        for sg in data["data"]:
+            sg["group_ids"] = [gid for gid in sg["group_ids"] if gid in matching_ids]
+        # Drop supergroups that have no matching groups after filtering
+        data["data"] = [sg for sg in data["data"] if sg["group_ids"]]
 
         return Response(data)
