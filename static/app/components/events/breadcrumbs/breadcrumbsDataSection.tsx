@@ -107,10 +107,8 @@ export function BreadcrumbsDataSection({
             }
             // Third-party packages (e.g. Pendo) use a container with id "pendo-guide-container".
             // If the click is inside that container, treat it as an internal click.
-            if (element instanceof HTMLElement) {
-              if (element.closest('#pendo-guide-container')) {
-                return false;
-              }
+            if (element.closest('#pendo-guide-container')) {
+              return false;
             }
             return true;
           },
