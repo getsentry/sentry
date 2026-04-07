@@ -693,7 +693,7 @@ function EmptyRenderer({
         <EmptyStateText size="xl">{t('No logs found')}</EmptyStateText>
         <EmptyStateText size="md">
           {tct(
-            'Try adjusting your filters or get started with sending logs by checking these [instructions]',
+            'Try adjusting your filters or get started with sending logs by checking these [instructions].',
             {
               instructions: (
                 <ExternalLink href={LOGS_INSTRUCTIONS_URL}>
