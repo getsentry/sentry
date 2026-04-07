@@ -8,7 +8,6 @@ import sentry_sdk
 
 from sentry import features, options
 from sentry.models.organization import Organization, OrganizationStatus
-from sentry.seer.autofix.constants import SeerAutomationSource
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils.iterators import chunked
@@ -23,8 +22,6 @@ FEATURE_NAMES = [
     "organizations:seer-night-shift",
     "organizations:gen-ai-features",
 ]
-
-NIGHT_SHIFT_AUTO_RUN_SOURCE = SeerAutomationSource.NIGHT_SHIFT.value
 
 
 @instrumented_task(
@@ -50,7 +47,7 @@ def schedule_night_shift() -> None:
         ),
         100,
     ):
-        eligible_ids = _get_eligible_org_ids_from_batch_d7(org_batch)
+        eligible_ids = _get_eligible_org_ids_from_batch(org_batch)
 
         org_map = {org.id: org for org in org_batch}
         for org_id in eligible_ids:
@@ -102,7 +99,7 @@ def run_night_shift_for_org(organization_id: int) -> None:
     )
 
 
-def _get_eligible_org_ids_from_batch_d7(
+def _get_eligible_org_ids_from_batch(
     orgs: Sequence[Organization],
 ) -> list[int]:
     """
