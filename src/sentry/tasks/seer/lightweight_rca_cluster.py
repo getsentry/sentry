@@ -3,14 +3,14 @@ import logging
 from sentry.models.group import Group
 from sentry.seer.supergroups.lightweight_rca_cluster import trigger_lightweight_rca_cluster
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import ingest_errors_postprocess_tasks
+from sentry.taskworker.namespaces import ingest_errors_tasks
 
 logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
     name="sentry.tasks.seer.lightweight_rca_cluster.trigger_lightweight_rca_cluster_task",
-    namespace=ingest_errors_postprocess_tasks,
+    namespace=ingest_errors_tasks,
 )
 def trigger_lightweight_rca_cluster_task(group_id: int, **kwargs) -> None:
     try:
