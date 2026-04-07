@@ -200,7 +200,7 @@ class SnapshotToMarkdownTest(TestCase):
             ],
         }
         result = snapshot_to_markdown(snapshot)
-        assert "# Dashboard" in result
+        assert "# dashboard" in result
         assert '- **title**: "Backend Health"' in result
         assert "- **widgetCount**: 3" in result
 
@@ -228,9 +228,9 @@ class SnapshotToMarkdownTest(TestCase):
             ],
         }
         result = snapshot_to_markdown(snapshot)
-        assert "# Dashboard" in result
-        assert "## Widget" in result
-        assert "### Chart" in result
+        assert "# dashboard" in result
+        assert "## widget" in result
+        assert "### chart" in result
         assert '- **query**: "count()"' in result
 
     def test_empty_nodes(self) -> None:
@@ -242,7 +242,7 @@ class SnapshotToMarkdownTest(TestCase):
             "nodes": [{"nodeType": "dashboard", "data": None, "children": []}],
         }
         result = snapshot_to_markdown(snapshot)
-        assert "# Dashboard" in result
+        assert "# dashboard" in result
         assert "not an exact screenshot" in result
 
     def test_node_with_non_dict_data(self) -> None:
@@ -251,5 +251,5 @@ class SnapshotToMarkdownTest(TestCase):
             "nodes": [{"nodeType": "widget", "data": "some string", "children": []}],
         }
         result = snapshot_to_markdown(snapshot)
-        assert "# Widget" in result
+        assert "# widget" in result
         assert '- "some string"' in result
