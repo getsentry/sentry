@@ -10,6 +10,7 @@ from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
 from sentry.identity.pipeline import IdentityPipeline
+from sentry.identity.slack.provider import SlackIdentityProvider
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -36,7 +37,7 @@ from sentry.notifications.platform.slack.provider import (
 )
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline.views.base import PipelineView
+from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
 from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
@@ -335,6 +336,7 @@ class SlackIntegrationProvider(IntegrationProvider):
         return self.identity_oauth_scopes
 
     setup_dialog_config = {"width": 600, "height": 900}
+    setup_url_path = "/extensions/slack/setup/"
 
     def _identity_pipeline_view(self) -> PipelineView[IntegrationPipeline]:
         return NestedPipelineView(
@@ -344,12 +346,27 @@ class SlackIntegrationProvider(IntegrationProvider):
             config={
                 "oauth_scopes": self._get_oauth_scopes(),
                 "user_scopes": self.user_scopes,
-                "redirect_url": absolute_uri("/extensions/slack/setup/"),
+                "redirect_url": absolute_uri(self.setup_url_path),
             },
         )
 
     def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
         return [self._identity_pipeline_view()]
+
+    def _make_identity_provider(self) -> SlackIdentityProvider:
+        return SlackIdentityProvider(
+            oauth_scopes=self._get_oauth_scopes(),
+            redirect_url=absolute_uri(self.setup_url_path),
+        )
+
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+        provider = self._make_identity_provider()
+        return [
+            provider.make_oauth_api_step(
+                bind_key="oauth_data",
+                extra_authorize_params={"user_scope": " ".join(self.user_scopes)},
+            ),
+        ]
 
     def _get_team_info(self, access_token: str) -> Any:
         # Manually add authorization since this method is part of slack installation
@@ -365,7 +382,13 @@ class SlackIntegrationProvider(IntegrationProvider):
             raise IntegrationError("Could not retrieve Slack team information.")
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
-        data = state["identity"]["data"]
+        # TODO: legacy views write token data to state["identity"]["data"] via
+        # NestedPipelineView. API steps write directly to state["oauth_data"].
+        # Remove the legacy path once the old views are retired.
+        if "oauth_data" in state:
+            data = state["oauth_data"]
+        else:
+            data = state["identity"]["data"]
         assert data["ok"]
 
         access_token = data["access_token"]
