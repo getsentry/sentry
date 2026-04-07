@@ -99,9 +99,9 @@ class OrganizationSupergroupsByGroupEndpoint(OrganizationEndpoint):
         # to include the full supergroup membership, not just the requested IDs.
         # Instead, collect every group_id from the response, check status in
         # bulk, and strip out non-matching ones.
-        all_response_group_ids: set[int] = set()
+        all_response_group_ids: list[int] = []
         for sg in data["data"]:
-            all_response_group_ids.update(sg["group_ids"])
+            all_response_group_ids.extend(sg["group_ids"])
 
         matching_ids = set(
             Group.objects.filter(
