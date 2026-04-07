@@ -119,11 +119,13 @@ def _build_comparison_fingerprints(manifest: ComparisonManifest) -> set[tuple[st
         if image.status == "unchanged":
             continue
         if image.status in ("changed", "added"):
-            fingerprints.add((name, image.status, image.head_hash or ""))
+            if not image.head_hash:
+                continue
+            fingerprints.add((name, image.status, image.head_hash))
         elif image.status == "renamed":
-            fingerprints.add(
-                (name, "renamed", image.head_hash or "", image.previous_image_file_name or "")
-            )
+            if not image.head_hash or not image.previous_image_file_name:
+                continue
+            fingerprints.add((name, "renamed", image.head_hash, image.previous_image_file_name))
         else:
             fingerprints.add((name, image.status))
     return fingerprints

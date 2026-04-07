@@ -136,6 +136,33 @@ class BuildComparisonFingerprintsTest(TestCase):
         fps = _build_comparison_fingerprints(manifest)
         assert fps == set()
 
+    def test_skips_changed_with_missing_head_hash(self):
+        manifest = self._make_manifest(
+            {
+                "no_hash.png": ComparisonImageResult(status="changed", base_hash="abc"),
+                "has_hash.png": ComparisonImageResult(
+                    status="changed", head_hash="def", base_hash="ghi"
+                ),
+            }
+        )
+        fps = _build_comparison_fingerprints(manifest)
+        assert fps == {("has_hash.png", "changed", "def")}
+
+    def test_skips_renamed_with_missing_hash_or_previous_name(self):
+        manifest = self._make_manifest(
+            {
+                "no_hash.png": ComparisonImageResult(
+                    status="renamed", previous_image_file_name="old.png"
+                ),
+                "no_prev.png": ComparisonImageResult(status="renamed", head_hash="abc"),
+                "valid.png": ComparisonImageResult(
+                    status="renamed", head_hash="def", previous_image_file_name="old_valid.png"
+                ),
+            }
+        )
+        fps = _build_comparison_fingerprints(manifest)
+        assert fps == {("valid.png", "renamed", "def", "old_valid.png")}
+
 
 def _mock_session_with_manifests(manifests_by_key: dict[str, bytes]) -> MagicMock:
     session = MagicMock()
