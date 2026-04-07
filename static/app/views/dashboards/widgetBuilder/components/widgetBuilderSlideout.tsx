@@ -240,8 +240,10 @@ export function WidgetBuilderSlideout({
   useHotkeys([
     {
       match: 'Escape',
-      callback: () => {
+      skipPreventDefault: true,
+      callback: (evt: KeyboardEvent) => {
         if (!isModalVisible) {
+          evt.preventDefault();
           onCloseWithModal();
         }
       },
