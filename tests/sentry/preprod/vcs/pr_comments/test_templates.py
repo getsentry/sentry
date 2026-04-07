@@ -100,7 +100,7 @@ class FormatPrCommentTest(TestCase):
         result = format_pr_comment([artifact], project=self.project)
 
         assert f"[Configure {self.project.name} build distribution settings](" in result
-        assert f"/settings/projects/{self.project.slug}/mobile-builds/" in result
+        assert f"/settings/projects/{self.project.slug}/mobile-builds/?tab=distribution" in result
 
     def test_empty_list_raises(self) -> None:
         with pytest.raises(ValueError, match="No installable artifacts"):

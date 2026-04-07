@@ -48,7 +48,7 @@ def format_pr_comment(artifacts: list[PreprodArtifact], project: Project) -> str
             sections.append(f"{header}\n{separator}\n" + "\n".join(android_rows))
 
     settings_url = project.organization.absolute_url(
-        f"/settings/projects/{project.slug}/mobile-builds/"
+        f"/settings/projects/{project.slug}/mobile-builds/", query="tab=distribution"
     )
     sections.append(f"[Configure {project.name} build distribution settings]({settings_url})")
 
