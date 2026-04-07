@@ -1,11 +1,11 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 
-import ErrorsContent from './content';
+import ErrorsContent, {ErrorsBody} from './content';
 
 describe('ErrorsContent', () => {
   beforeEach(() => {
@@ -57,5 +57,29 @@ describe('ErrorsContent', () => {
     expect(
       await screen.findByRole('combobox', {name: /add a search term/i})
     ).toBeInTheDocument();
+  });
+});
+
+describe('ErrorsBody', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('renders with sidebar expanded by default', () => {
+    render(<ErrorsBody />);
+    const collapseButton = screen.getByRole('button', {name: 'Collapse sidebar'});
+    expect(collapseButton).toBeInTheDocument();
+    expect(collapseButton).not.toHaveTextContent('Advanced');
+  });
+
+  it('collapses sidebar when chevron button is clicked', async () => {
+    render(<ErrorsBody />);
+
+    const collapseButton = screen.getByRole('button', {name: 'Collapse sidebar'});
+    await userEvent.click(collapseButton);
+
+    const expandButton = screen.getByRole('button', {name: 'Expand sidebar'});
+    expect(expandButton).toBeInTheDocument();
+    expect(expandButton).toHaveTextContent('Advanced');
   });
 });

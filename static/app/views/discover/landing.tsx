@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
@@ -19,10 +20,9 @@ import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {NewQuery, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -114,19 +114,17 @@ const useDiscoverLandingQuery = (renderPrebuilt: boolean) => {
     delete queryParams.cursor;
   }
 
-  return useApiQuery<SavedQuery[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  return useQuery({
+    ...apiOptions.as<SavedQuery[]>()(
+      '/organizations/$organizationIdOrSlug/discover/saved/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: queryParams,
-      },
-    ],
-    {
-      staleTime: 0,
-    }
-  );
+        staleTime: 0,
+      }
+    ),
+    select: selectJsonWithHeaders,
+  });
 };
 
 const RENDER_PREBUILT_KEY = 'discover-render-prebuilt';
@@ -146,12 +144,12 @@ function DiscoverLanding() {
   const {
     status,
     error,
-    data: savedQueries = [],
-    getResponseHeader,
+    data: savedQueriesResponse,
     refetch: refreshSavedQueries,
   } = useDiscoverLandingQuery(renderPrebuilt);
 
-  const savedQueriesPageLinks = getResponseHeader?.('Link');
+  const savedQueries = savedQueriesResponse?.json ?? [];
+  const savedQueriesPageLinks = savedQueriesResponse?.headers.Link;
 
   const to = makeDiscoverPathname({
     path: `/homepage/`,
