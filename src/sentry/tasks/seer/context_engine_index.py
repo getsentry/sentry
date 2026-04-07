@@ -224,6 +224,7 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
     name="sentry.tasks.seer.context_engine_index.index_repos",
     namespace=seer_tasks,
     processing_deadline_duration=10 * 60,  # 10 minutes
+    retry=Retry(times=3, on=(SeerApiError,), delay=60),
 )
 def index_repos(organization_id: int, *args, **kwargs) -> None:
     if not options.get("explorer.context_engine_indexing.enable"):
