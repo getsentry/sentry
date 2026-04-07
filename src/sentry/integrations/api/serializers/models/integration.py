@@ -135,7 +135,7 @@ class OrganizationIntegrationSerializer(Serializer):
         )
         integrations_by_id: dict[int, RpcIntegration] = {i.id: i for i in integrations}
         return {
-            item: {"integration": integrations_by_id[item.integration_id]} for item in item_list
+            item: {"integration": integrations_by_id.get(item.integration_id)} for item in item_list
         }
 
     def serialize(
@@ -145,26 +145,39 @@ class OrganizationIntegrationSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         include_config: bool = True,
         **kwargs: Any,
-    ) -> MutableMapping[str, Any]:
+    ) -> MutableMapping[str, Any] | None:
+        logging_name = "sentry.serializers.model.organizationintegration"
+        logging_ctx = {"organization_integration_id": obj.id, "integration_id": obj.integration_id}
         # XXX(epurkhiser): This is O(n) for integrations, especially since
         # we're using the IntegrationConfigSerializer which pulls in the
         # integration installation config object which very well may be making
         # API request for config options.
-        integration: RpcIntegration = attrs.get("integration")  # type: ignore[assignment]
+        integration: RpcIntegration | None = attrs.get("integration")
+        if integration is None:
+            logger.warning(f"{logging_name}.missing_integration", extra=logging_ctx)
+            return None
+
         serialized_integration: MutableMapping[str, Any] = serialize(
             objects=integration,
             user=user,
             serializer=IntegrationConfigSerializer(obj.organization_id, params=self.params),
             include_config=include_config,
         )
+        if serialized_integration is None:
+            logger.warning(f"{logging_name}.serialize_integration_failed", extra=logging_ctx)
+            return None
 
         dynamic_display_information = None
         config_data = None
+        logging_ctx["provider"] = integration.provider
 
         try:
             installation = integration.get_installation(organization_id=obj.organization_id)
         except NotImplementedError:
             # slack doesn't have an installation implementation
+            config_data = obj.config if include_config else None
+        except Exception:
+            logger.exception(f"{logging_name}.get_installation_failed", extra=logging_ctx)
             config_data = obj.config if include_config else None
         else:
             try:
@@ -183,6 +196,8 @@ class OrganizationIntegrationSerializer(Serializer):
                     "integration_provider": integration.provider,
                 }
                 logger.info(name, extra=log_info)
+            except Exception:
+                logger.exception(f"{logging_name}.serialize_installation_failed", extra=logging_ctx)
 
         serialized_integration.update(
             {

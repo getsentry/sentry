@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import orjson
 
+from sentry.integrations.models.integration import Integration
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -72,3 +73,32 @@ class UserOrganizationIntegationTest(APITestCase):
             assert response.status_code == 200
             content = orjson.loads(response.content)
             assert content == []
+
+    def test_missing_integration_filtered_from_response(self) -> None:
+        """OrganizationIntegrations whose Integration was deleted don't produce null entries."""
+        integration = self.create_provider_integration(provider="github")
+        self.create_organization_integration(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+
+        # Delete the Integration row directly to simulate orphaned state
+        Integration.objects.filter(id=integration.id).delete()
+
+        response = self.get_success_response(self.user.id)
+        assert response.data == []
+
+    def test_installation_error_still_returns_item(self) -> None:
+        """An exception in get_dynamic_display_information shouldn't null out the item."""
+        integration = self.create_provider_integration(provider="github")
+        self.create_organization_integration(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+
+        with patch(
+            "sentry.integrations.base.IntegrationInstallation.get_dynamic_display_information",
+            side_effect=RuntimeError("boom"),
+        ):
+            response = self.get_success_response(self.user.id)
+
+        assert len(response.data) == 1
+        assert response.data[0]["organizationId"] == self.organization.id
