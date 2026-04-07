@@ -41,12 +41,36 @@ TEST_DIRS = (
     "tests/integration/",
 )
 
+# Most of these won't have coverage info because they're evaluated at
+# module load time and app warmup, before any per-test coverage context is active.
+#
+# Tracking a "startup" coverage context doesn't work: django.setup()
+# eagerly imports models, fields, validators, utils, etc. We also have
+# large dynamic __init__'s so a startup context would select nearly every
+# test.
 FULL_SUITE_TRIGGERS: list[str | re.Pattern[str]] = [
-    "src/sentry/testutils/pytest/sentry.py",
+    re.compile(r"^src/sentry/testutils/pytest/"),
+    re.compile(r"(^|/)conftest\.py$"),
+    "src/sentry/runner/initializer.py",
     "src/sentry/constants.py",
-    "pyproject.toml",
+    # option defaults registered at startup via initialize_app()
+    re.compile(r"^src/sentry/options/"),
+    # feature flags registered via manager.add() at import time
+    re.compile(r"^src/sentry/features/"),
+    # signal definitions created at module level; receivers depend on these
+    "src/sentry/signals.py",
+    # signal handlers registered globally via initialize_receivers()
+    re.compile(r"^src/sentry/receivers/"),
+    # stdlib/third-party monkey-patches applied before Django setup
+    re.compile(r"^src/sentry/monkey/"),
+    # monkeypatches transaction.atomic for silo-aware DB routing
+    re.compile(r"^src/sentry/silo/patches/"),
+    # SiloRouter loaded via DATABASE_ROUTERS; affects every DB query
+    "src/sentry/db/router.py",
     "src/sentry/conf/server.py",
     "src/sentry/web/urls.py",
+    "pyproject.toml",
+    "uv.lock",
     re.compile(r"/migrations/\d{4}_[^/]+\.py$"),
 ]
 

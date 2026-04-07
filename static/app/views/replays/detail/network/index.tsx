@@ -150,8 +150,7 @@ export function NetworkList() {
     }, [isNetworkDetailsSetup, organization]),
   });
 
-  const selectedItem =
-    selectedIndex === '' ? null : (items[Number(selectedIndex)] ?? null);
+  const selectedItem = selectedIndex === null ? null : (items[selectedIndex] ?? null);
 
   return (
     <Flex direction="column" wrap="nowrap">

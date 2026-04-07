@@ -41,6 +41,7 @@ class SCMIntegrationInteractionType(StrEnum):
 
     # Tasks
     LINK_ALL_REPOS = "link_all_repos"
+    SYNC_REPOS_ON_INSTALL_CHANGE = "sync_repos_on_install_change"
 
     # GitHub only
     DERIVE_CODEMAPPINGS = "derive_codemappings"

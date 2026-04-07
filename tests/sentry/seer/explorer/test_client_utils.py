@@ -242,7 +242,8 @@ class SnapshotToMarkdownTest(TestCase):
             "nodes": [{"nodeType": "dashboard", "data": None, "children": []}],
         }
         result = snapshot_to_markdown(snapshot)
-        assert result == "# dashboard"
+        assert "# dashboard" in result
+        assert "not an exact screenshot" in result
 
     def test_node_with_non_dict_data(self) -> None:
         snapshot = {

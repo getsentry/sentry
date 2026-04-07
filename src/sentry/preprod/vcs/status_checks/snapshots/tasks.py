@@ -239,6 +239,7 @@ def create_preprod_snapshot_status_check_task(
             status,
             base_artifact_map,
             changes_map,
+            approvals_map=approvals_map,
         )
         if any(changes_map.values()):
             approve_action_identifier = APPROVE_SNAPSHOT_ACTION_IDENTIFIER

@@ -13,7 +13,6 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {testableTransition} from 'sentry/utils/testableTransition';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -227,12 +226,11 @@ export function RelocationOnboarding() {
       <BackMotionDiv
         initial="initial"
         animate="visible"
-        transition={testableTransition()}
         variants={{
           initial: {opacity: 0, visibility: 'hidden'},
           visible: {
             opacity: 1,
-            transition: testableTransition({delay: 1}),
+            transition: {delay: 1},
             transitionEnd: {
               visibility: 'visible',
             },
@@ -369,9 +367,9 @@ const OnboardingStep = styled((props: React.ComponentProps<typeof motion.div>) =
     animate="animate"
     exit="exit"
     variants={{animate: {}}}
-    transition={testableTransition({
+    transition={{
       staggerChildren: 0.2,
-    })}
+    }}
     {...props}
   />
 ))`

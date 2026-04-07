@@ -190,6 +190,43 @@ def _reasonable_group_list_tag_value_match(
     return True
 
 
+_SNUBA_TO_EAP_ORDERBY = {
+    "first_seen": "min(timestamp)",
+    "-first_seen": "-min(timestamp)",
+    "last_seen": "last_seen()",
+    "-last_seen": "-last_seen()",
+    "times_seen": "count()",
+    "-times_seen": "-count()",
+}
+
+
+def _reasonable_group_tag_value_iter_match(
+    control: Sequence[GroupTagValue],
+    experimental: Sequence[GroupTagValue],
+) -> bool:
+    ctrl_by_value = {tv.value: tv for tv in control}
+    exp_by_value = {tv.value: tv for tv in experimental}
+    if not set(exp_by_value.keys()).issubset(set(ctrl_by_value.keys())):
+        return False
+    for value, exp_tv in exp_by_value.items():
+        ctrl_tv = ctrl_by_value[value]
+        if exp_tv.times_seen > ctrl_tv.times_seen:
+            return False
+        if (
+            exp_tv.first_seen is not None
+            and ctrl_tv.first_seen is not None
+            and exp_tv.first_seen < ctrl_tv.first_seen
+        ):
+            return False
+        if (
+            exp_tv.last_seen is not None
+            and ctrl_tv.last_seen is not None
+            and exp_tv.last_seen > ctrl_tv.last_seen
+        ):
+            return False
+    return True
+
+
 class _OptimizeKwargs(TypedDict, total=False):
     turbo: bool
     sample: int
@@ -2218,17 +2255,151 @@ class SnubaTagStorage(TagStorage):
             ],
             orderby=orderby,
             limit=limit,
-            referrer="tagstore.get_group_tag_value_iter",
+            referrer=Referrer.TAGSTORE_GET_GROUP_TAG_VALUE_ITER.value,
             offset=offset,
             tenant_ids=tenant_ids,
         )
 
-        group_tag_values = [
+        snuba_result = [
             GroupTagValue(group_id=group.id, key=key, value=value, **fix_tag_value_data(data))
             for value, data in results.items()
         ]
+        result = snuba_result
 
-        return group_tag_values
+        callsite = "SnubaTagStorage::get_group_tag_value_iter"
+        if EAPOccurrencesComparator.should_check_experiment(callsite):
+            occurrence_category = (
+                OccurrenceCategory.ERROR
+                if group.issue_category == GroupCategory.ERROR
+                else OccurrenceCategory.ISSUE_PLATFORM
+            )
+            eap_result = self._eap_get_group_tag_value_iter(
+                group,
+                environment_ids,
+                key,
+                orderby,
+                limit,
+                offset,
+                occurrence_category=occurrence_category,
+            )
+            result = EAPOccurrencesComparator.check_and_choose(
+                control_data=snuba_result,
+                experimental_data=eap_result,
+                callsite=callsite,
+                is_experimental_data_a_null_result=len(eap_result) == 0,
+                reasonable_match_comparator=_reasonable_group_tag_value_iter_match,
+                debug_context={
+                    "group_id": group.id,
+                    "project_id": group.project_id,
+                    "environment_ids": list(environment_ids) if environment_ids else None,
+                    "key": key,
+                    "orderby": orderby,
+                    "limit": limit,
+                    "offset": offset,
+                },
+            )
+
+        return result
+
+    def _eap_get_group_tag_value_iter(
+        self,
+        group: Group,
+        environment_ids: Sequence[int | None],
+        key: str,
+        orderby: str,
+        limit: int,
+        offset: int,
+        occurrence_category: OccurrenceCategory,
+    ) -> list[GroupTagValue]:
+        organization_id = group.project.organization_id
+
+        now = datetime.now(tz=timezone.utc)
+        resolved_start = now - timedelta(days=90)
+        resolved_end = now
+
+        try:
+            organization = Organization.objects.get_from_cache(id=organization_id)
+        except Organization.DoesNotExist:
+            return []
+
+        filtered_env_ids = (
+            [eid for eid in environment_ids if eid is not None] if environment_ids else []
+        )
+        environments = (
+            list(Environment.objects.filter(id__in=filtered_env_ids)) if filtered_env_ids else []
+        )
+
+        query_string = f"group_id:{group.id}"
+
+        eap_orderby_value = _SNUBA_TO_EAP_ORDERBY.get(orderby)
+        eap_orderby = [eap_orderby_value] if eap_orderby_value else None
+
+        snuba_params = SnubaParams(
+            start=resolved_start,
+            end=resolved_end,
+            organization=organization,
+            projects=[group.project],
+            environments=environments,
+        )
+
+        eap_tag_column = format_attr_key(key)
+
+        try:
+            result = Occurrences.run_table_query_with_tags(
+                {eap_tag_column},
+                params=snuba_params,
+                query_string=query_string,
+                selected_columns=[eap_tag_column, "count()", "min(timestamp)", "last_seen()"],
+                orderby=eap_orderby,
+                offset=offset,
+                limit=limit,
+                referrer=Referrer.TAGSTORE_GET_GROUP_TAG_VALUE_ITER.value,
+                config=SearchResolverConfig(),
+                occurrence_category=occurrence_category,
+            )
+
+            output: list[GroupTagValue] = []
+            for row in result.get("data", []):
+                tag_value = row.get(eap_tag_column)
+                if tag_value is None:
+                    continue
+                first_seen_raw = row.get("min(timestamp)")
+                last_seen_raw = row.get("last_seen()")
+                output.append(
+                    GroupTagValue(
+                        group_id=group.id,
+                        key=key,
+                        value=tag_value,
+                        times_seen=int(row.get("count()", 0)),
+                        first_seen=(
+                            parse_datetime(datetime_processor(first_seen_raw)).replace(
+                                tzinfo=timezone.utc
+                            )
+                            if first_seen_raw is not None
+                            else None
+                        ),
+                        last_seen=(
+                            parse_datetime(datetime_processor(last_seen_raw)).replace(
+                                tzinfo=timezone.utc
+                            )
+                            if last_seen_raw is not None
+                            else None
+                        ),
+                    )
+                )
+            return output
+        except Exception:
+            logger.exception(
+                "EAP get_group_tag_value_iter query failed",
+                extra={
+                    "organization_id": organization_id,
+                    "group_id": group.id,
+                    "project_id": group.project_id,
+                    "key": key,
+                    "occurrence_category": occurrence_category.value,
+                },
+            )
+            return []
 
     def get_group_tag_value_paginator(
         self,

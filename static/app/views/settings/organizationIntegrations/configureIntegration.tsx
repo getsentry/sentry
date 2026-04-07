@@ -50,7 +50,7 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import {AddIntegration} from './addIntegration';
+import {useAddIntegration} from './addIntegration';
 import {IntegrationAlertRules} from './integrationAlertRules';
 import {IntegrationCodeMappings} from './integrationCodeMappings';
 import {IntegrationExternalTeamMappings} from './integrationExternalTeamMappings';
@@ -256,23 +256,12 @@ function ConfigureIntegration() {
   const getAction = () => {
     if (provider.key === 'pagerduty') {
       return (
-        <AddIntegration
+        <PagerdutyAddServicesButton
           provider={provider}
           onInstall={onUpdateIntegration}
           account={integration.domainName}
           organization={organization}
-        >
-          {onClick => (
-            <Button
-              priority="primary"
-              size="sm"
-              icon={<IconAdd />}
-              onClick={() => onClick()}
-            >
-              {t('Add Services')}
-            </Button>
-          )}
-        </AddIntegration>
+        />
       );
     }
 
@@ -561,6 +550,26 @@ function ConfigureIntegration() {
         title={t('Configure %s', integration.provider.name)}
       />
     </Fragment>
+  );
+}
+
+function PagerdutyAddServicesButton({
+  provider,
+  onInstall,
+  account,
+  organization,
+}: {
+  account: string | null;
+  onInstall: () => void;
+  organization: Organization;
+  provider: IntegrationProvider;
+}) {
+  const {startFlow} = useAddIntegration({provider, onInstall, account, organization});
+
+  return (
+    <Button priority="primary" size="sm" icon={<IconAdd />} onClick={() => startFlow()}>
+      {t('Add Services')}
+    </Button>
   );
 }
 

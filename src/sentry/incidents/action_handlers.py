@@ -462,15 +462,22 @@ class SentryAppActionHandler(DefaultActionHandler):
 
         incident_serialized_response = serialize(incident, serializer=IncidentSerializer())
 
-        send_incident_alert_notification(
+        success = send_incident_alert_notification(
             notification_context=notification_context,
             alert_context=alert_context,
             metric_issue_context=metric_issue_context,
             incident_serialized_response=incident_serialized_response,
             organization=incident.organization,
-            project_id=project.id,
             notification_uuid=notification_uuid,
         )
+        if success:
+            self.record_alert_sent_analytics(
+                organization_id=incident.organization.id,
+                project_id=project.id,
+                alert_id=incident.alert_rule.id,
+                external_id=action.sentry_app_id,
+                notification_uuid=notification_uuid,
+            )
 
 
 def format_duration(minutes):

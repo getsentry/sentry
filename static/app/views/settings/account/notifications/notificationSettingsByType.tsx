@@ -251,6 +251,10 @@ export function NotificationSettingsByType({notificationType}: Props) {
       organization.features?.includes('logs-billing')
     );
 
+    const hasTraceMetricsBilling = organizations.some(organization =>
+      organization.features?.includes('expose-category-trace-metric-byte')
+    );
+
     const hasSeerUserBilling = organizations.some(organization =>
       organization.features?.includes('seer-user-billing-launch')
     );
@@ -280,6 +284,9 @@ export function NotificationSettingsByType({notificationType}: Props) {
         return false;
       }
       if (field.name.startsWith('quotaLogBytes') && !includeLogs) {
+        return false;
+      }
+      if (field.name.startsWith('quotaTraceMetricBytes') && !hasTraceMetricsBilling) {
         return false;
       }
       if (field.name.startsWith('quotaSeerUsers') && !hasSeerUserBilling) {
