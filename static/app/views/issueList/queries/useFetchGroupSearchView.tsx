@@ -22,7 +22,7 @@ export const useFetchGroupSearchView = (
   options: Partial<UseApiQueryOptions<GroupSearchView>> = {}
 ) => {
   return useApiQuery<GroupSearchView>(makeFetchGroupSearchViewKey(parameters), {
-    staleTime: 0,
+    staleTime: 30_000,
     retry: false,
     ...options,
   });
