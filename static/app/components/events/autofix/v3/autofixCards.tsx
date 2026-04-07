@@ -25,7 +25,7 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconRefresh} from 'sentry/icons';
+import {IconCopy, IconRefresh} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {IconBug} from 'sentry/icons/iconBug';
 import {IconCode} from 'sentry/icons/iconCode';
@@ -34,6 +34,7 @@ import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconPullRequest} from 'sentry/icons/iconPullRequest';
 import {t, tct, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/fileDiffViewer';
 
 interface AutofixCardProps {
@@ -259,6 +260,7 @@ export function PullRequestsCard({section}: AutofixCardProps) {
     const sectionArtifact = getAutofixArtifactFromSection(section);
     return isPullRequestsArtifact(sectionArtifact) ? sectionArtifact : null;
   }, [section]);
+  const {copy} = useCopyToClipboard();
 
   return (
     <ArtifactCard icon={<IconPullRequest />} title={t('Pull Requests')}>
@@ -277,14 +279,22 @@ export function PullRequestsCard({section}: AutofixCardProps) {
           pullRequest.pr_number
         ) {
           return (
-            <LinkButton
-              key={pullRequest.repo_name}
-              external
-              href={pullRequest.pr_url}
-              priority="primary"
-            >
-              {t('View %s#%s', pullRequest.repo_name, pullRequest.pr_number)}
-            </LinkButton>
+            <Flex key={pullRequest.repo_name} gap="xs" align="center">
+              <LinkButton external href={pullRequest.pr_url} priority="primary">
+                {t('View %s#%s', pullRequest.repo_name, pullRequest.pr_number)}
+              </LinkButton>
+              <Button
+                priority="primary"
+                icon={<IconCopy size="xs" />}
+                aria-label={t('Copy PR URL')}
+                tooltipProps={{title: t('Copy PR URL')}}
+                onClick={() =>
+                  copy(pullRequest.pr_url!, {
+                    successMessage: t('PR URL copied to clipboard.'),
+                  })
+                }
+              />
+            </Flex>
           );
         }
 

@@ -347,13 +347,6 @@ class SupergroupsEmbeddingRequest(TypedDict):
     artifact_data: dict[str, Any]
 
 
-class SupergroupsListRequest(TypedDict):
-    organization_id: int
-    offset: NotRequired[int | None]
-    limit: NotRequired[int | None]
-    project_ids: NotRequired[list[int] | None]
-
-
 class SupergroupsGetRequest(TypedDict):
     organization_id: int
     supergroup_id: int
@@ -457,20 +450,6 @@ def make_supergroups_embedding_request(
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v0/issues/supergroups",
-        body=orjson.dumps(body),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
-
-
-def make_supergroups_list_request(
-    body: SupergroupsListRequest,
-    viewer_context: SeerViewerContext,
-    timeout: int | float | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        seer_autofix_default_connection_pool,
-        "/v0/issues/supergroups/list",
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,

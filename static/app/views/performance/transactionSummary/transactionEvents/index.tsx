@@ -21,6 +21,7 @@ import {
 import {useTransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 
 import {EventsContent} from './content';
+import {EAPSampledEventsTab} from './eapSampledEventsTab';
 import {
   decodeEventsDisplayFilterFromLocation,
   EventsDisplayFilterName,
@@ -34,12 +35,16 @@ import {
 type PercentileValues = Record<EventsDisplayFilterName, number>;
 
 function TransactionEvents() {
+  const shouldUseEAP = useTransactionSummaryEAP();
+  return shouldUseEAP ? <EAPSampledEventsTab /> : <LegacyTransactionEvents />;
+}
+
+function LegacyTransactionEvents() {
   const {organization, eventView, transactionName, setError, projectId, projects} =
     useTransactionSummaryContext();
 
   const navigate = useNavigate();
   const location = useLocation();
-  const shouldUseEAP = useTransactionSummaryEAP();
   const eventsDisplayFilterName = decodeEventsDisplayFilterFromLocation(location);
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
   const webVital = getWebVital(location);
@@ -122,26 +127,6 @@ function TransactionEvents() {
       query: nextQuery,
     });
   };
-
-  if (shouldUseEAP) {
-    return (
-      <EventsContent
-        location={location}
-        organization={organization}
-        eventView={eventView}
-        transactionName={transactionName}
-        spanOperationBreakdownFilter={spanOperationBreakdownFilter}
-        onChangeSpanOperationBreakdownFilter={onChangeSpanOperationBreakdownFilter}
-        eventsDisplayFilterName={EventsDisplayFilterName.P100}
-        onChangeEventsDisplayFilter={onChangeEventsDisplayFilter}
-        percentileValues={undefined}
-        projectId={projectId}
-        projects={projects}
-        webVital={webVital}
-        setError={setError}
-      />
-    );
-  }
 
   return (
     <DiscoverQuery

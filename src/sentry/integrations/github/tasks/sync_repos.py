@@ -188,7 +188,7 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
                         event_name="REPO_ADDED",
                         organization_id=organization_id,
                         repo=repo,
-                        source="repository sync",
+                        source="automatic SCM syncing",
                         provider=integration.provider,
                     )
 
@@ -197,7 +197,7 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
                         event_name="REPO_ENABLED",
                         organization_id=organization_id,
                         repo=repo,
-                        source="repository sync",
+                        source="automatic SCM syncing",
                         provider=integration.provider,
                     )
 
