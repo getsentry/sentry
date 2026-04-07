@@ -99,7 +99,7 @@ class AlertRuleBase(APITestCase):
         return {
             "aggregate": "count()",
             "query": "",
-            "timeWindow": "300",
+            "timeWindow": "5",
             "resolveThreshold": 100,
             "thresholdType": 0,
             "triggers": [
