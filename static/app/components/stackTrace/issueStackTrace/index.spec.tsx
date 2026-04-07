@@ -664,6 +664,38 @@ describe('IssueStackTrace', () => {
     });
   });
 
+  it('fetches and renders SCM source context for frames without embedded context', async () => {
+    const {event, stacktrace} = makeCopyTestData();
+    const organization = OrganizationFixture({features: ['scm-source-context']});
+    ProjectsStore.loadInitialData([ProjectFixture({id: '1', slug: 'project-slug'})]);
+
+    const sourceContextRequest = MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/stacktrace-source-context/',
+      body: {context: [[42, 'def handle():']], sourceUrl: null, error: null},
+    });
+
+    render(
+      <IssueStackTrace
+        event={event}
+        values={[
+          {
+            type: 'RuntimeError',
+            value: 'broke',
+            module: null,
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            rawStacktrace: null,
+            threadId: null,
+          },
+        ]}
+      />,
+      {organization}
+    );
+
+    expect(sourceContextRequest).toHaveBeenCalled();
+    expect(await screen.findByText('def handle():')).toBeInTheDocument();
+  });
+
   describe('exception groups', () => {
     function makeExceptionGroupValues(): {
       event: ReturnType<typeof EventFixture>;

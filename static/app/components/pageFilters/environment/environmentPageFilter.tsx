@@ -1,4 +1,5 @@
 import {useCallback, useMemo, useRef} from 'react';
+import {useMatches} from 'react-router-dom';
 import {isAppleDevice} from '@react-aria/utils';
 import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
@@ -26,7 +27,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useRouter} from 'sentry/utils/useRouter';
 
 export interface EnvironmentPageFilterProps extends Partial<
   Omit<MultipleSelectProps<string>, 'onChange'>
@@ -64,7 +64,7 @@ export function EnvironmentPageFilter({
   storageNamespace,
   ...selectProps
 }: EnvironmentPageFilterProps) {
-  const router = useRouter();
+  const matches = useMatches();
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -129,7 +129,7 @@ export function EnvironmentPageFilter({
 
       trackAnalytics('environmentselector.update', {
         count: newValue.length,
-        path: getRouteStringFromRoutes(router.routes),
+        path: getRouteStringFromRoutes({matches}),
         organization,
       });
 
@@ -145,12 +145,12 @@ export function EnvironmentPageFilter({
     [
       envPageFilterValue,
       resetParamsOnChange,
-      router,
       location,
       navigate,
       organization,
       onChange,
       storageNamespace,
+      matches,
     ]
   );
 
@@ -158,19 +158,19 @@ export function EnvironmentPageFilter({
     (newValue: any) => {
       trackAnalytics('environmentselector.toggle', {
         action: newValue.length > value.length ? 'added' : 'removed',
-        path: getRouteStringFromRoutes(router.routes),
+        path: getRouteStringFromRoutes({matches}),
         organization,
       });
     },
-    [value, router.routes, organization]
+    [value, matches, organization]
   );
 
   const onReplace = useCallback(() => {
     trackAnalytics('environmentselector.direct_selection', {
-      path: getRouteStringFromRoutes(router.routes),
+      path: getRouteStringFromRoutes({matches}),
       organization,
     });
-  }, [router.routes, organization]);
+  }, [matches, organization]);
 
   const options = useMemo(
     () =>

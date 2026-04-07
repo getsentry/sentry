@@ -1,4 +1,5 @@
 import {createContext, useMemo} from 'react';
+import {useMatches} from 'react-router-dom';
 
 import {HookStore} from 'sentry/stores/hookStore';
 import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
@@ -45,6 +46,7 @@ export function RouteAnalyticsContextProvider({children}: Props) {
     routes: useRoutes(),
     router: useRouter(),
     location: useLocation(),
+    matches: useMatches(),
   };
 
   const {

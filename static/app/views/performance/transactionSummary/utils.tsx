@@ -1,7 +1,7 @@
+import type {UIMatch} from 'react-router-dom';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor, Query} from 'history';
 
-import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {getDateFromTimestamp} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -223,8 +223,8 @@ export function generateProfileLink() {
   };
 }
 
-export function generateReplayLink(routes: Array<PlainRoute<any>>) {
-  const referrer = getRouteStringFromRoutes(routes);
+export function generateReplayLink(matches: Array<UIMatch<unknown, unknown>>) {
+  const referrer = getRouteStringFromRoutes({matches});
 
   return (
     organization: Organization,
