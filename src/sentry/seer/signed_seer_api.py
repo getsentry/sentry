@@ -386,6 +386,22 @@ class SupergroupsGetByGroupIdsRequest(TypedDict):
     group_ids: list[int]
 
 
+class SupergroupDetailData(TypedDict):
+    id: int
+    title: str
+    summary: str
+    error_type: str
+    code_area: str
+    group_ids: list[int]
+    project_ids: list[int]
+    created_at: str
+    updated_at: str
+
+
+class SupergroupsByGroupIdsResponse(TypedDict):
+    data: list[SupergroupDetailData]
+
+
 class ServiceMapUpdateRequest(TypedDict):
     organization_id: int
     nodes: list[dict[str, Any]]
