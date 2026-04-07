@@ -63,11 +63,11 @@ export function EAPSampledEventsTab() {
   const {selection} = usePageFilters();
 
   const eventsDisplayFilterName = decodeEventsDisplayFilterFromLocation(location);
-  const {maxDuration, isLoading: isMaxDurationLoading} = useMaxDuration(
-    transactionName,
-    selection,
-    eventsDisplayFilterName
-  );
+  const {
+    maxDuration,
+    percentileValues,
+    isLoading: isMaxDurationLoading,
+  } = useMaxDuration(transactionName, selection, eventsDisplayFilterName);
 
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
 
@@ -113,6 +113,7 @@ export function EAPSampledEventsTab() {
         eventsDisplayFilterName={eventsDisplayFilterName}
         onChangeEventsDisplayFilter={onChangeEventsDisplayFilter}
         maxDuration={maxDuration}
+        percentileValues={percentileValues}
         organization={organization}
         transactionName={transactionName}
       />
@@ -137,6 +138,7 @@ type FilterBarProps = {
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
   transactionName: string;
   maxDuration?: number;
+  percentileValues?: PercentileValues;
 };
 
 function FilterBar(props: FilterBarProps) {
@@ -333,7 +335,7 @@ function useMaxDuration(
   const maxDuration = hasDurationFilter
     ? percentileValues?.[eventsDisplayFilterName]
     : undefined;
-  return {maxDuration, isLoading};
+  return {maxDuration, percentileValues, isLoading};
 }
 
 const EAP_PERCENTILE_FIELDS = [
