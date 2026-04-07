@@ -94,7 +94,10 @@ export function FeatureFilter({
     queryParams.query = localQuery;
   }
 
-  const buildsQuery = useQuery(buildDetailsApiOptions({organization, queryParams}));
+  const buildsQuery = useQuery({
+    ...buildDetailsApiOptions({organization, queryParams}),
+    enabled,
+  });
 
   const builds = buildsQuery.data ?? [];
 
