@@ -265,7 +265,7 @@ jobs:
           # ClickHouse readiness itself, so it can begin before all containers
           # are healthy, overlapping with the remaining devservices health checks.
           if [ "${XDIST_PER_WORKER_SNUBA}" = "1" ]; then
-            ./.github/actions/setup-devservices/bootstrap-snuba.sh &
+            python3 ./.github/actions/setup-devservices/bootstrap-snuba.py &
           fi
           ./.github/actions/setup-devservices/wait.sh
 
