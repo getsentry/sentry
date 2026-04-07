@@ -252,7 +252,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.status_code == 200
         call_kwargs = mock_client.start_run.call_args[1]
         context = call_kwargs["on_page_context"]
-        assert "# dashboard" in context
+        assert "# Dashboard" in context
         assert '- **title**: "My Dashboard"' in context
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
