@@ -439,13 +439,13 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/components/loading/                @getsentry/app-frontend
 /static/app/components/events/interfaces/      @getsentry/app-frontend
 /static/app/components/forms/                  @getsentry/app-frontend
+/static/app/components/markdownTextArea.tsx     @getsentry/app-frontend
 /static/app/locale.tsx                         @getsentry/app-frontend
 ## End of Frontend
 
 # Workflow engine
 /src/sentry/workflow_engine/                               @getsentry/alerts-create-issues
 /tests/sentry/workflow_engine/                             @getsentry/alerts-create-issues
-/static/app/components/markdownTextArea.tsx                 @getsentry/alerts-create-issues
 /static/app/components/workflowEngine/                     @getsentry/alerts-create-issues
 /static/app/views/automations/                             @getsentry/alerts-create-issues
 /static/app/views/detectors/                               @getsentry/alerts-create-issues
