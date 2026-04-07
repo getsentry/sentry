@@ -81,7 +81,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
 
         use_workflow_engine = features.has(
             "organizations:workflow-engine-rule-serializers", organization
-        )
+        ) or features.has("organizations:workflow-engine-orgincidentindex-get", organization)
 
         if use_workflow_engine:
             return self._get_workflow_engine(
