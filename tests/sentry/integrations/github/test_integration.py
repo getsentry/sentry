@@ -222,6 +222,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         repositories: dict[str, Any] = {
             "xyz": {
+                "id": 1234567,
                 "name": "xyz",
                 "full_name": "Test-Organization/xyz",
                 "default_branch": "master",
@@ -245,6 +246,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 "default_branch": "master",
             },
             "archived": {
+                "id": 9999999,
+                "name": "archived",
+                "full_name": "Test-Organization/archived",
                 "archived": True,
             },
         }
@@ -666,7 +670,12 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         result = installation.get_repositories("foo", accessible_only=True)
         assert result == [
-            {"name": "foo", "identifier": "Test-Organization/foo", "default_branch": "master"},
+            {
+                "name": "foo",
+                "identifier": "Test-Organization/foo",
+                "external_id": "1296269",
+                "default_branch": "master",
+            },
         ]
 
     @responses.activate
@@ -721,7 +730,12 @@ class GitHubIntegrationTest(IntegrationTestCase):
         ):
             result = installation.get_repositories()
             assert result == [
-                {"name": "foo", "identifier": "Test-Organization/foo", "default_branch": "master"},
+                {
+                    "name": "foo",
+                    "identifier": "Test-Organization/foo",
+                    "external_id": "1296269",
+                    "default_branch": "master",
+                },
             ]
 
     @responses.activate
@@ -2352,6 +2366,7 @@ class GitHubIntegrationApiPipelineTest(APITestCase):
 
         repositories: dict[str, Any] = {
             "xyz": {
+                "id": 1234567,
                 "name": "xyz",
                 "full_name": "Test-Organization/xyz",
                 "default_branch": "master",

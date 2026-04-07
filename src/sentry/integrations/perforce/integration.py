@@ -187,6 +187,11 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
         super().__init__(model=model, organization_id=organization_id)
         self._client: PerforceClient | None = None
 
+    def get_repo_external_id(self, repo: Mapping[str, Any]) -> str:
+        raise NotImplementedError(
+            "Perforce external_id is derived from the depot path, not the API response"
+        )
+
     def get_client(self) -> PerforceClient:
         """Get the Perforce client instance."""
         if self._client is not None:
@@ -384,7 +389,7 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
                     {
                         "name": depot_name,
                         "identifier": depot_path,
-                        "external_id": self.get_repo_external_id(depot),
+                        "default_branch": None,  # Perforce uses depot paths, not branch refs
                     }
                 )
 
