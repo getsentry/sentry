@@ -1278,7 +1278,7 @@ def process_processing_errors_eap(job: PostProcessJob) -> None:
     from sentry.processing_errors.eap.producer import produce_processing_errors_to_eap
 
     produce_processing_errors_to_eap(
-        event.project, event.data, processing_errors, group_id=event.group_id
+        event.project, event.data, processing_errors, group_id=event.group_id, title=event.title
     )
 
 

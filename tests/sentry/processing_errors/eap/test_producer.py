@@ -103,12 +103,17 @@ class ProduceProcessingErrorsToEAPTest(TestCase):
             release="1.0.0",
             environment="production",
             platform="javascript",
-            title="ReferenceError: undefined variable",
             sdk={"name": "sentry.javascript.browser", "version": "7.0.0"},
         )
         errors = [{"type": "js_no_source", "symbolicator_type": "missing_sourcemap"}]
 
-        produce_processing_errors_to_eap(self.project, event_data, errors, group_id=12345)
+        produce_processing_errors_to_eap(
+            self.project,
+            event_data,
+            errors,
+            group_id=12345,
+            title="ReferenceError: undefined variable",
+        )
 
         payload = mock_producer.produce.call_args[0][1]
         trace_item = codec.decode(payload.value)
