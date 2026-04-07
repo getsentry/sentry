@@ -171,7 +171,7 @@ def make_org_repo_knowledge_index_request(
     body: ExplorerIndexOrgRepoRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
-):
+) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v1/automation/explorer/index/org-repo-knowledge",
