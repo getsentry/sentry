@@ -230,6 +230,7 @@ def trigger_autofix_explorer(
     stopping_point: AutofixStoppingPoint | None = None,
     intelligence_level: Literal["low", "medium", "high"] = "low",
     user_context: str | None = None,
+    insert_index: int | None = None,
 ) -> int:
     """
     Start or continue an Explorer-based autofix run.
@@ -287,6 +288,7 @@ def trigger_autofix_explorer(
             prompt_metadata=prompt_metadata,
             artifact_key=artifact_key,
             artifact_schema=artifact_schema,
+            insert_index=insert_index,
         )
 
     payload = {
