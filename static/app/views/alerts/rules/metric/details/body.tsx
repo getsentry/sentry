@@ -254,9 +254,7 @@ export function MetricDetailsBody({
           />
           <DetailWrapper>
             <Stack flex="1" width="100%">
-              {organization.features.includes('workflow-engine-metric-issue-ui') && (
-                <MetricAlertOngoingIssues project={project} rule={rule} />
-              )}
+              <MetricAlertOngoingIssues project={project} rule={rule} />
               <SectionHeading>{t('Alert History')}</SectionHeading>
               <MetricHistory incidents={incidents} />
               {[Dataset.METRICS, Dataset.SESSIONS, Dataset.ERRORS].includes(dataset) && (
