@@ -1173,6 +1173,11 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         # Run once a month at midnight
         "schedule": crontab("0", "0", "*", "1", "*"),
     },
+    "seer-night-shift": {
+        "task": "seer:sentry.tasks.seer.night_shift.schedule_night_shift",
+        # Run daily at 10:00 AM UTC (2/3 AM Pacific)
+        "schedule": crontab("0", "10", "*", "*", "*"),
+    },
     "refresh-artifact-bundles-in-use": {
         "task": "attachments:sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
         "schedule": crontab("*/1", "*", "*", "*", "*"),
