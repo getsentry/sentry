@@ -134,7 +134,7 @@ export function EmptyStateText({
 }) {
   return (
     <Container>
-      <Text size={size} align={textAlign}>
+      <Text size={size} align={textAlign} variant="muted">
         {children}
       </Text>
     </Container>
