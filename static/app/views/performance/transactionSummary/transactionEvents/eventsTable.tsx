@@ -1,5 +1,6 @@
 import type React from 'react';
 import {Fragment, useCallback, useMemo, useState, type ReactNode} from 'react';
+import {useMatches} from 'react-router-dom';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
@@ -17,7 +18,6 @@ import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/u
 import {IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
-import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {toArray} from 'sentry/utils/array/toArray';
@@ -90,7 +90,6 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
-  routes: RouteContextInterface['routes'];
   setError: (msg: string | undefined) => void;
   theme: Theme;
   transactionName: string;
@@ -117,7 +116,6 @@ export function EventsTable({
   eventView,
   location,
   organization,
-  routes,
   setError,
   theme,
   transactionName,
@@ -134,13 +132,14 @@ export function EventsTable({
   referrer,
   renderTableHeader,
 }: Props) {
+  const matches = useMatches();
   const navigate = useNavigate();
   const api = useApi({persistInFlight: true});
   const [lastFetchedCursor, setLastFetchedCursor] = useState('');
   const [attachments, setAttachments] = useState<IssueAttachment[]>([]);
   const [hasMinidumps, setHasMinidumps] = useState(false);
 
-  const replayLinkGenerator = useMemo(() => generateReplayLink(routes), [routes]);
+  const replayLinkGenerator = useMemo(() => generateReplayLink(matches), [matches]);
 
   const handleCellAction = useCallback(
     (column: TableColumn<keyof TableDataRow>) => {

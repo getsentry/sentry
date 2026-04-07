@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {useMatches} from 'react-router-dom';
 import {isAppleDevice} from '@react-aria/utils';
 import sortBy from 'lodash/sortBy';
 import xor from 'lodash/xor';
@@ -33,7 +34,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 /**
@@ -77,7 +77,7 @@ export function ProjectPageFilter({
   // External context/state
   const location = useLocation();
   const navigate = useNavigate();
-  const routes = useRoutes();
+  const matches = useMatches();
   const organization = useOrganization();
   // Project data s
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
@@ -376,7 +376,7 @@ export function ProjectPageFilter({
     organization,
   ]);
 
-  const routePath = useMemo(() => getRouteStringFromRoutes(routes), [routes]);
+  const routePath = useMemo(() => getRouteStringFromRoutes({matches}), [matches]);
 
   // Selection staging and commit behavior
   const selectionLimitExceeded = useMemo(() => {

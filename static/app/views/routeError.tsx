@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 import type {Scope} from '@sentry/core';
 import * as Sentry from '@sentry/react';
@@ -14,7 +15,6 @@ import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types/project';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {withProject} from 'sentry/utils/withProject';
 
 type Props = {
@@ -31,7 +31,7 @@ type Props = {
 };
 
 function RouteError({error, disableLogSentry, disableReport, project}: Props) {
-  const routes = useRoutes();
+  const matches = useMatches();
   const {organization} = useLegacyStore(OrganizationStore);
 
   useEffect(() => {
@@ -42,7 +42,7 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
       return undefined;
     }
 
-    const route = getRouteStringFromRoutes(routes);
+    const route = getRouteStringFromRoutes({matches});
     const enrichScopeContext = (scope: Scope) => {
       scope.setExtra('route', route);
       scope.setExtra('orgFeatures', organization?.features ?? []);
