@@ -70,9 +70,9 @@ export function AnimatedSentryLogo({
         x="50"
         y="72"
         maskUnits="userSpaceOnUse"
-        style={{maskType: 'alpha'} as React.CSSProperties}
+        style={{maskType: 'alpha'}}
       >
-        <path fill={theme.tokens.graphics.accent.vibrant} d={SENTRY_GLYPH} />
+        <path fill={theme.tokens.content.accent} d={SENTRY_GLYPH} />
       </mask>
 
       {/* Muted base shape */}

@@ -391,7 +391,7 @@ export function OnboardingWithoutContext() {
         )}
         {scmLogoProgress !== null && (
           <Container alignSelf="center">
-            <AnimatedSentryLogo progress={scmLogoProgress} size={72} />
+            <AnimatedSentryLogo progress={scmLogoProgress} />
           </Container>
         )}
         <AnimatePresence mode="wait" onExitComplete={updateAnimationState}>
