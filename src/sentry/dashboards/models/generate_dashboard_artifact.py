@@ -173,4 +173,12 @@ class GeneratedDashboard(BaseModel):
     """A complete dashboard definition on a 6-column grid. Widget widths per row must sum to 6. This is the sole output artifact."""
 
     title: str = Field(..., max_length=255)  # Matches serializer
+    projects: list[int] = Field(
+        default=[],
+        description='Project ids to scope the dashboard to. Empty list means "My Projects".',
+    )
+    environment: list[str] = Field(
+        default=[],
+        description="Environment names to filter by (e.g. ['production', 'staging']). Empty list means all environments.",
+    )
     widgets: list[GeneratedWidget] = Field(..., max_items=Dashboard.MAX_WIDGETS)
