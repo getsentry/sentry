@@ -1,3 +1,6 @@
+import styled from '@emotion/styled';
+
+import {Checkbox} from '@sentry/scraps/checkbox';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -15,6 +18,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   useAgentOptions,
@@ -40,7 +44,7 @@ export function SeerProjectTableRow({
 }: Props) {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
-  // const {isSelected, toggleSelected} = useListItemCheckboxContext();
+  const {isSelected, toggleSelected} = useListItemCheckboxContext();
 
   const options = useAgentOptions({integrations: integrations ?? []});
   const autofixAgent = useSelectedAgentFromBulkSettings({
@@ -66,7 +70,7 @@ export function SeerProjectTableRow({
 
   return (
     <SimpleTable.Row key={project.id}>
-      {/* <SimpleTable.RowCell>
+      <SimpleTable.RowCell>
         <CheckboxClickTarget htmlFor={`replay-table-select-${project.id}`}>
           <Checkbox
             id={`replay-table-select-${project.id}`}
@@ -75,7 +79,7 @@ export function SeerProjectTableRow({
             onChange={() => toggleSelected(project.id)}
           />
         </CheckboxClickTarget>
-      </SimpleTable.RowCell> */}
+      </SimpleTable.RowCell>
       <SimpleTable.RowCell>
         <Link to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}>
           <ProjectBadge disableLink project={project} avatarSize={16} />
@@ -194,11 +198,11 @@ export function SeerProjectTableRow({
   );
 }
 
-// const CheckboxClickTarget = styled('label')`
-//   cursor: pointer;
-//   display: block;
-//   margin: -${p => p.theme.space.md};
-//   padding: ${p => p.theme.space.md};
-//   max-width: unset;
-//   line-height: 0;
-// `;
+const CheckboxClickTarget = styled('label')`
+  cursor: pointer;
+  display: block;
+  margin: -${p => p.theme.space.md};
+  padding: ${p => p.theme.space.md};
+  max-width: unset;
+  line-height: 0;
+`;

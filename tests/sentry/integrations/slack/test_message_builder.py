@@ -10,7 +10,6 @@ from sentry.integrations.messaging.message_builder import (
     build_attachment_title,
 )
 from sentry.integrations.slack.message_builder.issues import (
-    MAX_SUMMARY_HEADLINE_LENGTH,
     SlackIssuesMessageBuilder,
     build_actions,
     format_release_tag,
@@ -66,7 +65,6 @@ def build_test_message_blocks(
     suggested_assignees: str | None = None,
     initial_assignee: Team | User | None = None,
     notes: str | None = None,
-    suspect_commit_text: str | None = None,
     rule: IssueAlertRule | None = None,
     legacy_rule_id: int | None = None,
 ) -> dict[str, Any]:
@@ -141,13 +139,16 @@ def build_test_message_blocks(
         }
         blocks.append(tags_section)
 
-    # add event and user count, state, first seen
+    # add event and user count, state, first seen, and suggested assignees (compact style)
+    context_text = f"State: *New*   First Seen: *{time_since(group.first_seen)}*"
+    if suggested_assignees:
+        context_text += f"   Suggested: {suggested_assignees}"
     counts_section = {
         "type": "context",
         "elements": [
             {
                 "type": "mrkdwn",
-                "text": f"State: *New*   First Seen: *{time_since(group.first_seen)}*",
+                "text": context_text,
             }
         ],
     }
@@ -205,21 +206,6 @@ def build_test_message_blocks(
             }
     blocks.append(actions)
 
-    if suggested_assignees:
-        suggested_assignees_text = f"Suggested Assignees: {suggested_assignees}"
-        suggested_assignees_section = {
-            "type": "context",
-            "elements": [{"type": "mrkdwn", "text": suggested_assignees_text}],
-        }
-        blocks.append(suggested_assignees_section)
-
-    if suspect_commit_text and event:
-        suspect_commit_section = {
-            "type": "context",
-            "elements": [{"type": "mrkdwn", "text": suspect_commit_text}],
-        }
-        blocks.append(suspect_commit_section)
-
     if notes:
         notes_text = f"notes: {notes}"
         notes_section = {
@@ -240,8 +226,6 @@ def build_test_message_blocks(
         "elements": [{"type": "mrkdwn", "text": context_text}],
     }
     blocks.append(context)
-
-    blocks.append({"type": "divider"})
 
     popup_text = (
         f"[{project.slug}] {title}: {text}" if text is not None else f"[{project.slug}] {title}"
@@ -532,7 +516,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             key="asdfwreqr",
             message="placeholder commit message",
         )
-        pull_request = PullRequest.objects.create(
+        PullRequest.objects.create(
             organization_id=self.organization.id,
             repository_id=self.repo.id,
             key="9",
@@ -564,8 +548,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             context={"commitId": self.commit.id},
         )
 
-        suspect_commit_text = f"Suspect Commit: <{self.repo.url}/commit/{self.commit.key}|{self.commit.key[:6]}> by {commit_author.email} {time_since(pull_request.date_added)} \n'{pull_request.title} (#{pull_request.key})' <{pull_request.get_external_url()}|View Pull Request>"
-
         assert SlackIssuesMessageBuilder(
             group,
             event.for_group(group),
@@ -574,7 +556,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             users={self.user},
             group=group,
             event=event,
-            suspect_commit_text=suspect_commit_text,
             suggested_assignees=commit_author.email,
         )
 
@@ -629,8 +610,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             context={"commitId": self.commit.id},
         )
 
-        suspect_commit_text = f"Suspect Commit: {self.commit.key[:6]} by {commit_author.email}"
-
         assert SlackIssuesMessageBuilder(
             group,
             event.for_group(group),
@@ -639,7 +618,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             users={self.user},
             group=group,
             event=event,
-            suspect_commit_text=suspect_commit_text,
             suggested_assignees=commit_author.email,
         )
 
@@ -712,16 +690,14 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
         # auto assign group
         ProjectOwnership.handle_auto_assignment(self.project.id, event)
-        suspect_commit_text = f"Suspect Commit: {commit.key[:6]} by {user2.email}"  # no commit link because there is no PR
 
         expected_blocks = build_test_message_blocks(
             teams={self.team},
             users={self.user},
             group=group,
             event=event,
-            suggested_assignees=f"#{self.team.slug}, {user2.email}",  # auto-assignee is not included in suggested
+            suggested_assignees=f"#{self.team.slug}, {user2.email}",
             initial_assignee=self.user,
-            suspect_commit_text=suspect_commit_text,
         )
 
         assert (
@@ -733,7 +709,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         with assume_test_silo_mode(SiloMode.CONTROL):
             user2.update(name="Scooby Doo")
         commit.author.update(name=user2.name)
-        suspect_commit_text = f"Suspect Commit: {commit.key[:6]} by {user2.name}"
         expected_blocks = build_test_message_blocks(
             teams={self.team},
             users={self.user},
@@ -741,7 +716,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             event=event,
             suggested_assignees=f"#{self.team.slug}, {user2.name}",
             initial_assignee=self.user,
-            suspect_commit_text=suspect_commit_text,
         )
         assert (
             SlackIssuesMessageBuilder(group, event.for_group(group), tags={"foo"}).build()
@@ -952,155 +926,23 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
             mock_get_summary.assert_called_once_with(group, source=SeerAutomationSource.ALERT)
 
-            # Verify that the original title is \\ present
+            # Verify that the title uses build_attachment_title (error type only)
             assert "IntegrationError" in blocks["blocks"][0]["text"]["text"]
-            assert "Identity not found" in blocks["blocks"][0]["text"]["text"]
 
-            # Verify that the AI content is used in the context block
-            content_block = blocks["blocks"][1]["elements"][0]["text"]
-            assert "This is a possible cause" in content_block
+            # Verify that the AI summary appears as "Initial Guess" in a context block
+            found_initial_guess = False
+            for block in blocks["blocks"]:
+                if block.get("type") == "context":
+                    for element in block.get("elements", []):
+                        if "Initial Guess" in element.get("text", ""):
+                            found_initial_guess = True
+                            assert "This is a possible cause" in element["text"]
+                            break
+            assert found_initial_guess
 
-    @override_options({"alerts.issue_summary_timeout": 5})
-    @with_feature({"organizations:gen-ai-features"})
-    def test_build_group_block_with_ai_summary_text_truncation(self) -> None:
-        # Test case for multi-line exception text
-        multiline_text = "First line of text\nSecond line of text\nThird line of text"
-        event1 = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "IntegrationError",
-                "fingerprint": ["group-1"],
-                "exception": {
-                    "values": [
-                        {
-                            "type": "IntegrationError",
-                            "value": multiline_text,
-                        }
-                    ]
-                },
-                "level": "error",
-                "timestamp": before_now(minutes=1).isoformat(),
-            },
-            project_id=self.project.id,
-        )
-        assert event1.group
-        group1 = event1.group
-        group1.type = ErrorGroupType.type_id
-        group1.save()
-
-        self.project.update_option("sentry:seer_scanner_automation", True)
-        self.organization.update_option("sentry:enable_seer_enhanced_alerts", True)
-
-        # Test case for long exception text (over 50 characters)
-        long_text = (
-            "This is a very long text that exceeds the 50 character limit and should be truncated"
-        )
-        event2 = self.store_event(
-            data={
-                "event_id": "b" * 32,
-                "message": "IntegrationError",
-                "fingerprint": ["group-2"],
-                "exception": {
-                    "values": [
-                        {
-                            "type": "IntegrationError",
-                            "value": long_text,
-                        }
-                    ]
-                },
-                "level": "error",
-                "timestamp": before_now(minutes=1).isoformat(),
-            },
-            project_id=self.project.id,
-        )
-        assert event2.group
-        group2 = event2.group
-        group2.type = ErrorGroupType.type_id
-        group2.save()
-
-        self.project.flags.has_releases = True
-        self.project.save(update_fields=["flags"])
-
-        mock_summary = {
-            "headline": "Custom AI Title",
-            "whatsWrong": "Some issue description",
-            "trace": "This is trace information",
-            "possibleCause": "This is a possible cause",
-        }
-
-        patch_path = "sentry.integrations.utils.issue_summary_for_alerts.get_issue_summary"
-        serializer_path = "sentry.api.serializers.models.event.EventSerializer.serialize"
-        serializer_mock = Mock(return_value={})
-
-        # Test multi-line text truncation
-        with (
-            patch(patch_path) as mock_get_summary,
-            patch(serializer_path, serializer_mock),
-        ):
-            mock_get_summary.return_value = (mock_summary, 200)
-            blocks = SlackIssuesMessageBuilder(group1, event1.for_group(group1)).build()
-            title_text = blocks["blocks"][0]["text"]["text"]
-
-            assert "First line of text..." in title_text
-            assert "Second line" not in title_text
-
-        # Test long text truncation
-        with (
-            patch(patch_path) as mock_get_summary,
-            patch(serializer_path, serializer_mock),
-        ):
-            mock_get_summary.return_value = (mock_summary, 200)
-            blocks = SlackIssuesMessageBuilder(group2, event2.for_group(group2)).build()
-            title_text = blocks["blocks"][0]["text"]["text"]
-
-            expected_truncated = long_text[:MAX_SUMMARY_HEADLINE_LENGTH] + "..."
-            assert expected_truncated in title_text
-
-        # Test cases for other line breaks
-        line_break_test_cases = [
-            ("crlf", "CRLF Line1\r\nCRLF Line2", "CRLF Line1..."),
-            ("ls", "LS Line1\u2028LS Line2", "LS Line1..."),
-            ("ps", "PS Line1\u2029PS Line2", "PS Line1..."),
-            ("strip_before_ellipsis", "Space Line1  \r\nSpace Line2", "Space Line1..."),
-        ]
-
-        for name, text_with_break, expected_headline_part in line_break_test_cases:
-            event_lb = self.store_event(
-                data={
-                    "event_id": "c" * 32,
-                    "message": "IntegrationError",
-                    "fingerprint": [f"group-lb-{name}"],
-                    "exception": {
-                        "values": [
-                            {
-                                "type": "IntegrationError",
-                                "value": text_with_break,
-                            }
-                        ]
-                    },
-                    "level": "error",
-                    "timestamp": before_now(minutes=1).isoformat(),
-                },
-                project_id=self.project.id,
-            )
-            assert event_lb.group
-            group_lb = event_lb.group
-            group_lb.type = ErrorGroupType.type_id
-            group_lb.save()
-
-            with (
-                patch(patch_path) as mock_get_summary,
-                patch(serializer_path, serializer_mock),
-            ):
-                mock_get_summary.return_value = (mock_summary, 200)
-                blocks = SlackIssuesMessageBuilder(group_lb, event_lb.for_group(group_lb)).build()
-                title_block = blocks["blocks"][0]["text"]["text"]
-                assert f": {expected_headline_part}*>" in title_block, f"Failed for {name}"
-
-    @with_feature("organizations:slack-compact-alerts")
     def test_compact_alerts_basic_layout(self) -> None:
         """
-        Test that with the slack-compact-alerts flag enabled, the message uses a compact layout:
+        Test that the message uses a compact layout:
         - No divider at the end
         - Context block includes stats
         """
@@ -1134,12 +976,11 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert "IntegrationError" in blocks["blocks"][0]["text"]["text"]
         assert blocks["blocks"][-1]["type"] != "divider"
 
-    @with_feature("organizations:slack-compact-alerts")
     @override_options({"alerts.issue_summary_timeout": 5})
     @with_feature({"organizations:gen-ai-features"})
     def test_compact_alerts_with_ai_summary(self) -> None:
         """
-        Test that with the slack-compact-alerts flag enabled and AI summary available:
+        Test that with AI summary available:
         - Title uses build_attachment_title() (not AI headline)
         - Issue summary appears after action buttons as context with "Initial Guess:" prefix
         """
@@ -1205,7 +1046,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             assert found_initial_guess, "Initial Guess context block not found"
             assert blocks["blocks"][-1]["type"] != "divider"
 
-    @with_feature("organizations:slack-compact-alerts")
     def test_compact_alerts_context_includes_suggested_assignees(self) -> None:
         """
         Test that with compact alerts, suggested assignees are included in the context block

@@ -307,7 +307,7 @@ class DigestSlackNotification(SlackActivityNotificationTest):
             fallback_text
             == f"<!date^{timestamp_secs}^2 issues detected {{date_pretty}} in| Digest Report for> <http://testserver/organizations/{self.organization.slug}/projects/{self.project.slug}/|{self.project.name}>"
         )
-        assert len(blocks) == 9
+        assert len(blocks) == 7
         assert blocks[0]["text"]["text"] == fallback_text
 
         assert event1.group
@@ -319,17 +319,17 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         # digest order not definitive
         try:
             assert blocks[1]["text"]["text"] == event1_alert_title
-            assert blocks[5]["text"]["text"] == event2_alert_title
+            assert blocks[4]["text"]["text"] == event2_alert_title
         except AssertionError:
             assert blocks[1]["text"]["text"] == event2_alert_title
-            assert blocks[5]["text"]["text"] == event1_alert_title
+            assert blocks[4]["text"]["text"] == event1_alert_title
 
         assert (
             blocks[3]["elements"][0]["text"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/?referrer=digest-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
         assert (
-            blocks[7]["elements"][0]["text"]
+            blocks[6]["elements"][0]["text"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/?referrer=digest-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
@@ -337,7 +337,7 @@ class DigestSlackNotification(SlackActivityNotificationTest):
     def test_slack_digest_notification_truncates_at_48_blocks(self, digests: MagicMock) -> None:
         """
         Test that digest notifications are truncated to 48 blocks to respect Slack's 50 block limit.
-        With 13+ events generating ~53 blocks, we truncate to 48 content blocks + 1 warning block + 1 title block.
+        With 17+ events generating ~51 blocks, we truncate to 48 content blocks + 1 warning block + 1 title block.
         """
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         backend = RedisBackend()
@@ -348,8 +348,8 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         rule = self.create_project_rule(project=self.project)
         notification_uuid = str(uuid.uuid4())
 
-        # Create 13 events to exceed 49 blocks (assuming each event generates ~4 blocks)
-        for i in range(13):
+        # Create 17 events to exceed 48 blocks (each event generates ~3 blocks)
+        for i in range(17):
             event = self.store_event(
                 data={
                     "timestamp": timestamp,
@@ -382,8 +382,8 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         warning_text_lower = warning_text.lower()
 
         assert "showing" in warning_text_lower
-        # Should show X issues out of Y where X < 13 and Y = 13
-        assert "/13" in warning_text
+        # Should show X issues out of Y where X < 17 and Y = 17
+        assert "/17" in warning_text
         assert "view all issues in sentry" in warning_text_lower
 
         # Check URL components and values (URL-encoded)

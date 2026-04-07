@@ -124,13 +124,14 @@ export function useUpdateBulkAutofixAutomationSettings(
     },
     ...options,
     onSettled: (...args) => {
+      const bulkAutofixAutomationSettingsQueryOptions =
+        bulkAutofixAutomationSettingsInfiniteOptions({
+          organization,
+        });
       queryClient.invalidateQueries({
-        queryKey: [
-          getApiUrl(`/organizations/$organizationIdOrSlug/autofix/automation-settings/`, {
-            path: {organizationIdOrSlug: organization.slug},
-          }),
-        ],
+        queryKey: bulkAutofixAutomationSettingsQueryOptions.queryKey,
       });
+
       const [, , data] = args;
       data.projectIds.forEach(projectId => {
         const project = projectsById.get(projectId);

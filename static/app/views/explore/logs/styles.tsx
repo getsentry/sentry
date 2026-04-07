@@ -12,6 +12,7 @@ import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/tables/gridEditable/styles
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {unreachable} from 'sentry/utils/unreachable';
 import {
+  Table,
   TableBody,
   TableBodyCell,
   TableHeadCell,
@@ -125,8 +126,22 @@ export const LogTableBodyCell = styled(TableBodyCell)`
   }
 `;
 
+function ContentsTable(props: React.ComponentProps<typeof Table>) {
+  return <Table contentsBody {...props} />;
+}
+
+export const LogTable = styled(ContentsTable)`
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+  overflow-x: hidden;
+`;
+
 export const LogTableBody = styled(TableBody)<{
   disableBodyPadding?: boolean;
+  expanded?: boolean;
   showHeader?: boolean;
 }>`
   ${p =>
@@ -137,6 +152,19 @@ export const LogTableBody = styled(TableBody)<{
         : `
     padding-top: ${p.theme.space.md};
     padding-bottom: ${p.theme.space.md};
+    `}
+  overflow-x: hidden;
+  overflow-anchor: none;
+
+  /* If a parent renderer bails out, the element might default to 0px: which causes Tanstack Virtual to stay at 0. */
+  min-height: 1px;
+
+  ${p =>
+    p.expanded === undefined
+      ? ''
+      : `
+    overflow-y: auto;
+    height: 100%;
     `}
 `;
 
@@ -287,23 +315,35 @@ export function TableActionsContainer(props: FlexProps<'div'>) {
   return <Flex justify="end" align="center" gap="md" {...props} />;
 }
 
-export const LogsItemContainer = styled('div')`
-  flex: 1 1 auto;
-  margin-top: ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space.md};
-`;
+export function LogsItemContainer(props: FlexProps<'div'>) {
+  return (
+    <Flex
+      direction="column"
+      minHeight="0"
+      overflow="hidden"
+      position="relative"
+      {...props}
+    />
+  );
+}
 
-export const LogsTableActionsContainer = styled(LogsItemContainer)`
-  margin-bottom: 0;
-  display: flex;
-  justify-content: space-between;
-`;
+export function LogsTableActionsContainer(props: FlexProps<'div'>) {
+  return (
+    <Flex
+      direction="row"
+      flex="0 0 auto"
+      overflow="visible"
+      justify="between"
+      {...props}
+    />
+  );
+}
 
-export const LogsGraphContainer = styled(LogsItemContainer)`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-`;
+export function LogsGraphContainer(props: FlexProps<'div'>) {
+  return (
+    <Flex direction="column" flex="0 0 auto" overflow="visible" gap="md" {...props} />
+  );
+}
 
 export const AutoRefreshLabel = styled('label')`
   display: flex;
@@ -414,15 +454,15 @@ export const LogsSidebarCollapseButton = styled(Button)<{sidebarOpen: boolean}>`
 
 export const FloatingBackToTopContainer = styled('div')<{
   inReplay?: boolean;
-  tableLeft?: number;
+  position?: 'absolute' | 'fixed';
   tableWidth?: number;
 }>`
-  position: ${p => (p.inReplay ? 'absolute' : 'fixed')};
+  --floatingWidth: ${p => (p.tableWidth ? `${p.tableWidth}px` : '100%')};
+  position: ${p => p.position};
   z-index: 1;
   opacity: ${p => (p.inReplay ? 1 : 0.9)};
-  ${p => (p.inReplay ? 'top: 90px;' : 'top: 20px;')}
-  ${p => (p.inReplay ? '' : p.tableLeft ? `left: ${p.tableLeft}px;` : 'left: 0;')}
-  width: ${p => (p.tableWidth ? `${p.tableWidth}px` : '100%')};
+  top: ${p => (p.inReplay ? p.theme.space.md : '65px')};
+  width: var(--floatingWidth);
   display: flex;
   justify-content: center;
 

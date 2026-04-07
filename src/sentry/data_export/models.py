@@ -169,7 +169,19 @@ class ExportedData(Model):
             error_payload=self.payload,
             creation_date=self.date_added,
         )
-        if NotificationService.has_access(self.organization, data.source):
+        has_access = NotificationService.has_access(self.organization, data.source)
+        logger.info(
+            "notification.platform.data-export-failure.has_access",
+            extra={
+                "organization_id": self.organization.id,
+                "data_export_id": self.id,
+                "data_source": data.source,
+                "has_access": has_access,
+                "user_email": user.email,
+            },
+        )
+
+        if has_access:
             NotificationService(data=data).notify_async(
                 targets=[
                     GenericNotificationTarget(
