@@ -68,6 +68,12 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         name: Checkout sentry
 
+      - run: mkdir -p config/chartcuterie
+
+      - uses: ./.github/actions/setup-devservices
+        with:
+          mode: acceptance-ci
+
       - name: Step configurations
         id: config
         run: |
@@ -92,11 +98,6 @@ jobs:
       - name: Build chartcuterie configuration module
         run: |
           make build-chartcuterie-config
-
-      - name: Start devservices early
-        uses: ./.github/actions/setup-devservices
-        with:
-          mode: acceptance-ci
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry

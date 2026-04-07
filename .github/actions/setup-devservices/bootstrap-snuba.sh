@@ -68,7 +68,7 @@ echo "Phase 1 done (${SECONDS}s)"
 
 # Phase 2: Wait for devservices to finish, then swap snuba-snuba-1 for per-worker containers.
 while [ ! -f /tmp/ds-exit ]; do sleep 1; done
-DS_RC=$(cat /tmp/ds-exit)
+DS_RC=$(< /tmp/ds-exit)
 if [ "$DS_RC" -ne 0 ]; then
   echo "::error::devservices failed (exit $DS_RC), skipping Phase 2"
   echo 1 > /tmp/snuba-bootstrap-exit
