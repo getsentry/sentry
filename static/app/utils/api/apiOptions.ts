@@ -16,12 +16,16 @@ import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 
 type KnownApiUrls = KnownGetsentryApiUrls | KnownSentryApiUrls;
 
-type Options = QueryKeyEndpointOptions & {staleTime: number};
+type Options = QueryKeyEndpointOptions & {staleTime: number | 'static'};
 
 type PathParamOptions<TApiPath extends string> =
   ExtractPathParams<TApiPath> extends never
     ? {path?: never}
     : {path: Record<ExtractPathParams<TApiPath>, string | number> | SkipToken};
+
+function hasDefinedValues(obj: Record<string, unknown>): boolean {
+  return Object.values(obj).some(v => v !== undefined);
+}
 
 const selectJson = <TData>(data: ApiResponse<TData>) => data.json;
 
@@ -45,10 +49,9 @@ function _apiOptions<
   const url = getApiUrl(path, ...([{path: pathParams}] as OptionalPathParams<TApiPath>));
 
   return queryOptions({
-    queryKey:
-      Object.keys(options).length > 0
-        ? ([{infinite: false, version: 'v2'}, url, options] as ApiQueryKey)
-        : ([{infinite: false, version: 'v2'}, url] as ApiQueryKey),
+    queryKey: hasDefinedValues(options)
+      ? ([{infinite: false, version: 'v2'}, url, options] as ApiQueryKey)
+      : ([{infinite: false, version: 'v2'}, url] as ApiQueryKey),
     queryFn: pathParams === skipToken ? skipToken : apiFetch<TActualData>,
     enabled: pathParams !== skipToken,
     staleTime,
@@ -79,10 +82,9 @@ function _apiOptionsInfinite<
   const url = getApiUrl(path, ...([{path: pathParams}] as OptionalPathParams<TApiPath>));
 
   return infiniteQueryOptions({
-    queryKey:
-      Object.keys(options).length > 0
-        ? ([{infinite: true, version: 'v2'}, url, options] as InfiniteApiQueryKey)
-        : ([{infinite: true, version: 'v2'}, url] as InfiniteApiQueryKey),
+    queryKey: hasDefinedValues(options)
+      ? ([{infinite: true, version: 'v2'}, url, options] as InfiniteApiQueryKey)
+      : ([{infinite: true, version: 'v2'}, url] as InfiniteApiQueryKey),
     queryFn: pathParams === skipToken ? skipToken : apiFetchInfinite<TActualData>,
     getPreviousPageParam: parsePageParam('previous'),
     getNextPageParam: parsePageParam('next'),
