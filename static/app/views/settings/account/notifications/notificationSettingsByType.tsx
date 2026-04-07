@@ -103,7 +103,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       {staleTime: 30_000}
     );
   const organizationIntegrations = allOrgIntegrations.filter(orgIntegration =>
-    ALLOWED_PROVIDERS.has(orgIntegration.provider.key as SupportedProviders)
+    ALLOWED_PROVIDERS.has(orgIntegration?.provider?.key as SupportedProviders)
   );
   const {data: defaultSettings, status: defaultSettingsStatus} =
     useApiQuery<DefaultSettings>([getApiUrl('/notification-defaults/')], {
