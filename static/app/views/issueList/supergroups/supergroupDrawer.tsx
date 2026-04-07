@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {inlineCodeStyles} from '@sentry/scraps/code';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -29,9 +30,9 @@ import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {StyledMarkedText} from 'sentry/views/issueList/pages/supergroups';
 import {SupergroupFeedback} from 'sentry/views/issueList/supergroups/supergroupFeedback';
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 
@@ -305,4 +306,10 @@ const HighlightableRow = styled('div')<{highlighted: boolean}>`
       background: ${p.theme.tokens.background.secondary};
       border-left: 3px solid ${p.theme.tokens.border.accent.vibrant};
     `}
+`;
+
+const StyledMarkedText = styled(MarkedText)`
+  code:not(pre code) {
+    ${p => inlineCodeStyles(p.theme)};
+  }
 `;

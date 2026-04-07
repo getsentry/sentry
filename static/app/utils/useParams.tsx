@@ -20,6 +20,7 @@ type ParamKeys =
   | 'baseArtifactId'
   | 'beaconId'
   | 'broadcastId'
+  | 'clientID'
   | 'codeId'
   | 'dashboardId'
   | 'dataExportId'

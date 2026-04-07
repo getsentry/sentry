@@ -109,19 +109,11 @@ interface AskSeerComboBoxProps<T extends QueryTokensProps> extends Omit<
     Error,
     string
   >;
-  /**
-   * The owner of the feedback form, must be an underscore-separated identifier like
-   * "trace_explorer_ai_query" or "issue_list_ai_query"
-   *
-   * @example 'trace_explorer_ai_query'
-   */
-  feedbackSource: string;
   initialQuery: string;
 }
 
 export function AskSeerComboBox<T extends QueryTokensProps>({
   initialQuery,
-  feedbackSource,
   analyticsSource,
   ...props
 }: AskSeerComboBoxProps<T>) {
@@ -173,7 +165,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
       openForm({
         messagePlaceholder: t('Why were these queries incorrect?'),
         tags: {
-          ['feedback.source']: feedbackSource,
+          ['feedback.source']: `ai_query.${analyticsArea}`,
           ['feedback.owner']: 'ml-ai',
           ['feedback.natural_language_query']: searchQuery,
           ['feedback.raw_result']: JSON.stringify(data?.queries).replace(/\n/g, ''),
@@ -531,7 +523,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
                   openForm({
                     messagePlaceholder: t('How can we make Seer search better for you?'),
                     tags: {
-                      ['feedback.source']: feedbackSource,
+                      ['feedback.source']: `ai_query.${analyticsArea}`,
                       ['feedback.owner']: 'ml-ai',
                     },
                   })

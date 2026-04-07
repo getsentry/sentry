@@ -128,36 +128,24 @@ function useReminderCopywriting() {
   const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
   const hasLegacySeer = organization.features.includes('seer-added');
 
-  const descriptionByStep: Record<
-    Steps,
-    {description: string; pathname: string; title: string} | null
-  > = {
+  const descriptionByStep: Record<Steps, {description: string; title: string} | null> = {
     [Steps.CONNECT_GITHUB]: {
       title: t('Connect GitHub'),
       description: t(
         'Seer is enabled, but Github is not connected. Connect your GitHub account to enable Root Cause Analysis and Code Review.'
       ),
-      pathname: hasLegacySeer
-        ? `/settings/${organization.slug}/seer/`
-        : `/settings/${organization.slug}/seer/onboarding/`,
     },
     [Steps.SETUP_ROOT_CAUSE_ANALYSIS]: {
       title: t('Start using Seer\u2019s Issue Autofix'),
       description: t(
         'Seer is enabled but Root Cause Analysis is not configured. Configure Seer to automatically look at issues and generate code fixes.'
       ),
-      pathname: hasLegacySeer
-        ? `/settings/${organization.slug}/seer/`
-        : `/settings/${organization.slug}/seer/onboarding/`,
     },
     [Steps.SETUP_CODE_REVIEW]: {
       title: t('Start using Seer\u2019s AI Code Review'),
       description: t(
         'Seer is enabled but Code Review is not configured. Configure Seer to automatically review PRs and flag potential issues.'
       ),
-      pathname: hasLegacySeer
-        ? `/settings/${organization.slug}/seer/`
-        : `/settings/${organization.slug}/seer/onboarding/`,
     },
     [Steps.SETUP_DEFAULTS]: null,
     [Steps.WRAP_UP]: null,
@@ -217,7 +205,7 @@ export function PrimaryNavSeerConfigReminder() {
             <Text>{copy.description}</Text>
             <Flex justify="start">
               <LinkButton
-                to={copy.pathname}
+                to={`/settings/${organization.slug}/seer/`}
                 priority="primary"
                 onClick={() => state.close()}
                 analyticsEventName="Seer Config Reminder: Configure Now Clicked"

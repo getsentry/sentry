@@ -12,6 +12,7 @@ import {
 
 import {type ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
+import {MotionGlobalConfig} from 'framer-motion';
 import {enableFetchMocks} from 'jest-fetch-mock';
 import {ConfigFixture} from 'sentry-fixture/config';
 
@@ -40,6 +41,12 @@ enableFetchMocks();
 // framer-motion SVG components fail
 // See https://github.com/jsdom/jsdom/issues/1330
 SVGElement.prototype.getTotalLength ??= () => 1;
+
+/**
+ * Skip all framer-motion animations in tests so components render immediately
+ * without waiting for animation frames or transitions.
+ */
+MotionGlobalConfig.skipAnimations = true;
 
 /**
  * React Testing Library configuration to override the default test id attribute

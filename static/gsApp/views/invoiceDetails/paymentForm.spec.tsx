@@ -94,8 +94,11 @@ describe('InvoiceDetails > Payment Form', () => {
     expect(await screen.findByText(/Something bad happened./)).toBeInTheDocument();
     expect(mockget).toHaveBeenCalled();
 
-    // Submit the form anyways
-    expect(screen.getByRole('button', {name: 'Pay Now'})).toBeEnabled();
+    // Submit the form anyways - wait for the button to become enabled
+    // (the mock Stripe PaymentElement fires onChange asynchronously via setTimeout)
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Pay Now'})).toBeEnabled()
+    );
     await userEvent.click(screen.getByRole('button', {name: 'Pay Now'}));
 
     // Should show an error as our intent never loaded.
@@ -122,7 +125,7 @@ describe('InvoiceDetails > Payment Form', () => {
     await waitFor(() => expect(mockget).toHaveBeenCalled());
     expect(mockget).toHaveBeenCalled();
 
-    expect(screen.getByText('Pay Bill')).toBeInTheDocument();
+    expect(await screen.findByText('Pay Bill')).toBeInTheDocument();
 
     const button = await screen.findByRole('button', {name: 'Pay Now'});
     await userEvent.click(button);

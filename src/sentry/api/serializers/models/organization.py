@@ -920,8 +920,3 @@ class OrganizationWithProjectsAndTeamsSerializer(OrganizationSerializer):
         )
 
         return context
-
-
-# Backwards-compatible aliases for getsentry
-DetailedOrganizationSerializer = OrganizationSerializer
-DetailedOrganizationSerializerWithProjectsAndTeams = OrganizationWithProjectsAndTeamsSerializer

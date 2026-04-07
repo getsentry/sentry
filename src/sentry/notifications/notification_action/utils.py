@@ -124,13 +124,16 @@ def issue_notification_data_factory(invocation: ActionInvocation) -> IssueNotifi
         detector=detector,
         event_data=event_data,
     )
-    rule_instance.data["tags"] = action.data.get("tags", "")
-    rule_instance.data["notes"] = action.data.get("notes", "")
+    tags = action.data.get("tags", None)
+    tag_list = [tag.strip() for tag in tags.split(",")] if tags else None
+    notes = action.data.get("notes", None)
     rule = SerializableRuleProxy.from_rule(rule_instance)
 
     event_id = getattr(event_data.event, "event_id", None) if event_data.event else None
 
     return IssueNotificationData(
+        tags=tag_list,
+        notes=notes,
         event_id=event_id,
         group_id=event_data.group.id,
         notification_uuid=invocation.notification_uuid,

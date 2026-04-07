@@ -88,7 +88,9 @@ class TestGetEventSeverity(TestCase):
             override_settings(SEER_API_SHARED_SECRET="some-secret"),
         ):
             _get_severity_score(event)
-            viewer_context_bytes = orjson.dumps({"organization_id": self.project.organization_id})
+            viewer_context_bytes = orjson.dumps(
+                {"actor_type": "unknown", "organization_id": self.project.organization_id}
+            )
             mock_urlopen.assert_called_with(
                 "POST",
                 "/v0/issues/severity-score",

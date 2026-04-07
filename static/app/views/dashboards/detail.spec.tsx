@@ -117,6 +117,18 @@ describe('Dashboards > Detail', () => {
     };
   }
 
+  /**
+   * Clicks the edit dashboard button and waits for a known button to be visible.
+   * Note that this bypasses hover state to avoid overlays intercepting clicks.
+   */
+  async function activateDashboardEditMode() {
+    const button = await screen.findByRole('button', {name: 'edit-dashboard'});
+    act(() => {
+      button.click();
+    });
+    await screen.findByRole('button', {name: 'Save and Finish'});
+  }
+
   window.IntersectionObserver = MockIntersectionObserver as any;
 
   describe('prebuilt dashboards', () => {
@@ -502,8 +514,7 @@ describe('Dashboards > Detail', () => {
 
       await waitFor(() => expect(mockVisit).toHaveBeenCalledTimes(1));
 
-      // Enter edit mode.
-      await userEvent.click(await screen.findByRole('button', {name: 'edit-dashboard'}));
+      await activateDashboardEditMode();
 
       // Remove the second and third widgets
       await userEvent.click(
@@ -581,8 +592,7 @@ describe('Dashboards > Detail', () => {
         })
       );
 
-      // Enter edit mode.
-      await userEvent.click(await screen.findByRole('button', {name: 'edit-dashboard'}));
+      await activateDashboardEditMode();
       expect(await screen.findByRole('button', {name: 'Add Widget'})).toBeInTheDocument();
     });
 
@@ -630,8 +640,7 @@ describe('Dashboards > Detail', () => {
         })
       );
 
-      // Enter edit mode.
-      await userEvent.click(await screen.findByRole('button', {name: 'edit-dashboard'}));
+      await activateDashboardEditMode();
       expect(screen.queryByRole('button', {name: 'Add widget'})).not.toBeInTheDocument();
     });
 
@@ -725,7 +734,7 @@ describe('Dashboards > Detail', () => {
         organization: initialData.organization,
       });
 
-      await userEvent.click(await screen.findByRole('button', {name: 'edit-dashboard'}));
+      await activateDashboardEditMode();
       await userEvent.click(await screen.findByText('Save and Finish'));
 
       expect(screen.getByRole('button', {name: 'edit-dashboard'})).toBeInTheDocument();
@@ -767,7 +776,7 @@ describe('Dashboards > Detail', () => {
         organization: initialData.organization,
       });
 
-      await userEvent.click(await screen.findByRole('button', {name: 'edit-dashboard'}));
+      await activateDashboardEditMode();
       const widget = (await screen.findByText('First Widget')).closest(
         '.react-grid-item'
       ) as HTMLElement;
@@ -811,7 +820,7 @@ describe('Dashboards > Detail', () => {
         organization: initialData.organization,
       });
 
-      await userEvent.click(await screen.findByRole('button', {name: 'edit-dashboard'}));
+      await activateDashboardEditMode();
       await userEvent.click(await screen.findByText('Cancel'));
 
       expect(window.confirm).not.toHaveBeenCalled();
