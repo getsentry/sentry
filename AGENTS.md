@@ -122,7 +122,7 @@ make reset-db
 # Start the full development server (requires devservices up)
 pnpm run dev
 
-# Start only the UI development server with hot reload (no backend needed)
+# Start only the UI development server with hot reload
 # Proxies API requests to production sentry.io
 pnpm run dev-ui
 ```
