@@ -170,28 +170,6 @@ describe('ApiNewToken', () => {
     );
   });
 
-  it('disables create button after successful creation', async () => {
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      method: 'POST',
-      url: '/api-tokens/',
-      body: ApiTokenFixture({token: 'sntrys_test_token_123'}),
-    });
-
-    render(<ApiNewToken />);
-    renderGlobalModal();
-
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Project'}), 'Read');
-
-    const createButton = screen.getByRole('button', {name: 'Create Token'});
-    expect(createButton).toBeEnabled();
-
-    await userEvent.click(createButton);
-
-    expect(await screen.findByLabelText('Generated token')).toBeInTheDocument();
-    expect(createButton).toBeDisabled();
-  });
-
   it('displays permissions preview when scopes are selected', async () => {
     render(<ApiNewToken />);
 

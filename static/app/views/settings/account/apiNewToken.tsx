@@ -167,7 +167,7 @@ export default function ApiNewToken() {
           </Panel>
           <Flex justify="end" gap="md" padding="md">
             <Button onClick={handleGoBack}>{t('Cancel')}</Button>
-            <form.SubmitButton disabled={mutation.isSuccess || allPermissionsNoAccess}>
+            <form.SubmitButton disabled={allPermissionsNoAccess}>
               {t('Create Token')}
             </form.SubmitButton>
           </Flex>
