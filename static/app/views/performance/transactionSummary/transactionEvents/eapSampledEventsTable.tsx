@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -33,6 +34,7 @@ import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import type {Theme} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -155,23 +157,16 @@ export function SampledEventsTable({
     kind: 'desc' as const,
   };
 
-  const defaultQuery = new MutableSearch(searchQuery);
-  defaultQuery.setFilterValues('is_transaction', ['true']);
-  defaultQuery.setFilterValues('transaction', [transactionName]);
+  const search = new MutableSearch(searchQuery);
+  search.setFilterValues('is_transaction', ['true']);
+  search.setFilterValues('transaction', [transactionName]);
   if (maxDuration !== undefined && maxDuration > 0) {
-    defaultQuery.setFilterValues('span.duration', [`<=${maxDuration.toFixed(0)}`]);
-  }
-
-  const countQuery = new MutableSearch(searchQuery);
-  countQuery.setFilterValues('is_transaction', ['true']);
-  countQuery.setFilterValues('transaction', [transactionName]);
-  if (maxDuration !== undefined && maxDuration > 0) {
-    countQuery.setFilterValues('span.duration', [`<=${maxDuration.toFixed(0)}`]);
+    search.setFilterValues('span.duration', [`<=${maxDuration.toFixed(0)}`]);
   }
 
   const {data: numEvents, error: numEventsError} = useSpans(
     {
-      search: countQuery,
+      search,
       fields: ['count()'],
       pageFilters: selection,
       enabled: !isMaxDurationLoading,
@@ -197,7 +192,7 @@ export function SampledEventsTable({
     error,
   } = useSpans(
     {
-      search: defaultQuery,
+      search,
       fields,
       sorts: [sort],
       limit: LIMIT,
@@ -320,7 +315,9 @@ function renderBodyCell(
           size="xs"
           icon={<IconProfiling size="xs" />}
           to={{
-            pathname: `/organizations/${organization.slug}/profiling/profile/${projectSlug}/${row['profile.id']}/flamegraph/`,
+            pathname: normalizeUrl(
+              `/organizations/${organization.slug}/profiling/profile/${projectSlug}/${row['profile.id']}/flamegraph/`
+            ),
             query: {
               referrer: 'performance',
             },
@@ -339,7 +336,9 @@ function renderBodyCell(
           size="xs"
           icon={<IconPlay size="xs" />}
           to={{
-            pathname: `/organizations/${organization.slug}/replays/${row.replayId}/`,
+            pathname: normalizeUrl(
+              `/organizations/${organization.slug}/replays/${row.replayId}/`
+            ),
             query: {
               referrer: 'performance',
             },
@@ -386,11 +385,11 @@ function renderOperationDurationCell(row: Record<string, any>, theme: Theme) {
     cumulativeSpanOpBreakdown === 0
   ) {
     return (
-      <div key="other" style={{width: '100%'}}>
-        <Tooltip title={<div>{t('Other')}</div>} containerDisplayMode="block">
+      <Container width="100%">
+        <Tooltip title={t('Other')} containerDisplayMode="block">
           <OtherRelativeOpsBreakdown />
         </Tooltip>
-      </div>
+      </Container>
     );
   }
 
@@ -414,16 +413,15 @@ function renderOperationDurationCell(row: Record<string, any>, theme: Theme) {
           <div key={operationName} style={{width: toPercent(widthPercentage || 0)}}>
             <Tooltip
               title={
-                <div>
-                  <div>{operationName}</div>
-                  <div>
-                    <Duration
-                      seconds={spanOpDuration / 1000}
-                      fixedDigits={2}
-                      abbreviation
-                    />
-                  </div>
-                </div>
+                <Fragment>
+                  {operationName}
+                  <br />
+                  <Duration
+                    seconds={spanOpDuration / 1000}
+                    fixedDigits={2}
+                    abbreviation
+                  />
+                </Fragment>
               }
               containerDisplayMode="block"
             >
