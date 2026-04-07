@@ -250,14 +250,9 @@ class BaseTeamSerializer(Serializer):
         if self._expand("projects"):
             project_teams = ProjectTeam.objects.get_for_teams_with_org_cache(item_list)
 
-            # Deduplicate: a project on multiple teams would otherwise get
-            # its features list multiplied during serialization.
-            seen: set[int] = set()
-            projects = []
-            for pt in project_teams:
-                if pt.project_id not in seen:
-                    seen.add(pt.project_id)
-                    projects.append(pt.project)
+            # Deduplicate: a project on multiple teams would cause
+            # duplicate features during serialization.
+            projects = list({pt.project_id: pt.project for pt in project_teams}.values())
 
             projects_by_id = {
                 project.id: data
