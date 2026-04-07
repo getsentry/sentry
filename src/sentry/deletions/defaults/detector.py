@@ -26,9 +26,9 @@ class DetectorDeletionTask(ModelDeletionTask[Detector]):
             ):
                 model_relations.append(ModelRelation(DataSource, {"detector": instance.id}))
 
-        if instance.workflow_condition_group:
+        if instance.workflow_condition_group_id:
             model_relations.append(
-                ModelRelation(DataConditionGroup, {"id": instance.workflow_condition_group.id})
+                ModelRelation(DataConditionGroup, {"id": instance.workflow_condition_group_id})
             )
 
         return model_relations
