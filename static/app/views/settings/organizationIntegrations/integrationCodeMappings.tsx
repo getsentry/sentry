@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import type {InfiniteData} from '@tanstack/react-query';
 import styled from '@emotion/styled';
+import type {InfiniteData} from '@tanstack/react-query';
 import sortBy from 'lodash/sortBy';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
