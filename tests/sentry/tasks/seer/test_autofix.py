@@ -358,6 +358,26 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         )
         assert prefs_by_project[project.id]["automation_handoff"] == existing_handoff
 
+    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
+    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
+    def test_root_cause_stopping_point_preserved_when_valid(
+        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
+    ) -> None:
+        """Project with root_cause stopping point is preserved when root-cause-stopping-point flag is enabled."""
+        project = self.create_project(organization=self.organization)
+
+        mock_bulk_get.return_value = {
+            str(project.id): {
+                "automated_run_stopping_point": "root_cause",
+                "automation_handoff": None,
+            },
+        }
+
+        with self.feature("organizations:root-cause-stopping-point"):
+            configure_seer_for_existing_org(organization_id=self.organization.id)
+
+        mock_bulk_set.assert_not_called()
+
     @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
     def test_raises_on_bulk_get_api_failure(self, mock_bulk_get: MagicMock) -> None:
         """Test that task raises on bulk GET API failure to trigger retry."""

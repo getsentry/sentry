@@ -475,3 +475,38 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
             q["sql"] for q in ctx.captured_queries if group_table in q["sql"]
         ]
         assert len(response.data["data"]) == 1
+
+    def test_issues_field_in_response(self) -> None:
+        group1 = self.create_group(project=self.project)
+        group2 = self.create_group(project=self.project)
+        occurrences = [
+            self.create_eap_occurrence(
+                group_id=group1.id,
+                project=self.project,
+                attributes={"fingerprint": ["g1"]},
+            ),
+            self.create_eap_occurrence(
+                group_id=group2.id,
+                project=self.project,
+                attributes={"fingerprint": ["g2"]},
+            ),
+        ]
+        self.store_eap_items(occurrences)
+        with CaptureQueriesContext(connection) as ctx:
+            response = self.request_with_feature_flag(
+                {
+                    "field": ["group_id", "project", "project.name", "issue"],
+                    "statsPeriod": "2h",
+                    "project": [self.project.id],
+                }
+            )
+        data = sorted(response.data["data"], key=lambda x: x["group_id"])
+        assert len(data) == 2
+        assert data[0]["issue"] == group1.qualified_short_id
+        assert data[1]["issue"] == group2.qualified_short_id
+
+        # Test number of postgres hits
+        group_sql_hits = sum(1 for q in ctx.captured_queries if Group._meta.db_table in q["sql"])
+        assert group_sql_hits == 1, [
+            q["sql"] for q in ctx.captured_queries if Group._meta.db_table in q["sql"]
+        ]

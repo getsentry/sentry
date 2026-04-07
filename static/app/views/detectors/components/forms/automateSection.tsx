@@ -17,7 +17,7 @@ import {ConnectAutomationsDrawer} from 'sentry/views/detectors/components/connec
 import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
 
-export function AutomateSection() {
+export function AutomateSection({step}: {step?: number}) {
   const ref = useRef<HTMLButtonElement>(null);
   const formContext = useContext(FormContext);
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
@@ -77,7 +77,7 @@ export function AutomateSection() {
   if (workflowIds.length > 0) {
     return (
       <Container>
-        <FormSection title={t('Connected Alerts')}>
+        <FormSection step={step} title={t('Connected Alerts')}>
           <ConnectedAutomationsList
             automationIds={workflowIds}
             cursor={undefined}
@@ -101,6 +101,7 @@ export function AutomateSection() {
   return (
     <Container>
       <FormSection
+        step={step}
         title={t('Alert')}
         description={t('Configure alerting on this Monitor to get notified on issues.')}
       >

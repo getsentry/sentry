@@ -61,6 +61,8 @@ class IssueNotificationData(NotificationData):
 
     group_id: int
     event_id: str | None = None
+    tags: list[str] | None = None
+    notes: str | None = None
     rule: SerializableRuleProxy
     notification_uuid: str = ""
 
@@ -72,14 +74,14 @@ class IssueNotificationTemplate(NotificationTemplate[IssueNotificationData]):
         group_id=1,
         event_id="abc123",
         notification_uuid="test-uuid",
+        tags=["environment", "level"],
+        notes="example note",
         rule=SerializableRuleProxy(
             id=1,
             project_id=2,
             label="Example Rule",
             data={
                 "actions": [{"workflow_id": 3}],
-                "tags": "environment,level",
-                "notes": "example note",
             },
         ),
     )

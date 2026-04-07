@@ -796,9 +796,15 @@ class WorkflowEngineRuleSerializer(Serializer):
             "createdBy": attrs.get("created_by", None),
             "environment": environment.name if environment is not None else None,
             "projects": [p.slug for p in attrs["projects"]],
-            "status": "active" if obj.enabled else "disabled",
-            "snooze": "snooze" in attrs,
+            # Workflow.enabled is toggled by snooze-for-everyone, but "disabled" in the
+            # UI means a broken/misconfigured rule (matching legacy Rule.status/ObjectStatus).
+            # Snooze state is communicated via the snooze fields instead.
+            "status": "active",
+            "snooze": not obj.enabled,
         }
+        if not obj.enabled:
+            workflow_rule["snoozeForEveryone"] = True
+
         if "last_triggered" in attrs:
             workflow_rule["lastTriggered"] = attrs["last_triggered"]
 

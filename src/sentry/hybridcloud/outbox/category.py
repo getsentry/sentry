@@ -130,7 +130,7 @@ class OutboxCategory(IntEnum):
             raise KeyError
         return OutboxScope(scope_int)
 
-    def as_region_outbox(
+    def as_cell_outbox(
         self,
         model: Any | None = None,
         payload: dict[str, Any] | None = None,

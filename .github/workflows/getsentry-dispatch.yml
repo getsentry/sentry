@@ -48,6 +48,14 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
+      - name: Get changed files for selective testing
+        id: changed-files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/${{ github.repository }}/pulls/${{ github.event.number }}/files \
+            --paginate | python3 .github/workflows/scripts/parse-pr-files.py >> "$GITHUB_OUTPUT"
+
       - name: getsentry token
         uses: getsentry/action-github-app-token@5c1e90706fe007857338ac1bfbd7a4177db2f789 # v4.0.0
         id: getsentry
@@ -70,6 +78,9 @@ jobs:
 
       - name: Dispatch getsentry tests
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          SENTRY_CHANGED_FILES: ${{ steps.changed-files.outputs.files }}
+          SENTRY_PREVIOUS_FILENAMES: ${{ steps.changed-files.outputs.previous-filenames }}
         with:
           github-token: ${{ steps.getsentry.outputs.token }}
           script: |
@@ -80,4 +91,6 @@ jobs:
               core,
               mergeCommitSha: '${{ steps.mergecommit.outputs.mergeCommitSha }}',
               fileChanges: ${{ toJson(steps.changes.outputs) }},
+              sentryChangedFiles: process.env.SENTRY_CHANGED_FILES,
+              sentryPreviousFilenames: process.env.SENTRY_PREVIOUS_FILENAMES,
             });

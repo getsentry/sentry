@@ -84,6 +84,7 @@ from sentry.models.team import Team, TeamStatus
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.replays.models import OrganizationMemberReplayAccess
+from sentry.seer.autofix.utils import get_valid_automated_run_stopping_points
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -130,7 +131,7 @@ class OnboardingTasksSerializerResponse(TypedDict):
     data: Any  # JSON objec
 
 
-class OrganizationSerializerResponseOptional(TypedDict, total=False):
+class OrganizationSummarySerializerResponseOptional(TypedDict, total=False):
     features: list[str]  # Only included if include_feature_flags is True
     extraOptions: dict[str, dict[str, Any]]
     access: frozenset[str]  # Only if access=... is passed
@@ -138,7 +139,7 @@ class OrganizationSerializerResponseOptional(TypedDict, total=False):
 
 
 @extend_schema_serializer(exclude_fields=["requireEmailVerification"])
-class OrganizationSerializerResponse(OrganizationSerializerResponseOptional):
+class OrganizationSummarySerializerResponse(OrganizationSummarySerializerResponseOptional):
     id: str
     slug: str
     status: _Status
@@ -285,7 +286,7 @@ class ControlSiloOrganizationSerializer(Serializer):
 
 
 @register(Organization)
-class OrganizationSerializer(Serializer):
+class OrganizationSummarySerializer(Serializer):
     def get_attrs(
         self, item_list: Sequence[Organization], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
@@ -409,7 +410,7 @@ class OrganizationSerializer(Serializer):
         attrs: Mapping[str, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> OrganizationSerializerResponse:
+    ) -> OrganizationSummarySerializerResponse:
         if attrs.get("avatar"):
             avatar: SerializedAvatarFields = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
@@ -425,7 +426,7 @@ class OrganizationSerializer(Serializer):
 
         has_auth_provider = attrs.get("auth_provider", None) is not None
 
-        context: OrganizationSerializerResponse = {
+        context: OrganizationSummarySerializerResponse = {
             "id": str(obj.id),
             "slug": obj.slug,
             "status": {"id": status.name.lower(), "name": status.label},
@@ -503,7 +504,7 @@ class OnboardingTasksSerializer(Serializer):
         }
 
 
-class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResponse, total=False):
+class _OrganizationSerializerResponseOptional(OrganizationSummarySerializerResponse, total=False):
     role: Any  # TODO: replace with enum/literal
     orgRole: str
     targetSampleRate: float
@@ -517,7 +518,7 @@ class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResp
 
 
 @extend_schema_serializer(exclude_fields=["availableRoles"])
-class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResponseOptional):
+class OrganizationSerializerResponse(_OrganizationSerializerResponseOptional):
     experiments: dict[str, str]
     isDefault: bool
     defaultRole: str  # TODO: replace with enum/literal
@@ -569,7 +570,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     replayAccessMembers: list[int]
 
 
-class DetailedOrganizationSerializer(OrganizationSerializer):
+class OrganizationSerializer(OrganizationSummarySerializer):
     def get_attrs(
         self, item_list: Sequence[Organization], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
@@ -601,6 +602,15 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         return attrs
 
+    def _get_default_automated_run_stopping_point(self, obj: Organization) -> str:
+        stopping_point = obj.get_option(
+            "sentry:default_automated_run_stopping_point",
+            SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+        )
+        if stopping_point not in get_valid_automated_run_stopping_points(obj):
+            return SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+        return stopping_point
+
     def serialize(  # type: ignore[override]
         self,
         obj: Organization,
@@ -608,7 +618,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         user: User | RpcUser | AnonymousUser,
         access: Access,
         **kwargs: Any,
-    ) -> DetailedOrganizationSerializerResponse:
+    ) -> OrganizationSerializerResponse:
         # TODO: rectify access argument overriding parent if we want to remove above type ignore
 
         include_feature_flags = kwargs.get("include_feature_flags", True)
@@ -640,7 +650,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             sample_rate = quotas.backend.get_blended_sample_rate(organization_id=obj.id)
             is_dynamically_sampled = sample_rate is not None and sample_rate < 1.0
 
-        context: DetailedOrganizationSerializerResponse = {
+        context: OrganizationSerializerResponse = {
             **base,
             "experiments": features.get_experiment_assignments(obj, actor=user),
             "isDefault": obj.is_default,
@@ -741,10 +751,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             "defaultCodingAgentIntegrationId": obj.get_option(
                 "sentry:seer_default_coding_agent_integration_id", None
             ),
-            "defaultAutomatedRunStoppingPoint": obj.get_option(
-                "sentry:default_automated_run_stopping_point",
-                SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
-            ),
+            "defaultAutomatedRunStoppingPoint": self._get_default_automated_run_stopping_point(obj),
             "autoOpenPrs": bool(
                 obj.get_option(
                     "sentry:auto_open_prs",
@@ -840,14 +847,12 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "replayAccessMembers",
     ]
 )
-class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(
-    DetailedOrganizationSerializerResponse
-):
+class OrganizationWithProjectsAndTeamsSerializerResponse(OrganizationSerializerResponse):
     teams: list[TeamSerializerResponse]
     projects: list[OrganizationProjectResponse]
 
 
-class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSerializer):
+class OrganizationWithProjectsAndTeamsSerializer(OrganizationSerializer):
     def get_attrs(
         self, item_list: Sequence[Organization], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
@@ -884,7 +889,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         user: User | RpcUser | AnonymousUser,
         access: Access,
         **kwargs: Any,
-    ) -> DetailedOrganizationSerializerWithProjectsAndTeamsResponse:
+    ) -> OrganizationWithProjectsAndTeamsSerializerResponse:
         from sentry.api.serializers.models.project import (
             LATEST_DEPLOYS_KEY,
             ProjectSummarySerializer,
@@ -892,7 +897,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         from sentry.api.serializers.models.team import TeamSerializer
 
         context = cast(
-            DetailedOrganizationSerializerWithProjectsAndTeamsResponse,
+            OrganizationWithProjectsAndTeamsSerializerResponse,
             super().serialize(obj, attrs, user, access, **kwargs),
         )
 

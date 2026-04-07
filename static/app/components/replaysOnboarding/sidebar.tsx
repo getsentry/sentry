@@ -1,13 +1,14 @@
 import type {ReactNode} from 'react';
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {parseAsStringLiteral, useQueryState} from 'nuqs';
 import {PlatformIcon} from 'platformicons';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
@@ -38,7 +39,6 @@ import {
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {SelectValue} from 'sentry/types/core';
 import type {PlatformKey, Project} from 'sentry/types/project';
-import {useUrlParams} from 'sentry/utils/url/useUrlParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function useReplaysOnboardingDrawer() {
@@ -223,13 +223,12 @@ function OnboardingContent({
       .filter((p): p is PlatformKey => p !== 'javascript')
       .includes(currentProject.platform);
 
-  const defaultTab = 'jsLoader';
-  const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(
+  const [setupMode, setSetupMode] = useQueryState(
     'mode',
-    defaultTab
+    parseAsStringLiteral(['npm', 'jsLoader'] as const).withDefault('jsLoader')
   );
 
-  const showJsFrameworkInstructions = backendPlatform && setupMode() === 'npm';
+  const showJsFrameworkInstructions = backendPlatform && setupMode === 'npm';
 
   const currentPlatform = currentProject.platform
     ? (platforms.find(p => p.id === currentProject.platform) ?? otherPlatform)
@@ -243,7 +242,7 @@ function OnboardingContent({
     projectKeyId,
   } = useLoadGettingStarted({
     platform:
-      showJsFrameworkInstructions && setupMode() === 'npm'
+      showJsFrameworkInstructions && setupMode === 'npm'
         ? (replayJsFrameworkOptions().find(p => p.id === jsFramework.value) ??
           replayJsFrameworkOptions()[0]!)
         : currentPlatform,
@@ -269,47 +268,49 @@ function OnboardingContent({
   const radioButtons = (
     <Header>
       {showRadioButtons ? (
-        <StyledRadioGroup
-          label="mode"
-          choices={[
-            [
-              'npm',
-              backendPlatform ? (
-                <Flex gap="md" align="center" wrap="wrap" key="platform-select">
-                  {tct('I use [platformSelect]', {
-                    platformSelect: (
-                      <CompactSelect
-                        size="xs"
-                        trigger={triggerProps => (
-                          <OverlayTrigger.Button {...triggerProps}>
-                            {jsFramework.label ?? triggerProps.children}
-                          </OverlayTrigger.Button>
-                        )}
-                        value={jsFramework.value}
-                        onChange={setJsFramework}
-                        options={jsFrameworkSelectOptions}
-                        position="bottom-end"
-                        key={jsFramework.textValue}
-                        disabled={setupMode() === 'jsLoader'}
+        <Container padding="md 0">
+          <RadioGroup<'npm' | 'jsLoader'>
+            label="mode"
+            choices={[
+              [
+                'npm',
+                backendPlatform ? (
+                  <Flex gap="md" align="center" wrap="wrap" key="platform-select">
+                    {tct('I use [platformSelect]', {
+                      platformSelect: (
+                        <CompactSelect
+                          size="xs"
+                          trigger={triggerProps => (
+                            <OverlayTrigger.Button {...triggerProps}>
+                              {jsFramework.label ?? triggerProps.children}
+                            </OverlayTrigger.Button>
+                          )}
+                          value={jsFramework.value}
+                          onChange={setJsFramework}
+                          options={jsFrameworkSelectOptions}
+                          position="bottom-end"
+                          key={jsFramework.textValue}
+                          disabled={setupMode === 'jsLoader'}
+                        />
+                      ),
+                    })}
+                    {jsFrameworkDocs?.platformOptions && (
+                      <PlatformOptionDropdown
+                        platformOptions={jsFrameworkDocs?.platformOptions}
+                        disabled={setupMode === 'jsLoader'}
                       />
-                    ),
-                  })}
-                  {jsFrameworkDocs?.platformOptions && (
-                    <PlatformOptionDropdown
-                      platformOptions={jsFrameworkDocs?.platformOptions}
-                      disabled={setupMode() === 'jsLoader'}
-                    />
-                  )}
-                </Flex>
-              ) : (
-                t('I use NPM or Yarn')
-              ),
-            ],
-            ['jsLoader', t('I use HTML templates (Loader Script)')],
-          ]}
-          value={setupMode()}
-          onChange={setSetupMode}
-        />
+                    )}
+                  </Flex>
+                ) : (
+                  t('I use NPM or Yarn')
+                ),
+              ],
+              ['jsLoader', t('I use HTML templates (Loader Script)')],
+            ]}
+            value={setupMode}
+            onChange={value => setSetupMode(value)}
+          />
+        </Container>
       ) : (
         !mobilePlatform &&
         (docs?.platformOptions?.siblingOption || docs?.platformOptions?.packageManager) &&
@@ -405,7 +406,7 @@ function OnboardingContent({
         platformKey={currentPlatform.id}
         project={currentProject}
         configType={
-          setupMode() === 'npm' || // switched to NPM option
+          setupMode === 'npm' || // switched to NPM option
           npmOnlyFramework ||
           mobilePlatform // even if '?mode=jsLoader', only show npm/default instructions for FE frameworks & mobile platforms
             ? 'replayOnboarding'
@@ -451,8 +452,4 @@ const StyledIdBadge = styled(IdBadge)`
   overflow: hidden;
   white-space: nowrap;
   flex-shrink: 1;
-`;
-
-const StyledRadioGroup = styled(RadioGroup)`
-  padding: ${p => p.theme.space.md} 0;
 `;

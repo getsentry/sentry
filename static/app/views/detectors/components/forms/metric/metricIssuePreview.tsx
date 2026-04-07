@@ -76,7 +76,7 @@ function useMetricIssuePreviewSubtitle() {
   }
 }
 
-export function MetricIssuePreview() {
+export function MetricIssuePreview({step}: {step?: number}) {
   const name = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.name);
   const owner = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.owner);
   const subtitle = useMetricIssuePreviewSubtitle();
@@ -84,7 +84,7 @@ export function MetricIssuePreview() {
   const {project} = useDetectorFormContext();
 
   return (
-    <IssuePreviewSection>
+    <IssuePreviewSection step={step}>
       <DetectorIssuePreview
         issueTitle={name || t('Monitor title')}
         subtitle={subtitle}

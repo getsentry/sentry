@@ -24,7 +24,7 @@ class WebhookPayloadTest(TestCase):
             content_type="application/json",
         )
         hook = WebhookPayload.create_from_request(
-            destination_type=DestinationType.SENTRY_REGION,
+            destination_type=DestinationType.SENTRY_CELL,
             cell="us",
             provider="github",
             identifier=123,
