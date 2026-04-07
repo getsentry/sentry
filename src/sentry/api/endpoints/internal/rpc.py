@@ -66,11 +66,13 @@ class InternalRpcServiceEndpoint(Endpoint):
 
         meta = request.data.get("meta", {})
         vc_data = meta.get("viewer_context")
-        vc_scope = (
-            viewer_context_scope(ViewerContext.deserialize(vc_data))
-            if vc_data
-            else contextlib.nullcontext()
-        )
+        vc_scope: contextlib.AbstractContextManager[None] = contextlib.nullcontext()
+        if vc_data:
+            try:
+                vc_scope = viewer_context_scope(ViewerContext.deserialize(vc_data))
+            except Exception as e:
+                sentry_sdk.capture_exception()
+                raise ParseError from e
 
         try:
             with vc_scope, auth_context.applied_to_request(request):
