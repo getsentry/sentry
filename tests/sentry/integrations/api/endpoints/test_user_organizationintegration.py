@@ -87,8 +87,8 @@ class UserOrganizationIntegationTest(APITestCase):
         response = self.get_success_response(self.user.id)
         assert response.data == []
 
-    def test_installation_error_still_returns_item(self) -> None:
-        """An exception in get_dynamic_display_information shouldn't null out the item."""
+    def test_serialization_error_filtered_from_response(self) -> None:
+        """An exception during serialization should produce an empty list, not null entries."""
         integration = self.create_provider_integration(provider="github")
         self.create_organization_integration(
             organization_id=self.organization.id, integration_id=integration.id
@@ -100,5 +100,4 @@ class UserOrganizationIntegationTest(APITestCase):
         ):
             response = self.get_success_response(self.user.id)
 
-        assert len(response.data) == 1
-        assert response.data[0]["organizationId"] == self.organization.id
+        assert response.data == []

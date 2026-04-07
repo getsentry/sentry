@@ -117,8 +117,8 @@ class Serializer:
     ) -> Mapping[str, Any] | None:
         try:
             return self.serialize(obj, attrs, user, **kwargs)
-        except Exception:
-            logger.exception("Failed to serialize", extra={"instance": obj})
+        except Exception as e:
+            logger.exception("Failed to serialize", extra={"instance": obj, "exception": e})
             return None
 
     def serialize(
