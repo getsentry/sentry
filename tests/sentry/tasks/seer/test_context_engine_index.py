@@ -287,7 +287,30 @@ class TestIndexRepos(TestCase):
     def test_calls_seer_with_correct_org_and_repos(
         self, mock_mock_make_org_repo_knowledge_index_request, mock_bulk_get_project_preferences
     ) -> None:
-        mock_bulk_get_project_preferences.return_value = {}
+        mock_bulk_get_project_preferences.return_value = {
+            str(self.project1.id): {
+                "repositories": [
+                    {
+                        "name": "sentry",
+                        "owner": "getsentry",
+                        "provider": "integrations:github",
+                        "external_id": "123",
+                        "integration_id": str(self.integration.id),
+                    }
+                ],
+            },
+            str(self.project2.id): {
+                "repositories": [
+                    {
+                        "name": "relay",
+                        "owner": "getsentry",
+                        "provider": "integrations:github",
+                        "external_id": "456",
+                        "integration_id": str(self.integration.id),
+                    }
+                ],
+            },
+        }
         mock_mock_make_org_repo_knowledge_index_request.return_value.status = 200
         with override_options({"explorer.context_engine_indexing.enable": True}):
             with self.feature({"organizations:context-engine-experiments": True}):
@@ -321,7 +344,30 @@ class TestIndexRepos(TestCase):
     def test_deduplicates_repos_across_projects(
         self, mock_mock_make_org_repo_knowledge_index_request, mock_bulk_get_project_preferences
     ) -> None:
-        mock_bulk_get_project_preferences.return_value = {}
+        mock_bulk_get_project_preferences.return_value = {
+            str(self.project1.id): {
+                "repositories": [
+                    {
+                        "name": "sentry",
+                        "owner": "getsentry",
+                        "provider": "integrations:github",
+                        "external_id": "123",
+                        "integration_id": str(self.integration.id),
+                    }
+                ],
+            },
+            str(self.project2.id): {
+                "repositories": [
+                    {
+                        "name": "sentry",
+                        "owner": "getsentry",
+                        "provider": "integrations:github",
+                        "external_id": "123",
+                        "integration_id": str(self.integration.id),
+                    }
+                ],
+            },
+        }
         mock_mock_make_org_repo_knowledge_index_request.return_value.status = 200
         # Map project2 to the same repo as project1
         self.create_code_mapping(
@@ -385,8 +431,43 @@ class TestIndexRepos(TestCase):
         repos = body["repos"]
         repos_by_name = {r["name"]: r for r in repos}
 
+        assert len(repos) == 1
         sentry_repo = repos_by_name["sentry-seer"]
         assert sorted(sentry_repo["project_ids"]) == sorted([self.project1.id])
+
+    @mock.patch("sentry.tasks.seer.context_engine_index.bulk_get_project_preferences")
+    @mock.patch("sentry.tasks.seer.context_engine_index.make_org_repo_knowledge_index_request")
+    def test_skips_projects_without_seer_preferences(
+        self, mock_mock_make_org_repo_knowledge_index_request, mock_bulk_get_project_preferences
+    ) -> None:
+        mock_mock_make_org_repo_knowledge_index_request.return_value.status = 200
+
+        # Only project1 has preferences; project2 is absent from the map
+        mock_bulk_get_project_preferences.return_value = {
+            str(self.project1.id): {
+                "repositories": [
+                    {
+                        "name": "sentry",
+                        "owner": "getsentry",
+                        "provider": "integrations:github",
+                        "external_id": "123",
+                        "integration_id": str(self.integration.id),
+                    }
+                ],
+            },
+        }
+
+        with override_options({"explorer.context_engine_indexing.enable": True}):
+            with self.feature({"organizations:context-engine-experiments": True}):
+                index_repos(self.org.id)
+
+        mock_mock_make_org_repo_knowledge_index_request.assert_called_once()
+        body = mock_mock_make_org_repo_knowledge_index_request.call_args[0][0]
+        repos = body["repos"]
+
+        assert len(repos) == 1
+        assert repos[0]["name"] == "sentry"
+        assert repos[0]["project_ids"] == [self.project1.id]
 
 
 @django_db_all

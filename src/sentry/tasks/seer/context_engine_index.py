@@ -260,19 +260,20 @@ def index_repos(organization_id: int, *args, **kwargs) -> None:
     preferences_by_id = bulk_get_project_preferences(organization_id, list(project_map.keys()))
 
     for project_id, project in project_map.items():
-        existing_pref = preferences_by_id.get(str(project_id), {})
-        project_pref_repos = existing_pref.get("repositories") or []
-        autofix_repos = get_autofix_repos_from_project_code_mappings(project)
+        existing_pref = preferences_by_id.get(str(project_id))
+        if not existing_pref:
+            continue
 
+        project_pref_repos = existing_pref.get("repositories") or []
+
+        autofix_repos = get_autofix_repos_from_project_code_mappings(project)
         # Use autofix repos to get repo languages
         language_map: dict[tuple[str, str, str], list[str]] = {}
         for autofix_repo in autofix_repos:
             key = (autofix_repo["provider"], autofix_repo["owner"], autofix_repo["name"])
             language_map[key] = autofix_repo["languages"]
 
-        # Use seer project rpeferences if available, else fallback to autofix repos
-        repos = project_pref_repos if project_pref_repos else autofix_repos
-        for repo in repos:
+        for repo in project_pref_repos:
             key = (repo["provider"], repo["owner"], repo["name"])
             if key in org_repo_definitions:
                 repo_definition = org_repo_definitions[key]
