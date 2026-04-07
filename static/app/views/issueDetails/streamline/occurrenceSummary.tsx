@@ -4,7 +4,6 @@ import moment from 'moment-timezone';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
-import {DowntimeDuration} from 'sentry/components/events/interfaces/uptime/uptimeDataSection';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
@@ -12,6 +11,7 @@ import type {Event, EventEvidenceDisplay} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {DowntimeDuration} from 'sentry/views/issueDetails/streamline/downtimeDuration';
 import {getDetectorDetails} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
 
 enum KnownEvidence {

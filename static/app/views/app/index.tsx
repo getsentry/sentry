@@ -36,6 +36,7 @@ import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKInteg
 import {LastKnownRouteContextProvider} from 'sentry/views/lastKnownRouteContextProvider';
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 import {RouteAnalyticsContextProvider} from 'sentry/views/routeAnalyticsContextProvider';
+import {LLMContextProvider} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {ExplorerPanel} from 'sentry/views/seerExplorer/explorerPanel';
 import {ExplorerPanelProvider} from 'sentry/views/seerExplorer/useExplorerPanel';
 
@@ -241,12 +242,14 @@ export function App() {
                 <GlobalFeedbackForm>
                   <MainContainer tabIndex={-1}>
                     <DemoToursProvider>
-                      <ExplorerPanelProvider>
-                        <GlobalModal />
-                        <ExplorerPanel />
-                        <Indicators className="indicators-container" />
-                        <ErrorBoundary>{renderBody()}</ErrorBoundary>
-                      </ExplorerPanelProvider>
+                      <LLMContextProvider>
+                        <ExplorerPanelProvider>
+                          <GlobalModal />
+                          <ExplorerPanel />
+                          <Indicators className="indicators-container" />
+                          <ErrorBoundary>{renderBody()}</ErrorBoundary>
+                        </ExplorerPanelProvider>
+                      </LLMContextProvider>
                     </DemoToursProvider>
                   </MainContainer>
                 </GlobalFeedbackForm>

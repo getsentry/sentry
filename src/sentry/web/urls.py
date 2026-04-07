@@ -1298,6 +1298,10 @@ urlpatterns += [
                     include("sentry.integrations.slack.urls"),
                 ),
                 re_path(
+                    r"^slack-staging/",
+                    include("sentry.integrations.slack.staging.urls"),
+                ),
+                re_path(
                     r"^github/",
                     include("sentry.integrations.github.urls"),
                 ),

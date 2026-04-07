@@ -1,4 +1,4 @@
-name: '[NOT REQUIRED] frontend-snapshots'
+name: 'frontend-snapshots'
 
 on:
   push:

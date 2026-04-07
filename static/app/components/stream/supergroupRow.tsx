@@ -2,8 +2,10 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import {GroupStatusChart} from 'sentry/components/charts/groupStatusChart';
 import {Count} from 'sentry/components/count';
 import {useDrawer} from 'sentry/components/globalDrawer';
@@ -12,31 +14,43 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {AggregatedSupergroupStats} from 'sentry/utils/supergroup/aggregateSupergroupStats';
 import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
+import type {AggregatedSupergroupStats} from 'sentry/views/issueList/supergroups/aggregateSupergroupStats';
 import {SupergroupDetailDrawer} from 'sentry/views/issueList/supergroups/supergroupDrawer';
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 
 interface SupergroupRowProps {
-  matchedCount: number;
+  matchedGroupIds: string[];
   supergroup: SupergroupDetail;
   aggregatedStats?: AggregatedSupergroupStats | null;
+  memberList?: IndexedMembersByProject;
 }
 
 export function SupergroupRow({
   supergroup,
-  matchedCount,
+  matchedGroupIds,
   aggregatedStats,
+  memberList,
 }: SupergroupRowProps) {
+  const matchedCount = matchedGroupIds.length;
   const {openDrawer, isDrawerOpen} = useDrawer();
   const [isActive, setIsActive] = useState(false);
   const handleClick = () => {
     setIsActive(true);
-    openDrawer(() => <SupergroupDetailDrawer supergroup={supergroup} />, {
-      ariaLabel: t('Supergroup details'),
-      drawerKey: 'supergroup-drawer',
-      onClose: () => setIsActive(false),
-    });
+    openDrawer(
+      () => (
+        <SupergroupDetailDrawer
+          supergroup={supergroup}
+          matchedGroupIds={matchedGroupIds}
+          memberList={memberList}
+        />
+      ),
+      {
+        ariaLabel: t('Supergroup details'),
+        drawerKey: 'supergroup-drawer',
+        onClose: () => setIsActive(false),
+      }
+    );
   };
 
   const highlighted = isActive && isDrawerOpen;
@@ -93,7 +107,17 @@ export function SupergroupRow({
 
       <ChartColumn>
         {aggregatedStats?.mergedStats && aggregatedStats.mergedStats.length > 0 ? (
-          <GroupStatusChart hideZeros stats={aggregatedStats.mergedStats} showMarkLine />
+          <GroupStatusChart
+            hideZeros
+            stats={aggregatedStats.mergedFilteredStats ?? aggregatedStats.mergedStats}
+            secondaryStats={
+              aggregatedStats.mergedFilteredStats
+                ? aggregatedStats.mergedStats
+                : undefined
+            }
+            showSecondaryPoints={aggregatedStats.mergedFilteredStats !== null}
+            showMarkLine
+          />
         ) : (
           <Placeholder height="36px" />
         )}
@@ -101,7 +125,14 @@ export function SupergroupRow({
 
       <EventsColumn>
         {aggregatedStats ? (
-          <PrimaryCount value={aggregatedStats.eventCount} />
+          <Stack position="relative">
+            <PrimaryCount
+              value={aggregatedStats.filteredEventCount ?? aggregatedStats.eventCount}
+            />
+            {aggregatedStats.filteredEventCount !== null && (
+              <SecondaryCount value={aggregatedStats.eventCount} />
+            )}
+          </Stack>
         ) : (
           <Placeholder height="18px" width="40px" />
         )}
@@ -109,7 +140,14 @@ export function SupergroupRow({
 
       <UsersColumn>
         {aggregatedStats ? (
-          <PrimaryCount value={aggregatedStats.userCount} />
+          <Stack position="relative">
+            <PrimaryCount
+              value={aggregatedStats.filteredUserCount ?? aggregatedStats.userCount}
+            />
+            {aggregatedStats.filteredUserCount !== null && (
+              <SecondaryCount value={aggregatedStats.userCount} />
+            )}
+          </Stack>
         ) : (
           <Placeholder height="18px" width="40px" />
         )}
@@ -242,6 +280,14 @@ const PrimaryCount = styled(Count)`
   display: flex;
   justify-content: right;
   margin-bottom: ${p => p.theme.space['2xs']};
+  font-variant-numeric: tabular-nums;
+`;
+
+const SecondaryCount = styled(Count)`
+  font-size: ${p => p.theme.font.size.sm};
+  display: flex;
+  justify-content: flex-end;
+  color: ${p => p.theme.tokens.content.secondary};
   font-variant-numeric: tabular-nums;
 `;
 

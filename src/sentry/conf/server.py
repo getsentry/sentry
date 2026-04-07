@@ -391,6 +391,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "sentry.middleware.auth.AuthenticationMiddleware",
+    "sentry.middleware.viewer_context.ViewerContextMiddleware",
     "sentry.middleware.ai_agent.AIAgentMiddleware",
     "sentry.middleware.integrations.IntegrationControlMiddleware",
     APIGW_MIDDLEWARE,
@@ -770,10 +771,6 @@ SENTRY_CELLS: list[CellConfig] = []
 # Mapping of localities (e.g. "us", "de") to their constituent cells (e.g. "us1", "us2")
 SENTRY_LOCALITIES: list[LocalityConfig] = []
 
-# TODO(cells): Superceded by SENTRY_LOCAL_CELL and SENTRY_CELLS. Remove once migration is complete.
-SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
-SENTRY_REGION_CONFIG: list[CellConfig] = []
-
 # Shared secret used to sign cross-region RPC requests.
 RPC_SHARED_SECRET: list[str] | None = None
 
@@ -881,6 +878,8 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.github.tasks.codecov_account_unlink",
     "sentry.integrations.github.tasks.link_all_repos",
     "sentry.integrations.github.tasks.pr_comment",
+    "sentry.integrations.github.tasks.sync_repos",
+    "sentry.integrations.github.tasks.sync_repos_on_install_change",
     "sentry.integrations.gitlab.tasks",
     "sentry.integrations.jira.tasks",
     "sentry.integrations.opsgenie.tasks",
@@ -948,6 +947,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.collect_project_platforms",
     "sentry.tasks.commit_context",
     "sentry.tasks.commits",
+    "sentry.tasks.console_platform_cleanup",
     "sentry.tasks.delete_pending_groups",
     "sentry.tasks.seer.delete_seer_grouping_records",
     "sentry.tasks.digests",
@@ -1013,8 +1013,8 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
         "schedule": timedelta(seconds=15),
     },
-    "prune-old-fire-history": {
-        "task": "workflow_engine:sentry.workflow_engine.tasks.cleanup.prune_old_fire_history",
+    "prune-old-open-period-activity": {
+        "task": "workflow_engine:sentry.workflow_engine.tasks.cleanup.prune_old_open_period_activity",
         "schedule": timedelta(minutes=2),
     },
     "resolve-stale-sourcemap-detectors": {
@@ -1250,6 +1250,10 @@ TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {
     "fetch-release-registry-data-control": {
         "task": "sdk.control:sentry.tasks.release_registry.fetch_release_registry_data_control",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
+    },
+    "github-repo-sync-beat": {
+        "task": "integrations.control:sentry.integrations.github.tasks.sync_repos.github_repo_sync_beat",
+        "schedule": timedelta(minutes=1),
     },
 }
 
@@ -2228,6 +2232,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.bitbucket.integration.BitbucketIntegrationProvider",
     "sentry.integrations.bitbucket_server.integration.BitbucketServerIntegrationProvider",
     "sentry.integrations.slack.SlackIntegrationProvider",
+    "sentry.integrations.slack.staging.integration.SlackStagingIntegrationProvider",
     "sentry.integrations.github.integration.GitHubIntegrationProvider",
     "sentry.integrations.github_enterprise.integration.GitHubEnterpriseIntegrationProvider",
     "sentry.integrations.gitlab.integration.GitlabIntegrationProvider",
@@ -2243,6 +2248,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.opsgenie.OpsgenieIntegrationProvider",
     "sentry.integrations.cursor.integration.CursorAgentIntegrationProvider",
     "sentry.integrations.claude_code.integration.ClaudeCodeAgentIntegrationProvider",
+    "sentry.integrations.github_copilot.integration.GithubCopilotIntegrationProvider",
     "sentry.integrations.perforce.integration.PerforceIntegrationProvider",
 )
 
@@ -3016,7 +3022,11 @@ SENTRY_PROFILE_EAP_FUTURES_MAX_LIMIT = 10000
 SENTRY_PREPROD_ARTIFACT_EVENTS_FUTURES_MAX_LIMIT = 10000
 
 # How long we should wait for a gateway proxy request to return before giving up
-GATEWAY_PROXY_TIMEOUT: int | None = None
+GATEWAY_PROXY_TIMEOUT: int | None = (
+    int(os.environ["SENTRY_APIGW_PROXY_TIMEOUT"])
+    if os.environ.get("SENTRY_APIGW_PROXY_TIMEOUT")
+    else None
+)
 
 SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
 # This maps a Sliceable for slicing by name and (lower logical partition, upper physical partition)
@@ -3259,7 +3269,7 @@ if SILO_DEVSERVER:
     # Addresses are hardcoded based on the defaults
     # we use in commands/devserver.
     region_port = os.environ.get("SENTRY_REGION_SILO_PORT", "8010")
-    SENTRY_REGION_CONFIG = [
+    SENTRY_CELLS = [
         {
             "name": "us",
             "snowflake_id": 1,
@@ -3267,7 +3277,7 @@ if SILO_DEVSERVER:
             "address": f"http://127.0.0.1:{region_port}",
         }
     ]
-    SENTRY_MONOLITH_REGION = SENTRY_REGION_CONFIG[0]["name"]
+    SENTRY_MONOLITH_REGION = SENTRY_CELLS[0]["name"]
 
     # Cross region RPC authentication
     RPC_SHARED_SECRET = [

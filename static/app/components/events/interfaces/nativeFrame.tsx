@@ -46,7 +46,6 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 import {withSentryAppComponents} from 'sentry/utils/withSentryAppComponents';
 import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {combineStatus} from './debugMeta/utils';
 import {Context} from './frame/context';
@@ -104,7 +103,7 @@ function NativeFrame({
   const isDartAsyncSuspensionFrame =
     frame.filename === '<asynchronous suspension>' ||
     frame.absPath === '<asynchronous suspension>';
-  const {displayOptions, stackView} = useStacktraceContext();
+  const {displayOptions, stackView, hasScmSourceContext} = useStacktraceContext();
 
   const {sectionData} = useIssueDetails();
   const debugSectionConfig = sectionData[SectionKey.DEBUGMETA];
@@ -112,8 +111,6 @@ function NativeFrame({
     getFoldSectionKey(SectionKey.DEBUGMETA),
     debugSectionConfig?.initialCollapse ?? false
   );
-  const hasStreamlinedUI = useHasStreamlinedUI();
-
   const fullStackTrace = stackView === StackView.FULL;
 
   const absolute = displayOptions.includes('absolute-addresses');
@@ -127,8 +124,7 @@ function NativeFrame({
     !!frame.symbolicatorStatus &&
     frame.symbolicatorStatus !== SymbolicatorStatus.UNKNOWN_IMAGE &&
     !isHoverPreviewed &&
-    // We know the debug section is rendered (only once streamline ui is enabled)
-    (hasStreamlinedUI ? !!debugSectionConfig : true);
+    !!debugSectionConfig;
 
   const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
   const expandable = isExpandable({
@@ -136,6 +132,7 @@ function NativeFrame({
     registers,
     platform,
     emptySourceNotation,
+    hasScmSourceContext,
   });
 
   const inlineFrame =
@@ -254,10 +251,8 @@ function NativeFrame({
       DebugMetaStore.updateFilter(searchTerm);
     }
 
-    if (hasStreamlinedUI) {
-      // Expand the section
-      setIsCollapsed(false);
-    }
+    // Expand the section
+    setIsCollapsed(false);
 
     // Scroll to the section
     document
@@ -282,7 +277,7 @@ function NativeFrame({
     <StackTraceFrame data-test-id="stack-trace-frame">
       <StrictClick onClick={handleToggleContext}>
         <RowHeader
-          expandable={expandable}
+          expandable={!!expandable}
           isInAppFrame={frame.inApp}
           isSubFrame={!!isSubFrame}
           onMouseEnter={handleMouseEnter}
@@ -458,6 +453,7 @@ function NativeFrame({
           hasContextRegisters={hasContextRegisters(registers)}
           emptySourceNotation={emptySourceNotation}
           hasAssembly={hasAssembly(frame, platform)}
+          hasScmSourceContext={hasScmSourceContext}
           isExpanded={expanded}
           registersMeta={registersMeta}
           frameMeta={frameMeta}

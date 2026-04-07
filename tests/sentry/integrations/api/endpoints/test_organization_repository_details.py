@@ -90,7 +90,6 @@ class OrganizationRepositoryGetTest(APITestCase):
         assert response.data["settings"]["enabledCodeReview"] is False
         assert response.data["settings"]["codeReviewTriggers"] == [
             "on_ready_for_review",
-            "on_new_commit",
         ]
 
 

@@ -147,7 +147,10 @@ class ExampleIntegration(RepositoryIntegration, SourceCodeIssueIntegration, Issu
         }
 
     def get_repositories(
-        self, query: str | None = None, page_number_limit: int | None = None
+        self,
+        query: str | None = None,
+        page_number_limit: int | None = None,
+        accessible_only: bool = False,
     ) -> list[dict[str, Any]]:
         return [{"name": "repo", "identifier": "user/repo"}]
 

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
+import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
@@ -13,8 +13,6 @@ import {IssueViews} from 'sentry/views/navigation/secondary/sections/issues/issu
 export function IssuesSecondaryNavigation() {
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/issues`;
-  const hasTopIssuesUI = organization.features.includes('top-issues-ui');
-
   return (
     <Fragment>
       <SecondaryNavigation.Header>{t('Issues')}</SecondaryNavigation.Header>
@@ -30,16 +28,6 @@ export function IssuesSecondaryNavigation() {
                 {t('Feed')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
-            {hasTopIssuesUI && (
-              <SecondaryNavigation.ListItem>
-                <SecondaryNavigation.Link
-                  to={`${baseUrl}/supergroups/`}
-                  analyticsItemName="issues_supergroups"
-                >
-                  {t('Supergroups')}
-                </SecondaryNavigation.Link>
-              </SecondaryNavigation.ListItem>
-            )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         <SecondaryNavigation.Separator />
@@ -127,7 +115,7 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
     !hasRedirectOptOut && organization.features.includes('workflow-engine-ui');
 
   const alertsLink = shouldRedirectToWorkflowEngineUI
-    ? `${makeMonitorBasePathname(organization.slug)}?alertsRedirect=true`
+    ? `${makeAutomationBasePathname(organization.slug)}?alertsRedirect=true`
     : `${baseUrl}/alerts/rules/`;
 
   return (

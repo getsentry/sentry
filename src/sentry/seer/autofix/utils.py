@@ -15,6 +15,7 @@ from urllib3.util.retry import Retry
 
 from sentry import features, options, ratelimits
 from sentry.constants import (
+    AUTO_OPEN_PRS_DEFAULT,
     SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     DataCategory,
     ObjectStatus,
@@ -42,6 +43,10 @@ from sentry.seer.models.project_repository import (
     SeerProjectRepository,
     SeerProjectRepositoryBranchOverride,
 )
+from sentry.seer.models.seer_api_models import (
+    AutofixHandoffPoint,
+    SeerAutomationHandoffConfiguration,
+)
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.utils.cache import cache
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -60,6 +65,16 @@ class AutofixStoppingPoint(StrEnum):
     SOLUTION = "solution"
     CODE_CHANGES = "code_changes"
     OPEN_PR = "open_pr"
+
+
+def get_valid_automated_run_stopping_points(
+    organization: Organization,
+) -> set[AutofixStoppingPoint]:
+    """Return the set of stopping points valid for the given organization."""
+    valid = {AutofixStoppingPoint.CODE_CHANGES, AutofixStoppingPoint.OPEN_PR}
+    if features.has("organizations:root-cause-stopping-point", organization):
+        valid.add(AutofixStoppingPoint.ROOT_CAUSE)
+    return valid
 
 
 class AutofixRequest(BaseModel):
@@ -369,11 +384,16 @@ class SeerAutofixSettingsSerializer(serializers.Serializer):
         required=False,
         help_text="The tuning setting for the projects.",
     )
-    automatedRunStoppingPoint = serializers.ChoiceField(
-        choices=[opt.value for opt in AutofixStoppingPoint],
+    automatedRunStoppingPoint = serializers.CharField(
         required=False,
         help_text="The stopping point for the projects.",
     )
+
+    def validate_automatedRunStoppingPoint(self, value: str) -> str:
+        organization = self.context["organization"]
+        if value not in get_valid_automated_run_stopping_points(organization):
+            raise serializers.ValidationError(f'"{value}" is not a valid choice.')
+        return value
 
     def validate(self, data):
         if "autofixAutomationTuning" not in data and "automatedRunStoppingPoint" not in data:
@@ -391,6 +411,41 @@ def default_seer_project_preference(project: Project) -> SeerProjectPreference:
         automated_run_stopping_point=AutofixStoppingPoint.CODE_CHANGES.value,
         automation_handoff=None,
     )
+
+
+def get_org_default_seer_automation_handoff(
+    organization: Organization,
+) -> tuple[str, SeerAutomationHandoffConfiguration | None]:
+    """Get the default stopping point and automation handoff for an organization."""
+    stopping_point = organization.get_option(
+        "sentry:default_automated_run_stopping_point", SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+    )
+    # Guard against stored stopping points that are no longer valid.
+    if stopping_point not in get_valid_automated_run_stopping_points(organization):
+        stopping_point = SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+
+    auto_open_prs = organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT)
+
+    automation_handoff: SeerAutomationHandoffConfiguration | None = None
+    coding_agent = organization.get_option("sentry:seer_default_coding_agent")
+    coding_agent_integration_id = organization.get_option(
+        "sentry:seer_default_coding_agent_integration_id"
+    )
+    if coding_agent and coding_agent != "seer" and coding_agent_integration_id is not None:
+        automation_handoff = SeerAutomationHandoffConfiguration(
+            handoff_point=AutofixHandoffPoint.ROOT_CAUSE,
+            target=coding_agent,
+            integration_id=coding_agent_integration_id,
+            auto_create_pr=auto_open_prs,
+        )
+    # If Seer agent and auto open PRs, we can run up to open_pr.
+    elif auto_open_prs:
+        stopping_point = "open_pr"
+    # If Seer agent and no auto open PRs, we shouldn't go past code_changes.
+    elif stopping_point == "open_pr":
+        stopping_point = "code_changes"
+
+    return stopping_point, automation_handoff
 
 
 def get_project_seer_preferences(project_id: int) -> SeerRawPreferenceResponse:
@@ -506,9 +561,12 @@ def _write_preference_project_options(project: Project, preference: SeerProjectP
         project.update_option(
             "sentry:seer_automation_handoff_integration_id", handoff.integration_id
         )
-        project.update_option(
-            "sentry:seer_automation_handoff_auto_create_pr", handoff.auto_create_pr
-        )
+        if handoff.auto_create_pr:
+            project.update_option(
+                "sentry:seer_automation_handoff_auto_create_pr", handoff.auto_create_pr
+            )
+        else:
+            project.delete_option("sentry:seer_automation_handoff_auto_create_pr")
     else:
         project.delete_option("sentry:seer_automation_handoff_point")
         project.delete_option("sentry:seer_automation_handoff_target")

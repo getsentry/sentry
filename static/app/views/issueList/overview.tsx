@@ -9,7 +9,7 @@ import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
 import * as qs from 'query-string';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
@@ -38,7 +38,6 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {useSuperGroups} from 'sentry/utils/supergroup/useSuperGroups';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -49,8 +48,10 @@ import {usePrevious} from 'sentry/utils/usePrevious';
 import {IssueListTable} from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
 import {IssueViewsHeader} from 'sentry/views/issueList/issueViewsHeader';
+import {useSuperGroups} from 'sentry/views/issueList/supergroups/useSuperGroups';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {IssueListFilters} from './filters';
 import {
@@ -873,6 +874,8 @@ function IssueListOverview({
 
   const {numPreviousIssues, numIssuesOnPage} = getPageCounts();
 
+  const hasPageFrame = useHasPageFrameFeature();
+
   return (
     <Stack flex={1}>
       <IssueViewsHeader
@@ -884,7 +887,10 @@ function IssueListOverview({
         headerActions={headerActions}
       />
       <StyledBody>
-        <StyledMain>
+        <Grid
+          area="content"
+          padding={hasPageFrame ? {sm: 'md lg', md: 'md xl'} : {sm: 'xl', md: '2xl 3xl'}}
+        >
           <IssuesDataConsentBanner source="issues" />
           <IssueListFilters
             query={query}
@@ -932,7 +938,7 @@ function IssueListOverview({
             issuesSuccessfullyLoaded={issuesSuccessfullyLoaded}
             pageSize={MAX_ITEMS}
           />
-        </StyledMain>
+        </Grid>
       </StyledBody>
     </Stack>
   );
@@ -943,13 +949,4 @@ export default Sentry.withProfiler(IssueListOverview);
 const StyledBody = styled('div')`
   background-color: ${p => p.theme.tokens.background.primary};
   flex: 1;
-`;
-
-const StyledMain = styled('section')`
-  grid-area: content;
-  padding: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${p => p.theme.space['2xl']} ${p => p.theme.space['3xl']};
-  }
 `;

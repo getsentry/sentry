@@ -543,7 +543,7 @@ describe('groupEventDetails', () => {
     expect(within(highlights).getByRole('button', {name: 'Edit'})).toBeInTheDocument();
     // No highlights setup
     expect(
-      within(highlights).getByRole('button', {name: 'Add Highlights'})
+      await within(highlights).findByRole('button', {name: 'Add Highlights'})
     ).toBeInTheDocument();
     expect(screen.getByText("There's nothing here...")).toBeInTheDocument();
   });

@@ -283,6 +283,7 @@ def _call_seer(
     group: Group,
     serialized_event: dict[str, Any],
     trace_tree: dict[str, Any] | None,
+    experiment_variant: str | None = None,
 ):
     body = SummarizeIssueRequest(
         group_id=group.id,
@@ -296,6 +297,7 @@ def _call_seer(
         organization_slug=group.organization.slug,
         organization_id=group.organization.id,
         project_id=group.project.id,
+        experiment_variant=experiment_variant,
     )
     viewer_context = SeerViewerContext(organization_id=group.organization.id)
     response = make_summarize_issue_request(body, timeout=30, viewer_context=viewer_context)
@@ -426,16 +428,15 @@ def run_automation(
         return
 
     # Check event count for ALERT source with seat-based tier
-    if is_seer_seat_based_tier_enabled(group.organization):
-        if source == SeerAutomationSource.ALERT:
-            # Use times_seen_with_pending if available (set by post_process), otherwise fall back
-            times_seen = (
-                group.times_seen_with_pending
-                if hasattr(group, "_times_seen_pending")
-                else group.times_seen
-            )
-            if times_seen < AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD:
-                return
+    if is_seer_seat_based_tier_enabled(group.organization) and source == SeerAutomationSource.ALERT:
+        # Use times_seen_with_pending if available (set by post_process), otherwise fall back
+        times_seen = (
+            group.times_seen_with_pending
+            if hasattr(group, "_times_seen_pending")
+            else group.times_seen
+        )
+        if times_seen < AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD:
+            return
 
     user_id = user.id if user else None
     auto_run_source = auto_run_source_map.get(source, "unknown_source")
@@ -539,11 +540,31 @@ def _generate_summary(
                 exc_info=True,
             )
 
+    is_experiment = features.has("organizations:issue-summary-experimental", group.organization)
+
     issue_summary = _call_seer(
         group,
         serialized_event,
         trace_tree,
+        experiment_variant="control" if is_experiment else None,
     )
+
+    # Experiment: test summary quality without breadcrumbs and trace
+    if is_experiment:
+        try:
+            experimental_event = {
+                **serialized_event,
+                "entries": [
+                    e for e in serialized_event.get("entries", []) if e.get("type") != "breadcrumbs"
+                ],
+            }
+            _call_seer(group, experimental_event, None, experiment_variant="experimental")
+        except Exception:
+            logger.warning(
+                "Failed to generate experimental issue summary",
+                extra={"group_id": group.id},
+                exc_info=True,
+            )
 
     summary_dict = issue_summary.dict()
     summary_dict["event_id"] = event.event_id

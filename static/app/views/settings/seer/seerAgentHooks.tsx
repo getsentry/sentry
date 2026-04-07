@@ -1,9 +1,12 @@
 import {useCallback, useMemo} from 'react';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
   bulkAutofixAutomationSettingsInfiniteOptions,
   type AutofixAutomationSettings,
 } from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
+import {makeProjectSeerPreferencesQueryKey} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import type {SeerPreferencesResponse} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {
   useFetchProjectSeerPreferences,
   useUpdateProjectSeerPreferences,
@@ -14,8 +17,10 @@ import {type CodingAgentIntegration} from 'sentry/components/events/autofix/useA
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
+import {processInChunks} from 'sentry/utils/array/procesInChunks';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
-import {useQueryClient} from 'sentry/utils/queryClient';
+import {fetchDataQuery, fetchMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function useAgentOptions({
@@ -95,11 +100,6 @@ export function useSelectedAgentFromBulkSettings({
   ]);
 }
 
-type MutateOptions = {
-  onError?: (error: Error) => void;
-  onSuccess?: () => void;
-};
-
 function useApplyOptimisticUpdate({project}: {project: Project}) {
   const queryClient = useQueryClient();
   const organization = useOrganization();
@@ -139,6 +139,11 @@ function useApplyOptimisticUpdate({project}: {project: Project}) {
     [queryClient, autofixSettingsQueryOptions.queryKey, project.id]
   );
 }
+
+type MutateOptions = {
+  onError?: (error: Error) => void;
+  onSuccess?: () => void;
+};
 
 export function useMutateSelectedAgent({project}: {project: Project}) {
   const {mutateAsync: updateProject} = useUpdateProject(project);
@@ -206,6 +211,72 @@ export function useMutateSelectedAgent({project}: {project: Project}) {
       }
     },
     [updateProject, updateProjectSeerPreferences, applyOptimisticUpdate, fetchPreferences]
+  );
+}
+
+export function useBulkMutateCreatePr({projects}: {projects: Project[]}) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+  const autofixSettingsQueryOptions = bulkAutofixAutomationSettingsInfiniteOptions({
+    organization,
+  });
+
+  return useCallback(
+    async (value: boolean, {onSuccess, onError}: MutateOptions) => {
+      const results = await processInChunks({
+        items: projects,
+        chunkSize: 10,
+        fn: async project => {
+          const [preferencesData] = await queryClient.fetchQuery({
+            queryKey: makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
+            queryFn: fetchDataQuery<SeerPreferencesResponse>,
+            staleTime: 0,
+          });
+          const preference = preferencesData?.preference;
+
+          return fetchMutation({
+            method: 'POST',
+            url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+            data: preference?.automation_handoff?.integration_id
+              ? {
+                  repositories: preference?.repositories ?? [],
+                  automated_run_stopping_point: preference?.automated_run_stopping_point,
+                  automation_handoff: {
+                    ...preference.automation_handoff,
+                    auto_create_pr: value,
+                  },
+                }
+              : {
+                  repositories: preference?.repositories ?? [],
+                  automated_run_stopping_point: value ? 'open_pr' : 'code_changes',
+                  automation_handoff: preference?.automation_handoff,
+                },
+          });
+        },
+      });
+
+      // Always invalidate to sync cache with whatever the server actually saved
+      queryClient.invalidateQueries({
+        queryKey: autofixSettingsQueryOptions.queryKey,
+      });
+
+      const failures = results.filter(r => r.status === 'rejected');
+      if (failures.length === 0) {
+        onSuccess?.();
+      } else {
+        const has429 = failures.some(
+          r => r.reason instanceof RequestError && r.reason.status === 429
+        );
+        if (has429) {
+          addErrorMessage(
+            t('Too many requests. Please wait a moment before trying again.')
+          );
+        } else {
+          onError?.(new Error('Failed to update PR setting'));
+        }
+      }
+    },
+    [projects, organization, queryClient, autofixSettingsQueryOptions.queryKey]
   );
 }
 

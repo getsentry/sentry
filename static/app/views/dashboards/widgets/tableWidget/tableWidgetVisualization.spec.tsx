@@ -63,6 +63,43 @@ describe('TableWidgetVisualization', () => {
       expect($headers[1]).toHaveTextContent(columns[1]!.key!);
     });
 
+    it('Renders star icon for is_starred_transaction column without alias', () => {
+      const starredTableData: TabularData = {
+        data: [{is_starred_transaction: true, transaction: '/api/foo'}],
+        meta: {
+          fields: {is_starred_transaction: 'boolean', transaction: 'string'},
+          units: {is_starred_transaction: null, transaction: null},
+        },
+      };
+
+      render(<TableWidgetVisualization tableData={starredTableData} />);
+
+      const $headers = screen.getAllByRole('columnheader');
+      expect($headers[0]).not.toHaveTextContent('is_starred_transaction');
+      expect($headers[0]!.querySelector('svg')).toBeInTheDocument();
+    });
+
+    it('Renders alias text instead of star icon when alias is provided', () => {
+      const starredTableData: TabularData = {
+        data: [{is_starred_transaction: true, transaction: '/api/foo'}],
+        meta: {
+          fields: {is_starred_transaction: 'boolean', transaction: 'string'},
+          units: {is_starred_transaction: null, transaction: null},
+        },
+      };
+
+      render(
+        <TableWidgetVisualization
+          tableData={starredTableData}
+          aliases={{is_starred_transaction: 'Starred'}}
+        />
+      );
+
+      const $headers = screen.getAllByRole('columnheader');
+      expect($headers[0]).toHaveTextContent('Starred');
+      expect($headers[0]!.querySelector('svg')).not.toBeInTheDocument();
+    });
+
     it('Renders unique number fields correctly', async () => {
       const tableData: TabularData = {
         data: [{'span.duration': 123, failure_rate: 0.1, epm: 6}],

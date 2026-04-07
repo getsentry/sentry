@@ -37,7 +37,6 @@ import {HighlightsDataSection} from 'sentry/components/events/highlights/highlig
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
-import {CronTimelineSection} from 'sentry/components/events/interfaces/crons/cronTimelineSection';
 import {Csp} from 'sentry/components/events/interfaces/csp';
 import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
 import {Exception} from 'sentry/components/events/interfaces/exception';
@@ -52,7 +51,6 @@ import {StackTrace} from 'sentry/components/events/interfaces/stackTrace';
 import {Template} from 'sentry/components/events/interfaces/template';
 import {Threads} from 'sentry/components/events/interfaces/threads';
 import {UptimeAssertionsSection} from 'sentry/components/events/interfaces/uptime/uptimeAssertionsSection';
-import {UptimeDataSection} from 'sentry/components/events/interfaces/uptime/uptimeDataSection';
 import {MetricsSection} from 'sentry/components/events/metrics/metricsSection';
 import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';
 import {EventPackageData} from 'sentry/components/events/packageData';
@@ -90,6 +88,7 @@ import {useCopyIssueDetails} from 'sentry/views/issueDetails/streamline/hooks/us
 import {InstrumentationFixSection} from 'sentry/views/issueDetails/streamline/instrumentationFixSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {MetricDetectorTriggeredSection} from 'sentry/views/issueDetails/streamline/sidebar/metricDetectorTriggeredSection';
+import {SizeAnalysisTriggeredSection} from 'sentry/views/issueDetails/streamline/sidebar/sizeAnalysisTriggeredSection';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
@@ -216,16 +215,6 @@ export function EventDetailsContent({
             />
           ) : null}
         </InterimSection>
-      )}
-      {!hasStreamlinedUI && group.issueType === IssueType.UPTIME_DOMAIN_FAILURE && (
-        <UptimeDataSection event={event} project={project} group={group} />
-      )}
-      {!hasStreamlinedUI && group.issueType === IssueType.MONITOR_CHECK_IN_FAILURE && (
-        <CronTimelineSection
-          event={event}
-          organization={organization}
-          project={project}
-        />
       )}
       {(event.contexts?.metric_alert?.alert_rule_id ||
         event?.occurrence?.evidenceData?.alertId) && (
@@ -385,6 +374,9 @@ export function EventDetailsContent({
       )}
       <ErrorBoundary customComponent={() => null}>
         <MetricDetectorTriggeredSection group={group} event={event} />
+      </ErrorBoundary>
+      <ErrorBoundary customComponent={() => null}>
+        <SizeAnalysisTriggeredSection group={group} event={event} />
       </ErrorBoundary>
       <EventHydrationDiff event={event} group={group} />
       <EventReplay event={event} group={group} projectSlug={project.slug} />

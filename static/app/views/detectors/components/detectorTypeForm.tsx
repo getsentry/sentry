@@ -12,10 +12,7 @@ import {t, tct} from 'sentry/locale';
 import {HookStore} from 'sentry/stores/hookStore';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  makeAutomationBasePathname,
-  makeAutomationCreatePathname,
-} from 'sentry/views/automations/pathnames';
+import {makeAutomationCreatePathname} from 'sentry/views/automations/pathnames';
 import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 
 export function DetectorTypeForm() {
@@ -23,23 +20,17 @@ export function DetectorTypeForm() {
 
   return (
     <Stack gap="xl">
-      <Stack gap="sm">
-        <Text size="lg" bold>
-          {t('Select monitor type')}
-        </Text>
-        <Text as="p">
-          {tct(
-            'Do you want to alert existing issues? Create a [newAlertLink:new alert], or [connectAlertLink:connect an existing one].',
-            {
-              newAlertLink: <Link to={makeAutomationCreatePathname(organization.slug)} />,
-              connectAlertLink: (
-                <Link to={makeAutomationBasePathname(organization.slug)} />
-              ),
-            }
-          )}
-        </Text>
-      </Stack>
       <MonitorTypeField />
+      <Text as="p" size="md">
+        {tct('Want to just alert on an existing issue? [link:Create an issue alert].', {
+          link: <Link to={makeAutomationCreatePathname(organization.slug)} />,
+        })}
+      </Text>
+      <Text as="p" size="md">
+        {t(
+          'If you’re looking for an Error Monitors, those are created by Sentry. To customize an error monitor, click into an existing one.'
+        )}
+      </Text>
     </Stack>
   );
 }
@@ -94,7 +85,9 @@ function MonitorTypeField() {
     {
       id: 'metric_issue',
       name: getDetectorTypeLabel('metric_issue'),
-      description: t('Monitor error counts, transaction duration, and more!'),
+      description: t(
+        'Monitor error counts, logs, custom metrics, span duration, crash rates, and more. '
+      ),
       visualization: <MetricVisualization />,
       infoBanner: canCreateMetricDetector ? undefined : (
         <Hook name="component:metric-alert-quota-message" />

@@ -760,11 +760,10 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
         assert result is None
 
     def test_get_trace_waterfall_includes_status_code(self) -> None:
-        """Test that span.status_code is included in additional_attributes."""
+        """Test that span.status_code is included if additional_attributes is not provided"""
         transaction_name = "api/test/status"
         trace_id = uuid.uuid4().hex
 
-        # Create a span with status_code
         span = self.create_span(
             {
                 "description": "http-request",
@@ -782,10 +781,37 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
         result = get_trace_waterfall(trace_id, self.organization.id)
         assert isinstance(result, EAPTrace)
 
-        # Find the span and verify additional_attributes contains status_code
         root_span = result.trace[0]
         assert "additional_attributes" in root_span
         assert root_span["additional_attributes"].get("span.status_code") == "500"
+
+    def test_get_trace_waterfall_includes_additional_attributes(self) -> None:
+        """Test that additional_attributes passed into the function are included on returned traces"""
+        transaction_name = "api/test/status"
+        trace_id = uuid.uuid4().hex
+
+        span = self.create_span(
+            {
+                "description": "http-request",
+                "sentry_tags": {
+                    "transaction": transaction_name,
+                    "status_code": "500",
+                    "request.url": "best-url-ev3r.biz",
+                },
+                "trace_id": trace_id,
+                "is_segment": True,
+            },
+            start_ts=self.ten_mins_ago,
+        )
+        self.store_spans([span])
+
+        result = get_trace_waterfall(trace_id, self.organization.id, ["request.url"])
+        assert isinstance(result, EAPTrace)
+
+        root_span = result.trace[0]
+        assert "additional_attributes" in root_span
+        assert root_span["additional_attributes"].get("span.status_code") is None
+        assert root_span["additional_attributes"].get("request.url") == "best-url-ev3r.biz"
 
 
 class TestTraceTableQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
@@ -2076,7 +2102,7 @@ class TestGetIssueEventTimeseries(APITransactionTestCase, SnubaTestCase):
             # Validate return value: (data, stats_period, interval).
             assert result is not None
             timeseries_data, returned_period, returned_interval = result
-            _validate_event_timeseries(timeseries_data)
+            _validate_event_timeseries(timeseries_data, expected_total=2)
             assert returned_period == stats_period
             assert returned_interval == interval
 
@@ -2107,6 +2133,11 @@ class TestGetIssueEventTimeseries(APITransactionTestCase, SnubaTestCase):
             data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
             self.store_event(data=data, project_id=self.project.id)
 
+            # Out of range event
+            data = load_data("python", timestamp=start - timedelta(minutes=1))
+            data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+            self.store_event(data=data, project_id=self.project.id)
+
             group = event.group
             assert isinstance(group, Group)
 
@@ -2132,7 +2163,7 @@ class TestGetIssueEventTimeseries(APITransactionTestCase, SnubaTestCase):
             # Validate return value: (data, stats_period, interval).
             assert result is not None
             timeseries_data, returned_period, returned_interval = result
-            _validate_event_timeseries(timeseries_data)
+            _validate_event_timeseries(timeseries_data, expected_total=2)
             assert returned_period == stats_period
             assert returned_interval == interval
 

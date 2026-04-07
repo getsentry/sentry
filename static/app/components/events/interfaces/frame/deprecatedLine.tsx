@@ -14,6 +14,7 @@ import {LeadHint} from 'sentry/components/events/interfaces/frame/leadHint';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
+import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
 import {StrictClick} from 'sentry/components/strictClick';
 import {IconChevron, IconFix, IconRefresh} from 'sentry/icons';
@@ -39,6 +40,7 @@ import {
   hasContextRegisters,
   hasContextSource,
   hasContextVars,
+  hasPotentialSourceContext,
   isPotentiallyThirdPartyFrame,
 } from './utils';
 
@@ -109,6 +111,7 @@ function DeprecatedLine({
   components,
 }: Props) {
   const organization = useOrganization();
+  const {hasScmSourceContext} = useStacktraceContext();
   const [isHovering, setIsHovering] = useState(false);
   const [isExpanded, setIsExpanded] = useState(initialExpanded ?? false);
   const platform = getPlatform(data.platform, propPlatform ?? 'other');
@@ -119,9 +122,10 @@ function DeprecatedLine({
       (hasContextSource(data) && data.context) ||
       hasContextVars(data) ||
       hasContextRegisters(registers) ||
-      hasAssembly(data, platform)
+      hasAssembly(data, platform) ||
+      (hasScmSourceContext && hasPotentialSourceContext(data))
     );
-  }, [data, registers, platform]);
+  }, [data, registers, platform, hasScmSourceContext]);
 
   const toggleContext = (evt?: React.MouseEvent) => {
     evt?.preventDefault();
@@ -344,6 +348,7 @@ function DeprecatedLine({
         hasContextRegisters={hasContextRegisters(registers)}
         emptySourceNotation={emptySourceNotation}
         hasAssembly={hasAssembly(data, platform)}
+        hasScmSourceContext={hasScmSourceContext}
         isExpanded={isExpanded}
         registersMeta={registersMeta}
         frameMeta={frameMeta}

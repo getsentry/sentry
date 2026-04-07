@@ -70,8 +70,7 @@ describe('ExternalIssueForm', () => {
       />,
       {organization}
     );
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
-    await userEvent.click(screen.getByText(action));
+    await userEvent.click(await screen.findByText(action));
     return wrapper;
   };
 
@@ -196,7 +195,7 @@ describe('ExternalIssueForm', () => {
         />,
         {organization}
       );
-      expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
+      await screen.findByRole('textbox', {name: 'Project'});
       expect(initialQuery).toHaveBeenCalled();
 
       // Initial query may only have a few fields

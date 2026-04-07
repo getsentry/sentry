@@ -30,9 +30,9 @@ describe('PermissionSelection', () => {
     );
   }
 
-  it('renders a row for each resource', () => {
+  it('renders a row for each resource', async () => {
     renderForm();
-    expect(screen.getByRole('textbox', {name: 'Project'})).toBeInTheDocument();
+    expect(await screen.findByRole('textbox', {name: 'Project'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Team'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Release'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Issue & Event'})).toBeInTheDocument();
@@ -42,6 +42,7 @@ describe('PermissionSelection', () => {
 
   it('lists human readable permissions', async () => {
     renderForm();
+    await screen.findByRole('textbox', {name: 'Project'});
     const expectOptions = async (name: string, options: string[]) => {
       for (const option of options) {
         await selectEvent.select(screen.getByRole('textbox', {name}), option);
@@ -58,6 +59,7 @@ describe('PermissionSelection', () => {
 
   it('stores the permissions the User has selected', async () => {
     renderForm();
+    await screen.findByRole('textbox', {name: 'Project'});
     const selectByValue = (name: string, value: string) =>
       selectEvent.select(screen.getByRole('textbox', {name}), value);
 

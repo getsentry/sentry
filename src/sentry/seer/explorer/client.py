@@ -238,6 +238,7 @@ class SeerExplorerClient:
         prompt: str,
         prompt_metadata: dict[str, str] | None = None,
         on_page_context: str | None = None,
+        page_name: str | None = None,
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
         metadata: dict[str, Any] | None = None,
@@ -271,6 +272,7 @@ class SeerExplorerClient:
             run_id=None,
             insert_index=None,
             on_page_context=on_page_context,
+            page_name=page_name,
             user_org_context=collect_user_org_context(
                 self.user, self.organization, request=request
             ),
@@ -339,6 +341,7 @@ class SeerExplorerClient:
         prompt_metadata: dict[str, str] | None = None,
         insert_index: int | None = None,
         on_page_context: str | None = None,
+        page_name: str | None = None,
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
     ) -> int:
@@ -369,6 +372,7 @@ class SeerExplorerClient:
             run_id=run_id,
             insert_index=insert_index,
             on_page_context=on_page_context,
+            page_name=page_name,
             is_interactive=self.is_interactive,
             enable_coding=self.enable_coding,
         )
