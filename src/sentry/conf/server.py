@@ -1017,6 +1017,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
         "schedule": timedelta(seconds=15),
     },
+    "prune-old-open-period-activity": {
+        "task": "workflow_engine:sentry.workflow_engine.tasks.cleanup.prune_old_open_period_activity",
+        "schedule": timedelta(minutes=2),
+    },
     "resolve-stale-sourcemap-detectors": {
         "task": "workflow_engine:sentry.processing_errors.tasks.resolve_stale_sourcemap_detectors",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
