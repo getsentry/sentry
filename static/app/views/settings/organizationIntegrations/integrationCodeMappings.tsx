@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useMemo} from 'react';
+import type {InfiniteData} from '@tanstack/react-query';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
