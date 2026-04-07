@@ -7,11 +7,13 @@ type Props = {
   children?: React.ReactNode;
   className?: string;
   small?: boolean;
+  variant?: React.ComponentProps<typeof IconSearch>['variant'];
   withIcon?: boolean;
 };
 
 export function EmptyStateWarning({
   small = false,
+  variant = 'muted',
   withIcon = true,
   children,
   className,
@@ -19,13 +21,13 @@ export function EmptyStateWarning({
   return small ? (
     <EmptyMessage className={className}>
       <SmallMessage>
-        {withIcon && <StyledIconSearch variant="accent" size="lg" />}
+        {withIcon && <StyledIconSearch variant={variant} size="lg" />}
         {children}
       </SmallMessage>
     </EmptyMessage>
   ) : (
     <EmptyStreamWrapper data-test-id="empty-state" className={className}>
-      {withIcon && <IconSearch variant="accent" legacySize="54px" />}
+      {withIcon && <IconSearch variant={variant} legacySize="54px" />}
       {children}
     </EmptyStreamWrapper>
   );

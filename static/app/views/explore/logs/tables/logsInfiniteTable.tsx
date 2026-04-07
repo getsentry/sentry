@@ -662,7 +662,7 @@ function EmptyRenderer({
   if (bytesScanned && canResumeAutoFetch && resumeAutoFetch) {
     return (
       <TableStatus>
-        <EmptyStateWarning withIcon>
+        <EmptyStateWarning withIcon variant="accent">
           <EmptyStateText size="xl">{t('No logs found yet')}</EmptyStateText>
           <EmptyStateText size="md">
             {tct(
@@ -689,7 +689,7 @@ function EmptyRenderer({
 
   return (
     <TableStatus>
-      <EmptyStateWarning withIcon>
+      <EmptyStateWarning withIcon variant="accent">
         <EmptyStateText size="xl">{t('No logs found')}</EmptyStateText>
         <EmptyStateText size="md">
           {tct(
