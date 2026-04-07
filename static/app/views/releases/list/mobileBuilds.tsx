@@ -18,7 +18,6 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
@@ -184,7 +183,7 @@ export function MobileBuilds({organization, selectedProjectIds}: Props) {
             builds={builds}
             display={activeDisplay}
             isLoading={isLoadingBuilds}
-            error={buildsError as RequestError | null}
+            error={buildsError}
             pageLinks={pageLinks}
             organizationSlug={organization.slug}
             hasSearchQuery={hasSearchQuery}

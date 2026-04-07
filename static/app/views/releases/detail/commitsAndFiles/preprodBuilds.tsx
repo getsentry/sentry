@@ -16,7 +16,6 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {decodeScalar} from 'sentry/utils/queryString';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -192,7 +191,7 @@ export default function PreprodBuilds() {
             builds={builds}
             display={activeDisplay}
             isLoading={isLoadingBuilds}
-            error={buildsError as RequestError | null}
+            error={buildsError}
             pageLinks={pageLinks}
             organizationSlug={organization.slug}
             onRowClick={handleBuildRowClick}
