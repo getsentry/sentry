@@ -16,7 +16,6 @@ from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
@@ -24,10 +23,7 @@ from sentry.integrations.source_code_management.metrics import (
 )
 from sentry.integrations.source_code_management.repo_audit import log_repo_change
 from sentry.organizations.services.organization import organization_service
-from sentry.plugins.providers.integration_repository import (
-    RepoExistsError,
-    get_integration_repository_provider,
-)
+from sentry.plugins.providers.integration_repository import get_integration_repository_provider
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
@@ -183,16 +179,9 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
                 if str(repo["id"]) in new_ids
             ]
             if repo_configs:
-                created_repos: list[RpcRepository] = []
-                reactivated_repos: list[RpcRepository] = []
-                try:
-                    created_repos, reactivated_repos = (
-                        integration_repo_provider.create_repositories(
-                            configs=repo_configs, organization=rpc_org
-                        )
-                    )
-                except RepoExistsError:
-                    pass
+                created_repos, reactivated_repos, _ = integration_repo_provider.create_repositories(
+                    configs=repo_configs, organization=rpc_org
+                )
 
                 for repo in created_repos:
                     log_repo_change(

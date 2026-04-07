@@ -8,7 +8,6 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.github.webhook_types import GitHubInstallationRepo
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
-from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
@@ -18,7 +17,6 @@ from sentry.integrations.source_code_management.repo_audit import log_repo_chang
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers.integration_repository import (
-    RepoExistsError,
     RepositoryInputConfig,
     get_integration_repository_provider,
 )
@@ -38,7 +36,7 @@ logger = logging.getLogger(__name__)
     processing_deadline_duration=120,
     silo_mode=SiloMode.CONTROL,
 )
-@retry(exclude=(RepoExistsError, KeyError))
+@retry(exclude=(KeyError,))
 def sync_repos_on_install_change(
     integration_id: int,
     action: str,
@@ -121,14 +119,11 @@ def _sync_repos_for_org(
                 continue
 
         if repo_configs:
-            created_repos: list[RpcRepository] = []
-            reactivated_repos: list[RpcRepository] = []
-            try:
-                created_repos, reactivated_repos = integration_repo_provider.create_repositories(
+            created_repos, reactivated_repos, _missing_repos = (
+                integration_repo_provider.create_repositories(
                     configs=repo_configs, organization=rpc_org
                 )
-            except RepoExistsError:
-                pass
+            )
 
             for created_repo in created_repos:
                 log_repo_change(
