@@ -544,6 +544,9 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
             channel="C1234567890",
             blocks=self.slack_renderable.get("blocks", []),
             text="Mock Notification",
+            attachments=None,
+            unfurl_links=False,
+            unfurl_media=False,
         )
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
