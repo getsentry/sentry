@@ -129,10 +129,8 @@ pnpm run dev-ui
 
 **Dev server URLs:**
 
-- Full devserver (`devservices serve`): http://dev.getsentry.net:8000
-- Frontend-only (`pnpm run dev-ui`): https://sentry.dev.getsentry.net:7999/
-
-The `dev-ui` server proxies `/api/*` to production `sentry.io`, so you must be logged into sentry.io in the same browser. No local backend or devservices needed.
+- Full devserver: http://dev.getsentry.net:8000
+- Frontend-only (`dev-ui`): https://sentry.dev.getsentry.net:7999/
 
 #### Typechecking
 
