@@ -882,6 +882,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.github.tasks.codecov_account_unlink",
     "sentry.integrations.github.tasks.link_all_repos",
     "sentry.integrations.github.tasks.pr_comment",
+    "sentry.integrations.github.tasks.sync_repos",
     "sentry.integrations.github.tasks.sync_repos_on_install_change",
     "sentry.integrations.gitlab.tasks",
     "sentry.integrations.jira.tasks",
@@ -1249,6 +1250,10 @@ TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {
     "fetch-release-registry-data-control": {
         "task": "sdk.control:sentry.tasks.release_registry.fetch_release_registry_data_control",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
+    },
+    "github-repo-sync-beat": {
+        "task": "integrations.control:sentry.integrations.github.tasks.sync_repos.github_repo_sync_beat",
+        "schedule": timedelta(minutes=1),
     },
 }
 
