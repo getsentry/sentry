@@ -52,6 +52,8 @@ import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widge
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import {VisualizationWidget} from './visualizationWidget';
@@ -62,6 +64,7 @@ import {
   useTransactionsDeprecationWarning,
 } from './widgetCardContextMenu';
 import {WidgetFrame} from './widgetFrame';
+import {getWidgetQueryLLMHint} from './widgetLLMContext';
 
 export type OnDataFetchedParams = {
   tableResults?: TableDataWithTitle[];
@@ -146,6 +149,28 @@ function WidgetCard(props: Props) {
   const navigate = useNavigate();
   const {dashboardId: currentDashboardId} = useParams<{dashboardId: string}>();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Resolve TOP_N → AREA before capturing context (the render body mutates
+  // this later, but useLLMContext needs the resolved value on first render).
+  const resolvedDisplayType =
+    props.widget.displayType === DisplayType.TOP_N
+      ? DisplayType.AREA
+      : props.widget.displayType;
+
+  // Push widget metadata into the LLM context tree for Seer Explorer.
+  useLLMContext({
+    title: props.widget.title,
+    displayType: resolvedDisplayType,
+    widgetType: props.widget.widgetType,
+    queryHint: getWidgetQueryLLMHint(resolvedDisplayType),
+    queries: props.widget.queries.map(q => ({
+      name: q.name,
+      conditions: q.conditions,
+      aggregates: q.aggregates,
+      columns: q.columns,
+      orderby: q.orderby,
+    })),
+  });
 
   const onDataFetched = (newData: Data) => {
     if (props.onDataFetched) {
@@ -435,7 +460,10 @@ function WidgetCard(props: Props) {
   );
 }
 
-export default withApi(withOrganization(withPageFilters(withSentryRouter(WidgetCard))));
+export default registerLLMContext(
+  'widget',
+  withApi(withOrganization(withPageFilters(withSentryRouter(WidgetCard))))
+);
 
 function useOnDemandWarning(props: {widget: TWidget}): string | null {
   const organization = useOrganization();
