@@ -181,7 +181,7 @@ export function IntegrationCodeMappings({integration}: {integration: Integration
     isPending: isPendingReposQuery,
     isError: isErrorRepos,
     isFetchingNextPage: isFetchingNextReposPage,
-} = repositoriesQuery;
+  } = repositoriesQuery;
 
   const isPendingRepos = isPendingReposQuery || isFetchingNextReposPage;
 
