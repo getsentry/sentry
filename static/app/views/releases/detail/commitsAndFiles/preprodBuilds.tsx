@@ -14,7 +14,7 @@ import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
@@ -26,6 +26,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
 import {ReleaseContext} from 'sentry/views/releases/detail';
 
 import {PreprodOnboarding} from './preprodOnboarding';
@@ -112,14 +113,7 @@ export default function PreprodBuilds() {
     error: buildsError,
     refetch,
   } = useQuery({
-    ...apiOptions.as<BuildDetailsApiResponse[]>()(
-      '/organizations/$organizationIdOrSlug/builds/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        query: queryParams,
-        staleTime: 0,
-      }
-    ),
+    ...buildDetailsApiOptions({organization, queryParams}),
     select: selectJsonWithHeaders,
     enabled: !!projectSlug && !!params.release,
   });
