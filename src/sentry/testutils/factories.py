@@ -561,7 +561,9 @@ class Factories:
         create_default_detectors=True,
         **kwargs,
     ) -> Project:
-        from sentry.receivers.project_detectors import disable_default_detector_creation
+        from sentry.workflow_engine.receivers.project_detectors import (
+            disable_default_detector_creation,
+        )
 
         if not kwargs.get("name"):
             kwargs["name"] = petname.generate(2, " ", letters=10).title()

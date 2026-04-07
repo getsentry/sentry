@@ -32,7 +32,10 @@ from sentry.users.models.identity import Identity
 class BaseRepositoryIntegration(ABC):
     @abstractmethod
     def get_repositories(
-        self, query: str | None = None, page_number_limit: int | None = None
+        self,
+        query: str | None = None,
+        page_number_limit: int | None = None,
+        accessible_only: bool = False,
     ) -> list[dict[str, Any]]:
         """
         Get a list of available repositories for an installation
@@ -50,6 +53,10 @@ class BaseRepositoryIntegration(ABC):
         IntegrationRepositoryProvider.repository_external_slug()
 
         You can use the `query` argument to filter repositories.
+        When `accessible_only` is True and a query is provided,
+        only repositories the installation has access to are
+        returned, filtering locally instead of using the provider's
+        search API.
         """
         raise NotImplementedError
 

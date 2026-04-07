@@ -1,6 +1,7 @@
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
@@ -88,11 +89,11 @@ function UpgradeMessage({subscription}: {subscription: Subscription | null}) {
 
   if (!subscription) {
     return (
-      <span>
+      <Text>
         {t(
           'Some GitHub organizations are already connected to other Sentry organizations. An upgraded plan is required to share GitHub installations across multiple Sentry organizations.'
         )}
-      </span>
+      </Text>
     );
   }
 
@@ -113,21 +114,21 @@ function UpgradeMessageWithBilling({
 
   if (planName) {
     return (
-      <span>
+      <Text>
         {tct(
           'Some GitHub organizations are already connected to other Sentry organizations. A [planName] plan or above is required to share GitHub installations across multiple Sentry organizations.',
           {planName: <strong>{planName}</strong>}
         )}
-      </span>
+      </Text>
     );
   }
 
   return (
-    <span>
+    <Text>
       {t(
         'Some GitHub organizations are already connected to other Sentry organizations. An upgraded plan is required to share GitHub installations across multiple Sentry organizations.'
       )}
-    </span>
+    </Text>
   );
 }
 

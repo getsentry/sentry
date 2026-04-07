@@ -48,8 +48,8 @@ def get_replay_counts(
     if snuba_params.start is None or snuba_params.end is None or snuba_params.organization is None:
         raise ValueError("Must provide start and end")
 
-    if isinstance(data_source, Dataset):
-        data_source = data_source.value
+    if not isinstance(data_source, Dataset):
+        data_source = Dataset(data_source)
 
     replay_ids_mapping = _get_replay_id_mappings(query, snuba_params, data_source)
 
@@ -75,7 +75,7 @@ def get_replay_counts(
 def _get_replay_id_mappings(
     query: str,
     snuba_params: SnubaParams,
-    data_source: str = Dataset.Discover.value,
+    data_source: Dataset = Dataset.Discover,
     # XXX: the returned list depends on the query and so it could be any type :(
 ) -> dict[str, list[Any]]:
     """
@@ -83,9 +83,9 @@ def _get_replay_id_mappings(
     If select_column is replay_id, return an identity map of replay_id -> [replay_id].
     The keys of the returned dict are UUIDs, represented as 32 char hex strings (all '-'s stripped)
     """
-    if data_source == Dataset.Discover.value:
+    if data_source == Dataset.Discover:
         search_query_func = discover.query
-    elif data_source == Dataset.IssuePlatform.value:
+    elif data_source == Dataset.IssuePlatform:
         search_query_func = issue_platform.query  # type: ignore[assignment]
     else:
         raise ValueError("Invalid data source")

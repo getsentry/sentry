@@ -273,7 +273,14 @@ if (
  * node_modules, but some packages which use ES6 syntax only NEED to be
  * transformed.
  */
-const ESM_NODE_MODULES = ['screenfull', 'cbor2', 'nuqs', 'color', 'marked'];
+const ESM_NODE_MODULES = [
+  'screenfull',
+  'cbor2',
+  'nuqs',
+  'color',
+  'marked',
+  '@sentry\\+sqlish',
+];
 
 const config: Config.InitialOptions = {
   verbose: false,
@@ -300,6 +307,11 @@ const config: Config.InitialOptions = {
     // transform
     '^echarts/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
     '^zrender/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
+
+    // @sentry/sqlish is ESM-only with `exports` that only define `import`
+    // conditions. Jest's CJS resolver can't follow them without explicit mapping.
+    '^@sentry/sqlish/react$': '<rootDir>/node_modules/@sentry/sqlish/dist/react.js',
+    '^@sentry/sqlish$': '<rootDir>/node_modules/@sentry/sqlish/dist/index.js',
 
     // Disabled @sentry/toolbar in tests. It depends on iframes and global
     // window/cookies state.

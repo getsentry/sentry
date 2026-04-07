@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 import orjson
 import pytest
 
-from sentry.constants import DataCategory
+from sentry.constants import SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT, DataCategory
 from sentry.seer.autofix.constants import AutofixStatus
 from sentry.seer.autofix.trigger import is_issue_eligible_for_seer_automation
 from sentry.seer.autofix.utils import (
@@ -1307,3 +1307,10 @@ class TestGetOrgDefaultSeerAutomationHandoff(TestCase):
         stopping_point, handoff = get_org_default_seer_automation_handoff(self.organization)
         assert stopping_point == "open_pr"
         assert handoff is None
+
+    def test_invalid_stopping_point_falls_back_to_default(self):
+        self.organization.update_option(
+            "sentry:default_automated_run_stopping_point", "invalid_point"
+        )
+        stopping_point, _ = get_org_default_seer_automation_handoff(self.organization)
+        assert stopping_point == SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT

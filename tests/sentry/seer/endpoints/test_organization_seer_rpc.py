@@ -185,4 +185,4 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
         )
 
         assert response.status_code == 200
-        assert response.data == {"has_code_mappings": False}
+        assert response.data == {"has_code_mappings": False, "project_slug_to_id": {}}

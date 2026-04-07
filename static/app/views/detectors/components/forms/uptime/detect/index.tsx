@@ -62,7 +62,7 @@ function ConnectedHttpSnippet() {
 export function UptimeDetectorFormDetectSection({step}: {step?: number}) {
   return (
     <Container>
-      <FormSection step={step} title={t('Detect')}>
+      <FormSection step={step} title={t('Issue Detection')}>
         <UptimeSectionGrid>
           <SelectField
             options={VALID_INTERVALS_SEC.map(value => ({

@@ -34,7 +34,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import {testableTransition} from 'sentry/utils/testableTransition';
 import {useApi} from 'sentry/utils/useApi';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -134,7 +133,7 @@ const cardAnimationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
   initial: {opacity: 0, height: 0, scale: 0.8},
   animate: {opacity: 1, height: 'auto', scale: 1},
-  transition: testableTransition({
+  transition: {
     duration: 1.0,
     height: {
       type: 'spring',
@@ -148,7 +147,7 @@ const cardAnimationProps: MotionNodeAnimationOptions = {
       type: 'tween',
       ease: 'easeOut',
     },
-  }),
+  },
 };
 
 function SolutionDescription({

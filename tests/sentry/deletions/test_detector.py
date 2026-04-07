@@ -3,7 +3,7 @@ from unittest import mock
 import pytest
 
 from sentry.constants import ObjectStatus
-from sentry.deletions.tasks.scheduled import run_scheduled_deletions
+from sentry.deletions.tasks.scheduled import reattempt_deletions, run_scheduled_deletions
 from sentry.incidents.grouptype import MetricIssue
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -125,6 +125,58 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
         assert DataSource.objects.filter(id=self.data_source.id).exists()
         assert DataSourceDetector.objects.filter(id=data_source_detector_2.id).exists()
 
+    def test_dangling_fk_causes_stuck_deletion_loop(self) -> None:
+        """Regression test for the infinite-retry failure mode this fix addresses.
+
+        Before the fix, accessing instance.workflow_condition_group (a descriptor) with
+        a dangling FK raised DataConditionGroup.DoesNotExist inside get_child_relations.
+        In production, _run_deletion swallows the exception and exits cleanly, leaving
+        the deletion record stuck with in_progress=True and the detector undeleted.
+        reattempt_deletions eventually resets in_progress=False, but the next run hits
+        the same error — resulting in an infinite loop.
+        """
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
+
+        schedule = self.ScheduledDeletion.schedule(instance=self.detector, days=0)
+
+        with (
+            # Simulate the pre-fix crash: descriptor access raises DoesNotExist for a dangling FK
+            mock.patch(
+                "sentry.deletions.defaults.detector.DetectorDeletionTask.get_child_relations",
+                side_effect=DataConditionGroup.DoesNotExist,
+            ),
+            # Simulate production: _run_deletion swallows exceptions instead of re-raising
+            mock.patch("sentry.deletions.tasks.scheduled.in_test_environment", return_value=False),
+            mock.patch("sentry.deletions.tasks.scheduled.sentry_sdk"),
+        ):
+            # First run: exception is swallowed; detector not deleted, record stuck in_progress
+            with self.tasks():
+                run_scheduled_deletions()
+
+            assert Detector.objects_for_deletion.filter(id=self.detector.id).exists()
+            assert CellScheduledDeletion.objects.filter(id=schedule.id, in_progress=True).exists()
+
+            # reattempt_deletions resets in_progress after 6+ hours — but the root cause remains
+            CellScheduledDeletion.objects.filter(id=schedule.id).update(
+                date_scheduled=timezone.now() - timedelta(hours=7)
+            )
+            with self.tasks():
+                reattempt_deletions()
+
+            schedule.refresh_from_db()
+            assert not schedule.in_progress
+
+            # Second run: same failure — the loop repeats indefinitely
+            with self.tasks():
+                run_scheduled_deletions()
+
+            assert Detector.objects_for_deletion.filter(id=self.detector.id).exists()
+            assert CellScheduledDeletion.objects.filter(id=schedule.id, in_progress=True).exists()
+
     def test_delete_uptime_detector(self) -> None:
         detector = self.create_uptime_detector()
         uptime_sub = get_uptime_subscription(detector)
@@ -175,6 +227,20 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
         assert not Detector.objects.filter(id=detector_id).exists()
         # Verify the error path in DetectorDeletionTask was actually exercised.
         mock_remove_seat_subscriptions.assert_called_once()
+
+    def test_dangling_workflow_condition_group(self) -> None:
+        """Deletion succeeds when workflow_condition_group_id references a deleted DataConditionGroup."""
+        # Simulate a dangling FK — points to a non-existent DataConditionGroup row
+        Detector.objects_for_deletion.filter(id=self.detector.id).update(
+            workflow_condition_group_id=999999
+        )
+
+        self.ScheduledDeletion.schedule(instance=self.detector, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Detector.objects_for_deletion.filter(id=self.detector.id).exists()
 
     def test_delete_uptime_subscription_without_detector(self) -> None:
         """UptimeSubscription deletion proceeds when the detector no longer exists."""

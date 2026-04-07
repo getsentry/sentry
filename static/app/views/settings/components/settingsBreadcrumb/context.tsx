@@ -1,8 +1,8 @@
 import {createContext, useCallback, useContext, useEffect, useState} from 'react';
+import {useMatches} from 'react-router-dom';
 
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
-import {useRoutes} from 'sentry/utils/useRoutes';
 
 type ExplicitTitleProps = {
   routes: PlainRoute[];
@@ -32,7 +32,7 @@ type ProviderProps = {
 };
 
 function BreadcrumbProvider({children}: ProviderProps) {
-  const routes = useRoutes();
+  const matches = useMatches();
 
   // Maps path strings to breadcrumb names
   const [pathMap, setPathMap] = useState<PathMap>({});
@@ -46,7 +46,7 @@ function BreadcrumbProvider({children}: ProviderProps) {
   useEffect(
     () =>
       setPathMap(oldPathMap => {
-        const routePath = getRouteStringFromRoutes(routes);
+        const routePath = getRouteStringFromRoutes({matches});
         const newPathMap = {...oldPathMap};
 
         for (const fullPath in newPathMap) {
@@ -57,12 +57,12 @@ function BreadcrumbProvider({children}: ProviderProps) {
 
         return newPathMap;
       }),
-    [routes, setPathMap]
+    [matches, setPathMap]
   );
 
   const setExplicitTitle = useCallback(
     ({routes: updateRoutes, title}: ExplicitTitleProps) => {
-      const key = getRouteStringFromRoutes(updateRoutes);
+      const key = getRouteStringFromRoutes({routes: updateRoutes});
 
       setExplicitPathMap(lastState => ({...lastState, [key]: title}));
 

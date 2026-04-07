@@ -26,7 +26,7 @@ export function useScmRepoSearch(integrationId: string, selectedRepo?: Repositor
           },
         }
       ),
-      {method: 'GET', query: {search: debouncedSearch}},
+      {method: 'GET', query: {search: debouncedSearch, accessibleOnly: true}},
     ] as const,
     queryFn: async context => {
       return fetchDataQuery<ScmRepoSearchResult>(context);

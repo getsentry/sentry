@@ -33,7 +33,7 @@ export enum EventsDisplayFilterName {
   P100 = 'p100',
 }
 
-type PercentileValues = Record<EventsDisplayFilterName, number>;
+export type PercentileValues = Record<EventsDisplayFilterName, number>;
 
 type EventsDisplayFilter = {
   label: string;

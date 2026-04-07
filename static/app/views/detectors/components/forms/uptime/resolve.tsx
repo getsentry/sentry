@@ -11,7 +11,7 @@ import {UPTIME_DEFAULT_RECOVERY_THRESHOLD} from 'sentry/views/detectors/componen
 export function UptimeDetectorResolveSection({step}: {step?: number}) {
   return (
     <Container>
-      <FormSection step={step} title={t('Resolve')}>
+      <FormSection step={step} title={t('Issue Resolution')}>
         <DetectFieldsContainer>
           <div>
             <NumberField

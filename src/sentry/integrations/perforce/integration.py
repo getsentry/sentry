@@ -349,7 +349,10 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         return url
 
     def get_repositories(
-        self, query: str | None = None, page_number_limit: int | None = None
+        self,
+        query: str | None = None,
+        page_number_limit: int | None = None,
+        accessible_only: bool = False,
     ) -> list[dict[str, Any]]:
         """
         Get list of depots/streams from Perforce server.

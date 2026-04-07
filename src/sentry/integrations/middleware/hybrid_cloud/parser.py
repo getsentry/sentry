@@ -181,7 +181,7 @@ class BaseRequestParser(ABC):
         # this loop. Create all payloads first, then trigger a single drain.
         payloads = [
             WebhookPayload.create_from_request(
-                destination_type=DestinationType.SENTRY_REGION,
+                destination_type=DestinationType.SENTRY_CELL,
                 cell=cell.name,
                 provider=self.provider,
                 identifier=shard_identifier,

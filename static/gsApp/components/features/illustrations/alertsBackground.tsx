@@ -3,8 +3,6 @@ import styled from '@emotion/styled';
 import type {Variants} from 'framer-motion';
 import {motion} from 'framer-motion';
 
-import {testableTransition} from 'sentry/utils/testableTransition';
-
 const random = (min: number, max: number) =>
   Math.floor(Math.random() * (max - min)) + min;
 
@@ -13,11 +11,11 @@ const backgroundAnimateIn: Variants = {
   animate: {
     opacity: 1,
     scale: 1,
-    transition: testableTransition({
+    transition: {
       type: 'spring',
       damping: 8,
       stiffness: 60,
-    }),
+    },
   },
 };
 
@@ -31,7 +29,7 @@ const wormholeAnimateIn: Variants = {
     opacity: 1,
     scale: 1,
     rotate: 0,
-    transition: testableTransition({delay: 2, duration: 2.5}),
+    transition: {delay: 2, duration: 2.5},
   },
 };
 
@@ -64,7 +62,7 @@ const shipAnimateIn: Variants = {
     scale: 1,
     translateX: 0,
     translateY: 0,
-    transition: testableTransition({duration: 0.8}),
+    transition: {duration: 0.8},
   },
 };
 

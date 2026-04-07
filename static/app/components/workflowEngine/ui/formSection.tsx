@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 type FormSectionProps = {
@@ -38,14 +38,14 @@ export function FormSection({
         </Heading>
       </Disclosure.Title>
       <Disclosure.Content>
-        <Flex direction="column" gap="md">
+        <Stack gap="lg">
           {description && (
             <FormSectionDescription as="p" variant="secondary">
               {description}
             </FormSectionDescription>
           )}
-          {children}
-        </Flex>
+          <Stack gap="md">{children}</Stack>
+        </Stack>
       </Disclosure.Content>
     </Disclosure>
   );
