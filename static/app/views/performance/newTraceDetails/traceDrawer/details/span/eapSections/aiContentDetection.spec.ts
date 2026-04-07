@@ -158,40 +158,41 @@ describe('preprocessInlineXmlTags', () => {
     const text = 'before <tag>  spaced  </tag> after';
     expect(preprocessInlineXmlTags(text)).toBe('before *tag: spaced* after');
   });
+
+  it('strips nested XML tags from inline tag content', () => {
+    const text = 'Text <outer>before <inner>nested</inner> after</outer> more';
+    expect(preprocessInlineXmlTags(text)).toBe(
+      'Text *outer: before nested after* more'
+    );
+  });
 });
 
 describe('parseXmlTagSegments', () => {
-  it('marks inline XML tags with isBlock false', () => {
+  it('splits text with XML tags into segments', () => {
     const text = 'Before <thinking>inner thought</thinking> After';
     const segments = parseXmlTagSegments(text);
     expect(segments).toEqual([
       {type: 'text', content: 'Before '},
-      {type: 'xml-tag', tagName: 'thinking', content: 'inner thought', isBlock: false},
+      {type: 'xml-tag', tagName: 'thinking', content: 'inner thought'},
       {type: 'text', content: ' After'},
     ]);
   });
 
-  it('marks tag at start of text as block', () => {
+  it('handles multiple XML tags', () => {
     const text = '<plan>step 1</plan> then <result>done</result>';
     const segments = parseXmlTagSegments(text);
     expect(segments).toEqual([
-      {type: 'xml-tag', tagName: 'plan', content: 'step 1', isBlock: true},
+      {type: 'xml-tag', tagName: 'plan', content: 'step 1'},
       {type: 'text', content: ' then '},
-      {type: 'xml-tag', tagName: 'result', content: 'done', isBlock: false},
+      {type: 'xml-tag', tagName: 'result', content: 'done'},
     ]);
   });
 
-  it('marks tag preceded by newline as block', () => {
-    const text = 'Some text\n<thinking>\nline1\nline2\n</thinking>';
+  it('handles multiline content inside tags', () => {
+    const text = '<thinking>\nline1\nline2\n</thinking>';
     const segments = parseXmlTagSegments(text);
     expect(segments).toEqual([
-      {type: 'text', content: 'Some text\n'},
-      {
-        type: 'xml-tag',
-        tagName: 'thinking',
-        content: '\nline1\nline2\n',
-        isBlock: true,
-      },
+      {type: 'xml-tag', tagName: 'thinking', content: '\nline1\nline2\n'},
     ]);
   });
 
@@ -208,7 +209,7 @@ describe('parseXmlTagSegments', () => {
   it('handles tags with hyphens in names', () => {
     const text = '<my-tag>content</my-tag>';
     expect(parseXmlTagSegments(text)).toEqual([
-      {type: 'xml-tag', tagName: 'my-tag', content: 'content', isBlock: true},
+      {type: 'xml-tag', tagName: 'my-tag', content: 'content'},
     ]);
   });
 
@@ -221,7 +222,6 @@ describe('parseXmlTagSegments', () => {
         tagName: 'bug_report',
         content:
           '\n<location>file.ts</location>\n<description>a bug</description>\n',
-        isBlock: true,
       },
     ]);
   });

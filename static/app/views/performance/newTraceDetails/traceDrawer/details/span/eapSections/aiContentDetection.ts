@@ -10,7 +10,7 @@ type AIContentType =
 
 type ContentSegment =
   | {content: string; type: 'text'}
-  | {content: string; isBlock: boolean; tagName: string; type: 'xml-tag'};
+  | {content: string; tagName: string; type: 'xml-tag'};
 
 interface AIContentDetectionResult {
   type: AIContentType;
@@ -57,12 +57,10 @@ export function parseXmlTagSegments(text: string): ContentSegment[] {
     if (match.index > lastIndex) {
       segments.push({type: 'text', content: text.slice(lastIndex, match.index)});
     }
-    const isBlock = match.index === 0 || /\n\s*$/.test(text.slice(0, match.index));
     segments.push({
       type: 'xml-tag',
       tagName: match[1]!,
       content: match[2]!,
-      isBlock,
     });
     lastIndex = match.index + match[0].length;
   }
@@ -82,7 +80,8 @@ export function preprocessInlineXmlTags(text: string): string {
     if (isBlock) {
       return match;
     }
-    return `*${tagName}: ${content.trim()}*`;
+    const stripped = content.replace(/<\/?[a-zA-Z][\w-]*>/g, '').trim();
+    return `*${tagName}: ${stripped}*`;
   });
 }
 
