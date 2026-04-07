@@ -191,7 +191,7 @@ export function getProjectStoppingPointMutationOptions({
             preference: {
               repositories: [],
               ...previous.preference,
-              ...preferencePayload,
+              ...preferencePayload.preference,
             },
           });
         }
