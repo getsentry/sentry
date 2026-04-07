@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useState} from 'react';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
@@ -26,6 +26,7 @@ import type {NewInternalAppApiToken} from 'sentry/types/user';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
@@ -96,7 +97,7 @@ export default function ApiNewToken() {
       queryClient.invalidateQueries({queryKey: [getApiUrl('/api-tokens/')]});
       displayNewToken(token.token, handleGoBack);
     },
-    onError: error => {
+    onError: (error: RequestError) => {
       const message = t('Failed to create a new personal token.');
       handleXhrErrorResponse(message, error);
       addErrorMessage(message);

@@ -27,6 +27,7 @@ import {
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
@@ -99,7 +100,7 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
 
       handleGoBack();
     },
-    onError: error => {
+    onError: (error: RequestError) => {
       const message = t('Failed to update the user auth token.');
       handleXhrErrorResponse(message, error);
       addErrorMessage(message);
