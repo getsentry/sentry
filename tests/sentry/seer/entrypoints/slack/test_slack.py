@@ -672,6 +672,64 @@ class SlackExplorerEntrypointTest(TestCase):
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
+        return_value=False,
+    )
+    def test_send_thread_update_explorer_response_missing_scope_no_footer_on_second_message(
+        self, mock_has_history_scope, mock_send_threaded_message
+    ):
+        """Subsequent explorer responses in the same thread should not repeat the footer."""
+        data = SeerExplorerResponse(
+            run_id=12345,
+            organization_id=self.organization.id,
+            summary="Test summary",
+        )
+        install = self.integration.get_installation(organization_id=self.organization.id)
+        thread = SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)
+
+        # First call — footer should be present
+        send_thread_update(install=install, thread=thread, data=data)
+        renderable_first = mock_send_threaded_message.call_args.kwargs["renderable"]
+        assert renderable_first["blocks"][-1].type == "context"
+
+        mock_send_threaded_message.reset_mock()
+
+        # Second call in same thread — footer should be absent
+        send_thread_update(install=install, thread=thread, data=data)
+        renderable_second = mock_send_threaded_message.call_args.kwargs["renderable"]
+        for block in renderable_second["blocks"]:
+            assert block.type != "context"
+
+    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
+        return_value=False,
+    )
+    def test_send_thread_update_explorer_response_missing_scope_different_thread_gets_footer(
+        self, mock_has_history_scope, mock_send_threaded_message
+    ):
+        """Different threads should each get their own first-time footer."""
+        data = SeerExplorerResponse(
+            run_id=12345,
+            organization_id=self.organization.id,
+            summary="Test summary",
+        )
+        install = self.integration.get_installation(organization_id=self.organization.id)
+        thread_a = SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)
+        thread_b = SlackThreadDetails(thread_ts="9999999999.999999", channel_id=self.channel_id)
+
+        send_thread_update(install=install, thread=thread_a, data=data)
+        renderable_a = mock_send_threaded_message.call_args.kwargs["renderable"]
+        assert renderable_a["blocks"][-1].type == "context"
+
+        mock_send_threaded_message.reset_mock()
+
+        send_thread_update(install=install, thread=thread_b, data=data)
+        renderable_b = mock_send_threaded_message.call_args.kwargs["renderable"]
+        assert renderable_b["blocks"][-1].type == "context"
+
+    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
         return_value=True,
     )
     def test_send_thread_update_explorer_response_with_scope_no_footer(
