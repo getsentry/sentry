@@ -399,7 +399,7 @@ def _render_repo_event(action: str, audit_log_entry: AuditLogEntry) -> str:
 
 class RepoAddedAuditLogEvent(AuditLogEvent):
     def __init__(self) -> None:
-        super().__init__(event_id=1161, name="REPO_ADDED", api_name="repo.added")
+        super().__init__(event_id=1170, name="REPO_ADDED", api_name="repo.added")
 
     def render(self, audit_log_entry: AuditLogEntry) -> str:
         return _render_repo_event("added", audit_log_entry)
@@ -407,7 +407,7 @@ class RepoAddedAuditLogEvent(AuditLogEvent):
 
 class RepoDisabledAuditLogEvent(AuditLogEvent):
     def __init__(self) -> None:
-        super().__init__(event_id=1162, name="REPO_DISABLED", api_name="repo.disabled")
+        super().__init__(event_id=1171, name="REPO_DISABLED", api_name="repo.disabled")
 
     def render(self, audit_log_entry: AuditLogEntry) -> str:
         return _render_repo_event("disabled", audit_log_entry)
@@ -415,7 +415,7 @@ class RepoDisabledAuditLogEvent(AuditLogEvent):
 
 class RepoEnabledAuditLogEvent(AuditLogEvent):
     def __init__(self) -> None:
-        super().__init__(event_id=1163, name="REPO_ENABLED", api_name="repo.enabled")
+        super().__init__(event_id=1172, name="REPO_ENABLED", api_name="repo.enabled")
 
     def render(self, audit_log_entry: AuditLogEntry) -> str:
         return _render_repo_event("enabled", audit_log_entry)
