@@ -25,6 +25,7 @@ import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {useFetchAgentOptions} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
 
 import {ProjectTableHeader} from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableHeader';
 import {SeerProjectTableRow} from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableRow';
@@ -33,6 +34,8 @@ export function SeerProjectTable() {
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const {projects, fetching, fetchError} = useProjects();
+
+  const agentOptions = useFetchAgentOptions({organization});
 
   const autofixSettingsQueryOptions = bulkAutofixAutomationSettingsInfiniteOptions({
     organization,
@@ -221,6 +224,7 @@ export function SeerProjectTable() {
               integrations={integrations ?? []}
               isPendingIntegrations={isPendingIntegrations}
               project={project}
+              agentOptions={agentOptions}
             />
           ))
         )}

@@ -20,7 +20,7 @@ import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useFetchAgentOptions} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
+import type {useFetchAgentOptions} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
 import {
   useMutateCreatePr,
   useMutateSelectedAgent,
@@ -30,6 +30,7 @@ import {
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
+  agentOptions: ReturnType<typeof useFetchAgentOptions>;
   autofixSettings: undefined | AutofixAutomationSettings;
   integrations: CodingAgentIntegration[];
   isPendingIntegrations: boolean;
@@ -37,16 +38,16 @@ interface Props {
 }
 
 export function SeerProjectTableRow({
+  agentOptions,
   autofixSettings,
+  integrations,
   isPendingIntegrations,
   project,
-  integrations,
 }: Props) {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
   const {isSelected, toggleSelected} = useListItemCheckboxContext();
 
-  const options = useFetchAgentOptions({organization});
   const autofixAgent = useSelectedAgentFromBulkSettings({
     autofixSettings: autofixSettings ?? {
       autofixAutomationTuning: 'off',
@@ -94,7 +95,7 @@ export function SeerProjectTableRow({
               size="xs"
               disabled={!canWrite}
               name="autofixAgent"
-              options={options.data ?? []}
+              options={agentOptions.data ?? []}
               value={autofixAgent}
               onChange={option => {
                 mutateSelectedAgent(option.value, {
