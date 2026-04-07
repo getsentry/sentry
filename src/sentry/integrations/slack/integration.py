@@ -115,9 +115,9 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         try:
             client.chat_postMessage(
                 channel=target.resource_id,
-                blocks=payload["blocks"],
+                blocks=payload["blocks"] if len(payload["blocks"]) > 0 else None,
                 text=payload["text"],
-                attachments=payload.get("attachments", None),
+                attachments=payload.get("attachments"),
                 unfurl_links=False,
                 unfurl_media=False,
             )
@@ -137,9 +137,9 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         )
         kwargs: dict[str, Any] = dict(
             channel=target.resource_id,
-            blocks=payload["blocks"],
+            blocks=payload["blocks"] if len(payload["blocks"]) > 0 else None,
             text=payload["text"],
-            attachments=payload.get("attachments", None),
+            attachments=payload.get("attachments"),
             unfurl_links=False,
             unfurl_media=False,
         )

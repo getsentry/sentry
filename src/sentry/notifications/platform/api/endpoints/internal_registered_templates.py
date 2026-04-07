@@ -99,7 +99,7 @@ def serialize_slack_preview[T: NotificationData](
     for block in message.get("blocks", []):
         serialized_blocks.append(block.to_dict())
 
-    return {"blocks": serialized_blocks, "attachments": message.get("attachments", None)}
+    return {"blocks": serialized_blocks, "attachments": message.get("attachments")}
 
 
 def serialize_discord_preview[T: NotificationData](

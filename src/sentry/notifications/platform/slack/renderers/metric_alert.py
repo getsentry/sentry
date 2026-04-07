@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.integrations.messaging.types import LEVEL_TO_COLOR
 from sentry.integrations.metric_alerts import get_status_text
@@ -15,6 +17,8 @@ from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationRenderedTemplate,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
@@ -46,6 +50,8 @@ class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
         attachment_blocks = [
             {"blocks": slack_body.get("blocks", []), "color": slack_body.get("color", "")}
         ]
+
+        logger.info(f"attachment_blocks: {attachment_blocks}")
 
         renderable = SlackRenderable(
             blocks=[],
