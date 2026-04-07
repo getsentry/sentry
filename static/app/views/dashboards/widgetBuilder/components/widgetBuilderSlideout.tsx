@@ -1,17 +1,11 @@
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type RefCallback,
-} from 'react';
+import {Fragment, useCallback, useMemo, useState, type RefCallback} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
@@ -236,15 +230,16 @@ export function WidgetBuilderSlideout({
     });
   }, [initialState, onClose, state]);
 
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape' && !event.defaultPrevented && !isModalVisible) {
-        onCloseWithModal();
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onCloseWithModal, isModalVisible]);
+  useHotkeys([
+    {
+      match: 'Escape',
+      callback: () => {
+        if (!isModalVisible) {
+          onCloseWithModal();
+        }
+      },
+    },
+  ]);
 
   const breadcrumbs = customizeFromLibrary
     ? [
