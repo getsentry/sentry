@@ -51,14 +51,14 @@ export function aggregateSupergroupStats(
   let mergedFilteredStats: TimeseriesValue[] | null = null;
 
   for (const group of groups) {
-    eventCount += parseInt(group.count, 10);
-    userCount += group.userCount;
+    eventCount += parseInt(group.count, 10) || 0;
+    userCount += group.userCount ?? 0;
 
     if (group.filtered) {
       filteredEventCount ??= 0;
       filteredUserCount ??= 0;
-      filteredEventCount += parseInt(group.filtered.count, 10);
-      filteredUserCount += group.filtered.userCount;
+      filteredEventCount += parseInt(group.filtered.count, 10) || 0;
+      filteredUserCount += group.filtered.userCount ?? 0;
 
       const filteredStats = group.filtered.stats?.[statsPeriod];
       if (filteredStats) {

@@ -1,5 +1,7 @@
 import {GroupFixture} from 'sentry-fixture/group';
 
+import type {Group} from 'sentry/types/group';
+
 import {aggregateSupergroupStats} from './aggregateSupergroupStats';
 
 describe('aggregateSupergroupStats', () => {
@@ -59,6 +61,15 @@ describe('aggregateSupergroupStats', () => {
     expect(result?.filteredEventCount).toBeNull();
     expect(result?.filteredUserCount).toBeNull();
     expect(result?.mergedFilteredStats).toBeNull();
+  });
+
+  it('treats missing counts as zero when stats have not loaded', () => {
+    const result = aggregateSupergroupStats(
+      [GroupFixture({count: '10', userCount: 3}), {} as Group],
+      '24h'
+    );
+    expect(result?.eventCount).toBe(10);
+    expect(result?.userCount).toBe(3);
   });
 
   it('aggregates filtered stats separately', () => {

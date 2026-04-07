@@ -93,7 +93,7 @@ describe('Quick Context', () => {
 
       await userEvent.hover(screen.getByText('Text from Child'));
 
-      expect(await screen.findByText(/Issue/i)).toBeInTheDocument();
+      expect(await screen.findByText('Issue', {exact: true})).toBeInTheDocument();
       expect(screen.getByText(/SENTRY-VVY/i)).toBeInTheDocument();
       expect(
         screen.getByTestId('quick-context-hover-header-copy-button')

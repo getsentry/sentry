@@ -6,6 +6,7 @@ import {ProjectAvatar} from '@sentry/scraps/avatar';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
+import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {useCommandPaletteActionsRegister} from 'sentry/components/commandPalette/context';
 import type {
   CMDKQueryOptions,
@@ -350,6 +351,7 @@ export function useGlobalCommandPaletteActions() {
                 label: t('Open _admin'),
                 icon: <IconOpen />,
               },
+              keywords: [t('superuser')],
               onAction: () => window.open('/_admin/', '_blank', 'noreferrer'),
             },
             {
@@ -357,13 +359,30 @@ export function useGlobalCommandPaletteActions() {
                 label: t('Open %s in _admin', organization.name),
                 icon: <IconOpen />,
               },
+              keywords: [t('superuser')],
               onAction: () =>
                 window.open(
-                  `/_admin/organizations/${organization.slug}/`,
+                  `/_admin/customers/${organization.slug}/`,
                   '_blank',
                   'noreferrer'
                 ),
             },
+            ...(isActiveSuperuser()
+              ? []
+              : [
+                  {
+                    display: {
+                      label: t('Open Superuser Modal'),
+                      icon: <IconLock locked />,
+                    },
+                    keywords: [t('superuser')],
+                    onAction: () =>
+                      openSudo({
+                        isSuperuser: true,
+                        needsReload: true,
+                      }),
+                  },
+                ]),
             ...(isActiveSuperuser()
               ? [
                   {
@@ -371,6 +390,7 @@ export function useGlobalCommandPaletteActions() {
                       label: t('Exit Superuser'),
                       icon: <IconLock locked={false} />,
                     },
+                    keywords: [t('superuser')],
                     onAction: () => exitSuperuser(),
                   },
                 ]

@@ -1673,3 +1673,53 @@ class GetProjectRulesDeltaTest(APITestCase):
         assert legacy_rule["id"] == str(rule.id)
 
         assert_serializer_parity(old=legacy_rule, new=we_rule)
+
+    def test_snoozed_rule_for_everyone_parity(self) -> None:
+        self.login_as(user=self.user)
+        rule = self.create_project_rule(
+            project=self.project,
+            name="Snoozed for everyone alert",
+            action_match="any",
+            frequency=60,
+            condition_data=[
+                {
+                    "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                    "name": "A new issue is created",
+                },
+            ],
+            action_data=[
+                {
+                    "targetType": "IssueOwners",
+                    "fallthroughType": "ActiveMembers",
+                    "id": "sentry.mail.actions.NotifyEmailAction",
+                    "targetIdentifier": "",
+                    "name": "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers",
+                }
+            ],
+        )
+        self.snooze_rule(owner_id=self.user.id, rule=rule)
+
+        legacy_response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
+        )
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            we_response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                status_code=status.HTTP_200_OK,
+            )
+
+        assert len(legacy_response.data) == 1
+        assert len(we_response.data) == 1
+        legacy_rule = legacy_response.data[0]
+        we_rule = we_response.data[0]
+        assert legacy_rule["id"] == str(rule.id)
+        assert legacy_rule["snooze"]
+        assert_serializer_parity(
+            old=legacy_rule,
+            new=we_rule,
+            known_differences={"snoozeCreatedBy"},
+        )

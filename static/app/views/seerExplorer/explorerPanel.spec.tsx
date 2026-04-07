@@ -125,15 +125,15 @@ describe('ExplorerPanel', () => {
   });
 
   describe('Feature Flag and Organization Checks', () => {
-    it('renders when feature flag and open membership are enabled', () => {
+    it('renders when feature flag and open membership are enabled', async () => {
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
       expect(
-        screen.getByText(/Ask Seer anything about your application./)
+        await screen.findByText(/Ask Seer anything about your application./)
       ).toBeInTheDocument();
     });
 
-    it('does not render when feature flag is disabled', () => {
+    it('does not render when feature flag is disabled', async () => {
       const disabledOrg = OrganizationFixture({
         features: [],
         hideAiFeatures: false,
@@ -144,10 +144,10 @@ describe('ExplorerPanel', () => {
         organization: disabledOrg,
       });
 
-      expect(container).toBeEmptyDOMElement();
+      await waitFor(() => expect(container).toBeEmptyDOMElement());
     });
 
-    it('does not render when AI features are hidden', () => {
+    it('does not render when AI features are hidden', async () => {
       const disabledOrg = OrganizationFixture({
         features: ['seer-explorer'],
         hideAiFeatures: true,
@@ -158,10 +158,10 @@ describe('ExplorerPanel', () => {
         organization: disabledOrg,
       });
 
-      expect(container).toBeEmptyDOMElement();
+      await waitFor(() => expect(container).toBeEmptyDOMElement());
     });
 
-    it('does not render when open membership is disabled', () => {
+    it('does not render when open membership is disabled', async () => {
       const disabledOrg = OrganizationFixture({
         features: ['seer-explorer'],
         hideAiFeatures: false,
@@ -172,28 +172,30 @@ describe('ExplorerPanel', () => {
         organization: disabledOrg,
       });
 
-      expect(container).toBeEmptyDOMElement();
+      await waitFor(() => expect(container).toBeEmptyDOMElement());
     });
   });
 
   describe('Empty State', () => {
-    it('shows empty state when no messages exist', () => {
+    it('shows empty state when no messages exist', async () => {
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
       expect(
-        screen.getByText(/Ask Seer anything about your application./)
+        await screen.findByText(/Ask Seer anything about your application./)
       ).toBeInTheDocument();
     });
 
-    it('shows input section in empty state', () => {
+    it('shows input section in empty state', async () => {
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
       expect(
-        screen.getByPlaceholderText('Type your message or / command and press Enter ↵')
+        await screen.findByPlaceholderText(
+          'Type your message or / command and press Enter ↵'
+        )
       ).toBeInTheDocument();
     });
 
-    it('shows error when hook returns isError=true', () => {
+    it('shows error when hook returns isError=true', async () => {
       const useSeerExplorerSpy = jest
         .spyOn(useSeerExplorerModule, 'useSeerExplorer')
         .mockReturnValue({
@@ -220,7 +222,7 @@ describe('ExplorerPanel', () => {
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
       expect(
-        screen.getByText('Error loading this session (ID=123).')
+        await screen.findByText('Error loading this session (ID=123).')
       ).toBeInTheDocument();
       expect(
         screen.queryByText(/Ask Seer anything about your application./)
@@ -231,7 +233,7 @@ describe('ExplorerPanel', () => {
   });
 
   describe('Messages Display', () => {
-    it('renders messages when session data exists', () => {
+    it('renders messages when session data exists', async () => {
       const mockSessionData = {
         blocks: [
           {
@@ -283,7 +285,7 @@ describe('ExplorerPanel', () => {
 
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
-      expect(screen.getByText('What is this error?')).toBeInTheDocument();
+      expect(await screen.findByText('What is this error?')).toBeInTheDocument();
       expect(
         screen.getByText('This error indicates a null pointer exception.')
       ).toBeInTheDocument();
@@ -533,19 +535,21 @@ describe('ExplorerPanel', () => {
       openMembership: true,
     });
 
-    it('does not render the toggle when the feature flag is disabled', () => {
+    it('does not render the toggle when the feature flag is disabled', async () => {
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
+      // Wait for effects to settle before asserting absence
+      await screen.findByTestId('seer-explorer-input');
       expect(
         screen.queryByRole('checkbox', {name: 'Toggle context engine'})
       ).not.toBeInTheDocument();
     });
 
-    it('renders the toggle when the feature flag is enabled', () => {
+    it('renders the toggle when the feature flag is enabled', async () => {
       renderWithPanelContext(<ExplorerPanel />, true, {organization: orgWithFlag});
 
       expect(
-        screen.getByRole('checkbox', {name: 'Toggle context engine'})
+        await screen.findByRole('checkbox', {name: 'Toggle context engine'})
       ).toBeInTheDocument();
     });
 
@@ -623,20 +627,20 @@ describe('ExplorerPanel', () => {
   });
 
   describe('Visibility Control', () => {
-    it('renders when isVisible=true', () => {
+    it('renders when isVisible=true', async () => {
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
-      expect(screen.getByTestId('seer-explorer-input')).toBeInTheDocument();
+      expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
     });
 
-    it('can handle visibility changes', () => {
+    it('can handle visibility changes', async () => {
       const {rerenderWithOpen} = renderWithPanelContext(<ExplorerPanel />, false, {
         organization,
       });
 
       rerenderWithOpen(true);
 
-      expect(screen.getByTestId('seer-explorer-input')).toBeInTheDocument();
+      expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
     });
   });
 });

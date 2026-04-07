@@ -15,7 +15,6 @@ import userMiseryImg from 'getsentry-images/features/user-misery.svg';
 
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {testableTransition} from 'sentry/utils/testableTransition';
 
 import type {Subscription} from 'getsentry/types';
 import {getTrialLength, hasPerformance, isTrialPlan} from 'getsentry/utils/billing';
@@ -476,13 +475,12 @@ const featureContentAnimation = {
   exit: {
     opacity: 0,
     x: 20,
-    transition: testableTransition(),
   },
   animate: {
     opacity: 1,
     x: 0,
-    transition: testableTransition({
+    transition: {
       delay: 0.02,
-    }),
+    },
   },
 };
