@@ -35,22 +35,30 @@ describe('seerAgentHooks', () => {
   });
 
   describe('useSelectedAgentFromProjectSettings', () => {
-    it('returns "none" when project autofixAutomationTuning is off', () => {
+    it('returns "seer" when no automation_handoff integration_id', () => {
       const {result} = renderHookWithProviders(useSelectedAgentFromProjectSettings, {
         initialProps: {
-          preference: {repositories: []},
+          preference: {
+            repositories: [],
+          },
           integrations: [],
         },
         organization,
       });
 
-      expect(result.current).toBe('none');
+      expect(result.current).toBe('seer');
     });
 
-    it('returns "seer" when no automation_handoff integration_id', () => {
+    it('returns "seer" when no automation_handoff integration_id, ignoring autofixAutomationTuning', () => {
       const {result} = renderHookWithProviders(useSelectedAgentFromProjectSettings, {
         initialProps: {
-          preference: {repositories: []},
+          preference: {
+            projectId: '1',
+            autofixAutomationTuning: 'off',
+            automatedRunStoppingPoint: 'code_changes',
+            automation_handoff: undefined,
+            repositories: [],
+          },
           integrations: [],
         },
         organization,
