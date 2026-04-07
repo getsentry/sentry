@@ -391,33 +391,66 @@ class TestIndexRepos(TestCase):
 
 @django_db_all
 class TestScheduleContextEngineIndexingTasks(TestCase):
+    @mock.patch("sentry.tasks.seer.context_engine_index.index_repos.apply_async")
     @mock.patch("sentry.tasks.seer.context_engine_index.build_service_map.apply_async")
     @mock.patch("sentry.tasks.seer.context_engine_index.index_org_project_knowledge.apply_async")
     @mock.patch(
         "sentry.tasks.seer.context_engine_index.get_allowed_org_ids_context_engine_indexing"
     )
-    def test_dispatches_for_allowed_orgs(self, mock_get_orgs, mock_index, mock_build):
+    def test_dispatches_for_allowed_orgs(
+        self, mock_get_orgs, mock_index, mock_build, mock_index_repos
+    ):
         org1 = self.create_organization()
         org2 = self.create_organization()
         mock_get_orgs.return_value = [org1.id, org2.id]
 
-        with override_options(
-            {
-                "explorer.context_engine_indexing.enable": True,
-            }
-        ):
-            schedule_context_engine_indexing_tasks()
+        # Freeze to a Wednesday so index_repos is not called
+        with freeze_time("2024-01-10 12:00:00"):
+            with override_options(
+                {
+                    "explorer.context_engine_indexing.enable": True,
+                }
+            ):
+                schedule_context_engine_indexing_tasks()
 
         assert mock_index.call_count == 2
         assert mock_build.call_count == 2
+        mock_index_repos.assert_not_called()
         dispatched_index_ids = [c[1]["args"][0] for c in mock_index.call_args_list]
         assert dispatched_index_ids == [org1.id, org2.id]
 
+    @mock.patch("sentry.tasks.seer.context_engine_index.index_repos.apply_async")
     @mock.patch("sentry.tasks.seer.context_engine_index.build_service_map.apply_async")
     @mock.patch("sentry.tasks.seer.context_engine_index.index_org_project_knowledge.apply_async")
-    def test_noop_when_no_allowed_orgs(self, mock_index, mock_build):
+    @mock.patch(
+        "sentry.tasks.seer.context_engine_index.get_allowed_org_ids_context_engine_indexing"
+    )
+    def test_dispatches_index_repos_on_sunday(
+        self, mock_get_orgs, mock_index, mock_build, mock_index_repos
+    ):
+        org1 = self.create_organization()
+        mock_get_orgs.return_value = [org1.id]
+
+        # Freeze to a Sunday so index_repos is called
+        with freeze_time("2024-01-14 12:00:00"):
+            with override_options(
+                {
+                    "explorer.context_engine_indexing.enable": True,
+                }
+            ):
+                schedule_context_engine_indexing_tasks()
+
+        assert mock_index.call_count == 1
+        assert mock_build.call_count == 1
+        mock_index_repos.assert_called_once_with(args=[org1.id])
+
+    @mock.patch("sentry.tasks.seer.context_engine_index.index_repos.apply_async")
+    @mock.patch("sentry.tasks.seer.context_engine_index.build_service_map.apply_async")
+    @mock.patch("sentry.tasks.seer.context_engine_index.index_org_project_knowledge.apply_async")
+    def test_noop_when_no_allowed_orgs(self, mock_index, mock_build, mock_index_repos):
         with override_options({"explorer.context_engine_indexing.enable": True}):
             schedule_context_engine_indexing_tasks()
 
         mock_index.assert_not_called()
         mock_build.assert_not_called()
+        mock_index_repos.assert_not_called()
