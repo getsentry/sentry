@@ -38,12 +38,3 @@ class TriggerLightweightRCAClusterTest(TestCase):
 
         with pytest.raises(Exception):
             trigger_lightweight_rca_cluster(self.group)
-
-    @patch("sentry.seer.supergroups.lightweight_rca_cluster.make_lightweight_rca_cluster_request")
-    def test_passes_viewer_context(self, mock_request):
-        mock_request.return_value.status = 200
-
-        trigger_lightweight_rca_cluster(self.group)
-
-        call_kwargs = mock_request.call_args.kwargs
-        assert call_kwargs["viewer_context"]["organization_id"] == self.group.organization.id

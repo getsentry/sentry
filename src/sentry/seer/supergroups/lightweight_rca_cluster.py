@@ -22,10 +22,7 @@ def trigger_lightweight_rca_cluster(group: Group) -> None:
     Sends issue event data to Seer, which generates a lightweight root cause analysis
     and clusters the issue into supergroups based on embedding similarity.
     """
-    event = group.get_recommended_event_for_environments()
-    if not event:
-        event = group.get_latest_event()
-
+    event = group.get_latest_event()
     if not event:
         logger.info(
             "lightweight_rca_cluster.no_event",
