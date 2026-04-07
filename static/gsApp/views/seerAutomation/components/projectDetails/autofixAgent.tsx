@@ -20,13 +20,13 @@ import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useMutation, useQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useFetchAgentOptions} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
 import {
   getProjectStoppingPointMutationOptions,
   getProjectStoppingPointValue,
   useFetchStoppingPointOptions,
 } from 'sentry/views/settings/seer/overview/utils/seerStoppingPoint';
 import {
-  useAgentOptions,
   useMutateSelectedAgent,
   useSelectedAgentFromProjectSettings,
 } from 'sentry/views/settings/seer/seerAgentHooks';
@@ -44,13 +44,10 @@ function AgentSpecificFields({
   integration,
   ...props
 }: Props & {
-  integration: 'seer' | 'none' | CodingAgentIntegration;
+  integration: 'seer' | CodingAgentIntegration;
 }) {
   if (integration === 'seer') {
     return <SeerAgentSettings {...props} />;
-  }
-  if (integration === 'none') {
-    return null;
   }
   if (integration.provider === 'cursor' || integration.provider === 'claude_code') {
     return <CodingAgentSettings integration={integration} {...props} />;
@@ -68,10 +65,9 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
     ...organizationIntegrationsCodingAgents(organization),
     select: data => data.json.integrations ?? [],
   });
-  const options = useAgentOptions({integrations: integrations ?? []});
+  const options = useFetchAgentOptions({organization});
   const selected = useSelectedAgentFromProjectSettings({
     preference,
-    project,
     integrations: integrations ?? [],
   });
   const mutateSelectedAgent = useMutateSelectedAgent({project});
@@ -106,37 +102,29 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
                   ),
                 }
               )}
-              options={options}
+              options={options.data ?? []}
               value={selected}
-              onChange={(integration: 'seer' | 'none' | CodingAgentIntegration) => {
+              onChange={(integration: 'seer' | CodingAgentIntegration) => {
                 mutateSelectedAgent(integration, {
                   onSuccess: () =>
                     addSuccessMessage(
-                      integration === 'none'
-                        ? t('Removed coding agent')
-                        : tct('Started using [name] as coding agent', {
-                            name: (
-                              <strong>
-                                {integration === 'seer'
-                                  ? t('Seer Agent')
-                                  : integration.name}
-                              </strong>
-                            ),
-                          })
+                      tct('Started using [name] as coding agent', {
+                        name: (
+                          <strong>
+                            {integration === 'seer' ? t('Seer Agent') : integration.name}
+                          </strong>
+                        ),
+                      })
                     ),
                   onError: () =>
                     addErrorMessage(
-                      integration === 'none'
-                        ? t('Failed to update coding agent')
-                        : tct('Failed to set [name] as coding agent', {
-                            name: (
-                              <strong>
-                                {integration === 'seer'
-                                  ? t('Seer Agent')
-                                  : integration.name}
-                              </strong>
-                            ),
-                          })
+                      tct('Failed to set [name] as coding agent', {
+                        name: (
+                          <strong>
+                            {integration === 'seer' ? t('Seer Agent') : integration.name}
+                          </strong>
+                        ),
+                      })
                     ),
                 });
               }}
@@ -150,7 +138,7 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
               />
             ) : null}
 
-            {selected && selected !== 'none' ? (
+            {selected ? (
               <StoppingPointField
                 agent={selected}
                 canWrite={canWrite}
