@@ -98,7 +98,7 @@ class OrganizationSupergroupsByGroupEndpoint(OrganizationEndpoint):
         # bulk, and strip out non-matching ones.
         if status_param is not None:
             all_response_group_ids: set[int] = set()
-            for sg in data.get("data", []):
+            for sg in data["data"]:
                 all_response_group_ids.update(sg["group_ids"])
 
             matching_ids = set(
@@ -109,7 +109,7 @@ class OrganizationSupergroupsByGroupEndpoint(OrganizationEndpoint):
                 ).values_list("id", flat=True)
             )
 
-            for sg in data.get("data", []):
+            for sg in data["data"]:
                 sg["group_ids"] = [gid for gid in sg["group_ids"] if gid in matching_ids]
             # Drop supergroups that have no matching groups after filtering
             data["data"] = [sg for sg in data["data"] if sg["group_ids"]]
