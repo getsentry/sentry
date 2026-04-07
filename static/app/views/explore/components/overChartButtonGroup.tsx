@@ -4,7 +4,6 @@ export function OverChartButtonGroup(props: FlexProps<'div'>) {
   return (
     <Flex
       justify={props.justify ? props.justify : {sm: 'end', md: 'between'}}
-      marginBottom="md"
       gap="xs"
       {...props}
     />

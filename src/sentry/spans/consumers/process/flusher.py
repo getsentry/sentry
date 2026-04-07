@@ -333,14 +333,18 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                         if not flushed_segment.spans:
                             continue
 
-                        spans = [span.payload for span in flushed_segment.spans]
-                        kafka_payload = KafkaPayload(None, orjson.dumps({"spans": spans}), [])
-                        metrics.timing(
-                            "spans.buffer.segment_size_bytes",
-                            len(kafka_payload.value),
-                            tags={"shard": shard_tag},
-                        )
-                        produce(flushed_segment.project_id, kafka_payload, len(spans))
+                        for message in flushed_segment.to_messages():
+                            kafka_payload = KafkaPayload(None, orjson.dumps(message), [])
+                            metrics.timing(
+                                "spans.buffer.segment_size_bytes",
+                                len(kafka_payload.value),
+                                tags={"shard": shard_tag},
+                            )
+                            produce(
+                                flushed_segment.project_id,
+                                kafka_payload,
+                                len(message["spans"]),
+                            )
 
                 with metrics.timer("spans.buffer.flusher.wait_produce", tags={"shards": shard_tag}):
                     for project_id, future, dropped in producer_futures:

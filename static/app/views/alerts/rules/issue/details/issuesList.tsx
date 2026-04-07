@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -15,10 +16,10 @@ import {t} from 'sentry/locale';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
 
@@ -45,25 +46,15 @@ export function AlertRuleIssuesList({
   cursor,
 }: Props) {
   const organization = useOrganization();
-  const {
-    data: groupHistory,
-    getResponseHeader,
-    isPending,
-    isError,
-    error,
-  } = useApiQuery<GroupHistory[]>(
-    [
-      getApiUrl(
-        '/projects/$organizationIdOrSlug/$projectIdOrSlug/rules/$ruleId/group-history/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: project.slug,
-            ruleId: rule.id,
-          },
-        }
-      ),
+  const {data, isPending, error} = useQuery({
+    ...apiOptions.as<GroupHistory[]>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/rules/$ruleId/group-history/',
       {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: project.slug,
+          ruleId: rule.id,
+        },
         query: {
           per_page: 10,
           ...(period && {statsPeriod: period}),
@@ -72,15 +63,17 @@ export function AlertRuleIssuesList({
           utc,
           cursor,
         },
-      },
-    ],
-    {staleTime: 0}
-  );
+        staleTime: 0,
+      }
+    ),
+    select: selectJsonWithHeaders,
+  });
+  const groupHistory = data?.json;
 
-  if (isError) {
+  if (error instanceof RequestError) {
     return (
       <LoadingError
-        message={(error?.responseJSON?.detail as string) ?? t('default message')}
+        message={(error.responseJSON?.detail as string) ?? t('default message')}
       />
     );
   }
@@ -140,7 +133,7 @@ export function AlertRuleIssuesList({
         })}
       </StyledPanelTable>
       <Flex justify="end" align="center" marginBottom="xl">
-        <StyledPagination pageLinks={getResponseHeader?.('Link')} size="xs" />
+        <StyledPagination pageLinks={data?.headers.Link} size="xs" />
       </Flex>
     </Fragment>
   );

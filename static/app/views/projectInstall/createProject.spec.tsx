@@ -781,7 +781,9 @@ describe('CreateProject', () => {
       expect(await screen.findByText('Channel not found')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Create Project'})).toBeDisabled();
       await userEvent.hover(screen.getByRole('button', {name: 'Create Project'}));
-      expect(await screen.findByText('Channel not found')).toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.getAllByText('Channel not found')).toHaveLength(2)
+      );
       await userEvent.click(screen.getByLabelText('Clear choices'));
       await userEvent.hover(screen.getByRole('button', {name: 'Create Project'}));
       expect(

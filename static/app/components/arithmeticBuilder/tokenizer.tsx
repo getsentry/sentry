@@ -5,6 +5,7 @@ import {
   isTokenFreeText,
   isTokenFunction,
   isTokenLiteral,
+  isTokenReference,
   Operator,
   TokenAttribute,
   TokenCloseParenthesis,
@@ -14,6 +15,7 @@ import {
   TokenLiteral,
   TokenOpenParenthesis,
   TokenOperator,
+  TokenReference,
   type Token,
   type TokenParenthesis,
 } from 'sentry/components/arithmeticBuilder/token';
@@ -44,28 +46,30 @@ function space(prev: LocationRange | null, next: LocationRange | null): TokenFre
   return new TokenFreeText(location, '');
 }
 
-function tryTokenizeExpression(expression: string): Token[] {
+function tryTokenizeExpression(expression: string, references?: Set<string>): Token[] {
   if (!expression.trim()) {
     return [];
   }
 
-  const tc = new TokenConverter();
+  const tc = new TokenConverter(references);
   return parse(expression, {tc});
 }
 
-export function tokenizeExpression(expression: string): Token[] {
+export function tokenizeExpression(
+  expression: string,
+  references?: Set<string>
+): Token[] {
   let loc: LocationRange | null = null;
-
   const tokens: Token[] = [];
 
-  for (const token of tryTokenizeExpression(expression)) {
+  for (const token of tryTokenizeExpression(expression, references)) {
     const prev = tokens[tokens.length - 1];
     if (isTokenFreeText(token) && isTokenFreeText(prev)) {
       prev.merge(token);
     } else if (
       isTokenLiteral(token) &&
       defined(token.sign) &&
-      (isTokenLiteral(prev) || isTokenFunction(prev))
+      (isTokenLiteral(prev) || isTokenFunction(prev) || isTokenReference(prev))
     ) {
       // Because we're tokenizing expressions, we have to permit some intermedate
       // invalid states. As a result, we greedily pair positive/negative signs with
@@ -110,6 +114,7 @@ export function tokenizeExpression(expression: string): Token[] {
     [TokenKind.ATTRIBUTE]: 0,
     [TokenKind.FUNCTION]: 0,
     [TokenKind.LITERAL]: 0,
+    [TokenKind.REFERENCE]: 0,
   };
 
   // assign an unique key to each token based on it's type
@@ -181,6 +186,25 @@ class ArithmeticError extends Error {
 }
 
 class TokenConverter {
+  /**
+   * A map of reference aliases to their corresponding values.
+   */
+  private references = new Set<string>();
+
+  constructor(references?: Set<string>) {
+    if (references) {
+      this.references = references;
+    }
+  }
+
+  isReference(value: string): boolean {
+    return this.references.has(value);
+  }
+
+  tokenReference(value: string, location: LocationRange): TokenReference {
+    return new TokenReference(location, value);
+  }
+
   tokenParenthesis(parenthesis: string, location: LocationRange): TokenParenthesis {
     if (parenthesis === '(') {
       return new TokenOpenParenthesis(location);
@@ -253,6 +277,8 @@ function toTokenKind(kind: string): TokenKind {
       return TokenKind.FUNCTION;
     case TokenKind.LITERAL:
       return TokenKind.LITERAL;
+    case TokenKind.REFERENCE:
+      return TokenKind.REFERENCE;
     default:
       throw new ArithmeticError(`Unknown token kind: ${kind}`);
   }

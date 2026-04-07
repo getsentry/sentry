@@ -124,13 +124,20 @@ function DashboardInner({
   const organization = useOrganization();
   const api = useApi();
 
+  const {selection} = usePageFilters();
+
   // Push dashboard metadata into the LLM context tree for Seer Explorer.
   useLLMContext({
+    contextHint:
+      'This is a Sentry dashboard. The dateRange, environments, and projects below are global page filters that scope every widget query. Each child widget node contains its own query config that can be used with the telemetry_live_search tool to fetch or drill into its data.',
     title: dashboard.title,
     widgetCount: dashboard.widgets.length,
     filters: dashboard.filters,
+    isEditingDashboard,
+    dateRange: selection.datetime,
+    environments: selection.environments,
+    projects: selection.projects,
   });
-  const {selection} = usePageFilters();
   const {queue} = useWidgetQueryQueue();
   const layouts = useMemo<LayoutState>(() => {
     const desktopLayout = getDashboardLayout(dashboard.widgets);

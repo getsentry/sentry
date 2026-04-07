@@ -42,7 +42,6 @@ _EXAMPLE_OPEN_PERIOD_CONTEXT = OpenPeriodContext(
 @template_registry.register(NotificationSource.METRIC_ALERT)
 class MetricAlertNotificationTemplate(NotificationTemplate[MetricAlertNotificationData]):
     category = NotificationCategory.METRIC_ALERT
-    hide_from_debugger = True
     example_data = MetricAlertNotificationData(
         group_id=1,
         organization_id=1,
