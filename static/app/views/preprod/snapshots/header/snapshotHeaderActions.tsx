@@ -161,7 +161,9 @@ export function SnapshotHeaderActions({
                     'Automatically approved because the changes match a previously approved build on this PR.'
                   )}
                 >
-                  <IconInfo size="sm" />
+                  <Flex align="center">
+                    <IconInfo size="sm" />
+                  </Flex>
                 </Tooltip>
               )}
             </Flex>
