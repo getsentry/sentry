@@ -29,8 +29,8 @@ import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {FormSize} from 'sentry/utils/theme';
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
-import useOverlay from 'sentry/utils/useOverlay';
-import usePrevious from 'sentry/utils/usePrevious';
+import {useOverlay} from 'sentry/utils/useOverlay';
+import {usePrevious} from 'sentry/utils/usePrevious';
 
 import type {SingleListProps} from './list';
 import type {
@@ -590,6 +590,7 @@ export const TriggerLabel = styled('span')`
 `;
 
 const StyledBadge = styled(Badge)`
+  margin-left: ${p => p.theme.space.xs};
   flex-shrink: 0;
   top: auto;
 `;
@@ -642,7 +643,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   }
 `;
 
-const ClearButton = styled(Button)`
+export const ClearButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
   font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};

@@ -11,7 +11,7 @@ import {useRenderToString} from '@sentry/scraps/renderToString';
 import {Heading} from '@sentry/scraps/text';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
+import {BaseChart, type TooltipOption} from 'sentry/components/charts/baseChart';
 import {
   IconClose,
   IconContract,

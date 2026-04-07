@@ -47,7 +47,11 @@ export function appendTagCondition(
 
   if (
     typeof value === 'string' &&
-    new RegExp(TAG_VALUE_ESCAPE_PATTERN, 'g').test(value)
+    // TODO(JoshuaKGoldberg):
+    //   Unnecessary escape character: \(  regexp/no-useless-escape
+    //   Unnecessary escape character: \)  regexp/no-useless-escape
+    // eslint-disable-next-line regexp/no-useless-escape
+    new RegExp(TAG_VALUE_ESCAPE_PATTERN).test(value)
   ) {
     value = `"${escapeDoubleQuotes(value)}"`;
   }
@@ -72,7 +76,7 @@ export function appendExcludeTagValuesCondition(
       : '';
   const filteredValuesCondition = `[${values
     .map(value => {
-      if (typeof value === 'string' && /[\s"]/g.test(value)) {
+      if (typeof value === 'string' && /[\s"]/.test(value)) {
         value = `"${escapeDoubleQuotes(value)}"`;
       }
       return value;

@@ -3,7 +3,7 @@ import {useCallback} from 'react';
 import {deleteMonitorProcessingErrorByType} from 'sentry/actionCreators/monitors';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {makeMonitorErrorsQueryKey} from 'sentry/views/insights/crons/components/processingErrors/utils';
 import type {
   CheckinProcessingError,

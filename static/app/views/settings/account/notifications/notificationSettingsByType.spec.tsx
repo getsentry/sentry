@@ -2,10 +2,10 @@ import {NotificationDefaultsFixture} from 'sentry-fixture/notificationDefaults';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
-import ConfigStore from 'sentry/stores/configStore';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 
@@ -326,6 +326,7 @@ describe('NotificationSettingsByType', () => {
         'continuous-profiling-billing',
         'seer-billing',
         'logs-billing',
+        'expose-category-trace-metric-byte',
         'seer-user-billing-launch',
       ],
     });
@@ -437,6 +438,7 @@ describe('NotificationSettingsByType', () => {
     expect(screen.queryByText('UI Profile Hours', {exact: true})).not.toBeInTheDocument();
     expect(screen.queryByText('Spans')).not.toBeInTheDocument();
     expect(screen.getByText('Seer Budget')).toBeInTheDocument();
+    expect(screen.getByText('Size Analysis Builds')).toBeInTheDocument();
   });
 
   it('spend notifications on org with am3 without spend visibility notifications', async () => {
@@ -500,6 +502,7 @@ describe('NotificationSettingsByType', () => {
         // No continuous-profiling-billing feature
         // No seer-billing feature
         // No logs-billing feature
+        // No expose-category-trace-metric-byte feature
       ],
     });
     renderComponent({
@@ -524,6 +527,7 @@ describe('NotificationSettingsByType', () => {
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
     expect(screen.queryByText('Seer Budget')).not.toBeInTheDocument();
     expect(screen.queryByText('Logs')).not.toBeInTheDocument();
+    expect(screen.queryByText('Metrics (Bytes)')).not.toBeInTheDocument();
     expect(screen.queryByText('Active Contributors')).not.toBeInTheDocument();
   });
 });

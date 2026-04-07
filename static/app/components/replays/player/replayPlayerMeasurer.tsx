@@ -3,7 +3,7 @@ import {useEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import divide from 'sentry/utils/number/divide';
+import {divide} from 'sentry/utils/number/divide';
 import {useReplayPlayerSize} from 'sentry/utils/replays/playback/providers/replayPlayerSizeContext';
 import {useReplayPlayerState} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 import {useDimensions} from 'sentry/utils/useDimensions';

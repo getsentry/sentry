@@ -3,7 +3,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 const learnMoreClicked = ({
   source,

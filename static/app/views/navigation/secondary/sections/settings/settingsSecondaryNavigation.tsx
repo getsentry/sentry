@@ -1,22 +1,19 @@
 import {defined} from 'sentry/utils';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
-import {useActiveNavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import OrganizationSettingsNavigation from 'sentry/views/settings/organization/organizationSettingsNavigation';
 import ProjectSettingsNavigation from 'sentry/views/settings/project/projectSettingsNavigation';
 
 export function SettingsSecondaryNavigation() {
-  const organization = useOrganization();
   const params = useParams();
-  const activeNavigationGroup = useActiveNavigationGroup();
-  const isProjectSettings =
-    defined(params.projectId) &&
-    activeNavigationGroup === PrimaryNavigationGroup.SETTINGS;
+  const organization = useOrganization();
+  const {activeGroup} = usePrimaryNavigation();
 
-  return isProjectSettings ? (
-    <ProjectSettingsNavigation organization={organization} />
-  ) : (
-    <OrganizationSettingsNavigation organization={organization} />
-  );
+  // Show project settings when user is on /settings/:orgId/projects/:projectId
+  if (activeGroup === 'settings' && defined(params.projectId)) {
+    return <ProjectSettingsNavigation organization={organization} />;
+  }
+
+  return <OrganizationSettingsNavigation organization={organization} />;
 }

@@ -6,12 +6,12 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import InputField from 'sentry/components/forms/fields/inputField';
-import NumberField from 'sentry/components/forms/fields/numberField';
-import TextField from 'sentry/components/forms/fields/textField';
-import Form, {type FormProps} from 'sentry/components/forms/form';
+import {InputField} from 'sentry/components/forms/fields/inputField';
+import {NumberField} from 'sentry/components/forms/fields/numberField';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {Form, type FormProps} from 'sentry/components/forms/form';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 import type {Subscription} from 'getsentry/types';
 import {formatBalance} from 'getsentry/utils/billing';
@@ -151,8 +151,6 @@ function ChangeBalanceModal({
   );
 }
 
-const triggerChangeBalanceModal = (
+export const triggerChangeBalanceModal = (
   opts: Omit<ChangeBalanceModalProps, keyof ModalRenderProps>
 ) => openModal(deps => <ChangeBalanceModal {...deps} {...opts} />);
-
-export default triggerChangeBalanceModal;

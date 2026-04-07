@@ -2,7 +2,7 @@ import {OrganizationsFixture} from 'sentry-fixture/organizations';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 
 import {OrganizationsSource} from './organizationsSource';
 

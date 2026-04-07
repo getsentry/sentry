@@ -3,13 +3,13 @@ from typing import Any
 
 from django.core.files.base import ContentFile
 from django.db import models
+from taskbroker_client.task import Task
 
 from sentry.db.models.base import control_silo_model
 from sentry.models.files.abstractfile import AbstractFile
 from sentry.models.files.control_fileblob import ControlFileBlob
 from sentry.models.files.control_fileblobindex import ControlFileBlobIndex
 from sentry.tasks.files import delete_unreferenced_blobs_control
-from sentry.taskworker.task import Task
 
 
 @control_silo_model

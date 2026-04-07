@@ -10,7 +10,7 @@ import {ReplayTooltipTime} from 'sentry/components/replays/replayTooltipTime';
 import {IconPlay} from 'sentry/icons';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type Props = {
   startTimestampMs: number;

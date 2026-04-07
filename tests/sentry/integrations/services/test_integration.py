@@ -30,7 +30,7 @@ class BaseIntegrationServiceTest(TestCase):
     def setUp(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.user = self.create_user()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.organization = self.create_organization(owner=self.user)
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration1 = self.create_integration(
@@ -242,6 +242,36 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
         result = integration_service.get_organization_integrations()
         assert len(result) == 0
 
+    def test_get_organization_ids_with_providers(self) -> None:
+        # integration2 is "github" with OI status=PENDING_DELETION
+        # integration1/3 are "example" with OI status=ACTIVE
+
+        # by provider, no status filter
+        result = integration_service.get_organization_ids_with_providers(providers=["github"])
+        assert set(result) == {self.organization.id}
+
+        # by provider with status filter — github OI is PENDING_DELETION, not ACTIVE
+        result = integration_service.get_organization_ids_with_providers(
+            providers=["github"], status=ObjectStatus.ACTIVE
+        )
+        assert result == []
+
+        # active example integrations
+        result = integration_service.get_organization_ids_with_providers(
+            providers=["example"], status=ObjectStatus.ACTIVE
+        )
+        assert set(result) == {self.organization.id}
+
+        # multiple providers
+        result = integration_service.get_organization_ids_with_providers(
+            providers=["github", "example"]
+        )
+        assert set(result) == {self.organization.id}
+
+        # no match
+        result = integration_service.get_organization_ids_with_providers(providers=["nonexistent"])
+        assert result == []
+
     def test_get_organization_integration(self) -> None:
         result = integration_service.get_organization_integration(
             integration_id=self.integration2.id,
@@ -360,7 +390,7 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
 class StartGracePeriodForProviderTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.org1 = self.organization
             self.org2 = self.create_organization(name="Test Org 2")
             self.org3 = self.create_organization(name="Test Org 3")
@@ -412,7 +442,7 @@ class StartGracePeriodForProviderTest(TestCase):
     @freeze_time()
     def test_start_grace_period_for_provider_github_with_skip_oldest(self) -> None:
         grace_period_end = datetime.now(timezone.utc) + timedelta(days=7)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             grace_perioded_ois = integration_service.start_grace_period_for_provider(
                 organization_id=self.org1.id,
                 provider="github",

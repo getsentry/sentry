@@ -9,6 +9,7 @@ import type {
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 
 import {InnerIntentForm} from 'getsentry/components/creditCardEdit/intentForms/innerIntentForm';
@@ -26,8 +27,9 @@ export function SetupIntentForm(props: IntentFormProps) {
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const {url} = parseQueryKey(props.intentDataQueryKey);
   const {intentData, isLoading, isError, error} = useSetupIntentData({
-    endpoint: props.intentDataQueryKey[0],
+    endpoint: url,
   });
 
   const {mutateAsync: updateSubscription} = useMutation({

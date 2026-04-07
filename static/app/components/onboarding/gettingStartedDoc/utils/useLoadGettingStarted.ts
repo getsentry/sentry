@@ -40,9 +40,7 @@ export function useLoadGettingStarted({
   projectKeyId: Project['id'] | undefined;
   refetch: () => void;
 } {
-  const [module, setModule] = useState<undefined | 'none' | {default: Docs<any>}>(
-    undefined
-  );
+  const [module, setModule] = useState<undefined | 'none' | {docs: Docs<any>}>(undefined);
 
   const projectKeys = useProjectKeys({orgSlug, projSlug});
 
@@ -87,7 +85,7 @@ export function useLoadGettingStarted({
     refetch: projectKeys.refetch,
     isLoading: projectKeys.isPending || module === undefined,
     isError: projectKeys.isError,
-    docs: module === 'none' ? null : (module?.default ?? null),
+    docs: module === 'none' ? null : (module?.docs ?? null),
     dsn: projectKeys.data?.[0]?.dsn,
     projectKeyId: projectKeys.data?.[0]?.id,
   };

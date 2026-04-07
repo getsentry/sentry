@@ -33,11 +33,10 @@ import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {useMutation, useQuery, useQueryClient} from 'sentry/utils/queryClient';
-import testableTransition from 'sentry/utils/testableTransition';
-import useApi from 'sentry/utils/useApi';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useApi} from 'sentry/utils/useApi';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
 import {AutofixHighlightPopup} from './autofixHighlightPopup';
@@ -99,7 +98,7 @@ const cardAnimationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
   initial: {opacity: 0, height: 0, scale: 0.8},
   animate: {opacity: 1, height: 'auto', scale: 1},
-  transition: testableTransition({
+  transition: {
     duration: 1.0,
     height: {
       type: 'spring',
@@ -113,7 +112,7 @@ const cardAnimationProps: MotionNodeAnimationOptions = {
       type: 'tween',
       ease: 'easeOut',
     },
-  }),
+  },
 };
 
 export function replaceHeadersWithBold(markdown: string) {
@@ -224,9 +223,11 @@ export function formatRootCauseText(
 
 function CopyRootCauseButton({
   cause,
+  groupId,
   customRootCause,
   event,
 }: {
+  groupId: string;
   cause?: AutofixRootCauseData;
   customRootCause?: string;
   event?: Event;
@@ -241,6 +242,7 @@ function CopyRootCauseButton({
       onClick={() => copy(text, {successMessage: t('Analysis copied to clipboard.')})}
       analyticsEventName="Autofix: Copy Root Cause as Markdown"
       analyticsEventKey="autofix.root_cause.copy"
+      analyticsParams={{group_id: groupId}}
       icon={<IconCopy />}
     >
       {t('Copy')}
@@ -331,8 +333,12 @@ function SolutionActionButton({
         const actionLabel = needsSetup
           ? t('Setup %s', integration.name)
           : t('Send to %s', integration.name);
+        const textValue = hasDuplicateNames
+          ? `${actionLabel} (${integration.id ?? integration.provider})`
+          : actionLabel;
         return {
           key: `agent:${integration.id ?? integration.provider}`,
+          textValue,
           label: (
             <Flex gap="md" align="center">
               <PluginIcon pluginId={integration.provider} size={20} />
@@ -526,9 +532,11 @@ function AutofixRootCauseDisplay({
 
     setSolutionText('');
 
-    trackAnalytics('autofix.coding_agent.launch_from_root_cause', {
+    trackAnalytics('autofix.coding_agent.launch', {
       organization,
       group_id: groupId,
+      step: 'root_cause',
+      provider: integration.provider,
     });
     trackAnalytics('coding_integration.send_to_agent_clicked', {
       organization,
@@ -573,6 +581,7 @@ function AutofixRootCauseDisplay({
           <Flex justify="end" align="center" paddingTop="xl" gap="md">
             <ButtonBar>
               <CopyRootCauseButton
+                groupId={groupId}
                 customRootCause={rootCauseSelection.custom_root_cause}
                 event={event}
               />
@@ -605,6 +614,7 @@ function AutofixRootCauseDisplay({
             onClick={handleSelectDescription}
             analyticsEventName="Autofix: Root Cause Chat"
             analyticsEventKey="autofix.root_cause.chat"
+            analyticsParams={{group_id: groupId}}
           >
             <IconChat />
           </Button>
@@ -658,7 +668,7 @@ function AutofixRootCauseDisplay({
           }}
         />
         <ButtonBar>
-          <CopyRootCauseButton cause={cause} event={event} />
+          <CopyRootCauseButton groupId={groupId} cause={cause} event={event} />
           <SolutionActionButton
             codingAgentIntegrations={codingAgentIntegrations}
             preferredAction={preferredAction}

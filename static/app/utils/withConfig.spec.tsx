@@ -1,6 +1,6 @@
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
 import {withConfig} from 'sentry/utils/withConfig';
 

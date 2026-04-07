@@ -1,6 +1,6 @@
 import type {Project} from 'sentry/types/project';
 import {useParams} from 'sentry/utils/useParams';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 
 export function useCurrentProjectFromRouteParam(): Project | null {
   const params = useParams();

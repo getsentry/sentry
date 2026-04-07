@@ -1713,7 +1713,7 @@ class TestWebhookRequests(TestCase):
         assert first_request["event_type"] == "issue.assigned"
         assert first_request["organization_id"] == self.install.organization_id
         assert first_request["error_id"] == "d5111da2c28645c5889d072017e3445d"
-        assert first_request["project_id"] == "1"
+        assert first_request["project_id"] == 1
 
 
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
@@ -1739,7 +1739,7 @@ class TestExpandedSentryAppsWebhooks(TestCase):
             project_id=self.project.id,
         )
         assert event.group is not None
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             event.group.update(type=4001)
 
         with self.tasks():
@@ -1801,8 +1801,8 @@ class TestBackfillServiceHooksEvents(TestCase):
             organization=self.organization, slug=self.sentry_app.slug
         )
 
-    def test_regenerate_service_hook_for_installation_success(self):
-        with assume_test_silo_mode(SiloMode.REGION):
+    def test_regenerate_service_hook_for_installation_success(self) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
             hook = ServiceHook.objects.get(installation_id=self.install.id)
             hook.events = ["issue.resolved", "error.created"]
             hook.save()
@@ -1814,11 +1814,11 @@ class TestBackfillServiceHooksEvents(TestCase):
                 events=self.sentry_app.events,
             )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             hook.refresh_from_db()
             assert set(hook.events) == {"issue.created", "issue.resolved", "error.created"}
 
-    def test_regenerate_service_hook_for_installation_event_not_in_app_events(self):
+    def test_regenerate_service_hook_for_installation_event_not_in_app_events(self) -> None:
         with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL):
             regenerate_service_hooks_for_installation(
                 installation_id=self.install.id,
@@ -1826,16 +1826,16 @@ class TestBackfillServiceHooksEvents(TestCase):
                 events=self.sentry_app.events,
             )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             hook = ServiceHook.objects.get(installation_id=self.install.id)
             assert set(hook.events) == {"issue.created", "issue.resolved", "error.created"}
 
-    def test_regenerate_service_hook_for_installation_with_empty_app_events(self):
+    def test_regenerate_service_hook_for_installation_with_empty_app_events(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.sentry_app.update(events=[])
             assert self.sentry_app.events == []
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             hook = ServiceHook.objects.get(installation_id=self.install.id)
             assert hook.events != []
 
@@ -1846,6 +1846,6 @@ class TestBackfillServiceHooksEvents(TestCase):
                 events=self.sentry_app.events,
             )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             hook.refresh_from_db()
             assert hook.events == []

@@ -3,9 +3,9 @@ import {useCallback} from 'react';
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import type {RequestOptions} from 'sentry/api';
 import type {FormProps} from 'sentry/components/forms/form';
-import Form from 'sentry/components/forms/form';
+import {Form} from 'sentry/components/forms/form';
 import {t} from 'sentry/locale';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 type Props = FormProps & {
   apiEndpoint: string;

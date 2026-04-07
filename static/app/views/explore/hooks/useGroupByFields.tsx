@@ -5,7 +5,7 @@ import type {SelectOption} from '@sentry/scraps/compactSelect';
 
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
-import {FieldKind, prettifyTagKey} from 'sentry/utils/fields';
+import {FieldKind, getFieldDefinition, prettifyTagKey} from 'sentry/utils/fields';
 import {optionFromTag} from 'sentry/views/explore/components/attributeOption';
 import {UNGROUPED} from 'sentry/views/explore/contexts/pageParamsContext/groupBys';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -66,6 +66,13 @@ export function useGroupByFields({
         return true;
       })
       .toSorted((a, b) => {
+        const aKnown =
+          getFieldDefinition(a.value, TRACE_ITEM_FIELD_DEFINITION_TYPE[traceItemType]) !==
+          null;
+        const bKnown =
+          getFieldDefinition(b.value, TRACE_ITEM_FIELD_DEFINITION_TYPE[traceItemType]) !==
+          null;
+        if (aKnown !== bKnown) return aKnown ? -1 : 1;
         const aLabel = typeof a.label === 'string' ? a.label : (a.textValue ?? '');
         const bLabel = typeof b.label === 'string' ? b.label : (b.textValue ?? '');
         return aLabel.localeCompare(bLabel);
@@ -86,6 +93,14 @@ export function useGroupByFields({
     ];
   }, [booleanTags, groupBys, hideEmptyOption, numberTags, stringTags, traceItemType]);
 }
+
+const TRACE_ITEM_FIELD_DEFINITION_TYPE: Partial<
+  Record<TraceItemDataset, 'span' | 'log' | 'tracemetric'>
+> = {
+  [TraceItemDataset.SPANS]: 'span',
+  [TraceItemDataset.LOGS]: 'log',
+  [TraceItemDataset.TRACEMETRICS]: 'tracemetric',
+};
 
 // Some fields don't make sense to allow users to group by as they create
 // very high cardinality groupings and is not useful.

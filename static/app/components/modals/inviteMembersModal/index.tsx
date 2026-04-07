@@ -2,7 +2,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {
@@ -13,13 +13,13 @@ import {InviteMembersContext} from 'sentry/components/modals/inviteMembersModal/
 import {InviteMembersFooter} from 'sentry/components/modals/inviteMembersModal/inviteMembersFooter';
 import {InviteRowControl} from 'sentry/components/modals/inviteMembersModal/inviteRowControl';
 import type {InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
-import useInviteModal from 'sentry/components/modals/inviteMembersModal/useInviteModal';
+import {useInviteModal} from 'sentry/components/modals/inviteMembersModal/useInviteModal';
 import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';
 import {ORG_ROLES} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import HookStore from 'sentry/stores/hookStore';
+import {HookStore} from 'sentry/stores/hookStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface InviteMembersModalProps extends ModalRenderProps {
   initialData?: Array<Partial<InviteRow>>;

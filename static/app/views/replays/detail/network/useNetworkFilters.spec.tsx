@@ -9,12 +9,12 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
+import {hydrateSpans} from 'sentry/utils/replays/hydrateSpans';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {FilterFields, NetworkSelectOption} from './useNetworkFilters';
-import useNetworkFilters from './useNetworkFilters';
+import {useNetworkFilters} from './useNetworkFilters';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useNavigate');

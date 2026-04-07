@@ -133,7 +133,7 @@ class ActivityNotificationTest(APITestCase):
 
         # leave a comment
         url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/comments/"
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             with self.tasks():
                 response = self.client.post(url, format="json", data={"text": "blah blah"})
             assert response.status_code == 201, response.content
@@ -171,7 +171,7 @@ class ActivityNotificationTest(APITestCase):
         the expected values when an issue is unassigned.
         """
         url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/"
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             GroupAssignee.objects.create(
                 group=self.group,
                 project=self.project,
@@ -240,7 +240,7 @@ class ActivityNotificationTest(APITestCase):
         the expected values when an issue is resolved.
         """
         url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/"
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             with self.tasks():
                 response = self.client.put(url, format="json", data={"status": "resolved"})
             assert response.status_code == 200, response.content
@@ -307,7 +307,7 @@ class ActivityNotificationTest(APITestCase):
 
         release = self.create_release()
         version_parsed = self.version_parsed = parse_release(release.version)["description"]
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             url = (
                 f"/api/0/organizations/{self.organization.slug}/releases/{release.version}/deploys/"
             )
@@ -381,7 +381,7 @@ class ActivityNotificationTest(APITestCase):
         """
         # resolve and unresolve the issue
         ts = time() - 300
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             manager = EventManager(make_event(event_id="a" * 32, checksum="a" * 32, timestamp=ts))
             with self.tasks():
                 event = manager.save(self.project.id)
@@ -450,7 +450,7 @@ class ActivityNotificationTest(APITestCase):
         )
 
     def test_regression_enhanced_privacy_context(self, mock_post: MagicMock) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.organization.update(flags=F("flags").bitor(Organization.flags.enhanced_privacy))
             self.organization.refresh_from_db()
 
@@ -466,7 +466,7 @@ class ActivityNotificationTest(APITestCase):
             assert context["enhanced_privacy"]
 
     def test_regression_enhanced_privacy_subject(self, mock_post: MagicMock) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.organization.update(flags=F("flags").bitor(Organization.flags.enhanced_privacy))
             self.organization.refresh_from_db()
 
@@ -483,7 +483,7 @@ class ActivityNotificationTest(APITestCase):
             assert self.group.title not in subject
 
     def test_regression_enhanced_privacy_email(self, mock_post: MagicMock) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.organization.update(flags=F("flags").bitor(Organization.flags.enhanced_privacy))
             self.organization.refresh_from_db()
 
@@ -522,7 +522,7 @@ class ActivityNotificationTest(APITestCase):
         the expected values when an issue is resolved by a release.
         """
         release = self.create_release()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/"
             with self.tasks():
                 response = self.client.put(
@@ -605,7 +605,7 @@ class ActivityNotificationTest(APITestCase):
             "targetType": "Member",
             "targetIdentifier": str(self.user.id),
         }
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.create_project_rule(
                 name="a rule",
                 action_data=[action_data],

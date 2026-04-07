@@ -15,11 +15,10 @@ import userMiseryImg from 'getsentry-images/features/user-misery.svg';
 
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import testableTransition from 'sentry/utils/testableTransition';
 
 import type {Subscription} from 'getsentry/types';
 import {getTrialLength, hasPerformance, isTrialPlan} from 'getsentry/utils/billing';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 import {FeatureList} from './featureList';
 import {Footer} from './footer';
@@ -208,7 +207,7 @@ const PERFORMANCE_FEATURES = selectFeatures([
   'user-misery',
 ]).filter(Boolean);
 
-class Body extends Component<Props, State> {
+export class Details extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
@@ -476,15 +475,12 @@ const featureContentAnimation = {
   exit: {
     opacity: 0,
     x: 20,
-    transition: testableTransition(),
   },
   animate: {
     opacity: 1,
     x: 0,
-    transition: testableTransition({
+    transition: {
       delay: 0.02,
-    }),
+    },
   },
 };
-
-export default Body;

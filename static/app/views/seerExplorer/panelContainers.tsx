@@ -46,7 +46,7 @@ function getStatusText(blocks: Block[]): string {
   return t('Analyzing...');
 }
 
-function PanelContainers({
+export function PanelContainers({
   isOpen,
   isMinimized,
   isMobile,
@@ -135,8 +135,6 @@ function PanelContainers({
     </AnimatePresence>
   );
 }
-
-export default PanelContainers;
 
 const PanelBackdrop = styled(motion.div)`
   position: fixed;

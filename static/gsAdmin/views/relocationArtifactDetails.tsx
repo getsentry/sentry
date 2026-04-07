@@ -3,12 +3,12 @@ import {CodeBlock} from '@sentry/scraps/code';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconFile} from 'sentry/icons/iconFile';
-import ConfigStore from 'sentry/stores/configStore';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useParams} from 'sentry/utils/useParams';
 
-import DetailsPage from 'admin/components/detailsPage';
+import {DetailsPage} from 'admin/components/detailsPage';
 
 type RelocationData = {
   contents: string;

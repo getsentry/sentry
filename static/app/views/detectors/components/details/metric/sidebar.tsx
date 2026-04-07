@@ -3,12 +3,12 @@ import {Link} from 'react-router-dom';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t} from 'sentry/locale';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
 import {DetectorDetailsDescription} from 'sentry/views/detectors/components/details/common/description';
@@ -44,11 +44,11 @@ function GoToMetricAlert({detector}: {detector: MetricDetector}) {
 export function MetricDetectorDetailsSidebar({detector}: DetectorDetailsSidebarProps) {
   return (
     <Fragment>
-      <Section title={t('Detect')}>
+      <DetailSection title={t('Detect')}>
         <ErrorBoundary mini>
           <MetricDetectorDetailsDetect detector={detector} />
         </ErrorBoundary>
-      </Section>
+      </DetailSection>
       <DetectorDetailsAssignee owner={detector.owner} />
       <DetectorDetailsDescription description={detector.description} />
       <DetectorExtraDetails>

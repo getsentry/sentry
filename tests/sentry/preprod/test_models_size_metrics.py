@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
-@region_silo_test
+@cell_silo_test
 class PreprodArtifactSizeMetricsTest(TestCase):
     """Tests for PreprodArtifact size metrics related methods."""
 
-    def test_get_size_metrics_filtering(self):
+    def test_get_size_metrics_filtering(self) -> None:
         """Test the get_size_metrics method with various filters."""
         artifact = self.create_preprod_artifact(app_id="com.example.filtering")
 
@@ -83,7 +83,7 @@ class PreprodArtifactSizeMetricsTest(TestCase):
         no_matches = artifact.get_size_metrics(identifier="nonexistent")
         assert no_matches.count() == 0
 
-    def test_get_size_metrics_for_artifacts_bulk(self):
+    def test_get_size_metrics_for_artifacts_bulk(self) -> None:
         """Test the bulk get_size_metrics_for_artifacts classmethod."""
         artifact1 = self.create_preprod_artifact(app_id="com.example.bulk1")
         artifact2 = self.create_preprod_artifact(app_id="com.example.bulk2")
@@ -157,7 +157,7 @@ class PreprodArtifactSizeMetricsTest(TestCase):
         empty_results = PreprodArtifact.get_size_metrics_for_artifacts([])
         assert empty_results == {}
 
-    def test_get_size_metrics_ignores_other_artifacts(self):
+    def test_get_size_metrics_ignores_other_artifacts(self) -> None:
         """Test that get_size_metrics only returns metrics for the specific artifact."""
         artifact1 = self.create_preprod_artifact(app_id="com.example.app1")
         artifact2 = self.create_preprod_artifact(app_id="com.example.app2")

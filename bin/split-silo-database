@@ -130,7 +130,7 @@ def main(database: str, reset: bool, verbose: bool, legacy_region_name: str):
             continue
         if SiloMode.CONTROL in silo_limit.modes:
             control_tables.append(model._meta.db_table)
-        if SiloMode.REGION in silo_limit.modes:
+        if SiloMode.CELL in silo_limit.modes:
             region_tables.append(model._meta.db_table)
 
     revise_organization_mappings(legacy_region_name=legacy_region_name)

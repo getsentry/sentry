@@ -2,7 +2,7 @@ import {Fragment, useEffect, useRef, useState} from 'react';
 import upperFirst from 'lodash/upperFirst';
 import moment from 'moment-timezone';
 
-import NumberField from 'sentry/components/forms/fields/numberField';
+import {NumberField} from 'sentry/components/forms/fields/numberField';
 
 import type {
   AdminConfirmParams,

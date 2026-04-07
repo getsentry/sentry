@@ -4,13 +4,13 @@ import partition from 'lodash/partition';
 import uniqBy from 'lodash/uniqBy';
 
 import type {Client} from 'sentry/api';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {AvatarProject, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import withApi from 'sentry/utils/withApi';
+import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {withApi} from 'sentry/utils/withApi';
 import {withProjects} from 'sentry/utils/withProjects';
 
 type ProjectPlaceholder = AvatarProject;
@@ -443,9 +443,7 @@ class BaseProjects extends Component<Props, State> {
  * The legacy way of handling this is that `ProjectSummary[]` is expected to be included in an
  * `Organization` as well as being saved to `ProjectsStore`.
  */
-const Projects = withProjects(withApi(BaseProjects));
-
-export default Projects;
+export const Projects = withProjects(withApi(BaseProjects));
 
 type FetchProjectsOptions = {
   cursor?: State['nextCursor'];

@@ -19,9 +19,9 @@ import type {Organization} from 'sentry/types/organization';
 import type {OrgAuthToken} from 'sentry/types/user';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
@@ -114,7 +114,9 @@ function AuthTokenCreateForm({
         >
           <div>
             <div>org:ci</div>
-            <ScopeHelpText>{t('Source Map Upload, Release Creation')}</ScopeHelpText>
+            <ScopeHelpText>
+              {t('Source Map Upload, Release Creation, Code Mappings')}
+            </ScopeHelpText>
           </div>
         </FieldGroup>
       </form.FieldGroup>

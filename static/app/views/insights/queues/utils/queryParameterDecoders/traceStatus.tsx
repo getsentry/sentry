@@ -7,7 +7,9 @@ const DEFAULT = '';
 
 type TraceStatus = (typeof OPTIONS)[number];
 
-export default function decode(value: string | string[] | undefined | null): TraceStatus {
+export function decodeTraceStatus(
+  value: string | string[] | undefined | null
+): TraceStatus {
   const decodedValue = decodeScalar(value, DEFAULT);
 
   if (isAValidOption(decodedValue)) {

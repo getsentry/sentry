@@ -24,7 +24,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import GlobalParams, TeamParams
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.models.team import Team, TeamStatus
 
 
@@ -169,7 +169,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
             with transaction.atomic(router.db_for_write(Team)):
                 team = Team.objects.get(id=team.id, status=TeamStatus.ACTIVE)
                 team.update(slug=new_slug, status=TeamStatus.PENDING_DELETION)
-                scheduled = RegionScheduledDeletion.schedule(team, days=0, actor=request.user)
+                scheduled = CellScheduledDeletion.schedule(team, days=0, actor=request.user)
             self.create_audit_entry(
                 request=request,
                 organization=team.organization,

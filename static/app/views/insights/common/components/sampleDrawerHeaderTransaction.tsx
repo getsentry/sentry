@@ -5,7 +5,7 @@ import * as qs from 'query-string';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 

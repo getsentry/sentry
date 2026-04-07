@@ -1,10 +1,10 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
+import {Content as StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import {NativeContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/nativeContent';
-import findBestThread from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
-import getThreadStacktrace from 'sentry/components/events/interfaces/threads/threadSelector/getThreadStacktrace';
+import {findBestThread} from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
+import {getThreadStacktrace} from 'sentry/components/events/interfaces/threads/threadSelector/getThreadStacktrace';
 import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
 import {GroupPreviewHovercard} from 'sentry/components/groupPreviewTooltip/groupPreviewHovercard';
 import {
@@ -79,16 +79,10 @@ export function StackTracePreviewContent({
     | Partial<React.ComponentProps<typeof StackTraceContent>>;
 
   if (isNativePlatform(platform)) {
-    return (
-      <NativeContent
-        {...commonProps}
-        groupingCurrentLevel={groupingCurrentLevel}
-        hideIcon
-      />
-    );
+    return <NativeContent {...commonProps} groupingCurrentLevel={groupingCurrentLevel} />;
   }
 
-  return <StackTraceContent {...commonProps} expandFirstFrame={false} hideIcon />;
+  return <StackTraceContent {...commonProps} expandFirstFrame={false} />;
 }
 
 type StackTracePreviewProps = {

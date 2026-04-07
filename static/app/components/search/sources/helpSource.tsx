@@ -3,7 +3,7 @@ import type {Result as SearchResult} from '@sentry-internal/global-search';
 import {SentryGlobalSearch, standardSDKSlug} from '@sentry-internal/global-search';
 import dompurify from 'dompurify';
 
-import parseHtmlMarks from 'sentry/utils/parseHtmlMarks';
+import {parseHtmlMarks} from 'sentry/utils/parseHtmlMarks';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 import type {ChildProps, Result, ResultItem} from './types';

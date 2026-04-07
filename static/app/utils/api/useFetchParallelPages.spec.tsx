@@ -3,7 +3,7 @@ import type {ReactNode} from 'react';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import useFetchParallelPages from 'sentry/utils/api/useFetchParallelPages';
+import {useFetchParallelPages} from 'sentry/utils/api/useFetchParallelPages';
 import type {QueryClient} from 'sentry/utils/queryClient';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 

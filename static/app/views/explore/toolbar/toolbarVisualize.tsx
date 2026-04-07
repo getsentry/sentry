@@ -20,6 +20,7 @@ import {
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {VisualizeEquation as VisualizeEquationInput} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeEquation';
+import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   DEFAULT_VISUALIZATION,
@@ -98,54 +99,70 @@ export function ToolbarVisualize({
     [setVisualizes, visualizes]
   );
 
+  const setVisualizesWithOp = useCallback(
+    (columns: Visualize[]) => {
+      setVisualizes(columns.map(v => v.serialize()));
+    },
+    [setVisualizes]
+  );
+
   return (
-    <ToolbarSection data-test-id="section-visualizes">
-      <ToolbarVisualizeHeader />
-      {visualizes.map((visualize, group) => {
-        const label = (
-          <VisualizeLabel
-            index={group}
-            visualize={visualize}
-            onClick={() => toggleVisibility(group)}
-          />
-        );
-        const onDelete = visualizes.length > 1 ? () => handleOnDelete(group) : undefined;
+    <DragNDropContext columns={[...visualizes]} setColumns={setVisualizesWithOp}>
+      {({editableColumns}) => (
+        <ToolbarSection data-test-id="section-visualizes">
+          <ToolbarVisualizeHeader />
+          {editableColumns.map((column, i) => {
+            const visualize = column.column;
+            const dragColumnId = editableColumns.length > 1 ? column.id : undefined;
+            const label = (
+              <VisualizeLabel
+                index={i}
+                visualize={visualize}
+                onClick={() => toggleVisibility(i)}
+              />
+            );
+            const onDelete =
+              editableColumns.length > 1 ? () => handleOnDelete(i) : undefined;
 
-        if (isVisualizeEquation(visualize)) {
-          return (
-            <VisualizeEquationInput
-              key={group}
-              onDelete={onDelete}
-              onReplace={newVisualize => replaceOverlay(group, newVisualize)}
-              visualize={visualize}
-              label={label}
+            if (isVisualizeEquation(visualize)) {
+              return (
+                <VisualizeEquationInput
+                  key={column.id}
+                  dragColumnId={dragColumnId}
+                  onDelete={onDelete}
+                  onReplace={newVisualize => replaceOverlay(i, newVisualize)}
+                  visualize={visualize}
+                  label={label}
+                />
+              );
+            }
+
+            return (
+              <ToolbarVisualizeItem
+                key={column.id}
+                dragColumnId={dragColumnId}
+                onDelete={onDelete}
+                onReplace={newVisualize => replaceOverlay(i, newVisualize)}
+                visualize={visualize}
+                label={label}
+              />
+            );
+          })}
+          <ToolbarFooter>
+            <ToolbarVisualizeAddChart
+              add={addChart}
+              disabled={visualizes.length >= MAX_VISUALIZES}
             />
-          );
-        }
-
-        return (
-          <ToolbarVisualizeItem
-            key={group}
-            onDelete={onDelete}
-            onReplace={newVisualize => replaceOverlay(group, newVisualize)}
-            visualize={visualize}
-            label={label}
-          />
-        );
-      })}
-      <ToolbarFooter>
-        <ToolbarVisualizeAddChart
-          add={addChart}
-          disabled={visualizes.length >= MAX_VISUALIZES}
-        />
-        {allowEquations && (
-          <ToolbarVisualizeAddEquation
-            add={addEquation}
-            disabled={visualizes.length >= MAX_VISUALIZES}
-          />
-        )}
-      </ToolbarFooter>
-    </ToolbarSection>
+            {allowEquations && (
+              <ToolbarVisualizeAddEquation
+                add={addEquation}
+                disabled={visualizes.length >= MAX_VISUALIZES}
+              />
+            )}
+          </ToolbarFooter>
+        </ToolbarSection>
+      )}
+    </DragNDropContext>
   );
 }
 
@@ -153,10 +170,12 @@ interface VisualizeDropdownProps {
   label: ReactNode;
   onReplace: (visualize: Visualize) => void;
   visualize: Visualize;
+  dragColumnId?: number;
   onDelete?: () => void;
 }
 
 function ToolbarVisualizeItem({
+  dragColumnId,
   label,
   onDelete,
   onReplace,
@@ -232,6 +251,7 @@ function ToolbarVisualizeItem({
 
   return (
     <ToolbarVisualizeDropdown
+      dragColumnId={dragColumnId}
       aggregateOptions={aggregateOptions}
       fieldOptions={fieldOptions}
       onChangeAggregate={onChangeAggregate}

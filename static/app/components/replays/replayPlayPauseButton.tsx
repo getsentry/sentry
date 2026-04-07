@@ -5,7 +5,7 @@ import {ReplayPlayPauseButton as NewReplayPlayPauseButton} from 'sentry/componen
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconPause, IconPlay, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function ReplayPlayPauseButton({
   isLoading,

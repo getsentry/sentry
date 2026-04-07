@@ -18,6 +18,8 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {IconStar} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
+import {OnTabClickExample} from './__stories__/components';
+
 export const documentation = import('!!type-loader!@sentry/scraps/code/codeBlock');
 
 export const sampleJavaScript = `Sentry.init({
@@ -293,29 +295,6 @@ press the copy button?');
 ### onTabClick Callback
 
 Fires when the user switches tabs.
-
-export function OnTabClickExample() {
-  const [tab, setTab] = useState('npm');
-  function handleTabClick(t) {
-      setTab(t);
-      addSuccessMessage('Clicked a different tab');
-  };
-
-return (
-
-<CodeBlock
-tabs={[
-{label: 'npm', value: 'npm'},
-{label: 'Yarn', value: 'yarn'},
-]}
-selectedTab={tab}
-onTabClick={handleTabClick}
-language="bash" >
-{tab === 'npm' ? `npm install --save @sentry/browser` : 'yarn add @sentry/browser'}
-
-</CodeBlock>
-);
-}
 
 <Storybook.Demo>
   <p>Try switching tabs:</p>

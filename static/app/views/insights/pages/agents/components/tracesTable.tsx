@@ -9,43 +9,52 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import Pagination from 'sentry/components/pagination';
-import Placeholder from 'sentry/components/placeholder';
-import GridEditable, {
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Pagination} from 'sentry/components/pagination';
+import {Placeholder} from 'sentry/components/placeholder';
+import {
   COL_WIDTH_UNDEFINED,
+  GridEditable,
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
-import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
-import TimeSince from 'sentry/components/timeSince';
+import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {isOverflown} from 'sentry/utils/useHoverOverlay';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {WidgetType, type DashboardFilters} from 'sentry/views/dashboards/types';
+import {applyDashboardFilters} from 'sentry/views/dashboards/utils';
 import {FRAMELESS_STYLES} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import {CurrencyCell} from 'sentry/views/insights/common/components/tableCells/currencyCell';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {useTraceViewDrawer} from 'sentry/views/insights/pages/agents/components/drawer';
-import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
+import {resolveAgentName} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   ErrorCell,
   NumberPlaceholder,
 } from 'sentry/views/insights/pages/agents/utils/cells';
 import {
   getAgentRunsFilter,
+  getHasAgentNameFilter,
   getHasAiSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 interface TableData {
   agents: string[];
@@ -89,17 +98,21 @@ const rightAlignColumns = new Set([
 const DEFAULT_LIMIT = 10;
 
 interface TracesTableProps {
-  openTraceViewDrawer: ReturnType<typeof useTraceViewDrawer>['openTraceViewDrawer'];
+  dashboardFilters?: DashboardFilters;
   frameless?: boolean;
   limit?: number;
+  linkToTraceView?: boolean;
+  openTraceViewDrawer?: ReturnType<typeof useTraceViewDrawer>['openTraceViewDrawer'];
   tableWidths?: number[];
 }
 
 export function TracesTable({
   openTraceViewDrawer,
   frameless,
+  dashboardFilters,
   limit = DEFAULT_LIMIT,
   tableWidths,
+  linkToTraceView,
 }: TracesTableProps) {
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
     columns:
@@ -112,7 +125,13 @@ export function TracesTable({
         : defaultColumnOrder,
   });
 
-  const combinedQuery = useCombinedQuery(getHasAiSpansFilter());
+  const combinedQuery =
+    applyDashboardFilters(
+      useCombinedQuery(getHasAiSpansFilter()),
+      dashboardFilters,
+      WidgetType.SPANS // This widget technically has its own widget type, but it uses the spans dataset
+    ) ?? '';
+
   const {cursor, setCursor} = useTableCursor();
 
   const tracesRequest = useTraces({
@@ -146,8 +165,8 @@ export function TracesTable({
 
   const agentsRequest = useSpans(
     {
-      search: `${getAgentRunsFilter()} has:gen_ai.agent.name trace:[${tracesRequest.data?.data.map(span => `"${span.trace}"`).join(',')}]`,
-      fields: ['trace', 'gen_ai.agent.name', 'timestamp'],
+      search: `${getAgentRunsFilter()} ${getHasAgentNameFilter()} trace:[${tracesRequest.data?.data.map(span => `"${span.trace}"`).join(',')}]`,
+      fields: ['trace', 'gen_ai.agent.name', 'gen_ai.function_id', 'timestamp'],
       sorts: [{field: 'timestamp', kind: 'asc'}],
       samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
       enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
@@ -160,9 +179,12 @@ export function TracesTable({
       return new Map();
     }
     return agentsRequest.data.reduce((acc, span) => {
-      const agentsSet = acc.get(span.trace) ?? new Set();
-      agentsSet.add(span['gen_ai.agent.name']);
-      acc.set(span.trace, agentsSet);
+      const agentName = resolveAgentName(span);
+      if (agentName) {
+        const agentsSet = acc.get(span.trace) ?? new Set();
+        agentsSet.add(agentName);
+        acc.set(span.trace, agentsSet);
+      }
       return acc;
     }, new Map<string, Set<string>>());
   }, [agentsRequest.data]);
@@ -173,6 +195,8 @@ export function TracesTable({
       fields: ['trace', 'count(span.duration)'],
       limit: tracesRequest.data?.data.length ?? 0,
       enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
+      samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
+      extrapolationMode: 'none',
     },
     Referrer.TRACES_TABLE
   );
@@ -260,16 +284,16 @@ export function TracesTable({
           dataRow={dataRow}
           query={combinedQuery}
           openTraceViewDrawer={openTraceViewDrawer}
+          linkToTraceView={linkToTraceView}
         />
       );
     },
-    [combinedQuery, openTraceViewDrawer]
+    [combinedQuery, openTraceViewDrawer, linkToTraceView]
   );
 
   const additionalGridProps = frameless
     ? {
         bodyStyle: FRAMELESS_STYLES,
-        fit: 'max-content' as const,
         resizable: true,
         scrollable: true,
         height: '100%',
@@ -294,7 +318,7 @@ export function TracesTable({
   );
 
   if (frameless) {
-    return tableComponent;
+    return <FramelessContainer>{tableComponent}</FramelessContainer>;
   }
   return (
     <Container>
@@ -312,23 +336,41 @@ const BodyCell = memo(function BodyCell({
   dataRow,
   query,
   openTraceViewDrawer,
+  linkToTraceView,
 }: {
   column: GridColumnHeader<string>;
   dataRow: TableData;
-  openTraceViewDrawer: (traceSlug: string, spanId?: string, timestamp?: number) => void;
   query: string;
+  linkToTraceView?: boolean;
+  openTraceViewDrawer?: (traceSlug: string, spanId?: string, timestamp?: number) => void;
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const location = useLocation();
 
   switch (column.key) {
     case 'traceId':
+      if (linkToTraceView || !openTraceViewDrawer) {
+        const traceUrl = getTraceDetailsUrl({
+          organization,
+          traceSlug: dataRow.traceId,
+          dateSelection: normalizeDateTimeParams(selection.datetime),
+          timestamp: dataRow.timestamp / 1000,
+          location: {
+            ...location,
+            query: {},
+          },
+          source: TraceViewSources.AGENT_MONITORING,
+          tab: TraceLayoutTabKeys.AI_SPANS,
+        });
+        return <Link to={traceUrl}>{dataRow.traceId.slice(0, 8)}</Link>;
+      }
       return (
         <span>
           <TraceIdButton
             priority="link"
             onClick={() =>
-              openTraceViewDrawer(dataRow.traceId, undefined, dataRow.timestamp / 1000)
+              openTraceViewDrawer?.(dataRow.traceId, undefined, dataRow.timestamp / 1000)
             }
           >
             {dataRow.traceId.slice(0, 8)}
@@ -379,11 +421,7 @@ const BodyCell = memo(function BodyCell({
       if (dataRow.isSpanDataLoading) {
         return <NumberPlaceholder />;
       }
-      return (
-        <TextAlignRight>
-          <LLMCosts cost={dataRow.totalCost} />
-        </TextAlignRight>
-      );
+      return <CurrencyCell value={dataRow.totalCost} />;
     case 'timestamp':
       return (
         <TextAlignRight>
@@ -490,6 +528,14 @@ function AgentTags({agents}: {agents: string[]}) {
     </Flex>
   );
 }
+
+const FramelessContainer = styled('div')`
+  height: 100%;
+
+  tbody {
+    align-content: start;
+  }
+`;
 
 const GridEditableContainer = styled('div')`
   position: relative;

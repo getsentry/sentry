@@ -7,7 +7,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useParams} from 'sentry/utils/useParams';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {DetectorDetailsContent} from 'sentry/views/detectors/components/details';
 import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 

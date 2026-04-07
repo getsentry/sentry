@@ -4,15 +4,15 @@ import type {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Stack} from '@sentry/scraps/layout';
 
-import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PickProjectToContinue} from 'sentry/components/pickProjectToContinue';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -24,17 +24,17 @@ import type {
   ReleaseProject,
   ReleaseWithHealth,
 } from 'sentry/types/release';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import routeTitleGen from 'sentry/utils/routeTitle';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {getCount} from 'sentry/utils/sessions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import useRouter from 'sentry/utils/useRouter';
+import {useRouter} from 'sentry/utils/useRouter';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import type {ReleaseBounds} from 'sentry/views/releases/utils';
 import {getReleaseBounds, searchReleaseVersion} from 'sentry/views/releases/utils';
@@ -160,7 +160,7 @@ function ReleasesDetail({
       );
       return (
         <SentryDocumentTitle title={pageTitle}>
-          <Layout.Page>
+          <Stack flex={1}>
             <Alert.Container>
               <Alert variant="danger">
                 {possiblyWrongProject
@@ -168,7 +168,7 @@ function ReleasesDetail({
                   : t('There was an error loading the release details')}
               </Alert>
             </Alert.Container>
-          </Layout.Page>
+          </Stack>
         </SentryDocumentTitle>
       );
     },
@@ -189,9 +189,9 @@ function ReleasesDetail({
   if (isPending) {
     return (
       <SentryDocumentTitle title={pageTitle}>
-        <Layout.Page>
+        <Stack flex={1}>
           <LoadingIndicator />
-        </Layout.Page>
+        </Stack>
       </SentryDocumentTitle>
     );
   }
@@ -205,7 +205,7 @@ function ReleasesDetail({
 
   return (
     <SentryDocumentTitle title={pageTitle}>
-      <Layout.Page>
+      <Stack flex={1}>
         <NoProjectMessage organization={organization}>
           <ReleaseHeader
             location={location}
@@ -230,7 +230,7 @@ function ReleasesDetail({
             {children}
           </ReleaseContext>
         </NoProjectMessage>
-      </Layout.Page>
+      </Stack>
     </SentryDocumentTitle>
   );
 }
@@ -267,20 +267,20 @@ function ReleasesDetailContainer() {
 
   if (isPending) {
     return (
-      <Layout.Page>
+      <Stack flex={1}>
         <LoadingIndicator />
-      </Layout.Page>
+      </Stack>
     );
   }
 
   if (isError && error.status === 404) {
     // This catches a 404 coming from the release endpoint and displays a custom error message.
     return (
-      <Layout.Page withPadding>
+      <Stack flex={1} padding="2xl 3xl">
         <Alert.Container>
           <Alert variant="danger">{t('This release could not be found.')}</Alert>
         </Alert.Container>
-      </Layout.Page>
+      </Stack>
     );
   }
 

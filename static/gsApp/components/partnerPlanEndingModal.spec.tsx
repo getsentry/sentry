@@ -7,7 +7,7 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import PartnerPlanEndingModal from 'getsentry/components/partnerPlanEndingModal';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {PlanName} from 'getsentry/types';
 
 describe('PartnerPlanEndingModal', () => {

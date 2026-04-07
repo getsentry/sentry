@@ -9,22 +9,16 @@ import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  SidebarButton,
-  SidebarItemUnreadIndicator,
+  PrimaryNavigation,
+  usePrimaryNavigationButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
-import {
-  PrimaryButtonOverlay,
-  usePrimaryButtonOverlay,
-} from 'sentry/views/navigation/primary/primaryButtonOverlay';
-import {NavigationLayout} from 'sentry/views/navigation/types';
 
-import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
+import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 import {useSeerOnboardingStep} from 'getsentry/views/seerAutomation/onboarding/hooks/useSeerOnboardingStep';
 import {Steps} from 'getsentry/views/seerAutomation/onboarding/types';
 
@@ -56,16 +50,15 @@ function useScmIntegrations() {
   );
 
   // Filter to only SCM integrations
-  const scmIntegrations = data?.filter(integration =>
-    SCM_PROVIDER_KEYS.includes(integration.provider.key)
-  );
+  const scmIntegrations =
+    data?.filter(integration => SCM_PROVIDER_KEYS.includes(integration.provider.key)) ??
+    [];
 
-  const hasGithub = scmIntegrations?.some(integration =>
+  const hasGithub = scmIntegrations.some(integration =>
     ['github', 'github_enterprise'].includes(integration.provider.key)
   );
 
   const hasOnlyNonGithubScm =
-    scmIntegrations &&
     scmIntegrations.length > 0 &&
     !hasGithub &&
     scmIntegrations.every(integration =>
@@ -135,36 +128,24 @@ function useReminderCopywriting() {
   const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
   const hasLegacySeer = organization.features.includes('seer-added');
 
-  const descriptionByStep: Record<
-    Steps,
-    {description: string; pathname: string; title: string} | null
-  > = {
+  const descriptionByStep: Record<Steps, {description: string; title: string} | null> = {
     [Steps.CONNECT_GITHUB]: {
       title: t('Connect GitHub'),
       description: t(
         'Seer is enabled, but Github is not connected. Connect your GitHub account to enable Root Cause Analysis and Code Review.'
       ),
-      pathname: hasLegacySeer
-        ? `/settings/${organization.slug}/seer/`
-        : `/settings/${organization.slug}/seer/onboarding/`,
     },
     [Steps.SETUP_ROOT_CAUSE_ANALYSIS]: {
       title: t('Start using Seer\u2019s Issue Autofix'),
       description: t(
         'Seer is enabled but Root Cause Analysis is not configured. Configure Seer to automatically look at issues and generate code fixes.'
       ),
-      pathname: hasLegacySeer
-        ? `/settings/${organization.slug}/seer/`
-        : `/settings/${organization.slug}/seer/onboarding/`,
     },
     [Steps.SETUP_CODE_REVIEW]: {
       title: t('Start using Seer\u2019s AI Code Review'),
       description: t(
         'Seer is enabled but Code Review is not configured. Configure Seer to automatically review PRs and flag potential issues.'
       ),
-      pathname: hasLegacySeer
-        ? `/settings/${organization.slug}/#enablePrReviewTestGeneration`
-        : `/settings/${organization.slug}/seer/onboarding/`,
     },
     [Steps.SETUP_DEFAULTS]: null,
     [Steps.WRAP_UP]: null,
@@ -186,9 +167,7 @@ export function PrimaryNavSeerConfigReminder() {
     triggerProps: overlayTriggerProps,
     overlayProps,
     state,
-  } = usePrimaryButtonOverlay();
-
-  const {layout} = useNavigationContext();
+  } = usePrimaryNavigationButtonOverlay();
 
   const {canSeeReminder, analyticsParams} = useCanSeeReminder(organization);
   const copy = useReminderCopywriting();
@@ -209,28 +188,24 @@ export function PrimaryNavSeerConfigReminder() {
 
   return (
     <Fragment>
-      <SidebarButton
+      <PrimaryNavigation.Button
         analyticsKey="seer-config-reminder"
         analyticsParams={analyticsParams}
         label={t('Configure Seer')}
+        indicator="accent"
         buttonProps={{
           ...overlayTriggerProps,
           icon: <IconSeer />,
         }}
-      >
-        <SidebarItemUnreadIndicator
-          data-test-id="seer-config-reminder-indicator"
-          isMobile={layout === NavigationLayout.MOBILE}
-        />
-      </SidebarButton>
+      />
       {isOpen && (
-        <PrimaryButtonOverlay overlayProps={overlayProps}>
+        <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
           <Stack gap="lg" padding="xl">
             <Heading as="h3">{copy.title}</Heading>
             <Text>{copy.description}</Text>
             <Flex justify="start">
               <LinkButton
-                to={copy.pathname}
+                to={`/settings/${organization.slug}/seer/`}
                 priority="primary"
                 onClick={() => state.close()}
                 analyticsEventName="Seer Config Reminder: Configure Now Clicked"
@@ -240,7 +215,7 @@ export function PrimaryNavSeerConfigReminder() {
               </LinkButton>
             </Flex>
           </Stack>
-        </PrimaryButtonOverlay>
+        </PrimaryNavigation.ButtonOverlay>
       )}
     </Fragment>
   );

@@ -2,22 +2,22 @@ import {useCallback, useEffect, useState} from 'react';
 
 import type {Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import rawTrackAnalyticsEvent from 'getsentry/utils/rawTrackAnalyticsEvent';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
+import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
 import {
   convertToReloadPath,
   getEventPath,
   getUrlFromLocation,
 } from 'getsentry/utils/routeAnalytics';
-import trackMetric from 'getsentry/utils/trackMetric';
+import {trackMetric} from 'getsentry/utils/trackMetric';
 
 export const DELAY_TIME_MS = 7000;
 
 type Props = Parameters<Hooks['react-hook:route-activated']>[0];
 
-export default function useRouteActivatedHook(props: Props) {
+export function useRouteActivatedHook(props: Props) {
   const {routes, location} = props;
   const [analyticsParams, _setRouteAnalyticsParams] = useState({});
   const [disableAnalytics, _setDisableRouteAnalytics] = useState(false);

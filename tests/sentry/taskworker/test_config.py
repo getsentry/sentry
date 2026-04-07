@@ -6,9 +6,9 @@ from typing import Any
 
 import pytest
 from django.conf import settings
+from taskbroker_client.scheduler import crontab
 
 import sentry
-from sentry.conf.types.taskworker import crontab
 from sentry.taskworker.runtime import app
 
 

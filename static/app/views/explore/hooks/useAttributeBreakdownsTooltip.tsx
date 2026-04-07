@@ -3,7 +3,7 @@ import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 
 import type {TooltipOption} from 'sentry/components/charts/baseChart';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {
   useAddSearchFilter,
   useSetQueryParamsGroupBys,
@@ -64,8 +64,6 @@ export function useAttributeBreakdownsTooltipAction(): TooltipActions['onAction'
           break;
         case Actions.COPY_TO_CLIPBOARD:
           copyToClipboard.copy(value);
-          break;
-        default:
           break;
       }
     },
@@ -136,7 +134,6 @@ export function useAttributeBreakdownsTooltip({
     dom.addEventListener('click', handleClickAnywhere);
     dom.addEventListener('mouseleave', handleMouseLeave);
 
-    // eslint-disable-next-line consistent-return
     return () => {
       dom.removeEventListener('click', handleClickAnywhere);
       dom.removeEventListener('mouseleave', handleMouseLeave);
@@ -185,7 +182,6 @@ export function useAttributeBreakdownsTooltip({
     document.addEventListener('mouseover', handleMouseOver);
     document.addEventListener('mouseout', handleMouseOut);
 
-    // eslint-disable-next-line consistent-return
     return () => {
       document.removeEventListener('click', handleClickActions);
       document.removeEventListener('mouseover', handleMouseOver);

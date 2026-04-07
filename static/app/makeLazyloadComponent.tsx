@@ -3,7 +3,7 @@ import {lazy} from 'react';
 import {LazyLoad} from 'sentry/components/lazyLoad';
 import {PRELOAD_HANDLE} from 'sentry/router/preload';
 import {errorHandler} from 'sentry/utils/errorHandler';
-import retryableImport from 'sentry/utils/retryableImport';
+import {retryableImport} from 'sentry/utils/retryableImport';
 
 // LazyExoticComponent Props get crazy when wrapped in an additional layer
 const SafeLazyLoad = errorHandler(LazyLoad) as unknown as React.ComponentType<

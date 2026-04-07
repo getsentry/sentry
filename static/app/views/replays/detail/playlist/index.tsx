@@ -10,7 +10,7 @@ import {
 } from 'sentry/components/replays/table/replayTableColumns';
 import {useReplayPlaylist} from 'sentry/utils/replays/playback/providers/replayPlaylistProvider';
 import {useLocation} from 'sentry/utils/useLocation';
-import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
+import {useAllMobileProj} from 'sentry/views/replays/detail/useAllMobileProj';
 import {ReplaysSearch} from 'sentry/views/replays/list/search';
 
 const VISIBLE_COLUMNS = [

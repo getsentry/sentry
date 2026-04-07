@@ -20,7 +20,7 @@ from sentry.db.models import (
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.utils import slugify_instance
-from sentry.hybridcloud.outbox.base import ReplicatedRegionModel
+from sentry.hybridcloud.outbox.base import ReplicatedCellModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.locks import locks
 from sentry.utils.retries import TimedRetryPolicy
@@ -109,7 +109,7 @@ class TeamStatus:
 
 @snowflake_id_model
 @cell_silo_model
-class Team(ReplicatedRegionModel):
+class Team(ReplicatedCellModel):
     """
     A team represents a group of individuals which maintain ownership of projects.
     """

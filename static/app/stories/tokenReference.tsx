@@ -4,7 +4,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 interface TokenReferenceProps {
   renderToken: (props: {token: string; value: string | number}) => React.ReactNode;
@@ -75,7 +75,7 @@ function Token({
 }
 
 function formatSnippet({token, scale}: {scale: string; token: string}) {
-  const accessor = /^[0-9]/.test(token) ? `["${token}"]` : `.${token}`;
+  const accessor = /^\d/.test(token) ? `["${token}"]` : `.${token}`;
   return `\${p => p.theme.tokens.${scale}${accessor}}`;
 }
 

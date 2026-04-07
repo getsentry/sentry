@@ -10,9 +10,7 @@ import {displayPrice} from 'getsentry/views/amCheckout/utils';
  * 101 => $1.01
  * 150 => $1.50
  */
-const formatCurrency = (value: number | string) => {
+export const formatCurrency = (value: number | string) => {
   const cents = Number(value);
   return displayPrice({cents});
 };
-
-export default formatCurrency;

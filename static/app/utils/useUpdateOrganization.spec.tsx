@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import OrganizationStore from 'sentry/stores/organizationStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 
 import {useUpdateOrganization} from './useUpdateOrganization';

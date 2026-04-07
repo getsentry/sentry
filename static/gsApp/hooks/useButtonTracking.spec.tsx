@@ -8,8 +8,8 @@ import type {ButtonProps} from '@sentry/scraps/button';
 
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-import useButtonTracking from 'getsentry/hooks/useButtonTracking';
-import rawTrackAnalyticsEvent from 'getsentry/utils/rawTrackAnalyticsEvent';
+import {useButtonTracking} from 'getsentry/hooks/useButtonTracking';
+import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
 
 jest.mock('getsentry/utils/rawTrackAnalyticsEvent');
 

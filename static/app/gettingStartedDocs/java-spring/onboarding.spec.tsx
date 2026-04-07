@@ -6,7 +6,7 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 import {PackageManager} from 'sentry/gettingStartedDocs/java/utils';
 
 import {SpringVersion} from './utils';
-import docs from '.';
+import {docs} from '.';
 
 describe('GettingStartedWithSpring', () => {
   it('renders gradle docs correctly', async () => {
@@ -52,7 +52,7 @@ describe('GettingStartedWithSpring', () => {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          /<artifactId>sentry-maven-plugin<\/artifactId>\s*<version>3\.99\.9<\/version>/m
+          /<artifactId>sentry-maven-plugin<\/artifactId>\s*<version>3\.99\.9<\/version>/
         )
       )
     ).toBeInTheDocument();

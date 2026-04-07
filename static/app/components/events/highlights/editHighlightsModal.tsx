@@ -13,7 +13,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getContextMeta} from 'sentry/components/events/contexts/utils';
-import EventTagsTreeRow from 'sentry/components/events/eventTags/eventTagsTreeRow';
+import {EventTagsTreeRow} from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import type {
   HighlightContext,
   HighlightTags,
@@ -29,7 +29,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export interface EditHighlightsModalProps extends ModalRenderProps {
   event: Event;
@@ -325,7 +325,7 @@ function EditContextHighlightSection({
   );
 }
 
-export default function EditHighlightsModal({
+export function EditHighlightsModal({
   Header,
   Body,
   Footer,

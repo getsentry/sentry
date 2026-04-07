@@ -5,6 +5,7 @@ from typing import Any
 
 import sentry_sdk
 from snuba_sdk import DeleteQuery, Request
+from taskbroker_client.retry import Retry
 
 from sentry import eventstream, nodestore, options
 from sentry.deletions.tasks.scheduled import MAX_RETRIES, logger
@@ -19,7 +20,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 from sentry.taskworker.namespaces import deletion_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import UnqualifiedQueryError, bulk_snuba_queries
@@ -43,7 +43,7 @@ class RetryTask(Exception):
         times=MAX_RETRIES,
         delay=60 * 5,
     ),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry(exclude=(DeleteAborted,))
 @track_group_async_operation

@@ -1,6 +1,6 @@
 import {useCallback} from 'react';
 
-import useDrawer from 'sentry/components/globalDrawer';
+import {useDrawer} from 'sentry/components/globalDrawer';
 import {
   DrawerUrlParams,
   useTraceDrawerQueryState,

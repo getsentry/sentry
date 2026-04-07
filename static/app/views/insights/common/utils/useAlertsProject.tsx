@@ -1,5 +1,5 @@
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useProjects} from 'sentry/utils/useProjects';
 
 /**
  * Alerts only support one project at a time, so we need to determine which project to use

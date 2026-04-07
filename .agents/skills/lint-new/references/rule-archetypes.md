@@ -80,14 +80,28 @@ create(context) {
 
 **When**: Rule restricts which JSX elements can appear in specific props or slots.
 
-**Pattern**: Two visitors:
+**Pattern**: Use `createImportTracker` from `src/ast/tracker/imports.ts` for import resolution, plus a `JSXAttribute` visitor for tree walking:
 
-1. `ImportDeclaration` — build a `Set<string>` of allowed local names by resolving imports against a config
+1. `createImportTracker()` — merge its `visitors`, then use `resolve(localName)` or `findLocalNames(source, name)` to check imports
 2. `JSXAttribute` — when a configured prop is found, recursively walk the JSX tree checking each element against the allowed set
+
+```typescript
+create(context) {
+  const importTracker = createImportTracker();
+
+  return {
+    ...importTracker.visitors,
+    JSXAttribute(node) {
+      // Use importTracker.resolve(displayName) to check where an element comes from
+      // Use importTracker.findLocalNames(source, name) to find local aliases
+    },
+  };
+}
+```
 
 **Key patterns**:
 
-- Handle import aliasing: `import {Foo as Bar}` means `Bar` is the local name
+- Handle import aliasing: `import {Foo as Bar}` means `Bar` is the local name — `importTracker.resolve('Bar')` returns `{source, imported: 'Foo'}`
 - Handle member expressions: `MenuComponents.Alert` must match `${localName}.${member}`
 - Recurse through: direct JSX children, ternaries, logical expressions (`&&`, `||`, `??`), `JSXExpressionContainer`, `JSXFragment`, arrow function expression bodies
 - Skip `React.Fragment` / `<Fragment>` (transparent wrappers)
@@ -101,27 +115,25 @@ create(context) {
 
 **When**: Rule detects patterns in the static CSS text of template literals (not in interpolated expressions).
 
-**Pattern**: Visit `TaggedTemplateExpression`, check if it's a styled/css call, then iterate over `quasi.quasis` to inspect static text.
+**Pattern**: Use `createQuasiScanner` from `src/ast/scanner/index.ts` — it handles `shouldAnalyze` bailout, tag detection via `getStyledCallInfo`, and quasi iteration for you:
 
 ```typescript
+import {createQuasiScanner} from '../ast/scanner/index';
+
 create(context) {
-  if (!shouldAnalyze(context)) return {};
-
-  return {
-    TaggedTemplateExpression(node) {
-      // Use getStyledInfo(node.tag) or manual tag detection
-      if (!isRelevantTag(node.tag)) return;
-
-      for (const quasiElement of node.quasi.quasis) {
-        const cssText = quasiElement.value.cooked ?? quasiElement.value.raw;
-        // Analyze cssText with regex or string parsing
-        // Report on quasiElement node for error location
-      }
-    },
-  };
+  return createQuasiScanner(context, (cssText, quasi, info) => {
+    // cssText: the static CSS text of this quasi segment
+    // quasi: the TemplateElement node (use for error reporting)
+    // info: { kind: 'element' | 'component' | 'css', name?: string }
+    for (const match of cssText.matchAll(MY_PATTERN)) {
+      context.report({ node: quasi, messageId: '...' });
+    }
+  });
 }
 ```
 
-**When to use this vs Archetype 2**: If you're looking for patterns in the CSS _text itself_ (raw colors, nested selectors, property names), use this. If you're validating _what values are passed_ to CSS properties via interpolation (`${theme.tokens.X}`), use the style collector.
+The scanner calls your `analyze` callback for every quasi element in every styled/css tagged template in the file. It automatically skips files without Emotion usage.
 
-**Shared utilities for tag detection**: Check `src/ast/utils/styled.ts` for `getStyledInfo(tag)` which returns `{kind: 'element' | 'component', name: string}` or `null`. This handles `styled.div`, `styled(Component)`, and `styled(Component).attrs(...)` patterns. If this utility doesn't exist yet, check if it was added in a recent PR.
+**When to use this vs Archetype 2**: If you're looking for patterns in the CSS _text itself_ (raw colors, nested selectors, property names), use `createQuasiScanner`. If you're validating _what values are passed_ to CSS properties via interpolation (`${theme.tokens.X}`), use `createStyleCollector`.
+
+**Tag detection utility**: `getStyledCallInfo(node)` from `src/ast/utils/styled.ts` classifies any `TaggedTemplateExpression` or `CallExpression` as `{kind: 'element', name}`, `{kind: 'component', name}`, `{kind: 'css'}`, or `null`. Handles `styled.div`, `styled('div')`, `styled(Component)`, `styled(Component).attrs(...)`, and `css` patterns. The scanner uses this internally, but you can also use it directly in custom visitors.

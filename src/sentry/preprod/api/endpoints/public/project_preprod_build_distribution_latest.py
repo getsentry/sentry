@@ -9,7 +9,10 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.project import ProjectDistributionPermission, ProjectEndpoint
+from sentry.api.bases.project import (
+    ProjectDistributionOrProjectPermission,
+    ProjectEndpoint,
+)
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.preprod_examples import PreprodExamples
 from sentry.apidocs.parameters import GlobalParams
@@ -35,7 +38,7 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
-    permission_classes = (ProjectDistributionPermission,)
+    permission_classes = (ProjectDistributionOrProjectPermission,)
     rate_limits = RateLimitConfig(
         limit_overrides={
             "GET": {

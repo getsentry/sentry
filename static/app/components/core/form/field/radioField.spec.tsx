@@ -2,7 +2,7 @@ import {z} from 'zod';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {AutoSaveField, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {AutoSaveForm, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
 interface TestFormProps {
   label: string;
@@ -67,7 +67,7 @@ function AutoSaveTestForm({
   onError,
 }: AutoSaveTestFormProps) {
   return (
-    <AutoSaveField
+    <AutoSaveForm
       name="priority"
       schema={testSchema}
       initialValue={initialValue}
@@ -82,7 +82,7 @@ function AutoSaveTestForm({
           </field.Layout.Row>
         </field.Radio.Group>
       )}
-    </AutoSaveField>
+    </AutoSaveForm>
   );
 }
 
@@ -171,7 +171,7 @@ describe('RadioField auto-save', () => {
     expect(
       await screen.findByRole('status', {name: 'Saving priority'})
     ).toBeInTheDocument();
-    expect(mutationFn).toHaveBeenCalledWith({priority: 'high'});
+    expect(mutationFn).toHaveBeenCalledWith({priority: 'high'}, expect.anything());
   });
 
   it('shows checkmark when auto-save succeeds', async () => {
@@ -183,7 +183,7 @@ describe('RadioField auto-save', () => {
     await userEvent.click(radios[2]!); // click high
 
     expect(await screen.findByTestId('icon-check-mark')).toBeInTheDocument();
-    expect(mutationFn).toHaveBeenCalledWith({priority: 'high'});
+    expect(mutationFn).toHaveBeenCalledWith({priority: 'high'}, expect.anything());
   });
 
   it('disables radios while auto-save is pending', async () => {

@@ -8,15 +8,15 @@ from typing import Any, TypeVar
 
 import sentry_sdk
 from django.db.models import Model
+from taskbroker_client.constants import CompressionType
+from taskbroker_client.registry import TaskNamespace
+from taskbroker_client.retry import Retry, RetryTaskError, retry_task
+from taskbroker_client.state import current_task
+from taskbroker_client.task import P, R, Task
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.silo.base import SiloMode
-from sentry.taskworker.constants import CompressionType
-from sentry.taskworker.registry import TaskNamespace
-from sentry.taskworker.retry import Retry, RetryTaskError, retry_task
 from sentry.taskworker.silolimiter import TaskSiloLimit
-from sentry.taskworker.state import current_task
-from sentry.taskworker.task import P, R, Task
-from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.utils import metrics
 
 ModelT = TypeVar("ModelT", bound=Model)

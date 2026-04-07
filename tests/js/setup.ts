@@ -12,6 +12,7 @@ import {
 
 import {type ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
+import {MotionGlobalConfig} from 'framer-motion';
 import {enableFetchMocks} from 'jest-fetch-mock';
 import {ConfigFixture} from 'sentry-fixture/config';
 
@@ -22,7 +23,7 @@ import type {Client} from 'sentry/__mocks__/api';
 import {closeModal} from 'sentry/actionCreators/modal';
 // eslint-disable-next-line no-restricted-imports
 import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {DANGEROUS_SET_TEST_HISTORY} from 'sentry/utils/browserHistory';
 import * as performanceForSentry from 'sentry/utils/performanceForSentry';
 
@@ -40,6 +41,12 @@ enableFetchMocks();
 // framer-motion SVG components fail
 // See https://github.com/jsdom/jsdom/issues/1330
 SVGElement.prototype.getTotalLength ??= () => 1;
+
+/**
+ * Skip all framer-motion animations in tests so components render immediately
+ * without waiting for animation frames or transitions.
+ */
+MotionGlobalConfig.skipAnimations = true;
 
 /**
  * React Testing Library configuration to override the default test id attribute
@@ -356,6 +363,7 @@ Object.defineProperty(window, 'matchMedia', {
 window.IntersectionObserver = class IntersectionObserver {
   root = null;
   rootMargin = '';
+  scrollMargin = '';
   thresholds = [];
   takeRecords = jest.fn();
 

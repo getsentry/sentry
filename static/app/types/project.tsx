@@ -88,6 +88,10 @@ export type Project = {
   preprodSizeEnabledQuery?: string | null;
   preprodSizeStatusChecksEnabled?: boolean;
   preprodSizeStatusChecksRules?: unknown[];
+  preprodSnapshotStatusChecksEnabled?: boolean;
+  preprodSnapshotStatusChecksFailOnAdded?: boolean;
+  preprodSnapshotStatusChecksFailOnRemoved?: boolean;
+  scmSourceContextEnabled?: boolean;
   securityToken?: string;
   securityTokenHeader?: string;
   seerScannerAutomation?: boolean;
@@ -295,6 +299,7 @@ export type PlatformKey =
   | 'python-fastapi'
   | 'python-flask'
   | 'python-gcpfunctions'
+  | 'python-litestar'
   | 'python-pylons'
   | 'python-pymongo'
   | 'python-pyramid'

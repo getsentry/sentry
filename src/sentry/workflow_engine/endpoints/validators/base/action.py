@@ -1,5 +1,5 @@
 import builtins
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
 from rest_framework import serializers
 
@@ -14,6 +14,15 @@ from sentry.workflow_engine.types import ActionHandler
 
 ActionData = dict[str, Any]
 ActionConfig = dict[str, Any]
+
+
+class ActionInput(TypedDict):
+    id: NotRequired[str]
+    type: str
+    data: dict[str, Any]
+    config: dict[str, Any]
+    integrationId: NotRequired[int | None]
+    status: NotRequired[str]
 
 
 class BaseActionValidator(CamelSnakeSerializer[Any]):

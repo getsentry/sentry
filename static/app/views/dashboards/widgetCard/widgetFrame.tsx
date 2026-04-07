@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -150,7 +151,15 @@ export function WidgetFrame(props: WidgetFrameProps) {
           )}
         </Fragment>
       }
-      Visualization={props.error ? <Widget.WidgetError error={error} /> : props.children}
+      Visualization={
+        props.error ? (
+          <Container position="absolute" inset={0}>
+            <Widget.WidgetError error={error} />
+          </Container>
+        ) : (
+          props.children
+        )
+      }
       noVisualizationPadding={props.noVisualizationPadding}
     />
   );

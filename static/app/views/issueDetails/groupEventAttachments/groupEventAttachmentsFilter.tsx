@@ -17,7 +17,9 @@ interface GroupEventAttachmentsFilterProps {
   onChange?: (filter: EventAttachmentFilter) => void;
 }
 
-function GroupEventAttachmentsFilter({onChange}: GroupEventAttachmentsFilterProps) {
+export function GroupEventAttachmentsFilter({
+  onChange,
+}: GroupEventAttachmentsFilterProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -55,5 +57,3 @@ function GroupEventAttachmentsFilter({onChange}: GroupEventAttachmentsFilterProp
     </Flex>
   );
 }
-
-export default GroupEventAttachmentsFilter;

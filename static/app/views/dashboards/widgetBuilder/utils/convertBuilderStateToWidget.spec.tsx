@@ -275,4 +275,27 @@ describe('convertBuilderStateToWidget', () => {
 
     expect(widget.axisRange).toBe('dataMin');
   });
+
+  it('returns stripped down widget state for text widgets', () => {
+    const mockState: WidgetBuilderState = {
+      displayType: DisplayType.TEXT,
+      title: 'Test Widget',
+      description: 'some other description',
+      textContent: 'Test text content',
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget).toEqual({
+      title: 'Test Widget',
+      description: 'Test text content',
+      displayType: DisplayType.TEXT,
+      interval: '1h',
+      queries: [],
+      widgetType: undefined,
+      limit: undefined,
+      thresholds: undefined,
+      axisRange: undefined,
+    });
+  });
 });

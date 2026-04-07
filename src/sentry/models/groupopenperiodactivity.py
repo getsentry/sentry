@@ -48,4 +48,5 @@ class GroupOpenPeriodActivity(DefaultFieldsModel):
         indexes = [
             models.Index(fields=["group_open_period", "type", "event_id"]),
             models.Index(fields=["event_id"]),
+            models.Index(fields=["date_added"]),
         ]

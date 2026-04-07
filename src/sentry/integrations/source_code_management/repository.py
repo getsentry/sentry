@@ -32,7 +32,10 @@ from sentry.users.models.identity import Identity
 class BaseRepositoryIntegration(ABC):
     @abstractmethod
     def get_repositories(
-        self, query: str | None = None, page_number_limit: int | None = None
+        self,
+        query: str | None = None,
+        page_number_limit: int | None = None,
+        accessible_only: bool = False,
     ) -> list[dict[str, Any]]:
         """
         Get a list of available repositories for an installation
@@ -50,6 +53,10 @@ class BaseRepositoryIntegration(ABC):
         IntegrationRepositoryProvider.repository_external_slug()
 
         You can use the `query` argument to filter repositories.
+        When `accessible_only` is True and a query is provided,
+        only repositories the installation has access to are
+        returned, filtering locally instead of using the provider's
+        search API.
         """
         raise NotImplementedError
 
@@ -100,6 +107,27 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
     def has_repo_access(self, repo: RpcRepository) -> bool:
         """Used for migrating repositories. Checks if the installation has access to the repository."""
         raise NotImplementedError
+
+    @staticmethod
+    def find_repo_info(repositories: list[dict[str, Any]], repo_name: str) -> dict[str, Any] | None:
+        """
+        Find a repository dict by matching identifier first, then name.
+        """
+        for repo_info in repositories:
+            if repo_info.get("identifier") == repo_name:
+                return repo_info
+        for repo_info in repositories:
+            if repo_info.get("name") == repo_name:
+                return repo_info
+        return None
+
+    def get_repository_default_branch(self, repo: Repository) -> str | None:
+        """
+        Resolve a repository's default branch using integration repository metadata.
+        """
+        repositories = self.get_repositories(query=repo.name)
+        repo_info = self.find_repo_info(repositories, repo.name)
+        return repo_info.get("default_branch") if repo_info else None
 
     def get_unmigratable_repositories(self) -> list[RpcRepository]:
         """

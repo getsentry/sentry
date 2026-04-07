@@ -7,7 +7,7 @@ import {mcp} from './mcp';
 import {metrics} from './metrics';
 import {onboarding} from './onboarding';
 
-const docs: Docs = {
+export const docs: Docs = {
   onboarding,
   crashReportOnboarding: crashReport,
   logsOnboarding: logs,
@@ -17,5 +17,3 @@ const docs: Docs = {
   mcpOnboarding: mcp,
   metricsOnboarding: metrics,
 };
-
-export default docs;

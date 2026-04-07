@@ -4,7 +4,7 @@ import {getInlineAttachmentRenderer} from 'sentry/components/events/attachmentVi
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import type {Event} from 'sentry/types/event';
 import type {IssueAttachment} from 'sentry/types/group';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface InlineAttachmentsProps {
   attachment: IssueAttachment;

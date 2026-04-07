@@ -2,7 +2,7 @@ import {Fragment, useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {EventTagCustomBanner} from 'sentry/components/events/eventTags/eventTagCustomBanner';
-import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
+import {EventTagsTree} from 'sentry/components/events/eventTags/eventTagsTree';
 import {associateTagsWithMeta, TagFilter} from 'sentry/components/events/eventTags/util';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import type {Event, EventTagWithMeta} from 'sentry/types/event';
@@ -10,7 +10,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type Props = {
   event: Event;

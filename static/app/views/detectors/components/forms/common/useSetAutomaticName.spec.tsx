@@ -4,8 +4,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import TextField from 'sentry/components/forms/fields/textField';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useSetAutomaticName} from 'sentry/views/detectors/components/forms/common/useSetAutomaticName';
 import {DetectorFormProvider} from 'sentry/views/detectors/components/forms/context';

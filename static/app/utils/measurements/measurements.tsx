@@ -45,9 +45,7 @@ type Props = {
   children: (props: ChildrenProps) => React.ReactNode;
 };
 
-function Measurements({children}: Props) {
+export function Measurements({children}: Props) {
   const measurements = getMeasurements();
   return <Fragment>{children({measurements})}</Fragment>;
 }
-
-export default Measurements;

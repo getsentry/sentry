@@ -274,7 +274,7 @@ class ShouldCallSeerTest(TestCase):
             self.event, call_made=False, blocker="race_condition", training_mode=False
         )
 
-    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
+    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=([], "v1"))
     def test_stacktrace_string_not_saved_in_event(
         self, mock_get_similarity_data: MagicMock
     ) -> None:

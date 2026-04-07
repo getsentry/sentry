@@ -25,8 +25,8 @@ from sentry.models.project import Project
 
 @cell_silo_endpoint
 class OrganizationIssueMetricsEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.REPLAY
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
+    owner = ApiOwner.DATA_BROWSING
 
     def get(self, request: Request, organization: Organization) -> Response:
         """Stats bucketed by time."""

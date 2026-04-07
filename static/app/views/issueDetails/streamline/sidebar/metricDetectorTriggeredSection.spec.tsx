@@ -256,16 +256,18 @@ describe('MetricDetectorTriggeredSection', () => {
       ).toBeInTheDocument();
     });
 
-    expect(contributingIssuesMock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          query: 'issue.type:error event.type:error is:unresolved',
-          start: startDate,
-          end: openPeriodEndDate,
-        }),
-      })
-    );
+    await waitFor(() => {
+      expect(contributingIssuesMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'issue.type:error event.type:error is:unresolved',
+            start: startDate,
+            end: openPeriodEndDate,
+          }),
+        })
+      );
+    });
 
     await screen.findByRole('link', {name: 'RequestError'});
   });
@@ -342,9 +344,11 @@ describe('MetricDetectorTriggeredSection', () => {
 
       await screen.findByRole('region', {name: 'Triggered Condition'});
 
-      expect(router.location.pathname).toMatch(
-        `/organizations/org-slug/issues/${defaultGroup.id}/events/${defaultEvent.id}/`
-      );
+      await waitFor(() => {
+        expect(router.location.pathname).toMatch(
+          `/organizations/org-slug/issues/${defaultGroup.id}/events/${defaultEvent.id}/`
+        );
+      });
       expect(router.location.query.statsPeriod).toBeDefined();
     });
 

@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {ContactBillingMembers} from 'getsentry/views/contactBillingMembers';
 

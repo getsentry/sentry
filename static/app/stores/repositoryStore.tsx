@@ -80,5 +80,4 @@ const storeConfig: RepositoryStoreDefinition = {
   },
 };
 
-const RepositoryStore = createStore(storeConfig);
-export default RepositoryStore;
+export const RepositoryStore = createStore(storeConfig);

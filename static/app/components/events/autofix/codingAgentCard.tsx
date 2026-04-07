@@ -12,6 +12,7 @@ import {DateTime} from 'sentry/components/dateTime';
 import {
   CodingAgentProvider,
   CodingAgentStatus,
+  getCodingAgentName,
   getResultButtonLabel,
   type CodingAgentState,
   type SeerRepoDefinition,
@@ -19,22 +20,22 @@ import {
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconCode, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {singleLineRenderer} from 'sentry/utils/marked/marked';
-import testableTransition from 'sentry/utils/testableTransition';
+import {sanitizedMarkedNoHeadings} from 'sentry/utils/marked/marked';
 
 const animationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0},
   initial: {opacity: 0},
   animate: {opacity: 1},
-  transition: testableTransition({duration: 0.3}),
+  transition: {duration: 0.3},
 };
 
 interface CodingAgentCardProps {
   codingAgentState: CodingAgentState;
+  groupId?: string;
   repo?: SeerRepoDefinition;
 }
 
-export function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
+export function CodingAgentCard({codingAgentState, groupId, repo}: CodingAgentCardProps) {
   const getTagVariant = (status: CodingAgentStatus): TagProps['variant'] => {
     switch (status) {
       case CodingAgentStatus.COMPLETED:
@@ -67,19 +68,6 @@ export function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) 
     return status === CodingAgentStatus.PENDING || status === CodingAgentStatus.RUNNING;
   };
 
-  const getProviderName = (provider: CodingAgentProvider) => {
-    switch (provider) {
-      case CodingAgentProvider.CURSOR_BACKGROUND_AGENT:
-        return t('Cursor Cloud Agent');
-      case CodingAgentProvider.GITHUB_COPILOT_AGENT:
-        return t('GitHub Copilot');
-      case CodingAgentProvider.CLAUDE_CODE_AGENT:
-        return t('Claude Agent');
-      default:
-        return t('Coding Agent');
-    }
-  };
-
   const hasButtons = Boolean(
     codingAgentState.agent_url || codingAgentState.results?.some(result => result.pr_url)
   );
@@ -99,7 +87,7 @@ export function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) 
                     ) : (
                       <IconCode size="md" variant="accent" />
                     )}
-                    {getProviderName(codingAgentState.provider)}
+                    {getCodingAgentName(codingAgentState.provider)}
                   </HeaderText>
                 </HeaderWrapper>
 
@@ -126,7 +114,7 @@ export function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) 
                               <ResultDescription
                                 status={codingAgentState.status}
                                 dangerouslySetInnerHTML={{
-                                  __html: singleLineRenderer(result.description),
+                                  __html: sanitizedMarkedNoHeadings(result.description),
                                 }}
                               />
                             </Text>
@@ -162,6 +150,7 @@ export function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) 
                               icon={<IconOpen />}
                               analyticsEventName="Autofix: Open Coding Agent"
                               analyticsEventKey="autofix.coding_agent.open"
+                              analyticsParams={{group_id: groupId}}
                             >
                               {codingAgentState.provider ===
                               CodingAgentProvider.CURSOR_BACKGROUND_AGENT
@@ -182,6 +171,7 @@ export function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) 
                                 icon={<IconOpen />}
                                 analyticsEventName="Autofix: Open Coding Agent PR"
                                 analyticsEventKey="autofix.coding_agent.open_pr"
+                                analyticsParams={{group_id: groupId}}
                                 priority="primary"
                               >
                                 {getResultButtonLabel(pr_url)}

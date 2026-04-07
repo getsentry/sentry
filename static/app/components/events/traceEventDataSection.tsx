@@ -8,7 +8,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
-import displayRawContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
+import {displayRawContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {IconEllipsis, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -17,10 +17,9 @@ import {EntryType} from 'sentry/types/event';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 const sortByOptions = {
   'recent-first': t('Newest'),
@@ -72,7 +71,6 @@ export function TraceEventDataSection({
 }: Props) {
   const api = useApi();
   const organization = useOrganization();
-  const hasStreamlinedUI = useHasStreamlinedUI();
 
   const {
     displayOptions,
@@ -444,7 +442,7 @@ export function TraceEventDataSection({
   return (
     <SectionComponent
       type={type}
-      showPermalink={!hasStreamlinedUI}
+      showPermalink={false}
       title={title}
       disableCollapsePersistence
       actions={

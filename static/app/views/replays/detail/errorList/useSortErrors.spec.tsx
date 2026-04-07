@@ -3,8 +3,8 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
-import useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
+import {hydrateErrors} from 'sentry/utils/replays/hydrateErrors';
+import {useSortErrors} from 'sentry/views/replays/detail/errorList/useSortErrors';
 
 const {
   errorFrames: [ERROR_1_JS_RANGEERROR, ERROR_2_NEXTJS_TYPEERROR, ERROR_3_JS_UNDEFINED],

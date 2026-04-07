@@ -25,7 +25,7 @@ import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {AddAutofixRepoModal} from './addAutofixRepoModal';
 import {AutofixRepoItem} from './autofixRepoItem';
@@ -264,6 +264,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
             items={[
               {
                 key: 'github',
+                textValue: t('GitHub'),
                 label: (
                   <Flex gap="sm" align="center">
                     <PluginIcon pluginId="github" size={16} />
@@ -274,6 +275,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
               },
               {
                 key: 'github_enterprise',
+                textValue: t('GitHub Enterprise'),
                 label: (
                   <Flex gap="sm" align="center">
                     <PluginIcon pluginId="github_enterprise" size={16} />

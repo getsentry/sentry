@@ -2,7 +2,7 @@ import type {Tagged} from 'type-fest';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-// eslint-disable-next-line boundaries/entry-point
+// eslint-disable-next-line boundaries/dependencies
 import {ImageAvatar} from './imageAvatar';
 
 describe('ImageAvatar', () => {

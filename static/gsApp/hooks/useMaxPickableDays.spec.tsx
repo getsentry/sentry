@@ -5,7 +5,7 @@ import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
 
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 import {useMaxPickableDays} from './useMaxPickableDays';
 

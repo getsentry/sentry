@@ -5,8 +5,8 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import {TeamKeyTransactionFieldWrapper as TeamKeyTransactionField} from 'sentry/utils/discover/teamKeyTransactionField';
 
 describe('TeamKeyTransactionField', () => {

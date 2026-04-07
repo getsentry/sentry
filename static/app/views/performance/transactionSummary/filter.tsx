@@ -50,7 +50,7 @@ type Props = {
   organization: OrganizationSummary;
 };
 
-function Filter(props: Props) {
+export function Filter(props: Props) {
   const theme = useTheme();
   const {currentFilter, onChangeFilter} = props;
   const menuOptions = OPTIONS.map(operationName => ({
@@ -169,5 +169,3 @@ export function filterToLocationQuery(option: SpanOperationBreakdownFilter | und
     breakdown: option,
   };
 }
-
-export default Filter;

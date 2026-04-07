@@ -12,7 +12,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {LinkHint} from 'sentry/components/structuredEventData/linkHint';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
@@ -90,21 +89,17 @@ export function SpanDescription({
     return formatter.toString(span.description ?? '');
   }, [span.description, resolvedModule, span.sentry_tags?.description, system]);
 
-  const hasNewSpansUIFlag =
-    organization.features.includes('performance-spans-new-ui') &&
-    organization.features.includes('insight-modules');
+  const hasInsightModules = organization.features.includes('insight-modules');
 
   // The new spans UI relies on the group hash assigned by Relay, which is different from the hash available on the span itself
-  const groupHash = hasNewSpansUIFlag
+  const groupHash = hasInsightModules
     ? (span.sentry_tags?.group ?? '')
     : (span.hash ?? '');
   const showAction = hasExploreEnabled ? !!span.description : !!span.op && !!span.hash;
   const averageSpanDuration = span['span.averageResults']?.['avg(span.duration)'];
 
   const actions = showAction ? (
-    <BodyContentWrapper
-      padding={resolvedModule === ModuleName.DB ? `${space(1)} ${space(2)}` : space(1)}
-    >
+    <BodyContentWrapper padding={resolvedModule === ModuleName.DB ? '8px 16px' : '8px'}>
       <SpanSummaryLink
         op={span.op}
         category={span.sentry_tags?.category}
@@ -162,7 +157,7 @@ export function SpanDescription({
           <MissingFrame />
         )}
       </Stack>
-    ) : hasNewSpansUIFlag &&
+    ) : hasInsightModules &&
       resolvedModule === ModuleName.RESOURCE &&
       span.op === 'resource.img' ? (
       <ResourceImageDescription formattedDescription={formattedDescription} node={node} />

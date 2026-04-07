@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
+import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
 
 const MOCK_ORG = OrganizationFixture();
 const MOCK_PROJECT = ProjectFixture();
@@ -43,9 +43,9 @@ describe('useProjectSdkNeedsUpdate', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.isError).toBeFalsy();
+      expect(result.current.isFetching).toBeFalsy();
     });
-    expect(result.current.isFetching).toBeFalsy();
+    expect(result.current.isError).toBeFalsy();
     expect(result.current.needsUpdate).toBeFalsy();
   });
 
@@ -65,9 +65,9 @@ describe('useProjectSdkNeedsUpdate', () => {
       },
     });
     await waitFor(() => {
-      expect(result.current.isError).toBeFalsy();
+      expect(result.current.isFetching).toBeFalsy();
     });
-    expect(result.current.isFetching).toBeFalsy();
+    expect(result.current.isError).toBeFalsy();
     expect(result.current.needsUpdate).toBeTruthy();
   });
 
@@ -92,9 +92,9 @@ describe('useProjectSdkNeedsUpdate', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.isError).toBeFalsy();
+      expect(result.current.isFetching).toBeFalsy();
     });
-    expect(result.current.isFetching).toBeFalsy();
+    expect(result.current.isError).toBeFalsy();
     expect(result.current.needsUpdate).toBeTruthy();
   });
 
@@ -119,9 +119,9 @@ describe('useProjectSdkNeedsUpdate', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.isError).toBeFalsy();
+      expect(result.current.isFetching).toBeFalsy();
     });
-    expect(result.current.isFetching).toBeFalsy();
+    expect(result.current.isError).toBeFalsy();
     expect(result.current.needsUpdate).toBeFalsy();
   });
 });

@@ -3,7 +3,7 @@ import {ServiceIncidentFixture} from 'sentry-fixture/serviceIncident';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {PrimaryNavigationServiceIncidents} from 'sentry/views/navigation/primary/serviceIncidents';
 
 describe('PrimaryNavigationServiceIncidents', () => {

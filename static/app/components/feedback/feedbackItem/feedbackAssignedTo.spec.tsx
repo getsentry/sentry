@@ -7,7 +7,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import MemberListStore from 'sentry/stores/memberListStore';
+import {MemberListStore} from 'sentry/stores/memberListStore';
 import type {Group} from 'sentry/types/group';
 
 import {FeedbackAssignedTo} from './feedbackAssignedTo';

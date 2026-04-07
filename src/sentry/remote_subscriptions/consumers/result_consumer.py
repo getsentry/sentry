@@ -5,7 +5,7 @@ import logging
 import multiprocessing
 from collections import defaultdict
 from collections.abc import Mapping
-from concurrent.futures import ThreadPoolExecutor, wait
+from concurrent.futures import wait
 from functools import partial
 from typing import Generic, Literal, TypeVar
 
@@ -23,6 +23,7 @@ from sentry.locks import locks
 from sentry.remote_subscriptions.models import BaseRemoteSubscription
 from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger(__name__)
@@ -94,7 +95,7 @@ class ResultProcessor(abc.ABC, Generic[T, U]):
 
 
 class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T, U]):
-    parallel_executor: ThreadPoolExecutor | None = None
+    parallel_executor: ContextPropagatingThreadPoolExecutor | None = None
 
     batched_parallel = False
     """
@@ -137,7 +138,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         self.result_processor = self.result_processor_cls(use_subscription_lock=mode == "parallel")
         if mode == "batched-parallel":
             self.batched_parallel = True
-            self.parallel_executor = ThreadPoolExecutor(max_workers=max_workers)
+            self.parallel_executor = ContextPropagatingThreadPoolExecutor(max_workers=max_workers)
             if max_workers is None:
                 metric_tags["workers"] = "default"
             else:

@@ -8,7 +8,7 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import useDrawer from 'sentry/components/globalDrawer';
+import {useDrawer} from 'sentry/components/globalDrawer';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {
@@ -22,23 +22,23 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {shouldShowPerformanceTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {withoutPerformanceSupport} from 'sentry/data/platformCategories';
-import platforms, {otherPlatform} from 'sentry/data/platforms';
+import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import OnboardingDrawerStore, {
+import {ConfigStore} from 'sentry/stores/configStore';
+import {
   OnboardingDrawerKey,
+  OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
+import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Project} from 'sentry/types/project';
-import EventWaiter from 'sentry/utils/eventWaiter';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
+import {useEventWaiter} from 'sentry/utils/useEventWaiter';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePrevious from 'sentry/utils/usePrevious';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 import {filterProjects} from './utils';
 
@@ -233,15 +233,12 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const organization = useOrganization();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const copyEnabled = useCopySetupInstructionsEnabled();
-  const [received, setReceived] = useState<boolean>(false);
-
-  const previousProject = usePrevious(currentProject);
-
-  useEffect(() => {
-    if (previousProject.id !== currentProject.id) {
-      setReceived(false);
-    }
-  }, [previousProject.id, currentProject.id]);
+  const firstIssue = useEventWaiter({
+    eventType: 'transaction',
+    organization,
+    project: currentProject,
+  });
+  const received = !!firstIssue;
 
   const currentPlatform = currentProject.platform
     ? platforms.find(p => p.id === currentProject.platform)
@@ -362,17 +359,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           );
         })}
       </Steps>
-      <EventWaiter
-        api={api}
-        organization={organization}
-        project={currentProject}
-        eventType="transaction"
-        onIssueReceived={() => {
-          setReceived(true);
-        }}
-      >
-        {() => (received ? <EventReceivedIndicator /> : <EventWaitingIndicator />)}
-      </EventWaiter>
+      {received ? <EventReceivedIndicator /> : <EventWaitingIndicator />}
     </TabSelectionScope>
   );
 }

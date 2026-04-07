@@ -2,10 +2,10 @@ import {Fragment, useState} from 'react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ApiForm} from 'sentry/components/forms/apiForm';
-import BooleanField from 'sentry/components/forms/fields/booleanField';
-import DateTimeField from 'sentry/components/forms/fields/dateTimeField';
-import SelectField from 'sentry/components/forms/fields/selectField';
-import TextField from 'sentry/components/forms/fields/textField';
+import {BooleanField} from 'sentry/components/forms/fields/booleanField';
+import {DateTimeField} from 'sentry/components/forms/fields/dateTimeField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
+import {TextField} from 'sentry/components/forms/fields/textField';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {PromoCode} from 'admin/types';

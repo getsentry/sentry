@@ -6,6 +6,7 @@ will produce new outboxes incrementally to replicate those models.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 
 from django.apps import apps
@@ -16,10 +17,12 @@ from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry import options
 from sentry.hybridcloud.models.outbox import outbox_context
-from sentry.hybridcloud.outbox.base import ControlOutboxProducingModel, RegionOutboxProducingModel
+from sentry.hybridcloud.outbox.base import CellOutboxProducingModel, ControlOutboxProducingModel
 from sentry.silo.base import SiloMode
 from sentry.users.models.user import User
 from sentry.utils import json, metrics, redis
+
+logger = logging.getLogger(__name__)
 
 
 def _get_redis_client() -> RedisCluster[str] | StrictRedis[str]:
@@ -81,7 +84,7 @@ def set_processing_state(table_name: str, value: int, version: int) -> None:
 
 
 def find_replication_version(
-    model: type[ControlOutboxProducingModel] | type[RegionOutboxProducingModel] | type[User],
+    model: type[ControlOutboxProducingModel] | type[CellOutboxProducingModel] | type[User],
     force_synchronous: bool = False,
 ) -> int:
     """
@@ -101,7 +104,7 @@ def find_replication_version(
 
 
 def _chunk_processing_batch(
-    model: type[ControlOutboxProducingModel] | type[RegionOutboxProducingModel] | type[User],
+    model: type[ControlOutboxProducingModel] | type[CellOutboxProducingModel] | type[User],
     *,
     batch_size: int,
     force_synchronous: bool = False,
@@ -128,7 +131,7 @@ def process_outbox_backfill_batch(
     model: type[Model], batch_size: int, force_synchronous: bool = False
 ) -> BackfillBatch | None:
     if (
-        not issubclass(model, RegionOutboxProducingModel)
+        not issubclass(model, CellOutboxProducingModel)
         and not issubclass(model, ControlOutboxProducingModel)
         and not issubclass(model, User)
     ):
@@ -138,11 +141,22 @@ def process_outbox_backfill_batch(
         model, batch_size=batch_size, force_synchronous=force_synchronous
     )
     if not processing_state:
+        logger.info("processing_state.missing", extra={"model": model.__name__})
         return None
+
+    logger.info(
+        "processing_state.current",
+        extra={
+            "model": model.__name__,
+            "batch_low": processing_state.low,
+            "batch_up": processing_state.up,
+            "version": processing_state.version,
+        },
+    )
 
     for inst in model.objects.filter(id__gte=processing_state.low, id__lte=processing_state.up):
         with outbox_context(transaction.atomic(router.db_for_write(model)), flush=False):
-            if isinstance(inst, RegionOutboxProducingModel):
+            if isinstance(inst, CellOutboxProducingModel):
                 inst.outbox_for_update().save()
             if isinstance(inst, ControlOutboxProducingModel) or isinstance(inst, User):
                 for outbox in inst.outboxes_for_update():

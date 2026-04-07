@@ -4,7 +4,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconWarning} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';

@@ -16,7 +16,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {FieldKind, getFieldDefinition, prettifyTagKey} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SchemaHintsPageParams} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {
   addFilterToQuery,

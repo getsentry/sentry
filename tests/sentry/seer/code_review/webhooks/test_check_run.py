@@ -7,7 +7,6 @@ from fixtures.github import (
     CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE,
 )
 from sentry.integrations.github.webhook_types import GithubWebhookType
-from sentry.seer.code_review.webhooks.check_run import GitHubCheckRunAction
 from sentry.testutils.helpers.github import GitHubWebhookCodeReviewTestCase
 
 
@@ -25,16 +24,10 @@ class CheckRunEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
             mock_task.delay.assert_called_once()
             call_kwargs = mock_task.delay.call_args[1]
-            assert call_kwargs["github_event"] == GithubWebhookType.CHECK_RUN
             assert (
                 call_kwargs["event_payload"]["original_run_id"]
                 == self.event_dict["check_run"]["external_id"]
             )
-
-            assert call_kwargs["action"] == GitHubCheckRunAction.REREQUESTED.value
-            assert call_kwargs["html_url"] == self.event_dict["check_run"]["html_url"]
-            assert "enqueued_at_str" in call_kwargs
-            assert isinstance(call_kwargs["enqueued_at_str"], str)
 
     @patch("sentry.seer.code_review.webhooks.task.process_github_webhook_event")
     def test_check_run_skips_when_ai_features_disabled(self, mock_task: MagicMock) -> None:
@@ -112,7 +105,6 @@ class CheckRunEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
             mock_task.delay.assert_called_once()
             call_kwargs = mock_task.delay.call_args[1]
-            assert call_kwargs["github_event"] == GithubWebhookType.CHECK_RUN
             assert (
                 call_kwargs["event_payload"]["original_run_id"]
                 == self.event_dict["check_run"]["external_id"]

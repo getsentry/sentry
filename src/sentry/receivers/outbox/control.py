@@ -25,7 +25,7 @@ from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.hook.service import hook_service
-from sentry.sentry_apps.tasks.sentry_apps import clear_region_cache
+from sentry.sentry_apps.tasks.sentry_apps import clear_cell_cache
 from sentry.users.models.identity import Identity
 from sentry.workflow_engine.service.action.service import action_service
 
@@ -33,51 +33,49 @@ logger = logging.getLogger(__name__)
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.INTEGRATION_UPDATE)
-def process_integration_updates(object_identifier: int, region_name: str, **kwds: Any):
+def process_integration_updates(object_identifier: int, cell_name: str, **kwds: Any):
     if (
-        integration := maybe_process_tombstone(
-            Integration, object_identifier, region_name=region_name
-        )
+        integration := maybe_process_tombstone(Integration, object_identifier, cell_name=cell_name)
     ) is None:
         return
     integration  # Currently we do not sync any other integration changes, but if we did, you can use this variable.
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.IDENTITY_UPDATE)
-def process_identity_updates(object_identifier: int, region_name: str, **kwds: Any):
-    maybe_process_tombstone(Identity, object_identifier, region_name=region_name)
+def process_identity_updates(object_identifier: int, cell_name: str, **kwds: Any):
+    maybe_process_tombstone(Identity, object_identifier, cell_name=cell_name)
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.SENTRY_APP_UPDATE)
-def process_sentry_app_updates(object_identifier: int, region_name: str, **kwds: Any):
+def process_sentry_app_updates(object_identifier: int, cell_name: str, **kwds: Any):
     if (
         sentry_app := maybe_process_tombstone(
-            model=SentryApp, object_identifier=object_identifier, region_name=region_name
+            model=SentryApp, object_identifier=object_identifier, cell_name=cell_name
         )
     ) is None:
         return
 
     # Spawn a task to clear caches, as there can be 1000+ installations
     # for a sentry app.
-    clear_region_cache.delay(sentry_app_id=sentry_app.id, region_name=region_name)
+    clear_cell_cache.delay(sentry_app_id=sentry_app.id, cell_name=cell_name)
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.SENTRY_APP_DELETE)
 def process_sentry_app_deletes(
     shard_identifier: int,
     object_identifier: int,
-    region_name: str,
+    cell_name: str,
     payload: Mapping[str, Any],
     **kwds: Any,
 ):
     action_service.update_action_status_for_sentry_app_via_sentry_app_id(
-        region_name=region_name,
+        cell_name=cell_name,
         status=ObjectStatus.DISABLED,
         sentry_app_id=object_identifier,
     )
     if slug := payload.get("slug"):
         action_service.update_action_status_for_webhook_via_sentry_app_slug(
-            region_name=region_name,
+            cell_name=cell_name,
             status=ObjectStatus.DISABLED,
             sentry_app_slug=slug,
         )
@@ -87,12 +85,12 @@ def process_sentry_app_deletes(
 def process_sentry_app_installation_deletes(
     shard_identifier: int,
     object_identifier: int,
-    region_name: str,
+    cell_name: str,
     payload: Mapping[str, Any],
     **kwds: Any,
 ):
     action_service.update_action_status_for_sentry_app_installation(
-        region_name=region_name,
+        cell_name=cell_name,
         status=ObjectStatus.DISABLED,
         sentry_app_id=payload["sentry_app_id"],
         organization_id=payload["organization_id"],
@@ -100,10 +98,10 @@ def process_sentry_app_installation_deletes(
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.API_APPLICATION_UPDATE)
-def process_api_application_updates(object_identifier: int, region_name: str, **kwds: Any):
+def process_api_application_updates(object_identifier: int, cell_name: str, **kwds: Any):
     if (
         api_application := maybe_process_tombstone(
-            ApiApplication, object_identifier, region_name=region_name
+            ApiApplication, object_identifier, cell_name=cell_name
         )
     ) is None:
         return
@@ -111,7 +109,7 @@ def process_api_application_updates(object_identifier: int, region_name: str, **
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.SERVICE_HOOK_UPDATE)
-def process_service_hook_updates(object_identifier: int, region_name: str, **kwds: Any):
+def process_service_hook_updates(object_identifier: int, cell_name: str, **kwds: Any):
     try:
         installation = SentryAppInstallation.objects.select_related("sentry_app").get(
             id=object_identifier

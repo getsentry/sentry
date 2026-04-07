@@ -4,7 +4,13 @@ import {
   type FilePatch,
 } from 'sentry/components/events/autofix/types';
 
-import {isArtifact, isExplorerFilePatch, isRepoPRState, type RepoPRState} from './types';
+import {
+  isArtifact,
+  isExplorerCodingAgentState,
+  isExplorerFilePatch,
+  isRepoPRState,
+  type RepoPRState,
+} from './types';
 
 function makeValidFilePatch(): FilePatch {
   return {
@@ -148,5 +154,66 @@ describe('isArtifact', () => {
 
   it('returns false when data property is missing entirely', () => {
     expect(isArtifact({key: 'k', reason: 'r'})).toBe(false);
+  });
+});
+
+describe('isExplorerCodingAgentState', () => {
+  function makeValidCodingAgentState() {
+    return {
+      id: 'agent-1',
+      name: 'My Agent',
+      provider: 'cursor_background_agent',
+      started_at: '2026-01-01T00:00:00Z',
+      status: 'running',
+    };
+  }
+
+  it('returns true for a valid object with all required fields', () => {
+    expect(isExplorerCodingAgentState(makeValidCodingAgentState())).toBe(true);
+  });
+
+  it('returns true when optional fields are present', () => {
+    expect(
+      isExplorerCodingAgentState({
+        ...makeValidCodingAgentState(),
+        agent_url: 'https://cursor.com/agent/1',
+        results: [
+          {description: 'Fixed it', repo_full_name: 'org/repo', repo_provider: 'github'},
+        ],
+      })
+    ).toBe(true);
+  });
+
+  it('returns false for null/undefined/non-objects', () => {
+    expect(isExplorerCodingAgentState(null)).toBe(false);
+    expect(isExplorerCodingAgentState(undefined)).toBe(false);
+    expect(isExplorerCodingAgentState('string')).toBe(false);
+    expect(isExplorerCodingAgentState(42)).toBe(false);
+  });
+
+  it('returns false when required string fields are missing', () => {
+    const {id: _, ...noId} = makeValidCodingAgentState();
+    expect(isExplorerCodingAgentState(noId)).toBe(false);
+
+    const {name: __, ...noName} = makeValidCodingAgentState();
+    expect(isExplorerCodingAgentState(noName)).toBe(false);
+
+    const {provider: ___, ...noProvider} = makeValidCodingAgentState();
+    expect(isExplorerCodingAgentState(noProvider)).toBe(false);
+
+    const {started_at: ____, ...noStartedAt} = makeValidCodingAgentState();
+    expect(isExplorerCodingAgentState(noStartedAt)).toBe(false);
+
+    const {status: _____, ...noStatus} = makeValidCodingAgentState();
+    expect(isExplorerCodingAgentState(noStatus)).toBe(false);
+  });
+
+  it('returns false when required fields have wrong type', () => {
+    expect(isExplorerCodingAgentState({...makeValidCodingAgentState(), id: 123})).toBe(
+      false
+    );
+    expect(
+      isExplorerCodingAgentState({...makeValidCodingAgentState(), status: true})
+    ).toBe(false);
   });
 });

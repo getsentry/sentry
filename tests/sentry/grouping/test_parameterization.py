@@ -1,19 +1,58 @@
+from unittest.mock import ANY, MagicMock, patch
+
 import pytest
 
+from sentry.grouping.api import _get_variants_from_strategies
+from sentry.grouping.component import (
+    ChainedExceptionGroupingComponent,
+    ErrorValueGroupingComponent,
+    ExceptionGroupingComponent,
+    MessageGroupingComponent,
+)
+from sentry.grouping.context import GroupingContext
 from sentry.grouping.parameterization import (
-    DEFAULT_PARAMETERIZATION_REGEXES_MAP,
-    EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP,
+    ParameterizationRegex,
+    Parameterizer,
     experimental_parameterizer,
+    is_valid_ip,
     parameterizer,
 )
+from sentry.grouping.variants import ComponentVariant, CustomFingerprintVariant
+from sentry.models.project import Project
+from sentry.services.eventstore.models import Event
+from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.pytest.mocking import capture_results, count_matching_calls
 
 standard_cases = [
-    ("email", "test@email.com", "<email>"),
-    ("url", "http://some.email.com", "<url>"),
-    ("url - existing behavior", "tcp://user:pass@email.com:10", "tcp://user:<email>:<int>"),
-    ("hostname - tld", "example.com", "<hostname>"),
-    ("hostname - subdomain", "www.example.net", "<hostname>"),
-    ("ip", "0.0.0.0", "<ip>"),
+    ("email", "maisey@dogsaregreat.com", "<email>"),
+    ("email - with period", "maisey.thedog@dogsaregreat.com", "<email>"),
+    ("email - with plus sign", "maisey+thedog@dogsaregreat.com", "<email>"),
+    ("url - no subdomain", "http://dogsaregreat.com", "<url>"),
+    ("url - with subdomain", "http://dogs.squirrelchasers.net", "<url>"),
+    ("url - with path", "http://dogsaregreat.com/adopt/dont/shop", "<url>"),
+    ("url - with path/trailing slash", "http://dogsaregreat.com/adopt/dont/shop/", "<url>"),
+    ("url - with path/filename", "http://dogsaregreat.com/adopt/dont/shop.js", "<url>"),
+    (
+        "url - with querystring",
+        "http://dogsaregreat.com/adopt/dont/shop.js?command=sit&trick=spin",
+        "<url>",
+    ),
+    ("url - with anchor", "http://dogsaregreat.com/adopt/dont/shop.html#shelters", "<url>"),
+    ("url - with username/password", "http://charlie:s3cretSqu1rrel@dogsaregreat.com:10", "<url>"),
+    ("url - localhost", "http://localhost:8000", "<url>"),
+    ("url - ipv4", "http://11.21.12.31", "<url>"),
+    ("url - ipv4 with port", "http://11.21.12.31:12", "<url>"),
+    ("url - ipv6", "http://2001:db8::1", "<url>"),
+    ("url - ipv6 with port", "http://[2001:db8::1]:80", "<url>"),
+    ("hostname - no subdomain", "dogsaregreat.com", "<hostname>"),
+    ("hostname - with subdomain", "dogs.squirrelchasers.net", "<hostname>"),
+    ("ip - v4", "11.21.12.31", "<ip>"),
+    ("ip - v6 unspecified", "::", "<ip>"),
+    ("ip - v6 loopback", "::1", "<ip>"),
+    ("ip - v6 ULA", "fc00::/7", "<ip>"),
+    ("ip - v6 compressed", "2012:d157::cbe:908:2013", "<ip>"),
+    ("ip - v4 mapped to v6", "::ffff:192.168.1.1", "<ip>"),
+    ("ip - v6 full", "1121:0c03:1231:130d:0000:16da:0908:da07", "<ip>"),
     ("ip - double colon object property", "Option::unwrap()", "Option::unwrap()"),
     ("ip - double colon object property including hex", "Bee::buzz()", "Bee::buzz()"),
     (
@@ -21,11 +60,13 @@ standard_cases = [
         "traceparent: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01",
         "traceparent: <traceparent>",
     ),
+    ("ip - too many initial characters", "12345:6:789", "<int>:<int>:<int>"),
+    ("ip - too many final characters", "123:4:56789", "<int>:<int>:<int>"),
     ("traceparent - aws", "1-67891233-abcdef012345678912345678", "<traceparent>"),
     (
         "traceparent - aws, but not word boundary",
         "abc1-67891233-abcdef012345678912345678",
-        "abc1<int>-<hex>",
+        "<hex>-<hex>-<hex>",
     ),
     ("uuid", "7c1811ed-e98f-4c9c-a9f9-58c757ff494f", "<uuid>"),
     (
@@ -66,11 +107,25 @@ standard_cases = [
     ("date - datetime compressed T-separated", "20060102T150405", "<date>"),
     ("date - datetime compressed T-separated UTC", "20060102T150405Z", "<date>"),
     ("date - datetime compressed T-separated w offset", "20060102T150405+0100", "<date>"),
+    ("date - kitchen", "11:21", "<date>"),
+    ("date - kitchen with seconds", "12:31:12", "<date>"),
+    ("date - kitchen with seconds uppercase", "11:21:12 AM", "<date>"),
+    ("date - kitchen with seconds lowercase", "12:31:12 pm", "<date>"),
     ("date - kitchen uppercase without space", "11:21PM", "<date>"),
     ("date - kitchen uppercase with space", "12:31 PM", "<date>"),
     ("date - kitchen lowercase without space", "11:21pm", "<date>"),
     ("date - kitchen lowercase with space", "12:31 pm", "<date>"),
     ("date - kitchen 24-hour", "23:21", "<date>"),
+    ("date - kitchen 24-hour with seconds", "23:21:12", "<date>"),
+    ("date - kitchen 24-hour with leading zero", "09:08", "<date>"),
+    ("date - kitchen 24-hour no leading zero", "9:08", "<date>"),
+    ("date - kitchen 24-hour midnight with leading zero", "00:31", "<date>"),
+    ("date - kitchen 24-hour midnight no leading zero", "0:12", "<date>"),
+    ("date - kitchen too many initial digits", "908:31", "<int>:<int>"),
+    ("date - kitchen too many final digits", "11:2112", "<int>:<int>"),
+    ("date - kitchen hour too big", "31:21", "<int>:<int>"),
+    ("date - kitchen minute too big", "12:99", "<int>:<int>"),
+    ("date - kitchen second too big", "12:31:99", "<int>:<int>:<int>"),
     ("date - time", "15:04:05", "<date>"),
     ("date - basic", "Mon Jan 02, 1999", "<date>"),
     ("date - datetime compressed date", "20240220 11:55:33.546593", "<date>"),
@@ -105,8 +160,10 @@ standard_cases = [
     ("hex with prefix - uppercase, 24 digits", "0x9AF8C3BE3A1231FE1121ACB1", "<hex>"),
     ("hex with prefix - lowercase, no numbers", "0xdeadbeef", "<hex>"),
     ("hex with prefix - uppercase, no numbers", "0xDEADBEEF", "<hex>"),
-    ("hex without prefix - lowercase, 4 digits", "9af8", "9af8"),
-    ("hex without prefix - uppercase, 4 digits", "9AF8", "9AF8"),
+    ("hex without prefix - lowercase, < 4 digits", "9af", "9af"),
+    ("hex without prefix - uppercase, < 4 digits", "9AF", "9AF"),
+    ("hex without prefix - lowercase, 4 digits", "9af8", "<hex>"),
+    ("hex without prefix - uppercase, 4 digits", "9AF8", "<hex>"),
     ("hex without prefix - lowercase, 8 digits", "9af8c3be", "<hex>"),
     ("hex without prefix - uppercase, 8 digits", "9AF8C3BE", "<hex>"),
     ("hex without prefix - lowercase, 10 digits", "9af8c3be3a", "<hex>"),
@@ -117,23 +174,32 @@ standard_cases = [
     ("hex without prefix - uppercase, 24 digits", "9AF8C3BE3A1231FE1121ACB1", "<hex>"),
     ("hex without prefix - lowercase, 128 digits", "b0" * 64, "<hex>"),
     ("hex without prefix - uppercase, 128 digits", "B0" * 64, "<hex>"),
-    ("hex without prefix - lowercase, no numbers", "deadbeef", "deadbeef"),
-    ("hex without prefix - uppercase, no numbers", "DEADBEEF", "DEADBEEF"),
-    ("hex without prefix - lowercase, no numbers until later", "deadbeef 123", "deadbeef <int>"),
-    ("hex without prefix - uppercase, no numbers until later", "DEADBEEF 123", "DEADBEEF <int>"),
-    ("hex without prefix - no letters, < 8 digits", "1234567", "<int>"),
-    ("hex without prefix - no letters, 8+ digits", "12345678", "<hex>"),
+    ("hex without prefix - lowercase, no numbers, < 8 digits", "deadbee", "deadbee"),
+    ("hex without prefix - uppercase, no numbers, < 8 digits", "DEADBEE", "DEADBEE"),
+    ("hex without prefix - lowercase, no numbers, 8 digits", "deadbeef", "<hex>"),
+    ("hex without prefix - uppercase, no numbers, 8 digits", "DEADBEEF", "<hex>"),
+    ("hex without prefix - lowercase, no numbers until later", "cafe 123", "cafe <int>"),
+    ("hex without prefix - uppercase, no numbers until later", "CAFE 123", "CAFE <int>"),
+    ("hex without prefix - no letters, < 8 digits, positive", "1234567", "<int>"),
+    ("hex without prefix - no letters, < 8 digits, negative", "-1234567", "<int>"),
+    ("hex without prefix - no letters, 8+ digits, positive", "12345678", "<hex>"),
+    ("hex without prefix - no letters, 8+ digits, negative", "-12345678", "<hex>"),
     ("git sha", "commit a93c7d2", "commit <git_sha>"),
-    ("git sha - all letters", "commit deadbeef", "commit deadbeef"),
+    ("git sha - all letters", "commit cabcafe", "commit cabcafe"),
     ("git sha - all numbers", "commit 4150908", "commit <int>"),
     ("float", "0.23", "<float>"),
     ("int", "23", "<int>"),
+    ("int - negative", "-23", "<int>"),
     ("int - separator", "0:17502", "<int>:<int>"),
+    ("int - separator negative no space", "value:-17502", "value:<int>"),
+    ("int - separator negative with space", "value: -17502", "value: <int>"),
+    ("int - in dashed string with numbers", "415-908", "<int>-<int>"),
+    ("int - in dashed string with letters", "maisey-908", "maisey-<int>"),
     ("int - parens", '{"msg" => "(#239323)', '{"msg" => "(#<int>)'),
-    ("int - date - invalid day", "2006-01-40", "<int><int><int>"),
-    ("int - date - invalid month", "2006-20-02", "<int><int><int>"),
-    ("int - date - invalid year", "10000-01-02", "<int><int><int>"),
-    ("int - date - missing day", "2006-01", "<int><int>"),
+    ("int - date - invalid day", "2006-01-40", "<int>-<int>-<int>"),
+    ("int - date - invalid month", "2006-20-02", "<int>-<int>-<int>"),
+    ("int - date - invalid year", "10000-01-02", "<int>-<int>-<int>"),
+    ("int - date - missing day", "2006-01", "<int>-<int>"),
     ("int - quoted_str whitespace", "b = '1'", "b = '<int>'"),
     ("int - quoted_str whitespace", 'b = "1"', 'b = "<int>"'),
     ("quoted_str - single", "b='1'", "b=<quoted_str>"),
@@ -177,8 +243,7 @@ def test_default_parameterizer_misses_experimental_cases(
 
 
 @pytest.mark.skipif(
-    EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP == DEFAULT_PARAMETERIZATION_REGEXES_MAP,
-    reason="no experimental regexes to test",
+    not experimental_parameterizer.is_experimental, reason="no experimental regexes to test"
 )
 @pytest.mark.parametrize(("name", "input", "expected"), standard_cases + experimental_cases)
 def test_experimental_parameterization(name: str, input: str, expected: str) -> None:
@@ -203,13 +268,19 @@ incorrect_cases = [
         "int - number in word",
         "Encoding: utf-8",
         "Encoding: utf-8",
-        "Encoding: utf<int>",
+        "Encoding: utf-<int>",
     ),
     (
         "int - with commas",
         "4,150,908",
         "<int>",
         "<int>,<int>,<int>",
+    ),
+    (
+        "ip - short double colon object property including only hex",
+        "Fee::add() called too early",
+        "Fee::add() called too early",
+        "<ip>() called too early",
     ),
     (
         "json - double quotes",
@@ -232,10 +303,16 @@ incorrect_cases = [
         "invoice k9Mtd2gDcgG",
     ),
     (
-        "URL - non-http protocol user/pass/port",
-        "tcp://user:pass@email.com:10 had a problem",
+        "url - non-http protocol with username/password/port",
+        "tcp://charlie:s3cretSqu1rrel@dogsaregreat.com:10 had a problem",
         "<url> had a problem",
-        "tcp://user:<email>:<int> had a problem",
+        "tcp://charlie:<email>:<int> had a problem",
+    ),
+    (
+        "url - tcp",
+        "tcp://dogsaregreat.com:10",
+        "<url>",
+        "tcp://<hostname>:<int>",
     ),
 ]
 
@@ -244,3 +321,399 @@ incorrect_cases = [
 def test_incorrect_parameterization(name: str, input: str, desired: str, actual: str) -> None:
     assert parameterizer.parameterize(input) != desired
     assert parameterizer.parameterize(input) == actual
+
+
+@django_db_all
+def test_parameterized_message_stored_on_context(default_project: Project) -> None:
+    with patch(
+        "sentry.grouping.api._get_variants_from_strategies", wraps=_get_variants_from_strategies
+    ) as mock_get_variants:
+        event = Event(default_project.id, "11211231", data={"message": "Dog number 1, #1 dog"})
+        event.get_grouping_variants()
+
+        context = mock_get_variants.call_args.args[1]
+
+        assert isinstance(context, GroupingContext)
+        assert len(context.message_parameterization_map) == 1
+        assert (
+            context.message_parameterization_map["Dog number 1, #1 dog"]
+            == "Dog number <int>, #<int> dog"
+        )
+
+
+@django_db_all
+def test_parameterized_error_message_stored_on_context(default_project: Project) -> None:
+    with patch(
+        "sentry.grouping.api._get_variants_from_strategies", wraps=_get_variants_from_strategies
+    ) as mock_get_variants:
+        event = Event(
+            default_project.id,
+            "11211231",
+            data={
+                "exception": {
+                    "values": [
+                        {
+                            "type": "FailedToFetchError",
+                            "value": "That's ball number 6 that Charlie hasn't brought back!",
+                        }
+                    ]
+                },
+            },
+        )
+        event.get_grouping_variants()
+
+        context = mock_get_variants.call_args.args[1]
+
+        assert isinstance(context, GroupingContext)
+        assert len(context.message_parameterization_map) == 1
+        assert (
+            context.message_parameterization_map[
+                "That's ball number 6 that Charlie hasn't brought back!"
+            ]
+            == "That's ball number <int> that Charlie hasn't brought back!"
+        )
+
+
+@django_db_all
+def test_parameterized_chained_error_messages_stored_on_context(default_project: Project) -> None:
+    with patch(
+        "sentry.grouping.api._get_variants_from_strategies", wraps=_get_variants_from_strategies
+    ) as mock_get_variants:
+        event = Event(
+            default_project.id,
+            "11211231",
+            data={
+                "exception": {
+                    "values": [
+                        {
+                            "type": "DogSourcingError",
+                            "value": "Adopt don't shop!",
+                        },
+                        {
+                            "type": "FailedToFetchError",
+                            "value": "That's ball number 6 that Charlie hasn't brought back!",
+                        },
+                        {
+                            "type": "DestroyedShoeError",
+                            "value": "Oh, no! Maisey ate Dad's slippers!",
+                        },
+                    ]
+                },
+            },
+        )
+        event.get_grouping_variants()
+
+        context = mock_get_variants.call_args.args[1]
+
+        assert isinstance(context, GroupingContext)
+        assert len(context.message_parameterization_map) == 3
+        assert context.message_parameterization_map["Adopt don't shop!"] == "Adopt don't shop!"
+        assert (
+            context.message_parameterization_map[
+                "That's ball number 6 that Charlie hasn't brought back!"
+            ]
+            == "That's ball number <int> that Charlie hasn't brought back!"
+        )
+        assert (
+            context.message_parameterization_map["Oh, no! Maisey ate Dad's slippers!"]
+            == "Oh, no! Maisey ate Dad's slippers!"
+        )
+
+
+@django_db_all
+def test_stored_parameterized_message_used(default_project: Project) -> None:
+    with (
+        patch("sentry.grouping.utils.metrics.incr") as mock_metrics_incr,
+        patch(
+            "sentry.grouping.parameterization.parameterizer.parameterize",
+            wraps=parameterizer.parameterize,
+        ) as parameterize_spy,
+    ):
+        event = Event(
+            default_project.id,
+            "11211231",
+            data={
+                "message": "Dog number 1, #1 dog",
+                "fingerprint": ["{{ message }}"],
+            },
+        )
+        variants = event.get_grouping_variants()
+
+        assert len(variants) == 2
+        message_variant = variants["default"]
+        fingerprint_variant = variants["custom_client_fingerprint"]
+
+        assert isinstance(message_variant, ComponentVariant)
+        assert isinstance(message_variant.contributing_component, MessageGroupingComponent)
+        assert message_variant.contributing_component.values == ["Dog number <int>, #<int> dog"]
+
+        assert isinstance(fingerprint_variant, CustomFingerprintVariant)
+        assert fingerprint_variant.values == ["Dog number <int>, #<int> dog"]
+
+        # Even though the parameterized message was used in two places, the parameterizer only ran
+        # once, meaning the stored value must have been used
+        assert parameterize_spy.call_count == 1
+        assert count_matching_calls(mock_metrics_incr, "grouping.cached_param_result_used") == 1
+
+
+@django_db_all
+def test_runs_parameterizer_on_fingerprint_constant_matching_message(
+    default_project: Project,
+) -> None:
+    event = Event(
+        default_project.id,
+        "11211231",
+        data={
+            "message": "Dog number 1, #1 dog",
+            "fingerprint": ["Dog number 1, #1 dog", "Dogs are great!"],
+        },
+    )
+    variants = event.get_grouping_variants()
+
+    assert len(variants) == 2
+
+    message_variant = variants["default"]
+    assert isinstance(message_variant, ComponentVariant)
+
+    message_component = message_variant.contributing_component
+    assert isinstance(message_component, MessageGroupingComponent)
+
+    fingerprint_variant = variants["custom_client_fingerprint"]
+    assert isinstance(fingerprint_variant, CustomFingerprintVariant)
+
+    # Both instances of the message have been parameterized
+    assert message_component.values == ["Dog number <int>, #<int> dog"]
+    assert fingerprint_variant.values == [
+        # Parameterized because it matches the event's message
+        "Dog number <int>, #<int> dog",
+        "Dogs are great!",
+    ]
+
+
+@django_db_all
+def test_runs_parameterizer_on_fingerprint_constant_matching_error_message(
+    default_project: Project,
+) -> None:
+    event = Event(
+        default_project.id,
+        "11211231",
+        data={
+            "exception": {
+                "values": [
+                    {
+                        "type": "FailedToFetchError",
+                        "value": "That's ball number 6 that Charlie hasn't brought back!",
+                    }
+                ]
+            },
+            "fingerprint": [
+                "That's ball number 6 that Charlie hasn't brought back!",
+                "Dogs are great!",
+            ],
+        },
+    )
+    variants = event.get_grouping_variants()
+
+    assert len(variants) == 2
+
+    app_variant = variants["app"]
+    assert isinstance(app_variant, ComponentVariant)
+
+    exception_component = app_variant.contributing_component
+    assert isinstance(exception_component, ExceptionGroupingComponent)
+
+    error_message_component = exception_component.values[1]
+    assert isinstance(error_message_component, ErrorValueGroupingComponent)
+
+    fingerprint_variant = variants["custom_client_fingerprint"]
+    assert isinstance(fingerprint_variant, CustomFingerprintVariant)
+
+    # Both instances of the message have been parameterized
+    assert error_message_component.values == [
+        "That's ball number <int> that Charlie hasn't brought back!"
+    ]
+    assert fingerprint_variant.values == [
+        # Parameterized because it matches the event's error message
+        "That's ball number <int> that Charlie hasn't brought back!",
+        "Dogs are great!",
+    ]
+
+
+@django_db_all
+def test_runs_parameterizer_on_fingerprint_constant_matching_chained_error_message(
+    default_project: Project,
+) -> None:
+    event = Event(
+        default_project.id,
+        "11211231",
+        data={
+            "exception": {
+                "values": [
+                    {
+                        "type": "DogSourcingError",
+                        "value": "Adopt don't shop!",
+                    },
+                    {
+                        "type": "FailedToFetchError",
+                        "value": "That's ball number 6 that Charlie hasn't brought back!",
+                    },
+                    {
+                        "type": "DestroyedShoeError",
+                        "value": "Oh, no! Maisey ate Dad's slippers!",
+                    },
+                ]
+            },
+            "fingerprint": [
+                "That's ball number 6 that Charlie hasn't brought back!",
+                "Dogs are great!",
+            ],
+        },
+    )
+    variants = event.get_grouping_variants()
+
+    assert len(variants) == 2
+
+    app_variant = variants["app"]
+    assert isinstance(app_variant, ComponentVariant)
+
+    chained_exception_component = app_variant.contributing_component
+    assert isinstance(chained_exception_component, ChainedExceptionGroupingComponent)
+
+    middle_exception_component = chained_exception_component.values[1]
+    assert isinstance(middle_exception_component, ExceptionGroupingComponent)
+
+    middle_error_message_component = middle_exception_component.values[1]
+    assert isinstance(middle_error_message_component, ErrorValueGroupingComponent)
+
+    fingerprint_variant = variants["custom_client_fingerprint"]
+    assert isinstance(fingerprint_variant, CustomFingerprintVariant)
+
+    # Both instances of the message have been parameterized
+    assert middle_error_message_component.values == [
+        "That's ball number <int> that Charlie hasn't brought back!"
+    ]
+    assert fingerprint_variant.values == [
+        # Parameterized because it matches one of the error messages in the chain
+        "That's ball number <int> that Charlie hasn't brought back!",
+        "Dogs are great!",
+    ]
+
+
+def test_uses_callback_for_replacement_value() -> None:
+    input_str = "Dog number 1, #1 dog"
+    callback_parameterizer = Parameterizer(
+        [
+            ParameterizationRegex(
+                name="int",
+                raw_pattern=r"""-\d+\b | \b\d+\b""",
+                replacement_callback=lambda _: "<callback_result>",
+            )
+        ]
+    )
+
+    assert parameterizer.parameterize(input_str) == "Dog number <int>, #<int> dog"
+    assert (
+        callback_parameterizer.parameterize(input_str)
+        == "Dog number <callback_result>, #<callback_result> dog"  # Callback function was used
+    )
+
+
+def test_replacement_callback_false_positive_triggers_individual_regex_fallback() -> None:
+    # `12:31:99` matches the IPv6 regex pattern but isn't a valid IP address, so including it in
+    # our input should trigger the false positive fallback behavior
+    real_parameterizer_regexes = parameterizer.compiled_regexes_by_name
+    real_ip_regex = real_parameterizer_regexes["ip"]
+    assert real_ip_regex.fullmatch("12:31:99")
+    assert not is_valid_ip("12:31:99")
+
+    input_str = "1a2b3c4d5e6f 12:31:99"
+
+    # Mock a whole bunch of things, to prove various points:
+    #
+    #   - To show that we're indeed landing in the false positive fallback block, mock the
+    #     individual regexes' `sub` methods and the tags we attach to the timing metric.
+    #
+    #   - To show that parameterization runs twice, and that the fallback is necessary, mock the
+    #     regular combo regex's `sub` method, and capture its return value.
+    #
+    #   - To show we're counting correctly, even though we're parameterizing twice, mock the counter
+    #     metric.
+    #
+    # Note: Mocking the `sub` methods is made more complicated by the fact that regex objects' `sub`
+    # attributes are read-only, and therefore can't be directly replaced by pytest. Instead, we have
+    # to use nested mocks to replace the entire regex object. And for the timer tags, we need to
+    # mock the tags dictionary itself (in other words, what's returned by the timer's context
+    # manager's `__enter__` method) - rather than just asserting on the timer's call args - because
+    # when the initial `metrics.timer` call happens, the `false_positive` tag hasn't yet been set.
+    combo_regex_sub_method_return_values: list[str] = []
+    metrics_timer_tags: dict[str, bool] = {}
+    mock_hex_regex = MagicMock(sub=MagicMock(side_effect=real_parameterizer_regexes["hex"].sub))
+    mock_ip_regex = MagicMock(sub=MagicMock(side_effect=real_parameterizer_regexes["ip"].sub))
+    mock_int_regex = MagicMock(sub=MagicMock(side_effect=real_parameterizer_regexes["int"].sub))
+    mock_metrics_timer_context_manager = MagicMock(
+        __enter__=MagicMock(return_value=metrics_timer_tags)
+    )
+    mock_combo_regex = MagicMock(
+        sub=MagicMock(
+            side_effect=capture_results(
+                parameterizer.combined_regex.sub, combo_regex_sub_method_return_values
+            )
+        )
+    )
+
+    with (
+        patch.dict(
+            parameterizer.compiled_regexes_by_name,
+            {"hex": mock_hex_regex, "ip": mock_ip_regex, "int": mock_int_regex},
+        ),
+        patch(
+            "sentry.grouping.parameterization.metrics.timer",
+            return_value=mock_metrics_timer_context_manager,
+        ),
+        patch.object(parameterizer, "combined_regex", mock_combo_regex),
+        patch("sentry.grouping.parameterization.metrics.incr") as mock_metrics_incr,
+    ):
+        # First check that the fallback behavior produces the desired result - even though the IP
+        # pattern matches, we still go on to find the int pattern match
+        assert parameterizer.parameterize(input_str) == "<hex> <int>:<int>:<int>"
+
+        # We can see that it was indeed the fallback saving us from getting the wrong answer by
+        # checking what's returned by the combo regex, before the fallback runs
+        assert combo_regex_sub_method_return_values[0] == "<hex> 12:31:99"
+
+        # Check that parameterization ran twice, once the regular way and once using the fallback.
+        # (We can see we landed in the fallback both because the individual regexes' `sub` methods
+        # were called and by looking at the tags on the timing metric.)
+        mock_combo_regex.sub.assert_called()
+        mock_hex_regex.sub.assert_called()
+        mock_ip_regex.sub.assert_called()
+        mock_int_regex.sub.assert_called()
+        assert metrics_timer_tags == {"false_positive": True, "changed": True}
+
+        # Even though the parameterization ran twice, the counts (as reflected in the count metric
+        # calls) are still correct - one hex param, three int params, and no ip params
+        expected_count_metric_calls = [("hex", 1), ("int", 3)]
+        for key, amount in expected_count_metric_calls:
+            mock_metrics_incr.assert_any_call(
+                "grouping.value_parameterized",
+                amount=amount,
+                tags={"key": key},
+            )
+        assert (
+            count_matching_calls(
+                mock_metrics_incr,
+                "grouping.value_parameterized",
+                amount=ANY,
+                tags={"key": "ip"},
+            )
+            == 0
+        )
+
+        # We also only counted the false positive once, even though we hit it both during the main
+        # combo-regex parameterization and during fallback
+        assert (
+            count_matching_calls(
+                mock_metrics_incr, "grouping.parameterization_false_positive", tags={"key": "ip"}
+            )
+            == 1
+        )

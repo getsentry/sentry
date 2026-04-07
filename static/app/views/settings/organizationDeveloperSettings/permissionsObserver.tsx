@@ -12,8 +12,8 @@ import {
   comparePermissionLevels,
   toResourcePermissions,
 } from 'sentry/utils/consolidatedScopes';
-import PermissionSelection from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
-import Subscriptions from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';
+import {PermissionSelection} from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
+import {Subscriptions} from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';
 
 type DefaultProps = {
   appPublished: boolean;
@@ -32,7 +32,7 @@ type State = {
   permissions: Permissions;
 };
 
-export default class PermissionsObserver extends Component<Props, State> {
+export class PermissionsObserver extends Component<Props, State> {
   static defaultProps: DefaultProps = {
     webhookDisabled: false,
     appPublished: false,

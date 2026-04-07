@@ -19,8 +19,8 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
-import useHasPlatformizedAiAndMcp from 'sentry/views/insights/pages/agents/utils/useHasPlatformizedAiAndMcp';
 import {McpToolDurationWidget} from 'sentry/views/insights/pages/mcp/components/mcpToolDurationWidget';
 import {McpToolErrorRateWidget} from 'sentry/views/insights/pages/mcp/components/mcpToolErrorRateWidget';
 import {McpToolsTable} from 'sentry/views/insights/pages/mcp/components/mcpToolsTable';
@@ -41,7 +41,7 @@ function McpToolsLandingPage({datePageFilterProps}: McpToolsLandingPageProps) {
   const mcpSpanSearchProps = useMcpSpanSearchProps();
 
   const {view} = useDomainViewFilters();
-  const hasPlatformized = useHasPlatformizedAiAndMcp();
+  const hasPlatformized = useHasPlatformizedInsights();
   if (hasPlatformized) {
     return (
       <PrebuiltDashboardRenderer

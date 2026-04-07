@@ -6,9 +6,9 @@ import {
   useQueryClient,
   type UseMutationOptions,
 } from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeFetchGroupSearchViewKey} from 'sentry/views/issueList/queries/useFetchGroupSearchView';
 import {makeFetchStarredGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
 import type {GroupSearchView, StarredGroupSearchView} from 'sentry/views/issueList/types';
@@ -41,7 +41,7 @@ export const useUpdateGroupSearchView = (
         }
       ),
 
-    onMutate: variables => {
+    onMutate: (variables, context) => {
       const {optimistic, ...viewParams} = variables;
       if (optimistic) {
         // Update the specific view cache
@@ -67,9 +67,9 @@ export const useUpdateGroupSearchView = (
           }
         );
       }
-      options.onMutate?.(variables);
+      options.onMutate?.(variables, context);
     },
-    onSuccess: (data, parameters, context) => {
+    onSuccess: (data, parameters, onMutateResult, context) => {
       if (!parameters.optimistic) {
         // Update the specific view cache
         setApiQueryData<GroupSearchView>(
@@ -94,11 +94,11 @@ export const useUpdateGroupSearchView = (
           }
         );
       }
-      options.onSuccess?.(data, parameters, context);
+      options.onSuccess?.(data, parameters, onMutateResult, context);
     },
-    onError: (error, variables, context) => {
+    onError: (error, variables, onMutateResult, context) => {
       addErrorMessage(t('Failed to update view'));
-      options.onError?.(error, variables, context);
+      options.onError?.(error, variables, onMutateResult, context);
     },
   });
 };

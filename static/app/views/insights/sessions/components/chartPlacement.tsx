@@ -1,7 +1,7 @@
 import {createContext, useCallback, useContext, useMemo} from 'react';
 
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';

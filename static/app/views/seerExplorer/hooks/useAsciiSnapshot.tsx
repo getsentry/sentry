@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 import * as echarts from 'echarts/core';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
   aggregateFunctionOutputType,
   parseFunction,
@@ -13,7 +13,7 @@ import {
   formatRate,
 } from 'sentry/utils/formatters';
 import {formatMetricUsingUnit} from 'sentry/utils/number/formatMetricUsingUnit';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {prettifyAggregation} from 'sentry/views/explore/utils';
 
 // Types
@@ -883,7 +883,7 @@ export function buildResult(
  * visible elements onto a character grid based on their bounding rectangles.
  * Elements within any ancestor marked with `data-seer-explorer-root` are excluded.
  */
-function useAsciiSnapshot() {
+export function useAsciiSnapshot() {
   const {selection} = usePageFilters();
   const {projects} = useProjects();
 
@@ -937,5 +937,3 @@ function useAsciiSnapshot() {
 
   return capture;
 }
-
-export default useAsciiSnapshot;

@@ -6,7 +6,7 @@ import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {Client} from 'sentry/api';
 import {NODE_ENV, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t, toggleLocaleDebug} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {ProjectKey} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
 import type {Fuse} from 'sentry/utils/fuzzySearch';

@@ -6,7 +6,7 @@ import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButt
 import {t, tct} from 'sentry/locale';
 import type {RequestState} from 'sentry/types/core';
 import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
 interface FlamegraphWarningPropsWithoutFilter {

@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 
-import Pagination from 'sentry/components/pagination';
+import {Pagination} from 'sentry/components/pagination';
 import {ReplayBulkDeleteAuditLogTable} from 'sentry/components/replays/bulkDelete/replayBulkDeleteAuditLogTable';
 import type {ReplayBulkDeleteAuditLog} from 'sentry/components/replays/bulkDelete/types';
-import useReplayBulkDeleteAuditLog from 'sentry/components/replays/bulkDelete/useReplayBulkDeleteAuditLog';
+import {useReplayBulkDeleteAuditLog} from 'sentry/components/replays/bulkDelete/useReplayBulkDeleteAuditLog';
 
 interface Props {
   projectSlug: string;

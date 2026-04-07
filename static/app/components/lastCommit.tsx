@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {UserAvatar} from '@sentry/scraps/avatar';
 
 import {CommitLink} from 'sentry/components/commitLink';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {Commit} from 'sentry/types/integrations';
 import type {AvatarUser} from 'sentry/types/user';

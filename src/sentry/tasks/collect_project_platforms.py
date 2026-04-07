@@ -28,7 +28,7 @@ def paginate_project_ids(paginate):
     name="sentry.tasks.collect_project_platforms",
     namespace=issues_tasks,
     processing_deadline_duration=30,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def collect_project_platforms(paginate=1000, **kwargs):
     now = timezone.now()

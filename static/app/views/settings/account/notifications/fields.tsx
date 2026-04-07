@@ -11,13 +11,13 @@ import type {SelectValue} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
 import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
-export type FineTuneField = {
+interface FineTuneField {
   description: string;
   title: string;
   type: 'select';
   defaultValue?: string;
   options?: Array<SelectValue<string>>;
-};
+}
 
 // TODO: clean up unused fields
 export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
@@ -159,6 +159,7 @@ export const NOTIFICATION_SETTING_FIELDS = {
     choices: [
       ['email', t('Email')],
       ['slack', t('Slack')],
+      ['slack_staging', t('Slack (Staging)')],
       ['msteams', t('Microsoft Teams')],
     ],
     help: t('Where personal notifications will be sent.'),

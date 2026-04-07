@@ -18,6 +18,8 @@ import {MenuListItem} from '@sentry/scraps/menuListItem';
 
 import * as Storybook from 'sentry/stories';
 
+import {DetailsDemo, StatesDemo, TrailingDemo} from './__stories__/components';
+
 export const documentation = import('!!type-loader!@sentry/scraps/menuListItem');
 
 `<MenuListItem>` is a versatile building block for creating menu items, dropdown options, and selectable list items. It provides consistent styling, interaction states, and support for icons, labels, and supplementary details.
@@ -63,43 +65,6 @@ Use `<MenuListItem>` when building custom menus, dropdown options, or selectable
 - **isSelected**: Indicates the item is currently selected
 - **disabled**: Prevents interaction
 
-export function StatesDemo() {
-  const leadingItems = state => (state.isSelected ? '✅' : '⬜');
-  return (
-    <Storybook.Grid>
-      <div>
-        Focused:
-        <Container>
-          <MenuListItem label="hello" leadingItems={leadingItems} />
-          <MenuListItem label="sentry" leadingItems={leadingItems} isFocused />
-          <MenuListItem label="world" leadingItems={leadingItems} />
-        </Container>
-      </div>
-      <div>
-        Selected:
-        <Container>
-          <MenuListItem label="hello" leadingItems={leadingItems} />
-          <MenuListItem
-            label="sentry"
-            leadingItems={leadingItems}
-            isSelected
-            priority="primary"
-          />
-          <MenuListItem label="world" leadingItems={leadingItems} />
-        </Container>
-      </div>
-      <div>
-        Disabled:
-        <Container>
-          <MenuListItem label="hello" leadingItems={leadingItems} />
-          <MenuListItem label="sentry" leadingItems={leadingItems} disabled />
-          <MenuListItem label="world" leadingItems={leadingItems} />
-        </Container>
-      </div>
-    </Storybook.Grid>
-  );
-}
-
 <Storybook.Demo>
   <StatesDemo />
 </Storybook.Demo>
@@ -131,20 +96,6 @@ Use `leadingItems` to add icons, checkmarks, or other elements before the label.
 
 Add supplementary elements after the label using the `trailingItems` prop:
 
-export function TrailingDemo() {
-  const leadingItems = state => (state.isSelected ? '✅' : '⬜');
-  return (
-    <Container>
-      <MenuListItem
-        label="Item with badge"
-        leadingItems={leadingItems}
-        trailingItems="🚀"
-      />
-      <MenuListItem label="Another item" leadingItems={leadingItems} trailingItems="⭐" />
-    </Container>
-  );
-}
-
 <Storybook.Demo>
   <TrailingDemo />
 </Storybook.Demo>
@@ -157,24 +108,6 @@ export function TrailingDemo() {
 ## Details
 
 Add supplementary text below the label using the `details` prop:
-
-export function DetailsDemo() {
-  const leadingItems = state => (state.isSelected ? '✅' : '⬜');
-  return (
-    <Container>
-      <MenuListItem
-        label="Option with details"
-        details="This is additional information about the option"
-        leadingItems={leadingItems}
-      />
-      <MenuListItem
-        label="Another option"
-        details="More helpful context here"
-        leadingItems={leadingItems}
-      />
-    </Container>
-  );
-}
 
 <Storybook.Demo>
   <DetailsDemo />

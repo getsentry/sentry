@@ -7,7 +7,7 @@ from abc import abstractmethod
 from dataclasses import dataclass
 
 from sentry.hybridcloud.rpc.resolvers import ByCellName
-from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method, rpc_method
+from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method, rpc_method
 from sentry.silo.base import SiloMode
 
 
@@ -31,7 +31,7 @@ class RegionRelocationExportService(RpcService):
     """
 
     key = "region_relocation_export"
-    local_mode = SiloMode.REGION
+    local_mode = SiloMode.CELL
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
@@ -41,7 +41,7 @@ class RegionRelocationExportService(RpcService):
 
         return DBBackedRelocationExportService()
 
-    @regional_rpc_method(resolve=ByReplyingRegionName())
+    @cell_rpc_method(resolve=ByReplyingRegionName())
     @abstractmethod
     def request_new_export(
         self,
@@ -64,7 +64,7 @@ class RegionRelocationExportService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByRequestingRegionName())
+    @cell_rpc_method(resolve=ByRequestingRegionName())
     @abstractmethod
     def reply_with_export(
         self,

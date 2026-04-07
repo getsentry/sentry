@@ -1,7 +1,7 @@
 import {Link} from '@sentry/scraps/link';
 
 import {t, tct} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 function AlertsMemberWriteSettingsLink() {
   const organization = useOrganization();

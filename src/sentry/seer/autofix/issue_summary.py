@@ -8,6 +8,7 @@ import orjson
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from taskbroker_client.retry import Retry
 from urllib3 import BaseHTTPResponse
 
 from sentry import features, quotas
@@ -20,6 +21,7 @@ from sentry.net.http import connection_from_url
 from sentry.seer.autofix.autofix import _get_trace_tree_for_event, trigger_autofix
 from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_explorer
 from sentry.seer.autofix.constants import (
+    AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD,
     AutofixAutomationTuningSettings,
     AutofixReferrer,
     FixabilityScoreThresholds,
@@ -35,7 +37,7 @@ from sentry.seer.autofix.utils import (
     make_get_project_preference_request,
 )
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
-from sentry.seer.entrypoints.operator import SeerOperator
+from sentry.seer.entrypoints.operator import SeerAutofixOperator
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.signed_seer_api import (
     SeerViewerContext,
@@ -43,11 +45,11 @@ from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
     make_summarize_issue_request,
 )
+from sentry.seer.supergroups.lightweight_rca import trigger_lightweight_rca
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
-from sentry.taskworker.retry import Retry
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -156,18 +158,50 @@ def _trigger_autofix_task(
     event_id: str,
     user_id: int | None,
     auto_run_source: str,
-    referrer: AutofixReferrer = AutofixReferrer.UNKNOWN,
-    stopping_point: AutofixStoppingPoint | None = None,
+    referrer: AutofixReferrer | str = AutofixReferrer.UNKNOWN,
+    stopping_point: AutofixStoppingPoint | str | None = None,
 ):
     """
     Asynchronous task to trigger Autofix.
+    Task queue serializes enum parameters to strings, so we need to convert them back.
     """
+    # Convert deserialized string parameters back to their enum types
+    if isinstance(referrer, str):
+        try:
+            referrer = AutofixReferrer(referrer)
+        except ValueError as e:
+            logger.warning(
+                "_trigger_autofix_task.unknown_referrer",
+                extra={"group_id": group_id, "referrer": referrer},
+            )
+            sentry_sdk.capture_exception(e)
+            return
+
+    if isinstance(stopping_point, str):
+        try:
+            stopping_point = AutofixStoppingPoint(stopping_point)
+        except ValueError as e:
+            logger.warning(
+                "_trigger_autofix_task.unknown_stopping_point",
+                extra={"group_id": group_id, "stopping_point": stopping_point},
+            )
+            sentry_sdk.capture_exception(e)
+            return
+
     with sentry_sdk.start_span(op="ai_summary.trigger_autofix"):
         try:
             group = Group.objects.get(id=group_id)
         except Group.DoesNotExist:
             logger.warning("_trigger_autofix_task.group_not_found", extra={"group_id": group_id})
             return
+
+        sentry_sdk.set_tags(
+            {
+                "group_id": group_id,
+                "org_id": group.organization.id,
+                "project_id": group.project_id,
+            }
+        )
 
         user: User | AnonymousUser | RpcUser | None = None
         if user_id:
@@ -183,15 +217,21 @@ def _trigger_autofix_task(
 
         # Route to explorer-based autofix if both feature flags are enabled
         run_id: int | None = None
-        if features.has("organizations:seer-explorer", group.organization) and features.has(
-            "organizations:autofix-on-explorer", group.organization
-        ):
+        if features.has("organizations:autofix-on-explorer", group.organization):
             run_id = trigger_autofix_explorer(
                 group=group,
                 step=AutofixStep.ROOT_CAUSE,
+                referrer=referrer,
                 run_id=None,
                 stopping_point=stopping_point,
             )
+            try:
+                trigger_lightweight_rca(group)
+            except Exception:
+                logger.exception(
+                    "lightweight_rca.trigger_error_in_trigger_autofix_task",
+                    extra={"group_id": group_id},
+                )
         else:
             response = trigger_autofix(
                 group=group,
@@ -203,7 +243,7 @@ def _trigger_autofix_task(
             )
             run_id = response.data.get("run_id")
 
-        if run_id and SeerOperator.has_access(organization=group.project.organization):
+        if run_id and SeerAutofixOperator.has_access(organization=group.project.organization):
             SeerOperatorAutofixCache.migrate(from_group_id=group_id, to_run_id=run_id)
 
 
@@ -243,6 +283,7 @@ def _call_seer(
     group: Group,
     serialized_event: dict[str, Any],
     trace_tree: dict[str, Any] | None,
+    experiment_variant: str | None = None,
 ):
     body = SummarizeIssueRequest(
         group_id=group.id,
@@ -256,6 +297,7 @@ def _call_seer(
         organization_slug=group.organization.slug,
         organization_id=group.organization.id,
         project_id=group.project.id,
+        experiment_variant=experiment_variant,
     )
     viewer_context = SeerViewerContext(organization_id=group.organization.id)
     response = make_summarize_issue_request(body, timeout=30, viewer_context=viewer_context)
@@ -394,7 +436,7 @@ def run_automation(
                 if hasattr(group, "_times_seen_pending")
                 else group.times_seen
             )
-            if times_seen < 10:
+            if times_seen < AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD:
                 return
 
     user_id = user.id if user else None
@@ -499,11 +541,31 @@ def _generate_summary(
                 exc_info=True,
             )
 
+    is_experiment = features.has("organizations:issue-summary-experimental", group.organization)
+
     issue_summary = _call_seer(
         group,
         serialized_event,
         trace_tree,
+        experiment_variant="control" if is_experiment else None,
     )
+
+    # Experiment: test summary quality without breadcrumbs and trace
+    if is_experiment:
+        try:
+            experimental_event = {
+                **serialized_event,
+                "entries": [
+                    e for e in serialized_event.get("entries", []) if e.get("type") != "breadcrumbs"
+                ],
+            }
+            _call_seer(group, experimental_event, None, experiment_variant="experimental")
+        except Exception:
+            logger.warning(
+                "Failed to generate experimental issue summary",
+                extra={"group_id": group.id},
+                exc_info=True,
+            )
 
     summary_dict = issue_summary.dict()
     summary_dict["event_id"] = event.event_id

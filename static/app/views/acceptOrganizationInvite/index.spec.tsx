@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {logout} from 'sentry/actionCreators/account';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import AcceptOrganizationInvite from 'sentry/views/acceptOrganizationInvite';
 
@@ -140,8 +140,7 @@ describe('AcceptOrganizationInvite', () => {
       initialRouterConfig: defaultRouterConfig,
     });
 
-    await waitFor(() => expect(getJoinButton()).not.toBeInTheDocument());
-    expect(screen.getByTestId('action-info-general')).toBeInTheDocument();
+    expect(await screen.findByTestId('action-info-general')).toBeInTheDocument();
     expect(screen.queryByTestId('action-info-sso')).not.toBeInTheDocument();
 
     expect(
@@ -167,8 +166,7 @@ describe('AcceptOrganizationInvite', () => {
       initialRouterConfig: defaultRouterConfig,
     });
 
-    await waitFor(() => expect(getJoinButton()).not.toBeInTheDocument());
-    expect(screen.getByTestId('action-info-general')).toBeInTheDocument();
+    expect(await screen.findByTestId('action-info-general')).toBeInTheDocument();
     expect(screen.getByTestId('action-info-sso')).toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: 'Join with SSO'})).toBeInTheDocument();
@@ -195,9 +193,8 @@ describe('AcceptOrganizationInvite', () => {
       initialRouterConfig: defaultRouterConfig,
     });
 
-    await waitFor(() => expect(getJoinButton()).not.toBeInTheDocument());
+    expect(await screen.findByTestId('action-info-sso')).toBeInTheDocument();
     expect(screen.queryByTestId('action-info-general')).not.toBeInTheDocument();
-    expect(screen.getByTestId('action-info-sso')).toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: 'Join with SSO'})).toBeInTheDocument();
     expect(
@@ -223,9 +220,8 @@ describe('AcceptOrganizationInvite', () => {
       initialRouterConfig: defaultRouterConfig,
     });
 
-    await waitFor(() => expect(getJoinButton()).not.toBeInTheDocument());
+    expect(await screen.findByTestId('action-info-sso')).toBeInTheDocument();
     expect(screen.queryByTestId('action-info-general')).not.toBeInTheDocument();
-    expect(screen.getByTestId('action-info-sso')).toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: 'Join with SSO'})).toBeInTheDocument();
     expect(

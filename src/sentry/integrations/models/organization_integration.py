@@ -43,14 +43,14 @@ class OrganizationIntegration(ReplicatedControlModel):
         db_table = "sentry_organizationintegration"
         unique_together = (("organization_id", "integration"),)
 
-    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+    def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
         pass
 
     @classmethod
     def handle_async_deletion(
         cls,
         identifier: int,
-        region_name: str,
+        cell_name: str,
         shard_identifier: int,
         payload: Mapping[str, Any] | None,
     ) -> None:

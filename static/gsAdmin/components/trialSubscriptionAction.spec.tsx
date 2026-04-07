@@ -10,7 +10,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
-import TrialSubscriptionAction from 'admin/components/trialSubscriptionAction';
+import {TrialSubscriptionAction} from 'admin/components/trialSubscriptionAction';
 import {PlanTier} from 'getsentry/types';
 
 describe('TrialSubscriptionAction', () => {

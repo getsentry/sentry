@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -23,10 +24,13 @@ class SnapshotDiffSection(StrEnum):
 class SnapshotImageResponse(BaseModel):
     key: str
     display_name: str | None = None
+    group: str | None = None
     image_file_name: str
     width: int
     height: int
-    previous_image_file_name: str | None = None
+
+    class Config:
+        extra = "allow"
 
 
 class SnapshotDiffPair(BaseModel):
@@ -40,6 +44,21 @@ class SnapshotComparisonRunInfo(BaseModel):
     state: str | None = None
     completed_at: str | None = None
     duration_ms: int | None = None
+
+
+class SnapshotApprover(BaseModel):
+    id: str | None = None
+    name: str | None = None
+    email: str | None = None
+    username: str | None = None
+    avatar_url: str | None = None
+    approved_at: str | None = None
+    source: Literal["sentry", "github"] = "sentry"
+
+
+class SnapshotApprovalInfo(BaseModel):
+    status: Literal["approved", "requires_approval"]
+    approvers: list[SnapshotApprover] = []
 
 
 class SnapshotDetailsApiResponse(BaseModel):
@@ -61,7 +80,7 @@ class SnapshotDetailsApiResponse(BaseModel):
     removed: list[SnapshotImageResponse] = []
     removed_count: int = 0
 
-    renamed: list[SnapshotImageResponse] = []
+    renamed: list[SnapshotDiffPair] = []
     renamed_count: int = 0
 
     changed: list[SnapshotDiffPair] = []
@@ -74,6 +93,8 @@ class SnapshotDetailsApiResponse(BaseModel):
     errored_count: int = 0
 
     comparison_run_info: SnapshotComparisonRunInfo | None = None
+
+    approval_info: SnapshotApprovalInfo | None = None
 
 
 # TODO: POST request in the future when we migrate away from current schemas

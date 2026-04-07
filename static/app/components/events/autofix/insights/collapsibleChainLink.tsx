@@ -9,7 +9,7 @@ import {useUpdateInsightCard} from 'sentry/components/events/autofix/hooks/useUp
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {FlippedReturnIcon} from './autofixInsightCard';
 

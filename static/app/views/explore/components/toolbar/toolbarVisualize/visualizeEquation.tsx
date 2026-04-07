@@ -1,4 +1,6 @@
 import {useCallback, useMemo, type ReactNode} from 'react';
+import {useSortable} from '@dnd-kit/sortable';
+import {CSS} from '@dnd-kit/utilities';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -6,6 +8,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
+import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {EQUATION_PREFIX, stripEquationPrefix} from 'sentry/utils/discover/fields';
@@ -22,11 +25,13 @@ import {Visualize} from 'sentry/views/explore/queryParams/visualize';
 interface VisualizeEquationProps {
   onReplace: (visualize: Visualize) => void;
   visualize: Visualize;
+  dragColumnId?: number;
   label?: ReactNode;
   onDelete?: () => void;
 }
 
 export function VisualizeEquation({
+  dragColumnId,
   onDelete,
   onReplace,
   visualize,
@@ -81,8 +86,20 @@ export function VisualizeEquation({
     booleanAttributes: booleanTags,
   });
 
+  const {attributes, listeners, setNodeRef, transform} = useSortable({
+    id: dragColumnId ?? 0,
+    transition: null,
+  });
+
   return (
-    <ToolbarRow>
+    <ToolbarRow
+      ref={setNodeRef}
+      style={{transform: CSS.Transform.toString(transform)}}
+      {...attributes}
+    >
+      {dragColumnId === undefined ? null : (
+        <DragReorderButton iconSize="sm" {...listeners} />
+      )}
       {label}
       <Flex flex={1}>
         <ArithmeticBuilder

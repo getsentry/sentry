@@ -1,5 +1,4 @@
 import logging
-from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 
 import sentry_sdk
@@ -8,7 +7,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Column
 
-from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
@@ -25,6 +23,7 @@ from sentry.snuba.discover import create_result_key, zerofill
 from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.iterators import chunked
 from sentry.utils.snuba import SnubaTSResult
 
@@ -69,15 +68,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsEndpointBase):
         }
     )
 
-    def has_feature(self, organization, request):
-        return features.has(
-            "organizations:performance-new-trends", organization, actor=request.user
-        )
-
     def get(self, request: Request, organization: Organization) -> Response:
-        if not self.has_feature(organization, request):
-            return Response(status=404)
-
         viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
 
         try:
@@ -284,7 +275,9 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsEndpointBase):
             ]
 
             # send the data to microservice
-            with ThreadPoolExecutor(thread_name_prefix=__name__) as query_thread_pool:
+            with ContextPropagatingThreadPoolExecutor(
+                thread_name_prefix=__name__
+            ) as query_thread_pool:
                 results = list(
                     query_thread_pool.map(
                         partial(detect_breakpoints, viewer_context=viewer_context),

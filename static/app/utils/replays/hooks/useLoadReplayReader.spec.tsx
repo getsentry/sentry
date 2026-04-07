@@ -3,11 +3,10 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 
 jest.mock('sentry/utils/replays/hooks/useReplayData', () => ({
-  __esModule: true,
-  default: () => jest.fn().mockReturnValue({}),
+  useReplayData: () => jest.fn().mockReturnValue({}),
 }));
 
 const organization = OrganizationFixture();

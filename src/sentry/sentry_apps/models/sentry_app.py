@@ -32,7 +32,7 @@ from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.apiscopes import HasApiScopes
 from sentry.sentry_apps.utils.webhooks import EVENT_EXPANSION
-from sentry.types.region import find_all_cell_names, find_cells_for_sentry_app
+from sentry.types.cell import find_all_cell_names, find_cells_for_sentry_app
 from sentry.utils import metrics
 
 REQUIRED_EVENT_PERMISSIONS = {
@@ -44,6 +44,7 @@ REQUIRED_EVENT_PERMISSIONS = {
     "organization": "org:read",
     "team": "team:read",
     "comment": "event:read",
+    "preprod_artifact": "project:read",
 }
 
 # The only events valid for Sentry Apps are the ones listed in the values of

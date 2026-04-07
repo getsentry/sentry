@@ -2,12 +2,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
-import ModalStore from 'sentry/stores/modalStore';
+import {ModalStore} from 'sentry/stores/modalStore';
 import {IssueAlertFilterType} from 'sentry/types/alerts';
 import {IssueCategory} from 'sentry/types/group';
-import RuleNode from 'sentry/views/alerts/rules/issue/ruleNode';
+import {RuleNode} from 'sentry/views/alerts/rules/issue/ruleNode';
 
 describe('RuleNode', () => {
   const project = ProjectFixture();
@@ -133,7 +133,7 @@ describe('RuleNode', () => {
   };
 
   const labelReplacer = (label: string, values: any) => {
-    return label.replace(/{\w+}/gm, placeholder => values[placeholder]);
+    return label.replace(/{\w+}/g, placeholder => values[placeholder]);
   };
 
   afterEach(() => {

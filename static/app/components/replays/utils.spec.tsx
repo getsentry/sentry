@@ -6,7 +6,7 @@ import {
   findVideoSegmentIndex,
   getFramesByColumn,
 } from 'sentry/components/replays/utils';
-import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
+import {hydrateErrors} from 'sentry/utils/replays/hydrateErrors';
 
 const SECOND = 1000;
 

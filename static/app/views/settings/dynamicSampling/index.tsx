@@ -12,7 +12,7 @@ import {
   hasDynamicSamplingCustomFeature,
   hasDynamicSamplingFeature,
 } from 'sentry/utils/dynamicSampling/features';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationSampling} from 'sentry/views/settings/dynamicSampling/organizationSampling';
 import {ProjectSampling} from 'sentry/views/settings/dynamicSampling/projectSampling';

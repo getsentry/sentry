@@ -1,7 +1,7 @@
 import type {ReplayBulkDeleteAuditLog} from 'sentry/components/replays/bulkDelete/types';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type Query = {
   referrer: string;
@@ -32,7 +32,7 @@ export function useReplayBulkDeleteAuditLogQueryKey({
   ];
 }
 
-export default function useReplayBulkDeleteAuditLog({
+export function useReplayBulkDeleteAuditLog({
   enabled,
   projectSlug,
   query,

@@ -6,7 +6,7 @@ import Prism from 'prismjs';
 import type {Frame} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getPrismLanguage, loadPrismLanguage} from 'sentry/utils/prism';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {breakTokensByLine} from 'sentry/utils/usePrismTokens';
 
 type ComplexSyntax = {
@@ -39,7 +39,7 @@ const BLOCK_COMMENT_SYNTAX_BY_LANGUAGE: Record<string, BlockCommentSyntax[]> = {
   haskell: [{start: '{-', end: '-}'}],
   julia: [{start: '#=', end: '=#'}],
   lua: [{start: '--[[', end: ']]'}],
-  perl: [{start: {example: '=comment', search: /^\s*?=\S+/m}, end: '=cut'}],
+  perl: [{start: {example: '=comment', search: /^\s*=\S+/m}, end: '=cut'}],
   powershell: [{start: '<#', end: '#>'}],
   python: [
     {start: '"""', end: '"""'},

@@ -3,11 +3,11 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.models.environment import Environment
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationDetectorCountTest(APITestCase):
     endpoint = "sentry-api-0-organization-detector-count"
 

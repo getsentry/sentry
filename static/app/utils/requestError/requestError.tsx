@@ -28,7 +28,7 @@ type ResponseJSON = {
   detail?: string | {code?: string; message?: string};
 };
 
-export default class RequestError extends Error {
+export class RequestError extends Error {
   responseText?: string;
   responseJSON?: ResponseJSON;
   status?: number;

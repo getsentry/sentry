@@ -23,7 +23,7 @@ import {
   COMPARISON_TYPE_CHOICES,
 } from 'sentry/views/alerts/utils/constants';
 
-import RuleNode from './ruleNode';
+import {RuleNode} from './ruleNode';
 
 type Props = {
   disabled: boolean;
@@ -135,7 +135,7 @@ const groupSelectOptions = (actions: IssueAlertRuleActionTemplate[]) => {
     });
 };
 
-class RuleNodeList extends Component<Props> {
+export class RuleNodeList extends Component<Props> {
   componentWillUnmount() {
     window.clearTimeout(this.propertyChangeTimeout);
   }
@@ -307,8 +307,6 @@ class RuleNodeList extends Component<Props> {
     );
   }
 }
-
-export default RuleNodeList;
 
 const StyledSelectControl = styled(Select)`
   width: 100%;

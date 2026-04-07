@@ -1,6 +1,7 @@
 import {useTheme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {BarChart} from 'sentry/components/charts/barChart';
@@ -96,7 +97,14 @@ export function ScreensBarChart({
   if (error) {
     return (
       <ChartContainer height={chartHeight}>
-        <Widget Title={Title} Visualization={<Widget.WidgetError error={error} />} />
+        <Widget
+          Title={Title}
+          Visualization={
+            <Container position="absolute" inset={0}>
+              <Widget.WidgetError error={error} />
+            </Container>
+          }
+        />
       </ChartContainer>
     );
   }

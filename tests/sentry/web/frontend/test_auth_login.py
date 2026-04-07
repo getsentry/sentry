@@ -251,7 +251,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert user.email == "test-a-really-long-email-address@example.com"
         assert user.check_password("foobar")
         assert user.name == "Foo Bar"
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert not OrganizationMember.objects.filter(user_id=user.id).exists()
 
         assert_last_analytics_event(
@@ -284,7 +284,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         user = User.objects.get(username="test-a-really-long-email-address@example.com")
 
         # User is part of the default org
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             default_org = Organization.get_default()
             org_member = OrganizationMember.objects.get(
                 organization_id=default_org.id, user_id=user.id
@@ -320,7 +320,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         # An organization member should NOT have been created, even though
         # we're in single org mode, accepting the invite will handle that
         # (which we assert next)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert not OrganizationMember.objects.filter(user_id=user.id).exists()
 
         # Invitation was accepted
@@ -616,7 +616,7 @@ class AuthLoginNewsletterTest(TestCase):
         assert user.email == "test-a-really-long-email-address@example.com"
         assert user.check_password("foobar")
         assert user.name == "Foo Bar"
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert not OrganizationMember.objects.filter(user_id=user.id).exists()
 
         assert newsletter.backend.get_subscriptions(user) == {"subscriptions": []}

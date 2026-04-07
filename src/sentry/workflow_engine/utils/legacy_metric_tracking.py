@@ -13,6 +13,7 @@ from collections.abc import Callable
 from contextvars import ContextVar
 from typing import Any, Literal, TypeVar
 
+import sentry_sdk
 from django.http import HttpResponseBase
 
 from sentry.utils import metrics
@@ -36,6 +37,12 @@ def report_used_legacy_models() -> None:
     track_alert_endpoint_execution decorator exits.
     """
     _legacy_models_used.set(True)
+
+
+# Since backported API implementations should be functionally equivalent to the
+# legacy implementations, it's helpful to include this header to make it explicit
+# which was used so that testers and bug reporters can confirm the source of their data.
+_LEGACY_MODELS_HEADER = "X-Legacy-Models"
 
 
 def track_alert_endpoint_execution(
@@ -67,13 +74,18 @@ def track_alert_endpoint_execution(
             # Reset the context var for this request
             token = _legacy_models_used.set(False)
 
+            legacy_models: bool | None = None
             try:
                 # Execute the endpoint
                 response = func(*args, **kwargs)
+                if isinstance(response, HttpResponseBase):
+                    legacy_models = _legacy_models_used.get()
+                    if not response.has_header(_LEGACY_MODELS_HEADER):
+                        response.headers[_LEGACY_MODELS_HEADER] = str(legacy_models).lower()
                 return response
             finally:
-                # Report the metric after execution
-                legacy_models = _legacy_models_used.get()
+                if legacy_models is None:
+                    legacy_models = _legacy_models_used.get()
 
                 metrics.incr(
                     "alert_endpoint.executed",
@@ -82,6 +94,10 @@ def track_alert_endpoint_execution(
                         "method": method,
                         "legacy_models": str(legacy_models).lower(),
                     },
+                )
+                # Tag our spans so we can more easily do bulk analysis on them in Sentry.
+                sentry_sdk.get_isolation_scope().set_tag(
+                    "legacy_models", str(legacy_models).lower()
                 )
                 # Reset the context var
                 _legacy_models_used.reset(token)

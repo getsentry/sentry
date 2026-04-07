@@ -4,11 +4,11 @@ import {Observer} from 'mobx-react-lite';
 
 import {Button} from '@sentry/scraps/button';
 
-import FormContext from 'sentry/components/forms/formContext';
-import FormModel from 'sentry/components/forms/model';
+import {FormContext} from 'sentry/components/forms/formContext';
+import {FormModel} from 'sentry/components/forms/model';
 import type {Data} from 'sentry/components/forms/types';
 import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
-import EditLayout from 'sentry/components/workflowEngine/layout/edit';
+import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
 import {t} from 'sentry/locale';
 import type {
   BaseDetectorUpdatePayload,
@@ -19,8 +19,8 @@ import {
   DisableDetectorAction,
 } from 'sentry/views/detectors/components/details/common/actions';
 import {EditDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
+import {DetectorNameField} from 'sentry/views/detectors/components/forms/common/detectorNameField';
 import {getSubmitButtonTitle} from 'sentry/views/detectors/components/forms/common/getSubmitButtonTitle';
-import {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useEditDetectorFormSubmit} from 'sentry/views/detectors/hooks/useEditDetectorFormSubmit';
 
@@ -29,7 +29,6 @@ type EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload> = {
   detector: TDetector;
   formDataToEndpointPayload: (formData: TFormData) => TUpdatePayload;
   savedDetectorToFormData: (detector: TDetector) => TFormData;
-  environment?: React.ComponentProps<typeof DetectorBaseFields>['environment'];
   extraFooterButton?: React.ReactNode;
   mapFormErrors?: (error: any) => any;
   previewChart?: React.ReactNode;
@@ -46,7 +45,6 @@ export function EditDetectorLayout<
   formDataToEndpointPayload,
   savedDetectorToFormData,
   mapFormErrors,
-  environment,
   extraFooterButton,
 }: EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload>) {
   const theme = useTheme();
@@ -85,7 +83,7 @@ export function EditDetectorLayout<
         </div>
 
         <EditLayout.HeaderFields>
-          <DetectorBaseFields environment={environment} />
+          <DetectorNameField />
           {previewChart ?? <div />}
         </EditLayout.HeaderFields>
       </EditLayout.Header>
@@ -104,7 +102,8 @@ export function EditDetectorLayout<
                   type="submit"
                   priority="primary"
                   size="sm"
-                  disabled={form?.isFormIncomplete || form?.isError || form?.isSaving}
+                  busy={form?.isSaving}
+                  disabled={form?.isFormIncomplete || form?.isError}
                   tooltipProps={{title: form ? getSubmitButtonTitle(form) : undefined}}
                 >
                   {t('Save')}

@@ -3,21 +3,20 @@ import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getContextMeta} from 'sentry/components/events/contexts/utils';
 import {
   TreeColumn,
   TreeContainer,
 } from 'sentry/components/events/eventTags/eventTagsTree';
-import EventTagsTreeRow from 'sentry/components/events/eventTags/eventTagsTreeRow';
+import {EventTagsTreeRow} from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
-import EditHighlightsModal from 'sentry/components/events/highlights/editHighlightsModal';
+import {EditHighlightsModal} from 'sentry/components/events/highlights/editHighlightsModal';
 import {
   EMPTY_HIGHLIGHT_DEFAULT,
   getHighlightContextData,
@@ -31,17 +30,15 @@ import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
-import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
+import {useReplayData} from 'sentry/utils/replays/hooks/useReplayData';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface HighlightsDataSectionProps {
   event: Event;
   project: Project;
-  viewAllRef?: React.RefObject<HTMLElement | null>;
 }
 
 function useOpenEditHighlightsModal({
@@ -250,32 +247,12 @@ function HighlightsData({
   );
 }
 
-export function HighlightsDataSection({
-  viewAllRef,
-  event,
-  project,
-}: HighlightsDataSectionProps) {
-  const organization = useOrganization();
-  const hasStreamlinedUI = useHasStreamlinedUI();
-
-  const viewAllButton =
-    !hasStreamlinedUI && viewAllRef ? (
-      <Button
-        onClick={() => {
-          trackAnalytics('highlights.issue_details.view_all_clicked', {organization});
-          viewAllRef?.current?.scrollIntoView({behavior: 'smooth'});
-        }}
-        size="xs"
-      >
-        {t('View All')}
-      </Button>
-    ) : null;
-
+export function HighlightsDataSection({event, project}: HighlightsDataSectionProps) {
   return (
     <InterimSection
       key="event-highlights"
       type={SectionKey.HIGHLIGHTS}
-      title={hasStreamlinedUI ? t('Highlights') : t('Event Highlights')}
+      title={t('Highlights')}
       help={tct(
         'Promoted tags and context items saved for this project. [link:Learn more]',
         {
@@ -286,10 +263,7 @@ export function HighlightsDataSection({
       data-test-id="event-highlights"
       actions={
         <ErrorBoundary mini>
-          <Grid flow="column" align="center" gap="md">
-            {viewAllButton}
-            <EditHighlightsButton project={project} event={event} />
-          </Grid>
+          <EditHighlightsButton project={project} event={event} />
         </ErrorBoundary>
       }
     >

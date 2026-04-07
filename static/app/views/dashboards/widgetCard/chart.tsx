@@ -12,12 +12,12 @@ import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
-import TransitionChart from 'sentry/components/charts/transitionChart';
+import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {getSeriesSelection, isChartHovered} from 'sentry/components/charts/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {PlaceholderProps} from 'sentry/components/placeholder';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -53,12 +53,12 @@ import {
   stripDerivedMetricsPrefix,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {useTrackAnalyticsOnSpanMigrationError} from 'sentry/views/dashboards/hooks/useTrackAnalyticsOnSpanMigrationError';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
@@ -71,8 +71,8 @@ import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
-import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
-import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
+import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {AgentsTracesTableWidgetVisualization} from 'sentry/views/dashboards/widgets/agentsTracesTableWidget/agentsTracesTableWidgetVisualization';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {CategoricalSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/categoricalSeriesWidgetVisualization';
@@ -96,6 +96,7 @@ import {Thresholds as ThresholdsPlottable} from 'sentry/views/dashboards/widgets
 import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
+import {SpanFields} from 'sentry/views/insights/types';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
 import {WidgetCardConfidenceFooter} from './confidenceFooter';
@@ -264,6 +265,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
         <AgentsTracesTableWidgetVisualization
           limit={widget.limit}
           tableWidths={widget.tableWidths}
+          dashboardFilters={props.dashboardFilters}
           frameless
         />
       </TableWrapper>
@@ -282,6 +284,9 @@ function WidgetCardChart(props: WidgetCardChartProps) {
   const {start, end, period, utc} = selection.datetime;
   const {projects, environments} = selection;
 
+  // TODO(JoshuaKGoldberg):
+  //   Unexpected unnecessary non-capturing group. This group can be removed without changing the behaviour of the regex  regexp/no-useless-non-capturing-group
+  // eslint-disable-next-line regexp/no-useless-non-capturing-group
   const otherRegex = new RegExp(`(?:.* : ${OTHER}$)|^${OTHER}$`);
   const shouldColorOther = timeseriesResults?.some(({seriesName}) =>
     seriesName?.match(otherRegex)
@@ -610,7 +615,9 @@ function TableComponent({
       tableResults[i]?.meta
     ).map((column, index) => {
       let sortable = false;
-      if (widget.widgetType === WidgetType.RELEASE) {
+      if (column.key === SpanFields.IS_STARRED_TRANSACTION) {
+        sortable = false;
+      } else if (widget.widgetType === WidgetType.RELEASE) {
         sortable = isAggregateField(column.key);
       } else if (widget.widgetType !== WidgetType.ISSUE) {
         sortable = true;
@@ -637,7 +644,10 @@ function TableComponent({
     let cellActions = ALLOWED_CELL_ACTIONS;
     if (disableTableActions) {
       cellActions = [];
-    } else if (widget.widgetType === WidgetType.SPANS) {
+    } else if (
+      organization.features.includes('visibility-explore-view') &&
+      widget.widgetType === WidgetType.SPANS
+    ) {
       cellActions = [...ALLOWED_CELL_ACTIONS, Actions.OPEN_ROW_IN_EXPLORE];
     }
 
@@ -848,13 +858,7 @@ function ServerTreeComponent({
 }
 
 function WheelComponent(props: TableComponentProps): React.ReactNode {
-  return (
-    <WheelWidgetVisualization
-      tableResults={props.tableResults}
-      loading={props.loading}
-      selection={props.selection}
-    />
-  );
+  return <WheelWidgetVisualization tableResults={props.tableResults} />;
 }
 
 function TextComponent(props: TableComponentProps): React.ReactNode {

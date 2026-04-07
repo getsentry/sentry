@@ -2,13 +2,13 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
-import Pagination from 'sentry/components/pagination';
+import {Pagination} from 'sentry/components/pagination';
 import type {
   GridColumnOrder,
   GridColumnSortBy,
 } from 'sentry/components/tables/gridEditable';
-import GridEditable from 'sentry/components/tables/gridEditable';
-import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
+import {GridEditable} from 'sentry/components/tables/gridEditable';
+import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';

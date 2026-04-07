@@ -143,7 +143,7 @@ describe('analyzeAnrFrames', () => {
       'SharedPreferences.apply will save data on background thread only if it happens before the activity/service finishes. Switch to SharedPreferences.commit and move commit to a background thread.'
     );
     expect(rootCause?.culprit).toBe(
-      '/^android\\.app\\.SharedPreferencesImpl\\$EditorImpl\\$[0-9]/'
+      '/^android\\.app\\.SharedPreferencesImpl\\$EditorImpl\\$\\d/'
     );
   });
 
@@ -219,7 +219,7 @@ describe('analyzeAnrFrames', () => {
       'SharedPreferences.apply will save data on background thread only if it happens before the activity/service finishes. Switch to SharedPreferences.commit and move commit to a background thread.'
     );
     expect(rootCause?.culprit).toBe(
-      '/^android\\.app\\.SharedPreferencesImpl\\$EditorImpl\\$[0-9]/'
+      '/^android\\.app\\.SharedPreferencesImpl\\$EditorImpl\\$\\d/'
     );
   });
 

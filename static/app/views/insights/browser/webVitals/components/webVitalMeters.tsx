@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 
 export type ProjectData = {
   'p75(measurements.cls)': number;

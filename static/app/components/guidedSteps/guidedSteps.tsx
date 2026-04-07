@@ -18,7 +18,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 
 type GuidedStepsProps = {
   children: React.ReactNode;
@@ -373,6 +373,7 @@ const ChildrenWrapper = styled('div')<{isActive: boolean}>`
 const StepDetails = styled('div')`
   overflow: hidden;
   grid-area: details;
+  min-width: 0;
 `;
 
 GuidedSteps.Step = Step;

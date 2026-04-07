@@ -15,7 +15,7 @@ concurrency:
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
-  NODE_OPTIONS: '--max-old-space-size=4096'
+  NODE_OPTIONS: '--max-old-space-size=5120'
 
 jobs:
   files-changed:
@@ -59,11 +59,16 @@ jobs:
         id: tsc
         run: pnpm exec tsc -p tsconfig.json
 
+      - name: tsc (mdx)
+        id: tsc-mdx
+        run: pnpm run typecheck:mdx
+
   eslint:
     if: needs.files-changed.outputs.frontend_all == 'true'
     needs: files-changed
     name: eslint
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -167,7 +172,7 @@ jobs:
       - uses: ./.github/actions/setup-node-pnpm
 
       - name: Generate form field registry
-        run: node --experimental-transform-types scripts/extractFormFields.ts
+        run: node scripts/extractFormFields.ts
 
       - name: Check for changes
         run: |
@@ -176,7 +181,7 @@ jobs:
             echo "❌ Form field registry is out of sync!"
             echo ""
             echo "Run the following command and commit the changes:"
-            echo "  node --experimental-transform-types scripts/extractFormFields.ts"
+            echo "  node scripts/extractFormFields.ts"
             echo ""
             exit 1
           fi

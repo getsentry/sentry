@@ -1,4 +1,4 @@
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 

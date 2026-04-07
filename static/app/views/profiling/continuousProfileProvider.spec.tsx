@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import ContinuosProfileProvider from './continuousProfileProvider';
 

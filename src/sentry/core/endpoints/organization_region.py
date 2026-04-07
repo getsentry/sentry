@@ -11,7 +11,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SentryPermission
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.types.region import CellResolutionError, get_global_directory
+from sentry.types.cell import CellResolutionError, get_global_directory
 
 
 class OrganizationRegionEndpointPermissions(SentryPermission):

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -13,7 +13,7 @@ from sentry.monitors.utils import (
     get_detector_for_monitor,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
 
 
@@ -213,7 +213,7 @@ class EnsureCronDetectorDeletionTest(TestCase):
 
 
 class TestEAPFetchAssociatedGroups(TestCase, SnubaTestCase):
-    FROZEN_TIME = datetime(2026, 2, 12, 6, 0, 0, tzinfo=timezone.utc)
+    FROZEN_TIME = before_now(hours=24).replace(hour=6, minute=0, second=0)
 
     def _event_timestamp(self) -> float:
         return (self.FROZEN_TIME - timedelta(minutes=5)).timestamp()

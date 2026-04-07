@@ -77,7 +77,10 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
 )
-from sentry.models.dynamicsampling import CustomDynamicSamplingRule
+from sentry.models.dynamicsampling import (
+    CustomDynamicSamplingRule,
+    CustomDynamicSamplingRuleProject,
+)
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewProject
@@ -105,7 +108,10 @@ from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 from sentry.monitors.models import Monitor, ScheduleType
 from sentry.replays.models import OrganizationMemberReplayAccess
-from sentry.seer.models.organization_settings import SeerOrganizationSettings
+from sentry.seer.models.project_repository import (
+    SeerProjectRepository,
+    SeerProjectRepositoryBranchOverride,
+)
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.services.nodestore.django.models import Node
@@ -291,7 +297,7 @@ def clear_model(model, *, reset_pks: bool):
                 cursor.execute("SELECT setval(%s, 1, false)", [seq])
 
 
-@assume_test_silo_mode(SiloMode.REGION)
+@assume_test_silo_mode(SiloMode.CELL)
 def clear_database(*, reset_pks: bool = False):
     """
     Deletes all models we care about from the database, in a sequence that ensures we get no
@@ -428,7 +434,7 @@ class ExhaustiveFixtures(Fixtures):
 
         return user
 
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_exhaustive_organization(
         self,
         slug: str,
@@ -474,8 +480,6 @@ class ExhaustiveFixtures(Fixtures):
         OrganizationOption.objects.create(
             organization=org, key="sentry:scrape_javascript", value=True
         )
-        SeerOrganizationSettings.objects.create(organization=org)
-
         owner_member = OrganizationMember.objects.get(organization=org, user_id=owner_id)
         OrganizationMemberReplayAccess.objects.create(organizationmember=owner_member)
 
@@ -518,17 +522,6 @@ class ExhaustiveFixtures(Fixtures):
             disable_date=timezone.now(),
             sent_initial_email_date=timezone.now(),
             sent_final_email_date=timezone.now(),
-        )
-        CustomDynamicSamplingRule.update_or_create(
-            created_by_id=owner_id,
-            condition={"op": "equals", "name": "environment", "value": "prod"},
-            start=timezone.now(),
-            end=timezone.now() + timedelta(hours=1),
-            project_ids=[project.id],
-            organization_id=org.id,
-            num_samples=100,
-            sample_rate=0.5,
-            query="environment:prod event.type:transaction",
         )
 
         # Environment*
@@ -647,6 +640,13 @@ class ExhaustiveFixtures(Fixtures):
                 CodeReviewTrigger.ON_NEW_COMMIT,
                 CodeReviewTrigger.ON_READY_FOR_REVIEW,
             ],
+        )
+        seer_project_repo = SeerProjectRepository.objects.create(project=project, repository=repo)
+        SeerProjectRepositoryBranchOverride.objects.create(
+            seer_project_repository=seer_project_repo,
+            tag_name="environment",
+            tag_value="production",
+            branch_name="release",
         )
 
         CodeReviewEvent.objects.create(
@@ -819,6 +819,20 @@ class ExhaustiveFixtures(Fixtures):
             overrides={"write_key": "test_override_write_key"},
         )
 
+        custom_rule = CustomDynamicSamplingRule.objects.create(
+            organization=org,
+            created_by_id=owner_id,
+            condition='{"op":"and","inner":[]}',
+            end_date=timezone.now() + timedelta(days=1),
+            num_samples=100,
+            condition_hash="abc123def456abc123def456abc123def4560000",
+            sample_rate=0.5,
+        )
+        CustomDynamicSamplingRuleProject.objects.create(
+            custom_dynamic_sampling_rule=custom_rule,
+            project=project,
+        )
+
         return org
 
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -905,7 +919,7 @@ class ExhaustiveFixtures(Fixtures):
 
         return app
 
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_exhaustive_sentry_app_notification(self, app: SentryApp, org: Organization):
         project = Project.objects.filter(organization=org).first()
         self.create_notification_action(organization=org, sentry_app_id=app.id, projects=[project])
@@ -916,7 +930,7 @@ class ExhaustiveFixtures(Fixtures):
         self.create_exhaustive_global_configs_regional()
         ControlOption.objects.create(key="bar", value="b")
 
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_exhaustive_global_configs_regional(self):
         _, public_key = generate_key_pair()
         relay = str(uuid4())

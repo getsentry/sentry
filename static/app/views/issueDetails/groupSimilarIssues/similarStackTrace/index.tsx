@@ -2,21 +2,21 @@ import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import type {SimilarItem} from 'sentry/stores/groupingStore';
-import GroupingStore from 'sentry/stores/groupingStore';
+import {GroupingStore} from 'sentry/stores/groupingStore';
 import type {Project} from 'sentry/types/project';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 
 import {List} from './list';
@@ -58,11 +58,6 @@ export function SimilarStackTrace({project}: Props) {
   const hasSimilarityEmbeddingsFeature =
     projectData?.features.includes('similarity-embeddings') ||
     location.query.similarityEmbeddings === '1';
-  // Use reranking by default (assuming the `seer.similarity.similar_issues.use_reranking`
-  // backend option is using its default value of `True`). This is just so we can turn it off
-  // on demand to see if/how that changes the results.
-  const useReranking = String(location.query.useReranking !== '0');
-
   const fetchData = useCallback(() => {
     if (isPending) {
       return;
@@ -77,7 +72,6 @@ export function SimilarStackTrace({project}: Props) {
           {
             k: 10,
             threshold: 0.01,
-            useReranking,
           }
         )}`,
         dataKey: 'similar',
@@ -101,7 +95,6 @@ export function SimilarStackTrace({project}: Props) {
     organization.slug,
     hasSimilarityFeature,
     hasSimilarityEmbeddingsFeature,
-    useReranking,
     isPending,
   ]);
 

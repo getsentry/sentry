@@ -21,7 +21,7 @@ type Props = {
   zoomKeys: string[];
 };
 
-function Histogram(props: Props) {
+export function Histogram(props: Props) {
   const {location, zoomKeys, children} = props;
   const navigate = useNavigate();
 
@@ -72,5 +72,3 @@ export function removeHistogramQueryStrings(location: Location, zoomKeys: string
 
   return query;
 }
-
-export default Histogram;

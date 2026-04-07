@@ -13,6 +13,8 @@ import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/layout/flex');
 
+import {SIZES} from './__stories__/consts';
+
 The `Flex` component is a layout component that extends the `Container` component with CSS flexbox properties. It combines the powerful spacing, sizing, and styling capabilities of `Container` with flexible positioning and alignment controls.
 
 ## Basic Usage
@@ -131,10 +133,10 @@ Similarly to `Container`, the `Flex` properties like `gap` follow the same spaci
 
 <Storybook.Demo>
   <Flex direction="column" gap="md">
-    {['xs', 'sm', 'md', 'lg', 'xl', '2xl'].map(size => (
+    {SIZES.map(size => (
       <Flex direction="column" gap="sm" key={size}>
         <strong>{size} gap</strong>
-        <Flex m="md" gap={size}>
+        <Flex margin="md" gap={size}>
           <Container padding="md" border="primary" radius="md" background="primary">
             Item 1
           </Container>
@@ -164,7 +166,7 @@ All props support responsive values using breakpoint objects. Breakpoints are: `
 Example of a responsive flex container that uses a static gap, but changes direction based on the breakpoint.
 
 <Storybook.Demo>
-  <Flex direction={{xs: 'row-reverse', sm: 'column', md: 'row'}} gap="md" p="md">
+  <Flex direction={{xs: 'row-reverse', sm: 'column', md: 'row'}} gap="md" padding="md">
     <Container padding="md" border="primary" radius="md" background="primary">
       Responsive
     </Container>

@@ -2,7 +2,7 @@ import {useContext, useRef} from 'react';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 
-import FormContext from 'sentry/components/forms/formContext';
+import {FormContext} from 'sentry/components/forms/formContext';
 import {defined} from 'sentry/utils';
 import {AssertionSuggestionsButton} from 'sentry/views/alerts/rules/uptime/assertionSuggestionsButton';
 import type {UptimeAssertion} from 'sentry/views/alerts/rules/uptime/types';

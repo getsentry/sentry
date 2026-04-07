@@ -22,9 +22,9 @@ import {
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 
-import AlertContainer from './integrationAlertContainer';
+import {AlertContainer} from './integrationAlertContainer';
 import {IntegrationStatus} from './integrationStatus';
-import PluginDeprecationAlert from './pluginDeprecationAlert';
+import {PluginDeprecationAlert} from './pluginDeprecationAlert';
 
 type Props = {
   categories: string[];

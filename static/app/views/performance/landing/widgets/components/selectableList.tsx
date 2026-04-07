@@ -2,16 +2,14 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
-import {Radio} from '@sentry/scraps/radio';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {getConfigurePerformanceDocsLink} from 'sentry/utils/docs';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {CACHE_BASE_URL} from 'sentry/views/insights/cache/settings';
 import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
@@ -19,49 +17,6 @@ import {MODULE_DOC_LINK} from 'sentry/views/insights/http/settings';
 import {MODULE_DOC_LINK as QUEUE_MODULE_DOC_LINK} from 'sentry/views/insights/queues/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 import {getIsMultiProject} from 'sentry/views/performance/utils';
-
-type Props = {
-  items: React.ReactNode[];
-  selectedIndex: number;
-  setSelectedIndex: (index: number) => void;
-  radioColor?: string;
-};
-
-export default function SelectableList(props: Props) {
-  return (
-    <div>
-      {props.items.map((item, index) => (
-        <SelectableItem
-          {...props}
-          isSelected={index === props.selectedIndex}
-          currentIndex={index}
-          key={index}
-        >
-          {item}
-        </SelectableItem>
-      ))}
-    </div>
-  );
-}
-
-function SelectableItem({
-  isSelected,
-  currentIndex: index,
-  children,
-  setSelectedIndex,
-  radioColor,
-}: {children: React.ReactNode; currentIndex: number; isSelected: boolean} & Props) {
-  return (
-    <ListItemContainer>
-      <ItemRadioContainer color={radioColor ?? ''}>
-        <RadioLineItem index={index} role="radio">
-          <Radio checked={isSelected} onChange={() => setSelectedIndex(index)} />
-        </RadioLineItem>
-      </ItemRadioContainer>
-      {children}
-    </ListItemContainer>
-  );
-}
 
 export const RightAlignedCell = styled('div')`
   text-align: right;
@@ -275,21 +230,4 @@ const SecondaryMessage = styled('p')`
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   max-width: 300px;
-`;
-
-const ListItemContainer = styled('div')`
-  display: flex;
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  font-size: ${p => p.theme.font.size.md};
-`;
-
-const ItemRadioContainer = styled('div')`
-  grid-row: 1/3;
-  input {
-    cursor: pointer;
-  }
-  input:checked::after {
-    background-color: ${p => p.color};
-  }
 `;

@@ -8,8 +8,8 @@ import {openModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import BooleanField from 'sentry/components/deprecatedforms/booleanField';
 import {DateTimeField} from 'sentry/components/deprecatedforms/dateTimeField';
-import Form from 'sentry/components/deprecatedforms/form';
-import InputField from 'sentry/components/deprecatedforms/inputField';
+import {Form} from 'sentry/components/deprecatedforms/form';
+import {InputField} from 'sentry/components/deprecatedforms/inputField';
 import NumberField, {
   NumberField as NumberFieldNoContext,
 } from 'sentry/components/deprecatedforms/numberField';
@@ -19,7 +19,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 
 import {prettyDate} from 'admin/utils';
 import {CPE_MULTIPLIER_TO_CENTS, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
@@ -1177,7 +1177,5 @@ const Modal = withApi(ProvisionSubscriptionModal);
 
 type Options = Pick<Props, 'orgId' | 'subscription' | 'onSuccess' | 'billingConfig'>;
 
-const triggerProvisionSubscription = (opts: Options) =>
+export const triggerProvisionSubscription = (opts: Options) =>
   openModal(deps => <Modal {...deps} {...opts} />, {modalCss});
-
-export default triggerProvisionSubscription;

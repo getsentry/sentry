@@ -4,7 +4,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import OrganizationMemberRow from 'sentry/views/settings/organizationMembers/organizationMemberRow';
+import {OrganizationMemberRow} from 'sentry/views/settings/organizationMembers/organizationMemberRow';
 
 describe('OrganizationMemberRow', () => {
   const member = MemberFixture({

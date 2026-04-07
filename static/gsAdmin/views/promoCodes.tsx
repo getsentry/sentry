@@ -9,7 +9,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {PageHeader} from 'admin/components/pageHeader';
 import {AddPromoCodeModal as PromoCodeModal} from 'admin/components/promoCodes/promoCodeModal';
 import ResultGrid from 'admin/components/resultGrid';
-import titleCase from 'getsentry/utils/titleCase';
+import {titleCase} from 'getsentry/utils/titleCase';
 
 const getRow = (row: any) => [
   <td key="code">

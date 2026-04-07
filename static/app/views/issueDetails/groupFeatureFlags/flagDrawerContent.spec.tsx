@@ -5,7 +5,7 @@ import {FeatureFlagTagsFixture} from 'sentry-fixture/tags';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {OrderBy} from 'sentry/components/events/featureFlags/utils';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {FlagDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerContent';
 
 describe('GroupFeatureFlagsDrawerContent', () => {

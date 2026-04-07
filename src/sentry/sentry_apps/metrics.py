@@ -70,6 +70,8 @@ class SentryAppWebhookHaltReason(StrEnum):
     MISSING_INSTALLATION = "missing_installation"
     RESTRICTED_IP = "restricted_ip"
     CONNECTION_RESET = "connection_reset"
+    HARD_TIMEOUT = "hard_timeout"
+    CIRCUIT_BROKEN = "circuit_broken"
 
 
 class SentryAppExternalRequestFailureReason(StrEnum):
@@ -150,3 +152,7 @@ class SentryAppEventType(StrEnum):
     SEER_IMPACT_ASSESSMENT_STARTED = "seer.impact_assessment_started"
     SEER_IMPACT_ASSESSMENT_COMPLETED = "seer.impact_assessment_completed"
     SEER_PR_CREATED = "seer.pr_created"
+
+    # preprod artifact webhooks
+    PREPROD_ARTIFACT_SIZE_ANALYSIS_COMPLETED = "preprod_artifact.size_analysis_completed"
+    PREPROD_ARTIFACT_BUILD_DISTRIBUTION_COMPLETED = "preprod_artifact.build_distribution_completed"

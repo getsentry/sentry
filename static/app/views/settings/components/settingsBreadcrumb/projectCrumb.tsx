@@ -5,16 +5,16 @@ import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import recreateRoute from 'sentry/utils/recreateRoute';
-import replaceRouterParams from 'sentry/utils/replaceRouterParams';
+import {recreateRoute} from 'sentry/utils/recreateRoute';
+import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {SettingsBreadcrumbProps} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 
 import {BreadcrumbDropdown} from './breadcrumbDropdown';
-import findFirstRouteWithoutRouteParam from './findFirstRouteWithoutRouteParam';
+import {findFirstRouteWithoutRouteParam} from './findFirstRouteWithoutRouteParam';
 import {CrumbLink} from '.';
 
 export function ProjectCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {

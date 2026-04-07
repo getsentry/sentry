@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 
-import {IconDelete, IconGrabbable} from 'sentry/icons';
+import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
+import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import {
@@ -91,12 +92,7 @@ export function VisualizeGhostField({
   return (
     <Ghost>
       <FieldRow>
-        <DragAndReorderButton
-          aria-label={t('Drag to reorder')}
-          icon={<IconGrabbable size="xs" />}
-          size="zero"
-          priority="transparent"
-        />
+        <StyledDragReorderButton />
         <FieldBar>
           {draggingField?.kind === FieldValueKind.EQUATION ? (
             <StyledArithmeticInput
@@ -225,18 +221,14 @@ const Ghost = styled('div')`
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
   opacity: 0.8;
   cursor: grabbing;
-  padding-right: ${p => p.theme.space.xl};
   width: 100%;
 
   button {
     cursor: grabbing;
   }
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    width: 710px;
-  }
 `;
 
-const DragAndReorderButton = styled(Button)`
+const StyledDragReorderButton = styled(DragReorderButton)`
   height: ${p => p.theme.form.md.height};
+  cursor: grabbing;
 `;

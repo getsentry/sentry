@@ -33,8 +33,8 @@ from sentry.db.postgres.transactions import (
     in_test_assert_no_transaction,
 )
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
-from sentry.hybridcloud.outbox.signals import process_control_outbox, process_region_outbox
-from sentry.hybridcloud.rpc import REGION_NAME_LENGTH
+from sentry.hybridcloud.outbox.signals import process_cell_outbox, process_control_outbox
+from sentry.hybridcloud.rpc import CELL_NAME_LENGTH
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.utils import metrics
@@ -412,10 +412,10 @@ class OutboxBase(Model):
         return cls.objects.count()
 
 
-# Outboxes bound from region silo -> control silo
-class RegionOutboxBase(OutboxBase):
+# Outboxes bound from cell silo -> control silo
+class CellOutboxBase(OutboxBase):
     def send_signal(self) -> None:
-        process_region_outbox.send(
+        process_cell_outbox.send(
             sender=OutboxCategory(self.category),
             payload=self.payload,
             object_identifier=self.object_identifier,
@@ -433,7 +433,7 @@ class RegionOutboxBase(OutboxBase):
 
 
 @cell_silo_model
-class RegionOutbox(RegionOutboxBase):
+class CellOutbox(CellOutboxBase):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_regionoutbox"
@@ -457,7 +457,7 @@ class RegionOutbox(RegionOutboxBase):
         )
 
 
-# Outboxes bound from control silo -> region silo
+# Outboxes bound from control silo -> cell silo
 class ControlOutboxBase(OutboxBase):
     sharding_columns = ("cell_name", "shard_scope", "shard_identifier")
     coalesced_columns = (
@@ -468,13 +468,13 @@ class ControlOutboxBase(OutboxBase):
         "object_identifier",
     )
 
-    cell_name = models.CharField(max_length=REGION_NAME_LENGTH, db_column="region_name")
+    cell_name = models.CharField(max_length=CELL_NAME_LENGTH, db_column="region_name")
 
     def send_signal(self) -> None:
         process_control_outbox.send(
             sender=OutboxCategory(self.category),
             payload=self.payload,
-            region_name=self.cell_name,
+            cell_name=self.cell_name,
             object_identifier=self.object_identifier,
             shard_identifier=self.shard_identifier,
             shard_scope=self.shard_scope,
@@ -518,10 +518,10 @@ class ControlOutbox(ControlOutboxBase):
 def outbox_silo_modes() -> list[SiloMode]:
     cur = SiloMode.get_current_mode()
     result: list[SiloMode] = []
-    if cur != SiloMode.REGION:
+    if cur != SiloMode.CELL:
         result.append(SiloMode.CONTROL)
     if cur != SiloMode.CONTROL:
-        result.append(SiloMode.REGION)
+        result.append(SiloMode.CELL)
     return result
 
 

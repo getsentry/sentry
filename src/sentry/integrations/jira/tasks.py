@@ -1,4 +1,5 @@
 from django.db import IntegrityError, router, transaction
+from taskbroker_client.retry import Retry
 
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
@@ -12,7 +13,6 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import integrations_control_tasks, integrations_tasks
-from sentry.taskworker.retry import Retry
 
 
 @instrumented_task(

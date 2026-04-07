@@ -138,7 +138,7 @@ interface Props {
   searchOptions?: Fuse.IFuseOptions<FormSearchField>;
 }
 
-function FormSource({searchOptions, query, children}: Props) {
+export function FormSource({searchOptions, query, children}: Props) {
   const [fuzzy, setFuzzy] = useState<Fuse<FormSearchField> | null>(null);
 
   const createSearch = useCallback(async () => {
@@ -174,5 +174,3 @@ function FormSource({searchOptions, query, children}: Props) {
     results,
   });
 }
-
-export default FormSource;

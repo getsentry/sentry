@@ -467,6 +467,69 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         call_kwargs = mock_produce_to_kafka.call_args[1]
         assert PreprodFeature.SIZE_ANALYSIS in call_kwargs["requested_features"]
 
+    @patch("sentry.preprod.tasks.dispatch_taskbroker")
+    @patch("sentry.preprod.tasks.produce_preprod_artifact_to_kafka")
+    def test_only_taskbroker_dispatched_when_flag_enabled(
+        self, mock_produce_to_kafka, mock_shadow
+    ) -> None:
+        content = b"test shadow taskbroker dispatch"
+        fileobj = ContentFile(content)
+        total_checksum = sha1(content).hexdigest()
+
+        blob = FileBlob.from_file_with_organization(fileobj, self.organization)
+
+        artifact = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            build_configuration_name="release",
+        )
+        assert artifact is not None
+
+        with self.feature("organizations:launchpad-taskbroker-rollout"):
+            assemble_preprod_artifact(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                checksum=total_checksum,
+                chunks=[blob.checksum],
+                artifact_id=artifact.id,
+            )
+
+        mock_produce_to_kafka.assert_not_called()
+        mock_shadow.assert_called_once_with(self.project.id, self.organization.id, artifact.id)
+
+    @patch("sentry.preprod.tasks.dispatch_taskbroker")
+    @patch("sentry.preprod.tasks.produce_preprod_artifact_to_kafka")
+    def test_only_kafka_dispatched_when_flag_disabled(
+        self, mock_produce_to_kafka, mock_shadow
+    ) -> None:
+        content = b"test only kafka dispatch when flag disabled"
+        fileobj = ContentFile(content)
+        total_checksum = sha1(content).hexdigest()
+
+        blob = FileBlob.from_file_with_organization(fileobj, self.organization)
+
+        artifact = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            build_configuration_name="release",
+        )
+        assert artifact is not None
+
+        assemble_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            chunks=[blob.checksum],
+            artifact_id=artifact.id,
+        )
+
+        mock_produce_to_kafka.assert_called_once()
+        mock_shadow.assert_not_called()
+        artifact.refresh_from_db()
+        assert artifact.state != PreprodArtifact.ArtifactState.FAILED
+
 
 class CreatePreprodArtifactTest(TestCase):
     def test_create_preprod_artifact_with_all_vcs_params_succeeds(self) -> None:
@@ -632,7 +695,8 @@ class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
         )
         return status, details
 
-    def test_assemble_preprod_artifact_installable_app_success(self) -> None:
+    @patch("sentry.preprod.tasks.send_build_distribution_webhook")
+    def test_assemble_preprod_artifact_installable_app_success(self, mock_send_webhook) -> None:
         status, details = self._run_task_and_verify_status(b"test installable app content")
 
         assert status == ChunkFileState.OK
@@ -647,7 +711,13 @@ class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
         self.preprod_artifact.refresh_from_db()
         assert self.preprod_artifact.installable_app_file_id == installable_files[0].id
 
-    def test_assemble_preprod_artifact_installable_app_error_cases(self) -> None:
+        # Verify webhook was sent
+        mock_send_webhook.assert_called_once()
+        call_kwargs = mock_send_webhook.call_args
+        assert call_kwargs.kwargs["organization_id"] == self.organization.id
+
+    @patch("sentry.preprod.tasks.send_build_distribution_webhook")
+    def test_assemble_preprod_artifact_installable_app_error_cases(self, mock_send_webhook) -> None:
         # Test nonexistent artifact
         status, details = self._run_task_and_verify_status(
             b"nonexistent artifact", artifact_id=99999
@@ -677,6 +747,9 @@ class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
         # Verify PreprodArtifact was not updated for error cases
         self.preprod_artifact.refresh_from_db()
         assert self.preprod_artifact.installable_app_file_id is None
+
+        # Verify webhook was NOT sent for any error case
+        mock_send_webhook.assert_not_called()
 
 
 class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
@@ -981,30 +1054,8 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
         assert second_analysis_file is not None
         assert main_metrics.analysis_file_id == second_analysis_file.id
 
-    def test_assemble_preprod_artifact_size_analysis_writes_to_eap_when_flag_enabled(self) -> None:
-        """Test that size metrics are written to EAP when feature flag is enabled"""
-        with self.feature("organizations:preprod-size-metrics-eap-write"):
-            with patch("sentry.preprod.tasks.produce_preprod_size_metric_to_eap") as mock_eap_write:
-                status, details = self._run_task_and_verify_status(
-                    b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null, "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 1000, "install_size": 2000}]}'
-                )
-
-                assert status == ChunkFileState.OK
-                assert details is None
-
-                # Verify produce_preprod_size_metric_to_eap was called exactly once
-                # We have other integration tests that verify the EAP write itself works
-                assert mock_eap_write.call_count == 1
-
-                call_args = mock_eap_write.call_args
-                assert call_args is not None
-                size_metric = call_args.kwargs["size_metric"]
-                assert size_metric.preprod_artifact_id == self.preprod_artifact.id
-                assert call_args.kwargs["organization_id"] == self.organization.id
-                assert call_args.kwargs["project_id"] == self.project.id
-
-    def test_assemble_preprod_artifact_size_analysis_skips_eap_when_flag_disabled(self) -> None:
-        """Test that size metrics are NOT written to EAP when feature flag is disabled"""
+    def test_assemble_preprod_artifact_size_analysis_writes_to_eap(self) -> None:
+        """Test that size metrics are written to EAP"""
         with patch("sentry.preprod.tasks.produce_preprod_size_metric_to_eap") as mock_eap_write:
             status, details = self._run_task_and_verify_status(
                 b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null, "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 1000, "install_size": 2000}]}'
@@ -1013,53 +1064,57 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
             assert status == ChunkFileState.OK
             assert details is None
 
-            # Verify produce_preprod_size_metric_to_eap was NOT called
-            mock_eap_write.assert_not_called()
+            # Verify produce_preprod_size_metric_to_eap was called exactly once
+            # We have other integration tests that verify the EAP write itself works
+            assert mock_eap_write.call_count == 1
+
+            call_args = mock_eap_write.call_args
+            assert call_args is not None
+            size_metric = call_args.kwargs["size_metric"]
+            assert size_metric.preprod_artifact_id == self.preprod_artifact.id
+            assert call_args.kwargs["organization_id"] == self.organization.id
+            assert call_args.kwargs["project_id"] == self.project.id
 
     def test_assemble_preprod_artifact_size_analysis_eap_write_failure_does_not_fail_task(
         self,
     ) -> None:
         """Test that EAP write failures don't cause the main task to fail"""
-        with self.feature("organizations:preprod-size-metrics-eap-write"):
-            with patch(
-                "sentry.preprod.tasks.produce_preprod_size_metric_to_eap",
-                side_effect=Exception("EAP write failed"),
-            ):
-                status, details = self._run_task_and_verify_status(
-                    b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null, "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 1000, "install_size": 2000}]}'
-                )
+        with patch(
+            "sentry.preprod.tasks.produce_preprod_size_metric_to_eap",
+            side_effect=Exception("EAP write failed"),
+        ):
+            status, details = self._run_task_and_verify_status(
+                b'{"analysis_duration": 1.5, "download_size": 1000, "install_size": 2000, "treemap": null, "analysis_version": null, "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 1000, "install_size": 2000}]}'
+            )
 
-                assert status == ChunkFileState.OK
-                assert details is None
+            assert status == ChunkFileState.OK
+            assert details is None
 
-                size_metrics = PreprodArtifactSizeMetrics.objects.filter(
-                    preprod_artifact=self.preprod_artifact
-                )
-                assert len(size_metrics) == 1
-                assert (
-                    size_metrics[0].state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
-                )
+            size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+                preprod_artifact=self.preprod_artifact
+            )
+            assert len(size_metrics) == 1
+            assert size_metrics[0].state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
 
     def test_assemble_preprod_artifact_size_analysis_writes_multiple_metrics_to_eap(self) -> None:
-        """Test that all size metrics (main + components) are written to EAP when flag is enabled"""
-        with self.feature("organizations:preprod-size-metrics-eap-write"):
-            with patch("sentry.preprod.tasks.produce_preprod_size_metric_to_eap") as mock_eap_write:
-                status, details = self._run_task_and_verify_status(
-                    b'{"analysis_duration": 2.5, "download_size": 5000, "install_size": 10000, "treemap": null, "analysis_version": "1.0", "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 3000, "install_size": 6000}, {"component_type": 1, "name": "Watch App", "app_id": "com.example.app.watchkitapp", "path": "/Watch", "download_size": 2000, "install_size": 4000}]}'
-                )
+        """Test that all size metrics (main + components) are written to EAP"""
+        with patch("sentry.preprod.tasks.produce_preprod_size_metric_to_eap") as mock_eap_write:
+            status, details = self._run_task_and_verify_status(
+                b'{"analysis_duration": 2.5, "download_size": 5000, "install_size": 10000, "treemap": null, "analysis_version": "1.0", "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 3000, "install_size": 6000}, {"component_type": 1, "name": "Watch App", "app_id": "com.example.app.watchkitapp", "path": "/Watch", "download_size": 2000, "install_size": 4000}]}'
+            )
 
-                assert status == ChunkFileState.OK
-                assert details is None
+            assert status == ChunkFileState.OK
+            assert details is None
 
-                assert mock_eap_write.call_count == 2
+            assert mock_eap_write.call_count == 2
 
-                for call in mock_eap_write.call_args_list:
-                    assert call.kwargs["organization_id"] == self.organization.id
-                    assert call.kwargs["project_id"] == self.project.id
+            for call in mock_eap_write.call_args_list:
+                assert call.kwargs["organization_id"] == self.organization.id
+                assert call.kwargs["project_id"] == self.project.id
 
 
 class DetectExpiredPreprodArtifactsTest(TestCase):
-    def test_detect_expired_preprod_artifacts_no_expired(self):
+    def test_detect_expired_preprod_artifacts_no_expired(self) -> None:
         """Test that no artifacts are marked as expired when none are expired"""
         recent_artifact = self.create_preprod_artifact(
             project=self.project,
@@ -1100,7 +1155,7 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
         assert recent_size_metric.state == PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING
         assert recent_size_comparison.state == PreprodArtifactSizeComparison.State.PROCESSING
 
-    def test_detect_expired_preprod_artifacts_with_expired(self):
+    def test_detect_expired_preprod_artifacts_with_expired(self) -> None:
         """Test that expired artifacts are marked as failed"""
         current_time = timezone.now()
         old_time = current_time - timedelta(minutes=35)  # 35 minutes ago (expired)
@@ -1191,7 +1246,7 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
             and "30 minutes" in expired_size_comparison.error_message
         )
 
-    def test_detect_expired_preprod_artifacts_captures_sentry_message(self):
+    def test_detect_expired_preprod_artifacts_captures_sentry_message(self) -> None:
         """Test that Sentry messages are captured for each expired artifact"""
         current_time = timezone.now()
         old_time = current_time - timedelta(minutes=35)
@@ -1227,7 +1282,7 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
                 assert call[1]["level"] == "error"
                 assert "artifact_id" in call[1]["extras"]
 
-    def test_detect_expired_preprod_artifacts_mixed_states(self):
+    def test_detect_expired_preprod_artifacts_mixed_states(self) -> None:
         """Test that only artifacts in the right states are considered for expiration"""
         current_time = timezone.now()
         old_time = current_time - timedelta(minutes=35)  # 35 minutes ago (expired)
@@ -1293,7 +1348,7 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
         assert processing_size_metric.state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED
         assert completed_size_metric.state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
 
-    def test_detect_expired_preprod_artifacts_boundary_time(self):
+    def test_detect_expired_preprod_artifacts_boundary_time(self) -> None:
         """Test the 30-minute boundary for expiration"""
         current_time = timezone.now()
         exactly_30_min_ago = current_time - timedelta(minutes=30)
@@ -1337,7 +1392,7 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
         )  # Still processing
         assert just_over_30_artifact.state == PreprodArtifact.ArtifactState.FAILED
 
-    def test_detect_expired_preprod_artifacts_skips_snapshot_artifacts(self):
+    def test_detect_expired_preprod_artifacts_skips_snapshot_artifacts(self) -> None:
         from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
 
         current_time = timezone.now()

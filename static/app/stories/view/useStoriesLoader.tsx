@@ -1,6 +1,7 @@
 import type React from 'react';
 import {useMemo, useSyncExternalStore} from 'react';
 
+import type {MDXFrontmatter} from 'sentry/stories/frontmatter';
 import {useQuery, type UseQueryResult} from 'sentry/utils/queryClient';
 
 let context = import.meta.webpackContext('sentry', {
@@ -67,15 +68,7 @@ export interface MDXStoryDescriptor {
   exports: {
     default: React.ComponentType | any;
     documentation?: StoryDocumentation;
-    frontmatter?: {
-      description: string;
-      title: string;
-      layout?: 'document';
-      resources?: StoryResources;
-      source?: string;
-      status?: 'in-progress' | 'experimental' | 'stable';
-      types?: string;
-    };
+    frontmatter?: MDXFrontmatter;
   };
   filename: string;
 }

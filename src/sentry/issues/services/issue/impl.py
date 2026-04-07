@@ -16,7 +16,11 @@ from sentry.models.organization import Organization
 
 class DatabaseBackedIssueService(IssueService):
     def get_external_issue_groups(
-        self, *, region_name: str, external_issue_key: str, integration_id: int
+        self,
+        *,
+        cell_name: str,
+        external_issue_key: str,
+        integration_id: int,
     ) -> list[RpcExternalIssueGroupMetadata] | None:
         from sentry.integrations.services.integration import integration_service
 
@@ -86,9 +90,7 @@ class DatabaseBackedIssueService(IssueService):
 
         return RpcGroupShareMetadata(title=group.title, message=group.message)
 
-    def get_shared_for_region(
-        self, *, region_name: str, share_id: str
-    ) -> RpcGroupShareMetadata | None:
+    def get_shared_for_cell(self, *, cell_name: str, share_id: str) -> RpcGroupShareMetadata | None:
         try:
             group = Group.objects.from_share_id(share_id)
         except Group.DoesNotExist:

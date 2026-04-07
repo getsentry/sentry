@@ -2,19 +2,19 @@ import {Fragment, useEffect} from 'react';
 import {mutationOptions, useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
+import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
@@ -45,6 +45,9 @@ type Props = {
 const typeMappedChildren: Record<string, string[]> = {
   quota: QUOTA_FIELDS.map(field => field.name),
 };
+
+// Ideally, we could just use SUPPORTED_PROVIDERS here, but 'msteams' is not widely tested.
+const ALLOWED_PROVIDERS = new Set(SUPPORTED_PROVIDERS.filter(p => p.includes('slack')));
 
 const getQueryParams = (notificationType: string) => {
   // if we need multiple settings on this page
@@ -86,21 +89,22 @@ export function NotificationSettingsByType({notificationType}: Props) {
       ],
       {staleTime: 30_000}
     );
-  const {data: identities = [], status: identitiesStatus} = useApiQuery<Identity[]>(
-    [
-      getApiUrl('/users/$userId/identities/', {path: {userId: 'me'}}),
-      {query: {provider: 'slack'}},
-    ],
+  const {data: allIdentities = [], status: identitiesStatus} = useApiQuery<Identity[]>(
+    [getApiUrl('/users/$userId/identities/', {path: {userId: 'me'}})],
     {staleTime: 30_000}
   );
-  const {data: organizationIntegrations = [], status: organizationIntegrationStatus} =
+  const identities = allIdentities.filter(identity =>
+    ALLOWED_PROVIDERS.has(identity?.identityProvider?.type as SupportedProviders)
+  );
+
+  const {data: allOrgIntegrations = [], status: organizationIntegrationStatus} =
     useApiQuery<OrganizationIntegration[]>(
-      [
-        getApiUrl('/users/$userId/organization-integrations/', {path: {userId: 'me'}}),
-        {query: {provider: 'slack'}},
-      ],
+      [getApiUrl('/users/$userId/organization-integrations/', {path: {userId: 'me'}})],
       {staleTime: 30_000}
     );
+  const organizationIntegrations = allOrgIntegrations.filter(orgIntegration =>
+    ALLOWED_PROVIDERS.has(orgIntegration.provider.key as SupportedProviders)
+  );
   const {data: defaultSettings, status: defaultSettingsStatus} =
     useApiQuery<DefaultSettings>([getApiUrl('/notification-defaults/')], {
       staleTime: 30_000,
@@ -229,6 +233,11 @@ export function NotificationSettingsByType({notificationType}: Props) {
       organization.features?.includes('am2-tier')
     );
 
+    // at least one org exists with am1 tier plan
+    const hasOrgWithAm1 = organizations.some(organization =>
+      organization.features?.includes('am1-tier')
+    );
+
     // Check if any organization has the continuous-profiling-billing feature flag
     const hasOrgWithContinuousProfilingBilling = organizations.some(organization =>
       organization.features?.includes('continuous-profiling-billing')
@@ -242,12 +251,12 @@ export function NotificationSettingsByType({notificationType}: Props) {
       organization.features?.includes('logs-billing')
     );
 
-    const hasSeerUserBilling = organizations.some(organization =>
-      organization.features?.includes('seer-user-billing-launch')
+    const hasTraceMetricsBilling = organizations.some(organization =>
+      organization.features?.includes('expose-category-trace-metric-byte')
     );
 
-    const hasSizeAnalysisBilling = organizations.some(organization =>
-      organization.features?.includes('expose-category-size-analysis')
+    const hasSeerUserBilling = organizations.some(organization =>
+      organization.features?.includes('seer-user-billing-launch')
     );
 
     const excludeTransactions = hasOrgWithAm3 && !hasOrgWithoutAm3;
@@ -256,7 +265,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       (hasOrgWithAm2 || hasOrgWithAm3) && hasOrgWithContinuousProfilingBilling;
     const includeSeer = hasSeerBilling;
     const includeLogs = hasLogsBilling;
-    const includeSizeAnalysis = hasSizeAnalysisBilling;
+    const includeSizeAnalysis = hasOrgWithAm3 || hasOrgWithAm2 || hasOrgWithAm1;
 
     return fields.filter(field => {
       if (field.name === 'quotaSpans' && !includeSpans) {
@@ -275,6 +284,9 @@ export function NotificationSettingsByType({notificationType}: Props) {
         return false;
       }
       if (field.name.startsWith('quotaLogBytes') && !includeLogs) {
+        return false;
+      }
+      if (field.name.startsWith('quotaTraceMetricBytes') && !hasTraceMetricsBilling) {
         return false;
       }
       if (field.name.startsWith('quotaSeerUsers') && !hasSeerUserBilling) {
@@ -352,6 +364,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
   });
 
   const unlinkedSlackOrgs = getUnlinkedOrgs('slack');
+  const unlinkedSlackStagingOrgs = getUnlinkedOrgs('slack_staging');
   let notificationDetails = ACCOUNT_NOTIFICATION_FIELDS[notificationType]!;
   if (
     notificationType === 'quota' &&
@@ -383,7 +396,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
   const optionMutationOptions = (fieldName: string) =>
     mutationOptions({
       mutationFn: (data: Record<string, string>) =>
-        fetchMutation({
+        fetchMutation<NotificationOptionsObject>({
           method: 'PUT',
           url: '/users/me/notification-options/',
           data: {
@@ -393,7 +406,23 @@ export function NotificationSettingsByType({notificationType}: Props) {
             value: data[fieldName],
           },
         }),
-      onSuccess: () => trackTuningUpdated('general'),
+      onSuccess: notificationOption => {
+        trackTuningUpdated('general');
+        setApiQueryData<NotificationOptionsObject[]>(
+          queryClient,
+          notificationOptionsQueryKey(notificationType),
+          currentOptions => {
+            const existing = currentOptions ?? [];
+            const idx = existing.findIndex(opt => opt.id === notificationOption.id);
+            if (idx >= 0) {
+              return existing.map(opt =>
+                opt.id === notificationOption.id ? notificationOption : opt
+              );
+            }
+            return [...existing, notificationOption];
+          }
+        );
+      },
     });
 
   const providerChoices = (
@@ -416,6 +445,14 @@ export function NotificationSettingsByType({notificationType}: Props) {
           providers: data.provider,
         },
       }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [
+          getApiUrl('/users/$userId/notification-providers/', {path: {userId: 'me'}}),
+          {query: getQueryParams(notificationType)},
+        ],
+      });
+    },
   });
 
   const renderQuotaFields = () => {
@@ -428,7 +465,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
     return filteredFields.map(field => {
       const schema = z.object({[field.name]: z.string()});
       return (
-        <AutoSaveField
+        <AutoSaveForm
           key={field.name}
           name={field.name}
           schema={schema}
@@ -444,7 +481,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
               />
             </fieldApi.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
       );
     });
   };
@@ -461,7 +498,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
 
     const schema = z.object({[notificationType]: z.string()});
     return (
-      <AutoSaveField
+      <AutoSaveForm
         name={notificationType}
         schema={schema}
         initialValue={initialTopOptionData[notificationType] ?? 'always'}
@@ -476,7 +513,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
             />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
     );
   };
 
@@ -496,7 +533,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       </FieldGroup>
       {notificationType !== 'reports' && notificationType !== 'brokenMonitors' ? (
         <FieldGroup title={t('Delivery Method')}>
-          <AutoSaveField
+          <AutoSaveForm
             name="provider"
             schema={providerSchema}
             initialValue={initialProviders}
@@ -507,6 +544,10 @@ export function NotificationSettingsByType({notificationType}: Props) {
                 {(field.state.value ?? initialProviders).includes('slack') &&
                 unlinkedSlackOrgs.length > 0 ? (
                   <UnlinkedAlert organizations={unlinkedSlackOrgs} />
+                ) : null}
+                {(field.state.value ?? initialProviders).includes('slack_staging') &&
+                unlinkedSlackStagingOrgs.length > 0 ? (
+                  <UnlinkedAlert organizations={unlinkedSlackStagingOrgs} />
                 ) : null}
                 <field.Layout.Row
                   label={t('Delivery Method')}
@@ -521,7 +562,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
                 </field.Layout.Row>
               </Fragment>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
         </FieldGroup>
       ) : null}
       <NotificationSettingsByEntity

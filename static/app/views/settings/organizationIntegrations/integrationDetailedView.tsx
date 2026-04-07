@@ -1,10 +1,10 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import styled from '@emotion/styled';
 import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
-import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
+import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
@@ -20,7 +20,7 @@ import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {ObjectStatus} from 'sentry/types/core';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   getAlertText,
   getIntegrationStatus,
@@ -33,16 +33,16 @@ import {
   useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {
   AlertType,
   IntegrationTab,
 } from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
-import IntegrationLayout from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
+import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import {useIntegrationTabs} from 'sentry/views/settings/organizationIntegrations/detailedView/useIntegrationTabs';
 import {InstalledIntegration} from 'sentry/views/settings/organizationIntegrations/installedIntegration';
 import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
@@ -236,12 +236,26 @@ export default function IntegrationDetailedView() {
 
   const onInstall = useCallback(
     (integration: Integration) => {
-      // send the user to the configure integration view for that integration
+      if (provider?.features.includes('coding-agent')) {
+        queryClient.invalidateQueries({
+          queryKey: makeIntegrationQueryKey({
+            orgSlug: organization.slug,
+            integrationSlug,
+          }),
+        });
+        queryClient.invalidateQueries({
+          queryKey: [
+            getApiUrl(`/organizations/$organizationIdOrSlug/config/integrations/`, {
+              path: {organizationIdOrSlug: organization.slug},
+            }),
+          ],
+        });
+      }
       navigate(
         `/settings/${organization.slug}/integrations/${integration.provider.key}/${integration.id}/`
       );
     },
-    [organization.slug, navigate]
+    [organization.slug, integrationSlug, navigate, queryClient, provider?.features]
   );
 
   const onRemove = useCallback(
@@ -315,33 +329,35 @@ export default function IntegrationDetailedView() {
       }
 
       return (
-        <IntegrationContext
-          value={{
-            provider,
-            type: integrationType,
-            installStatus: installationStatus,
-            analyticsParams: {
-              view: 'integrations_directory_integration_detail',
-              already_installed: installationStatus !== 'Not Installed',
-              ...(referrer && {referrer}),
-            },
-          }}
-        >
-          <StyledIntegrationButton
-            userHasAccess={userHasAccess}
-            onAddIntegration={onInstall}
-            onExternalClick={() => {
-              trackIntegrationAnalytics('integrations.installation_start', {
+        <Flex gap="md">
+          <IntegrationContext
+            value={{
+              provider,
+              type: integrationType,
+              installStatus: installationStatus,
+              analyticsParams: {
                 view: 'integrations_directory_integration_detail',
-                integration: integrationSlug,
-                integration_type: integrationType,
                 already_installed: installationStatus !== 'Not Installed',
-                organization,
-              });
+                ...(referrer && {referrer}),
+              },
             }}
-            buttonProps={buttonProps}
-          />
-        </IntegrationContext>
+          >
+            <IntegrationButton
+              userHasAccess={userHasAccess}
+              onAddIntegration={onInstall}
+              onExternalClick={() => {
+                trackIntegrationAnalytics('integrations.installation_start', {
+                  view: 'integrations_directory_integration_detail',
+                  integration: integrationSlug,
+                  integration_type: integrationType,
+                  already_installed: installationStatus !== 'Not Installed',
+                  organization,
+                });
+              }}
+              buttonProps={buttonProps}
+            />
+          </IntegrationContext>
+        </Flex>
       );
     },
     [
@@ -430,7 +446,7 @@ export default function IntegrationDetailedView() {
       case 'github':
         return (
           <FieldGroup>
-            <AutoSaveField
+            <AutoSaveForm
               name="githubPRBot"
               schema={githubFeaturesSchema}
               initialValue={organization.githubPRBot}
@@ -455,8 +471,8 @@ export default function IntegrationDetailedView() {
                   />
                 </field.Layout.Row>
               )}
-            </AutoSaveField>
-            <AutoSaveField
+            </AutoSaveForm>
+            <AutoSaveForm
               name="githubNudgeInvite"
               schema={githubFeaturesSchema}
               initialValue={organization.githubNudgeInvite}
@@ -481,13 +497,13 @@ export default function IntegrationDetailedView() {
                   />
                 </field.Layout.Row>
               )}
-            </AutoSaveField>
+            </AutoSaveForm>
           </FieldGroup>
         );
       case 'gitlab':
         return (
           <FieldGroup>
-            <AutoSaveField
+            <AutoSaveForm
               name="gitlabPRBot"
               schema={gitlabFeaturesSchema}
               initialValue={organization.gitlabPRBot}
@@ -512,13 +528,13 @@ export default function IntegrationDetailedView() {
                   />
                 </field.Layout.Row>
               )}
-            </AutoSaveField>
+            </AutoSaveForm>
           </FieldGroup>
         );
       case 'slack':
         return (
           <FieldGroup>
-            <AutoSaveField
+            <AutoSaveForm
               name="issueAlertsThreadFlag"
               schema={slackFeaturesSchema}
               initialValue={organization.issueAlertsThreadFlag}
@@ -543,8 +559,8 @@ export default function IntegrationDetailedView() {
                   />
                 </field.Layout.Row>
               )}
-            </AutoSaveField>
-            <AutoSaveField
+            </AutoSaveForm>
+            <AutoSaveForm
               name="metricAlertsThreadFlag"
               schema={slackFeaturesSchema}
               initialValue={organization.metricAlertsThreadFlag}
@@ -569,7 +585,7 @@ export default function IntegrationDetailedView() {
                   />
                 </field.Layout.Row>
               )}
-            </AutoSaveField>
+            </AutoSaveForm>
           </FieldGroup>
         );
       default:
@@ -631,7 +647,3 @@ export default function IntegrationDetailedView() {
     </SentryDocumentTitle>
   );
 }
-
-const StyledIntegrationButton = styled(IntegrationButton)`
-  margin-bottom: ${p => p.theme.space.md};
-`;

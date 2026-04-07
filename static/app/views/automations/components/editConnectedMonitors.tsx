@@ -1,28 +1,27 @@
 import {Fragment, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
-import RadioGroup from 'sentry/components/forms/controls/radioGroup';
-import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
-import FormContext from 'sentry/components/forms/formContext';
-import useDrawer from 'sentry/components/globalDrawer';
+import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
+import {SentryProjectSelectorField} from 'sentry/components/forms/fields/sentryProjectSelectorField';
+import {FormContext} from 'sentry/components/forms/formContext';
+import {useDrawer} from 'sentry/components/globalDrawer';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import Placeholder from 'sentry/components/placeholder';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Placeholder} from 'sentry/components/placeholder';
 import {Container as WorkflowEngineContainer} from 'sentry/components/workflowEngine/ui/container';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {getApiQueryData, setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {ConnectedMonitorsList} from 'sentry/views/automations/components/connectedMonitorsList';
 import {useConnectedDetectors} from 'sentry/views/automations/hooks/useConnectedDetectors';
 import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
@@ -98,7 +97,7 @@ function AllMonitors({
 
   return (
     <PageFiltersContainer>
-      <Section title={t('All Monitors')}>
+      <FormSection title={t('All Monitors')}>
         <Flex gap="xl">
           <ProjectPageFilter storageNamespace="automationDrawer" />
           <div style={{flexGrow: 1}}>
@@ -117,7 +116,7 @@ function AllMonitors({
           projectIds={selection.projects}
           openInNewTab
         />
-      </Section>
+      </FormSection>
     </PageFiltersContainer>
   );
 }
@@ -206,11 +205,6 @@ function AllProjectIssuesSection({
           multiple
         />
       </Container>
-      <Alert variant="muted">
-        {t(
-          '‘All issues’ includes Error, Feedback, and Performance issue types. Select specific monitors to alert on Metric, Cron, and Uptime.'
-        )}
-      </Alert>
     </Stack>
   );
 }
@@ -321,7 +315,12 @@ function EditConnectedMonitorsContent({
 
   return (
     <WorkflowEngineContainer>
-      <Section title={t('Source')}>
+      <FormSection
+        title={t('Source')}
+        description={t(
+          'Get alerted when new issues are detected or an issue changes state.'
+        )}
+      >
         <Stack gap="lg">
           <RadioGroup
             label={t('Connected monitors mode')}
@@ -341,7 +340,7 @@ function EditConnectedMonitorsContent({
             />
           )}
         </Stack>
-      </Section>
+      </FormSection>
     </WorkflowEngineContainer>
   );
 }
@@ -375,9 +374,14 @@ export function EditConnectedMonitors({connectedIds, setConnectedIds}: Props) {
   if (isLoading && firstLoad) {
     return (
       <WorkflowEngineContainer>
-        <Section title={t('Source')}>
+        <FormSection
+          title={t('Source')}
+          description={t(
+            'Get alerted when new issues are detected or an issue changes state.'
+          )}
+        >
           <Placeholder width="100%" height="200px" />
-        </Section>
+        </FormSection>
       </WorkflowEngineContainer>
     );
   }
@@ -398,6 +402,6 @@ const DrawerContent = styled('div')`
   padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
 `;
 
-const StyledSection = styled(Section)`
+const StyledSection = styled(FormSection)`
   margin-bottom: ${p => p.theme.space.lg};
 `;

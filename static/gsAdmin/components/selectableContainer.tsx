@@ -61,7 +61,7 @@ type Props = {
   panelTitle?: string;
 };
 
-function SelectableContainer({
+export function SelectableContainer({
   dropdownPrefix,
   sections,
   panelTitle,
@@ -113,5 +113,3 @@ const Actions = styled('div')`
   align-items: center;
   gap: ${p => p.theme.space.md};
 `;
-
-export default SelectableContainer;

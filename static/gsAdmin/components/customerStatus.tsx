@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {Subscription} from 'getsentry/types';
-import formatCurrency from 'getsentry/utils/formatCurrency';
+import {formatCurrency} from 'getsentry/utils/formatCurrency';
 
 type Props = {
   customer: Subscription;

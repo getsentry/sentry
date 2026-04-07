@@ -33,9 +33,9 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {NewInternalAppApiToken} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 const releasesSetupUrl = 'https://docs.sentry.io/product/releases/';
 
@@ -100,7 +100,7 @@ type Props = {
   project: Project;
 };
 
-function ReleasesPromo({organization, project}: Props) {
+export function ReleasesPromo({organization, project}: Props) {
   const {data, isPending} = useApiQuery<SentryApp[]>(
     [
       getApiUrl(`/organizations/$organizationIdOrSlug/sentry-apps/`, {
@@ -310,5 +310,3 @@ sentry-cli releases finalize "$VERSION"`;
     </Panel>
   );
 }
-
-export default ReleasesPromo;

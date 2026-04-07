@@ -75,7 +75,7 @@ class ExploreLogsTest(AcceptanceTestCase, SnubaTestCase, OurLogTestCase):
                     timestamp=self.start_minus_two_minutes,
                 ),
             ]
-            self.store_ourlogs(logs)
+            self.store_eap_items(logs)
 
             self.page.visit_explore_logs(self.organization.slug)
             row = self.page.toggle_log_row_with_message("check these attributes")

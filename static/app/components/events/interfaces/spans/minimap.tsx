@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import toPercent from 'sentry/utils/number/toPercent';
+import {toPercent} from 'sentry/utils/number/toPercent';
 
 import type {EnhancedProcessedSpanType, RawSpanType} from './types';
 import type {SpanBoundsType, SpanGeneratedBoundsType} from './utils';

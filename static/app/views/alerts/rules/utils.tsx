@@ -7,7 +7,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';

@@ -11,7 +11,7 @@ import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/dateP
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
@@ -25,9 +25,9 @@ import type {AggregationKey} from 'sentry/utils/fields';
 import {HOUR} from 'sentry/utils/formatters';
 import {useQueryClient, type InfiniteData} from 'sentry/utils/queryClient';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
-import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {
   ExploreBodyContent,
@@ -92,7 +92,7 @@ import {
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 
-// eslint-disable-next-line boundaries/element-types
+// eslint-disable-next-line boundaries/dependencies
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
 type LogsTabProps = {
@@ -122,7 +122,6 @@ const LogsSearchSection = memo(function LogsSearchSection({
   datePageFilterProps,
   searchBarWidthOffset,
 }: LogsSearchSectionProps) {
-  const organization = useOrganization();
   const logsSearch = useQueryParamsSearch();
   const logsSearchQuery = logsSearch.formatString();
   const groupBys = useQueryParamsGroupBys();
@@ -130,12 +129,6 @@ const LogsSearchSection = memo(function LogsSearchSection({
   const [interval] = useChartInterval();
   const visualizes = useQueryParamsVisualizes();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
-
-  // AI search is gated behind the gen-ai-search-agent-translate feature flag
-  const areAiFeaturesAllowed =
-    !organization?.hideAiFeatures &&
-    organization.features.includes('gen-ai-features') &&
-    organization.features.includes('gen-ai-search-agent-translate');
 
   const saveAsItems = useSaveAsItems({
     visualizes,
@@ -176,10 +169,15 @@ const LogsSearchSection = memo(function LogsSearchSection({
     return [];
   }, []);
 
+  const organization = useOrganization();
+  const hasTranslateEndpoint = organization.features.includes(
+    'gen-ai-search-agent-translate'
+  );
+
   return (
     <SearchQueryBuilderProvider
-      enableAISearch={areAiFeaturesAllowed}
-      aiSearchBadgeType="alpha"
+      enableAISearch={hasTranslateEndpoint}
+      aiSearchBadgeType="beta"
       {...searchQueryBuilderProviderProps}
     >
       <ExploreBodySearch>
@@ -515,8 +513,9 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
           <LogsItemContainer>
             {tableTab === 'logs' ? (
               <LogsInfiniteTable
-                stringAttributes={stringAttributes}
+                booleanAttributes={booleanAttributes}
                 numberAttributes={numberAttributes}
+                stringAttributes={stringAttributes}
               />
             ) : (
               <LogsAggregateTable aggregatesTableResult={aggregatesTableResult} />

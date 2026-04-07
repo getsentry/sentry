@@ -1,8 +1,8 @@
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type FeedbackCategory = {
   associatedLabels: string[];
@@ -16,7 +16,7 @@ type FeedbackCategoriesResponse = {
   success: boolean;
 };
 
-export default function useFeedbackCategories(): {
+export function useFeedbackCategories(): {
   categories: FeedbackCategory[] | null;
   isError: boolean;
   isPending: boolean;

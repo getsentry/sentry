@@ -14,7 +14,7 @@ interface Props {
   setSearchTerm: (searchTerm: string) => void;
 }
 
-export default function ScmTreeFilters({
+export function ScmTreeFilters({
   repoFilter,
   setRepoFilter,
   searchTerm,

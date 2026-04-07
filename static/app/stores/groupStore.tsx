@@ -2,11 +2,11 @@ import {createStore} from 'reflux';
 
 import type {Indicator} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import IndicatorStore from 'sentry/stores/indicatorStore';
+import {IndicatorStore} from 'sentry/stores/indicatorStore';
 import type {Activity, BaseGroup, Group, GroupStats} from 'sentry/types/group';
-import toArray from 'sentry/utils/array/toArray';
-import parseApiError from 'sentry/utils/parseApiError';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {toArray} from 'sentry/utils/array/toArray';
+import {parseApiError} from 'sentry/utils/parseApiError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 import type {StrictStoreDefinition} from './types';
 
@@ -505,5 +505,4 @@ const storeConfig: GroupStoreDefinition = {
   },
 };
 
-const GroupStore = createStore(storeConfig);
-export default GroupStore;
+export const GroupStore = createStore(storeConfig);

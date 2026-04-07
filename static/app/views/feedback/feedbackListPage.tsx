@@ -5,31 +5,30 @@ import styled from '@emotion/styled';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import AnalyticsArea from 'sentry/components/analyticsArea';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackFilters} from 'sentry/components/feedback/feedbackFilters';
 import {FeedbackItemLoader} from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
 import {FeedbackSearch} from 'sentry/components/feedback/feedbackSearch';
 import {FeedbackSetupPanel} from 'sentry/components/feedback/feedbackSetupPanel';
 import {FeedbackList} from 'sentry/components/feedback/list/feedbackList';
 import {FeedbackSummaryCategories} from 'sentry/components/feedback/summaryCategories/feedbackSummaryCategories';
-import useCurrentFeedbackId from 'sentry/components/feedback/useCurrentFeedbackId';
-import useCurrentFeedbackProject from 'sentry/components/feedback/useCurrentFeedbackProject';
-import useHaveSelectedProjectsSetupFeedback from 'sentry/components/feedback/useFeedbackOnboarding';
+import {useHaveSelectedProjectsSetupFeedback} from 'sentry/components/feedback/useFeedbackOnboarding';
 import {FeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
-import useRedirectToFeedbackFromEvent from 'sentry/components/feedback/useRedirectToFeedbackFromEvent';
+import {useFeedbackSlug} from 'sentry/components/feedback/useFeedbackSlug';
+import {useRedirectToFeedbackFromEvent} from 'sentry/components/feedback/useRedirectToFeedbackFromEvent';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {FullViewport} from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconSiren} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 export default function FeedbackListPage() {
@@ -37,8 +36,9 @@ export default function FeedbackListPage() {
   const {hasSetupOneFeedback} = useHaveSelectedProjectsSetupFeedback();
   const pageFilters = usePageFilters();
 
-  const feedbackId = useCurrentFeedbackId();
-  const feedbackProjectSlug = useCurrentFeedbackProject();
+  const [feedbackSlug] = useFeedbackSlug();
+  const feedbackId = feedbackSlug?.feedbackId ?? '';
+  const feedbackProjectSlug = feedbackSlug?.projectSlug ?? '';
   const hasSlug = Boolean(feedbackId);
 
   const {query: locationQuery} = useLocation();
@@ -175,6 +175,7 @@ export default function FeedbackListPage() {
                     query: {
                       alert_option: 'issues',
                       referrer: 'feedback-list-page',
+                      detectorType: 'metric_issue',
                       ...(feedbackProjectSlug ? {project: feedbackProjectSlug} : {}),
                     },
                   }}

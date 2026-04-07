@@ -5,7 +5,7 @@ import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 
@@ -120,7 +120,7 @@ type Props = {
   sections?: SectionItem[];
 };
 
-function DetailsPage({
+export function DetailsPage({
   rootName,
   name,
   crumbs = [],
@@ -174,5 +174,3 @@ function DetailsPage({
 const SectionBody = styled('div')<{withPadding?: boolean}>`
   ${p => p.withPadding && `padding: ${p.theme.space.xl}`};
 `;
-
-export default DetailsPage;

@@ -25,8 +25,7 @@ const DEFAULT_SELECTION: PageFilters = {
 
 jest.mock('sentry/components/pageFilters/usePageFilters', () => {
   return {
-    __esModule: true,
-    default: () => ({isReady: true, selection: DEFAULT_SELECTION}),
+    usePageFilters: () => ({isReady: true, selection: DEFAULT_SELECTION}),
   };
 });
 

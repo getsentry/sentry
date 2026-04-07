@@ -4,7 +4,7 @@ import {DeployBadge} from '@sentry/scraps/badge';
 
 import {NotAvailable} from 'sentry/components/notAvailable';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseProject} from 'sentry/types/release';

@@ -6,13 +6,13 @@ import type {Organization} from 'sentry/types/organization';
 import {getDateFromTimestamp} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {
   generateContinuousProfileFlamechartRouteWithQuery,
   generateProfileFlamechartRoute,
 } from 'sentry/utils/profiling/routes';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -138,7 +138,7 @@ export function generateTraceLink(dateSelection: any, view?: DomainView) {
     tableRow: TableDataRow,
     location: Location
   ): LocationDescriptor => {
-    const traceId = `${tableRow.trace}`;
+    const traceId = tableRow.trace ? `${tableRow.trace}` : '';
     if (!traceId) {
       return {};
     }

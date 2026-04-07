@@ -13,7 +13,7 @@ class SharedGroupDetailsTest(TestCase):
         self.org_domain = f"{self.organization.slug}.testserver"
 
     def share_group(self) -> GroupShare:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             return GroupShare.objects.create(
                 project=self.project, group=self.group, user_id=self.user.id
             )
@@ -48,7 +48,7 @@ class SharedGroupDetailsTest(TestCase):
 
     def test_get_org_disable_sharing(self) -> None:
         share = self.share_group()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.organization.flags.disable_shared_issues = True
             self.organization.save()
         response = self.client.get(f"/share/issue/{share.uuid}/", HTTP_HOST=self.org_domain)

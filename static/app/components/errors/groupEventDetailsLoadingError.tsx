@@ -1,6 +1,6 @@
 import {DetailedError} from 'sentry/components/errors/detailedError';
 import {List} from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {ListItem} from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
 
 type Props = {

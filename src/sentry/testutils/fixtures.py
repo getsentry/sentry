@@ -105,7 +105,7 @@ class Fixtures:
         return self.create_organization(name="baz", slug="baz", owner=self.user)
 
     @cached_property
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def team(self):
         team = self.create_team(organization=self.organization, name="foo", slug="foo")
         # XXX: handle legacy team fixture
@@ -142,7 +142,7 @@ class Fixtures:
         )
 
     @cached_property
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def activity(self):
         return Activity.objects.create(
             group=self.group,
@@ -591,7 +591,7 @@ class Fixtures:
         **kwargs: Any,
     ):
         if user is None:
-            with assume_test_silo_mode(SiloMode.REGION):
+            with assume_test_silo_mode(SiloMode.CELL):
                 user = organization.get_default_owner()
 
         integration = Factories.create_slack_integration(

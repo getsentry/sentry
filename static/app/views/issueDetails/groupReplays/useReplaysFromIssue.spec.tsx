@@ -1,26 +1,21 @@
-import type {Location} from 'history';
 import {GroupFixture} from 'sentry-fixture/group';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {IssueCategory} from 'sentry/types/group';
-import {useLocation} from 'sentry/utils/useLocation';
-import useReplaysFromIssue from 'sentry/views/issueDetails/groupReplays/useReplaysFromIssue';
-
-jest.mock('sentry/utils/useLocation');
+import {useReplaysFromIssue} from 'sentry/views/issueDetails/groupReplays/useReplaysFromIssue';
 
 describe('useReplaysFromIssue', () => {
-  const location: Location = {
-    pathname: '',
-    search: '',
-    query: {},
-    hash: '',
-    state: undefined,
-    action: 'PUSH',
-    key: '',
+  const initialRouterConfig = {
+    route: '/organizations/:orgSlug/issues/:groupId/',
+    location: {
+      pathname: '/organizations/test-org/issues/1/',
+    },
   };
-  jest.mocked(useLocation).mockReturnValue(location);
+
+  const location = LocationFixture();
 
   const organization = OrganizationFixture({
     features: ['session-replay'],
@@ -37,12 +32,13 @@ describe('useReplaysFromIssue', () => {
       },
     });
 
-    const {result} = renderHook(useReplaysFromIssue, {
+    const {result} = renderHookWithProviders(useReplaysFromIssue, {
       initialProps: {
         group: MOCK_GROUP,
         location,
         organization,
       },
+      initialRouterConfig,
     });
 
     expect(result.current).toEqual({
@@ -75,12 +71,13 @@ describe('useReplaysFromIssue', () => {
       },
     });
 
-    const {result} = renderHook(useReplaysFromIssue, {
+    const {result} = renderHookWithProviders(useReplaysFromIssue, {
       initialProps: {
         group: MOCK_GROUP,
         location,
         organization,
       },
+      initialRouterConfig,
     });
 
     expect(result.current).toEqual({
@@ -111,12 +108,13 @@ describe('useReplaysFromIssue', () => {
       body: {},
     });
 
-    const {result} = renderHook(useReplaysFromIssue, {
+    const {result} = renderHookWithProviders(useReplaysFromIssue, {
       initialProps: {
         group: MOCK_GROUP,
         location,
         organization,
       },
+      initialRouterConfig,
     });
 
     expect(result.current).toEqual({

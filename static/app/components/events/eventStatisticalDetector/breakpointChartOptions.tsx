@@ -14,8 +14,8 @@ import {
   TrendFunctionField,
   type NormalizedTrendsTransaction,
 } from 'sentry/views/performance/trends/types';
-import generateTrendFunctionAsString from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
-import transformEventStats from 'sentry/views/performance/trends/utils/transformEventStats';
+import {generateTrendFunctionAsString} from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
+import {transformEventStats} from 'sentry/views/performance/trends/utils/transformEventStats';
 import {getIntervalLine} from 'sentry/views/performance/utils/getIntervalLine';
 
 export type EventBreakpointChartData = {
@@ -58,7 +58,7 @@ function toEventsStatsData(
   return isEventsStatsData(percentileData) ? percentileData : [];
 }
 
-function getBreakpointChartOptionsFromData(
+export function getBreakpointChartOptionsFromData(
   {percentileData, evidenceData}: EventBreakpointChartData,
   chartType: ChartType,
   theme: Theme
@@ -150,5 +150,3 @@ function getBreakpointChartOptionsFromData(
     chartOptions,
   };
 }
-
-export default getBreakpointChartOptionsFromData;

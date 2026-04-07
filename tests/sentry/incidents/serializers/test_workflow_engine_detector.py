@@ -190,6 +190,15 @@ class TestDetectorSerializer(TestWorkflowEngineSerializer):
         )
         assert self._sort_triggers(serialized_detector) == self._sort_triggers(sentry_app_expected)
 
+    def test_snooze_enabled_detector(self) -> None:
+        serialized = serialize(self.detector, self.user, WorkflowEngineDetectorSerializer())
+        assert "snooze" not in serialized
+
+    def test_snooze_disabled_detector(self) -> None:
+        self.detector.update(enabled=False)
+        serialized = serialize(self.detector, self.user, WorkflowEngineDetectorSerializer())
+        assert serialized["snooze"] is True
+
     def test_new_models_only(self) -> None:
         # test that we can still serialize if objects do not have lookup table entries
         # this is required for firing actions

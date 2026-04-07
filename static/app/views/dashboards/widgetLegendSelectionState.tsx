@@ -3,7 +3,7 @@ import type {Location} from 'history';
 import type {Organization} from 'sentry/types/organization';
 import {decodeList} from 'sentry/utils/queryString';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
-import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
+import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
 import {DisplayType, type DashboardDetails, type Widget} from './types';
 
@@ -21,7 +21,7 @@ const WIDGET_ID_DELIMITER = ':';
 
 const SERIES_NAME_DELIMITER = '|~|';
 
-class WidgetLegendSelectionState {
+export class WidgetLegendSelectionState {
   dashboard: DashboardDetails | null;
   location: Location;
   organization: Organization;
@@ -270,5 +270,3 @@ class WidgetLegendSelectionState {
     return unselectedSeries;
   }
 }
-
-export default WidgetLegendSelectionState;

@@ -13,7 +13,7 @@ class ApiKeyTest(TestCase):
         for scope in SENTRY_SCOPES:
             token = self.create_api_key(org, scope_list=[scope])
             assert token.get_scopes() == sorted(SENTRY_SCOPE_HIERARCHY_MAPPING[scope])
-            with assume_test_silo_mode(SiloMode.REGION):
+            with assume_test_silo_mode(SiloMode.CELL):
                 replica = ApiKeyReplica.objects.get(apikey_id=token.id)
                 assert replica.get_scopes() == token.get_scopes()
 
@@ -26,7 +26,7 @@ class ApiKeyTest(TestCase):
     def test_apikeyreplica_string_serialization(self) -> None:
         org = self.create_organization()
         key = self.create_api_key(organization=org)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             replica = ApiKeyReplica.objects.get(apikey_id=key.id)
 
         assert f"{replica} is cool" == f"replica_id={replica.id}, status={replica.status} is cool"

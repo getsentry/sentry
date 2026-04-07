@@ -15,7 +15,7 @@ import {TraceMetricsWidgetQueries} from 'sentry/views/dashboards/widgetCard/trac
 import {IssueWidgetQueries} from './issueWidgetQueries';
 import {LogsWidgetQueries} from './logsWidgetQueries';
 import {MobileAppSizeWidgetQueries} from './mobileAppSizeWidgetQueries';
-import ReleaseWidgetQueries from './releaseWidgetQueries';
+import {ReleaseWidgetQueries} from './releaseWidgetQueries';
 import {WidgetQueries} from './widgetQueries';
 
 type Results = {

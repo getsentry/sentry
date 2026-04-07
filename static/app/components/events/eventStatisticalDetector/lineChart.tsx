@@ -3,7 +3,8 @@ import {useTheme} from '@emotion/react';
 
 import type {ChartType} from 'sentry/chartcuterie/types';
 import {LineChart as EChartsLineChart} from 'sentry/components/charts/lineChart';
-import getBreakpointChartOptionsFromData, {
+import {
+  getBreakpointChartOptionsFromData,
   type BreakpointEvidenceData,
   type EventBreakpointChartData,
 } from 'sentry/components/events/eventStatisticalDetector/breakpointChartOptions';

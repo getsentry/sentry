@@ -11,7 +11,7 @@ import * as ts from 'typescript';
 // analyze-styled.ts is a script that analyzes styled components in TypeScript React files.
 // It can be invoked via node analyze-styled.ts and accepts the following options:
 
-// Execute with: node --experimental-transform-types scripts/analyze-styled.ts
+// Execute with: node scripts/analyze-styled.ts
 
 // -- <file>          : Analyze a specific .tsx file instead of searching directories
 // -n <number>        : Show top N most styled components (default: 10)
@@ -23,14 +23,18 @@ import * as ts from 'typescript';
 // <directory>        : Directory to search for .tsx files (default: './static/app')
 
 // Examples:
-//   node --experimental-transform-types scripts/analyze-styled.ts -- ./path/to/file.tsx
-//   node --experimental-transform-types scripts/analyze-styled.ts -n 20 -c div,span ./static/app
-//   node --experimental-transform-types scripts/analyze-styled.ts -l -c div ./static/app
-//   node --experimental-transform-types scripts/analyze-styled.ts -g 'static/app/components/core/**/*.tsx'
-//   node --experimental-transform-types scripts/analyze-styled.ts --out csv ./static/app
+//   node scripts/analyze-styled.ts -- ./path/to/file.tsx
+//   node scripts/analyze-styled.ts -n 20 -c div,span ./static/app
+//   node scripts/analyze-styled.ts -l -c div ./static/app
+//   node scripts/analyze-styled.ts -g 'static/app/components/core/**/*.tsx'
+//   node scripts/analyze-styled.ts --out csv ./static/app
 
 class Logger {
-  constructor(private debugEnabled: boolean) {}
+  private debugEnabled: boolean;
+
+  constructor(debugEnabled: boolean) {
+    this.debugEnabled = debugEnabled;
+  }
 
   log(...args: any[]): void {
     console.log(...args);

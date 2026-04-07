@@ -20,7 +20,7 @@ type Args = {
   visibleTab: TabKey;
 };
 
-export default function getOutputType({
+export function getOutputType({
   isCaptureBodySetup,
   isSetup,
   item,

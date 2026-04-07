@@ -10,7 +10,7 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 import {DataCategory} from 'sentry/types/core';
 
 import {PrimaryNavigationQuotaExceeded} from 'getsentry/components/navBillingStatus';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {OnDemandBudgetMode} from 'getsentry/types';
 
 // Jun 06 2022 - with milliseconds

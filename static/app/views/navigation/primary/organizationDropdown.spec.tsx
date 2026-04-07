@@ -4,8 +4,8 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
-import ConfigStore from 'sentry/stores/configStore';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {readStorageValue} from 'sentry/utils/useSessionStorage';
 import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
 

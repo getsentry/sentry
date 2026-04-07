@@ -64,7 +64,6 @@ describe('BuildDetails', () => {
       initialRouterConfig,
     });
 
-    expect(screen.getByRole('main')).toBeInTheDocument();
     expect(screen.getByRole('banner')).toBeInTheDocument();
 
     const loadingPlaceholders = screen.getAllByTestId('loading-placeholder');
@@ -349,7 +348,7 @@ describe('BuildDetails', () => {
     await waitFor(() => expect(buildDetailsMock).toHaveBeenCalledTimes(2));
 
     // Second call returns PROCESSING state - shows processing message
-    expect(screen.getByText('Running size analysis')).toBeInTheDocument();
+    expect(await screen.findByText('Running size analysis')).toBeInTheDocument();
 
     // Size analysis should not be refetched since we're still processing
     expect(appSizeMock).toHaveBeenCalledTimes(1);

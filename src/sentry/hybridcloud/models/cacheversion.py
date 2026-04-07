@@ -31,7 +31,7 @@ class CacheVersionBase(Model):
 
 
 @cell_silo_model
-class RegionCacheVersion(CacheVersionBase):
+class CellCacheVersion(CacheVersionBase):
     __relocation_scope__ = RelocationScope.Excluded
 
     class Meta:

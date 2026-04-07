@@ -5,8 +5,8 @@ import {Button} from '@sentry/scraps/button';
 
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
 const EXCLUDED_CONDITIONS = [

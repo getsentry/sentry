@@ -6,10 +6,10 @@ import {ProjectAlertRuleConfigurationFixture} from 'sentry-fixture/projectAlertR
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import ProjectAlertsCreate from 'sentry/views/alerts/create';
 
@@ -542,9 +542,12 @@ describe('ProjectAlertsCreate', () => {
         );
       });
       expect(
-        screen.getByText('4 issues would have triggered this rule in the past 14 days', {
-          exact: false,
-        })
+        await screen.findByText(
+          '4 issues would have triggered this rule in the past 14 days',
+          {
+            exact: false,
+          }
+        )
       ).toBeInTheDocument();
       for (const group of groups) {
         expect(screen.getByText(group.shortId)).toBeInTheDocument();
@@ -591,7 +594,9 @@ describe('ProjectAlertsCreate', () => {
         expect(mock).toHaveBeenCalled();
       });
       expect(
-        screen.getByText("We couldn't find any issues that would've triggered your rule")
+        await screen.findByText(
+          "We couldn't find any issues that would've triggered your rule"
+        )
       ).toBeInTheDocument();
     });
   });

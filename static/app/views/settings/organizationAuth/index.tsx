@@ -5,11 +5,11 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {AuthProvider} from 'sentry/types/auth';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import OrganizationAuthList from './organizationAuthList';
+import {OrganizationAuthList} from './organizationAuthList';
 
 function OrganizationAuth() {
   const organization = useOrganization();

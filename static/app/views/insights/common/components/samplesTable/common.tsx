@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {areNumbersAlmostEqual} from 'sentry/utils/number/areNumbersAlmostEqual';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {NEAR_AVERAGE_THRESHOLD_PERCENTAGE} from 'sentry/views/insights/settings';

@@ -6,8 +6,8 @@ import {Item, Section} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren} from '@react-types/shared';
 
-import {Badge} from '@sentry/scraps/badge';
 import {ListBox} from '@sentry/scraps/compactSelect';
+import {useHotkeys, Hotkey} from '@sentry/scraps/hotkey';
 import {InputGroup} from '@sentry/scraps/input';
 import {Text} from '@sentry/scraps/text';
 
@@ -24,10 +24,9 @@ import {
   useStoryHierarchy,
 } from 'sentry/stories/view/storyTree';
 import {fzf} from 'sentry/utils/search/fzf';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import {useHotkeys} from 'sentry/utils/useHotkeys';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface SearchSection {
   key: string;
@@ -157,7 +156,7 @@ function SearchInput(
       </InputGroup.LeadingItems>
       <InputGroup.Input ref={props.ref} nativeSize={nativeSize} {...nativeProps} />
       <InputGroup.TrailingItems>
-        <Badge variant="internal">/</Badge>
+        <Hotkey value="/" />
       </InputGroup.TrailingItems>
     </InputGroup>
   );

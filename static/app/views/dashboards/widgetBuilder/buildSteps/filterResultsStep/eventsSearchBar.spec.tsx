@@ -5,7 +5,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 
 import type {Organization} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
+import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
 
 import {EventsSearchBar} from './eventsSearchBar';
 
@@ -56,7 +56,7 @@ describe('EventsSearchBar', () => {
     await userEvent.paste('has:p', {delay: null});
 
     await userEvent.click(
-      screen.getByRole('button', {name: 'Edit value for filter: has'})
+      await screen.findByRole('button', {name: 'Edit value for filter: has'})
     );
 
     // Assert we actually have has: dropdown options before checking exclusions.

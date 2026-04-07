@@ -8,7 +8,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
-import AutofixInsightSources from 'sentry/components/events/autofix/insights/autofixInsightSources';
+import {AutofixInsightSources} from 'sentry/components/events/autofix/insights/autofixInsightSources';
 import {type AutofixSolutionTimelineEvent} from 'sentry/components/events/autofix/types';
 import {Timeline, type TimelineItemProps} from 'sentry/components/timeline';
 import {
@@ -187,7 +187,7 @@ export function SolutionEventItem({
                 >
                   <StyledSpan text={event.code_snippet_and_analysis} inline />
                 </AutofixHighlightWrapper>
-                {event.relevant_code_file && event.relevant_code_file.url && (
+                {event.relevant_code_file?.url && (
                   <SourcesWrapper>
                     <AutofixInsightSources codeUrls={[event.relevant_code_file.url]} />
                   </SourcesWrapper>

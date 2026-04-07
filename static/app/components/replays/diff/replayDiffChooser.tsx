@@ -8,7 +8,7 @@ import {ReplaySliderDiff} from 'sentry/components/replays/diff/replaySliderDiff'
 import {ReplayTextDiff} from 'sentry/components/replays/diff/replayTextDiff';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
   defaultTab?: DiffType;

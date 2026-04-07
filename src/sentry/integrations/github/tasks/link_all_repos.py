@@ -1,5 +1,8 @@
 import logging
+from collections.abc import Mapping
 from typing import Any
+
+from taskbroker_client.retry import Retry
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
@@ -11,20 +14,20 @@ from sentry.integrations.source_code_management.metrics import (
 from sentry.organizations.services.organization import organization_service
 from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
+    RepositoryInputConfig,
     get_integration_repository_provider,
 )
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import integrations_control_tasks
-from sentry.taskworker.retry import Retry
 
 logger = logging.getLogger(__name__)
 
 
-def get_repo_config(repo, integration_id):
+def get_repo_config(repo: Mapping[str, Any], integration_id: int) -> RepositoryInputConfig:
     return {
-        "external_id": repo["id"],
+        "external_id": str(repo["id"]),
         "integration_id": integration_id,
         "identifier": repo["full_name"],
     }
@@ -76,7 +79,7 @@ def link_all_repos(
 
         integration_repo_provider = get_integration_repository_provider(integration)
 
-        repo_configs: list[dict[str, Any]] = []
+        repo_configs: list[RepositoryInputConfig] = []
         missing_repos = []
         for repo in repositories:
             try:

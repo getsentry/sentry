@@ -5,9 +5,9 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 interface ExportProfileButtonProps extends Omit<
   LinkButtonProps,

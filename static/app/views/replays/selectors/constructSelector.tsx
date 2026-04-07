@@ -6,7 +6,7 @@ function trimAttribute(elementAttribute: any, fullAlltribute: any) {
 
 // fullSelector is used for searches since searching without all attributes returns too many replays
 // selector is the selector shown in the selector widget/table and when you hover
-export default function constructSelector(element: ReplayClickElement) {
+export function constructSelector(element: ReplayClickElement) {
   const tag = element.tag;
 
   const id = trimAttribute(element.id, '#' + element.id);

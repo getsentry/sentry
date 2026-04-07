@@ -11,7 +11,7 @@ import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {CommitLink} from 'sentry/components/commitLink';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {TextOverflow} from 'sentry/components/textOverflow';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Commit} from 'sentry/types/integrations';

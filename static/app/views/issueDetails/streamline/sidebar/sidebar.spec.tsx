@@ -8,11 +8,11 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
-import GroupStore from 'sentry/stores/groupStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {GroupStore} from 'sentry/stores/groupStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupActivityType} from 'sentry/types/group';
-import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
+import {StreamlinedSidebar} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 
 describe('StreamlinedSidebar', () => {
   const user = UserFixture();
@@ -102,7 +102,7 @@ describe('StreamlinedSidebar', () => {
       organization,
     });
 
-    expect(await screen.findByText('Seer')).toBeInTheDocument();
+    expect(await screen.findByText('Seer Autofix')).toBeInTheDocument();
 
     expect(await screen.findByText('First seen')).toBeInTheDocument();
     expect(screen.getByText('Last seen')).toBeInTheDocument();

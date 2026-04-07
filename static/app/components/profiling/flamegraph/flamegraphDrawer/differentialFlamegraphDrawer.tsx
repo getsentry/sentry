@@ -23,7 +23,7 @@ import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
 import {FlamegraphTreeTable} from './flamegraphTreeTable';
@@ -352,7 +352,7 @@ const ProfilingDetailsFrameTabs = styled('ul')`
   padding: 0 ${p => p.theme.space.md};
   margin: 0;
   border-top: 1px solid ${prop => prop.theme.tokens.border.primary};
-  background-color: ${props => props.theme.tokens.background.tertiary};
+  background-color: ${props => props.theme.tokens.background.secondary};
   user-select: none;
   grid-area: tabs;
 `;

@@ -10,6 +10,7 @@ export enum Referrer {
   TOOL_CALLS_WIDGET = 'api.insights.agent-monitoring.tool-calls-widget',
   TOOL_ERRORS_WIDGET = 'api.insights.agent-monitoring.tool-errors-widget',
   LLM_CALLS_WIDGET = 'api.insights.agent-monitoring.llm-calls-widget',
+  LLM_CALLS_TRAFFIC_WIDGET = 'api.insights.agent-monitoring.llm-calls-traffic-widget',
   AGENT_RUNS_WIDGET = 'api.insights.agent-monitoring.agent-runs-widget',
   AGENT_DURATION_WIDGET = 'api.insights.agent-monitoring.agent-duration-widget',
   AGENT_SELECTOR = 'api.insights.agent-monitoring.agent-selector',

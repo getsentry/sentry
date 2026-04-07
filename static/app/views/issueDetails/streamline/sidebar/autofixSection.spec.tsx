@@ -42,7 +42,20 @@ describe('AutofixSection', () => {
       body: AutofixSetupFixture({
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
+        seerReposLinked: true,
+        autofixEnabled: true,
       }),
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/onboarding-check/`,
+      body: {
+        hasSupportedScmIntegration: true,
+        isAutofixEnabled: true,
+        isCodeReviewEnabled: true,
+        isSeerConfigured: true,
+        needsConfigReminder: false,
+      },
     });
   });
 
@@ -61,7 +74,7 @@ describe('AutofixSection', () => {
       organization,
     });
 
-    expect(screen.getByText('Seer')).toBeInTheDocument();
+    expect(screen.getByText('Seer Autofix')).toBeInTheDocument();
   });
 
   it('renders Resources section when AI features are disabled', () => {
@@ -77,7 +90,10 @@ describe('AutofixSection', () => {
       platform: 'javascript',
     };
 
-    const javascriptProject: Project = {...mockProject, platform: 'javascript'};
+    const javascriptProject: Project = {
+      ...mockProject,
+      platform: 'javascript',
+    };
 
     render(
       <AutofixSection
@@ -116,7 +132,11 @@ describe('AutofixSection', () => {
           blocks: [
             {
               id: 'block-1',
-              message: {content: 'Found root cause', role: 'assistant'},
+              message: {
+                content: 'Found root cause',
+                role: 'assistant',
+                metadata: {step: 'root_cause'},
+              },
               timestamp: new Date().toISOString(),
               artifacts: [
                 {
@@ -142,6 +162,10 @@ describe('AutofixSection', () => {
     expect(await screen.findByText('Root Cause')).toBeInTheDocument();
     expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Seer'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('seerDrawer=true')
+    );
   });
 
   it('renders solution artifact', async () => {
@@ -155,7 +179,11 @@ describe('AutofixSection', () => {
           blocks: [
             {
               id: 'block-1',
-              message: {content: 'Found solution', role: 'assistant'},
+              message: {
+                content: 'Found solution',
+                role: 'assistant',
+                metadata: {step: 'solution'},
+              },
               timestamp: new Date().toISOString(),
               artifacts: [
                 {
@@ -177,7 +205,7 @@ describe('AutofixSection', () => {
       organization,
     });
 
-    expect(await screen.findByText('Implementation Plan')).toBeInTheDocument();
+    expect(await screen.findByText('Plan')).toBeInTheDocument();
     expect(screen.getByText('Add null check before accessing user')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
   });
@@ -193,7 +221,11 @@ describe('AutofixSection', () => {
           blocks: [
             {
               id: 'block-1',
-              message: {content: 'Made changes', role: 'assistant'},
+              message: {
+                content: 'Made changes',
+                role: 'assistant',
+                metadata: {step: 'code_changes'},
+              },
               timestamp: new Date().toISOString(),
               merged_file_patches: [
                 {
@@ -249,7 +281,11 @@ describe('AutofixSection', () => {
           blocks: [
             {
               id: 'block-1',
-              message: {content: 'Created PR', role: 'assistant'},
+              message: {
+                content: 'Created PR',
+                role: 'assistant',
+                metadata: {step: 'code_changes'},
+              },
               timestamp: new Date().toISOString(),
               merged_file_patches: [
                 {
@@ -294,7 +330,7 @@ describe('AutofixSection', () => {
     expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
   });
 
-  it('shows loading place holder while event is pending', () => {
+  it('shows loading placeholder while event is pending', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {
@@ -305,7 +341,11 @@ describe('AutofixSection', () => {
           blocks: [
             {
               id: 'block-1',
-              message: {content: 'Created PR', role: 'assistant'},
+              message: {
+                content: 'Created PR',
+                role: 'assistant',
+                metadata: {step: 'code_changes'},
+              },
               timestamp: new Date().toISOString(),
               merged_file_patches: [
                 {
@@ -345,12 +385,11 @@ describe('AutofixSection', () => {
     });
 
     // The Seer title should still render
-    expect(screen.getByText('Seer')).toBeInTheDocument();
-    expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
+    expect(screen.getByText('Seer Autofix')).toBeInTheDocument();
+    expect(await screen.findByTestId('loading-placeholder')).toBeInTheDocument();
   });
 
-  it('shows loading placeholder while autofix data is pending', () => {
-    // Don't add autofix mock response so the query stays pending
+  it('shows empty state when autofix returns null', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {autofix: null},
@@ -362,8 +401,8 @@ describe('AutofixSection', () => {
     });
 
     // The Seer title should still render
-    expect(screen.getByText('Seer')).toBeInTheDocument();
-    expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
+    expect(screen.getByText('Seer Autofix')).toBeInTheDocument();
+    expect(await screen.findByText('Have Seer...')).toBeInTheDocument();
   });
 
   it('renders multiple artifact types in order', async () => {
@@ -377,7 +416,11 @@ describe('AutofixSection', () => {
           blocks: [
             {
               id: 'block-1',
-              message: {content: 'Analysis complete', role: 'assistant'},
+              message: {
+                content: 'Found root cause',
+                role: 'assistant',
+                metadata: {step: 'root_cause'},
+              },
               timestamp: new Date().toISOString(),
               artifacts: [
                 {
@@ -389,6 +432,17 @@ describe('AutofixSection', () => {
                     reproduction_steps: ['step'],
                   },
                 },
+              ],
+            },
+            {
+              id: 'block-2',
+              message: {
+                content: 'Proposed fix',
+                role: 'assistant',
+                metadata: {step: 'solution'},
+              },
+              timestamp: new Date().toISOString(),
+              artifacts: [
                 {
                   key: 'solution',
                   reason: 'Proposed fix',
@@ -398,6 +452,15 @@ describe('AutofixSection', () => {
                   },
                 },
               ],
+            },
+            {
+              id: 'block-3',
+              message: {
+                content: 'Made code changes',
+                role: 'assistant',
+                metadata: {step: 'code_changes'},
+              },
+              timestamp: new Date().toISOString(),
               merged_file_patches: [
                 {
                   diff: '',
@@ -424,28 +487,105 @@ describe('AutofixSection', () => {
     });
 
     expect(await screen.findByText('Root Cause')).toBeInTheDocument();
-    expect(screen.getByText('Implementation Plan')).toBeInTheDocument();
+    expect(screen.getByText('Plan')).toBeInTheDocument();
     expect(screen.getByText('Code Changes')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
+  });
+
+  it('shows org setup UI when SCM integration is missing', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/onboarding-check/`,
+      body: {
+        hasSupportedScmIntegration: false,
+        isAutofixEnabled: false,
+        isCodeReviewEnabled: false,
+        isSeerConfigured: false,
+        needsConfigReminder: false,
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+
+    render(<AutofixSection event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization,
+    });
+
+    expect(await screen.findByText('Finish Configuring Seer')).toBeInTheDocument();
+    const link = screen.getByRole('button', {name: 'Set Up Seer'});
+    expect(link).toHaveAttribute(
+      'href',
+      `/settings/${organization.slug}/seer/onboarding/`
+    );
+  });
+
+  it('shows project setup UI when repos are not linked', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
+      body: AutofixSetupFixture({
+        integration: {ok: true, reason: null},
+        githubWriteIntegration: {ok: true, repos: []},
+        seerReposLinked: false,
+        autofixEnabled: true,
+      }),
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+
+    render(<AutofixSection event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization,
+    });
+
+    expect(await screen.findByText('Finish Configuring Seer')).toBeInTheDocument();
+    const link = screen.getByRole('button', {
+      name: 'Set Up Seer for This Project',
+    });
+    expect(link).toHaveAttribute(
+      'href',
+      `/settings/${organization.slug}/projects/${mockProject.slug}/seer/`
+    );
+  });
+
+  it('shows project setup UI when autofix is not enabled', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
+      body: AutofixSetupFixture({
+        integration: {ok: true, reason: null},
+        githubWriteIntegration: {ok: true, repos: []},
+        seerReposLinked: true,
+        autofixEnabled: false,
+      }),
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+
+    render(<AutofixSection event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization,
+    });
+
+    expect(await screen.findByText('Finish Configuring Seer')).toBeInTheDocument();
+    const link = screen.getByRole('button', {
+      name: 'Set Up Seer for This Project',
+    });
+    expect(link).toHaveAttribute(
+      'href',
+      `/settings/${organization.slug}/projects/${mockProject.slug}/seer/`
+    );
   });
 
   it('shows empty state when there are no artifacts', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {
-        autofix: {
-          run_id: 1,
-          status: 'completed',
-          updated_at: new Date().toISOString(),
-          blocks: [
-            {
-              id: 'block-1',
-              message: {content: 'Analysis complete', role: 'assistant'},
-              timestamp: new Date().toISOString(),
-              artifacts: [],
-            },
-          ],
-        },
+        autofix: null,
       },
     });
 
@@ -459,6 +599,10 @@ describe('AutofixSection', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Outline a plan')).toBeInTheDocument();
     expect(screen.getByText('Create a code fix')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Fix the Issue'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Start Analysis'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Start Analysis'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('seerDrawer=true')
+    );
   });
 });

@@ -8,7 +8,7 @@ import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FRAME_TOOLTIP_MAX_WIDTH} from 'sentry/components/events/interfaces/frame/defaultTitle';
 import {OpenInContextLine} from 'sentry/components/events/interfaces/frame/openInContextLine';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
@@ -32,7 +32,7 @@ import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
-import DebugMetaStore from 'sentry/stores/debugMetaStore';
+import {DebugMetaStore} from 'sentry/stores/debugMetaStore';
 import type {ImageWithCombinedStatus} from 'sentry/types/debugImage';
 import type {Event, Frame} from 'sentry/types/event';
 import type {
@@ -46,10 +46,9 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 import {withSentryAppComponents} from 'sentry/utils/withSentryAppComponents';
 import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {combineStatus} from './debugMeta/utils';
-import Context from './frame/context';
+import {Context} from './frame/context';
 import {SymbolicatorStatus} from './types';
 
 type Props = {
@@ -104,7 +103,7 @@ function NativeFrame({
   const isDartAsyncSuspensionFrame =
     frame.filename === '<asynchronous suspension>' ||
     frame.absPath === '<asynchronous suspension>';
-  const {displayOptions, stackView} = useStacktraceContext();
+  const {displayOptions, stackView, hasScmSourceContext} = useStacktraceContext();
 
   const {sectionData} = useIssueDetails();
   const debugSectionConfig = sectionData[SectionKey.DEBUGMETA];
@@ -112,8 +111,6 @@ function NativeFrame({
     getFoldSectionKey(SectionKey.DEBUGMETA),
     debugSectionConfig?.initialCollapse ?? false
   );
-  const hasStreamlinedUI = useHasStreamlinedUI();
-
   const fullStackTrace = stackView === StackView.FULL;
 
   const absolute = displayOptions.includes('absolute-addresses');
@@ -127,8 +124,7 @@ function NativeFrame({
     !!frame.symbolicatorStatus &&
     frame.symbolicatorStatus !== SymbolicatorStatus.UNKNOWN_IMAGE &&
     !isHoverPreviewed &&
-    // We know the debug section is rendered (only once streamline ui is enabled)
-    (hasStreamlinedUI ? !!debugSectionConfig : true);
+    !!debugSectionConfig;
 
   const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
   const expandable = isExpandable({
@@ -136,6 +132,7 @@ function NativeFrame({
     registers,
     platform,
     emptySourceNotation,
+    hasScmSourceContext,
   });
 
   const inlineFrame =
@@ -254,10 +251,8 @@ function NativeFrame({
       DebugMetaStore.updateFilter(searchTerm);
     }
 
-    if (hasStreamlinedUI) {
-      // Expand the section
-      setIsCollapsed(false);
-    }
+    // Expand the section
+    setIsCollapsed(false);
 
     // Scroll to the section
     document
@@ -282,7 +277,7 @@ function NativeFrame({
     <StackTraceFrame data-test-id="stack-trace-frame">
       <StrictClick onClick={handleToggleContext}>
         <RowHeader
-          expandable={expandable}
+          expandable={!!expandable}
           isInAppFrame={frame.inApp}
           isSubFrame={!!isSubFrame}
           onMouseEnter={handleMouseEnter}
@@ -458,6 +453,7 @@ function NativeFrame({
           hasContextRegisters={hasContextRegisters(registers)}
           emptySourceNotation={emptySourceNotation}
           hasAssembly={hasAssembly(frame, platform)}
+          hasScmSourceContext={hasScmSourceContext}
           isExpanded={expanded}
           registersMeta={registersMeta}
           frameMeta={frameMeta}

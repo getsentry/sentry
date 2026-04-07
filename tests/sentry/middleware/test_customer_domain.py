@@ -18,7 +18,7 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import (
     all_silo_test,
     assume_test_silo_mode,
-    create_test_regions,
+    create_test_cells,
     no_silo_test,
 )
 from sentry.web.frontend.auth_logout import AuthLogoutView
@@ -30,7 +30,7 @@ def _session(d: dict[str, str]) -> SessionBase:
     return ret
 
 
-@all_silo_test(regions=create_test_regions("us", "eu"))
+@all_silo_test(cells=create_test_cells("us", "eu"))
 class CustomerDomainMiddlewareTest(TestCase):
     @with_feature("system:multi-region")
     def test_sets_active_organization_if_exists(self) -> None:

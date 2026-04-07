@@ -8,7 +8,7 @@ import {
   looksLikeStrippedValue,
   naturalCaseInsensitiveSort,
 } from 'sentry/components/structuredEventData/utils';
-import containsCRLF from 'sentry/utils/string/containsCRLF';
+import {containsCRLF} from 'sentry/utils/string/containsCRLF';
 
 type Config = {
   isBoolean?: (value: unknown) => boolean;

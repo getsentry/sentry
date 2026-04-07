@@ -106,7 +106,58 @@ class OrganizationAlertRuleEndpoint(OrganizationEndpoint):
         return args, kwargs
 
 
+class WorkflowEngineProjectAlertRuleEndpoint(ProjectAlertRuleEndpoint):
+    def convert_args(
+        self, request: Request, alert_rule_id: int, *args: Any, **kwargs: Any
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        args, kwargs = super(ProjectAlertRuleEndpoint, self).convert_args(request, *args, **kwargs)
+        project = kwargs["project"]
+        validated_alert_rule_id = to_valid_int_id("alert_rule_id", alert_rule_id, raise_404=True)
+
+        # Allow orgs that have downgraded plans to delete metric alerts
+        if request.method != "DELETE" and not features.has(
+            "organizations:incidents", project.organization, actor=request.user
+        ):
+            raise ResourceDoesNotExist
+
+        if not request.access.has_project_access(project):
+            raise PermissionDenied
+
+        if features.has("organizations:workflow-engine-rule-serializers", project.organization):
+            try:
+                ard = AlertRuleDetector.objects.get(
+                    alert_rule_id=validated_alert_rule_id,
+                    detector__project=project,
+                )
+                kwargs["alert_rule"] = ard.detector
+            except AlertRuleDetector.DoesNotExist:
+                # XXX: this means the detector was single written and has no ARD or related AlertRule object
+                try:
+                    detector_id = get_object_id_from_fake_id(validated_alert_rule_id)
+                    kwargs["alert_rule"] = Detector.objects.get(
+                        id=detector_id,
+                        project=project,
+                    )
+                except Detector.DoesNotExist:
+                    raise ResourceDoesNotExist
+
+            return args, kwargs
+
+        try:
+            kwargs["alert_rule"] = AlertRule.objects.get(
+                projects=project, id=validated_alert_rule_id
+            )
+        except AlertRule.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        return args, kwargs
+
+
 class WorkflowEngineOrganizationAlertRuleEndpoint(OrganizationAlertRuleEndpoint):
+    # Subclasses may set a per-method granular flag (e.g. for GET) that is OR'd
+    # with the broad workflow-engine-rule-serializers flag.
+    workflow_engine_method_flags: dict[str, str] = {}
+
     def convert_args(
         self, request: Request, alert_rule_id: int, *args: Any, **kwargs: Any
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
@@ -122,7 +173,10 @@ class WorkflowEngineOrganizationAlertRuleEndpoint(OrganizationAlertRuleEndpoint)
         ):
             raise ResourceDoesNotExist
 
-        if features.has("organizations:workflow-engine-rule-serializers", organization):
+        method_flag = self.workflow_engine_method_flags.get(request.method or "")
+        if features.has("organizations:workflow-engine-rule-serializers", organization) or (
+            method_flag is not None and features.has(method_flag, organization)
+        ):
             try:
                 ard = AlertRuleDetector.objects.get(
                     alert_rule_id=validated_alert_rule_id,

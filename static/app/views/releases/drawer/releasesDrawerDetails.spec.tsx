@@ -6,7 +6,7 @@ import {ReleaseProjectFixture} from 'sentry-fixture/releaseProject';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {ReleasesDrawerDetails} from 'sentry/views/releases/drawer/releasesDrawerDetails';
 import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';
@@ -14,7 +14,7 @@ import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';
 // Mock GroupList as it throws act warnings
 jest.mock('sentry/components/issues/groupList', () => ({
   __esModule: true,
-  default: () => <div>GroupList</div>,
+  GroupList: () => <div>GroupList</div>,
 }));
 
 // Mock the hooks
@@ -178,7 +178,7 @@ describe('ReleasesDrawerDetails', () => {
     expect(screen.getByText('File Changes')).toBeInTheDocument();
 
     // assert that the <Link> component goes to the correct url
-    const link = screen.getByTestId('select-project-1');
+    const link = await screen.findByTestId('select-project-1');
     expect(link).toHaveAttribute(
       'href',
       expect.stringContaining('/?rdReleaseProjectId=1')

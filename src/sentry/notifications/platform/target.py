@@ -1,7 +1,7 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import StrEnum
 from functools import cached_property
-from typing import Any, Self
+from typing import Any
 
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.services.integration.model import (
@@ -12,7 +12,6 @@ from sentry.integrations.services.integration.service import integration_service
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTarget,
-    NotificationTargetResourceType,
 )
 
 
@@ -32,43 +31,15 @@ class NotificationTargetType(StrEnum):
     INTEGRATION = "integration"
 
 
-@dataclass(kw_only=True, frozen=True)
 class GenericNotificationTarget(NotificationTarget):
     """
     A designated recipient for a notification. This could be a user, a team, or a channel.
     Accepts the renderable object type that matches the connected provider.
     """
 
-    is_prepared: bool = field(init=False, default=False)
-    provider_key: NotificationProviderKey
-    resource_type: NotificationTargetResourceType
-    resource_id: str
-    """
-    The identifier that a provider can use to access or send to the given resource.
-    For example, an email address, a slack channel ID, a discord user ID, etc.
-    """
-    specific_data: dict[str, Any] | None = field(default=None)
-    """
-    Arbitrary data that is specific to the target; for example, a link to a user's notification settings.
-
-    When possible, consider whether this is really necessary as it produces inconsistencies across recipients, which may be lead to confusion.
-    If all targets use the same payload, please add this to the NotificationTemplate instead.
-    """
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "provider_key": self.provider_key,
-            "resource_type": self.resource_type,
-            "resource_id": self.resource_id,
-            "specific_data": self.specific_data,
-        }
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> Self:
-        return cls(**data)
+    pass
 
 
-@dataclass(kw_only=True, frozen=True)
 class IntegrationNotificationTarget(GenericNotificationTarget):
     """
     Adds necessary properties and methods to designate a target within an integration.
@@ -77,18 +48,6 @@ class IntegrationNotificationTarget(GenericNotificationTarget):
 
     integration_id: int
     organization_id: int
-
-    def to_dict(self) -> dict[str, Any]:
-        base_data = super().to_dict()
-        return {
-            **base_data,
-            "integration_id": self.integration_id,
-            "organization_id": self.organization_id,
-        }
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> Self:
-        return cls(**data)
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -124,39 +83,17 @@ class PreparedIntegrationNotificationTarget[IntegrationInstallationT: Integratio
         )
 
 
-@dataclass
-class NotificationTargetDto:
-    """
-    A wrapper class that handles serialization/deserialization of NotificationTargets.
-    """
+def serialize_target(target: NotificationTarget) -> dict[str, Any]:
+    if isinstance(target, IntegrationNotificationTarget):
+        return {"type": NotificationTargetType.INTEGRATION, "target": target.dict()}
+    return {"type": NotificationTargetType.GENERIC, "target": target.dict()}
 
-    target: NotificationTarget
 
-    @property
-    def notification_type(self) -> NotificationTargetType:
-        if isinstance(self.target, IntegrationNotificationTarget):
-            return NotificationTargetType.INTEGRATION
-        elif isinstance(self.target, GenericNotificationTarget):
-            return NotificationTargetType.GENERIC
-        else:
-            raise NotificationTargetError(f"Unknown target type: {type(self.target)}")
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "type": self.notification_type,
-            "target": self.target.to_dict(),
-        }
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "NotificationTargetDto":
-        target_type = data["type"]
-        target_data = data["target"]
-
-        if target_type == NotificationTargetType.GENERIC:
-            target = GenericNotificationTarget.from_dict(target_data)
-        elif target_type == NotificationTargetType.INTEGRATION:
-            target = IntegrationNotificationTarget.from_dict(target_data)
-        else:
-            raise NotificationTargetError(f"Unknown target type: {target_type}")
-
-        return cls(target=target)
+def deserialize_target(data: dict[str, Any]) -> NotificationTarget:
+    target_type = data["type"]
+    target_data = data["target"]
+    if target_type == NotificationTargetType.INTEGRATION:
+        return IntegrationNotificationTarget.parse_obj(target_data)
+    elif target_type == NotificationTargetType.GENERIC:
+        return GenericNotificationTarget.parse_obj(target_data)
+    raise NotificationTargetError(f"Unknown target type: {target_type}")

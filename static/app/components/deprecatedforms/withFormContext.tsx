@@ -1,8 +1,8 @@
 import {useContext} from 'react';
 
 import type {FormContextData} from 'sentry/components/deprecatedforms/formContext';
-import FormContext from 'sentry/components/deprecatedforms/formContext';
-import getDisplayName from 'sentry/utils/getDisplayName';
+import {FormContext} from 'sentry/components/deprecatedforms/formContext';
+import {getDisplayName} from 'sentry/utils/getDisplayName';
 
 type InjectedFormContextProps = {
   formContext?: FormContextData;

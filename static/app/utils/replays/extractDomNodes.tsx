@@ -2,7 +2,7 @@ import type {Mirror} from '@sentry-internal/rrweb-snapshot';
 
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {getNodeIds} from 'sentry/utils/replays/types';
-import constructSelector from 'sentry/views/replays/selectors/constructSelector';
+import {constructSelector} from 'sentry/views/replays/selectors/constructSelector';
 
 export type Extraction = {
   frame: ReplayFrame;
@@ -11,7 +11,7 @@ export type Extraction = {
   timestamp: number;
 };
 
-const extractDomNodes = {
+export const extractDomNodes = {
   shouldVisitFrame: (frame: any) => {
     const nodeIds = getNodeIds(frame);
     return nodeIds.some((nodeId: any) => nodeId !== -1);
@@ -28,8 +28,6 @@ const extractDomNodes = {
     });
   },
 };
-
-export default extractDomNodes;
 
 function extractHtmlAndSelector(
   nodeIds: number[],

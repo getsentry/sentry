@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {X_GUTTER, Y_GUTTER} from 'sentry/views/dashboards/widgets/common/settings';
 
 export function WidgetLoadingPanel({
   loadingMessage,
@@ -36,7 +35,7 @@ const LoadingPlaceholder = styled('div')`
   flex-direction: column;
   gap: ${p => p.theme.space.md};
 
-  padding: ${Y_GUTTER} ${X_GUTTER};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;
 
 const LoadingMessage = styled('div')<{visible: boolean}>`

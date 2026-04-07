@@ -102,7 +102,7 @@ class CheckAuthIdentityTest(TestCase):
             mock_refresh_identity.assert_called_once_with(ai)
 
         # because of an error, it should become inactive
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             om.refresh_from_db()
         assert not om.flags["sso:linked"]
         assert om.flags["sso:invalid"]

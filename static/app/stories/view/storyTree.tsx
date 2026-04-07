@@ -8,8 +8,8 @@ import {Heading} from '@sentry/scraps/text';
 import {IconChevron} from 'sentry/icons';
 import {useStoryParams} from 'sentry/stories/view';
 import {fzf} from 'sentry/utils/search/fzf';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useStoryBookFiles} from './useStoriesLoader';
 
@@ -158,7 +158,7 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
   },
   buttons: {
     label: 'Buttons',
-    components: ['button', 'linkbutton'],
+    components: ['button', 'linkbutton', 'avatarbutton'],
   },
   controls: {
     label: 'Controls',
@@ -166,7 +166,7 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
   },
   forms: {
     label: 'Forms',
-    components: ['form', 'fields', 'autosavefield'],
+    components: ['form', 'fields', 'autosaveform'],
     subgroups: [
       {
         label: 'Primitives',
@@ -191,7 +191,7 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
   },
   status: {
     label: 'Status',
-    components: ['alert', 'badge', 'tag', 'toast'],
+    components: ['alert', 'badge', 'tag', 'toast', 'statusindicator'],
   },
   display: {
     label: 'Display',
@@ -203,7 +203,7 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
   },
   utilities: {
     label: 'Utilities',
-    components: ['separator', 'interactionstatelayer'],
+    components: ['separator', 'hotkey', 'interactionstatelayer'],
   },
   shared: {
     label: 'Shared',

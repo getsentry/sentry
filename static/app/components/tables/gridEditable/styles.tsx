@@ -98,6 +98,10 @@ export const Grid = styled('table')<{
       ? css`
           height: 100%;
           max-height: ${typeof p.height === 'number' ? p.height + 'px' : p.height};
+
+          &:has(> thead + tbody) {
+            grid-template-rows: auto 1fr;
+          }
         `
       : ''}
 
@@ -246,21 +250,16 @@ export const GridBodyCellStatic = styled(GridBodyCell)`
 const GridStatusWrapper = styled(GridBodyCell)`
   grid-column: 1 / -1;
   width: 100%;
-  height: ${GRID_STATUS_MESSAGE_HEIGHT}px;
+  min-height: ${GRID_STATUS_MESSAGE_HEIGHT}px;
   background-color: transparent;
 `;
 
 const GridStatusFloat = styled('div')`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
   display: flex;
   justify-content: center;
   align-items: center;
   width: 100%;
-  height: ${GRID_STATUS_MESSAGE_HEIGHT}px;
-  overflow: hidden;
+  min-height: ${GRID_STATUS_MESSAGE_HEIGHT}px;
 `;
 
 export function GridBodyCellStatus(props: any) {

@@ -1,9 +1,10 @@
 import {TSESLint, TSESTree} from '@typescript-eslint/utils';
 
+import {createThemeTracker} from '../tracker/theme';
+
 import {createCssPropExtractor} from './css-prop';
 import {createStylePropExtractor} from './style-prop';
 import {createStyledExtractor} from './styled';
-import {createThemeTracker} from './theme';
 import type {ExtractorContext, StyleCollector, StyleDeclaration} from './types';
 
 /**
@@ -15,7 +16,9 @@ import type {ExtractorContext, StyleCollector, StyleDeclaration} from './types';
  * Returns false if file has no emotion/styled patterns.
  * False positives are acceptable; we just want to skip clearly unrelated files.
  */
-export function shouldAnalyze(context: TSESLint.RuleContext<string, unknown[]>) {
+export function shouldAnalyze(
+  context: Readonly<TSESLint.RuleContext<string, readonly unknown[]>>
+) {
   const text = context.sourceCode.getText();
 
   // Check for emotion imports OR usage patterns
@@ -103,5 +106,5 @@ export function createStyleCollector(context: TSESLint.RuleContext<string, unkno
 export {createStyledExtractor} from './styled';
 export {createCssPropExtractor} from './css-prop';
 export {createStylePropExtractor} from './style-prop';
-export {createThemeTracker} from './theme';
+export {createThemeTracker} from '../tracker/theme';
 export {decomposeValue} from './value-decomposer';

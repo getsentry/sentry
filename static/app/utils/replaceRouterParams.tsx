@@ -3,7 +3,7 @@
  *
  * e.g. {id: 'test'}
  */
-export default function replaceRouterParams(
+export function replaceRouterParams(
   route: string,
   params: Record<string, string | number | undefined>
 ): string {

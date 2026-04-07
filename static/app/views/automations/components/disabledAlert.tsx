@@ -7,7 +7,7 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {IconPlay} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUpdateAutomation} from 'sentry/views/automations/hooks';
 
 type DisabledAlertProps = {

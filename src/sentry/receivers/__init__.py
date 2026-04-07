@@ -6,10 +6,9 @@ from .email import *  # noqa: F401,F403
 from .experiments import *  # noqa: F401,F403
 from .features import *  # noqa: F401,F403
 from .onboarding import *  # noqa: F401,F403
+from .outbox.cell import *  # noqa: F401,F403
 from .outbox.control import *  # noqa: F401,F403
-from .outbox.region import *  # noqa: F401,F403
 from .owners import *  # noqa: F401,F403
-from .project_detectors import *  # noqa: F401,F403
 from .releases import *  # noqa: F401,F403
 from .rule_snooze import *  # noqa: F401,F403
 from .rules import *  # noqa: F401,F403

@@ -1,10 +1,11 @@
 import {Fragment, type ReactNode} from 'react';
-import type {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core';
+import type {DraggableAttributes, DraggableSyntheticListeners} from '@dnd-kit/core';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 
-import {IconDelete, IconGrabbable} from 'sentry/icons';
+import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
+import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {QueryField as TableQueryField} from 'sentry/views/discover/table/queryField';
@@ -14,10 +15,11 @@ export interface QueryFieldProps {
   fieldOptions: React.ComponentProps<typeof TableQueryField>['fieldOptions'];
   onChange: (newValue: QueryFieldValue) => void;
   value: QueryFieldValue;
-  attributes?: UseDraggableArguments['attributes'];
+  attributes?: DraggableAttributes;
   canDelete?: boolean;
   canDrag?: boolean;
   disabled?: boolean;
+  extraActions?: ReactNode;
   fieldValidationError?: ReactNode;
   isDragging?: boolean;
   listeners?: DraggableSyntheticListeners;
@@ -25,7 +27,7 @@ export interface QueryFieldProps {
   ref?: React.Ref<HTMLDivElement>;
   renderTagOverride?: (
     kind: FieldValueKind,
-    label: string,
+    label: ReactNode,
     meta: FieldValue['meta']
   ) => ReactNode;
   style?: React.CSSProperties;
@@ -45,22 +47,14 @@ export function QueryField({
   fieldValidationError,
   isDragging,
   disabled,
+  extraActions,
   renderTagOverride,
 }: QueryFieldProps) {
   return (
     <QueryFieldWrapper ref={ref} style={style}>
       {isDragging ? null : (
         <Fragment>
-          {canDrag && (
-            <DragAndReorderButton
-              {...listeners}
-              {...attributes}
-              aria-label={t('Drag to reorder')}
-              icon={<IconGrabbable size="xs" />}
-              size="zero"
-              priority="transparent"
-            />
-          )}
+          {canDrag && <StyledDragReorderButton {...listeners} {...attributes} />}
           <TableQueryField
             placeholder={t('Select group')}
             fieldValue={value}
@@ -71,6 +65,7 @@ export function QueryField({
             renderTagOverride={renderTagOverride}
           />
           {fieldValidationError ? fieldValidationError : null}
+          {extraActions}
           {canDelete && (
             <Button
               size="zero"
@@ -88,7 +83,7 @@ export function QueryField({
   );
 }
 
-const DragAndReorderButton = styled(Button)`
+const StyledDragReorderButton = styled(DragReorderButton)`
   height: ${p => p.theme.form.md.height};
 `;
 

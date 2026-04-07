@@ -46,15 +46,6 @@ const DESTINATION_TABLE: Widget = {
         t('Processed'),
         t('Time spent'),
       ],
-      fieldMeta: [
-        null,
-        null,
-        null,
-        {valueType: 'percentage', valueUnit: null},
-        null,
-        null,
-        null,
-      ],
       linkedDashboards: [
         {
           dashboardId: '-1',

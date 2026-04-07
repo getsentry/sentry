@@ -1,14 +1,19 @@
 from sentry.hybridcloud.services.tombstone import (
+    CellTombstoneService,
     ControlTombstoneService,
-    RegionTombstoneService,
     RpcTombstone,
 )
-from sentry.models.tombstone import ControlTombstone, RegionTombstone
+from sentry.models.tombstone import CellTombstone, ControlTombstone
 
 
-class DatabaseBackedRegionTombstoneService(RegionTombstoneService):
-    def record_remote_tombstone(self, *, region_name: str, tombstone: RpcTombstone) -> None:
-        RegionTombstone.record_delete(tombstone.table_name, tombstone.identifier)
+class DatabaseBackedCellTombstoneService(CellTombstoneService):
+    def record_remote_tombstone(
+        self,
+        *,
+        cell_name: str,
+        tombstone: RpcTombstone,
+    ) -> None:
+        CellTombstone.record_delete(tombstone.table_name, tombstone.identifier)
 
 
 class DatabaseBackedControlTombstoneService(ControlTombstoneService):

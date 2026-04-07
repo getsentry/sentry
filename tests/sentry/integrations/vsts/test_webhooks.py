@@ -166,7 +166,7 @@ class VstsWebhookWorkItemTest(APITestCase):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_inbound_status_sync_resolve(self, mock_record: MagicMock) -> None:
         header_validation = []
-        if SiloMode.get_current_mode() != SiloMode.REGION:
+        if SiloMode.get_current_mode() != SiloMode.CELL:
             header_validation = [
                 matchers.header_matcher(
                     {

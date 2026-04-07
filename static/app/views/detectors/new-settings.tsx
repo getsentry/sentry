@@ -1,13 +1,15 @@
 import orderBy from 'lodash/orderBy';
 import {parseAsString, useQueryState} from 'nuqs';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useDetectorTypeQueryState} from 'sentry/views/detectors/components/detectorTypeForm';
 import {NewDetectorForm} from 'sentry/views/detectors/components/forms';
 import {DetectorFormProvider} from 'sentry/views/detectors/components/forms/context';
@@ -28,19 +30,23 @@ export default function DetectorNewSettings() {
 
   if (isFetchingProjects) {
     return (
-      <Layout.Page>
+      <Stack flex={1}>
         <Layout.Body>
           <Layout.Main width="full">
             <LoadingIndicator />
           </Layout.Main>
         </Layout.Body>
-      </Layout.Page>
+      </Stack>
     );
   }
 
-  const project = projectId
-    ? projects.find(p => p.id === projectId)
-    : orderBy(projects, ['isMember', 'isBookmarked'], ['desc', 'desc'])[0];
+  const sortedProjects = orderBy(
+    projects,
+    ['isMember', 'isBookmarked'],
+    ['desc', 'desc']
+  );
+  const project =
+    (projectId ? projects.find(p => p.id === projectId) : null) ?? sortedProjects[0];
 
   if (!project) {
     return <LoadingError message={t('Project not found')} />;

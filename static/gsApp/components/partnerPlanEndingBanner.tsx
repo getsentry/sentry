@@ -15,7 +15,7 @@ import {
   hasPartnerMigrationFeature,
   isTeamPlanFamily,
 } from 'getsentry/utils/billing';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 export function PartnerPlanEndingBanner({
   subscription,

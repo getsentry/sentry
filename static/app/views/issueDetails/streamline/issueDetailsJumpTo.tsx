@@ -6,7 +6,7 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
   SectionKey,
@@ -86,7 +86,7 @@ export function IssueDetailsJumpTo() {
   return (
     <JumpTo>
       <JumpToLabel aria-hidden>{t('Jump to:')}</JumpToLabel>
-      <ScrollCarousel gap={0.25} aria-label={t('Jump to section links')}>
+      <ScrollCarousel gap="2xs" aria-label={t('Jump to section links')}>
         {eventSectionConfigs.map(config => (
           <JumpToLink key={config.key} config={config} />
         ))}

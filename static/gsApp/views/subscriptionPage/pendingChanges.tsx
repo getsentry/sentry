@@ -25,7 +25,7 @@ import {
   getReservedBudgetCategoryFromCategories,
   getReservedBudgetDisplayName,
 } from 'getsentry/utils/dataCategory';
-import formatCurrency from 'getsentry/utils/formatCurrency';
+import {formatCurrency} from 'getsentry/utils/formatCurrency';
 import {
   formatOnDemandBudget,
   hasOnDemandBudgetsFeature,

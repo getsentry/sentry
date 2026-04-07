@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import SourceField from 'sentry/views/settings/components/dataScrubbing/modals/form/sourceField';
+import {SourceField} from 'sentry/views/settings/components/dataScrubbing/modals/form/sourceField';
 import {
   binarySuggestions,
   unarySuggestions,

@@ -1,7 +1,7 @@
 import {CUSTOMER_DOMAIN, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 
-import useRouter from './useRouter';
+import {useRouter} from './useRouter';
 
 /**
  * withSentryRouter is a higher-order component (HOC) that emulates withRouter,

@@ -6,7 +6,7 @@ import {vec2} from 'gl-matrix';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DifferentialFlamegraphLayout} from 'sentry/components/profiling/flamegraph/differentialFlamegraphLayout';
 import {FlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
 import {DifferentialFlamegraphDrawer} from 'sentry/components/profiling/flamegraph/flamegraphDrawer/differentialFlamegraphDrawer';
@@ -40,6 +40,7 @@ import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphR
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useLocation} from 'sentry/utils/useLocation';
+import {LayoutPageWithHiddenFooter} from 'sentry/views/profiling/layoutPageWithHiddenFooter';
 import {LOADING_PROFILE_GROUP} from 'sentry/views/profiling/profileGroupProvider';
 
 const PROFILE_TYPE = 'differential aggregate flamegraph' as const;
@@ -348,26 +349,24 @@ const DifferentialFlamegraphContainer = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1;
-
-  ~ footer {
-    display: none;
-  }
 `;
 
 function DifferentialFlamegraphWithProviders() {
   return (
-    <FlamegraphThemeProvider>
-      <FlamegraphStateProvider
-        initialState={{
-          preferences: {
-            sorting: 'alphabetical',
-            view: 'top down',
-          },
-        }}
-      >
-        <DifferentialFlamegraphView />
-      </FlamegraphStateProvider>
-    </FlamegraphThemeProvider>
+    <LayoutPageWithHiddenFooter flex={1}>
+      <FlamegraphThemeProvider>
+        <FlamegraphStateProvider
+          initialState={{
+            preferences: {
+              sorting: 'alphabetical',
+              view: 'top down',
+            },
+          }}
+        >
+          <DifferentialFlamegraphView />
+        </FlamegraphStateProvider>
+      </FlamegraphThemeProvider>
+    </LayoutPageWithHiddenFooter>
   );
 }
 

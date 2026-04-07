@@ -2,7 +2,7 @@ import {useCallback, useContext, useSyncExternalStore} from 'react';
 import noop from 'lodash/noop';
 import {observe} from 'mobx';
 
-import FormContext from 'sentry/components/forms/formContext';
+import {FormContext} from 'sentry/components/forms/formContext';
 import type {FieldValue} from 'sentry/components/forms/types';
 import {getFormFieldValue} from 'sentry/components/workflowEngine/form/getFormFieldValue';
 

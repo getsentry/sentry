@@ -16,7 +16,7 @@ interface Props {
   to?: LinkProps['to'];
 }
 
-function ShortId({shortId, avatar, onClick, to, className}: Props) {
+export function ShortId({shortId, avatar, onClick, to, className}: Props) {
   if (!shortId) {
     return null;
   }
@@ -49,5 +49,3 @@ export const StyledAutoSelectText = styled(AutoSelectText)`
     color: ${p => p.theme.tokens.interactive.link.accent.rest};
   }
 `;
-
-export default ShortId;

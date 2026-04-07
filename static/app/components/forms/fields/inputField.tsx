@@ -2,9 +2,9 @@ import type {InputProps} from '@sentry/scraps/input';
 import {InputGroup} from '@sentry/scraps/input';
 
 import type {FormFieldProps} from 'sentry/components/forms/formField';
-import FormField from 'sentry/components/forms/formField';
+import {FormField} from 'sentry/components/forms/formField';
 import {FormFieldControlState} from 'sentry/components/forms/formField/controlState';
-import type FormModel from 'sentry/components/forms/model';
+import type {FormModel} from 'sentry/components/forms/model';
 
 export interface InputFieldProps
   extends
@@ -71,7 +71,11 @@ function defaultField({
  * InputField should be thought of as a "base" field, and generally not used
  * within the Form itself.
  */
-function InputField({field = defaultField, hideControlState, ...props}: InputFieldProps) {
+export function InputField({
+  field = defaultField,
+  hideControlState,
+  ...props
+}: InputFieldProps) {
   return (
     <FormField {...props} hideControlState flexibleControlStateSize>
       {({children: _children, ...otherFieldProps}) =>
@@ -80,5 +84,3 @@ function InputField({field = defaultField, hideControlState, ...props}: InputFie
     </FormField>
   );
 }
-
-export default InputField;

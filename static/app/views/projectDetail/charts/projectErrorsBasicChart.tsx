@@ -2,7 +2,7 @@ import {Fragment, useEffect, useMemo} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import type {BarSeriesOption} from 'echarts';
 
-import BaseChart from 'sentry/components/charts/baseChart';
+import {BaseChart} from 'sentry/components/charts/baseChart';
 import {LoadingPanel} from 'sentry/components/charts/loadingPanel';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -10,9 +10,9 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export const ERRORS_BASIC_CHART_PERIODS = ['1h', '24h', '7d', '14d', '30d'];
 
@@ -21,7 +21,7 @@ type Props = {
   projectId?: string;
 };
 
-function ProjectErrorsBasicChart({projectId, onTotalValuesChange}: Props) {
+export function ProjectErrorsBasicChart({projectId, onTotalValuesChange}: Props) {
   const organization = useOrganization();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -107,5 +107,3 @@ function ProjectErrorsBasicChart({projectId, onTotalValuesChange}: Props) {
     </Fragment>
   );
 }
-
-export default ProjectErrorsBasicChart;

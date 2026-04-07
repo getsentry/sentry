@@ -5,9 +5,9 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import SentryApplicationDashboard from './index';
 
-jest.mock('sentry/components/charts/baseChart', () => {
-  return jest.fn().mockImplementation(() => <div data-test-id="chart" />);
-});
+jest.mock('sentry/components/charts/baseChart', () => ({
+  BaseChart: jest.fn().mockImplementation(() => <div data-test-id="chart" />),
+}));
 
 describe('Sentry Application Dashboard', () => {
   const NUM_INSTALLS = 5;
@@ -186,7 +186,6 @@ describe('Sentry Application Dashboard', () => {
           route: '/settings/:orgId/developer-settings/:appSlug/dashboard/',
         },
       });
-      expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
       // The mock response has 1 request
       expect(await screen.findByTestId('request-item')).toBeInTheDocument();
       const requestLog = within(screen.getByTestId('request-item'));

@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
+import type {DistributedOmit} from 'type-fest';
 
 import type {ControlProps} from '@sentry/scraps/select';
 import {Select} from '@sentry/scraps/select';
 
 import type {BaseRole} from 'sentry/types/organization';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type OptionType = {
   details: React.ReactNode;
@@ -13,13 +14,9 @@ type OptionType = {
   value: string;
 };
 
-type Props = Omit<ControlProps<OptionType>, 'onChange' | 'value'> & {
+type Props = DistributedOmit<ControlProps<OptionType>, 'value'> & {
   disableUnallowed: boolean;
   roles: BaseRole[];
-  /**
-   * Narrower type than SelectControl because there is no empty value
-   */
-  onChange?: (value: OptionType) => void;
   value?: string | null;
 };
 

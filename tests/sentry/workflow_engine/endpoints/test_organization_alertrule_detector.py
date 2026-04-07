@@ -1,7 +1,7 @@
 from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
 class OrganizationAlertRuleDetectorAPITestCase(APITestCase):
@@ -36,7 +36,7 @@ class OrganizationAlertRuleDetectorAPITestCase(APITestCase):
         )
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationAlertRuleDetectorIndexGetTest(OrganizationAlertRuleDetectorAPITestCase):
     def test_get_with_detector_id_filter(self) -> None:
         response = self.get_success_response(

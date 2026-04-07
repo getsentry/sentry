@@ -2,7 +2,7 @@ import {Fragment, memo} from 'react';
 import styled from '@emotion/styled';
 import {parseAsString, parseAsStringEnum, useQueryStates} from 'nuqs';
 
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';

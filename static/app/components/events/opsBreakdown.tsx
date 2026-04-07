@@ -226,7 +226,7 @@ export function generateStats(
   return breakdown;
 }
 
-function OpsBreakdown({
+export function OpsBreakdown({
   event,
   operationNameFilters,
   hideHeader = false,
@@ -392,5 +392,3 @@ function mergeInterval(intervals: TimeWindowSpan[]): TimeWindowSpan[] {
 
   return merged;
 }
-
-export default OpsBreakdown;

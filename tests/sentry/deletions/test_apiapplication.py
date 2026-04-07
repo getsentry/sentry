@@ -33,10 +33,10 @@ class DeleteApiApplicationTest(TransactionTestCase, HybridCloudTestMixin):
         assert not ApiApplication.objects.filter(id=app.id).exists()
         assert not ApiGrant.objects.filter(application=app).exists()
         assert not ApiToken.objects.filter(application=app).exists()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert ServiceHook.objects.filter(id=sh_id).exists()
 
-        with self.tasks(), assume_test_silo_mode(SiloMode.REGION):
+        with self.tasks(), assume_test_silo_mode(SiloMode.CELL):
             schedule_hybrid_cloud_foreign_key_jobs()
             assert not ServiceHook.objects.filter(id=sh_id).exists()
 
@@ -64,10 +64,10 @@ class DeleteApiApplicationTest(TransactionTestCase, HybridCloudTestMixin):
         assert not ApiApplication.objects.filter(id=app.id).exists()
         assert not ApiGrant.objects.filter(application=app).exists()
         assert not ApiToken.objects.filter(application=app).exists()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert ServiceHook.objects.filter(id=sh_id).exists()
 
-        with self.tasks(), assume_test_silo_mode(SiloMode.REGION):
+        with self.tasks(), assume_test_silo_mode(SiloMode.CELL):
             schedule_hybrid_cloud_foreign_key_jobs()
             assert not ServiceHook.objects.filter(id=sh_id).exists()
 

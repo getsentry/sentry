@@ -9,11 +9,11 @@ from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
 class DatabaseBackedSentryAppRequestService(SentryAppRequestService):
-    def get_buffer_requests_for_region(
+    def get_buffer_requests_for_cell(
         self,
         *,
         sentry_app_id: str,
-        region_name: str,
+        cell_name: str,
         filter: SentryAppRequestFilterArgs | None = None,
     ) -> list[RpcSentryAppRequest] | None:
         sentry_app = app_service.get_sentry_app_by_id(id=sentry_app_id)

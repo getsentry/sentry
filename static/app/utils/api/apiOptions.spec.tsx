@@ -6,6 +6,7 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 
 type Promisable<T> = T | Promise<T>;
 type QueryFunctionResult<T> = Promisable<ApiResponse<T>>;
@@ -23,7 +24,8 @@ describe('apiOptions', () => {
       }
     );
 
-    expect(options.queryKey[0]).toBe('/organizations/my-org/releases/v%201.0.0/');
+    const {url} = parseQueryKey(options.queryKey);
+    expect(url).toBe('/organizations/my-org/releases/v%201.0.0/');
   });
 
   it('should not include empty options in queryKey', () => {
@@ -32,7 +34,10 @@ describe('apiOptions', () => {
       path: {tokenId: '123'},
     });
 
-    expect(options.queryKey).toEqual(['/api-tokens/123/']);
+    expect(options.queryKey).toEqual([
+      {infinite: false, version: 'v2'},
+      '/api-tokens/123/',
+    ]);
   });
 
   it('should stringify number path params', () => {
@@ -41,7 +46,8 @@ describe('apiOptions', () => {
       path: {tokenId: 123},
     });
 
-    expect(options.queryKey[0]).toBe('/api-tokens/123/');
+    const {url} = parseQueryKey(options.queryKey);
+    expect(url).toBe('/api-tokens/123/');
   });
 
   it('should not do accidental replacements', () => {
@@ -51,7 +57,10 @@ describe('apiOptions', () => {
       path: {id: '123', id1: '456'},
     });
 
-    expect(options.queryKey).toEqual(['/projects/456/123']);
+    expect(options.queryKey).toEqual([
+      {infinite: false, version: 'v2'},
+      '/projects/456/123',
+    ]);
   });
 
   it('should allow skipToken as path', () => {
@@ -63,9 +72,15 @@ describe('apiOptions', () => {
     }
 
     expect(getOptions('123').queryFn).toEqual(expect.any(Function));
-    expect(getOptions('123').queryKey).toEqual(['/api-tokens/123/']);
+    expect(getOptions('123').queryKey).toEqual([
+      {infinite: false, version: 'v2'},
+      '/api-tokens/123/',
+    ]);
     expect(getOptions(null).queryFn).toEqual(skipToken);
-    expect(getOptions(null).queryKey).toEqual(['/api-tokens/$tokenId/']);
+    expect(getOptions(null).queryKey).toEqual([
+      {infinite: false, version: 'v2'},
+      '/api-tokens/$tokenId/',
+    ]);
   });
 
   it('should extract content data per default', async () => {

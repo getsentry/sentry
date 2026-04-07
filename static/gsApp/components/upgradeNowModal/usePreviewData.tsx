@@ -1,13 +1,13 @@
 import type {ReactElement} from 'react';
 
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import type {Plan, PreviewData, Subscription} from 'getsentry/types';
 
 import type {Reservations} from './types';
-import useUpgradeNowParams from './useUpgradeNowParams';
+import {useUpgradeNowParams} from './useUpgradeNowParams';
 
 type Result =
   | {
@@ -39,7 +39,7 @@ type Props = {
   enabled?: boolean;
 };
 
-export default function usePreviewData({
+export function usePreviewData({
   organization,
   subscription,
   enabled = true,

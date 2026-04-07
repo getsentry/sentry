@@ -6,15 +6,15 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {SnubaQuery} from 'sentry/types/workflowEngine/detectors';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ChartSelectionQueryParam} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import {Chart} from 'sentry/views/explore/components/attributeBreakdowns/cohortComparisonChart';
 import {COHORT_2_COLOR} from 'sentry/views/explore/components/attributeBreakdowns/constants';
 import {AttributeBreakdownsComponent} from 'sentry/views/explore/components/attributeBreakdowns/styles';
-import useAttributeBreakdownComparison from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
+import {useAttributeBreakdownComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
 import {useFilteredRankedAttributes} from 'sentry/views/explore/hooks/useFilteredRankedAttributes';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -149,7 +149,11 @@ export function AttributeComparisonSection({
           </LegendHint>
         </Stack>
         {isLoading ? (
-          <Placeholder height="200px" />
+          <Grid columns="repeat(auto-fill, minmax(min(300px, 100%), 1fr))" gap="md">
+            {Array.from({length: CHARTS_PER_PAGE}).map((_, i) => (
+              <Placeholder key={i} height="200px" />
+            ))}
+          </Grid>
         ) : error ? (
           <AttributeBreakdownsComponent.ErrorState error={error} />
         ) : filteredRankedAttributes.length > 0 ? (

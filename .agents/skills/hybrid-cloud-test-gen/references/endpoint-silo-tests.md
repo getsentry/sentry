@@ -6,11 +6,11 @@
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import (
     control_silo_test,
-    region_silo_test,
+    cell_silo_test,
     no_silo_test,
     assume_test_silo_mode,
     assume_test_silo_mode_of,
-    create_test_regions,
+    create_test_cells,
 )
 from sentry.silo.base import SiloMode
 ```
@@ -19,17 +19,17 @@ from sentry.silo.base import SiloMode
 
 Match the endpoint's silo decorator to the test's silo decorator:
 
-| Endpoint Decorator                           | Test Decorator                                          |
-| -------------------------------------------- | ------------------------------------------------------- |
-| `@region_silo_endpoint`                      | `@region_silo_test`                                     |
-| `@control_silo_endpoint`                     | `@control_silo_test`                                    |
-| `@control_silo_endpoint` (proxies to region) | `@control_silo_test(regions=create_test_regions("us"))` |
-| No silo decorator                            | `@no_silo_test`                                         |
+| Endpoint Decorator                         | Test Decorator                                      |
+| ------------------------------------------ | --------------------------------------------------- |
+| `@cell_silo_endpoint`                      | `@cell_silo_test`                                   |
+| `@control_silo_endpoint`                   | `@control_silo_test`                                |
+| `@control_silo_endpoint` (proxies to cell) | `@control_silo_test(cells=create_test_cells("us"))` |
+| No silo decorator                          | `@no_silo_test`                                     |
 
-## Template: Region Silo Endpoint Test
+## Template: Cell Silo Endpoint Test
 
 ```python
-@region_silo_test
+@cell_silo_test
 class Test{Endpoint}(APITestCase):
     endpoint = "sentry-api-0-{endpoint-name}"
 
@@ -90,7 +90,7 @@ class Test{Endpoint}(APITestCase):
 ## Template: Endpoint with Cross-Silo Data Verification
 
 ```python
-@region_silo_test
+@cell_silo_test
 class Test{Endpoint}CrossSilo(APITestCase):
     endpoint = "sentry-api-0-{endpoint-name}"
 
@@ -116,7 +116,7 @@ class Test{Endpoint}CrossSilo(APITestCase):
 ## Template: Endpoint with Permission Scopes
 
 ```python
-@region_silo_test
+@cell_silo_test
 class Test{Endpoint}Permissions(APITestCase):
     endpoint = "sentry-api-0-{endpoint-name}"
 

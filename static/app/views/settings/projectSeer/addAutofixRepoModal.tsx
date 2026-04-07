@@ -13,7 +13,7 @@ import {useOrganizationRepositories} from 'sentry/components/events/autofix/pref
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconSearch} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {MAX_REPOS_LIMIT} from 'sentry/views/settings/projectSeer/constants';
 
 import {SelectableRepoItem} from './selectableRepoItem';

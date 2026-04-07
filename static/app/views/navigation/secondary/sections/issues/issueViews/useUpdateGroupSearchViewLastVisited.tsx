@@ -1,7 +1,7 @@
 import {useMutation, type UseMutationOptions} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type UpdateGroupSearchViewLastVisitedVariables = {
   viewId: string;
@@ -25,9 +25,6 @@ export function useUpdateGroupSearchViewLastVisited(
           method: 'POST',
         }
       );
-    },
-    onError: (error, variables, context) => {
-      options.onError?.(error, variables, context);
     },
   });
 }

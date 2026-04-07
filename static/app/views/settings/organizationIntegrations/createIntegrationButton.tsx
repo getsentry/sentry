@@ -1,12 +1,12 @@
 import {Button} from '@sentry/scraps/button';
 
 import {openCreateNewIntegrationModal} from 'sentry/actionCreators/modal';
-import Access from 'sentry/components/acl/access';
+import {Access} from 'sentry/components/acl/access';
 import {t} from 'sentry/locale';
 import type {IntegrationView} from 'sentry/utils/analytics/integrations';
 import {PlatformEvents} from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type CreateIntegrationButtonProps = {
   analyticsView: IntegrationView['view'];

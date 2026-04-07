@@ -2,7 +2,7 @@ import {z} from 'zod';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {AutoSaveField, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {AutoSaveForm, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
 interface TestFormProps {
   label: string;
@@ -65,7 +65,7 @@ function AutoSaveTestForm({
   label = 'Bio',
 }: AutoSaveTestFormProps) {
   return (
-    <AutoSaveField
+    <AutoSaveForm
       name="bio"
       schema={testSchema}
       initialValue={initialValue}
@@ -76,7 +76,7 @@ function AutoSaveTestForm({
           <field.TextArea value={field.state.value} onChange={field.handleChange} />
         </field.Layout.Row>
       )}
-    </AutoSaveField>
+    </AutoSaveForm>
   );
 }
 
@@ -137,11 +137,11 @@ describe('TextAreaField auto-save', () => {
 
     const textarea = screen.getByRole('textbox');
     await userEvent.type(textarea, 'test');
-    // AutoSaveField triggers mutation on blur for string fields
+    // AutoSaveForm triggers mutation on blur for string fields
     await userEvent.tab();
 
     expect(await screen.findByRole('status', {name: 'Saving bio'})).toBeInTheDocument();
-    expect(mutationFn).toHaveBeenCalledWith({bio: 'test'});
+    expect(mutationFn).toHaveBeenCalledWith({bio: 'test'}, expect.anything());
   });
 
   it('shows checkmark when auto-save succeeds', async () => {
@@ -151,13 +151,13 @@ describe('TextAreaField auto-save', () => {
 
     const textarea = screen.getByRole('textbox');
     await userEvent.type(textarea, 'test');
-    // AutoSaveField triggers mutation on blur for string fields
+    // AutoSaveForm triggers mutation on blur for string fields
     await userEvent.tab();
 
     await waitFor(() => {
       expect(screen.getByTestId('icon-check-mark')).toBeInTheDocument();
     });
-    expect(mutationFn).toHaveBeenCalledWith({bio: 'test'});
+    expect(mutationFn).toHaveBeenCalledWith({bio: 'test'}, expect.anything());
   });
 
   it('disables textarea while auto-save is pending', async () => {
@@ -167,7 +167,7 @@ describe('TextAreaField auto-save', () => {
 
     const textarea = screen.getByRole('textbox');
     await userEvent.type(textarea, 'test');
-    // AutoSaveField triggers mutation on blur for string fields
+    // AutoSaveForm triggers mutation on blur for string fields
     await userEvent.tab();
 
     await waitFor(() => {

@@ -1,5 +1,7 @@
 import {FeatureBadge} from '@sentry/scraps/badge';
+import {Stack} from '@sentry/scraps/layout';
 
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -10,7 +12,7 @@ import {defined} from 'sentry/utils';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreBreadcrumb} from 'sentry/views/explore/components/breadcrumb';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {MetricsTabOnboarding} from 'sentry/views/explore/metrics/metricsOnboarding';
@@ -48,18 +50,20 @@ export default function MetricsContent() {
             : undefined
         }
       >
-        <Layout.Page>
-          <MetricsHeader />
-          {defined(onboardingProject) ? (
-            <MetricsTabOnboarding
-              organization={organization}
-              project={onboardingProject}
-              datePageFilterProps={datePageFilterProps}
-            />
-          ) : (
-            <MetricsTabContent datePageFilterProps={datePageFilterProps} />
-          )}
-        </Layout.Page>
+        <AnalyticsArea name="explore.metrics">
+          <Stack flex={1}>
+            <MetricsHeader />
+            {defined(onboardingProject) ? (
+              <MetricsTabOnboarding
+                organization={organization}
+                project={onboardingProject}
+                datePageFilterProps={datePageFilterProps}
+              />
+            ) : (
+              <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+            )}
+          </Stack>
+        </AnalyticsArea>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );

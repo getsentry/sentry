@@ -1,12 +1,12 @@
 import type {ExternalIssueComponent} from 'sentry/components/group/externalIssuesList/types';
-import useIssueTrackingFilter from 'sentry/components/group/externalIssuesList/useIssueTrackingFilter';
-import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
+import {useIssueTrackingFilter} from 'sentry/components/group/externalIssuesList/useIssueTrackingFilter';
+import {SentryAppInstallationStore} from 'sentry/stores/sentryAppInstallationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
-import useSentryAppComponentsStore from 'sentry/utils/useSentryAppComponentsStore';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
 
 type Props = {
   event: Event;
@@ -14,7 +14,7 @@ type Props = {
   project: Project;
 };
 
-export default function useHasLinkedIssues({group, event, project}: Props) {
+export function useHasLinkedIssues({group, event, project}: Props) {
   const organization = useOrganization();
   const issueTrackingFilter = useIssueTrackingFilter();
   const components = useSentryAppComponentsStore({componentType: 'issue-link'});

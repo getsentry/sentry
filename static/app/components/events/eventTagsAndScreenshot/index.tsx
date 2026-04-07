@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
 import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotDataSection';
 import {DataSection} from 'sentry/components/events/styles';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {EventTagsDataSection} from './tags';
 

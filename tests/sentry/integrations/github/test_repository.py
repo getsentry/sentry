@@ -47,7 +47,7 @@ class GitHubAppsProviderTest(TestCase):
     def repository(self) -> Repository:
         # TODO: Refactor this out with a call to the relevant factory if possible to avoid
         # explicitly having to exempt it from silo limits
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             return Repository.objects.create(
                 name="getsentry/example-repo",
                 provider="integrations:github",

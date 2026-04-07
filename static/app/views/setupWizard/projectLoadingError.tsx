@@ -5,7 +5,7 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 function getSsoLoginUrl(error: RequestError) {
   const detail = error?.responseJSON?.detail as any;

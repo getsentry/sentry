@@ -5,7 +5,7 @@ import {FieldDescription} from 'sentry/components/forms/fieldGroup/fieldDescript
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
 import {FieldLabel} from 'sentry/components/forms/fieldGroup/fieldLabel';
 import {FieldRequiredBadge} from 'sentry/components/forms/fieldGroup/fieldRequiredBadge';
-import FormField from 'sentry/components/forms/formField';
+import {FormField} from 'sentry/components/forms/formField';
 
 type FormFieldProps = Omit<
   React.ComponentProps<typeof FormField>,

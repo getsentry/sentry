@@ -87,7 +87,7 @@ def _sync_docs(dest: str, *, quiet: bool = False) -> None:
     # This value is derived from https://docs.python.org/3/library/concurrent.futures.html#threadpoolexecutor
     MAX_THREADS = 32
     thread_count = min(len(data["platforms"]), multiprocessing.cpu_count() * 5, MAX_THREADS)
-    with concurrent.futures.ThreadPoolExecutor(thread_count) as exe:
+    with concurrent.futures.ThreadPoolExecutor(thread_count) as exe:  # noqa: S016 - build script, no sentry_sdk available
         for future in concurrent.futures.as_completed(
             exe.submit(
                 _sync_one,

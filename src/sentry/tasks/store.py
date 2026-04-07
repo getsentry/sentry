@@ -438,7 +438,7 @@ def do_process_event(
     name="sentry.tasks.store.process_event",
     namespace=ingest_errors_tasks,
     processing_deadline_duration=65,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def process_event(
     cache_key: str,
@@ -474,7 +474,7 @@ def process_event(
     name="sentry.tasks.store.process_event_from_reprocessing",
     namespace=issues_tasks,
     processing_deadline_duration=65,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def process_event_from_reprocessing(
     cache_key: str,
@@ -638,7 +638,7 @@ def _do_save_event(
     name="sentry.tasks.store.save_event",
     namespace=ingest_errors_tasks,
     processing_deadline_duration=65,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def save_event(
     cache_key: str | None = None,
@@ -663,7 +663,7 @@ def save_event(
     name="sentry.tasks.store.save_event_transaction",
     namespace=ingest_transactions_tasks,
     processing_deadline_duration=65,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def save_event_transaction(
     cache_key: str | None = None,
@@ -696,7 +696,7 @@ def save_event_transaction(
     name="sentry.tasks.store.save_event_feedback",
     namespace=issues_tasks,
     processing_deadline_duration=65,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @metrics.wraps("feedback_consumer.save_event_feedback_task")
 def save_event_feedback(
@@ -715,7 +715,7 @@ def save_event_feedback(
     name="sentry.tasks.store.save_event_attachments",
     namespace=ingest_attachments_tasks,
     processing_deadline_duration=65,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def save_event_attachments(
     cache_key: str | None = None,

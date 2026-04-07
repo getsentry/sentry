@@ -11,7 +11,7 @@ import type {DataCategory} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 import {ResultTable} from 'admin/components/resultTable';
-import formatCurrency from 'getsentry/utils/formatCurrency';
+import {formatCurrency} from 'getsentry/utils/formatCurrency';
 import {displayUnitPrice} from 'getsentry/views/amCheckout/utils';
 
 export interface BillingPlansResponse {
@@ -43,7 +43,7 @@ interface PriceTier {
   volume: number;
 }
 
-function BillingPlans() {
+export function BillingPlans() {
   const {
     data: billingPlansResponse = {
       not_live: [],
@@ -487,5 +487,3 @@ function escapeCsvField(field: string): string {
   }
   return field;
 }
-
-export default BillingPlans;

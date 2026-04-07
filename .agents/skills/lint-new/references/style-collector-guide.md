@@ -12,9 +12,9 @@ Use `createStyleCollector` when your rule needs to:
 
 Do NOT use it when you need to:
 
-- Detect patterns in static CSS text (use template quasi analysis instead)
+- Detect patterns in static CSS text — use `createQuasiScanner` from `src/ast/scanner/index.ts` instead
 - Check import paths (use `ImportDeclaration` visitor)
-- Restrict JSX element usage (use JSX tree walking)
+- Restrict JSX element usage (use JSX tree walking + `createImportTracker`)
 
 ## Architecture
 
@@ -101,4 +101,4 @@ const Box = styled.div`
 `;
 ```
 
-If your rule detects raw hex colors, nested selectors, or other patterns in the _text itself_, walk `quasi.quasis` directly instead. See the "Template Text Analysis" archetype in `rule-archetypes.md`.
+If your rule detects raw hex colors, nested selectors, or other patterns in the _text itself_, use `createQuasiScanner` from `src/ast/scanner/index.ts` instead. See the "Template Text Analysis" archetype in `rule-archetypes.md`.

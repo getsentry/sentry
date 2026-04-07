@@ -38,7 +38,7 @@ class OrganizationIntegrationDetailsTest(APITestCase):
             self.organization, self.user, default_auth_id=self.identity.id
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.repo = Repository.objects.create(
                 provider="gitlab",
                 name="getsentry/sentry",
@@ -60,7 +60,8 @@ class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest)
 
     def test_update_config(self) -> None:
         config = {"setting": "new_value", "setting2": "baz"}
-        self.get_success_response(self.organization.slug, self.integration.id, **config)
+        with patch("sentry.integrations.gitlab.integration.update_all_project_webhooks"):
+            self.get_success_response(self.organization.slug, self.integration.id, **config)
 
         org_integration = OrganizationIntegration.objects.get(
             integration=self.integration, organization_id=self.organization.id

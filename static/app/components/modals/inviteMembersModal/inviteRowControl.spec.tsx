@@ -9,7 +9,7 @@ import {
   type InviteMembersContextValue,
 } from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import {InviteRowControl as InviteRowControlNew} from 'sentry/components/modals/inviteMembersModal/inviteRowControl';
-import TeamStore from 'sentry/stores/teamStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import type {DetailedTeam} from 'sentry/types/organization';
 
 describe('InviteRowControlNew', () => {

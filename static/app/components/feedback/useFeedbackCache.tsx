@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 
 import type {ApiResult} from 'sentry/api';
-import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
+import {useFeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
 import {defined} from 'sentry/utils';
 import type {FeedbackIssue, FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 import type {ApiQueryKey, InfiniteData, QueryState} from 'sentry/utils/queryClient';
@@ -20,7 +20,7 @@ function isIssueEndpointUrl(query: any) {
   return issueApiEndpointRegexp.test(String(url));
 }
 
-export default function useFeedbackCache() {
+export function useFeedbackCache() {
   const queryClient = useQueryClient();
   const {getItemQueryKeys, listQueryKey} = useFeedbackQueryKeys();
 

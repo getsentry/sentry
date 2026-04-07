@@ -16,7 +16,7 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -25,7 +25,7 @@ import {Edit} from './modals/edit';
 import {convertRelayPiiConfig} from './convertRelayPiiConfig';
 import {OrganizationRules} from './organizationRules';
 import {Rules} from './rules';
-import submitRules from './submitRules';
+import {submitRules} from './submitRules';
 import {type Rule} from './types';
 
 const ADVANCED_DATASCRUBBING_LINK =

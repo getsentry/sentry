@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {SentryAppAvatar} from '@sentry/scraps/avatar';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {SentryAppComponent} from 'sentry/types/integrations';
 
 type Props = {

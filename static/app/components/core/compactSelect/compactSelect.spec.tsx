@@ -5,7 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import DropdownButton from 'sentry/components/dropdownButton';
+import {DropdownButton} from 'sentry/components/dropdownButton';
 
 import {CompactSelect, type SelectOption} from './';
 
@@ -585,6 +585,38 @@ describe('CompactSelect', () => {
       await userEvent.keyboard('ption On');
       expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
       expect(screen.queryByRole('option', {name: 'Option Two'})).not.toBeInTheDocument();
+    });
+
+    it('prioritizes exact matches over partial matches in search results', async () => {
+      render(
+        <CompactSelect
+          search={{placeholder: 'Search here…'}}
+          options={[
+            {value: 'binary_path', label: 'binary_path'},
+            {value: 'code.file.path', label: 'code.file.path'},
+            {value: 'path', label: 'path'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+
+      // Search for 'path' - should match all three options
+      await userEvent.keyboard('path');
+
+      // All options should be visible
+      expect(screen.getByRole('option', {name: 'binary_path'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'code.file.path'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'path'})).toBeInTheDocument();
+
+      // Exact match 'path' should be sorted first
+      const options = screen.getAllByRole('option');
+      expect(options[0]).toHaveTextContent('path');
+      expect(options[1]).toHaveTextContent('binary_path');
+      expect(options[2]).toHaveTextContent('code.file.path');
     });
 
     it('shows fzf matches even when gap penalties make the raw score negative', async () => {

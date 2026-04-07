@@ -1,12 +1,20 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q, Subquery
 
 from sentry.api.serializers import Serializer, serialize
-from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
+
+if TYPE_CHECKING:
+    from sentry.incidents.endpoints.serializers.alert_rule import (
+        AlertRuleSerializerResponse,
+        DetailedAlertRuleSerializerResponse,
+    )
+
 from sentry.incidents.endpoints.serializers.utils import (
     get_fake_id_from_object_id,
     get_object_id_from_fake_id,
@@ -80,17 +88,16 @@ class WorkflowEngineDetectorSerializer(Serializer):
         detectors: dict[int, Detector],
         sentry_app_installations_by_sentry_app_id: Mapping[str, RpcSentryAppComponentContext],
         serialized_data_conditions: list[dict[str, Any]],
+        detector_ids_by_alert_rule_id: dict[int, int],
     ) -> None:
         for serialized in serialized_data_conditions:
             errors = []
             alert_rule_id = serialized.get("alertRuleId")
             assert alert_rule_id
-            try:
-                detector_id = AlertRuleDetector.objects.values_list("detector_id", flat=True).get(
-                    alert_rule_id=alert_rule_id
-                )
-            except AlertRuleDetector.DoesNotExist:
-                detector_id = get_object_id_from_fake_id(int(alert_rule_id))
+            detector_id = detector_ids_by_alert_rule_id.get(
+                int(alert_rule_id),
+                get_object_id_from_fake_id(int(alert_rule_id)),
+            )
 
             detector = detectors[int(detector_id)]
             alert_rule_triggers = result[detector].setdefault("triggers", [])
@@ -249,7 +256,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
                 for detector_trigger in detector_trigger_data_conditions
             ],
             condition_group__in=Subquery(workflow_dcg_ids),
-        )
+        ).select_related("condition_group")
 
         dcgas = DataConditionGroupAction.objects.filter(
             condition_group__in=[
@@ -265,6 +272,16 @@ class WorkflowEngineDetectorSerializer(Serializer):
             self.add_sentry_app_installations_by_sentry_app_id(actions, organization_id)
         )
 
+        # Batch-fetch AlertRuleDetector mappings (used by add_triggers_and_actions and serialize)
+        alert_rule_ids_by_detector_id = dict(
+            AlertRuleDetector.objects.filter(detector_id__in=detector_ids).values_list(
+                "detector_id", "alert_rule_id"
+            )
+        )
+        detector_ids_by_alert_rule_id: dict[int, int] = {
+            v: k for k, v in alert_rule_ids_by_detector_id.items() if v is not None
+        }
+
         # add trigger and action data
         # Evaluate queryset once and reuse for both serialization and lookup dict
         detector_trigger_data_conditions_list = list(detector_trigger_data_conditions)
@@ -279,6 +296,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             detectors,
             sentry_app_installations_by_sentry_app_id,
             serialized_data_conditions,
+            detector_ids_by_alert_rule_id,
         )
         # derive thresholdType and sensitivity/seasonality from trigger data conditions
         # Build a dict to avoid N queries when looking up by condition_group_id
@@ -308,6 +326,9 @@ class WorkflowEngineDetectorSerializer(Serializer):
         self.add_projects(result, detectors)
         self.add_created_by(result, list(detectors.values()))
         self.add_owner(result, list(detectors.values()))
+
+        for detector in detectors.values():
+            result[detector]["alert_rule_id"] = alert_rule_ids_by_detector_id.get(detector.id)
 
         # Note: originalAlertRuleId comes from AlertRuleActivity snapshots, which were not
         # migrated to the workflow engine. This field will always be None for detectors.
@@ -396,14 +417,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
         if triggers:
             alert_rule_id = triggers[0].get("alertRuleId")
         else:
-            try:
-                alert_rule_id = AlertRuleDetector.objects.values_list(
-                    "alert_rule_id", flat=True
-                ).get(detector=obj)
-            except AlertRuleDetector.DoesNotExist:
-                # this detector does not have an analog in the old system,
-                # but we need to return *something*
-                alert_rule_id = get_fake_id_from_object_id(obj.id)
+            alert_rule_id = attrs.get("alert_rule_id") or get_fake_id_from_object_id(obj.id)
 
         comparison_delta = obj.config.get("comparison_delta")
 
@@ -411,11 +425,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             "id": str(alert_rule_id),
             "name": obj.name,
             "organizationId": str(obj.project.organization_id),
-            "status": (
-                AlertRuleStatus.PENDING.value
-                if obj.enabled is True
-                else AlertRuleStatus.DISABLED.value
-            ),
+            "status": AlertRuleStatus.PENDING.value,
             "queryType": attrs.get("queryType"),
             "dataset": attrs.get("dataset"),
             "query": attrs.get("query"),
@@ -440,6 +450,9 @@ class WorkflowEngineDetectorSerializer(Serializer):
             "detectionType": obj.config.get("detection_type"),
         }
 
+        if not obj.enabled:
+            data["snooze"] = True
+
         if "latestIncident" in self.expand:
             data["latestIncident"] = attrs.get("latestIncident", None)
 
@@ -452,4 +465,42 @@ class WorkflowEngineDetectorSerializer(Serializer):
         if "eventTypes" in self.expand:
             data["eventTypes"] = attrs.get("event_types", [])
 
+        return data
+
+
+class DetailedWorkflowEngineDetectorSerializer(Serializer):
+    """
+    Detailed serializer for detector detail endpoints.
+    Always includes eventTypes and snooze fields to match DetailedAlertRuleSerializer.
+
+    Known differences from DetailedAlertRuleSerializer:
+    - snooze/snoozeForEveryone: Derived from Detector.enabled instead of querying RuleSnooze
+    - snoozeCreatedBy: Not included (RuleSnooze model tracks this, but workflow engine doesn't)
+    - Detector.enabled=False is treated as snoozed for everyone
+    """
+
+    def __init__(self, expand: list[str] | None = None, prepare_component_fields: bool = False):
+        # Force eventTypes to always be in expand for detail views
+        expand = expand or []
+        if "eventTypes" not in expand:
+            expand = list(expand) + ["eventTypes"]
+        self.base_serializer = WorkflowEngineDetectorSerializer(
+            expand=expand, prepare_component_fields=prepare_component_fields
+        )
+
+    def get_attrs(
+        self, item_list: Sequence[Detector], user: User | RpcUser | AnonymousUser, **kwargs: Any
+    ) -> defaultdict[Detector, dict[str, Any]]:
+        return self.base_serializer.get_attrs(item_list, user, **kwargs)
+
+    def serialize(
+        self, obj: Detector, attrs, user, **kwargs
+    ) -> DetailedAlertRuleSerializerResponse:
+        base_data = self.base_serializer.serialize(obj, attrs, user, **kwargs)
+        data: DetailedAlertRuleSerializerResponse = {
+            **base_data,
+            "snooze": not obj.enabled,
+        }
+        if not obj.enabled:
+            data["snoozeForEveryone"] = True
         return data

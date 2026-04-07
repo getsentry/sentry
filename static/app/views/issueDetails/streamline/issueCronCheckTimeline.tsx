@@ -17,7 +17,7 @@ import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {MonitorIndicator} from 'sentry/views/insights/crons/components/monitorIndicator';
 import {CheckInStatus, type MonitorBucket} from 'sentry/views/insights/crons/types';

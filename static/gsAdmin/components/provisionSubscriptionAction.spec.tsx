@@ -14,11 +14,11 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import {DataCategory} from 'sentry/types/core';
 
-import triggerProvisionSubscription from 'admin/components/provisionSubscriptionAction';
+import {triggerProvisionSubscription} from 'admin/components/provisionSubscriptionAction';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
 

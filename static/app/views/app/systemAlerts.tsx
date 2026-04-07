@@ -1,4 +1,4 @@
-import AlertStore from 'sentry/stores/alertStore';
+import {AlertStore} from 'sentry/stores/alertStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 import {AlertMessage} from './alertMessage';

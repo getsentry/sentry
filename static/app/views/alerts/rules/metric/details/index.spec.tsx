@@ -7,7 +7,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import MetricAlertDetails from 'sentry/views/alerts/rules/metric/details';
@@ -234,7 +234,7 @@ describe('MetricAlertDetails', () => {
 
     expect(await screen.findByText(rule.name)).toBeInTheDocument();
 
-    const button = screen.getByRole('button', {name: 'Open in Discover'});
+    const button = await screen.findByRole('button', {name: 'Open in Discover'});
     expect(button).toBeInTheDocument();
     expect(button).toBeEnabled();
     expect(button).toHaveAttribute('href', expect.stringContaining('dataset=errors'));

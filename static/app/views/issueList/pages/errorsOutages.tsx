@@ -1,6 +1,6 @@
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {IssueListContainer} from 'sentry/views/issueList';
 import {MonitorsDropdown} from 'sentry/views/issueList/monitorsDropdown';
 import IssueListOverview from 'sentry/views/issueList/overview';

@@ -1,16 +1,16 @@
 import {useMemo} from 'react';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {isCrossPlatform} from 'sentry/views/insights/mobile/screenload/utils';
 
 export const PLATFORM_LOCAL_STORAGE_KEY = 'mobile-performance-platform';
 export const PLATFORM_QUERY_PARAM = 'platform';
 export const DEFAULT_PLATFORM = 'Android';
 
-function useCrossPlatformProject() {
+export function useCrossPlatformProject() {
   const {selection} = usePageFilters();
   const {projects} = useProjects();
   const location = useLocation();
@@ -39,5 +39,3 @@ function useCrossPlatformProject() {
     isProjectCrossPlatform,
   };
 }
-
-export default useCrossPlatformProject;

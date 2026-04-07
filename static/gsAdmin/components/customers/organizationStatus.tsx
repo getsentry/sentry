@@ -24,8 +24,6 @@ export function OrganizationStatus({orgStatus}: Props) {
     case 'deletion_in_progress':
       message = 'This organization in the process of being deleted.';
       break;
-    default:
-      break;
   }
 
   if (!message) {

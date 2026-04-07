@@ -3,15 +3,15 @@ import styled from '@emotion/styled';
 
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons/iconWarning';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {MEPDataProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
-import useApi from 'sentry/utils/useApi';
-import getPerformanceWidgetContainer, {
+import {useApi} from 'sentry/utils/useApi';
+import {
+  getPerformanceWidgetContainer,
   type PerformanceWidgetContainerTypes,
 } from 'sentry/views/performance/landing/widgets/components/performanceWidgetContainer';
 import type {
@@ -187,8 +187,8 @@ function DefaultErrorComponent(props: {height: number}) {
 const defaultGrid = {
   left: 0,
   right: 0,
-  top: space(2),
-  bottom: space(1),
+  top: '16px',
+  bottom: '8px',
 };
 
 const ErrorPanelWithMinHeight = styled(ErrorPanel)<{minHeight: string}>`

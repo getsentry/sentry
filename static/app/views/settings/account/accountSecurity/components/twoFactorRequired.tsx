@@ -4,7 +4,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {tct} from 'sentry/locale';
-import getPendingInvite from 'sentry/utils/getPendingInvite';
+import {getPendingInvite} from 'sentry/utils/getPendingInvite';
 
 export function TwoFactorRequired() {
   return getPendingInvite() ? (

@@ -6,7 +6,7 @@ import {SavedSearchType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {FieldKind} from 'sentry/utils/fields';
 
-import ResultsSearchQueryBuilder from './resultsSearchQueryBuilder';
+import {ResultsSearchQueryBuilder} from './resultsSearchQueryBuilder';
 
 describe('ResultsSearchQueryBuilder', () => {
   let organization: Organization;
@@ -55,7 +55,7 @@ describe('ResultsSearchQueryBuilder', () => {
 
     // Check that "p50" (a function tag) is NOT in the dropdown
     expect(
-      within(screen.getByRole('listbox')).queryByText('p50')
+      within(await screen.findByRole('listbox')).queryByText('p50')
     ).not.toBeInTheDocument();
   });
 

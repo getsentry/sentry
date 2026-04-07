@@ -4,13 +4,14 @@ import {Alert} from '@sentry/scraps/alert';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 
-import CreditCardForm from 'getsentry/components/creditCardEdit/form';
+import {CreditCardForm} from 'getsentry/components/creditCardEdit/form';
 import type {FTCConsentLocation, Subscription} from 'getsentry/types';
-import trackGetsentryAnalytics, {
+import {
+  trackGetsentryAnalytics,
   type GetsentryEventKey,
 } from 'getsentry/utils/trackGetsentryAnalytics';
 
@@ -26,7 +27,7 @@ export interface CreditCardSetupProps {
   referrer?: string;
 }
 
-function CreditCardSetup({
+export function CreditCardSetup({
   organization,
   referrer,
   onSuccess,
@@ -75,5 +76,3 @@ function CreditCardSetup({
     </Fragment>
   );
 }
-
-export default CreditCardSetup;

@@ -11,15 +11,15 @@ import type {Interpolation, Theme} from '@emotion/react';
 import {AnimatePresence, type Transition} from 'framer-motion';
 import type {Location} from 'history';
 
+import {useHotkeys} from '@sentry/scraps/hotkey';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {DrawerComponents} from 'sentry/components/globalDrawer/components';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOnClickOutside from 'sentry/utils/useOnClickOutside';
+import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 
 export interface DrawerOptions {
   /**
@@ -249,6 +249,6 @@ export function GlobalDrawer({children}: any) {
  * openDrawer(() => <button onClick={closeDrawer}>Close!</button>)
  * ```
  */
-export default function useDrawer() {
+export function useDrawer() {
   return useContext(DrawerContext);
 }

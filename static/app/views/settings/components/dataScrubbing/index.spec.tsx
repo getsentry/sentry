@@ -6,7 +6,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import GlobalModal from 'sentry/components/globalModal';
+import {GlobalModal} from 'sentry/components/globalModal';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {DataScrubbing} from 'sentry/views/settings/components/dataScrubbing';
 
@@ -133,7 +133,7 @@ describe('Data Scrubbing', () => {
       ).toBeInTheDocument();
     });
 
-    it('OrganizationRules has content', () => {
+    it('OrganizationRules has content', async () => {
       const organization = OrganizationFixture({
         relayPiiConfig,
       });
@@ -153,7 +153,7 @@ describe('Data Scrubbing', () => {
       );
 
       // Organization Rules
-      expect(screen.getByText('Organization Rules')).toBeInTheDocument();
+      expect(await screen.findByText('Organization Rules')).toBeInTheDocument();
     });
 
     it('Delete rule successfully', async () => {

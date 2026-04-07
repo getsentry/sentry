@@ -171,7 +171,7 @@ class BitbucketIntegrationTest(APITestCase):
         installation = self.integration.get_installation(self.organization.id)
         integration = Integration.objects.get(provider=self.provider.key)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Test-Organization/repo",
@@ -190,7 +190,7 @@ class BitbucketIntegrationTest(APITestCase):
         installation = self.integration.get_installation(self.organization.id)
         integration = Integration.objects.get(provider=self.provider.key)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Test-Organization/repo",
@@ -212,7 +212,7 @@ class BitbucketIntegrationTest(APITestCase):
         installation = self.integration.get_installation(self.organization.id)
         integration = Integration.objects.get(provider=self.provider.key)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Test-Organization/repo",

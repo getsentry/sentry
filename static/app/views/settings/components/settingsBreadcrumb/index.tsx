@@ -5,8 +5,8 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
-import recreateRoute from 'sentry/utils/recreateRoute';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
+import {recreateRoute} from 'sentry/utils/recreateRoute';
 
 import {useBreadcrumbsPathmap} from './context';
 import {Divider} from './divider';
@@ -27,7 +27,7 @@ type Props = {
   className?: string;
 };
 
-function SettingsBreadcrumb({className, routes, params}: Props) {
+export function SettingsBreadcrumb({className, routes, params}: Props) {
   const pathMap = useBreadcrumbsPathmap();
 
   const lastRouteIndex = routes.map(r => !!r.name).lastIndexOf(true);
@@ -91,5 +91,3 @@ export const CrumbLink = styled(RouterLink)`
     color: ${p => p.theme.tokens.content.primary};
   }
 `;
-
-export default SettingsBreadcrumb;

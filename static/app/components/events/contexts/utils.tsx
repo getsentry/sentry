@@ -36,7 +36,7 @@ import {
   PLATFORM_CONTEXT_KEYS,
 } from 'sentry/components/events/contexts/platformContext/utils';
 import {userContextToActor} from 'sentry/components/events/interfaces/utils';
-import StructuredEventData from 'sentry/components/structuredEventData';
+import {StructuredEventData} from 'sentry/components/structuredEventData';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -355,8 +355,6 @@ export function getContextIcon({
     case 'gpu':
       iconName = generateIconName(value?.vendor_name ? value?.vendor_name : value?.name);
       break;
-    default:
-      break;
   }
   if (iconName.length === 0) {
     return null;
@@ -567,8 +565,6 @@ export function getContextSummary({
         subtitle = data?.version;
         subtitleType = t('Version');
       }
-      break;
-    default:
       break;
   }
   return {

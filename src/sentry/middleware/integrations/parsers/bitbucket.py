@@ -10,7 +10,7 @@ from sentry.integrations.bitbucket.webhook import BitbucketWebhookEndpoint
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.types.region import CellResolutionError, get_cell_by_name
+from sentry.types.cell import CellResolutionError, get_cell_by_name
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ class BitbucketRequestParser(BaseRequestParser):
 
     def get_bitbucket_webhook_response(self) -> HttpResponseBase:
         """
-        Used for identifying regions from Bitbucket and Bitbucket Server webhooks
+        Used for identifying cells from Bitbucket and Bitbucket Server webhooks
         """
         # The organization is provided in the path, so we can skip inferring organizations
         # from the integration credentials
@@ -42,14 +42,14 @@ class BitbucketRequestParser(BaseRequestParser):
             return self.get_response_from_control_silo()
 
         try:
-            region = get_cell_by_name(mapping.cell_name)
+            cell = get_cell_by_name(mapping.cell_name)
         except CellResolutionError as e:
             logging_extra["error"] = str(e)
             logging_extra["mapping_id"] = mapping.id
             logger.info("%s.no_region", self.provider, extra=logging_extra)
             return self.get_response_from_control_silo()
         return self.get_response_from_webhookpayload(
-            regions=[region], identifier=mapping.organization_id
+            cells=[cell], identifier=mapping.organization_id
         )
 
     def get_response(self) -> HttpResponseBase:

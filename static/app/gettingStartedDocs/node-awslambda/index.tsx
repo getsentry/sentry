@@ -9,7 +9,7 @@ import {onboarding} from './onboarding';
 import {profiling} from './profiling';
 import {platformOptions, type PlatformOptions} from './utils';
 
-const docs: Docs<PlatformOptions> = {
+export const docs: Docs<PlatformOptions> = {
   onboarding,
   crashReportOnboarding: crashReport,
   profilingOnboarding: profiling,
@@ -21,5 +21,3 @@ const docs: Docs<PlatformOptions> = {
   platformOptions,
   metricsOnboarding: metrics,
 };
-
-export default docs;

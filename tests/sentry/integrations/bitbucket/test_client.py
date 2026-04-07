@@ -48,7 +48,7 @@ class BitbucketApiClientTest(TestCase, BaseTestCase):
         self.install = install
         self.bitbucket_client: BitbucketApiClient = self.install.get_client()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.repo = Repository.objects.create(
                 provider="bitbucket",
                 name="sentryuser/newsdiffs",

@@ -1,6 +1,6 @@
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
-import FormModel from 'sentry/components/forms/model';
+import {FormModel} from 'sentry/components/forms/model';
 
 import {useFormTypingAnimation} from './useFormTypingAnimation';
 

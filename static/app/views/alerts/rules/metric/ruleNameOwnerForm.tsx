@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import TextField from 'sentry/components/forms/fields/textField';
-import FormField from 'sentry/components/forms/formField';
-import ListItem from 'sentry/components/list/listItem';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {FormField} from 'sentry/components/forms/formField';
+import {ListItem} from 'sentry/components/list/listItem';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';

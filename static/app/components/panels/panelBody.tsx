@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import textStyles from 'sentry/styles/text';
+import {textStyles} from 'sentry/styles/text';
 
 type BaseProps = {
   withPadding?: boolean;

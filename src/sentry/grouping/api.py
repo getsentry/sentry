@@ -393,6 +393,8 @@ def get_grouping_variants_for_event(
 
     # Otherwise we go to the various forms of grouping based on fingerprints and/or event data
     # (stacktrace, message, etc.)
+    context = GroupingContext(config or _load_default_grouping_config(), event)
+
     raw_fingerprint = event.data.get("fingerprint") or ["{{ default }}"]
     fingerprint_info = event.data.get("_fingerprint_info", {})
     fingerprint_type = get_fingerprint_type(raw_fingerprint)
@@ -402,6 +404,7 @@ def get_grouping_variants_for_event(
         else resolve_fingerprint_values(
             raw_fingerprint,
             event,
+            context,
             use_legacy_unknown_variable_handling=use_legacy_unknown_variable_handling,
         )
     )
@@ -415,7 +418,6 @@ def get_grouping_variants_for_event(
 
     # Run all of the event-data-based grouping strategies. Any which apply will create grouping
     # components, which will then be grouped into variants by variant type (system, app, default).
-    context = GroupingContext(config or _load_default_grouping_config(), event)
     strategy_component_variants: dict[str, ComponentVariant] = _get_variants_from_strategies(
         event, context
     )

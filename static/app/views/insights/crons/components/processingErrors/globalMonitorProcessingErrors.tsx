@@ -1,8 +1,8 @@
 import {deleteProjectProcessingErrorByType} from 'sentry/actionCreators/monitors';
 import {t} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {MonitorProcessingErrors} from 'sentry/views/insights/crons/components/processingErrors/monitorProcessingErrors';
 import {makeMonitorListErrorsQueryKey} from 'sentry/views/insights/crons/components/processingErrors/utils';
 import type {

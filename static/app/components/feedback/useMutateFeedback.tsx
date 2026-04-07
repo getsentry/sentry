@@ -1,10 +1,11 @@
 import {useCallback} from 'react';
 
-import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
-import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
+import {useFeedbackCache} from 'sentry/components/feedback/useFeedbackCache';
+import {useFeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
 import type {Actor} from 'sentry/types/core';
 import type {GroupStatus} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {MutateOptions} from 'sentry/utils/queryClient';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 
@@ -24,11 +25,7 @@ interface Props {
   projectIds: string[];
 }
 
-export default function useMutateFeedback({
-  feedbackIds,
-  organization,
-  projectIds,
-}: Props) {
+export function useMutateFeedback({feedbackIds, organization, projectIds}: Props) {
   const {listQueryKey} = useFeedbackQueryKeys();
   const {updateCached, invalidateCached} = useFeedbackCache();
 
@@ -45,10 +42,14 @@ export default function useMutateFeedback({
       // TODO: it would be excellent if `PUT /issues/` could return the same data
       // as `GET /issues/` when query params are set. IE: it should expand inbox & owners
       // Then we could push new data into the cache instead of re-fetching it again
+
+      const listQueryKeyOptions = listQueryKey
+        ? (parseQueryKey(listQueryKey).options ?? {})
+        : {};
       const options = isSingleId
         ? {}
         : ids === 'all'
-          ? listQueryKey?.[2]!
+          ? listQueryKeyOptions
           : {query: {id: ids, project: projectIds}};
       return fetchMutation({method: 'PUT', url, options, data: payload});
     },

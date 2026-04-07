@@ -2,7 +2,7 @@ import {CodeOwnerFixture} from 'sentry-fixture/codeOwner';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ViewCodeOwnerModal from './viewCodeOwnerModal';
+import {ViewCodeOwnerModal} from './viewCodeOwnerModal';
 
 describe('ViewCodeOwnerModal', () => {
   const mockComponent: any = ({children}: {children: React.ReactNode}) => (

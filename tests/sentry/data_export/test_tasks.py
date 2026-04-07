@@ -755,7 +755,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
                 attributes={"custom.field": "test_value"},
             )
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
 
         de = ExportedData.objects.create(
             user_id=self.user.id,
@@ -809,7 +809,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
                 organization=self.org,
             )
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
 
         # Test spans dataset export
         de_spans = ExportedData.objects.create(
@@ -953,7 +953,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
                 project=self.project,
             )
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
 
         de = ExportedData.objects.create(
             user_id=self.user.id,
@@ -1106,7 +1106,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
             )
             for i in range(5)
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
 
         de = ExportedData.objects.create(
             user_id=self.user.id,

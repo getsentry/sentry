@@ -8,7 +8,7 @@ import {Heading} from '@sentry/scraps/text';
 
 import {DebugNotificationsSearch} from 'sentry/debug/notifications/components/debugNotificationsSearch';
 import {IconGithub, IconLink, IconMoon} from 'sentry/icons';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useLocation} from 'sentry/utils/useLocation';
 

@@ -7,8 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import Feature from 'sentry/components/acl/feature';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
-import {CommitRow} from 'sentry/components/commitRow';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {BreadcrumbsDataSection} from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventDevice} from 'sentry/components/events/device';
@@ -17,6 +16,7 @@ import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import {EventHydrationDiff} from 'sentry/components/events/eventHydrationDiff';
+import {EventInsightDiff} from 'sentry/components/events/eventInsightDiff';
 import {EventProcessingErrors} from 'sentry/components/events/eventProcessingErrors';
 import {EventReplay} from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
@@ -60,19 +60,24 @@ import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {DataSection} from 'sentry/components/events/styles';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
+import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Entry, Event, EventTransaction} from 'sentry/types/event';
+import type {Entry, EntryMap, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {isJavascriptPlatform, isMobilePlatform} from 'sentry/utils/platform';
+import {
+  isJavascriptPlatform,
+  isMobilePlatform,
+  isNativePlatform,
+} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {MetricIssuesSection} from 'sentry/views/issueDetails/metricIssues/metricIssuesSection';
 import {
   getHangProfileData,
@@ -85,6 +90,7 @@ import {useCopyIssueDetails} from 'sentry/views/issueDetails/streamline/hooks/us
 import {InstrumentationFixSection} from 'sentry/views/issueDetails/streamline/instrumentationFixSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {MetricDetectorTriggeredSection} from 'sentry/views/issueDetails/streamline/sidebar/metricDetectorTriggeredSection';
+import {SizeAnalysisTriggeredSection} from 'sentry/views/issueDetails/streamline/sidebar/sizeAnalysisTriggeredSection';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
@@ -103,11 +109,15 @@ export function EventDetailsContent({
 }: Required<Pick<EventDetailsContentProps, 'group' | 'event' | 'project'>>) {
   const organization = useOrganization();
   const hasStreamlinedUI = useHasStreamlinedUI();
+  const shouldUseNewStackTrace =
+    organization.features.includes('issue-details-new-stack-trace') &&
+    // New stack trace is currently only non-native platforms.
+    !isNativePlatform(event.platform);
   const tagsRef = useRef<HTMLDivElement>(null);
   const eventEntries = useMemo(() => {
     const {entries = []} = event;
-    return entries.reduce<Partial<Record<EntryType, Entry>>>((entryMap, entry) => {
-      entryMap[entry.type] = entry;
+    return entries.reduce<Partial<EntryMap>>((entryMap, entry) => {
+      (entryMap as Record<string, Entry>)[entry.type] = entry;
       return entryMap;
     }, {});
   }, [event]);
@@ -160,7 +170,7 @@ export function EventDetailsContent({
         <ActionableItems event={event} project={project} />
       )}
       {issueTypeConfig.tags.enabled && (
-        <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
+        <HighlightsDataSection event={event} project={project} />
       )}
       {isMobilePlatform(project.platform) && (
         <ProfilePreviewSection event={event} project={project} />
@@ -168,12 +178,7 @@ export function EventDetailsContent({
       <StyledDataSection>
         {!hasStreamlinedUI && <TraceDataSection event={event} />}
         {!hasStreamlinedUI && (
-          <SuspectCommits
-            projectSlug={project.slug}
-            eventId={event.id}
-            group={group}
-            commitRow={CommitRow}
-          />
+          <SuspectCommits projectSlug={project.slug} eventId={event.id} group={group} />
         )}
       </StyledDataSection>
       {event.userReport && (
@@ -269,24 +274,42 @@ export function EventDetailsContent({
             >
               {defined(eventEntries[EntryType.EXCEPTION]) && (
                 <EntryErrorBoundary type={EntryType.EXCEPTION}>
-                  <Exception
-                    event={event}
-                    data={eventEntries[EntryType.EXCEPTION].data}
-                    projectSlug={project.slug}
-                    group={group}
-                    groupingCurrentLevel={groupingCurrentLevel}
-                  />
+                  {shouldUseNewStackTrace ? (
+                    <IssueStackTrace
+                      event={event}
+                      values={eventEntries[EntryType.EXCEPTION].data.values ?? []}
+                      projectSlug={project.slug}
+                      group={group}
+                    />
+                  ) : (
+                    <Exception
+                      event={event}
+                      data={eventEntries[EntryType.EXCEPTION].data}
+                      projectSlug={project.slug}
+                      group={group}
+                      groupingCurrentLevel={groupingCurrentLevel}
+                    />
+                  )}
                 </EntryErrorBoundary>
               )}
               {issueTypeConfig.stacktrace.enabled &&
                 defined(eventEntries[EntryType.STACKTRACE]) && (
                   <EntryErrorBoundary type={EntryType.STACKTRACE}>
-                    <StackTrace
-                      event={event}
-                      data={eventEntries[EntryType.STACKTRACE].data}
-                      projectSlug={projectSlug}
-                      groupingCurrentLevel={groupingCurrentLevel}
-                    />
+                    {shouldUseNewStackTrace ? (
+                      <IssueStackTrace
+                        event={event}
+                        stacktrace={eventEntries[EntryType.STACKTRACE].data}
+                        projectSlug={projectSlug}
+                        group={group}
+                      />
+                    ) : (
+                      <StackTrace
+                        event={event}
+                        data={eventEntries[EntryType.STACKTRACE].data}
+                        projectSlug={projectSlug}
+                        groupingCurrentLevel={groupingCurrentLevel}
+                      />
+                    )}
                   </EntryErrorBoundary>
                 )}
               {defined(eventEntries[EntryType.THREADS]) && (
@@ -363,6 +386,9 @@ export function EventDetailsContent({
       )}
       <ErrorBoundary customComponent={() => null}>
         <MetricDetectorTriggeredSection group={group} event={event} />
+      </ErrorBoundary>
+      <ErrorBoundary customComponent={() => null}>
+        <SizeAnalysisTriggeredSection group={group} event={event} />
       </ErrorBoundary>
       <EventHydrationDiff event={event} group={group} />
       <EventReplay event={event} group={group} projectSlug={project.slug} />
@@ -443,6 +469,7 @@ export function EventDetailsContent({
       </ErrorBoundary>
       <EventExtraData event={event} />
       <EventViewHierarchy event={event} project={project} />
+      <EventInsightDiff event={event} project={project} />
       <EventXrayDiff event={event} project={project} />
       <EventPackageData event={event} />
       <EventDevice event={event} />
@@ -484,7 +511,7 @@ export function EventDetailsContent({
   );
 }
 
-export default function GroupEventDetailsContent({
+export function GroupEventDetailsContent({
   group,
   event,
   project,

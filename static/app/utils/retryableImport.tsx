@@ -2,7 +2,7 @@ import {isWebpackChunkLoadingError} from 'sentry/utils';
 
 const MAX_RETRIES = 2;
 
-export default function retryableImport<T>(
+export function retryableImport<T>(
   fn: () => Promise<{default: T}>
 ): Promise<{default: T}> {
   let retries = 0;

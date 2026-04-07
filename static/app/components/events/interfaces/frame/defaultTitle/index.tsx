@@ -46,7 +46,7 @@ type Props = {
 
 type GetPathNameOutput = {key: string; value: string; meta?: Meta};
 
-function DefaultTitle({
+export function DefaultTitle({
   frame,
   platform,
   isHoverPreviewed,
@@ -249,8 +249,6 @@ function DefaultTitle({
 
   return <Fragment>{title}</Fragment>;
 }
-
-export default DefaultTitle;
 
 const StyledExternalLink = styled(ExternalLink)`
   position: relative;
