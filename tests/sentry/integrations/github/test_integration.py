@@ -641,8 +641,18 @@ class GitHubIntegrationTest(IntegrationTestCase):
             f"{self.base_url}/search/repositories?{querystring}",
             json={
                 "items": [
-                    {"name": "example", "full_name": "test/example", "default_branch": "master"},
-                    {"name": "exhaust", "full_name": "test/exhaust", "default_branch": "master"},
+                    {
+                        "id": 10,
+                        "name": "example",
+                        "full_name": "test/example",
+                        "default_branch": "master",
+                    },
+                    {
+                        "id": 11,
+                        "name": "exhaust",
+                        "full_name": "test/exhaust",
+                        "default_branch": "master",
+                    },
                 ]
             },
         )
@@ -653,8 +663,18 @@ class GitHubIntegrationTest(IntegrationTestCase):
         # This searches for any repositories matching the term 'ex'
         result = installation.get_repositories("ex")
         assert result == [
-            {"identifier": "test/example", "name": "example", "default_branch": "master"},
-            {"identifier": "test/exhaust", "name": "exhaust", "default_branch": "master"},
+            {
+                "identifier": "test/example",
+                "name": "example",
+                "external_id": "10",
+                "default_branch": "master",
+            },
+            {
+                "identifier": "test/exhaust",
+                "name": "exhaust",
+                "external_id": "11",
+                "default_branch": "master",
+            },
         ]
 
     @responses.activate
@@ -706,9 +726,24 @@ class GitHubIntegrationTest(IntegrationTestCase):
         with patch.object(sentry.integrations.github.client.GitHubBaseClient, "page_size", 1):
             result = installation.get_repositories()
             assert result == [
-                {"name": "foo", "identifier": "Test-Organization/foo", "default_branch": "master"},
-                {"name": "bar", "identifier": "Test-Organization/bar", "default_branch": "main"},
-                {"name": "baz", "identifier": "Test-Organization/baz", "default_branch": "master"},
+                {
+                    "name": "foo",
+                    "identifier": "Test-Organization/foo",
+                    "external_id": "1296269",
+                    "default_branch": "master",
+                },
+                {
+                    "name": "bar",
+                    "identifier": "Test-Organization/bar",
+                    "external_id": "9876574",
+                    "default_branch": "main",
+                },
+                {
+                    "name": "baz",
+                    "identifier": "Test-Organization/baz",
+                    "external_id": "1276555",
+                    "default_branch": "master",
+                },
             ]
 
     @responses.activate
