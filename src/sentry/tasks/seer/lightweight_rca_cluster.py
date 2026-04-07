@@ -29,3 +29,4 @@ def trigger_lightweight_rca_cluster_task(group_id: int, **kwargs) -> None:
             "lightweight_rca_cluster_task.failed",
             extra={"group_id": group_id},
         )
+        raise
