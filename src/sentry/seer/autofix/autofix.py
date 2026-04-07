@@ -722,14 +722,15 @@ def _resolve_project_preference(
 
     set_project_seer_preference(preference)
 
-    try:
-        write_preference_to_sentry_db(project, preference)
-    except Exception:
-        logger.exception(
-            "seer.write_preferences.resolve_project_preference.sentry_db_write_failed",
-            extra={"project_id": project.id, "organization_id": organization.id},
-            exc_info=True,
-        )
+    if features.has("organizations:seer-project-settings-dual-write", organization):
+        try:
+            write_preference_to_sentry_db(project, preference)
+        except Exception:
+            logger.exception(
+                "seer.write_preferences.resolve_project_preference.sentry_db_write_failed",
+                extra={"project_id": project.id, "organization_id": organization.id},
+                exc_info=True,
+            )
 
     return preference
 

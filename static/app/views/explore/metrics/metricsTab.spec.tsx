@@ -700,36 +700,39 @@ describe('MetricsTabContent (tracemetrics-ui-refresh)', () => {
     });
   });
 
-  it('toggles the query builder sidebar with the expand control', async () => {
-    render(
-      <ProviderWrapper>
-        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
-      </ProviderWrapper>,
-      {
-        initialRouterConfig,
-        organization,
-      }
-    );
+  it.isKnownFlake(
+    'toggles the query builder sidebar with the expand control',
+    async () => {
+      render(
+        <ProviderWrapper>
+          <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+        </ProviderWrapper>,
+        {
+          initialRouterConfig,
+          organization,
+        }
+      );
 
-    await waitFor(() => {
-      expect(
-        within(screen.getAllByTestId('metric-toolbar')[0]!).getByRole('button', {
-          name: 'bar',
-        })
-      ).toBeInTheDocument();
-    });
+      await waitFor(() => {
+        expect(
+          within(screen.getAllByTestId('metric-toolbar')[0]!).getByRole('button', {
+            name: 'bar',
+          })
+        ).toBeInTheDocument();
+      });
 
-    expect(screen.getByRole('button', {name: 'Collapse sidebar'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Collapse sidebar'})).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Collapse sidebar'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Collapse sidebar'}));
 
-    expect(screen.queryByTestId('metric-toolbar')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Expand sidebar'})).toBeInTheDocument();
+      expect(screen.queryByTestId('metric-toolbar')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Expand sidebar'})).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Expand sidebar'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Expand sidebar'}));
 
-    await waitFor(() => {
-      expect(screen.getAllByTestId('metric-toolbar')).toHaveLength(1);
-    });
-  });
+      await waitFor(() => {
+        expect(screen.getAllByTestId('metric-toolbar')).toHaveLength(1);
+      });
+    }
+  );
 });

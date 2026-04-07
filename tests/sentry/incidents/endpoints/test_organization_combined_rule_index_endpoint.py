@@ -1,17 +1,22 @@
 from datetime import UTC, datetime
 
 import requests
+import responses
 
 from sentry.constants import ObjectStatus
-from sentry.incidents.models.alert_rule import AlertRuleThresholdType
+from sentry.incidents.models.alert_rule import (
+    AlertRuleThresholdType,
+)
 from sentry.incidents.models.incident import IncidentTrigger, TriggerStatus
 from sentry.models.rule import RuleSource
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.monitors.models import MonitorStatus
+from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
 from sentry.uptime.types import UptimeMonitorMode
 from sentry.workflow_engine.migration_helpers.alert_rule import migrate_alert_rule
@@ -1518,6 +1523,72 @@ class OrganizationCombinedRuleIndexWorkflowEngineTest(BaseAlertRuleSerializerTes
         # Should only return the error rule, not the transaction rule
         assert len(response.data) == 1
         assert response.data[0]["name"] == "Error Rule"
+
+    @responses.activate
+    def test_uninstalled_sentry_app(self) -> None:
+        self.superuser = self.create_user("hb@localhost", is_superuser=True)
+        self.login_as(user=self.superuser)
+        self.create_team(organization=self.organization, members=[self.superuser])
+
+        sentry_app = self.create_sentry_app(
+            organization=self.organization,
+            published=True,
+            verify_install=False,
+            name="Super Awesome App",
+            schema={"elements": [self.create_alert_rule_action_schema()]},
+        )
+        installation = self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization, user=self.superuser
+        )
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "sentryAppInstallationUuid": installation.uuid,
+                "settings": [
+                    {"name": "title", "value": "An alert"},
+                    {"name": "points", "value": "3"},
+                    {"name": "assignee", "value": "Hellboy"},
+                ],
+            }
+        ]
+        rule = self.create_project_rule(
+            project=self.project,
+            action_data=actions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+        )
+
+        responses.add(
+            responses.GET,
+            "https://example.com/sentry/members",
+            json=[
+                {"value": "bob", "label": "Bob"},
+                {"value": "jess", "label": "Jess"},
+            ],
+            status=200,
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            installation.delete()
+
+        response = self.get_success_response(
+            self.organization.slug,
+            project=[self.project.id],
+        )
+        assert response.status_code == 200
+
+        assert len(response.data) == 1
+        assert len(response.data[0]["actions"]) == 0
+
+        with self.feature("organizations:incidents"):
+            response = self.get_success_response(
+                self.organization.slug,
+                project=[self.project.id],
+            )
+            assert response.status_code == 200
+
+            assert len(response.data) == 1
+            assert len(response.data[0]["actions"]) == 0
+            assert response.data[0]["id"] == str(rule.id)
 
 
 class OrganizationCombinedRuleIndexParityTest(BaseAlertRuleSerializerTest, APITestCase):

@@ -44,6 +44,7 @@ class TestGetRepoFromCodeMappings(TestCase):
                 "owner": "getsentry",
                 "name": "sentry",
                 "external_id": "123",
+                "languages": [],
             }
         ]
         assert repos == expected_repos

@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -73,7 +73,6 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
   const {attributes: stringAttributes} = useLogItemAttributes({}, 'string');
   const {attributes: numberAttributes} = useLogItemAttributes({}, 'number');
   const {attributes: booleanAttributes} = useLogItemAttributes({}, 'boolean');
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const {currentTime, setCurrentTime} = useReplayContext();
   const [currentHoverTime] = useCurrentHoverTime();
@@ -121,7 +120,7 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
   return (
     <OurLogsContentWrapper>
       <OurLogFilters logItems={logItems} replayId={replayId} {...filterProps} />
-      <TableScrollContainer ref={scrollContainerRef}>
+      <TableScrollContainer>
         {isPending ? (
           <Placeholder height="100%" />
         ) : (
@@ -129,10 +128,10 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
             stringAttributes={stringAttributes}
             numberAttributes={numberAttributes}
             booleanAttributes={booleanAttributes}
-            scrollContainer={scrollContainerRef}
             allowPagination
             embedded
             embeddedOptions={embeddedOptions}
+            expanded
             localOnlyItemFilters={{
               filteredItems: filteredLogItems,
               filterText: filterProps.searchTerm,
@@ -164,10 +163,10 @@ const BorderedSection = styled(FluidHeight)<{isStatus?: boolean}>`
 `;
 
 const TableScrollContainer = styled('div')`
-  overflow-y: auto;
-  overflow-x: hidden;
-  height: 100%;
-  min-height: 0;
+  overflow-y: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
