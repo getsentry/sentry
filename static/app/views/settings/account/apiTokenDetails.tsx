@@ -27,7 +27,6 @@ import {
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
@@ -60,8 +59,8 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
     [navigate]
   );
 
-  const mutation = useMutation<unknown, RequestError, z.infer<typeof schema>>({
-    mutationFn: data =>
+  const mutation = useMutation({
+    mutationFn: (data: z.infer<typeof schema>) =>
       fetchMutation({
         url: `/api-tokens/${token.id}/`,
         method: 'PUT',

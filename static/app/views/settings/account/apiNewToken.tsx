@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback} from 'react';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
@@ -26,7 +26,6 @@ import type {NewInternalAppApiToken} from 'sentry/types/user';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
@@ -70,7 +69,6 @@ function getPermissionsPreview(permissions: Permissions): string {
 
 export default function ApiNewToken() {
   const [permissions, setPermissions] = useState<Permissions>({...INITIAL_PERMISSIONS});
-  const [hasNewToken, setHasNewToken] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -83,24 +81,19 @@ export default function ApiNewToken() {
     value => value === 'no-access'
   );
 
-  const mutation = useMutation<
-    NewInternalAppApiToken,
-    RequestError,
-    z.infer<typeof schema>
-  >({
-    mutationFn: data =>
+  const mutation = useMutation({
+    mutationFn: (data: z.infer<typeof schema>) =>
       fetchMutation<NewInternalAppApiToken>({
         url: '/api-tokens/',
         method: 'POST',
         data: {
           ...data,
-          scopes: permissionStateToList(permissions).filter(Boolean) as string[],
+          scopes: permissionStateToList(permissions).filter(v => v !== null),
         },
       }),
     onSuccess: token => {
       addSuccessMessage(t('Created personal token.'));
       queryClient.invalidateQueries({queryKey: [getApiUrl('/api-tokens/')]});
-      setHasNewToken(true);
       displayNewToken(token.token, handleGoBack);
     },
     onError: error => {
@@ -171,7 +164,7 @@ export default function ApiNewToken() {
           </Panel>
           <Flex justify="end" gap="md" padding="md">
             <Button onClick={handleGoBack}>{t('Cancel')}</Button>
-            <form.SubmitButton disabled={hasNewToken || allPermissionsNoAccess}>
+            <form.SubmitButton disabled={mutation.isSuccess || allPermissionsNoAccess}>
               {t('Create Token')}
             </form.SubmitButton>
           </Flex>
