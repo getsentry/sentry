@@ -544,6 +544,9 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
             channel="C1234567890",
             blocks=self.slack_renderable.get("blocks", []),
             text="Mock Notification",
+            attachments=None,
+            unfurl_links=False,
+            unfurl_media=False,
         )
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
@@ -569,6 +572,7 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
             channel=self.channel_id,
             thread_ts=self.thread_ts,
             blocks=self.slack_renderable.get("blocks", []),
+            attachments=self.slack_renderable.get("attachments"),
             text=self.slack_renderable.get("text", ""),
         )
 
@@ -596,6 +600,7 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
         mock_chat_ephemeral.assert_called_once_with(
             channel=self.channel_id,
             thread_ts=self.thread_ts,
+            attachments=self.slack_renderable.get("attachments"),
             user=self.slack_user_id,
             blocks=self.slack_renderable.get("blocks", []),
             text=self.slack_renderable.get("text", ""),
