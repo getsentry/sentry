@@ -1,3 +1,4 @@
+import {useId} from 'react';
 import {useTheme} from '@emotion/react';
 
 interface AnimatedSentryLogoProps {
@@ -34,8 +35,9 @@ export function AnimatedSentryLogo({
   className,
 }: AnimatedSentryLogoProps) {
   const theme = useTheme();
-  const gooId = 'goo-layer';
-  const maskId = 'mask-layer';
+  const id = useId();
+  const gooId = `goo-layer-${id}`;
+  const maskId = `mask-layer-${id}`;
 
   const dashOffset = DASH_TOTAL * (1 - progress);
 
@@ -55,7 +57,7 @@ export function AnimatedSentryLogo({
           <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur" />
           <feColorMatrix
             in="blur"
-            mode="matrix"
+            type="matrix"
             values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 36 -4"
             result="goo"
           />
