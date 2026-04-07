@@ -259,7 +259,7 @@ def index_repos(organization_id: int, *args, **kwargs) -> None:
     preferences_by_id = bulk_get_project_preferences(organization_id, list(project_map.keys()))
 
     for project_id, project in project_map.items():
-        existing_pref = preferences_by_id.get(str(project_id))
+        existing_pref = preferences_by_id.get(str(project_id), {})
         project_pref_repos = existing_pref.get("repositories") or []
         autofix_repos = get_autofix_repos_from_project_code_mappings(project_map[project_id])
 
