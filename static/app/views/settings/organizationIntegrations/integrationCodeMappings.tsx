@@ -172,8 +172,7 @@ export function IntegrationCodeMappings({integration}: {integration: Integration
         staleTime: 10_000,
       }
     ),
-    select: (data) =>
-      data.pages.flatMap((page) => page.json),
+    select: data => data.pages.flatMap(page => page.json),
   });
   useFetchAllPages({result: repositoriesQuery});
 
