@@ -105,6 +105,11 @@ export function BreadcrumbsDataSection({
             if (viewAllButton?.contains(element)) {
               return false;
             }
+            // Third-party packages (e.g. Pendo) use a container with id "pendo-guide-container".
+            // If the click is inside that container, treat it as an internal click.
+            if (element.closest('#pendo-guide-container')) {
+              return false;
+            }
             return true;
           },
         }
