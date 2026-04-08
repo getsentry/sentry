@@ -349,21 +349,22 @@ class GitHubIntegration(
                 for i in raw_repos
             ]
 
-        # accessible_only: fetch all accessible repos (cached) for listing and querying
-        # avoids re-fetching all pages on every debounced keystroke and
-        # avoids the Search API's 30 req/min shared rate limit.
-        if accessible_only:
-            all_repos = client.get_accessible_repos_cached()
-            repos = to_repo_info(r for r in all_repos if not r.get("archived"))
-            if not query:
-                return repos
-            query_lower = query.lower()
-            return [r for r in repos if query_lower in r["identifier"].lower()]
-
         # No query: fetch all accessible repos (without cache)
         if not query:
             all_repos = client.get_repos(page_number_limit=page_number_limit)
             return to_repo_info(r for r in all_repos if not r.get("archived"))
+
+        # accessible_only: fetch and filter accessible repos (cached)
+        # avoids re-fetching all pages on every debounced keystroke and
+        # avoids the Search API's 30 req/min shared rate limit.
+        if accessible_only:
+            all_repos_cached = client.get_accessible_repos_cached()
+            query_lower = query.lower()
+            return to_repo_info(
+                r
+                for r in all_repos_cached
+                if not r.get("archived") and query_lower in r["full_name"].lower()
+            )
 
         # Query without accessible_only: existing search behavior
         full_query = build_repository_query(self.model.metadata, self.model.name, query)
