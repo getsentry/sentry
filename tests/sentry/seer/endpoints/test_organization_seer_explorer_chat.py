@@ -105,6 +105,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
                 ANY,
                 is_interactive=True,
                 enable_coding=feature_enabled and option_enabled,
+                enable_mcp_tools=False,
             )
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
@@ -130,6 +131,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             insert_index=2,
             on_page_context=None,
             page_name=None,
+            request=ANY,
         )
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
@@ -153,6 +155,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
                 ANY,
                 is_interactive=True,
                 enable_coding=feature_enabled and option_enabled,
+                enable_mcp_tools=False,
             )
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
