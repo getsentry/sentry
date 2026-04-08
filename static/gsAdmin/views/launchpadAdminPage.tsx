@@ -320,7 +320,8 @@ export function LaunchpadAdminPage() {
               <Flex direction="column" gap="md">
                 <Heading as="h3">Fetch Artifact Info</Heading>
                 <Text as="p" variant="muted">
-                  Retrieve all data and details for a specific preprod artifact.
+                  Retrieve all data and details for a specific preprod artifact (includes
+                  snapshot info).
                 </Text>
                 <label htmlFor="fetchInfoArtifactId">
                   <Text bold>Preprod Artifact ID:</Text>
