@@ -25,6 +25,7 @@ from sentry.analytics.events.autofix_events import (
     AiAutofixTriageStartedEvent,
 )
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT
+from sentry.integrations.services.integration import integration_service
 from sentry.seer.autofix.artifact_schemas import (
     ImpactAssessmentArtifact,
     RootCauseArtifact,
@@ -448,6 +449,30 @@ def _get_relevant_repo(
     return repo_definitions[0]
 
 
+def _resolve_coding_agent_name(
+    organization_id: int, integration_id: int | None, provider: str | None
+) -> str | None:
+    """Resolve a human-readable coding agent name for analytics."""
+    if provider:
+        return provider
+    if integration_id is not None:
+        try:
+            integration = integration_service.get_integration(
+                integration_id=integration_id,
+            )
+            if integration:
+                return integration.provider
+        except Exception:
+            logger.exception(
+                "autofix.resolve_coding_agent_name.error",
+                extra={
+                    "organization_id": organization_id,
+                    "integration_id": integration_id,
+                },
+            )
+    return None
+
+
 def trigger_coding_agent_handoff(
     group: Group,
     run_id: int,
@@ -542,18 +567,25 @@ def trigger_coding_agent_handoff(
         auto_create_pr=auto_create_pr,
     )
 
+    coding_agent_name = _resolve_coding_agent_name(group.organization.id, integration_id, provider)
+
     analytics.record(
         AiAutofixAgentHandoffEvent(
             organization_id=group.organization.id,
             project_id=group.project_id,
             group_id=group.id,
             referrer=referrer.value,
+            coding_agent=coding_agent_name,
         )
     )
 
     metrics.incr(
         "autofix.explorer.trigger",
-        tags={"step": "coding_agent_handoff", "referrer": referrer.value},
+        tags={
+            "step": "coding_agent_handoff",
+            "referrer": referrer.value,
+            "coding_agent": coding_agent_name or "unknown",
+        },
     )
 
     return coding_agents
