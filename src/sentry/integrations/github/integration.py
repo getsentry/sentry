@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, NotRequired, TypedDict
@@ -338,7 +338,7 @@ class GitHubIntegration(
         """
         client = self.get_client()
 
-        def to_repo_info(raw_repos: Sequence[Mapping[str, Any]]) -> list[RepositoryInfo]:
+        def to_repo_info(raw_repos: Iterable[Mapping[str, Any]]) -> list[RepositoryInfo]:
             return [
                 {
                     "name": i["name"],
