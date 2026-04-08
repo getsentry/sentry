@@ -80,7 +80,9 @@ class OrganizationSupergroupsByGroupEndpoint(OrganizationEndpoint):
 
         rca_source = (
             RCASource.LIGHTWEIGHT
-            if features.has("organizations:supergroups-lightweight-rca-clustering", organization)
+            if features.has(
+                "organizations:supergroups-lightweight-rca-clustering-read", organization
+            )
             else RCASource.EXPLORER
         )
 

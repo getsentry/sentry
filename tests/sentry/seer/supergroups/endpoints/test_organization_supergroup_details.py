@@ -58,7 +58,7 @@ class OrganizationSupergroupDetailsEndpointTest(APITestCase):
         with self.feature(
             {
                 "organizations:top-issues-ui": True,
-                "organizations:supergroups-lightweight-rca-clustering": True,
+                "organizations:supergroups-lightweight-rca-clustering-read": True,
             }
         ):
             self.get_success_response(self.organization.slug, "1")

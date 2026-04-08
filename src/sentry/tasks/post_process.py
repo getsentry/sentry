@@ -1593,7 +1593,9 @@ def kick_off_lightweight_rca_cluster(job: PostProcessJob) -> None:
     event = job["event"]
     group = event.group
 
-    if not features.has("organizations:supergroups-lightweight-rca-clustering", group.organization):
+    if not features.has(
+        "organizations:supergroups-lightweight-rca-clustering-write", group.organization
+    ):
         return
 
     trigger_lightweight_rca_cluster_task.delay(group.id)

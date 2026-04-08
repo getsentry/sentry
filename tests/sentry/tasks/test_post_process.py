@@ -3078,7 +3078,7 @@ class KickOffLightweightRCAClusterTestMixin(BasePostProcessGroupMixin):
             project_id=self.project.id,
         )
 
-        with self.feature("organizations:supergroups-lightweight-rca-clustering"):
+        with self.feature("organizations:supergroups-lightweight-rca-clustering-write"):
             self.call_post_process_group(
                 is_new=True,
                 is_regression=False,
@@ -3111,7 +3111,7 @@ class KickOffLightweightRCAClusterTestMixin(BasePostProcessGroupMixin):
             project_id=self.project.id,
         )
 
-        with self.feature("organizations:supergroups-lightweight-rca-clustering"):
+        with self.feature("organizations:supergroups-lightweight-rca-clustering-write"):
             self.call_post_process_group(
                 is_new=False,
                 is_regression=False,
