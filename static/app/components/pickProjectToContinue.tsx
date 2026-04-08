@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor, LocationDescriptorObject} from 'history';
 
@@ -46,9 +47,14 @@ export function PickProjectToContinue({
     path = `${nextPath.pathname}?${newPathQuery}`;
   }
 
-  // if the project in URL is missing, but this release belongs to only one project, redirect there
-  if (projects.length === 1) {
-    navigate(path + projects[0]!.id, {replace: true});
+  const shouldRedirect = projects.length === 1;
+  useEffect(() => {
+    if (shouldRedirect) {
+      navigate(path + projects[0]!.id, {replace: true});
+    }
+  }, [shouldRedirect, navigate, path, projects]);
+
+  if (shouldRedirect) {
     return null;
   }
 
