@@ -94,14 +94,13 @@ export function SeerAutomationSettings() {
         )}
       />
       <SeerSettingsPageContent>
-        <SCMOverviewSection
-          {...scmOverviewData}
-          canWrite={canWrite}
-          organizationSlug={organization.slug}
-        />
-
         {showSeerOverview ? (
-          <Fragment>
+          <div>
+            <SCMOverviewSection
+              {...scmOverviewData}
+              canWrite={canWrite}
+              organizationSlug={organization.slug}
+            />
             <AutofixOverviewSection
               {...autofixOverviewData}
               canWrite={canWrite}
@@ -112,9 +111,14 @@ export function SeerAutomationSettings() {
               canWrite={canWrite}
               organization={organization}
             />
-          </Fragment>
+          </div>
         ) : (
           <Fragment>
+            <SCMOverviewSection
+              {...scmOverviewData}
+              canWrite={canWrite}
+              organizationSlug={organization.slug}
+            />
             <FieldGroup
               title={
                 <Flex gap="md">

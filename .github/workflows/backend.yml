@@ -59,11 +59,23 @@ jobs:
           node-version-file: '.node-version'
 
       - uses: pnpm/action-setup@9b5745cdf0a2e8c2620f0746130f809adb911c19 # v4
+
+      - name: Start devservices early
+        uses: ./.github/actions/setup-devservices
+        with:
+          mode: default
+
       - name: Setup sentry python env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
           mode: default
+          skip-devservices: 'true'
+
+      - name: Wait for devservices
+        run: |
+          sentry init
+          ./.github/actions/setup-devservices/wait.sh
 
       - name: Run API docs tests
         run: |
@@ -234,11 +246,28 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
+      - name: Start devservices early
+        uses: ./.github/actions/setup-devservices
+        with:
+          mode: backend-ci
+
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
           mode: backend-ci
+          skip-devservices: 'true'
+
+      - name: Wait for devservices
+        run: |
+          sentry init
+          # Start Snuba per-worker bootstrap in background — it polls for
+          # ClickHouse readiness itself, so it can begin before all containers
+          # are healthy, overlapping with the remaining devservices health checks.
+          if [ "${XDIST_PER_WORKER_SNUBA}" = "1" ]; then
+            python3 ./.github/actions/setup-devservices/bootstrap-snuba.py &
+          fi
+          ./.github/actions/setup-devservices/wait.sh
 
       - name: Download odiff binary
         run: |
@@ -247,58 +276,22 @@ jobs:
           sudo install -m 755 odiff-linux-x64 /usr/local/bin/odiff
           rm odiff-linux-x64
 
-      - name: Bootstrap per-worker Snuba instances
+      - name: Wait for Snuba bootstrap
         if: env.XDIST_PER_WORKER_SNUBA == '1'
         run: |
-          set -eo pipefail
-          SNUBA_IMAGE=$(docker inspect snuba-snuba-1 --format '{{.Config.Image}}')
-          SNUBA_NETWORK=$(docker inspect snuba-snuba-1 --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}')
-          if [ -z "$SNUBA_IMAGE" ] || [ -z "$SNUBA_NETWORK" ]; then
-            echo "ERROR: Could not inspect snuba-snuba-1 container. Is devservices running?"
+          SECONDS=0
+          while [ ! -f /tmp/snuba-bootstrap-exit ]; do
+            if [ $SECONDS -gt 600 ]; then
+              echo "::error::Timed out waiting for Snuba bootstrap after 600s"
+              exit 1
+            fi
+            sleep 2
+          done
+          SNUBA_RC=$(cat /tmp/snuba-bootstrap-exit)
+          if [ "$SNUBA_RC" -ne 0 ]; then
+            echo "::error::Snuba per-worker bootstrap failed"
             exit 1
           fi
-
-          docker stop snuba-snuba-1 || true
-
-          PIDS=()
-          for i in $(seq 0 $(( ${XDIST_WORKERS} - 1 ))); do
-            (
-              WORKER_DB="default_gw${i}"
-              WORKER_PORT=$((1230 + i))
-              curl -sf 'http://localhost:8123/' --data-binary "CREATE DATABASE IF NOT EXISTS ${WORKER_DB}"
-              docker run --rm --network "$SNUBA_NETWORK" \
-                -e "CLICKHOUSE_DATABASE=${WORKER_DB}" -e "CLICKHOUSE_HOST=clickhouse" \
-                -e "CLICKHOUSE_PORT=9000" -e "CLICKHOUSE_HTTP_PORT=8123" \
-                -e "DEFAULT_BROKERS=kafka:9093" -e "REDIS_HOST=redis" \
-                -e "REDIS_PORT=6379" -e "REDIS_DB=1" -e "SNUBA_SETTINGS=docker" \
-                "$SNUBA_IMAGE" bootstrap --force 2>&1 | tail -3
-              docker run -d --name "snuba-gw${i}" --network "$SNUBA_NETWORK" \
-                -p "${WORKER_PORT}:1218" \
-                -e "CLICKHOUSE_DATABASE=${WORKER_DB}" -e "CLICKHOUSE_HOST=clickhouse" \
-                -e "CLICKHOUSE_PORT=9000" -e "CLICKHOUSE_HTTP_PORT=8123" \
-                -e "DEFAULT_BROKERS=kafka:9093" -e "REDIS_HOST=redis" \
-                -e "REDIS_PORT=6379" -e "REDIS_DB=1" -e "SNUBA_SETTINGS=docker" \
-                -e "DEBUG=1" "$SNUBA_IMAGE" api
-
-              for attempt in $(seq 1 30); do
-                if curl -sf "http://127.0.0.1:${WORKER_PORT}/health" > /dev/null 2>&1; then
-                  echo "snuba-gw${i} healthy on port ${WORKER_PORT}"
-                  break
-                fi
-                if [ "$attempt" -eq 30 ]; then
-                  echo "ERROR: snuba-gw${i} failed health check after 30 attempts"
-                  docker logs "snuba-gw${i}" 2>&1 | tail -20 || true
-                  exit 1
-                fi
-                sleep 2
-              done
-            ) &
-            PIDS+=($!)
-          done
-
-          for pid in "${PIDS[@]}"; do
-            wait "$pid" || { echo "ERROR: Snuba bootstrap subshell (PID $pid) failed"; exit 1; }
-          done
 
       - name: Download selected tests artifact
         if: needs.select-tests.outputs.has-selected-tests == 'true'
@@ -339,6 +332,11 @@ jobs:
       - name: Inspect failure
         if: failure()
         run: |
+          if [ -f /tmp/ds.log ]; then
+            echo "--- devservices startup log ---"
+            cat /tmp/ds.log
+          fi
+
           if command -v devservices; then
             devservices logs
           fi
@@ -375,11 +373,22 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
+      - name: Start devservices early
+        uses: ./.github/actions/setup-devservices
+        with:
+          mode: default
+
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
           mode: default
+          skip-devservices: 'true'
+
+      - name: Wait for devservices
+        run: |
+          sentry init
+          ./.github/actions/setup-devservices/wait.sh
 
       - name: run tests
         run: |
@@ -413,11 +422,22 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
+      - name: Start devservices early
+        uses: ./.github/actions/setup-devservices
+        with:
+          mode: migrations
+
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
           mode: migrations
+          skip-devservices: 'true'
+
+      - name: Wait for devservices
+        run: |
+          sentry init
+          ./.github/actions/setup-devservices/wait.sh
 
       - name: Run test
         env:
@@ -489,10 +509,21 @@ jobs:
 
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
+      - name: Start devservices early
+        uses: ./.github/actions/setup-devservices
+        with:
+          mode: backend-ci
+
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         with:
           mode: backend-ci
+          skip-devservices: 'true'
+
+      - name: Wait for devservices
+        run: |
+          sentry init
+          ./.github/actions/setup-devservices/wait.sh
 
       - name: Sync API Urls to TypeScript
         run: |
@@ -515,11 +546,22 @@ jobs:
       - name: Checkout sentry
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
+      - name: Start devservices early
+        uses: ./.github/actions/setup-devservices
+        with:
+          mode: migrations
+
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
           mode: migrations
+          skip-devservices: 'true'
+
+      - name: Wait for devservices
+        run: |
+          sentry init
+          ./.github/actions/setup-devservices/wait.sh
 
       - name: Migration & lockfile checks
         env:
@@ -549,11 +591,22 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
+      - name: Start devservices early
+        uses: ./.github/actions/setup-devservices
+        with:
+          mode: migrations
+
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
           mode: migrations
+          skip-devservices: 'true'
+
+      - name: Wait for devservices
+        run: |
+          sentry init
+          ./.github/actions/setup-devservices/wait.sh
 
       - name: Run test
         run: |

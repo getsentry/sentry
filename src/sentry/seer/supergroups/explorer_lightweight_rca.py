@@ -10,7 +10,7 @@ from sentry.seer.explorer.client import SeerExplorerClient
 logger = logging.getLogger(__name__)
 
 
-def trigger_lightweight_rca(group: Group) -> int | None:
+def trigger_explorer_lightweight_rca(group: Group) -> int | None:
     """
     Trigger a lightweight Explorer RCA run for the given group.
 
@@ -26,7 +26,7 @@ def trigger_lightweight_rca(group: Group) -> int | None:
     """
     has_feature = features.has("projects:supergroup-lightweight-rca", group.project)
     logger.info(
-        "lightweight_rca.feature_flag_check",
+        "explorer_lightweight_rca.feature_flag_check",
         extra={
             "group_id": group.id,
             "project_id": group.project.id,
@@ -66,7 +66,7 @@ def trigger_lightweight_rca(group: Group) -> int | None:
         )
 
         logger.info(
-            "lightweight_rca.starting_run",
+            "explorer_lightweight_rca.starting_run",
             extra={
                 "group_id": group.id,
                 "project_id": group.project.id,
@@ -83,7 +83,7 @@ def trigger_lightweight_rca(group: Group) -> int | None:
         )
 
         logger.info(
-            "lightweight_rca.run_started",
+            "explorer_lightweight_rca.run_started",
             extra={
                 "group_id": group.id,
                 "project_id": group.project.id,
@@ -94,7 +94,7 @@ def trigger_lightweight_rca(group: Group) -> int | None:
         return run_id
     except Exception:
         logger.exception(
-            "lightweight_rca.trigger_failed",
+            "explorer_lightweight_rca.trigger_failed",
             extra={
                 "group_id": group.id,
                 "organization_id": group.organization.id,

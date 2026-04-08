@@ -246,7 +246,7 @@ def github_repo_sync_beat() -> None:
         name="github_repo_sync",
         schedule_key="github-repo-sync-beat",
         queryset=OrganizationIntegration.objects.filter(
-            integration__provider="github",
+            integration__provider__in=["github", "github_enterprise"],
             integration__status=ObjectStatus.ACTIVE,
             status=ObjectStatus.ACTIVE,
         ),
