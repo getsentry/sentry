@@ -75,6 +75,7 @@ __all__ = [
     "all_silo_endpoint",
     "internal_cell_silo_endpoint",
     "internal_all_silo_endpoint",
+    "internal_control_silo_endpoint",
 ]
 
 PAGINATION_DEFAULT_PER_PAGE = 100
