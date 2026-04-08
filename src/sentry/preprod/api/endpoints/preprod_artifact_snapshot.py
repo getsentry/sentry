@@ -54,7 +54,10 @@ from sentry.preprod.snapshots.models import (
     PreprodSnapshotMetrics,
 )
 from sentry.preprod.snapshots.tasks import compare_snapshots
-from sentry.preprod.snapshots.utils import find_base_snapshot_artifact
+from sentry.preprod.snapshots.utils import (
+    find_base_snapshot_artifact,
+    find_head_snapshot_artifacts_awaiting_base,
+)
 from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.preprod.vcs.status_checks.snapshots.tasks import (
     create_preprod_snapshot_status_check_task,
@@ -637,6 +640,51 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                         "head_artifact_id": artifact.id,
                         "base_sha": base_sha,
                     },
+                )
+
+        # Trigger comparisons for any head artifacts that were uploaded before this base.
+        # Handles possible out-of-order uploads where heads arrive before their base build.
+        if commit_comparison is not None:
+            try:
+                waiting_heads = find_head_snapshot_artifacts_awaiting_base(
+                    organization_id=project.organization_id,
+                    base_sha=commit_comparison.head_sha,
+                    base_repo_name=commit_comparison.head_repo_name,
+                    project_id=project.id,
+                    app_id=artifact.app_id,
+                    build_configuration=artifact.build_configuration,
+                )
+                for head_artifact in waiting_heads:
+                    head_metrics = head_artifact.preprodsnapshotmetrics
+                    logger.info(
+                        "Found head artifact awaiting base, triggering snapshot comparison",
+                        extra={
+                            "head_artifact_id": head_artifact.id,
+                            "base_artifact_id": artifact.id,
+                            "base_sha": commit_comparison.head_sha,
+                        },
+                    )
+                    try:
+                        PreprodSnapshotComparison.objects.get_or_create(
+                            head_snapshot_metrics=head_metrics,
+                            base_snapshot_metrics=snapshot_metrics,
+                            defaults={"state": PreprodSnapshotComparison.State.PENDING},
+                        )
+                    except IntegrityError:
+                        pass
+
+                    compare_snapshots.apply_async(
+                        kwargs={
+                            "project_id": project.id,
+                            "org_id": project.organization_id,
+                            "head_artifact_id": head_artifact.id,
+                            "base_artifact_id": artifact.id,
+                        },
+                    )
+            except Exception:
+                logger.exception(
+                    "Failed to trigger comparisons for head artifacts awaiting base",
+                    extra={"base_artifact_id": artifact.id},
                 )
 
         return Response(
