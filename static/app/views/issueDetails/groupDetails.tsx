@@ -492,7 +492,6 @@ function useTrackView({
     prefers_streamlined_ui: user?.options?.prefersIssueDetailsStreamlinedUI ?? false,
     enforced_streamlined_ui: user?.options?.prefersIssueDetailsStreamlinedUI === null,
     org_streamline_only: organization.streamlineOnly ?? undefined,
-    has_streamlined_ui: true,
     has_seer_access: hasAutofixQuota,
     notification_uuid:
       typeof notification_uuid === 'string' ? notification_uuid : undefined,

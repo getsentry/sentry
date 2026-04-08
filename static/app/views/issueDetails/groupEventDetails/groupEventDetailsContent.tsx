@@ -1,7 +1,6 @@
 import {Fragment, useMemo, useRef} from 'react';
 import {ClassNames} from '@emotion/react';
 
-import {usePrompt} from 'sentry/actionCreators/prompts';
 import Feature from 'sentry/components/acl/feature';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -50,7 +49,6 @@ import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';
 import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
-import {Placeholder} from 'sentry/components/placeholder';
 import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
 import {t} from 'sentry/locale';
 import type {Entry, EntryMap, Event, EventTransaction} from 'sentry/types/event';
@@ -121,12 +119,6 @@ export function EventDetailsContent({
   const isMetricKitHang = hangProfileData !== null;
   const groupingCurrentLevel = group?.metadata?.current_level;
 
-  const {isLoading: promptLoading} = usePrompt({
-    feature: 'issue_feedback_hidden',
-    organization,
-    projectId: project.id,
-  });
-
   useCopyIssueDetails(group, event);
 
   const issueTypeConfig = getConfigForIssueType(group, group.project);
@@ -148,16 +140,12 @@ export function EventDetailsContent({
       )}
       {event.userReport && (
         <InterimSection title={t('User Feedback')} type={SectionKey.USER_FEEDBACK}>
-          {promptLoading ? (
-            <Placeholder />
-          ) : (
-            <EventUserFeedback
-              report={event.userReport}
-              orgSlug={organization.slug}
-              issueId={group.id}
-              showEventLink={false}
-            />
-          )}
+          <EventUserFeedback
+            report={event.userReport}
+            orgSlug={organization.slug}
+            issueId={group.id}
+            showEventLink={false}
+          />
         </InterimSection>
       )}
       {(event.contexts?.metric_alert?.alert_rule_id ||
