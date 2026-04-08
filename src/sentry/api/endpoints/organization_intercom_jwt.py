@@ -90,7 +90,7 @@ class OrganizationIntercomJwtEndpoint(ControlSiloOrganizationEndpoint):
             created_at = int(user.last_active.timestamp())
 
         user_data = {
-            "userId": str(user.id),
+            "userId": f"{user.id}-{organization.id}",
             "email": user.email,
             "name": user.get_display_name(),
             "createdAt": created_at,
