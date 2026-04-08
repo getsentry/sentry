@@ -44,13 +44,15 @@ logger = logging.getLogger(__name__)
 # Providers to include in the periodic sync. Each must implement
 # get_repositories() returning RepositoryInfo with external_id.
 # Perforce is excluded because it cannot derive external_id from its API.
+# Providers to include in the periodic sync.
+# Other providers (GitLab, Bitbucket, Bitbucket Server, VSTS) have
+# build_repository_config methods that expect additional data beyond what
+# RepositoryInfo provides (e.g. url, instance, project_id). They need
+# follow-up work to either enrich the sync config or simplify their
+# build_repository_config before they can be added here.
 SCM_SYNC_PROVIDERS = [
     "github",
     "github_enterprise",
-    "gitlab",
-    "bitbucket",
-    "bitbucket_server",
-    "vsts",
 ]
 
 
