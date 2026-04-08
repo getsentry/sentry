@@ -552,7 +552,7 @@ class GitHubBaseClient(
 
     def get_accessible_repos_cached(self, ttl: int = 300) -> list[dict[str, Any]]:
         """
-        Return all non-archived repos accessible to this installation.
+        Return all repos accessible to this installation.
         Cached in Django cache for ``ttl`` seconds so that debounced
         search keystrokes don't re-fetch all pages from GitHub.
         """
@@ -569,8 +569,7 @@ class GitHubBaseClient(
             "get_accessible_repos_cached.cache_miss",
             extra={"integration_id": self.integration.id},
         )
-        all_repos = self.get_repos()
-        repos = [r for r in all_repos if not r.get("archived")]
+        repos = self.get_repos()
         default_cache.set(cache_key, repos, ttl)
         logger.info(
             "get_accessible_repos_cached.cached",
