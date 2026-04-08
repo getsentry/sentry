@@ -4,26 +4,26 @@ import {getWidgetQueryLLMHint, readableConditions} from './widgetLLMContext';
 
 describe('getWidgetQueryLLMHint', () => {
   it.each([
-    [DisplayType.LINE, 'timeseries'],
-    [DisplayType.AREA, 'timeseries'],
-    [DisplayType.BAR, 'timeseries'],
+    [DisplayType.LINE, 'timeseries chart'],
+    [DisplayType.AREA, 'timeseries chart'],
+    [DisplayType.BAR, 'timeseries chart'],
   ])('returns timeseries hint for %s', (displayType, expected) => {
     expect(getWidgetQueryLLMHint(displayType)).toContain(expected);
   });
 
   it('returns table hint for TABLE', () => {
-    expect(getWidgetQueryLLMHint(DisplayType.TABLE)).toContain('table query');
+    expect(getWidgetQueryLLMHint(DisplayType.TABLE)).toContain('shows a table');
   });
 
-  it('returns single aggregate hint for BIG_NUMBER', () => {
-    expect(getWidgetQueryLLMHint(DisplayType.BIG_NUMBER)).toContain('single aggregate');
+  it('returns single number hint for BIG_NUMBER', () => {
+    expect(getWidgetQueryLLMHint(DisplayType.BIG_NUMBER)).toContain('single number');
     expect(getWidgetQueryLLMHint(DisplayType.BIG_NUMBER)).toContain(
-      'value is included below'
+      'current value is included below'
     );
   });
 
-  it('returns table hint as default for unknown types', () => {
-    expect(getWidgetQueryLLMHint(DisplayType.WHEEL)).toContain('table query');
+  it('returns generic hint for unknown types', () => {
+    expect(getWidgetQueryLLMHint(DisplayType.WHEEL)).toContain('shows data');
   });
 });
 
