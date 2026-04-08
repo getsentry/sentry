@@ -8,9 +8,9 @@ from typing import Any, TypedDict
 
 import orjson
 import sentry_sdk
-from django.core.cache import cache
 from requests import PreparedRequest
 
+from sentry.cache import default_cache
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import (
     create_blame_query,
@@ -550,21 +550,33 @@ class GitHubBaseClient(
                 page_number_limit=page_number_limit,
             )
 
-    def get_accessible_repo_ids(self, ttl: int = 300) -> set[int]:
+    def get_accessible_repos_cached(self, ttl: int = 300) -> list[dict[str, Any]]:
         """
-        Return the set of GitHub repo IDs accessible to this installation.
-        Cached in Django cache (Redis) for ``ttl`` seconds to avoid
-        re-fetching all pages on every keystroke.
+        Return all non-archived repos accessible to this installation.
+        Cached in Django cache for ``ttl`` seconds so that debounced
+        search keystrokes don't re-fetch all pages from GitHub.
         """
-        cache_key = f"github:accessible_repo_ids:{self.integration.id}"
-        cached = cache.get(cache_key)
+        cache_key = f"github:accessible_repos:{self.integration.id}"
+        cached = default_cache.get(cache_key)
         if cached is not None:
-            return set(cached)
+            logger.info(
+                "get_accessible_repos_cached.cache_hit",
+                extra={"integration_id": self.integration.id, "count": len(cached)},
+            )
+            return cached
 
+        logger.info(
+            "get_accessible_repos_cached.cache_miss",
+            extra={"integration_id": self.integration.id},
+        )
         all_repos = self.get_repos()
-        repo_ids = {r["id"] for r in all_repos if not r.get("archived")}
-        cache.set(cache_key, list(repo_ids), ttl)
-        return repo_ids
+        repos = [r for r in all_repos if not r.get("archived")]
+        default_cache.set(cache_key, repos, ttl)
+        logger.info(
+            "get_accessible_repos_cached.cached",
+            extra={"integration_id": self.integration.id, "count": len(repos)},
+        )
+        return repos
 
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:
         """
