@@ -29,7 +29,7 @@ export type EventGroupComponent = {
   name: string | null;
   values: EventGroupComponent[] | string[];
 };
-export type EventGroupingConfig = {
+type EventGroupingConfig = {
   base: string | null;
   delegates: string[];
   id: string;
