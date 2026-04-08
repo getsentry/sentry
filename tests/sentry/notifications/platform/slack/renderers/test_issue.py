@@ -264,8 +264,6 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
             }
         )
 
-        blocks.append({"type": "divider"})
-
         return SlackRenderable(
             blocks=blocks,
             text=f"[{project_slug}] {title}",

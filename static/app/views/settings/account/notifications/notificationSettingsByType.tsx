@@ -98,12 +98,13 @@ export function NotificationSettingsByType({notificationType}: Props) {
   );
 
   const {data: allOrgIntegrations = [], status: organizationIntegrationStatus} =
-    useApiQuery<OrganizationIntegration[]>(
+    useApiQuery<Array<OrganizationIntegration | null>>(
       [getApiUrl('/users/$userId/organization-integrations/', {path: {userId: 'me'}})],
       {staleTime: 30_000}
     );
-  const organizationIntegrations = allOrgIntegrations.filter(orgIntegration =>
-    ALLOWED_PROVIDERS.has(orgIntegration.provider.key as SupportedProviders)
+  const organizationIntegrations = allOrgIntegrations.filter(
+    (orgIntegration): orgIntegration is OrganizationIntegration =>
+      ALLOWED_PROVIDERS.has(orgIntegration?.provider.key as SupportedProviders)
   );
   const {data: defaultSettings, status: defaultSettingsStatus} =
     useApiQuery<DefaultSettings>([getApiUrl('/notification-defaults/')], {

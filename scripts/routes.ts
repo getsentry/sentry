@@ -148,7 +148,7 @@ const useDefaults = (values.defaults as boolean) ?? false;
 if (!showAll && Object.keys(userParams).length === 0 && !useDefaults) {
   const bin = path.basename(process.argv[1] ?? '');
   console.error(`Usage: node ${bin} [OPTIONS] --<param> <value> [...]`);
-  console.error(`Run with --help for full usage.`);
+  console.error('Run with --help for full usage.');
   process.exit(1);
 }
 

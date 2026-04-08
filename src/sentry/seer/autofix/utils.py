@@ -789,6 +789,7 @@ def get_autofix_repos_from_project_code_mappings(
                 "owner": repo_name_sections[0],
                 "name": "/".join(repo_name_sections[1:]),
                 "external_id": repo.external_id,
+                "languages": repo.languages or [],
             }
             repo_key = (repo_dict["provider"], repo_dict["owner"], repo_dict["name"])
 

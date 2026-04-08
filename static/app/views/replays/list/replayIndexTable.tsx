@@ -80,7 +80,7 @@ export function ReplayIndexTable({
     !rageClicksSdkVersion.needsUpdate && !allMobileProj && !isLoading;
 
   const [widgetIsOpen, setWidgetIsOpen] = useLocalStorageState(
-    `replay-dead-rage-widget-open`,
+    'replay-dead-rage-widget-open',
     true
   );
 

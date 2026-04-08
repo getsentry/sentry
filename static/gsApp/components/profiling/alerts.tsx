@@ -617,7 +617,7 @@ function useSDKDeprecations() {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const path = getApiUrl(`/organizations/$organizationIdOrSlug/sdk-deprecations/`, {
+  const path = getApiUrl('/organizations/$organizationIdOrSlug/sdk-deprecations/', {
     path: {organizationIdOrSlug: organization.slug},
   });
   const options = {

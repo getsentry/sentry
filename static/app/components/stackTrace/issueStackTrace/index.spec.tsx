@@ -246,7 +246,9 @@ describe('IssueStackTrace', () => {
 
     await userEvent.hover(screen.getByLabelText('Line 112'));
 
-    expect(await screen.findByText('Line uncovered by tests')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getAllByText('Line uncovered by tests')).toHaveLength(2)
+    );
   });
 
   it('renders annotated text when exception value has PII scrubbing metadata', async () => {
@@ -660,6 +662,38 @@ describe('IssueStackTrace', () => {
 
       expect(container).toBeEmptyDOMElement();
     });
+  });
+
+  it('fetches and renders SCM source context for frames without embedded context', async () => {
+    const {event, stacktrace} = makeCopyTestData();
+    const organization = OrganizationFixture({features: ['scm-source-context']});
+    ProjectsStore.loadInitialData([ProjectFixture({id: '1', slug: 'project-slug'})]);
+
+    const sourceContextRequest = MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/stacktrace-source-context/',
+      body: {context: [[42, 'def handle():']], sourceUrl: null, error: null},
+    });
+
+    render(
+      <IssueStackTrace
+        event={event}
+        values={[
+          {
+            type: 'RuntimeError',
+            value: 'broke',
+            module: null,
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            rawStacktrace: null,
+            threadId: null,
+          },
+        ]}
+      />,
+      {organization}
+    );
+
+    expect(sourceContextRequest).toHaveBeenCalled();
+    expect(await screen.findByText('def handle():')).toBeInTheDocument();
   });
 
   describe('exception groups', () => {

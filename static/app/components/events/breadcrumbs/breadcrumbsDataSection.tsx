@@ -97,12 +97,17 @@ export function BreadcrumbsDataSection({
         ),
         {
           ariaLabel: 'breadcrumb drawer',
-          drawerKey: `breadcrumbs-drawer`,
+          drawerKey: 'breadcrumbs-drawer',
           // We prevent a click on the 'View All' button from closing the drawer so that
           // we don't reopen it immediately, and instead let the button handle this itself.
           shouldCloseOnInteractOutside: element => {
             const viewAllButton = viewAllButtonRef.current;
             if (viewAllButton?.contains(element)) {
+              return false;
+            }
+            // Third-party packages (e.g. Pendo) use a container with id "pendo-guide-container".
+            // If the click is inside that container, treat it as an internal click.
+            if (element.closest('#pendo-guide-container')) {
               return false;
             }
             return true;

@@ -18,7 +18,7 @@ describe('PageOverviewWebVitalsDetailPanel', () => {
       pathname: `/organizations/${organization.slug}/insights/frontend/pageloads/overview/`,
       query: {},
     },
-    route: `/organizations/:orgId/insights/frontend/pageloads/overview/`,
+    route: '/organizations/:orgId/insights/frontend/pageloads/overview/',
   };
 
   beforeEach(() => {

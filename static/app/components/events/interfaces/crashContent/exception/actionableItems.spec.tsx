@@ -238,7 +238,7 @@ describe('Actionable Items', () => {
       method: 'GET',
     });
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/files/dsyms/`,
+      url: '/projects/org-slug/project-slug/files/dsyms/',
       body: [],
     });
 

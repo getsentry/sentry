@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+import {useMatches} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
@@ -35,7 +36,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import type {
   ReplayListRecord,
@@ -500,8 +500,8 @@ export const ReplaySessionColumn: ReplayTableColumn = {
   sortKey: 'started_at',
   width: 'minmax(150px, 1fr)',
   Component: ({replay, to, className}) => {
-    const routes = useRoutes();
-    const referrer = getRouteStringFromRoutes(routes);
+    const matches = useMatches();
+    const referrer = getRouteStringFromRoutes({matches});
 
     const organization = useOrganization();
     const project = useProjectFromId({project_id: replay.project_id ?? undefined});

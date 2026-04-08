@@ -30,11 +30,11 @@ describe('UptimeDetectorDetails', () => {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/detectors/`,
+      url: '/organizations/org-slug/detectors/',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/workflows/`,
+      url: '/organizations/org-slug/workflows/',
       body: [],
     });
     MockApiClient.addMockResponse({

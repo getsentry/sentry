@@ -23,39 +23,14 @@ import {fetchDataQuery, fetchMutation, useQueryClient} from 'sentry/utils/queryC
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export function useAgentOptions({
-  integrations,
-}: {
-  integrations: CodingAgentIntegration[];
-}) {
-  return useMemo(() => {
-    return [
-      {value: 'seer' as const, label: t('Seer Agent')},
-      ...integrations
-        .filter(integration => integration.id)
-        .map(integration => ({
-          value: integration,
-          label: integration.name,
-        })),
-      {value: 'none' as const, label: t('No Handoff')},
-    ];
-  }, [integrations]);
-}
-
 export function useSelectedAgentFromProjectSettings({
   integrations,
   preference,
-  project,
 }: {
   integrations: CodingAgentIntegration[];
   preference: ProjectSeerPreferences;
-  project: Project;
 }) {
   return useMemo(() => {
-    // If we have autofixAutomationTuning==OFF then 'none' is picked
-    if (project.autofixAutomationTuning === 'off') {
-      return 'none';
-    }
     // If we have nothing in preferences, then we have Seer
     if (!preference?.automation_handoff?.integration_id) {
       return 'seer';
@@ -65,11 +40,7 @@ export function useSelectedAgentFromProjectSettings({
       integration =>
         integration.id === String(preference.automation_handoff?.integration_id)
     );
-  }, [
-    preference?.automation_handoff?.integration_id,
-    project.autofixAutomationTuning,
-    integrations,
-  ]);
+  }, [preference.automation_handoff?.integration_id, integrations]);
 }
 
 export function useSelectedAgentFromBulkSettings({
@@ -80,10 +51,6 @@ export function useSelectedAgentFromBulkSettings({
   integrations: CodingAgentIntegration[];
 }) {
   return useMemo(() => {
-    // If we have autofixAutomationTuning==OFF then 'none' is picked
-    if (autofixSettings.autofixAutomationTuning === 'off') {
-      return 'none';
-    }
     // If we have nothing in preferences, then we have Seer
     if (!autofixSettings?.automationHandoff?.integration_id) {
       return 'seer';
@@ -93,11 +60,7 @@ export function useSelectedAgentFromBulkSettings({
       integration =>
         integration.id === String(autofixSettings.automationHandoff?.integration_id)
     );
-  }, [
-    autofixSettings.automationHandoff?.integration_id,
-    autofixSettings.autofixAutomationTuning,
-    integrations,
-  ]);
+  }, [autofixSettings.automationHandoff?.integration_id, integrations]);
 }
 
 function useApplyOptimisticUpdate({project}: {project: Project}) {

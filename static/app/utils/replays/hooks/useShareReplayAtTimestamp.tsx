@@ -1,4 +1,5 @@
 import {useCallback, useState} from 'react';
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Input} from '@sentry/scraps/input';
@@ -12,16 +13,15 @@ import {t} from 'sentry/locale';
 import {formatSecondsToClock} from 'sentry/utils/duration/formatSecondsToClock';
 import {parseClockToSeconds} from 'sentry/utils/duration/parseClockToSeconds';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
-import {useRoutes} from 'sentry/utils/useRoutes';
 
 function ShareModal({currentTimeSec, Header, Body}: any) {
-  const routes = useRoutes();
+  const matches = useMatches();
   const [customSeconds, setSeconds] = useState(currentTimeSec);
   const [shareMode, setShareMode] = useState<'current' | 'user'>('current');
 
   const url = new URL(window.location.href);
   const {searchParams} = url;
-  searchParams.set('referrer', getRouteStringFromRoutes(routes));
+  searchParams.set('referrer', getRouteStringFromRoutes({matches}));
   searchParams.set(
     't',
     shareMode === 'user' ? String(customSeconds) : String(currentTimeSec)

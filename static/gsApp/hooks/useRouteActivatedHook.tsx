@@ -17,14 +17,13 @@ export const DELAY_TIME_MS = 7000;
 
 type Props = Parameters<Hooks['react-hook:route-activated']>[0];
 
-export function useRouteActivatedHook(props: Props) {
-  const {routes, location} = props;
+export function useRouteActivatedHook({location, matches}: Props) {
   const [analyticsParams, _setRouteAnalyticsParams] = useState({});
   const [disableAnalytics, _setDisableRouteAnalytics] = useState(false);
   const [hasSentAnalytics, setHasSentAnalytics] = useState(false);
   const [readyToSend, setReadyToSend] = useState(false);
   const [mountTime, setMountTime] = useState(0);
-  const prevRoutes = usePrevious(routes);
+  const prevMatches = usePrevious(matches);
   const prevLocation = usePrevious(location);
   // Reload event name
   const [_eventKey, setEventKey] = useState<string | undefined>(undefined);
@@ -37,8 +36,8 @@ export function useRouteActivatedHook(props: Props) {
   // keep track of the previous URL so we can detect trigger hooks after resetting the route params
   const previousUrl = getUrlFromLocation(prevLocation);
 
-  const currentRoute = getEventPath(routes);
-  const prevRoute = getEventPath(prevRoutes);
+  const currentRoute = getEventPath(matches);
+  const prevRoute = getEventPath(prevMatches);
 
   const considerSendingAnalytics =
     organization && !hasSentAnalytics && !disableAnalytics && mountTime > 0;

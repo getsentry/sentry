@@ -14,7 +14,7 @@ export function getIsAiGenerationSpan(genAiOpType: string | undefined) {
 }
 
 export function getHasAiSpansFilter() {
-  return `has:gen_ai.operation.type`;
+  return 'has:gen_ai.operation.type';
 }
 
 export const getAgentRunsFilter = ({negated = false}: {negated?: boolean} = {}) => {
@@ -22,15 +22,15 @@ export const getAgentRunsFilter = ({negated = false}: {negated?: boolean} = {}) 
 };
 
 export const getToolSpansFilter = () => {
-  return `gen_ai.operation.type:tool`;
+  return 'gen_ai.operation.type:tool';
 };
 
 export const getAgentAndAIClientFilter = () => {
-  return `gen_ai.operation.type:[agent, ai_client]`;
+  return 'gen_ai.operation.type:[agent, ai_client]';
 };
 
 export const getAIGenerationsFilter = () => {
-  return `gen_ai.operation.type:ai_client`;
+  return 'gen_ai.operation.type:ai_client';
 };
 
 /**

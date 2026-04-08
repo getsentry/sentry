@@ -190,7 +190,7 @@ describe('OrganizationContext', () => {
         initialRouterConfig: {
           route: '/organizations/',
           location: {
-            pathname: `/organizations/`,
+            pathname: '/organizations/',
           },
         },
       }

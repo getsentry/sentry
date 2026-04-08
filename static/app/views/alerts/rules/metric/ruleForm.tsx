@@ -304,7 +304,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
     router.push(
       makeAlertsPathname({
-        path: `/rules/`,
+        path: '/rules/',
         organization,
       })
     );

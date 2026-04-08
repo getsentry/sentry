@@ -42,7 +42,7 @@ interface TermsProps {
 
 function makeFetchPoliciesQueryKey(subscription: Subscription): ApiQueryKey {
   return [
-    getApiUrl(`/customers/$organizationIdOrSlug/policies/`, {
+    getApiUrl('/customers/$organizationIdOrSlug/policies/', {
       path: {organizationIdOrSlug: subscription.slug},
     }),
   ];

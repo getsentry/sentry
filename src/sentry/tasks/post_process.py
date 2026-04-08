@@ -1584,6 +1584,22 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             )
 
 
+def kick_off_lightweight_rca_cluster(job: PostProcessJob) -> None:
+    from sentry.tasks.seer.lightweight_rca_cluster import trigger_lightweight_rca_cluster_task
+
+    if not job["group_state"]["is_new"]:
+        return
+
+    event = job["event"]
+    group = event.group
+
+    enabled_orgs: list[int] = options.get("supergroups.lightweight-enabled-orgs")
+    if group.organization.id not in enabled_orgs:
+        return
+
+    trigger_lightweight_rca_cluster_task.delay(group.id)
+
+
 GROUP_CATEGORY_POST_PROCESS_PIPELINE: dict[
     GroupCategory, list[Callable[[PostProcessJob], None]]
 ] = {
@@ -1596,6 +1612,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE: dict[
         handle_owner_assignment,
         handle_auto_assignment,
         kick_off_seer_automation,
+        kick_off_lightweight_rca_cluster,
         process_workflow_engine_issue_alerts,
         process_resource_change_bounds,
         process_data_forwarding,

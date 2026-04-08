@@ -58,7 +58,7 @@ export function buildEventViewQuery({
 
   if (defined(spanCategory)) {
     if (spanCategory === NULL_SPAN_CATEGORY) {
-      result.push(`!has:span.category`);
+      result.push('!has:span.category');
     } else if (spanCategory !== 'Other') {
       result.push(`span.category:${spanCategory}`);
     }
