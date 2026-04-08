@@ -1,3 +1,4 @@
+import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
 /**
@@ -8,13 +9,9 @@ import {DisplayType} from 'sentry/views/dashboards/types';
  * passes through unchanged since only wildcard operators use \uf00d markers.
  */
 export function readableConditions(query: string): string {
-  return query
-    .replaceAll('\uf00dDoesNotContain\uf00d', ' does not contain ')
-    .replaceAll('\uf00dDoesNotStartWith\uf00d', ' does not start with ')
-    .replaceAll('\uf00dDoesNotEndWith\uf00d', ' does not end with ')
-    .replaceAll('\uf00dContains\uf00d', ' contains ')
-    .replaceAll('\uf00dStartsWith\uf00d', ' starts with ')
-    .replaceAll('\uf00dEndsWith\uf00d', ' ends with ');
+  return Object.entries(OP_LABELS)
+    .filter(([key]) => key.includes('\uf00d'))
+    .reduce((s, [key, label]) => s.replaceAll(key, ` ${label} `), query);
 }
 
 /**
