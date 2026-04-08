@@ -534,7 +534,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 "preprod_artifact_id": artifact.id,
                 "snapshot_metrics_id": snapshot_metrics.id,
                 "project_id": project.id,
-                "organization_id": project.organization_id,
+                "organization_slug": project.organization.slug,
                 "head_sha": head_sha,
                 "manifest_key": manifest_key,
                 "image_count": len(images),
