@@ -97,15 +97,20 @@ class PreprodArtifactAdminInfoEndpoint(Endpoint):
                     "base_snapshot_metrics",
                 )
                 .filter(head_snapshot_metrics=snapshot_metrics)
+                .order_by("-date_added")
                 .first()
             )
 
         snapshot_approval = None
         if snapshot_metrics:
-            snapshot_approval = PreprodComparisonApproval.objects.filter(
-                preprod_artifact_id=head_artifact_id_int,
-                preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
-            ).first()
+            snapshot_approval = (
+                PreprodComparisonApproval.objects.filter(
+                    preprod_artifact_id=head_artifact_id_int,
+                    preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+                )
+                .order_by("-date_added")
+                .first()
+            )
 
         mobile_app_info = preprod_artifact.get_mobile_app_info()
 
@@ -317,6 +322,11 @@ class PreprodArtifactAdminInfoEndpoint(Endpoint):
                     "date_added": (
                         snapshot_approval.date_added.isoformat()
                         if snapshot_approval.date_added
+                        else None
+                    ),
+                    "date_updated": (
+                        snapshot_approval.date_updated.isoformat()
+                        if snapshot_approval.date_updated
                         else None
                     ),
                 }
