@@ -42,7 +42,7 @@ function getContactSupportItem(organization: Organization): MenuItemProps | null
     return null;
   }
 
-  const hasIntercom = organization.features.includes('intercom-support');
+  const hasIntercom = true; // organization.features.includes('intercom-support');
 
   // Use Intercom if feature flag is enabled (lazily initialized on first click)
   if (hasIntercom) {
