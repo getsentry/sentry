@@ -59,7 +59,10 @@ export function StackTraceFrames({
 
   if (view === 'raw') {
     return (
-      <Container border="primary" radius="md">
+      <Container
+        border={borderless ? undefined : 'primary'}
+        radius={borderless ? undefined : 'md'}
+      >
         <RawStackTraceText>
           {rawStacktraceContent({data: stacktrace, platform: event.platform})}
         </RawStackTraceText>
