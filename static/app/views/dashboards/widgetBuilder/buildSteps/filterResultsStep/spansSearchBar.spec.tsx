@@ -135,13 +135,8 @@ describe('SpansSearchBar', () => {
       name: 'Add a search term',
     });
     await userEvent.click(searchInput);
-    await userEvent.type(searchInput, 'span.op:');
-    await userEvent.keyboard('{enter}');
-
-    // Wait for the filter token to be created before typing the value
-    await screen.findByRole('row', {name: /span\.op/});
-
-    await userEvent.keyboard('function');
+    await userEvent.type(searchInput, 'span.op:', {delay: null});
+    await userEvent.keyboard('function', {delay: null});
     await userEvent.keyboard('{enter}');
 
     await waitFor(() => {
@@ -165,13 +160,11 @@ describe('SpansSearchBar', () => {
       name: 'Add a search term',
     });
     await userEvent.click(searchInput);
-    await userEvent.type(searchInput, 'span.op:');
-    await userEvent.keyboard('{enter}');
-    await userEvent.keyboard('function');
-    await userEvent.keyboard('{enter}');
-
-    // Wait for the filter token to be created before typing the value
+    await userEvent.type(searchInput, 'span.op:', {delay: null});
+    await userEvent.keyboard('{enter}', {delay: null});
     await screen.findByRole('row', {name: /span\.op/});
+    await userEvent.keyboard('function', {delay: null});
+    await userEvent.keyboard('{enter}', {delay: null});
 
     await waitFor(() => {
       expect(onClose).toHaveBeenCalled();
