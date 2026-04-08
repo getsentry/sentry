@@ -20,8 +20,6 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import ExternalProviders
-from sentry.models.repository import Repository
-from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import (
     ApiForbiddenError,
     IntegrationConfigurationError,
@@ -570,13 +568,13 @@ class GitlabIssueSyncTest(GitLabTestCase):
 
         with patch(
             "sentry.integrations.gitlab.integration.repository_service.schedule_update_gitlab_project_webhooks"
-        ) as mock_task:
+        ) as mock_schedule_webhooks:
             # Update configuration
             data = {"sync_reverse_assignment": True}
             installation.update_organization_config(data)
 
             # Verify task was called with correct arguments
-            mock_task.assert_called_once_with(
+            mock_schedule_webhooks.assert_called_once_with(
                 organization_id=self.organization.id,
                 integration_id=integration.id,
             )
@@ -616,13 +614,13 @@ class GitlabIssueSyncTest(GitLabTestCase):
 
         with patch(
             "sentry.integrations.gitlab.integration.repository_service.schedule_update_gitlab_project_webhooks"
-        ) as mock_task:
+        ) as mock_schedule_webhooks:
             # Update configuration
             data = {"sync_reverse_assignment": True}
             installation.update_organization_config(data)
 
             # Verify task was NOT called
-            mock_task.assert_not_called()
+            mock_schedule_webhooks.assert_not_called()
 
         # Verify config was still updated
         org_integration = integration_service.get_organization_integration(
@@ -660,13 +658,13 @@ class GitlabIssueSyncTest(GitLabTestCase):
 
         with patch(
             "sentry.integrations.gitlab.integration.repository_service.schedule_update_gitlab_project_webhooks"
-        ) as mock_task:
+        ) as mock_schedule_webhooks:
             # Update configuration
             data = {"sync_comments": True}
             installation.update_organization_config(data)
 
             # Verify task was called
-            mock_task.assert_called_once_with(
+            mock_schedule_webhooks.assert_called_once_with(
                 organization_id=self.organization.id,
                 integration_id=integration.id,
             )
@@ -705,13 +703,13 @@ class GitlabIssueSyncTest(GitLabTestCase):
 
         with patch(
             "sentry.integrations.gitlab.integration.repository_service.schedule_update_gitlab_project_webhooks"
-        ) as mock_task:
+        ) as mock_schedule_webhooks:
             # Update configuration
             data = {"sync_reverse_assignment": False, "sync_comments": False}
             installation.update_organization_config(data)
 
             # Task should be called since version is missing (defaults to 0)
-            mock_task.assert_called_once_with(
+            mock_schedule_webhooks.assert_called_once_with(
                 organization_id=self.organization.id,
                 integration_id=integration.id,
             )

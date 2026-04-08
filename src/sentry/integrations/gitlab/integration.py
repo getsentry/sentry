@@ -6,9 +6,6 @@ from typing import Any
 from urllib.parse import urlparse
 
 from django.http.request import HttpRequest
-from django.http.response import HttpResponseBase
-from django.urls import reverse
-from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from rest_framework.fields import BooleanField, CharField, URLField
