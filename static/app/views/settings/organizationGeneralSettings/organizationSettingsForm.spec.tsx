@@ -156,6 +156,28 @@ describe('OrganizationSettingsForm', () => {
     expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
   });
 
+  it('shows field error when slug is already taken', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      method: 'PUT',
+      statusCode: 400,
+      body: {slug: ['The slug "taken" is in use by another organization.']},
+    });
+
+    render(
+      <OrganizationSettingsForm initialData={OrganizationFixture()} onSave={onSave} />
+    );
+
+    const input = screen.getByRole('textbox', {name: 'Organization Slug'});
+    await userEvent.clear(input);
+    await userEvent.type(input, 'taken');
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    expect(
+      await screen.findByText('The slug "taken" is in use by another organization.')
+    ).toBeInTheDocument();
+  });
+
   it('can enable codecov', async () => {
     putMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,

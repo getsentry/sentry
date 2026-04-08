@@ -11,6 +11,7 @@ import {
   defaultFormOptions,
   FieldGroup,
   FormSearch,
+  setFieldErrors,
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -29,6 +30,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {MembershipSettingsProps} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {slugify} from 'sentry/utils/slugify';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -437,10 +439,14 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
     ...defaultFormOptions,
     defaultValues: {slug: initialData.slug},
     validators: {onDynamic: slugSchema},
-    onSubmit: ({value}) =>
+    onSubmit: ({value, formApi}) =>
       updateSlug({slug: value.slug})
         .then(() => slugForm.reset())
-        .catch(() => {}),
+        .catch(error => {
+          if (error instanceof RequestError) {
+            setFieldErrors(formApi, error);
+          }
+        }),
   });
 
   return (
