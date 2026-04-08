@@ -14,7 +14,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {
   CheckboxLabel,
   SupergroupCheckbox,
-} from 'sentry/components/stream/supergroupCheckbox';
+} from 'sentry/components/stream/supergroups/supergroupCheckbox';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
