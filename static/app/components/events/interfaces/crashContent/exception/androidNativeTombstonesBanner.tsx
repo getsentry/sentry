@@ -8,7 +8,7 @@ import {usePrompt} from 'sentry/actionCreators/prompts';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {EntryException, Event} from 'sentry/types/event';
+import type {EntryException, Event, ExceptionValue} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -40,7 +40,7 @@ function hasSignalHandlerMechanism(event: Event): boolean {
   }
   return (
     exceptionEntry.data.values?.some(
-      value => value.mechanism?.type === 'signalhandler'
+      (value: ExceptionValue) => value.mechanism?.type === 'signalhandler'
     ) ?? false
   );
 }
@@ -92,7 +92,7 @@ export function AndroidNativeTombstonesBanner({event, projectId}: Props) {
           onTabClick={setCodeTab}
           language={codeTab === 'manifest' ? 'xml' : codeTab}
         >
-          {CODE_SNIPPETS[codeTab]}
+          {CODE_SNIPPETS[codeTab] ?? ''}
         </CodeBlock>
         <LinkButton
           style={{marginTop: '12px'}}
