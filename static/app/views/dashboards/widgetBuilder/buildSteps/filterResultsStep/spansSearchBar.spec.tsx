@@ -137,7 +137,7 @@ describe('SpansSearchBar', () => {
     await userEvent.click(searchInput);
     await userEvent.type(searchInput, 'span.op:', {delay: null});
     await userEvent.keyboard('function', {delay: null});
-    await userEvent.keyboard('{enter}');
+    await userEvent.keyboard('{enter}', {delay: null});
 
     await waitFor(() => {
       expect(onSearch).toHaveBeenCalledWith(
