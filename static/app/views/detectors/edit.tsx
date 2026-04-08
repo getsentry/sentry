@@ -10,7 +10,7 @@ import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 
 export default function DetectorEdit() {
   const params = useParams<{detectorId: string}>();
-  const {fetching: isFetchingProjects} = useProjects();
+  const {projects, fetching: isFetchingProjects} = useProjects();
   useWorkflowEngineFeatureGate({redirect: true});
 
   const {
@@ -32,6 +32,11 @@ export default function DetectorEdit() {
         onRetry={refetch}
       />
     );
+  }
+
+  const project = projects.find(p => p.id === detector.projectId);
+  if (!project) {
+    return <LoadingError message={t('Project not found')} />;
   }
 
   return (
