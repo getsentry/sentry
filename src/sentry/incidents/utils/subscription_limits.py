@@ -32,6 +32,24 @@ def is_metric_subscription_allowed(dataset: str, organization: Organization) -> 
     return True
 
 
+def get_disallowed_metric_datasets(organization: Organization) -> list[str]:
+    """
+    Return dataset values that are NOT allowed for metric alert subscriptions
+    in this organization. Used to filter out metric detectors whose subscriptions
+    the organization is no longer entitled to (e.g. after a plan downgrade).
+    """
+    disallowed = []
+    for dataset in [
+        Dataset.Events,
+        Dataset.Transactions,
+        Dataset.EventsAnalyticsPlatform,
+        Dataset.PerformanceMetrics,
+    ]:
+        if not is_metric_subscription_allowed(dataset.value, organization):
+            disallowed.append(dataset.value)
+    return disallowed
+
+
 def get_max_metric_alert_subscriptions(organization: Organization) -> int:
     if organization.id in options.get("metric_alerts.extended_max_subscriptions_orgs") and (
         extended_max_specs := options.get("metric_alerts.extended_max_subscriptions")

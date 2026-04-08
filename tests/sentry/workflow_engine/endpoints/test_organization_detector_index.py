@@ -1,5 +1,7 @@
 from collections.abc import Sequence
+from datetime import timedelta
 
+import pytest
 from django.db.models import Q
 
 from sentry import audit_log
@@ -10,16 +12,20 @@ from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.models.environment import Environment
 from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.search.utils import _HACKY_INVALID_USER
-from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import cell_silo_test
+from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.types import (
     DATA_SOURCE_UPTIME_SUBSCRIPTION,
@@ -814,6 +820,55 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             status_code=200,
         )
         assert {d["name"] for d in response.data} == {self.detector.name, self.detector_2.name}
+
+
+@cell_silo_test
+@pytest.mark.snuba_ci
+class OrganizationDetectorIndexSubscriptionFilterTest(OrganizationDetectorIndexBaseTest):
+    """Tests that metric detectors are excluded from lists when their subscription is not allowed."""
+
+    @requires_snuba
+    @requires_kafka
+    def test_list_excludes_disallowed_metric_detectors(self) -> None:
+        with self.tasks():
+            snuba_query = create_snuba_query(
+                query_type=SnubaQuery.Type.ERROR,
+                dataset=Dataset.Events,
+                query="test",
+                aggregate="count()",
+                time_window=timedelta(minutes=1),
+                resolution=timedelta(minutes=1),
+                environment=self.environment,
+                event_types=[SnubaQueryEventType.EventType.ERROR],
+            )
+            query_subscription = create_snuba_subscription(
+                project=self.project,
+                subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+                snuba_query=snuba_query,
+            )
+        data_source = self.create_data_source(
+            organization=self.organization, source_id=query_subscription.id
+        )
+        metric_detector = self.create_detector(
+            project=self.project, name="Metric Detector", type=MetricIssue.slug
+        )
+        self.create_data_source_detector(data_source=data_source, detector=metric_detector)
+
+        # With incidents feature, the metric detector appears in the list
+        with self.feature({"organizations:incidents": True}):
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"project": self.project.id}
+            )
+            detector_ids = {d["id"] for d in response.data}
+            assert str(metric_detector.id) in detector_ids
+
+        # Without incidents feature, the metric detector is excluded
+        with self.feature({"organizations:incidents": False}):
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"project": self.project.id}
+            )
+            detector_ids = {d["id"] for d in response.data}
+            assert str(metric_detector.id) not in detector_ids
 
 
 @cell_silo_test

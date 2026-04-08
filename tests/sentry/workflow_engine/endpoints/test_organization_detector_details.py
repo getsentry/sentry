@@ -45,6 +45,18 @@ class OrganizationDetectorDetailsBaseTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
+        # Metric issue detectors require the incidents feature
+        self._incidents_feature_ctx = self.feature({"organizations:incidents": True})
+        self._incidents_feature_ctx.__enter__()
+        # Mock subscription limit checks so tests aren't coupled to feature gating logic.
+        # Tests that specifically verify gating should override this mock.
+        for mod in (
+            "sentry.incidents.metric_issue_detector",
+            "sentry.workflow_engine.endpoints.organization_detector_details",
+        ):
+            patcher = mock.patch(f"{mod}.is_metric_subscription_allowed", return_value=True)
+            patcher.start()
+            self.addCleanup(patcher.stop)
         self.environment = self.create_environment(
             organization_id=self.organization.id, name="production"
         )
@@ -93,6 +105,10 @@ class OrganizationDetectorDetailsBaseTest(APITestCase):
             data_source=self.data_source, detector=self.detector
         )
         assert self.detector.data_sources is not None
+
+    def tearDown(self) -> None:
+        self._incidents_feature_ctx.__exit__(None, None, None)
+        super().tearDown()
 
 
 @cell_silo_test
@@ -207,6 +223,17 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
         # Verify the mapping fields are null when no mapping exists
         assert response.data["alertRuleId"] is None
         assert response.data["ruleId"] is None
+
+    @mock.patch(
+        "sentry.workflow_engine.endpoints.organization_detector_details.is_metric_subscription_allowed",
+        return_value=False,
+    )
+    def test_metric_detector_not_allowed_returns_404(self, mock_allowed: mock.MagicMock) -> None:
+        """
+        When is_metric_subscription_allowed returns False for the detector's dataset,
+        GET should return 404.
+        """
+        self.get_error_response(self.organization.slug, self.detector.id, status_code=404)
 
 
 @cell_silo_test
@@ -366,6 +393,22 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                 **data,
                 status_code=200,
             )
+
+    @mock.patch(
+        "sentry.workflow_engine.endpoints.organization_detector_details.is_metric_subscription_allowed",
+        return_value=False,
+    )
+    def test_metric_detector_not_allowed_returns_404(self, mock_allowed: mock.MagicMock) -> None:
+        """
+        When is_metric_subscription_allowed returns False for the detector's dataset,
+        PUT should return 404.
+        """
+        self.get_error_response(
+            self.organization.slug,
+            self.detector.id,
+            **self.valid_data,
+            status_code=404,
+        )
 
     def test_update_add_data_condition(self) -> None:
         """

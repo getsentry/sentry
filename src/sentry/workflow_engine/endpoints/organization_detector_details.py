@@ -23,7 +23,8 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.apidocs.parameters import DetectorParams, GlobalParams
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.metric_issue_detector import schedule_update_project_config
+from sentry.incidents.metric_issue_detector import fetch_snuba_query, schedule_update_project_config
+from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
 from sentry.issues import grouptype
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -37,6 +38,17 @@ from sentry.workflow_engine.endpoints.validators.utils import (
     get_unknown_detector_type_error,
 )
 from sentry.workflow_engine.models import Detector
+
+
+def _check_metric_detector_allowed(detector: Detector, organization: Organization) -> None:
+    """Raise ResourceDoesNotExist if this is a metric detector the org is not entitled to."""
+    if detector.type != MetricIssue.slug:
+        return
+    snuba_query = fetch_snuba_query(detector)
+    if snuba_query is None:
+        return
+    if not is_metric_subscription_allowed(snuba_query.dataset, organization):
+        raise ResourceDoesNotExist
 
 
 def remove_detector(request: Request, organization: Organization, detector: Detector) -> Response:
@@ -148,6 +160,8 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
 
         Return details on an individual monitor
         """
+        _check_metric_detector_allowed(detector, organization)
+
         serialized_detector = serialize(
             detector,
             request.user,
@@ -177,6 +191,8 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
 
         Update an existing monitor
         """
+        _check_metric_detector_allowed(detector, organization)
+
         if not can_edit_detector(detector, request):
             raise PermissionDenied
 

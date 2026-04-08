@@ -100,6 +100,15 @@ class OrganizationProjectDetectorIndexBaseTest(APITestCase):
 @cell_silo_test
 @with_feature("organizations:incidents")
 class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexBaseTest):
+    def setUp(self) -> None:
+        super().setUp()
+        patcher = mock.patch(
+            "sentry.incidents.metric_issue_detector.is_metric_subscription_allowed",
+            return_value=True,
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_reject_upsampled_count_aggregate(self) -> None:
         """Users should not be able to submit upsampled_count() directly in ACI."""
         data = {**self.valid_data}
@@ -162,6 +171,36 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
                 string="Unable to process request, confirm payment options.", code="error"
             )
         }
+
+    @mock.patch(
+        "sentry.incidents.metric_issue_detector.is_metric_subscription_allowed",
+        return_value=False,
+    )
+    def test_create_blocked_when_dataset_not_allowed(self, mock_allowed: mock.MagicMock) -> None:
+        """
+        Even with organizations:incidents, creating a metric detector for the
+        Transactions dataset should be blocked when performance-view is missing.
+        The check runs inside the validator after the dataset is validated.
+        """
+        data = {
+            **self.valid_data,
+            "dataSources": [
+                {
+                    **self.valid_data["dataSources"][0],
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.Transactions.name.lower(),
+                    "aggregate": "count()",
+                    "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
+                }
+            ],
+        }
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            **data,
+            status_code=400,
+        )
+        assert "does not have access" in str(response.data)
 
     def test_project_not_found(self) -> None:
         self.get_error_response(
