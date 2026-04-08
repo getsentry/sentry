@@ -119,7 +119,8 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
             start, end = get_date_range_from_params(query_info)
         except InvalidParams as err:
             sentry_sdk.set_tag("query.error_reason", "Invalid date params")
-            raise serializers.ValidationError(str(err))
+            sentry_sdk.capture_exception(err)
+            raise serializers.ValidationError("Invalid date parameters.")
 
         if "statsPeriod" in query_info:
             del query_info["statsPeriod"]
@@ -200,45 +201,44 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
                 )
                 builder.get_snql_query()
             except InvalidSearchQuery as err:
-                raise serializers.ValidationError(str(err))
+                sentry_sdk.capture_exception(err)
+                raise serializers.ValidationError("Invalid search query.")
 
         elif query_type == ExportQueryType.EXPLORE_STR:
             query_info = self._validate_query_info(
                 query_type, query_info, export_format=export_format
             )
             query_info = self._validate_dataset(query_type, query_info)
-
             explore_output_mode = OutputMode.from_value(export_format)
-            explore_processor = ExploreProcessor(
-                explore_query=query_info,
-                organization=organization,
-                output_mode=explore_output_mode,
+            is_full_jsonl_logs_export = (
+                query_info.get("dataset") == "logs" and export_format == OutputMode.JSONL.value
             )
-            if explore_processor.logs_full_detail_export:
-                query_info["field"] = explore_processor.get_columns_for_logs_wide_export(
-                    self.context["user"]
-                )
-
-            try:
-                sort = query_info.get("sort", [])
-                orderby = [sort] if isinstance(sort, str) else sort
-
-                explore_processor.validate_export_query(
-                    rpc_dataset_common.TableQuery(
-                        query_string=query_info["query"],
-                        selected_columns=query_info["field"],
-                        orderby=orderby,
-                        offset=0,
-                        limit=1,
-                        referrer=Referrer.DATA_EXPORT_TASKS_EXPLORE,
-                        sampling_mode=explore_processor.sampling_mode,
-                        resolver=explore_processor.search_resolver,
-                        equations=query_info.get("equations", []),
+            if not is_full_jsonl_logs_export:
+                try:
+                    explore_processor = ExploreProcessor(
+                        explore_query=query_info,
+                        organization=organization,
+                        output_mode=explore_output_mode,
                     )
-                )
-            except InvalidSearchQuery as err:
-                sentry_sdk.capture_exception(err)
-                raise serializers.ValidationError(f"Invalid table query {err}")
+                    sort = query_info.get("sort", [])
+                    orderby = [sort] if isinstance(sort, str) else sort
+
+                    explore_processor.validate_export_query(
+                        rpc_dataset_common.TableQuery(
+                            query_string=query_info["query"],
+                            selected_columns=query_info["field"],
+                            orderby=orderby,
+                            offset=0,
+                            limit=1,
+                            referrer=Referrer.DATA_EXPORT_TASKS_EXPLORE,
+                            sampling_mode=explore_processor.sampling_mode,
+                            resolver=explore_processor.search_resolver,
+                            equations=query_info.get("equations", []),
+                        )
+                    )
+                except InvalidSearchQuery as err:
+                    sentry_sdk.capture_exception(err)
+                    raise serializers.ValidationError("Invalid table query.")
 
         elif data["query_type"] == ExportQueryType.ISSUES_BY_TAG_STR:
             issues_by_tag_validate(query_info)

@@ -1,19 +1,16 @@
 import logging
 from typing import Any, cast
 
-from sentry import features
-from sentry.api.endpoints.organization_trace_item_attributes import (
-    POSSIBLE_ATTRIBUTE_TYPES,
-    OrganizationTraceItemAttributesEndpoint,
-    resolve_attribute_referrer,
-)
+from sentry_protos.snuba.v1.endpoint_trace_items_pb2 import ExportTraceItemsRequest
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta, TraceItemType
+
 from sentry.api.utils import get_date_range_from_params
 from sentry.data_export.base import ExportError
+from sentry.data_export.utils import iter_export_trace_items_rows
 from sentry.data_export.writers import OutputMode
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.search.eap import constants
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
@@ -21,14 +18,13 @@ from sentry.search.eap.types import (
     EAPResponse,
     FieldsACL,
     SearchResolverConfig,
-    SupportedTraceItemType,
 )
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import TableQuery
 from sentry.snuba.spans_rpc import Spans
-from sentry.users.models import User
+from sentry.utils.snuba_rpc import export_logs_rpc
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +68,11 @@ class ExploreProcessor:
 
         dataset: str = explore_query["dataset"]
         self.scoped_dataset = SUPPORTED_TRACE_ITEM_DATASETS[dataset]
+        self.trace_item_type = (
+            TraceItemType.TRACE_ITEM_TYPE_SPAN
+            if dataset == "spans"
+            else TraceItemType.TRACE_ITEM_TYPE_LOG
+        )
 
         use_aggregate_conditions = explore_query.get("allowAggregateConditions", "1") == "1"
         disable_extrapolation = explore_query.get("disableAggregateExtrapolation", "0") == "1"
@@ -95,15 +96,8 @@ class ExploreProcessor:
         )
 
         equations = explore_query.get("equations", [])
-        self.logs_full_detail_export = (
-            output_mode == OutputMode.JSONL
-            and dataset == "logs"
-            and len(explore_query.get("field", [])) == 0
-            and len(equations) == 0
-        )
-        self.header_fields = (
-            [] if self.logs_full_detail_export else explore_query["field"]
-        ) + equations
+
+        self.header_fields = explore_query["field"] + equations
 
         self.explore_query = explore_query
 
@@ -144,45 +138,6 @@ class ExploreProcessor:
             sampling_mode = cast(SAMPLING_MODES, sampling_mode.upper())
         return sampling_mode
 
-    def _get_attribute_keys_for_full_export(
-        self,
-        user: User,
-        trace_item_type: SupportedTraceItemType,
-    ) -> list[str]:
-        """
-        Collect every `key` from repeated calls to
-        GET /api/0/organizations/{org}/trace-items/attributes/
-        """
-        referrer = resolve_attribute_referrer(trace_item_type.value)
-        meta = self.search_resolver.resolve_meta(referrer=referrer.value)
-        meta.trace_item_type = constants.SUPPORTED_TRACE_ITEM_TYPE_MAP[trace_item_type]
-        use_sentry_conventions = features.has(
-            "organizations:performance-sentry-conventions-fields",
-            self.search_resolver.params.organization,
-            actor=user,
-        )
-        helper = OrganizationTraceItemAttributesEndpoint()
-        keys: set[str] = set()
-
-        for attribute_type in POSSIBLE_ATTRIBUTE_TYPES:
-            batch = helper.query_trace_attributes(
-                0,
-                1000,
-                meta,
-                query_filter=None,
-                substring_match="",
-                attribute_type=attribute_type,
-                column_definitions=DEFINITIONS_MAP[self.scoped_dataset],
-                use_sentry_conventions=use_sentry_conventions,
-                trace_item_type=trace_item_type,
-                include_internal=False,
-            )
-            if not batch:
-                continue
-            keys.update(item["key"] for item in batch)
-
-        return sorted(keys)
-
     def run_query(self, offset: int, limit: int) -> list[dict[str, Any]]:
         query: str = self.explore_query.get("query", "")
         fields: list[str] = self.explore_query.get("field", [])
@@ -201,10 +156,45 @@ class ExploreProcessor:
         )
         return eap_response["data"]
 
-    def get_columns_for_logs_wide_export(self, user: User) -> list[str]:
-        return self._get_attribute_keys_for_full_export(
-            user=user, trace_item_type=SupportedTraceItemType.LOGS
-        )
-
     def validate_export_query(self, export_request: TableQuery) -> None:
         _ = self.scoped_dataset.get_table_rpc_request(export_request)
+
+
+class TraceItemFullExportProcessor(ExploreProcessor):
+    """Logs JSONL wide export: carries Snuba `PageToken` bytes between `run_query` calls."""
+
+    def __init__(
+        self,
+        organization: Organization,
+        explore_query: dict[str, Any],
+        *,
+        output_mode: OutputMode = OutputMode.CSV,
+        page_token: bytes | None = None,
+    ):
+        super().__init__(organization, explore_query, output_mode=output_mode)
+        self.page_token = page_token
+
+    def _create_logs_export_rpc_meta(self) -> RequestMeta:
+        return RequestMeta(
+            organization_id=self.snuba_params.organization_id,
+            project_ids=self.snuba_params.project_ids,
+            cogs_category="events_analytics_platform",
+            start_timestamp=self.snuba_params.rpc_start_date,
+            end_timestamp=self.snuba_params.rpc_end_date,
+            referrer=Referrer.DATA_EXPORT_TASKS_EXPLORE,
+            trace_item_type=self.trace_item_type,
+        )
+
+    def run_query(self, _offset: int, limit: int) -> list[dict[str, Any]]:
+        meta = self._create_logs_export_rpc_meta()
+        request = ExportTraceItemsRequest(meta=meta, limit=limit)
+        if self.page_token:
+            token = PageToken()
+            token.ParseFromString(self.page_token)
+            request.page_token.CopyFrom(token)
+        http_resp = export_logs_rpc(request)
+        if http_resp.HasField("page_token"):
+            self.page_token = http_resp.page_token.SerializeToString()
+        else:
+            self.page_token = None
+        return list(iter_export_trace_items_rows(http_resp))

@@ -76,11 +76,7 @@ from sentry.utils import snuba_rpc
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.cursors import Cursor, CursorResult
 
-POSSIBLE_ATTRIBUTE_TYPES: list[Literal["string", "number", "boolean"]] = [
-    "string",
-    "number",
-    "boolean",
-]
+POSSIBLE_ATTRIBUTE_TYPES = ["string", "number", "boolean"]
 
 
 class TraceItemAttributeKey(TypedDict):

@@ -1,3 +1,4 @@
+import base64
 import logging
 import tempfile
 from hashlib import sha1
@@ -12,7 +13,7 @@ from taskbroker_client.retry import NoRetriesRemainingError, Retry, retry_task
 
 from sentry.data_export.models import ExportedData, ExportedDataBlob
 from sentry.data_export.processors.discover import DiscoverProcessor
-from sentry.data_export.processors.explore import ExploreProcessor
+from sentry.data_export.processors.explore import ExploreProcessor, TraceItemFullExportProcessor
 from sentry.data_export.processors.issues_by_tag import IssuesByTagProcessor
 from sentry.data_export.utils import handle_snuba_errors
 from sentry.data_export.writers import (
@@ -52,6 +53,22 @@ def _export_metric_tags(data_export: ExportedData) -> dict[str, str]:
     }
 
 
+def _is_full_jsonl_trace_item_export(data_export: ExportedData, output_mode: OutputMode) -> bool:
+    return (
+        data_export.query_type == ExportQueryType.EXPLORE
+        and output_mode == OutputMode.JSONL
+        and len(data_export.query_info.get("field", [])) == 0
+    )
+
+
+def _page_token_b64_from_processor(
+    processor: IssuesByTagProcessor | DiscoverProcessor | ExploreProcessor,
+) -> str | None:
+    if isinstance(processor, TraceItemFullExportProcessor) and processor.page_token is not None:
+        return base64.b64encode(processor.page_token).decode("ascii")
+    return None
+
+
 @instrumented_task(
     name="sentry.data_export.tasks.assemble_download",
     namespace=export_tasks,
@@ -70,6 +87,8 @@ def assemble_download(
     bytes_written: int = 0,
     environment_id: int | None = None,
     export_retries: int = 3,
+    *,
+    page_token: str | None = None,
     **kwargs: Any,
 ) -> None:
     # The API response to export the data contains the ID which you can use
@@ -110,7 +129,12 @@ def assemble_download(
                 export_limit = min(export_limit, EXPORTED_ROWS_LIMIT)
 
             output_mode = OutputMode.from_value(data_export.export_format)
-            processor = get_processor(data_export, environment_id, output_mode)
+            processor = get_processor(
+                data_export,
+                environment_id,
+                output_mode,
+                page_token_b64=page_token,
+            )
 
             with tempfile.TemporaryFile(mode="w+b") as tf:
                 writer = FileWriter(
@@ -136,8 +160,10 @@ def assemble_download(
                 rows = []
 
                 for _ in range(MAX_FRAGMENTS_PER_BATCH):
-                    # the number of rows to export in the next batch fragment
-                    fragment_row_count = min(batch_size, max(export_limit - next_offset, 1))
+                    remaining = export_limit - next_offset
+                    if remaining <= 0:
+                        break
+                    fragment_row_count = min(batch_size, remaining)
                     rows = process_rows(processor, data_export, fragment_row_count, next_offset)
                     writer.writerows(rows)
 
@@ -167,6 +193,7 @@ def assemble_download(
                         "bytes_written": base_bytes_written,
                         "environment_id": environment_id,
                         "export_retries": export_retries - 1,
+                        "page_token": page_token,
                     },
                 )
             else:
@@ -214,6 +241,7 @@ def assemble_download(
                         "bytes_written": bytes_written,
                         "environment_id": environment_id,
                         "export_retries": export_retries,
+                        "page_token": _page_token_b64_from_processor(processor),
                     },
                 )
             else:
@@ -228,7 +256,9 @@ def get_processor(
     data_export: ExportedData,
     environment_id: int | None,
     output_mode: OutputMode,
-) -> IssuesByTagProcessor | DiscoverProcessor | ExploreProcessor:
+    *,
+    page_token_b64: str | None = None,
+) -> IssuesByTagProcessor | DiscoverProcessor | ExploreProcessor | TraceItemFullExportProcessor:
     try:
         if data_export.query_type == ExportQueryType.ISSUES_BY_TAG:
             payload = data_export.query_info
@@ -245,6 +275,19 @@ def get_processor(
                 organization=data_export.organization,
             )
         elif data_export.query_type == ExportQueryType.EXPLORE:
+            if _is_full_jsonl_trace_item_export(data_export, output_mode):
+                page_token: bytes | None = None
+                if page_token_b64:
+                    try:
+                        page_token = base64.b64decode(page_token_b64)
+                    except (ValueError, TypeError) as e:
+                        raise ExportError("Invalid export trace item pagination state.") from e
+                return TraceItemFullExportProcessor(
+                    explore_query=data_export.query_info,
+                    organization=data_export.organization,
+                    output_mode=output_mode,
+                    page_token=page_token,
+                )
             return ExploreProcessor(
                 explore_query=data_export.query_info,
                 organization=data_export.organization,
@@ -259,7 +302,10 @@ def get_processor(
 
 
 def process_rows(
-    processor: IssuesByTagProcessor | DiscoverProcessor | ExploreProcessor,
+    processor: IssuesByTagProcessor
+    | DiscoverProcessor
+    | ExploreProcessor
+    | TraceItemFullExportProcessor,
     data_export: ExportedData,
     batch_size: int,
     offset: int,
@@ -294,7 +340,11 @@ def process_discover(processor: DiscoverProcessor, limit: int, offset: int) -> l
 
 
 @handle_snuba_errors(logger)
-def process_explore(processor: ExploreProcessor, limit: int, offset: int) -> list[dict[str, Any]]:
+def process_explore(
+    processor: ExploreProcessor | TraceItemFullExportProcessor,
+    limit: int,
+    offset: int,
+) -> list[dict[str, Any]]:
     return processor.run_query(offset, limit)
 
 
@@ -367,12 +417,11 @@ def merge_export_blobs(data_export_id: int, **kwargs: Any) -> None:
                     router.db_for_write(FileBlobIndex),
                 )
             ):
+                output_mode = OutputMode.from_value(data_export.export_format)
                 file = File.objects.create(
                     name=data_export.file_name,
-                    type=get_file_type(OutputMode(data_export.export_format)),
-                    headers={
-                        "Content-Type": get_content_type(OutputMode(data_export.export_format))
-                    },
+                    type=get_file_type(output_mode),
+                    headers={"Content-Type": get_content_type(output_mode)},
                 )
                 size = 0
                 file_checksum = sha1(b"")

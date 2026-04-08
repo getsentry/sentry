@@ -820,14 +820,14 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
             ),
         ]
         self.store_eap_items(logs)
-
+        fields = ["log.body", "severity_text"]
         de = ExportedData.objects.create(
             user_id=self.user.id,
             organization=self.org,
             query_type=ExportQueryType.EXPLORE,
             query_info={
                 "project": [self.project.id],
-                "field": ["log.body", "severity_text"],
+                "field": fields,
                 "query": "",
                 "dataset": "logs",
                 "start": before_now(minutes=15).isoformat(),
@@ -838,7 +838,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
 
         rows_exported = len(logs) - 1
         with self.tasks():
-            assemble_download(de.id, batch_size=len(logs), export_limit=rows_exported)
+            assemble_download(de.id, batch_size=1, export_limit=rows_exported, page_token=None)
 
         de = ExportedData.objects.get(id=de.id)
         assert de.date_finished is not None
@@ -855,7 +855,8 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
 
         lines = [ln for ln in content.split(b"\n") if ln]
         assert len(lines) == rows_exported
-        bodies = {json.loads(ln.decode("utf-8"))["log.body"] for ln in lines}
+        message_key = "log.body" if len(fields) else "sentry.body"
+        bodies = {json.loads(ln.decode("utf-8"))[message_key] for ln in lines}
         assert bodies == {
             "jsonl log message",
             "jsonl log message two",
@@ -919,52 +920,67 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
         ]
         self.store_eap_items(logs)
 
-        expected_alpha: dict[str, object] = {
-            "logger.name": "sentry.access.api",
-            "message": "api.access.alpha",
-            "method": "GET",
-            "path": "/api/0/projects/acme/issues/",
-            "project": self.project.slug,
-            "rate_limited": "False",
-            "response": "200",
-            "severity": "info",
-            "severity_number": 9,
-            "tags[environment,string]": "prod",
-            "tags[origin,string]": "auto.log.stdlib",
-            "tags[payload_size,number]": 981.0,
-            "tags[sdk.name,string]": "sentry.python.django",
-            "tags[sdk.version,string]": "2.47.0",
-            "tags[tags[code.line.number,number],number]": 148.0,
-            "tags[tags[process.pid,number],number]": 6639.0,
-            "user_agent": "python-requests/2.32.5",
-        }
-        expected_beta: dict[str, object] = {
-            "logger.name": "sentry.access.api",
-            "message": "api.access.beta",
-            "method": "POST",
-            "path": "/api/0/internal/rpc/",
-            "project": self.project.slug,
-            "rate_limited": "False",
-            "response": "201",
-            "severity": "info",
-            "severity_number": 9,
-            "tags[environment,string]": "prod",
-            "tags[origin,string]": "auto.log.stdlib",
-            "tags[payload_size,number]": 2048.0,
-            "tags[sdk.name,string]": "sentry.python.django",
-            "tags[sdk.version,string]": "2.47.0",
-            "tags[tags[code.line.number,number],number]": 148.0,
-            "tags[tags[process.pid,number],number]": 6639.0,
-            "user_agent": "curl/8.0",
-        }
-        assert set(expected_alpha) == set(expected_beta)
+        expected_rows = [
+            {
+                "sdk.name": "sentry.python.django",
+                "user_agent": "python-requests/2.32.5",
+                "method": "GET",
+                "path": "/api/0/projects/acme/issues/",
+                "sdk.version": "2.47.0",
+                "tags[code.line.number,number]": 148.0,
+                "logger.name": "sentry.access.api",
+                "origin": "auto.log.stdlib",
+                "sentry.body": "api.access.alpha",
+                "rate_limited": "False",
+                "sentry.severity_text": "info",
+                "environment": "prod",
+                "sentry.severity_number": 9.0,
+                "payload_size": 981.0,
+                "tags[process.pid,number]": 6639.0,
+                "response": "200",
+            },
+            {
+                "sdk.name": "sentry.python.django",
+                "user_agent": "curl/8.0",
+                "method": "POST",
+                "path": "/api/0/internal/rpc/",
+                "sdk.version": "2.47.0",
+                "tags[code.line.number,number]": 148.0,
+                "logger.name": "sentry.access.api",
+                "origin": "auto.log.stdlib",
+                "sentry.body": "api.access.beta",
+                "rate_limited": "False",
+                "sentry.severity_text": "info",
+                "environment": "prod",
+                "payload_size": 2048.0,
+                "tags[process.pid,number]": 6639.0,
+                "sentry.severity_number": 9.0,
+                "response": "201",
+            },
+        ]
+        expected_rows_by_agent = {exp_row["user_agent"]: exp_row for exp_row in expected_rows}
 
-        volatile_keys = frozenset(
-            {"timestamp_precise", "observed_timestamp", "trace", "id", "item_id"}
-        )
-        # Persisted export `field` list is row keys plus time columns (skipped in static row asserts).
-        wide_log_export_field_names = set(expected_alpha) | (
-            volatile_keys - {"trace", "id", "item_id"}
+        # Present on TraceItem / Snuba but not worth pinning (ids, times, nanosecond precision, sampling).
+        ignored_row_keys = frozenset(
+            {
+                "timestamp_precise",
+                "observed_timestamp",
+                "trace",
+                "id",
+                "item_id",
+                "sentry.timestamp_precise",
+                "sentry.observed_timestamp_nanos",
+                "organization_id",
+                "project_id",
+                "trace_id",
+                "item_type",
+                "timestamp",
+                "sentry._internal.ingested_at",
+                "client_sample_rate",
+                "server_sample_rate",
+                "retention_days",
+                "downsampled_retention_days",
+            }
         )
 
         start = before_now(minutes=15).isoformat()
@@ -999,11 +1015,10 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
         assert de.user_id == self.user.id
         assert de.query_type == ExportQueryType.EXPLORE
         assert de.export_format == OutputMode.JSONL.value
-        assert sorted(de.query_info["field"]) == sorted(wide_log_export_field_names)
         assert de.query_info["dataset"] == "logs"
 
         with self.tasks():
-            assemble_download(de.id, batch_size=10, export_limit=10)
+            assemble_download(de.id, batch_size=1, export_limit=len(expected_rows))
 
         de = ExportedData.objects.get(id=de.id)
         assert de.date_finished is not None
@@ -1017,7 +1032,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
         assert len(lines) == 2
 
         rows = [json.loads(ln.decode("utf-8")) for ln in lines]
-        rows.sort(key=lambda r: str(r.get("message") or r.get("log.body") or ""))
+        rows_by_agent = {row["user_agent"]: row for row in rows}
 
         def assert_row_equals_export(
             actual: dict[str, object], expected: dict[str, object]
@@ -1029,12 +1044,12 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
                     assert float(got) == float(exp), (key, got, exp)
                 else:
                     assert got == exp, (key, got, exp)
-            extra = set(actual) - set(expected) - volatile_keys
+            extra = set(actual) - set(expected) - ignored_row_keys
             assert not extra, f"unexpected columns: {sorted(extra)}"
 
-        assert_row_equals_export(rows[0], expected_alpha)
-        assert_row_equals_export(rows[1], expected_beta)
-
+        assert set(rows_by_agent.keys()) == set(expected_rows_by_agent.keys())
+        for user_agent in rows_by_agent.keys():
+            assert_row_equals_export(rows_by_agent[user_agent], expected_rows_by_agent[user_agent])
         assert emailer.called
 
     @patch("sentry.data_export.models.ExportedData.email_success")
