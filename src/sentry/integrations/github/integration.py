@@ -338,29 +338,7 @@ class GitHubIntegration(
         """
         client = self.get_client()
 
-        # accessible_only: filter cached repo list locally.
-        # Avoids re-fetching all pages on every debounced keystroke and
-        # avoids the Search API's 30 req/min shared rate limit.
-        if accessible_only:
-            all_repos = client.get_accessible_repos_cached()
-            repos: list[RepositoryInfo] = [
-                {
-                    "name": i["name"],
-                    "identifier": i["full_name"],
-                    "external_id": self.get_repo_external_id(i),
-                    "default_branch": i.get("default_branch"),
-                }
-                for i in all_repos
-                if not i.get("archived")
-            ]
-            if not query:
-                return repos
-            query_lower = query.lower()
-            return [r for r in repos if query_lower in r["identifier"].lower()]
-
-        # No query: fetch all accessible repos
-        if not query:
-            all_repos = client.get_repos(page_number_limit=page_number_limit)
+        def to_repo_info(raw_repos: Sequence[Mapping[str, Any]]) -> list[RepositoryInfo]:
             return [
                 {
                     "name": i["name"],
@@ -368,22 +346,28 @@ class GitHubIntegration(
                     "external_id": self.get_repo_external_id(i),
                     "default_branch": i.get("default_branch"),
                 }
-                for i in all_repos
+                for i in raw_repos
                 if not i.get("archived")
             ]
+
+        # accessible_only: filter cached repo list locally.
+        # Avoids re-fetching all pages on every debounced keystroke and
+        # avoids the Search API's 30 req/min shared rate limit.
+        if accessible_only:
+            repos = to_repo_info(client.get_accessible_repos_cached())
+            if not query:
+                return repos
+            query_lower = query.lower()
+            return [r for r in repos if query_lower in r["identifier"].lower()]
+
+        # No query: fetch all accessible repos
+        if not query:
+            return to_repo_info(client.get_repos(page_number_limit=page_number_limit))
 
         # Query without accessible_only: existing search behavior
         full_query = build_repository_query(self.model.metadata, self.model.name, query)
         response = client.search_repositories(full_query)
-        return [
-            {
-                "name": i["name"],
-                "identifier": i["full_name"],
-                "external_id": self.get_repo_external_id(i),
-                "default_branch": i.get("default_branch"),
-            }
-            for i in response.get("items", [])
-        ]
+        return to_repo_info(response.get("items", []))
 
     def get_unmigratable_repositories(self) -> list[RpcRepository]:
         accessible_repos = self.get_repositories()
