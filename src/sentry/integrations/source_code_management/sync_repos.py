@@ -207,6 +207,7 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
                 {
                     "external_id": repo["external_id"],
                     "integration_id": integration.id,
+                    "installation": integration.id,
                     "identifier": str(repo["identifier"]),
                 }
                 for repo in provider_repos

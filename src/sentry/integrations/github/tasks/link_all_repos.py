@@ -28,6 +28,7 @@ def get_repo_config(repo: Mapping[str, Any], integration_id: int) -> RepositoryI
     return {
         "external_id": str(repo["id"]),
         "integration_id": integration_id,
+        "installation": integration_id,
         "identifier": repo["full_name"],
     }
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from datetime import timezone
-from typing import Any, ClassVar, Generic, NotRequired, TypedDict, TypeVar, cast
+from typing import Any, ClassVar, Generic, TypedDict, TypeVar, cast
 
 from dateutil.parser import parse as parse_date
 from rest_framework import status
@@ -37,7 +37,7 @@ class RepositoryInputConfig(TypedDict):
     external_id: str
     integration_id: int
     identifier: str
-    installation: NotRequired[str]
+    installation: int
 
 
 class RepositoryConfig(TypedDict):
