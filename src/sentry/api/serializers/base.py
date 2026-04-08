@@ -117,9 +117,8 @@ class Serializer:
     ) -> Mapping[str, Any] | None:
         try:
             return self.serialize(obj, attrs, user, **kwargs)
-        except Exception as e:
+        except Exception:
             logger.exception("Failed to serialize", extra={"instance": obj})
-            sentry_sdk.capture_exception(e)
             return None
 
     def serialize(
