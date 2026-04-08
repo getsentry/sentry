@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Callable
 
 from sentry.scm.errors import SCMProviderEventNotSupported, SCMProviderNotSupported
@@ -11,6 +12,7 @@ from sentry.scm.private.ipc import (
 from sentry.scm.types import HybridCloudSilo, SubscriptionEvent
 from sentry.scm.utils import check_rollout_option
 
+logger = logging.getLogger()
 PREFIX = "sentry.scm.produce_event_to_scm_stream"
 
 
@@ -38,19 +40,25 @@ def produce_event_to_scm_stream(
     try:
         produce_to_listeners(event, silo, produce_to_listener=produce_to_listener)
         record_count(f"{PREFIX}.success", 1, {})
+        if is_dev:
+            logger.info(f"Successfully processed SCM webhook event: {event['event_type_hint']}.")
     except SCMProviderNotSupported:
         record_count(
             f"{PREFIX}.failed", 1, {"reason": "provider-not-supported", "provider": event["type"]}
         )
+        if is_dev:
+            logger.error("Failed to process SCM webhook event.")
     except SCMProviderEventNotSupported:
         record_count(
             f"{PREFIX}.failed", 1, {"reason": "event-not-supported", "provider": event["type"]}
         )
         if is_dev:
-            raise
+            logger.error("Failed to process SCM webhook event.")
     except Exception as e:
         record_count(f"{PREFIX}.failed", 1, {"reason": "processing"})
         report_error(e)
+        if is_dev:
+            logger.error("Failed to process SCM webhook event.")
 
 
 __all__ = [
