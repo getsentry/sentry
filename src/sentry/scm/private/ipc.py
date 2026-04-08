@@ -359,6 +359,8 @@ def produce_to_listeners(
     if parsed_event is None:
         raise SCMProviderEventNotSupported(f"Unsupported event type `{event['event_type_hint']}`.")
 
+    message = serialize_event(parsed_event)
+
     if isinstance(parsed_event, CheckRunEvent):
         event_type_hint = "check_run"
         listeners = list(stream.check_run_listeners.keys())
@@ -370,8 +372,6 @@ def produce_to_listeners(
         listeners = list(stream.pull_request_listeners.keys())
     else:
         assert_never(parsed_event)
-
-    message = serialize_event(parsed_event)
 
     for listener in listeners:
         produce_to_listener(message, cast(EventTypeHint, event_type_hint), listener, silo)
