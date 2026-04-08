@@ -281,7 +281,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
         if identity_user:
             sentry_sdk.set_user(
                 {
-                    "id": identity_user.id,
+                    "id": str(identity_user.id),
                     "email": identity_user.email,
                     "username": identity_user.username,
                 }
