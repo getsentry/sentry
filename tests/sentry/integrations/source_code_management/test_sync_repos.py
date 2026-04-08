@@ -44,8 +44,8 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
     def test_creates_new_repos(self, _: MagicMock) -> None:
         self._add_repos_response(
             [
-                {"id": 1, "full_name": "getsentry/sentry"},
-                {"id": 2, "full_name": "getsentry/snuba"},
+                {"id": 1, "full_name": "getsentry/sentry", "name": "sentry"},
+                {"id": 2, "full_name": "getsentry/snuba", "name": "snuba"},
             ]
         )
 
@@ -82,7 +82,7 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
             )
 
         # GitHub no longer returns this repo
-        self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry"}])
+        self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
 
         with self.feature(
             ["organizations:github-repo-auto-sync", "organizations:github-repo-auto-sync-apply"]
@@ -121,7 +121,7 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
             )
 
         # GitHub returns the repo again
-        self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry"}])
+        self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
 
         with self.feature(
             ["organizations:github-repo-auto-sync", "organizations:github-repo-auto-sync-apply"]
@@ -150,7 +150,7 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
                 status=ObjectStatus.ACTIVE,
             )
 
-        self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry"}])
+        self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
 
         with self.feature(
             ["organizations:github-repo-auto-sync", "organizations:github-repo-auto-sync-apply"]
@@ -184,8 +184,8 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
         """With auto-sync on but apply off, the task computes the diff but doesn't apply changes."""
         self._add_repos_response(
             [
-                {"id": 1, "full_name": "getsentry/sentry"},
-                {"id": 2, "full_name": "getsentry/snuba"},
+                {"id": 1, "full_name": "getsentry/sentry", "name": "sentry"},
+                {"id": 2, "full_name": "getsentry/snuba", "name": "snuba"},
             ]
         )
 
@@ -249,12 +249,15 @@ class SyncReposForOrgGHETestCase(TestCase):
         )
 
         mock_get_repos.return_value = [
-            {"id": 1, "full_name": "testorg/repo1"},
-            {"id": 2, "full_name": "testorg/repo2"},
+            {"id": 1, "full_name": "testorg/repo1", "name": "repo1"},
+            {"id": 2, "full_name": "testorg/repo2", "name": "repo2"},
         ]
 
         with self.feature(
-            ["organizations:github-repo-auto-sync", "organizations:github-repo-auto-sync-apply"]
+            [
+                "organizations:github_enterprise-repo-auto-sync",
+                "organizations:github_enterprise-repo-auto-sync-apply",
+            ]
         ):
             sync_repos_for_org(oi.id)
 
