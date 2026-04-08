@@ -135,7 +135,6 @@ export function DashboardChatPanel({
         />
       )}
       <InputGroup>
-        {!hasHistory && <IconSeer size="md" />}
         <Container padding="md">
           <InputGroup.TextArea
             ref={textAreaRef}
