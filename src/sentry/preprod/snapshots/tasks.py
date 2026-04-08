@@ -666,8 +666,6 @@ def compare_snapshots(
         time_now = timezone.now()
 
         metric_tags = {
-            "org_id_temp": str(org_id),
-            "project_id_temp": str(project_id),
             "app_id_temp": head_artifact.app_id or "",
         }
 
