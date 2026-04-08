@@ -175,6 +175,8 @@ class TraceItemFullExportProcessor(ExploreProcessor):
         self.page_token = page_token
 
     def _create_logs_export_rpc_meta(self) -> RequestMeta:
+        if self.snuba_params.organization_id is None:
+            raise ExportError("Organization ID must be provided")
         return RequestMeta(
             organization_id=self.snuba_params.organization_id,
             project_ids=self.snuba_params.project_ids,

@@ -94,7 +94,7 @@ def _ts_to_epoch(ts: Timestamp) -> float:
     return ts.seconds + ts.nanos / 1e9
 
 
-def trace_item_to_row(item: TraceItem) -> dict[str, Any] | None:
+def trace_item_to_row(item: TraceItem) -> dict[str, Any]:
     row: dict[str, Any] = {}
     for key, av in item.attributes.items():
         row[key] = None if av.WhichOneof("value") is None else anyvalue_to_python(av)
