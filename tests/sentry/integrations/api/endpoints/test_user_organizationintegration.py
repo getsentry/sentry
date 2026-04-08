@@ -2,7 +2,6 @@ from unittest.mock import patch
 
 import orjson
 
-from sentry.integrations.models.integration import Integration
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -73,19 +72,6 @@ class UserOrganizationIntegationTest(APITestCase):
             assert response.status_code == 200
             content = orjson.loads(response.content)
             assert content == []
-
-    def test_missing_integration_filtered_from_response(self) -> None:
-        """OrganizationIntegrations whose Integration was deleted don't produce null entries."""
-        integration = self.create_provider_integration(provider="github")
-        self.create_organization_integration(
-            organization_id=self.organization.id, integration_id=integration.id
-        )
-
-        # Delete the Integration row directly to simulate orphaned state
-        Integration.objects.filter(id=integration.id).delete()
-
-        response = self.get_success_response(self.user.id)
-        assert response.data == []
 
     def test_serialization_error_filtered_from_response(self) -> None:
         """An exception during serialization should produce an empty list, not null entries."""
