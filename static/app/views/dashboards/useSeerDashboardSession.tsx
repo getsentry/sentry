@@ -142,7 +142,7 @@ export function useSeerDashboardSession({
       const errorMessage = t('Failed to send message');
       try {
         if (!seerRunId && dashboard) {
-        // No session exists yet and an initial dashboard is provided, start a new Seer session
+          // No session exists yet and an initial dashboard is provided, start a new Seer session
           const runId = await startDashboardEditSession(
             organization.slug,
             message,
@@ -167,7 +167,6 @@ export function useSeerDashboardSession({
         setIsUpdating(false);
         addErrorMessage(errorMessage);
       }
-
     },
     [organization.slug, queryClient, seerRunId, dashboard]
   );
