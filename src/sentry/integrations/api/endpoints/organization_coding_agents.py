@@ -154,6 +154,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
             instruction=instruction,
             user_id=request.user.id,
             initiator="user",
+            referrer="api.organization_coding_agents",
         )
 
         successes = results["successes"]
