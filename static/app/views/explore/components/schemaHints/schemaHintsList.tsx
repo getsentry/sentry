@@ -118,6 +118,8 @@ const FILTER_KEY_SECTIONS: Record<SchemaHintsSources, FilterKeySection[]> = {
   [SchemaHintsSources.EXPLORE]: SPANS_FILTER_KEY_SECTIONS,
   [SchemaHintsSources.LOGS]: LOGS_FILTER_KEY_SECTIONS,
   [SchemaHintsSources.CONVERSATIONS]: SPANS_FILTER_KEY_SECTIONS,
+  // TODO: add error filter key sections when they are implemented
+  [SchemaHintsSources.ERRORS]: [],
 };
 
 function getFilterKeySections(source: SchemaHintsSources) {

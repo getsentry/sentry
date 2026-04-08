@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useMemo} from 'react';
+import {useMatches} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -37,7 +38,6 @@ import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay'
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {withProjects} from 'sentry/utils/withProjects';
 import Tags from 'sentry/views/discover/results/tags';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
@@ -315,7 +315,7 @@ function SummaryContent({
   onChangeFilter,
 }: Props) {
   const theme = useTheme();
-  const routes = useRoutes();
+  const matches = useMatches();
   const navigate = useNavigate();
   const mepDataContext = useMEPDataContext();
   const domainViewFilters = useDomainViewFilters();
@@ -597,7 +597,7 @@ function SummaryContent({
                 eventView.normalizeDateSelection(location),
                 domainViewFilters.view
               ),
-              replayId: generateReplayLink(routes),
+              replayId: generateReplayLink(matches),
               'profile.id': generateProfileLink(),
             }}
             handleCellAction={handleCellAction}

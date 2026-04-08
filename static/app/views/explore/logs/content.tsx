@@ -1,5 +1,5 @@
 import {LinkButton} from '@sentry/scraps/button';
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Grid} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -20,11 +20,13 @@ import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {ExploreBreadcrumb} from 'sentry/views/explore/components/breadcrumb';
+import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
+import {useTableExpando} from 'sentry/views/explore/logs/tables/useTableExpando';
 import {
   useQueryParamsId,
   useQueryParamsTitle,
@@ -34,6 +36,7 @@ import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnbo
 
 export default function LogsContent() {
   const organization = useOrganization();
+  const tableExpando = useTableExpando();
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.LOG_BYTE],
   });
@@ -63,7 +66,10 @@ export default function LogsContent() {
             analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
             source="location"
           >
-            <Stack flex={1}>
+            <ViewportConstrainedPage
+              constrained={tableExpando.enabled}
+              hideFooter={tableExpando.expanded === true}
+            >
               <LogsHeader />
               <LogsPageDataProvider allowHighFidelity>
                 {defined(onboardingProject) ? (
@@ -73,10 +79,13 @@ export default function LogsContent() {
                     datePageFilterProps={datePageFilterProps}
                   />
                 ) : (
-                  <LogsTabContent datePageFilterProps={datePageFilterProps} />
+                  <LogsTabContent
+                    datePageFilterProps={datePageFilterProps}
+                    tableExpando={tableExpando}
+                  />
                 )}
               </LogsPageDataProvider>
-            </Stack>
+            </ViewportConstrainedPage>
           </LogsQueryParamsProvider>
         </AnalyticsArea>
       </PageFiltersContainer>

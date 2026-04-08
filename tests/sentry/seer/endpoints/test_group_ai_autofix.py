@@ -940,6 +940,35 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
                 run_id=None,
                 intelligence_level="low",
                 user_context=None,
+                insert_index=None,
+            )
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_explorer")
+    def test_insert_index_passed_through(self, mock_trigger_explorer):
+        """POST passes insert_index to trigger_autofix_explorer for retry-from-step."""
+        for flag in EXPLORER_FLAGS:
+            mock_trigger_explorer.reset_mock()
+            group = self.create_group()
+            mock_trigger_explorer.return_value = 123
+
+            self.login_as(user=self.user)
+            with self.feature(flag):
+                response = self.client.post(
+                    self._get_url(group.id, mode="explorer"),
+                    data={"step": "solution", "run_id": 42, "insert_index": 3},
+                    format="json",
+                )
+
+            assert response.status_code == 202, f"Failed for {flag}: {response.data}"
+            mock_trigger_explorer.assert_called_once_with(
+                group=group,
+                step=AutofixStep.SOLUTION,
+                referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+                stopping_point=None,
+                run_id=42,
+                intelligence_level="low",
+                user_context=None,
+                insert_index=3,
             )
 
     @patch("sentry.seer.autofix.autofix._call_autofix")

@@ -60,6 +60,32 @@ const query = useQuery(
 
 Existing code might use `useApiQuery` from `sentry/utils/queryClient` — prefer `apiOptions` for new code.
 
+#### Accessing response headers (pagination, hit counts)
+
+By default, `apiOptions` selects only the JSON body from the response. If you need response headers (e.g., `Link` for pagination or `X-Hits` / `X-Max-Hits` for total counts), override `select` with `selectJsonWithHeaders`:
+
+```typescript
+import {useQuery} from '@tanstack/react-query';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+
+const {data} = useQuery({
+  ...apiOptions.as<Item[]>()('/organizations/$organizationIdOrSlug/items/', {
+    path: {organizationIdOrSlug: organization.slug},
+    query: {cursor, per_page: 25},
+    staleTime: 0,
+  }),
+  select: selectJsonWithHeaders,
+});
+
+// data is ApiResponse<Item[]> — an object with `json` and `headers`
+const items = data?.json ?? [];
+const pageLinks = data?.headers.Link; // string | undefined
+const totalHits = data?.headers['X-Hits']; // number | undefined
+const maxHits = data?.headers['X-Max-Hits']; // number | undefined
+```
+
+Note that `X-Hits` and `X-Max-Hits` are already parsed to `number | undefined` — no `parseInt` needed.
+
 ## General Frontend Rules
 
 1. NO new Reflux stores

@@ -96,7 +96,10 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
         )
 
         # Without a chart: exactly one section block
-        blocks: list[Any] = result["blocks"]
+        assert result.get("attachments") is not None
+        attachments: list[Any] = result["attachments"]
+        assert len(attachments) == 1
+        blocks: list[Any] = attachments[0]["blocks"]
         assert len(blocks) == 1
         assert blocks[0]["type"] == "section"
         assert blocks[0]["text"]["type"] == "mrkdwn"
@@ -120,8 +123,10 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
             rendered_template=self.rendered_template,
         )
 
+        assert result.get("attachments") is not None
+
         # With a chart: section block + image block
-        blocks: list[Any] = result["blocks"]
+        blocks: list[Any] = result["attachments"][0]["blocks"]
         assert len(blocks) == 2
         assert blocks[0]["type"] == "section"
         assert "123.45 events in the last minute" in blocks[0]["text"]["text"]
@@ -135,7 +140,10 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
             rendered_template=self.rendered_template,
         )
 
-        blocks: list[Any] = result["blocks"]
+        assert result.get("attachments") is not None
+        attachments: list[Any] = result["attachments"]
+        assert len(attachments) == 1
+        blocks: list[Any] = attachments[0]["blocks"]
         assert len(blocks) == 1
         assert blocks[0]["type"] == "section"
 

@@ -28,8 +28,9 @@ describe('useExperiment (gsApp)', () => {
     _resetExposureTracking();
   });
 
-  it('returns inExperiment: true when assignment is active', () => {
+  it('returns inExperiment: true when feature is enabled', () => {
     const org = OrganizationFixture({
+      features: ['test-experiment'],
       experiments: {'test-experiment': 'active'},
     });
     render(<TestComponent feature="test-experiment" reportExposure={false} />, {
@@ -39,7 +40,7 @@ describe('useExperiment (gsApp)', () => {
     expect(screen.getByTestId('assignment')).toHaveTextContent('active');
   });
 
-  it('returns inExperiment: false when assignment is control', () => {
+  it('returns inExperiment: false when feature is not enabled', () => {
     const org = OrganizationFixture({
       experiments: {'test-experiment': 'control'},
     });
@@ -47,6 +48,17 @@ describe('useExperiment (gsApp)', () => {
       organization: org,
     });
     expect(screen.getByTestId('in-experiment')).toHaveTextContent('false');
+    expect(screen.getByTestId('assignment')).toHaveTextContent('control');
+  });
+
+  it('returns inExperiment: true with feature flag even without experiments entry', () => {
+    const org = OrganizationFixture({
+      features: ['test-experiment'],
+    });
+    render(<TestComponent feature="test-experiment" reportExposure={false} />, {
+      organization: org,
+    });
+    expect(screen.getByTestId('in-experiment')).toHaveTextContent('true');
     expect(screen.getByTestId('assignment')).toHaveTextContent('control');
   });
 
@@ -59,8 +71,9 @@ describe('useExperiment (gsApp)', () => {
     expect(screen.getByTestId('assignment')).toHaveTextContent('control');
   });
 
-  it('posts exposure on mount when reportExposure is true', async () => {
+  it('posts exposure on mount when reportExposure is true and experiments entry exists', async () => {
     const org = OrganizationFixture({
+      features: ['test-experiment'],
       experiments: {'test-experiment': 'active'},
     });
     const mockExposure = MockApiClient.addMockResponse({
@@ -84,6 +97,7 @@ describe('useExperiment (gsApp)', () => {
 
   it('does not post exposure when reportExposure is false', () => {
     const org = OrganizationFixture({
+      features: ['test-experiment'],
       experiments: {'test-experiment': 'active'},
     });
     const mockExposure = MockApiClient.addMockResponse({
@@ -101,6 +115,7 @@ describe('useExperiment (gsApp)', () => {
 
   it('reports exposure when reportExposure changes from false to true', async () => {
     const org = OrganizationFixture({
+      features: ['test-experiment'],
       experiments: {'test-experiment': 'active'},
     });
     const mockExposure = MockApiClient.addMockResponse({
@@ -123,6 +138,7 @@ describe('useExperiment (gsApp)', () => {
 
   it('deduplicates exposure reports across remounts', async () => {
     const org = OrganizationFixture({
+      features: ['test-experiment'],
       experiments: {'test-experiment': 'active'},
     });
     const mockExposure = MockApiClient.addMockResponse({
@@ -146,10 +162,6 @@ describe('useExperiment (gsApp)', () => {
     expect(mockExposure).toHaveBeenCalledTimes(1);
   });
 
-  // This verifies the dedupe key includes the assignment so a changed
-  // assignment is treated as a distinct exposure. This scenario is unlikely in
-  // practice since we don't typically reload the organization after the app
-  // boots.
   it('re-reports exposure when assignment changes', async () => {
     const org = OrganizationFixture({
       experiments: {'test-experiment': 'control'},
@@ -169,6 +181,7 @@ describe('useExperiment (gsApp)', () => {
     unmount();
 
     const updatedOrg = OrganizationFixture({
+      features: ['test-experiment'],
       experiments: {'test-experiment': 'active'},
     });
 

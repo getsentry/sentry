@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import re
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
 from typing import Any, TypedDict
@@ -10,7 +9,7 @@ import orjson
 from django.core.exceptions import ObjectDoesNotExist
 from sentry_relay.processing import parse_release
 
-from sentry import features, tagstore
+from sentry import tagstore
 from sentry.constants import LOG_LEVELS
 from sentry.identity.services.identity import RpcIdentity, identity_service
 from sentry.integrations.messaging.message_builder import (
@@ -41,7 +40,7 @@ from sentry.integrations.slack.utils.escape import (
     escape_slack_text,
 )
 from sentry.integrations.time_utils import get_approx_start_time, time_since
-from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
+from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.issue_summary_for_alerts import fetch_issue_summary
 from sentry.issues.endpoints.group_details import get_group_global_count
 from sentry.issues.grouptype import GroupCategory, NotificationContextField
@@ -49,9 +48,7 @@ from sentry.models.commit import Commit
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
-from sentry.models.pullrequest import PullRequest
 from sentry.models.release import Release
-from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import ProjectNotification
@@ -72,19 +69,8 @@ from sentry.users.services.user.model import RpcUser
 from sentry.workflow_engine.models import Workflow
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
-SUPPORTED_COMMIT_PROVIDERS = (
-    IntegrationProviderSlug.GITHUB.value,
-    "integrations:github",
-    "integrations:github_enterprise",
-    "integrations:vsts",
-    "integrations:gitlab",
-    IntegrationProviderSlug.BITBUCKET.value,
-    "integrations:bitbucket",
-)
-
 MAX_BLOCK_TEXT_LENGTH = 256
 USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH = 1500
-MAX_SUMMARY_HEADLINE_LENGTH = 50
 MAX_SUGGESTED_ASSIGNEES = 3
 
 
@@ -303,54 +289,6 @@ def get_suggested_assignees(
     return []
 
 
-def get_suspect_commit_text(group: Group) -> str | None:
-    """Build up the suspect commit text for the given event"""
-
-    commit = group.get_suspect_commit()
-    if not commit:
-        return None
-
-    suspect_commit_text = "Suspect Commit: "
-
-    author = commit.author
-    commit_id = commit.key
-    if not (author and commit_id):  # we need both the author and commit id to continue
-        return None
-
-    author_display = author.name if author.name else author.email
-    pull_request = PullRequest.objects.filter(
-        merge_commit_sha=commit.key, organization_id=group.project.organization_id
-    ).first()
-    if pull_request:
-        repo = Repository.objects.get(id=pull_request.repository_id)
-        repo_base = repo.url
-        provider = repo.provider
-        if repo_base and provider in SUPPORTED_COMMIT_PROVIDERS:
-            if IntegrationProviderSlug.BITBUCKET.value in provider:
-                commit_link = f"<{repo_base}/commits/{commit_id}"
-            else:
-                commit_link = f"<{repo_base}/commit/{commit_id}"
-            commit_link += f"|{commit_id[:6]}>"
-            suspect_commit_text += f"{commit_link} by {author_display}"
-        else:  # for unsupported providers
-            suspect_commit_text += f"{commit_id[:6]} by {author_display}"
-
-        if pull_request.date_added:
-            pr_date = time_since(pull_request.date_added)
-        else:
-            pr_date = pull_request.date_added
-        pr_id = pull_request.key
-        pr_title = pull_request.title
-        pr_link = pull_request.get_external_url()
-        if pr_date and pr_id and pr_title and pr_link:
-            suspect_commit_text += (
-                f" {pr_date} \n'{pr_title} (#{pr_id})' <{pr_link}|View Pull Request>"
-            )
-    else:
-        suspect_commit_text += f"{commit_id[:6]} by {author_display}"
-    return suspect_commit_text
-
-
 def get_action_text(actions: Sequence[Any], identity: RpcIdentity) -> str:
     action_text = "\n".join(
         [
@@ -503,9 +441,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.skip_fallback = skip_fallback
         self.notes = notes
         self.issue_summary: dict[str, Any] | None = None
-        self._is_compact = features.has(
-            "organizations:slack-compact-alerts", self.group.organization
-        )
         self._has_autofix = SeerAutofixOperator.has_access(
             organization=self.group.organization, entrypoint_key=SeerEntrypointKey.SLACK
         ) and SeerAutofixOperator.can_trigger_autofix(group=self.group)
@@ -516,11 +451,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         has_action: bool,
         title_link: str | None = None,
     ) -> SlackBlock:
-        summary_headline = self.get_issue_summary_headline(event_or_group)
-        title = summary_headline or build_attachment_title(event_or_group)
+        title = build_attachment_title(event_or_group)
         title_emojis = self.get_title_emoji(has_action)
-        if self._is_compact:
-            title = build_attachment_title(event_or_group)
 
         title_text = f"{title_emojis} <{title_link}|*{escape_slack_text(title)}*>"
         return self.get_markdown_block(title_text)
@@ -544,28 +476,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         return " ".join(title_emojis)
 
-    # Can be removed when 'slack-compact-alerts' is GA
-    def get_issue_summary_headline(self, event_or_group: Event | GroupEvent | Group) -> str | None:
-        if self.issue_summary is None:
-            return None
-
-        # issue summary headline is formatted like ErrorType: message...
-        error_type = build_attachment_title(event_or_group)
-        text = build_attachment_text(self.group, self.event) or ""
-        text = text.strip(" \r\n\u2028\u2029")
-        text = escape_slack_markdown_text(text)
-        text = text.lstrip(" ")
-
-        linebreak_match = re.search(r"\r?\n|\u2028|\u2029", text)
-        if linebreak_match:
-            text = text[: linebreak_match.start()].strip() + "..."
-
-        if len(text) > MAX_SUMMARY_HEADLINE_LENGTH:
-            text = text[:MAX_SUMMARY_HEADLINE_LENGTH] + "..."
-
-        headline = f"{error_type}: {text}" if text else error_type
-        return headline
-
     def get_issue_summary_text(self) -> str | None:
         """Generate formatted text from issue summary fields."""
         if self.issue_summary is None:
@@ -579,34 +489,20 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if not parts:
             return None
 
-        if self._is_compact:
-            return f"*Initial Guess*: {escape_slack_markdown_text('  '.join(parts))}"
-        else:
-            return escape_slack_markdown_text("\n\n".join(parts))
+        return f"*Initial Guess*: {escape_slack_markdown_text('  '.join(parts))}"
 
     def get_culprit_block(self, event_or_group: Event | GroupEvent | Group) -> SlackBlock | None:
         if event_or_group.culprit and isinstance(event_or_group.culprit, str):
             return self.get_context_block(event_or_group.culprit)
         return None
 
-    # 'small' param can be removed when 'slack-compact-alerts' is GA
-    def get_text_block(self, text, small: bool = False) -> SlackBlock:
+    def get_text_block(self, text) -> SlackBlock:
         if self.group.issue_category == GroupCategory.FEEDBACK:
             max_block_text_length = USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH
         else:
             max_block_text_length = MAX_BLOCK_TEXT_LENGTH
 
-        if not small:
-            return self.get_markdown_quote_block(text, max_block_text_length)
-        else:
-            return self.get_context_block(text)
-
-    # Can be removed when 'slack-compact-alerts' is GA
-    def get_suggested_assignees_block(self, suggested_assignees: list[str]) -> SlackBlock:
-        suggested_assignee_text = "Suggested Assignees: "
-        for assignee in suggested_assignees:
-            suggested_assignee_text += assignee + ", "
-        return self.get_context_block(suggested_assignee_text[:-2])  # get rid of comma at the end
+        return self.get_markdown_quote_block(text, max_block_text_length)
 
     def get_footer(self) -> SlackBlock:
         # This link does not contain user input (it's a static label and a url), must not escape it.
@@ -653,24 +549,12 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             return self.get_context_block(text=footer, timestamp=timestamp)
 
     def build_description_block(self, description_text: str) -> SlackBlock | None:
-        # Use issue summary if available (and not flagged for compact alerts), otherwise use the default text
-        summary_text: str | None = self.get_issue_summary_text()
-        if summary_text and not self._is_compact:
-            return self.get_text_block(summary_text, small=True)
-
         text = description_text.lstrip(" ")
         # XXX(CEO): sometimes text is " " and slack will error if we pass an empty string (now "")
         return self.get_text_block(text) if text else None
 
     def build_group_context_block(self, suggested_assignees: list[str]) -> SlackBlock | None:
         """Combine stats (events, users, state, first seen) with suggested assignees in one context block."""
-        if not self._is_compact:
-            # add event count, user count, substate, first seen
-            context = get_context(self.group, self.rules)
-            if context:
-                return self.get_context_block(context)
-            return None
-
         context_text = get_context(self.group, self.rules)
 
         if suggested_assignees:
@@ -684,20 +568,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         return self.get_context_block(context_text)
 
-    def build_pre_footer_context_blocks(self, suggested_assignees: list[str]) -> list[SlackBlock]:
-        blocks = []
-        summary_text: str | None = self.get_issue_summary_text()
-        if self._is_compact and summary_text:
+    def build_pre_footer_context_blocks(self) -> list[SlackBlock]:
+        blocks: list[SlackBlock] = []
+        summary_text = self.get_issue_summary_text()
+        if summary_text:
             blocks.append(self.get_context_block(summary_text))
-
-        if not self._is_compact and len(suggested_assignees) > 0:
-            blocks.append(self.get_suggested_assignees_block(suggested_assignees))
-
-        if not self._is_compact:
-            # add suspect commit info
-            suspect_commit_text = get_suspect_commit_text(self.group)
-            if suspect_commit_text:
-                blocks.append(self.get_context_block(suspect_commit_text))
 
         return blocks
 
@@ -845,7 +720,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             action_block = {"type": "actions", "elements": [action for action in actions]}
             blocks.append(action_block)
 
-        if pre_footer_context_block := self.build_pre_footer_context_blocks(suggested_assignees):
+        if pre_footer_context_block := self.build_pre_footer_context_blocks():
             blocks.extend(pre_footer_context_block)
 
         # add notes
@@ -855,8 +730,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         # build footer block
         blocks.append(self.get_footer())
-        if not self._is_compact:
-            blocks.append(self.get_divider())
 
         chart_block = ImageBlockBuilder(group=self.group).build_image_block()
         if chart_block:
