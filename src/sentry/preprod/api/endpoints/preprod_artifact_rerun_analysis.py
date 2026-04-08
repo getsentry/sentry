@@ -286,7 +286,7 @@ class PreprodArtifactAdminBatchRerunAnalysisEndpoint(Endpoint):
                 status=404,
             )
 
-        results: list[dict] = []
+        results: list[dict[str, object]] = []
         for artifact_id in artifact_ids:
             artifact = artifacts_by_id[artifact_id]
             organization = artifact.project.organization
@@ -329,7 +329,10 @@ class PreprodArtifactAdminBatchRerunAnalysisEndpoint(Endpoint):
                     )
                     dispatched = False
 
-            result: dict = {
+            if not dispatched:
+                artifact.refresh_from_db()
+
+            result: dict[str, object] = {
                 "artifact_id": str(artifact_id),
                 "success": dispatched,
                 "new_state": artifact.state,
