@@ -111,9 +111,7 @@ def _get_eligible_org_ids_from_batch(
     for feature_name in FEATURE_NAMES:
         batch_result = features.batch_has_for_organizations(feature_name, orgs)
         if batch_result is None:
-            batch_result = {
-                f"organization:{org.id}": features.has(feature_name, org) for org in orgs
-            }
+            raise RuntimeError(f"batch_has_for_organizations returned None for {feature_name}")
 
         passing = {org.id for org in orgs if batch_result.get(f"organization:{org.id}", False)}
         eligible &= passing
