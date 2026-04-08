@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -15,6 +16,7 @@ from sentry.api.serializers import Serializer, serialize
 from sentry.api.utils import get_date_range_from_params
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams, IssueAlertParams
+from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.rules.history import fetch_rule_hourly_stats
@@ -65,6 +67,9 @@ class ProjectRuleStatsIndexEndpoint(WorkflowEngineRuleEndpoint):
         """
         Note that results are returned in hourly buckets.
         """
-        start, end = get_date_range_from_params(request.GET)
+        try:
+            start, end = get_date_range_from_params(request.GET)
+        except InvalidParams as e:
+            raise ParseError(detail=str(e))
         results = fetch_rule_hourly_stats(rule, start, end)
         return Response(serialize(results, request.user, TimeSeriesValueSerializer()))
