@@ -40,7 +40,7 @@ export function getTokenBreakdown({
   );
 
   return {
-    netNewInput: cached > 0 ? adjustedInput - cached : adjustedInput,
+    netNewInput: cached > 0 ? Math.max(0, adjustedInput - cached) : adjustedInput,
     cached,
     output: adjustedOutput,
     total: totalTokens,
