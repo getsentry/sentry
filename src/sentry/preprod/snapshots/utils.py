@@ -35,7 +35,6 @@ def find_head_snapshot_artifacts_awaiting_base(
     base_repo_name: str,
     project_id: int,
     app_id: str | None,
-    artifact_type: str | None,
     build_configuration: PreprodBuildConfiguration | None,
 ) -> list[PreprodArtifact]:
     """Find head snapshot artifacts that were uploaded before their base was available.
@@ -52,7 +51,6 @@ def find_head_snapshot_artifacts_awaiting_base(
             project_id=project_id,
             preprodsnapshotmetrics__isnull=False,
             app_id=app_id,
-            artifact_type=artifact_type,
             build_configuration=build_configuration,
         )
         .exclude(

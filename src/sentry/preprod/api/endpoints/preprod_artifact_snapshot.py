@@ -652,7 +652,6 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                     base_repo_name=commit_comparison.head_repo_name,
                     project_id=project.id,
                     app_id=artifact.app_id,
-                    artifact_type=artifact.artifact_type,
                     build_configuration=artifact.build_configuration,
                 )
                 for head_artifact in waiting_heads:
