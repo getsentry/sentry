@@ -181,7 +181,7 @@ describe('useSeerDashboardSession', () => {
       expect.objectContaining({
         method: 'POST',
         data: {
-          prompt: 'Add a latency widget',
+          prompt: 'Add me another widget',
           current_dashboard: {
             title: 'My Dashboard',
             widgets: dashboard.widgets,

@@ -1,8 +1,8 @@
-import {useCallback, useRef} from 'react';
+import {useCallback} from 'react';
 
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {DashboardChatPanel, type WidgetError} from './dashboardChatPanel';
+import {DashboardChatPanel} from './dashboardChatPanel';
 import type {DashboardDetails, Widget} from './types';
 import {useSeerDashboardSession} from './useSeerDashboardSession';
 
@@ -16,7 +16,6 @@ export function DashboardEditSeerChat({
   onDashboardUpdate,
 }: DashboardEditSeerChatProps) {
   const organization = useOrganization();
-  const widgetErrorsMap = useRef(new Map<string, WidgetError>());
 
   const hasFeature =
     organization.features.includes('dashboards-edit') &&
@@ -24,7 +23,6 @@ export function DashboardEditSeerChat({
 
   const handleDashboardUpdate = useCallback(
     (data: {title: string; widgets: Widget[]}) => {
-      widgetErrorsMap.current.clear();
       onDashboardUpdate({title: data.title, widgets: data.widgets});
     },
     [onDashboardUpdate]
@@ -40,14 +38,6 @@ export function DashboardEditSeerChat({
     return null;
   }
 
-  const widgetErrors: WidgetError[] = dashboard.widgets.flatMap(widget => {
-    if (widget.tempId === undefined) {
-      return [];
-    }
-    const error = widgetErrorsMap.current.get(widget.tempId);
-    return error ? [error] : [];
-  });
-
   return (
     <DashboardChatPanel
       blocks={session?.blocks ?? []}
@@ -55,7 +45,6 @@ export function DashboardEditSeerChat({
       onSend={sendFollowUpMessage}
       isUpdating={isUpdating}
       isError={isError}
-      widgetErrors={widgetErrors}
     />
   );
 }
