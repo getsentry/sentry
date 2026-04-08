@@ -421,6 +421,7 @@ def launch_coding_agents_for_run(
     instruction: str | None = None,
     user_id: int | None = None,
     initiator: str | None = None,
+    referrer: str | None = None,
 ) -> dict[str, list]:
     """
     Launch coding agents for an autofix run.
@@ -521,7 +522,7 @@ def launch_coding_agents_for_run(
             organization_id=organization.id,
             project_id=autofix_state.request.project_id,
             group_id=autofix_state.request.issue["id"],
-            referrer=None,
+            referrer=referrer,
             coding_agent=coding_agent_name,
             initiator=initiator,
         )
