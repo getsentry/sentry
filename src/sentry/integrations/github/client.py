@@ -550,10 +550,17 @@ class GitHubBaseClient(
                 page_number_limit=page_number_limit,
             )
 
+    class CachedRepo(TypedDict):
+        id: int
+        name: str
+        full_name: str
+        default_branch: str | None
+        archived: bool | None
+
     # Fields from the GitHub API response needed by get_repositories().
     _CACHED_REPO_FIELDS = ("id", "name", "full_name", "default_branch", "archived")
 
-    def get_accessible_repos_cached(self, ttl: int = 300) -> list[dict[str, Any]]:
+    def get_accessible_repos_cached(self, ttl: int = 300) -> list[CachedRepo]:
         """
         Return all repos accessible to this installation.
         Cached in Django cache for ``ttl`` seconds so that debounced
