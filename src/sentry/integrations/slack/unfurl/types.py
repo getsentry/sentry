@@ -18,6 +18,7 @@ class LinkType(enum.Enum):
     ISSUES = "issues"
     METRIC_ALERT = "metric_alert"
     DISCOVER = "discover"
+    EXPLORE = "explore"
 
 
 class UnfurlableUrl(NamedTuple):
