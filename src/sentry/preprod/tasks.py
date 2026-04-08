@@ -679,6 +679,7 @@ def _assemble_preprod_artifact_size_analysis(
             "project_id": project.id,
             "org_id": org_id,
             "artifact_id": artifact_id,
+            "triggered_at": timezone.now().isoformat(),
         }
     )
 
