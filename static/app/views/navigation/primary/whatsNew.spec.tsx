@@ -263,7 +263,11 @@ describe('WhatsNew', () => {
     expect(await screen.findByText('Blog Post')).toBeInTheDocument();
     const titleLink = screen.getByRole('link', {name: broadcast.title});
     expect(titleLink).toHaveAttribute('href', broadcast.link);
-    expect(screen.getByText(broadcast.message)).toBeInTheDocument();
+    expect(screen.getByText(broadcast.message, {exact: false})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Read more'})).toHaveAttribute(
+      'href',
+      broadcast.link
+    );
 
     await userEvent.click(titleLink);
     expect(trackAnalytics).toHaveBeenCalledWith(
@@ -273,6 +277,66 @@ describe('WhatsNew', () => {
         category: 'blog',
       })
     );
+  });
+
+  it('filters out duplicate titles and only shows the first occurrence', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/broadcasts/`,
+      match: [MockApiClient.matchQuery({show: 'latest', limit: '3'})],
+      body: [
+        BroadcastFixture({id: '1', title: 'Duplicate Title', hasSeen: true}),
+        BroadcastFixture({id: '2', title: 'Duplicate Title', hasSeen: true}),
+        BroadcastFixture({id: '3', title: 'Unique Title', hasSeen: true}),
+      ],
+    });
+
+    render(<PrimaryNavigationWhatsNew />);
+
+    await userEvent.click(screen.getByRole('button', {name: "What's New"}));
+
+    expect(await screen.findByText('Duplicate Title')).toBeInTheDocument();
+    expect(screen.getAllByText('Duplicate Title')).toHaveLength(1);
+    expect(screen.getByText('Unique Title')).toBeInTheDocument();
+  });
+
+  it('marks unseen duplicate broadcasts as seen when the panel is opened', async () => {
+    jest.useFakeTimers();
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/broadcasts/`,
+      match: [MockApiClient.matchQuery({show: 'latest', limit: '3'})],
+      body: [
+        BroadcastFixture({id: '1', title: 'Duplicate Title', hasSeen: false}),
+        BroadcastFixture({id: '2', title: 'Duplicate Title', hasSeen: false}),
+        BroadcastFixture({id: '3', title: 'Unique Title', hasSeen: true}),
+      ],
+    });
+
+    const putMock = MockApiClient.addMockResponse({
+      url: '/broadcasts/',
+      method: 'PUT',
+    });
+
+    render(<PrimaryNavigationWhatsNew />);
+
+    await userEvent.click(screen.getByRole('button', {name: "What's New"}), {
+      delay: null,
+    });
+
+    await screen.findByText('Duplicate Title');
+
+    act(() => jest.advanceTimersByTime(2000));
+
+    await waitFor(() => {
+      expect(putMock).toHaveBeenCalledWith(
+        '/broadcasts/',
+        expect.objectContaining({
+          method: 'PUT',
+          query: {id: ['1', '2']},
+          data: {hasSeen: '1'},
+        })
+      );
+    });
   });
 
   it('renders broadcast items for each category type', async () => {
