@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+from django.db.models import F
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -93,24 +94,43 @@ class PreprodArtifactAdminInfoEndpoint(Endpoint):
         snapshot_comparison = None
         if snapshot_metrics:
             snapshot_comparison = (
-                PreprodSnapshotComparison.objects.select_related(
-                    "base_snapshot_metrics",
-                )
-                .filter(head_snapshot_metrics=snapshot_metrics)
+                PreprodSnapshotComparison.objects.filter(head_snapshot_metrics=snapshot_metrics)
                 .order_by("-date_added")
+                .values(
+                    "id",
+                    "state",
+                    "error_code",
+                    "error_message",
+                    "images_added",
+                    "images_removed",
+                    "images_changed",
+                    "images_unchanged",
+                    "images_renamed",
+                    "extras",
+                    "date_added",
+                    "date_updated",
+                    base_artifact_id=F("base_snapshot_metrics__preprod_artifact_id"),
+                )
                 .first()
             )
 
-        snapshot_approval = None
-        if snapshot_metrics:
-            snapshot_approval = (
-                PreprodComparisonApproval.objects.filter(
-                    preprod_artifact_id=head_artifact_id_int,
-                    preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
-                )
-                .order_by("-date_added")
-                .first()
+        snapshot_approval = (
+            PreprodComparisonApproval.objects.filter(
+                preprod_artifact_id=head_artifact_id_int,
+                preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
             )
+            .order_by("-date_added")
+            .values(
+                "id",
+                "approval_status",
+                "approved_at",
+                "approved_by_id",
+                "extras",
+                "date_added",
+                "date_updated",
+            )
+            .first()
+        )
 
         mobile_app_info = preprod_artifact.get_mobile_app_info()
 
@@ -261,78 +281,19 @@ class PreprodArtifactAdminInfoEndpoint(Endpoint):
                 }
                 for installable in installable_artifacts
             ],
-            # Snapshot data
             "snapshot_metrics": (
                 {
                     "id": snapshot_metrics.id,
                     "image_count": snapshot_metrics.image_count,
                     "extras": snapshot_metrics.extras,
-                    "date_added": (
-                        snapshot_metrics.date_added.isoformat()
-                        if snapshot_metrics.date_added
-                        else None
-                    ),
-                    "date_updated": (
-                        snapshot_metrics.date_updated.isoformat()
-                        if snapshot_metrics.date_updated
-                        else None
-                    ),
+                    "date_added": snapshot_metrics.date_added,
+                    "date_updated": snapshot_metrics.date_updated,
                 }
                 if snapshot_metrics
                 else None
             ),
-            "snapshot_comparison": (
-                {
-                    "id": snapshot_comparison.id,
-                    "state": snapshot_comparison.state,
-                    "error_code": snapshot_comparison.error_code,
-                    "error_message": snapshot_comparison.error_message,
-                    "base_artifact_id": snapshot_comparison.base_snapshot_metrics.preprod_artifact_id,
-                    "images_added": snapshot_comparison.images_added,
-                    "images_removed": snapshot_comparison.images_removed,
-                    "images_changed": snapshot_comparison.images_changed,
-                    "images_unchanged": snapshot_comparison.images_unchanged,
-                    "images_renamed": snapshot_comparison.images_renamed,
-                    "extras": snapshot_comparison.extras,
-                    "date_added": (
-                        snapshot_comparison.date_added.isoformat()
-                        if snapshot_comparison.date_added
-                        else None
-                    ),
-                    "date_updated": (
-                        snapshot_comparison.date_updated.isoformat()
-                        if snapshot_comparison.date_updated
-                        else None
-                    ),
-                }
-                if snapshot_comparison
-                else None
-            ),
-            "snapshot_approval": (
-                {
-                    "id": snapshot_approval.id,
-                    "approval_status": snapshot_approval.approval_status,
-                    "approved_at": (
-                        snapshot_approval.approved_at.isoformat()
-                        if snapshot_approval.approved_at
-                        else None
-                    ),
-                    "approved_by_id": snapshot_approval.approved_by_id,
-                    "extras": snapshot_approval.extras,
-                    "date_added": (
-                        snapshot_approval.date_added.isoformat()
-                        if snapshot_approval.date_added
-                        else None
-                    ),
-                    "date_updated": (
-                        snapshot_approval.date_updated.isoformat()
-                        if snapshot_approval.date_updated
-                        else None
-                    ),
-                }
-                if snapshot_approval
-                else None
-            ),
+            "snapshot_comparison": snapshot_comparison,
+            "snapshot_approval": snapshot_approval,
             # Extra data
             "extras": preprod_artifact.extras,
         }
