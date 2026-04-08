@@ -47,19 +47,14 @@ def schedule_night_shift() -> None:
         ),
         100,
     ):
-        eligible_ids = _get_eligible_org_ids_from_batch(org_batch)
-
-        org_map = {org.id: org for org in org_batch}
-        for org_id in eligible_ids:
-            org = org_map[org_id]
-
+        for org in _get_eligible_orgs_from_batch(org_batch):
             if bool(org.get_option("sentry:hide_ai_features")):
                 continue
 
             delay = (batch_index * NIGHT_SHIFT_DISPATCH_STEP_SECONDS) % spread_seconds
 
             run_night_shift_for_org.apply_async(
-                args=[org_id],
+                args=[org.id],
                 countdown=delay,
             )
             batch_index += 1
@@ -99,24 +94,23 @@ def run_night_shift_for_org(organization_id: int) -> None:
     )
 
 
-def _get_eligible_org_ids_from_batch(
+def _get_eligible_orgs_from_batch(
     orgs: Sequence[Organization],
-) -> list[int]:
+) -> list[Organization]:
     """
     Check feature flags for a batch of orgs using batch_has_for_organizations.
-    Returns org IDs that have all required feature flags enabled.
+    Returns orgs that have all required feature flags enabled.
     """
-    eligible = {org.id for org in orgs}
+    eligible = list(orgs)
 
     for feature_name in FEATURE_NAMES:
-        batch_result = features.batch_has_for_organizations(feature_name, orgs)
+        batch_result = features.batch_has_for_organizations(feature_name, eligible)
         if batch_result is None:
             raise RuntimeError(f"batch_has_for_organizations returned None for {feature_name}")
 
-        passing = {org.id for org in orgs if batch_result.get(f"organization:{org.id}", False)}
-        eligible &= passing
+        eligible = [org for org in eligible if batch_result.get(f"organization:{org.id}", False)]
 
         if not eligible:
             return []
 
-    return list(eligible)
+    return eligible
