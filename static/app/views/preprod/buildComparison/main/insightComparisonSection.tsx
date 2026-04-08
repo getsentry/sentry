@@ -150,6 +150,10 @@ export function InsightComparisonSection({
       }
     }
 
+    for (const insights of Object.values(byTab)) {
+      insights.sort((a, b) => b.total_savings_change - a.total_savings_change);
+    }
+
     return {
       byTab,
       counts: {
