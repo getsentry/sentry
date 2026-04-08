@@ -11,7 +11,7 @@ from django.conf import settings as django_settings
 from requests import HTTPError
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
 
-from sentry import features
+from sentry import analytics, features
 
 
 class IntegrationNotFound(NotFound):
@@ -30,6 +30,7 @@ class StateReposNotFound(NotFound):
     pass
 
 
+from sentry.analytics.events.autofix_events import AiAutofixAgentHandoffEvent
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, ObjectStatus
 from sentry.integrations.claude_code.integration import (
     ClaudeCodeIntegrationMetadata,
@@ -419,6 +420,7 @@ def launch_coding_agents_for_run(
     trigger_source: AutofixTriggerSource = AutofixTriggerSource.SOLUTION,
     instruction: str | None = None,
     user_id: int | None = None,
+    initiator: str | None = None,
 ) -> dict[str, list]:
     """
     Launch coding agents for an autofix run.
@@ -511,6 +513,18 @@ def launch_coding_agents_for_run(
             "repos_succeeded": len(results["successes"]),
             "repos_failed": len(results["failures"]),
         },
+    )
+
+    coding_agent_name = provider or (integration.provider if integration else None)
+    analytics.record(
+        AiAutofixAgentHandoffEvent(
+            organization_id=organization.id,
+            project_id=autofix_state.request.project_id,
+            group_id=autofix_state.request.issue["id"],
+            referrer=None,
+            coding_agent=coding_agent_name,
+            initiator=initiator,
+        )
     )
 
     return results
