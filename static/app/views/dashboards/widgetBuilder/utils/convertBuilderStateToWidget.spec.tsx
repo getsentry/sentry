@@ -37,7 +37,9 @@ describe('convertBuilderStateToWidget', () => {
           selectedAggregate: undefined,
         },
       ],
+      legendType: null,
       thresholds: undefined,
+      axisRange: undefined,
     });
   });
 
