@@ -25,8 +25,7 @@ def create_issue_occurrence(
         organization_id: The organization ID
         project_id: The project ID where the issue should be created
         detected_issue: Dict containing DetectedIssue fields (title, explanation,
-            impact, evidence, offender_span_ids, trace_id, transaction_name,
-            group_for_fingerprint, etc.)
+            impact, evidence, offender_span_ids, trace_id, transaction_name, etc.)
 
     Returns:
         Dict with "success": True on successful issue creation
