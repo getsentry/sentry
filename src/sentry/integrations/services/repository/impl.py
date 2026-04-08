@@ -133,9 +133,13 @@ class DatabaseBackedRepositoryService(RepositoryService):
         organization_id: int,
         repo_tuples: list[tuple[int, str | None, str | None]],
     ) -> None:
-        """Delete SeerProjectRepository rows and call Seer API cleanup.
+        """Delete SeerProjectRepository rows and schedule Seer API cleanup.
 
-        repo_tuples: list of (repo_id, external_id, provider).
+        Must be called inside a transaction.atomic() block. The SeerProjectRepository
+        delete participates in the transaction, while the Seer API task is dispatched
+        via on_commit so it only fires if the transaction succeeds.
+
+        repo_tuples: list of (repo_id, external_id, provider) from Repository.values_list().
         """
         try:
             organization = Organization.objects.get_from_cache(id=organization_id)
@@ -152,11 +156,14 @@ class DatabaseBackedRepositoryService(RepositoryService):
             if external_id and repo_provider
         ]
         if repos_to_clean:
-            bulk_cleanup_seer_repository_preferences.apply_async(
-                kwargs={
-                    "organization_id": organization_id,
-                    "repos": repos_to_clean,
-                }
+            transaction.on_commit(
+                lambda: bulk_cleanup_seer_repository_preferences.apply_async(
+                    kwargs={
+                        "organization_id": organization_id,
+                        "repos": repos_to_clean,
+                    }
+                ),
+                using=router.db_for_write(Repository),
             )
 
     def disable_repositories_for_integration(
