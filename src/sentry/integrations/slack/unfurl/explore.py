@@ -92,7 +92,7 @@ def timeseries_to_chart_data(
     if not matching:
         return {"data": [], "start": 0, "end": 0, "isMetricsData": False}
 
-    if has_groups and len(matching) > 1:
+    if has_groups:
         # Top events: return dict keyed by group label
         result = {}
         for i, ts in enumerate(matching):
