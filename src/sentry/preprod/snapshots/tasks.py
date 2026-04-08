@@ -114,21 +114,30 @@ def _create_pixel_batches(
     return batches
 
 
-def _build_comparison_fingerprints(manifest: ComparisonManifest) -> set[tuple[str, ...]]:
-    fingerprints: set[tuple[str, ...]] = set()
+class ImageFingerprint(NamedTuple):
+    name: str
+    status: str
+    head_hash: str | None = None
+    previous_image_file_name: str | None = None
+
+
+def _build_comparison_fingerprints(manifest: ComparisonManifest) -> set[ImageFingerprint]:
+    fingerprints: set[ImageFingerprint] = set()
     for name, image in manifest.images.items():
         if image.status == "unchanged":
             continue
         if image.status in ("changed", "added"):
             if not image.head_hash:
                 continue
-            fingerprints.add((name, image.status, image.head_hash))
+            fingerprints.add(ImageFingerprint(name, image.status, image.head_hash))
         elif image.status == "renamed":
             if not image.head_hash or not image.previous_image_file_name:
                 continue
-            fingerprints.add((name, "renamed", image.head_hash, image.previous_image_file_name))
+            fingerprints.add(
+                ImageFingerprint(name, "renamed", image.head_hash, image.previous_image_file_name)
+            )
         else:
-            fingerprints.add((name, image.status))
+            fingerprints.add(ImageFingerprint(name, image.status))
     return fingerprints
 
 

@@ -12,6 +12,7 @@ from sentry.preprod.snapshots.manifest import (
 )
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.snapshots.tasks import (
+    ImageFingerprint,
     _build_comparison_fingerprints,
     _try_auto_approve_snapshot,
 )
@@ -61,11 +62,11 @@ class BuildComparisonFingerprintsTest(TestCase):
         )
         fps = _build_comparison_fingerprints(manifest)
         assert fps == {
-            ("changed.png", "changed", "b"),
-            ("added.png", "added", "d"),
-            ("removed.png", "removed"),
-            ("errored.png", "errored"),
-            ("renamed.png", "renamed", "f", "old.png"),
+            ImageFingerprint("changed.png", "changed", "b"),
+            ImageFingerprint("added.png", "added", "d"),
+            ImageFingerprint("removed.png", "removed"),
+            ImageFingerprint("errored.png", "errored"),
+            ImageFingerprint("renamed.png", "renamed", "f", "old.png"),
         }
 
     def test_empty_manifest_returns_empty_set(self):
@@ -83,7 +84,7 @@ class BuildComparisonFingerprintsTest(TestCase):
             }
         )
         fps = _build_comparison_fingerprints(manifest)
-        assert fps == {("has_hash.png", "changed", "def")}
+        assert fps == {ImageFingerprint("has_hash.png", "changed", "def")}
 
     def test_skips_renamed_with_missing_hash_or_previous_name(self):
         manifest = self._make_manifest(
@@ -98,7 +99,7 @@ class BuildComparisonFingerprintsTest(TestCase):
             }
         )
         fps = _build_comparison_fingerprints(manifest)
-        assert fps == {("valid.png", "renamed", "def", "old_valid.png")}
+        assert fps == {ImageFingerprint("valid.png", "renamed", "def", "old_valid.png")}
 
 
 def _mock_session_with_manifests(manifests_by_key: dict[str, bytes]) -> MagicMock:
