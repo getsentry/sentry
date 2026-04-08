@@ -158,10 +158,9 @@ def _unfurl_explore(
 
         group_bys = params.getlist("groupBy")
 
-        # Only the first yAxis is charted; multiple charts per unfurl not yet supported
+        # Only one yAxis is charted; multiple charts per unfurl not yet supported.
         if group_bys:
-            y_axis = y_axes[0]
-            aggregate_fn = y_axis.split("(")[0]
+            aggregate_fn = y_axes[-1].split("(")[0]
             if aggregate_fn in LINE_PLOT_FIELDS:
                 style = ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE
             else:
@@ -187,8 +186,11 @@ def _unfurl_explore(
             _logger.warning("Failed to load events-timeseries for explore unfurl")
             continue
 
-        stats = timeseries_to_chart_data(resp.data, y_axes[0], has_groups=bool(group_bys))
-        chart_data = {"seriesName": y_axes[0], "stats": stats}
+        # QueryDict.items() sends only the last value per key to the API,
+        # so we must match that by charting the last yAxis
+        y_axis = y_axes[-1]
+        stats = timeseries_to_chart_data(resp.data, y_axis, has_groups=bool(group_bys))
+        chart_data = {"seriesName": y_axis, "stats": stats}
 
         try:
             url = charts.generate_chart(style, chart_data)
