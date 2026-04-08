@@ -353,7 +353,7 @@ function FilteredTooltip({
     return (
       <Tooltip
         title={tct(
-          `The log message was entirely filtered by a data scrubbing rule, its template is also been shown to help identify what was filtered. If necessary, you can turn data scrubbing off in your [settings].`,
+          'The log message was entirely filtered by a data scrubbing rule, its template is also been shown to help identify what was filtered. If necessary, you can turn data scrubbing off in your [settings].',
           {
             settings: (
               <Link

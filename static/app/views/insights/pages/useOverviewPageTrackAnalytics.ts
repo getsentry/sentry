@@ -33,7 +33,7 @@ export function useOverviewPageTrackPageload() {
   useEffect(() => {
     if (pageFilters.isReady && projects.initiallyLoaded) {
       const selectedPlatforms = JSON.parse(selectedPlatformsString);
-      trackAnalytics(`insights.page_loads.overview`, {
+      trackAnalytics('insights.page_loads.overview', {
         organization,
         platforms: selectedPlatforms,
         domain: view,

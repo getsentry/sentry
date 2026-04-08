@@ -176,7 +176,7 @@ function McpPromptCell({prompt}: {prompt: string}) {
       'timestamp',
     ],
     query: search.formatString(),
-    sort: `-count(span.duration)`,
+    sort: '-count(span.duration)',
   });
   return <Link to={link}>{prompt}</Link>;
 }

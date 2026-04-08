@@ -41,7 +41,7 @@ describe('EventNavigation', () => {
     location: {
       pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
     },
-    route: `/organizations/:orgId/issues/:groupId/events/`,
+    route: '/organizations/:orgId/issues/:groupId/events/',
   };
 
   beforeEach(() => {

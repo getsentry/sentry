@@ -136,7 +136,7 @@ export function TracesTable({
 
   const tracesRequest = useTraces({
     query: combinedQuery,
-    sort: `-timestamp`,
+    sort: '-timestamp',
     keepPreviousData: true,
     cursor,
     limit,

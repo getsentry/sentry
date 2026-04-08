@@ -96,7 +96,7 @@ export function ProfileDetails(props: ProfileDetailsProps) {
       }
 
       if (isSidebarLayout) {
-        detailsBarRef.current.style.width = `100%`;
+        detailsBarRef.current.style.width = '100%';
         detailsBarRef.current.style.height = `${maybeOldSize ?? newSize}px`;
       } else {
         detailsBarRef.current.style.height = '';

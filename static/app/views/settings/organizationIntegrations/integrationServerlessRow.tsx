@@ -175,7 +175,7 @@ const StyledSwitch = styled(Switch)`
 
 const UpdateButton = styled(Button)``;
 
-const Name = styled(`span`)`
+const Name = styled('span')`
   padding-bottom: ${p => p.theme.space.md};
 `;
 

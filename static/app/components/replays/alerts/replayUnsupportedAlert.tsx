@@ -14,8 +14,8 @@ export function ReplayUnsupportedAlert({projectSlug}: Props) {
   );
   return (
     <Alert variant="info" icon={<IconInfo />}>
-      <strong>{t(`Session Replay isn't available for %s.`, projectSlug)}</strong>{' '}
-      {tct(`[docsLink: See our docs] to find out which platforms are supported.`, {
+      <strong>{t("Session Replay isn't available for %s.", projectSlug)}</strong>{' '}
+      {tct('[docsLink: See our docs] to find out which platforms are supported.', {
         docsLink,
       })}
     </Alert>

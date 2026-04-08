@@ -101,7 +101,7 @@ export function ConfigureDefaultsStep() {
               <Flex direction="column" gap="md">
                 <Text density="comfortable">
                   {tct(
-                    `Create default settings for all future projects and repositories. If you don’t turn this defaults on now, you can always manage them from the [link:Seer Settings Page].`,
+                    'Create default settings for all future projects and repositories. If you don’t turn this defaults on now, you can always manage them from the [link:Seer Settings Page].',
                     {
                       link: <Link to={`/settings/${organization.slug}/seer/`} />,
                     }
@@ -109,7 +109,7 @@ export function ConfigureDefaultsStep() {
                 </Text>
                 <Text density="comfortable">
                   {t(
-                    `This will not effect the configuration of the repos and projects on the previous two steps.`
+                    'This will not effect the configuration of the repos and projects on the previous two steps.'
                   )}
                 </Text>
               </Flex>

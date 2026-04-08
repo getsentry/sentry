@@ -63,7 +63,7 @@ export function MetricRuleDuplicate({
         }
       : {
           pathname: makeAlertsPathname({
-            path: `/rules/`,
+            path: '/rules/',
             organization,
           }),
           query: {project: project.id},

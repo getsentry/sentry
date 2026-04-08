@@ -252,7 +252,7 @@ describe('ContextPickerModal', () => {
 
     const provider = {slug: 'github'};
     const configQueryKey = [
-      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
         path: {organizationIdOrSlug: org.slug},
       }),
       {query: {provider_key: provider.slug, includeConfig: 0}},
@@ -299,7 +299,7 @@ describe('ContextPickerModal', () => {
 
     const provider = {slug: 'github'};
     const configQueryKey = [
-      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
         path: {organizationIdOrSlug: org.slug},
       }),
       {query: {provider_key: provider.slug, includeConfig: 0}},
@@ -337,7 +337,7 @@ describe('ContextPickerModal', () => {
 
     const provider = {slug: 'github'};
     const configQueryKey = [
-      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
         path: {organizationIdOrSlug: org.slug},
       }),
       {query: {provider_key: provider.slug, includeConfig: 0}},

@@ -773,8 +773,8 @@ export const TraceGrid = styled('div')<{
       'drawer'
       `
       : p.layout === 'drawer left'
-        ? `'drawer trace'`
-        : `'trace drawer'`};
+        ? "'drawer trace'"
+        : "'trace drawer'"};
   grid-template-columns: ${p =>
     p.layout === 'drawer bottom'
       ? '1fr'

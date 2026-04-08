@@ -15,7 +15,7 @@ describe('GroupEventCarousel', () => {
     location: {
       pathname: `/organizations/org-slug/issues/${group.id}/events/recommended/`,
     },
-    route: `/organizations/:orgId/issues/:groupId/events/:eventId/`,
+    route: '/organizations/:orgId/issues/:groupId/events/:eventId/',
   };
 
   const testEvent = EventFixture({
@@ -194,11 +194,11 @@ describe('GroupEventCarousel', () => {
 
     expect(screen.getByLabelText(/Previous Event/)).toHaveAttribute(
       'href',
-      `/organizations/org-slug/issues/group-id/events/prev-event-id/?referrer=previous-event`
+      '/organizations/org-slug/issues/group-id/events/prev-event-id/?referrer=previous-event'
     );
     expect(screen.getByLabelText(/Next Event/)).toHaveAttribute(
       'href',
-      `/organizations/org-slug/issues/group-id/events/next-event-id/?referrer=next-event`
+      '/organizations/org-slug/issues/group-id/events/next-event-id/?referrer=next-event'
     );
   });
 
@@ -235,7 +235,7 @@ describe('GroupEventCarousel', () => {
     await userEvent.click(screen.getByRole('menuitemradio', {name: /copy event link/i}));
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      `http://localhost/organizations/org-slug/issues/group-id/events/event-id/`
+      'http://localhost/organizations/org-slug/issues/group-id/events/event-id/'
     );
   });
 
@@ -255,7 +255,7 @@ describe('GroupEventCarousel', () => {
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'JSON (7.0 B)'}));
 
     expect(window.open).toHaveBeenCalledWith(
-      `https://us.sentry.io/api/0/projects/org-slug/project-slug/events/event-id/json/`
+      'https://us.sentry.io/api/0/projects/org-slug/project-slug/events/event-id/json/'
     );
   });
 });

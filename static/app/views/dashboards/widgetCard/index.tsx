@@ -531,7 +531,7 @@ function useTimeRangeWarning({widget}: {widget: TWidget}) {
     (retentionLimitDate && statsPeriodToEnd && retentionLimitDate > statsPeriodToEnd)
   ) {
     return tct(
-      `You've selected a time range longer than the retention period for some datasets. Data older than [numDays] days may be unavailable.`,
+      "You've selected a time range longer than the retention period for some datasets. Data older than [numDays] days may be unavailable.",
       {
         numDays: retentionLimitDays,
       }

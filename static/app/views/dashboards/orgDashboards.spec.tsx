@@ -40,7 +40,7 @@ describe('OrgDashboards', () => {
       filters: {},
     };
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/dashboards/1/`,
+      url: '/organizations/org-slug/dashboards/1/',
       method: 'GET',
       body: mockDashboard,
     });
@@ -68,7 +68,7 @@ describe('OrgDashboards', () => {
       filters: {},
     };
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/dashboards/1/`,
+      url: '/organizations/org-slug/dashboards/1/',
       method: 'GET',
       body: mockDashboardWithFilters,
     });
@@ -102,7 +102,7 @@ describe('OrgDashboards', () => {
       filters: {},
     };
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/dashboards/1/`,
+      url: '/organizations/org-slug/dashboards/1/',
       method: 'GET',
       body: mockDashboardWithFilters,
     });
@@ -148,7 +148,7 @@ describe('OrgDashboards', () => {
       filters: {},
     };
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/dashboards/1/`,
+      url: '/organizations/org-slug/dashboards/1/',
       method: 'GET',
       body: mockDashboardWithFilters,
     });
@@ -201,7 +201,7 @@ describe('OrgDashboards', () => {
       filters: {},
     };
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/dashboards/1/`,
+      url: '/organizations/org-slug/dashboards/1/',
       method: 'GET',
       body: mockDashboardWithFilters,
     });

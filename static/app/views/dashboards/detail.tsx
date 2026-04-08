@@ -185,7 +185,7 @@ function getDashboardLocation({
 
   const commonPath = defined(dashboardId)
     ? `/dashboard/${dashboardId}/`
-    : `/dashboards/new/`;
+    : '/dashboards/new/';
 
   const dashboardUrl = USING_CUSTOMER_DOMAIN
     ? commonPath
@@ -419,7 +419,7 @@ class DashboardDetail extends Component<Props, State> {
     if (USING_CUSTOMER_DOMAIN) {
       widgetBuilderRoutes.push(
         ...[
-          `/dashboards/new/widget-builder/widget/new/`,
+          '/dashboards/new/widget-builder/widget/new/',
           `/dashboards/new/widget-builder/widget/${widgetIndex}/edit/`,
           `/dashboard/${dashboardId}/widget-builder/widget/new/`,
           `/dashboard/${dashboardId}/widget-builder/widget/${widgetIndex}/edit/`,

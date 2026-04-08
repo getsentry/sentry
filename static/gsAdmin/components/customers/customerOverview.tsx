@@ -405,7 +405,7 @@ function DynamicSampling({organization}: {organization: Organization}) {
 
   const {data, isPending, isError} = useApiQuery<{effectiveSampleRate: number | null}>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/sampling/effective-sample-rate/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/sampling/effective-sample-rate/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
@@ -624,7 +624,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
               disabled={!hasActiveProductTrial || lessThanOneDayLeft}
               tooltipProps={{
                 title: lessThanOneDayLeft
-                  ? `Current product trial will end in less than one day`
+                  ? 'Current product trial will end in less than one day'
                   : hasActiveProductTrial
                     ? `Stop the current product trial for ${formattedTrialName}`
                     : `No product trial is active for ${formattedTrialName}`,

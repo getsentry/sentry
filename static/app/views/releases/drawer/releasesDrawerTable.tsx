@@ -79,7 +79,7 @@ export function ReleasesDrawerTable({
   const organization = useOrganization();
   const {data, isLoading, isError, getResponseHeader} = useApiQuery<Release[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/releases/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/releases/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {

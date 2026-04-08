@@ -61,7 +61,7 @@ export function AddCodeOwnerModal({
     isError: isCodeMappingsError,
   } = useApiQuery<RepositoryProjectPathConfig[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/code-mappings/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/code-mappings/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: {project: project.id}},
@@ -75,7 +75,7 @@ export function AddCodeOwnerModal({
     isError: isIntegrationsError,
   } = useApiQuery<Integration[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: {features: ['codeowners']}},
@@ -88,7 +88,7 @@ export function AddCodeOwnerModal({
   const {data: codeownersFile} = useApiQuery<CodeownersFile>(
     [
       getApiUrl(
-        `/organizations/$organizationIdOrSlug/code-mappings/$configId/codeowners/`,
+        '/organizations/$organizationIdOrSlug/code-mappings/$configId/codeowners/',
         {
           path: {
             organizationIdOrSlug: organization.slug,

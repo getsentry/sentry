@@ -138,7 +138,7 @@ export default function TempestSettings() {
               }
             >
               {t(
-                `Currently Sentry only supports PlayStation 5. If you're looking for PS4 support, please let us know!`
+                "Currently Sentry only supports PlayStation 5. If you're looking for PS4 support, please let us know!"
               )}
             </Alert>
           </Alert.Container>

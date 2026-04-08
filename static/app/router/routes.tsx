@@ -2030,7 +2030,7 @@ function buildRoutes(): RouteObject[] {
     },
     // Redirect old links to the new mcp landing page
     {
-      path: `ai/mcp/`,
+      path: 'ai/mcp/',
       redirectTo: `/${DOMAIN_VIEW_BASE_URL}/${MCP_LANDING_SUB_PATH}/`,
     },
     {
@@ -2093,7 +2093,7 @@ function buildRoutes(): RouteObject[] {
     },
     // Redirect old links to the new agents landing page
     {
-      path: `ai/*`,
+      path: 'ai/*',
       redirectTo: `/${DOMAIN_VIEW_BASE_URL}/${AGENTS_LANDING_SUB_PATH}/`,
     },
     {

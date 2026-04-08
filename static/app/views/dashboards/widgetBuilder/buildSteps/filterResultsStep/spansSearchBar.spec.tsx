@@ -33,7 +33,7 @@ function mockSpanTags({
   type: 'string' | 'number' | 'boolean';
 }) {
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/trace-items/attributes/`,
+    url: '/organizations/org-slug/trace-items/attributes/',
     body: mockedTags,
     match: [
       function (_url: string, options: Record<string, any>) {
@@ -68,16 +68,16 @@ describe('SpansSearchBar', () => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/recent-searches/`,
+      url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/recent-searches/`,
+      url: '/organizations/org-slug/recent-searches/',
       body: [],
       method: 'POST',
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/spans/fields/`,
+      url: '/organizations/org-slug/spans/fields/',
       body: [],
     });
 
@@ -90,7 +90,7 @@ describe('SpansSearchBar', () => {
     mockSpanTags({type: 'boolean', mockedTags: []});
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/trace-items/attributes/validate/`,
+      url: '/organizations/org-slug/trace-items/attributes/validate/',
       method: 'POST',
       body: {attributes: {}},
     });
