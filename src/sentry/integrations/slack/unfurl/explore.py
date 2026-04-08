@@ -158,7 +158,7 @@ def _unfurl_explore(
 
         group_bys = params.getlist("groupBy")
 
-        # Determine display mode based on whether groupBy is present
+        # Only the first yAxis is charted; multiple charts per unfurl not yet supported
         if group_bys:
             y_axis = y_axes[0]
             aggregate_fn = y_axis.split("(")[0]

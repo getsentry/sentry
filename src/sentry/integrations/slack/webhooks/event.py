@@ -197,7 +197,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
                 if (
                     organization
-                    and link_type == LinkType.DISCOVER
+                    and link_type in (LinkType.DISCOVER, LinkType.EXPLORE)
                     and not slack_request.has_identity
                     and features.has(
                         "organizations:discover-basic", organization, actor=request.user
