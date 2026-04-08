@@ -8,6 +8,7 @@ import time
 
 import orjson
 import sentry_sdk
+from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
@@ -340,6 +341,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                 "type": IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
             },
             silo="region",
+            is_dev=settings.IS_DEV,
         )
 
         return HttpResponse(status=204)

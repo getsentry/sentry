@@ -30,6 +30,7 @@ import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import {useDimensions} from 'sentry/utils/useDimensions';
 import {
   TableBodyCell,
   TableHead,
@@ -220,6 +221,7 @@ export function LogsInfiniteTable({
 
   const tableRef = useRef<HTMLTableElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
+  const {width: tableWidth} = useDimensions({elementRef: tableRef});
   const [expandedLogRows, setExpandedLogRows] = useState<Set<string>>(
     new Set(embeddedOptions?.openWithExpandedIds ?? [])
   );
@@ -556,7 +558,7 @@ export function LogsInfiniteTable({
       <FloatingBackToTopContainer
         position={expanded === undefined ? 'fixed' : 'absolute'}
         inReplay={!!embeddedOptions?.replay}
-        tableWidth={tableRef.current?.getBoundingClientRect().width ?? 0}
+        tableWidth={tableWidth}
       >
         {!embeddedOptions?.replay && (
           <BackToTopButton
@@ -571,9 +573,7 @@ export function LogsInfiniteTable({
           <JumpButtons jump="up" onClick={onClickToJump} tableHeaderHeight={0} />
         ) : null}
       </FloatingBackToTopContainer>
-      <FloatingBottomContainer
-        tableWidth={tableRef.current?.getBoundingClientRect().width ?? 0}
-      >
+      <FloatingBottomContainer tableWidth={tableWidth}>
         {embeddedOptions?.replay && showJumpDownButton ? (
           <JumpButtons jump="down" onClick={onClickToJump} tableHeaderHeight={0} />
         ) : null}
