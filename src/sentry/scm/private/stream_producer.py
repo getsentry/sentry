@@ -12,7 +12,7 @@ from sentry.scm.private.ipc import (
 from sentry.scm.types import HybridCloudSilo, SubscriptionEvent
 from sentry.scm.utils import check_rollout_option
 
-logger = logging.getLogger()
+logger = logging.getLogger("sentry.scm")
 PREFIX = "sentry.scm.produce_event_to_scm_stream"
 
 
