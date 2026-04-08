@@ -91,7 +91,7 @@ export function useMobileAppSizeSeriesQuery(
       }
 
       return [
-        getApiUrl(`/organizations/$organizationIdOrSlug/events-stats/`, {
+        getApiUrl('/organizations/$organizationIdOrSlug/events-stats/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
         {

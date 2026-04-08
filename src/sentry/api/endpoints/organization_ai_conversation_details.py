@@ -12,6 +12,7 @@ from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
+from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
@@ -125,7 +126,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
     ):
         result = Spans.run_table_query(
             params=snuba_params,
-            query_string=f"gen_ai.conversation.id:{conversation_id}",
+            query_string=build_escaped_term_filter("gen_ai.conversation.id", [conversation_id]),
             selected_columns=selected_columns,
             orderby=["precise.start_ts"],
             offset=offset,

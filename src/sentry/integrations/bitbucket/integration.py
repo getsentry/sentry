@@ -5,8 +5,11 @@ from typing import Any
 
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
+from django.urls import reverse
 from django.utils.datastructures import OrderedSet
 from django.utils.translation import gettext_lazy as _
+from rest_framework.fields import CharField
+from rest_framework.serializers import Serializer
 
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.base import (
@@ -25,6 +28,7 @@ from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.atlassian_connect import (
     AtlassianConnectValidationError,
+    get_integration_from_jwt,
     get_integration_from_request,
 )
 from sentry.integrations.utils.metrics import (
@@ -34,7 +38,8 @@ from sentry.integrations.utils.metrics import (
 from sentry.models.apitoken import generate_token
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline.views.base import PipelineView
+from sentry.pipeline.types import PipelineStepResult
+from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
 from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
@@ -194,6 +199,46 @@ class BitbucketIntegration(RepositoryIntegration, BitbucketIssuesSpec):
         return self.model.name
 
 
+class BitbucketVerifySerializer(Serializer):
+    jwt = CharField(required=True)
+
+
+class BitbucketAuthorizeApiStep:
+    step_name = "authorize"
+
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
+        descriptor_uri = absolute_uri("/extensions/bitbucket/descriptor/")
+        authorize_url = (
+            f"https://bitbucket.org/site/addons/authorize?descriptor_uri={descriptor_uri}"
+        )
+        return {"authorizeUrl": authorize_url}
+
+    def get_serializer_cls(self) -> type:
+        return BitbucketVerifySerializer
+
+    def handle_post(
+        self,
+        validated_data: dict[str, Any],
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        callback_path = reverse(
+            "sentry-extension-setup",
+            kwargs={"provider_id": IntegrationProviderSlug.BITBUCKET.value},
+        )
+        try:
+            integration = get_integration_from_jwt(
+                token=validated_data["jwt"],
+                path=callback_path,
+                provider=IntegrationProviderSlug.BITBUCKET.value,
+                query_params=None,
+            )
+        except AtlassianConnectValidationError:
+            return PipelineStepResult.error("Unable to verify installation.")
+        pipeline.bind_state("external_id", integration.external_id)
+        return PipelineStepResult.advance()
+
+
 class BitbucketIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.BITBUCKET.value
     name = "Bitbucket"
@@ -219,6 +264,9 @@ class BitbucketIntegrationProvider(IntegrationProvider):
             ),
             VerifyInstallation(),
         ]
+
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+        return [BitbucketAuthorizeApiStep()]
 
     def post_install(
         self,

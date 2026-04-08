@@ -8,7 +8,24 @@ from typing import TYPE_CHECKING, Literal
 from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
 
+from sentry import analytics
+from sentry.analytics.events.autofix_events import (
+    AiAutofixAgentHandoffEvent,
+    AiAutofixCodeChangesCompletedEvent,
+    AiAutofixCodeChangesStartedEvent,
+    AiAutofixImpactAssessmentCompletedEvent,
+    AiAutofixImpactAssessmentStartedEvent,
+    AiAutofixPhaseEvent,
+    AiAutofixPrCreatedStartedEvent,
+    AiAutofixRootCauseCompletedEvent,
+    AiAutofixRootCauseStartedEvent,
+    AiAutofixSolutionCompletedEvent,
+    AiAutofixSolutionStartedEvent,
+    AiAutofixTriageCompletedEvent,
+    AiAutofixTriageStartedEvent,
+)
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT
+from sentry.integrations.services.integration import integration_service
 from sentry.seer.autofix.artifact_schemas import (
     ImpactAssessmentArtifact,
     RootCauseArtifact,
@@ -82,10 +99,14 @@ class StepConfig:
         artifact_schema: type[BaseModel] | None,
         prompt_fn: Callable[..., str],
         enable_coding: bool = False,
+        started_event: type[AiAutofixPhaseEvent] | None = None,
+        completed_event: type[AiAutofixPhaseEvent] | None = None,
     ):
         self.artifact_schema = artifact_schema
         self.prompt_fn = prompt_fn
         self.enable_coding = enable_coding
+        self.started_event = started_event
+        self.completed_event = completed_event
 
 
 # Step configurations mapping step to its artifact schema and prompt
@@ -93,23 +114,33 @@ STEP_CONFIGS: dict[AutofixStep, StepConfig] = {
     AutofixStep.ROOT_CAUSE: StepConfig(
         artifact_schema=RootCauseArtifact,
         prompt_fn=root_cause_prompt,
+        started_event=AiAutofixRootCauseStartedEvent,
+        completed_event=AiAutofixRootCauseCompletedEvent,
     ),
     AutofixStep.SOLUTION: StepConfig(
         artifact_schema=SolutionArtifact,
         prompt_fn=solution_prompt,
+        started_event=AiAutofixSolutionStartedEvent,
+        completed_event=AiAutofixSolutionCompletedEvent,
     ),
     AutofixStep.CODE_CHANGES: StepConfig(
         artifact_schema=None,  # Code changes read from file_patches
         prompt_fn=code_changes_prompt,
         enable_coding=True,
+        started_event=AiAutofixCodeChangesStartedEvent,
+        completed_event=AiAutofixCodeChangesCompletedEvent,
     ),
     AutofixStep.IMPACT_ASSESSMENT: StepConfig(
         artifact_schema=ImpactAssessmentArtifact,
         prompt_fn=impact_assessment_prompt,
+        started_event=AiAutofixImpactAssessmentStartedEvent,
+        completed_event=AiAutofixImpactAssessmentCompletedEvent,
     ),
     AutofixStep.TRIAGE: StepConfig(
         artifact_schema=TriageArtifact,
         prompt_fn=triage_prompt,
+        started_event=AiAutofixTriageStartedEvent,
+        completed_event=AiAutofixTriageCompletedEvent,
     ),
 }
 
@@ -200,6 +231,7 @@ def trigger_autofix_explorer(
     stopping_point: AutofixStoppingPoint | None = None,
     intelligence_level: Literal["low", "medium", "high"] = "low",
     user_context: str | None = None,
+    insert_index: int | None = None,
 ) -> int:
     """
     Start or continue an Explorer-based autofix run.
@@ -215,6 +247,16 @@ def trigger_autofix_explorer(
     """
 
     config = STEP_CONFIGS[step]
+
+    if config.started_event is not None:
+        analytics.record(
+            config.started_event(
+                organization_id=group.organization.id,
+                project_id=group.project_id,
+                group_id=group.id,
+                referrer=referrer.value,
+            )
+        )
     client = get_autofix_explorer_client(
         group,
         intelligence_level=intelligence_level,
@@ -247,6 +289,7 @@ def trigger_autofix_explorer(
             prompt_metadata=prompt_metadata,
             artifact_key=artifact_key,
             artifact_schema=artifact_schema,
+            insert_index=insert_index,
         )
 
     payload = {
@@ -406,6 +449,30 @@ def _get_relevant_repo(
     return repo_definitions[0]
 
 
+def _resolve_coding_agent_name(
+    organization_id: int, integration_id: int | None, provider: str | None
+) -> str | None:
+    """Resolve a human-readable coding agent name for analytics."""
+    if provider:
+        return provider
+    if integration_id is not None:
+        try:
+            integration = integration_service.get_integration(
+                integration_id=integration_id,
+            )
+            if integration:
+                return integration.provider
+        except Exception:
+            logger.exception(
+                "autofix.resolve_coding_agent_name.error",
+                extra={
+                    "organization_id": organization_id,
+                    "integration_id": integration_id,
+                },
+            )
+    return None
+
+
 def trigger_coding_agent_handoff(
     group: Group,
     run_id: int,
@@ -500,9 +567,25 @@ def trigger_coding_agent_handoff(
         auto_create_pr=auto_create_pr,
     )
 
+    coding_agent_name = _resolve_coding_agent_name(group.organization.id, integration_id, provider)
+
+    analytics.record(
+        AiAutofixAgentHandoffEvent(
+            organization_id=group.organization.id,
+            project_id=group.project_id,
+            group_id=group.id,
+            referrer=referrer.value,
+            coding_agent=coding_agent_name,
+        )
+    )
+
     metrics.incr(
         "autofix.explorer.trigger",
-        tags={"step": "coding_agent_handoff", "referrer": referrer.value},
+        tags={
+            "step": "coding_agent_handoff",
+            "referrer": referrer.value,
+            "coding_agent": coding_agent_name or "unknown",
+        },
     )
 
     return coding_agents
@@ -531,6 +614,15 @@ def trigger_push_changes(
     group_id = state.metadata.get("group_id") if state.metadata else None
     if group_id != group.id:
         raise SeerPermissionError("Unknown run id for group")
+
+    analytics.record(
+        AiAutofixPrCreatedStartedEvent(
+            organization_id=group.organization.id,
+            project_id=group.project_id,
+            group_id=group.id,
+            referrer=referrer.value,
+        )
+    )
 
     client.push_changes(
         run_id,

@@ -16,6 +16,7 @@ from sentry.models.group import STATUS_QUERY_CHOICES, Group
 from sentry.models.organization import Organization
 from sentry.seer.signed_seer_api import (
     SeerViewerContext,
+    SupergroupsByGroupIdsResponse,
     make_supergroups_get_by_group_ids_request,
 )
 
@@ -55,21 +56,19 @@ class OrganizationSupergroupsByGroupEndpoint(OrganizationEndpoint):
                 status=status_codes.HTTP_400_BAD_REQUEST,
             )
 
-        group_qs = Group.objects.filter(
-            id__in=group_ids,
-            project__organization=organization,
-        )
-
         status_param = request.GET.get("status")
-        if status_param is not None:
-            if status_param not in STATUS_QUERY_CHOICES:
-                return Response(
-                    {"detail": "Invalid status parameter"},
-                    status=status_codes.HTTP_400_BAD_REQUEST,
-                )
-            group_qs = group_qs.filter(status=STATUS_QUERY_CHOICES[status_param])
+        if status_param is not None and status_param not in STATUS_QUERY_CHOICES:
+            return Response(
+                {"detail": "Invalid status parameter"},
+                status=status_codes.HTTP_400_BAD_REQUEST,
+            )
 
-        valid_group_ids = set(group_qs.values_list("id", flat=True))
+        valid_group_ids = set(
+            Group.objects.filter(
+                id__in=group_ids,
+                project__organization=organization,
+            ).values_list("id", flat=True)
+        )
         group_ids = [gid for gid in group_ids if gid in valid_group_ids]
 
         if not group_ids:
@@ -90,4 +89,31 @@ class OrganizationSupergroupsByGroupEndpoint(OrganizationEndpoint):
                 status=response.status,
             )
 
-        return Response(orjson.loads(response.data))
+        data: SupergroupsByGroupIdsResponse = orjson.loads(response.data)
+
+        if not status_param:
+            return Response(data)
+
+        # Seer returns all group_ids per supergroup regardless of status.
+        # We can't filter before the Seer call because Seer expands group_ids
+        # to include the full supergroup membership, not just the requested IDs.
+        # Instead, collect every group_id from the response, check status in
+        # bulk, and strip out non-matching ones.
+        all_response_group_ids: list[int] = []
+        for sg in data["data"]:
+            all_response_group_ids.extend(sg["group_ids"])
+
+        matching_ids = set(
+            Group.objects.filter(
+                id__in=all_response_group_ids,
+                project__organization=organization,
+                status=STATUS_QUERY_CHOICES[status_param],
+            ).values_list("id", flat=True)
+        )
+
+        for sg in data["data"]:
+            sg["group_ids"] = [gid for gid in sg["group_ids"] if gid in matching_ids]
+        # Drop supergroups that have no matching groups after filtering
+        data["data"] = [sg for sg in data["data"] if sg["group_ids"]]
+
+        return Response(data)

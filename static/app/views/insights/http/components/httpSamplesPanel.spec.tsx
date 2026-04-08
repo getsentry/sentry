@@ -20,7 +20,7 @@ describe('HTTPSamplesPanel', () => {
   let eventsRequestMock: jest.Mock;
 
   const basePath = `/organizations/${organization.slug}/insights/backend/http/domains/`;
-  const baseRoute = `/organizations/:orgId/insights/backend/http/domains/`;
+  const baseRoute = '/organizations/:orgId/insights/backend/http/domains/';
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -120,7 +120,7 @@ describe('HTTPSamplesPanel', () => {
         body: {
           timeSeries: [
             TimeSeriesFixture({
-              yAxis: `epm()`,
+              yAxis: 'epm()',
               groupBy: [{key: SpanFields.SPAN_STATUS_CODE, value: '301'}],
               values: [
                 {timestamp: 1699907700000, value: 7810.2},
@@ -128,7 +128,7 @@ describe('HTTPSamplesPanel', () => {
               ],
             }),
             TimeSeriesFixture({
-              yAxis: `epm()`,
+              yAxis: 'epm()',
               groupBy: [{key: SpanFields.SPAN_STATUS_CODE, value: '304'}],
               values: [
                 {timestamp: 1699907700000, value: 2701.5},

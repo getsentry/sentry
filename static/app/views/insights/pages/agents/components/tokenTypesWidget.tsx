@@ -249,7 +249,7 @@ export function TokenTypesWidget() {
                 },
               ],
               query: fullQuery,
-              sort: `-sum(gen_ai.usage.input_tokens)`,
+              sort: '-sum(gen_ai.usage.input_tokens)',
               interval: pageFilterChartParams.interval,
             }}
             onOpenFullScreen={() => {

@@ -1373,6 +1373,25 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "seer.night_shift.enable",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.night_shift.issues_per_org",
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Supergroups / Lightweight RCA
+register(
+    "supergroups.lightweight-enabled-orgs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # ## sentry.killswitches
 #
@@ -3191,6 +3210,12 @@ register(
     "spans.buffer.max-segment-bytes",
     type=Int,
     default=10 * 1024 * 1024,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When enabled, oversized segments are split into chunks instead of being dropped.
+register(
+    "spans.buffer.chunk-oversized-segments",
+    default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # TTL for keys in Redis. This is a downside protection in case of bugs.

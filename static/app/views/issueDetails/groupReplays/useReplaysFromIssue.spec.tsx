@@ -21,7 +21,7 @@ describe('useReplaysFromIssue', () => {
     features: ['session-replay'],
   });
 
-  it('should fetch a list of replay ids', async () => {
+  it.isKnownFlake('should fetch a list of replay ids', async () => {
     const MOCK_GROUP = GroupFixture();
 
     MockApiClient.addMockResponse({

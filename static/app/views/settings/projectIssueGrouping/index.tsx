@@ -73,7 +73,7 @@ export default function ProjectIssueGrouping() {
 
       <TextBlock>
         {tct(
-          `All events have a fingerprint. Events with the same fingerprint are grouped together into an issue. To learn more about issue grouping, [link: read the docs].`,
+          'All events have a fingerprint. Events with the same fingerprint are grouped together into an issue. To learn more about issue grouping, [link: read the docs].',
           {
             link: (
               <ExternalLink href="https://docs.sentry.io/product/data-management-settings/event-grouping/" />

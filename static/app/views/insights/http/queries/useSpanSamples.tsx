@@ -55,7 +55,7 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
     meta: EventsMetaType;
   }>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/spans-samples/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/spans-samples/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {

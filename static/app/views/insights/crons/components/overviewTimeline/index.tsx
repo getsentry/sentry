@@ -17,7 +17,7 @@ import {useDateNavigation} from 'sentry/components/checkInTimeline/hooks/useDate
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
 import {Panel} from 'sentry/components/panels/panel';
 import {Sticky} from 'sentry/components/sticky';
-import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -25,7 +25,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {CronServiceIncidents} from 'sentry/views/insights/crons/components/serviceIncidents';
 import type {Monitor} from 'sentry/views/insights/crons/types';
-import {makeMonitorListQueryKey} from 'sentry/views/insights/crons/utils';
+import {monitorListApiOptions} from 'sentry/views/insights/crons/utils';
 
 import {OverviewRow} from './overviewRow';
 import {SortSelector} from './sortSelector';
@@ -53,14 +53,16 @@ export function OverviewTimeline({monitorList}: Props) {
       return;
     }
 
-    const queryKey = makeMonitorListQueryKey(organization, location.query);
-    setApiQueryData<Monitor[]>(queryClient, queryKey, oldMonitorList => {
-      if (!oldMonitorList) {
+    const monitorListOptions = monitorListApiOptions(organization, location.query);
+
+    queryClient.setQueryData(monitorListOptions.queryKey, old => {
+      if (!old) {
         return undefined;
       }
+      const oldMonitorList = old.json;
       const oldMonitorIdx = oldMonitorList.findIndex(m => m.slug === monitor.slug);
       if (oldMonitorIdx < 0) {
-        return oldMonitorList;
+        return old;
       }
 
       const oldMonitor = oldMonitorList[oldMonitorIdx]!;
@@ -74,10 +76,10 @@ export function OverviewTimeline({monitorList}: Props) {
       const right = oldMonitorList.slice(oldMonitorIdx + 1);
 
       if (newEnvList.length === 0) {
-        return [...left, ...right];
+        return {...old, json: [...left, ...right]};
       }
 
-      return [...left, updatedMonitor, ...right];
+      return {...old, json: [...left, updatedMonitor, ...right]};
     });
   };
 
@@ -98,11 +100,14 @@ export function OverviewTimeline({monitorList}: Props) {
       return;
     }
 
-    const queryKey = makeMonitorListQueryKey(organization, location.query);
-    setApiQueryData<Monitor[]>(queryClient, queryKey, oldMonitorList => {
-      return oldMonitorList
-        ? // TODO(davidenwang): in future only change the specifically modified environment for optimistic updates
-          oldMonitorList.map(m => (m.slug === monitor.slug ? resp : m))
+    const monitorListOptions = monitorListApiOptions(organization, location.query);
+    queryClient.setQueryData(monitorListOptions.queryKey, old => {
+      return old
+        ? {
+            ...old,
+            // TODO(davidenwang): in future only change the specifically modified environment for optimistic updates
+            json: old.json.map(m => (m.slug === monitor.slug ? resp : m)),
+          }
         : undefined;
     });
   };
@@ -115,12 +120,15 @@ export function OverviewTimeline({monitorList}: Props) {
       return;
     }
 
-    const queryKey = makeMonitorListQueryKey(organization, location.query);
-    setApiQueryData<Monitor[]>(queryClient, queryKey, oldMonitorList => {
-      return oldMonitorList
-        ? oldMonitorList.map(m =>
-            m.slug === monitor.slug ? {...m, status: resp.status} : m
-          )
+    const monitorListOptions = monitorListApiOptions(organization, location.query);
+    queryClient.setQueryData(monitorListOptions.queryKey, old => {
+      return old
+        ? {
+            ...old,
+            json: old.json.map(m =>
+              m.slug === monitor.slug ? {...m, status: resp.status} : m
+            ),
+          }
         : undefined;
     });
   };

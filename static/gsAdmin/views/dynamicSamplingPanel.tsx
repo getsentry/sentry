@@ -184,7 +184,7 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
 
   async function invalidateProjectConfig() {
     try {
-      await api.requestPromise(`/internal/project-config/`, {
+      await api.requestPromise('/internal/project-config/', {
         host: regionHost,
         method: 'POST',
         data: {projectId},
@@ -336,7 +336,7 @@ function DynamicSamplingRulesTable({
       return `${round(samplingValue.value * 100)}%`;
     }
     if (samplingValue.type === 'reservoir') {
-      return `100%`;
+      return '100%';
     }
     return `* ${round(samplingValue.value)}`;
   };

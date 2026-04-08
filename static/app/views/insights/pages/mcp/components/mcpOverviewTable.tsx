@@ -53,7 +53,7 @@ const rightAlignColumns = new Set([
 export function McpOverviewTable() {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const query = useCombinedQuery(`span.op:mcp.server`);
+  const query = useCombinedQuery('span.op:mcp.server');
   const {tableSort} = useTableSort();
   const tableDataRequest = useSpanTableData({
     query,
@@ -201,7 +201,7 @@ function SpanDescriptionCell({
       },
     ],
     query: search.formatString(),
-    sort: `-count(span.duration)`,
+    sort: '-count(span.duration)',
     field: fields,
   });
   return <Link to={link}>{spanDescription}</Link>;

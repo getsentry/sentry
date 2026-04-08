@@ -12,7 +12,7 @@ export const makeFetchGroupSearchViewKey = ({
   id,
   orgSlug,
 }: FetchGroupSearchViewsParameters): ApiQueryKey => [
-  getApiUrl(`/organizations/$organizationIdOrSlug/group-search-views/$viewId/`, {
+  getApiUrl('/organizations/$organizationIdOrSlug/group-search-views/$viewId/', {
     path: {organizationIdOrSlug: orgSlug, viewId: id},
   }),
 ];
@@ -22,7 +22,7 @@ export const useFetchGroupSearchView = (
   options: Partial<UseApiQueryOptions<GroupSearchView>> = {}
 ) => {
   return useApiQuery<GroupSearchView>(makeFetchGroupSearchViewKey(parameters), {
-    staleTime: 0,
+    staleTime: 30_000,
     retry: false,
     ...options,
   });

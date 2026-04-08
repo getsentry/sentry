@@ -21,9 +21,9 @@ class WorkflowDeletionTask(ModelDeletionTask[Workflow]):
 
             model_relations.append(ModelRelation(DataConditionGroup, {"id__in": action_filter_ids}))
 
-        if instance.when_condition_group:
+        if instance.when_condition_group_id:
             model_relations.append(
-                ModelRelation(DataConditionGroup, {"id": instance.when_condition_group.id})
+                ModelRelation(DataConditionGroup, {"id": instance.when_condition_group_id})
             )
 
         return model_relations

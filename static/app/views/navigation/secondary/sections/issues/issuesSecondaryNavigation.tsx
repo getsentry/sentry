@@ -2,7 +2,12 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {t} from 'sentry/locale';
+import {Badge} from '@sentry/scraps/badge';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {t, tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
@@ -108,11 +113,11 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
   const {layout} = usePrimaryNavigation();
   const isSticky = layout === 'sidebar';
 
+  const hasWorkflowEngineUI = organization.features.includes('workflow-engine-ui');
   const hasRedirectOptOut = organization.features.includes(
     'workflow-engine-redirect-opt-out'
   );
-  const shouldRedirectToWorkflowEngineUI =
-    !hasRedirectOptOut && organization.features.includes('workflow-engine-ui');
+  const shouldRedirectToWorkflowEngineUI = !hasRedirectOptOut && hasWorkflowEngineUI;
 
   const alertsLink = shouldRedirectToWorkflowEngineUI
     ? `${makeAutomationBasePathname(organization.slug)}?alertsRedirect=true`
@@ -133,6 +138,29 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
               to={alertsLink}
               {...(!shouldRedirectToWorkflowEngineUI && {activeTo: `${baseUrl}/alerts/`})}
               analyticsItemName="issues_alerts"
+              trailingItems={
+                hasWorkflowEngineUI ? (
+                  <Tooltip
+                    isHoverable
+                    title={
+                      <Fragment>
+                        <Text as="p">{t('Alerts now live under Monitors.')}</Text>
+                        <Text as="p">
+                          {tct('See the [link:new Alerts page here.]', {
+                            link: (
+                              <Link
+                                to={`/organizations/${organization.slug}/monitors/alerts/`}
+                              />
+                            ),
+                          })}
+                        </Text>
+                      </Fragment>
+                    }
+                  >
+                    <Badge variant="muted">{t('Moved')}</Badge>
+                  </Tooltip>
+                ) : null
+              }
             >
               {t('Alerts')}
             </SecondaryNavigation.Link>

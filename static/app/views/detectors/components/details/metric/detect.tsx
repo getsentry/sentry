@@ -115,7 +115,7 @@ export function getConditionDescription({
 
     if (condition.conditionResult === DetectorPriorityLevel.OK) {
       return t(
-        `Below or equal to %(comparisonValue)s%(unit)s %(direction)s than the previous %(timeRange)s`,
+        'Below or equal to %(comparisonValue)s%(unit)s %(direction)s than the previous %(timeRange)s',
         {
           comparisonValue: deltaComparison,
           unit,
@@ -126,7 +126,7 @@ export function getConditionDescription({
     }
 
     return t(
-      `%(comparisonValue)s%(unit)s %(direction)s than the previous %(timeRange)s`,
+      '%(comparisonValue)s%(unit)s %(direction)s than the previous %(timeRange)s',
       {
         comparisonValue: deltaComparison,
         unit,

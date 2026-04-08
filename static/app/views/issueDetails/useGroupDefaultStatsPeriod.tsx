@@ -63,7 +63,7 @@ export function useGroupDefaultStatsPeriod(
 
   if (!maxRetentionDays) {
     isMaxRetention = true;
-    return {statsPeriod: `30d`, isMaxRetention};
+    return {statsPeriod: '30d', isMaxRetention};
   }
 
   const clampedRetentionDays = Math.min(maxRetentionDays, daysSinceFirstSeen);

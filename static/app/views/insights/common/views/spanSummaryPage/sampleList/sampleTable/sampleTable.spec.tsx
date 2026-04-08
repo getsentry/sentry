@@ -160,7 +160,7 @@ describe('SampleTable', () => {
 
 const initializeMockRequests = () => {
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/events/`,
+    url: '/organizations/org-slug/events/',
     body: {
       data: [
         {
@@ -178,7 +178,7 @@ const initializeMockRequests = () => {
     ],
   });
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/events/`,
+    url: '/organizations/org-slug/events/',
     body: {
       data: [
         {

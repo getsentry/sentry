@@ -87,7 +87,7 @@ const StyledInnerWrap = styled('div', {
     box-shadow: none;
     outline: none;
   }
-  ${p => p.disabled && `cursor: default;`}
+  ${p => p.disabled && 'cursor: default;'}
 
   &::before {
     content: '';
@@ -134,7 +134,7 @@ const StyledLeadingItems = styled('div')<{
   flex-shrink: 0;
   align-items: flex-start;
 
-  ${p => p.disabled && `opacity: 0.5;`}
+  ${p => p.disabled && 'opacity: 0.5;'}
 `;
 
 const StyledLabel = styled('div')`
@@ -431,7 +431,7 @@ const TrailingItems = styled('div')<{disabled: boolean}>`
   gap: ${p => p.theme.space.md};
   margin-right: ${p => p.theme.space.xs};
 
-  ${p => p.disabled && `opacity: 0.5;`}
+  ${p => p.disabled && 'opacity: 0.5;'}
 `;
 
 export const LeadingItems = StyledLeadingItems;
