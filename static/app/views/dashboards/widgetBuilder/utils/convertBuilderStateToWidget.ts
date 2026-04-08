@@ -147,7 +147,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     queries: widgetQueries,
     widgetType: state.dataset,
     limit,
-    legendType: state.legendType,
+    legendType: state.legendType ?? null,
     thresholds: state.thresholds,
     axisRange: getAxisRange(state.axisRange) ?? datasetConfig.axisRange,
   };
