@@ -153,7 +153,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
             trigger_source=trigger_source,
             instruction=instruction,
             user_id=request.user.id,
-            referrer="api.organization_coding_agents",
+            initiator="user",
         )
 
         successes = results["successes"]
