@@ -131,7 +131,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
     def _cleanup_seer_project_repositories(
         self,
         organization_id: int,
-        repo_tuples: list[tuple[int, str, str]],
+        repo_tuples: list[tuple[int, str | None, str | None]],
     ) -> None:
         """Delete SeerProjectRepository rows and call Seer API cleanup.
 
