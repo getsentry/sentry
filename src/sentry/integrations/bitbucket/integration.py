@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from itertools import chain
 from typing import Any
 
 from django.http.request import HttpRequest
@@ -23,7 +24,10 @@ from sentry.integrations.base import (
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.repository import RpcRepository, repository_service
-from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.source_code_management.repository import (
+    RepositoryInfo,
+    RepositoryIntegration,
+)
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.atlassian_connect import (
@@ -108,14 +112,14 @@ metadata = IntegrationMetadata(
 scopes = ("issue:write", "pullrequest", "webhook", "repository")
 
 
-class BitbucketIntegration(RepositoryIntegration, BitbucketIssuesSpec):
+class BitbucketIntegration(RepositoryIntegration[BitbucketApiClient], BitbucketIssuesSpec):
     codeowners_locations = [".bitbucket/CODEOWNERS"]
 
     @property
     def integration_name(self) -> str:
         return IntegrationProviderSlug.BITBUCKET.value
 
-    def get_client(self):
+    def get_client(self) -> BitbucketApiClient:
         return BitbucketApiClient(integration=self.model)
 
     # IntegrationInstallation methods
@@ -125,34 +129,50 @@ class BitbucketIntegration(RepositoryIntegration, BitbucketIssuesSpec):
 
     # RepositoryIntegration methods
 
+    def get_repo_external_id(self, repo: Mapping[str, Any]) -> str:
+        return str(repo["uuid"])
+
     def get_repositories(
         self,
         query: str | None = None,
         page_number_limit: int | None = None,
         accessible_only: bool = False,
-    ) -> list[dict[str, Any]]:
+    ) -> list[RepositoryInfo]:
         username = self.model.metadata.get("uuid", self.username)
         if not query:
             resp = self.get_client().get_repos(username)
             return [
-                {"identifier": repo["full_name"], "name": repo["full_name"]}
+                {
+                    "identifier": repo["full_name"],
+                    "name": repo["full_name"],
+                    "external_id": self.get_repo_external_id(repo),
+                }
                 for repo in resp.get("values", [])
             ]
 
+        client = self.get_client()
         exact_query = f'name="{query}"'
         fuzzy_query = f'name~"{query}"'
-        exact_search_resp = self.get_client().search_repositories(username, exact_query)
-        fuzzy_search_resp = self.get_client().search_repositories(username, fuzzy_query)
+        exact_search_resp = client.search_repositories(username, exact_query)
+        fuzzy_search_resp = client.search_repositories(username, fuzzy_query)
 
-        result: OrderedSet[str] = OrderedSet()
+        seen: OrderedSet[str] = OrderedSet()
+        repos: list[RepositoryInfo] = []
+        for repo in chain(
+            exact_search_resp.get("values", []),
+            fuzzy_search_resp.get("values", []),
+        ):
+            if repo["full_name"] not in seen:
+                seen.add(repo["full_name"])
+                repos.append(
+                    {
+                        "identifier": repo["full_name"],
+                        "name": repo["full_name"],
+                        "external_id": self.get_repo_external_id(repo),
+                    }
+                )
 
-        for j in exact_search_resp.get("values", []):
-            result.add(j["full_name"])
-
-        for i in fuzzy_search_resp.get("values", []):
-            result.add(i["full_name"])
-
-        return [{"identifier": full_name, "name": full_name} for full_name in result]
+        return repos
 
     def has_repo_access(self, repo: RpcRepository) -> bool:
         client = self.get_client()
