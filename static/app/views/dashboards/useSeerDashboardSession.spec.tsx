@@ -1,8 +1,8 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
-import { DisplayType } from 'sentry/views/dashboards/types';
 
+import {DisplayType} from 'sentry/views/dashboards/types';
 import {useSeerDashboardSession} from 'sentry/views/dashboards/useSeerDashboardSession';
 
 const SEER_RUN_ID = 456;
@@ -151,7 +151,14 @@ describe('useSeerDashboardSession', () => {
 
     MockApiClient.addMockResponse({
       url: makeSeerApiUrl(organization.slug, 789),
-      body: {session: {run_id: 789, status: 'processing', updated_at: '2026-01-01T00:00:00Z', blocks: []}},
+      body: {
+        session: {
+          run_id: 789,
+          status: 'processing',
+          updated_at: '2026-01-01T00:00:00Z',
+          blocks: [],
+        },
+      },
     });
 
     const onDashboardUpdate = jest.fn();

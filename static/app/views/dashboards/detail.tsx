@@ -961,7 +961,10 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
-  handleSeerDashboardUpdate = ({title, widgets}: Pick<DashboardDetails, 'title' | 'widgets'>) => {
+  handleSeerDashboardUpdate = ({
+    title,
+    widgets,
+  }: Pick<DashboardDetails, 'title' | 'widgets'>) => {
     this.setState(state => {
       const dashboard = cloneDashboard(state.modifiedDashboard ?? this.props.dashboard);
       return {
