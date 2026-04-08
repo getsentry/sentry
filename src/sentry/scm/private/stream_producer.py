@@ -1,6 +1,6 @@
 from collections.abc import Callable
 
-from sentry.scm.errors import SCMProviderNotSupported
+from sentry.scm.errors import SCMProviderEventNotSupported, SCMProviderNotSupported
 from sentry.scm.private.ipc import (
     PRODUCE_TO_LISTENER,
     produce_to_listener,
@@ -18,6 +18,7 @@ def produce_event_to_scm_stream(
     event: SubscriptionEvent,
     silo: HybridCloudSilo,
     *,
+    is_dev: bool = False,
     produce_to_listener: PRODUCE_TO_LISTENER = produce_to_listener,
     record_count: Callable[[str, int, dict[str, str]], None] = record_count_metric,
     report_error: Callable[[Exception], None] = report_error_to_sentry,
@@ -38,7 +39,15 @@ def produce_event_to_scm_stream(
         produce_to_listeners(event, silo, produce_to_listener=produce_to_listener)
         record_count(f"{PREFIX}.success", 1, {})
     except SCMProviderNotSupported:
-        record_count(f"{PREFIX}.failed", 1, {"reason": "not-supported", "provider": event["type"]})
+        record_count(
+            f"{PREFIX}.failed", 1, {"reason": "provider-not-supported", "provider": event["type"]}
+        )
+    except SCMProviderEventNotSupported:
+        record_count(
+            f"{PREFIX}.failed", 1, {"reason": "event-not-supported", "provider": event["type"]}
+        )
+        if is_dev:
+            raise
     except Exception as e:
         record_count(f"{PREFIX}.failed", 1, {"reason": "processing"})
         report_error(e)
