@@ -276,12 +276,6 @@ export function getGroupEventQueryKey({
   ];
 }
 
-export function useHasStreamlinedUI() {
-  // The old UI should never be shown to the user.
-  // TODO: Remove all usages of this hook, along with the legacy UI components.
-  return true;
-}
-
 export function useIsSampleEvent(): boolean {
   const params = useParams<{groupId: string}>();
   const environments = useEnvironmentsFromUrl();
