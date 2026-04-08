@@ -5,7 +5,7 @@ from django.urls import reverse
 
 from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.models import PreprodArtifact
-from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
+from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.testutils.cases import APITestCase
 
 
@@ -249,6 +249,88 @@ class ProjectPreprodSnapshotTest(APITestCase):
             response = self.client.post(url, data, format="json")
 
         assert response.status_code == 400
+
+    @patch("sentry.preprod.api.endpoints.preprod_artifact_snapshot.get_preprod_session")
+    @patch("sentry.preprod.api.endpoints.preprod_artifact_snapshot.compare_snapshots")
+    def test_base_upload_triggers_comparison_for_waiting_head(
+        self, mock_compare_snapshots, mock_get_session
+    ) -> None:
+        """
+        When a head snapshot is uploaded before its base, uploading the base should
+        retroactively trigger a comparison for the waiting head.
+        """
+        head_sha = "a" * 40
+        base_sha = "b" * 40
+        repo_name = "owner/repo"
+        app_id = "com.example.app"
+
+        # Simulate a head artifact that was uploaded before its base was available.
+        # It has a commit_comparison with base_sha pointing to the not-yet-uploaded base.
+        head_commit_comparison = CommitComparison.objects.create(
+            organization_id=self.org.id,
+            head_repo_name=repo_name,
+            head_sha=head_sha,
+            base_sha=base_sha,
+            provider="github",
+            head_ref="feature-branch",
+            base_repo_name=repo_name,
+        )
+        head_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADED,
+            app_id=app_id,
+            commit_comparison=head_commit_comparison,
+        )
+        head_metrics = PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=head_artifact,
+            image_count=1,
+            extras={
+                "manifest_key": f"{self.org.id}/{self.project.id}/{head_artifact.id}/manifest.json"
+            },
+        )
+
+        # No comparison exists yet — the base was missing when the head was uploaded.
+        assert not PreprodSnapshotComparison.objects.filter(
+            head_snapshot_metrics=head_metrics
+        ).exists()
+
+        # Upload the base snapshot. Its head_sha matches the head artifact's base_sha.
+        url = self._get_create_url()
+        data = {
+            "app_id": app_id,
+            "head_sha": base_sha,
+            "provider": "github",
+            "head_repo_name": repo_name,
+            "head_ref": "main",
+            "images": {
+                "img1": {"display_name": "Screen 1", "width": 375, "height": 812},
+            },
+        }
+
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.post(url, data, format="json")
+
+        assert response.status_code == 200
+
+        base_artifact = PreprodArtifact.objects.get(id=response.data["artifactId"])
+        base_metrics = PreprodSnapshotMetrics.objects.get(preprod_artifact=base_artifact)
+
+        # A pending comparison record should have been created linking head to base.
+        comparison = PreprodSnapshotComparison.objects.get(
+            head_snapshot_metrics=head_metrics,
+            base_snapshot_metrics=base_metrics,
+        )
+        assert comparison.state == PreprodSnapshotComparison.State.PENDING
+
+        # The comparison task should have been queued for the waiting head.
+        mock_compare_snapshots.apply_async.assert_called_once_with(
+            kwargs={
+                "project_id": self.project.id,
+                "org_id": self.org.id,
+                "head_artifact_id": head_artifact.id,
+                "base_artifact_id": base_artifact.id,
+            }
+        )
 
 
 class ProjectPreprodSnapshotGetTest(APITestCase):
