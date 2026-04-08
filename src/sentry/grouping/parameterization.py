@@ -469,6 +469,10 @@ class Parameterizer:
                     metrics.incr(
                         "grouping.parameterization_false_positive", tags={"key": matched_key}
                     )
+                    # TODO: Remove this once we have enough sample data
+                    _log_example_data(
+                        "ip_false_positive", extra={"input_str": input_str, "value": orig_value}
+                    )
 
             return replacement_string
 
