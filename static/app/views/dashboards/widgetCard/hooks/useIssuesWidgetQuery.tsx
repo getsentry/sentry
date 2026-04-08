@@ -101,7 +101,7 @@ export function useIssuesSeriesQuery(
       }
 
       return [
-        getApiUrl(`/organizations/$organizationIdOrSlug/issues-timeseries/`, {
+        getApiUrl('/organizations/$organizationIdOrSlug/issues-timeseries/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
         {
@@ -276,7 +276,7 @@ export function useIssuesTableQuery(
       }
 
       const baseQueryKey: ApiQueryKey = [
-        getApiUrl(`/organizations/$organizationIdOrSlug/issues/`, {
+        getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
         {

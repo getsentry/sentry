@@ -86,7 +86,7 @@ function useIntegrationList() {
     providers: IntegrationProvider[];
   }>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/config/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
@@ -98,7 +98,7 @@ function useIntegrationList() {
     isError: isIntegrationsError,
   } = useApiQuery<Integration[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: {includeConfig: 0}},
@@ -111,7 +111,7 @@ function useIntegrationList() {
     isError: isOrgOwnedAppsError,
   } = useApiQuery<SentryApp[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/sentry-apps/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/sentry-apps/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
@@ -131,7 +131,7 @@ function useIntegrationList() {
     isError: isAppInstallsError,
   } = useApiQuery<SentryAppInstallation[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/sentry-app-installations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/sentry-app-installations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
@@ -143,7 +143,7 @@ function useIntegrationList() {
     isError: isPluginsError,
   } = useApiQuery<PluginWithProjectList[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/plugins/configs/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/plugins/configs/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],

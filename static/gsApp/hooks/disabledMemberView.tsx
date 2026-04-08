@@ -45,7 +45,7 @@ function DisabledMemberView(props: Props) {
     refetch,
   } = useApiQuery<Organization>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/', {
         path: {organizationIdOrSlug: orgSlug},
       }),
       {query: {detailed: '0', include_feature_flags: '1'}},

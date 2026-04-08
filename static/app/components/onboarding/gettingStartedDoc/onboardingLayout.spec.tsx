@@ -67,7 +67,7 @@ function renderLayout(docsConfig: Docs, features: string[] = []) {
         location: {
           pathname: `/organizations/${organization.slug}/projects/${project.slug}/getting-started/`,
         },
-        route: `/organizations/:orgId/projects/:projectId/getting-started/`,
+        route: '/organizations/:orgId/projects/:projectId/getting-started/',
       },
     }
   );

@@ -58,7 +58,7 @@ export function HighlightsSettingsForm({projectSlug}: HighlightsSettingsFormProp
     <Form {...formProps}>
       <TextBlock>
         {t(
-          `Setup Highlights to promote your event data to the top of the issue page for quicker debugging.`
+          'Setup Highlights to promote your event data to the top of the issue page for quicker debugging.'
         )}
       </TextBlock>
       <JsonForm

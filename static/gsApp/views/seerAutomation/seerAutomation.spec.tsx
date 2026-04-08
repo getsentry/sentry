@@ -7,7 +7,7 @@ import SeerAutomation from 'getsentry/views/seerAutomation/seerAutomation';
 describe('SeerAutomation', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/seer/onboarding-check/`,
+      url: '/organizations/org-slug/seer/onboarding-check/',
       method: 'GET',
       body: {
         hasSupportedScmIntegration: true,
@@ -17,22 +17,22 @@ describe('SeerAutomation', () => {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/config/integrations/`,
+      url: '/organizations/org-slug/config/integrations/',
       method: 'GET',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/integrations/`,
+      url: '/organizations/org-slug/integrations/',
       method: 'GET',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/repos/`,
+      url: '/organizations/org-slug/repos/',
       method: 'GET',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/autofix/automation-settings/`,
+      url: '/organizations/org-slug/autofix/automation-settings/',
       method: 'GET',
       body: [],
     });
@@ -99,7 +99,7 @@ describe('SeerAutomation', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/seer/onboarding-check/`,
+      url: '/organizations/org-slug/seer/onboarding-check/',
       method: 'GET',
       body: {
         hasSupportedScmIntegration: true,
@@ -143,7 +143,7 @@ describe('SeerAutomation', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/seer/onboarding-check/`,
+      url: '/organizations/org-slug/seer/onboarding-check/',
       method: 'GET',
       body: {
         hasSupportedScmIntegration: true,

@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Image} from '@sentry/scraps/image';
@@ -33,6 +33,25 @@ const BROADCAST_CATEGORIES: Record<NonNullable<Broadcast['category']>, string> =
   video: t('Video'),
 };
 
+function BroadcastImage({src, alt}: {alt: string; src: string}) {
+  const [loaded, setLoaded] = useState(false);
+
+  return (
+    <Fragment>
+      {!loaded && <Placeholder width="100%" height="140px" />}
+      <Image
+        width="100%"
+        src={src}
+        alt={alt}
+        radius="md"
+        loading="eager"
+        onLoad={() => setLoaded(true)}
+        style={loaded ? undefined : {display: 'none'}}
+      />
+    </Fragment>
+  );
+}
+
 function WhatsNewContent({
   unseenPostIds,
   isPending,
@@ -58,7 +77,7 @@ function WhatsNewContent({
       setApiQueryData<Broadcast[]>(
         queryClient,
         [
-          getApiUrl(`/organizations/$organizationIdOrSlug/broadcasts/`, {
+          getApiUrl('/organizations/$organizationIdOrSlug/broadcasts/', {
             path: {organizationIdOrSlug: organization.slug},
           }),
           {query: {show: 'latest', limit: '3'}},
@@ -143,9 +162,23 @@ function WhatsNewContent({
                   </Tag>
                 ) : null}
               </Flex>
-              <Text>{item.message}</Text>
+              <Text>
+                {item.message}{' '}
+                <ExternalLink
+                  href={item.link}
+                  onClick={() =>
+                    trackAnalytics('whats_new.link_clicked', {
+                      organization,
+                      title: item.title,
+                      category: item.category,
+                    })
+                  }
+                >
+                  {t('Read more')}
+                </ExternalLink>
+              </Text>
               {item.mediaUrl ? (
-                <Image width="100%" src={item.mediaUrl} alt={item.title} radius="md" />
+                <BroadcastImage src={item.mediaUrl} alt={item.title} />
               ) : null}
               {idx < broadcasts.length - 1 && <Stack.Separator />}
             </Stack>
@@ -160,7 +193,7 @@ export function PrimaryNavigationWhatsNew() {
   const organization = useOrganization();
   const {isPending, data: broadcasts} = useApiQuery<Broadcast[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/broadcasts/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/broadcasts/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: {show: 'latest', limit: '3'}},
@@ -173,13 +206,24 @@ export function PrimaryNavigationWhatsNew() {
       refetchOnWindowFocus: true,
     }
   );
-  const unseenPostIds = useMemo(
-    () =>
-      (Array.isArray(broadcasts) ? broadcasts : [])
-        .filter(item => !item.hasSeen)
-        .map(item => item.id),
+  const allBroadcasts = useMemo(
+    () => (Array.isArray(broadcasts) ? broadcasts : []),
     [broadcasts]
   );
+
+  const unseenPostIds = useMemo(
+    () => allBroadcasts.filter(item => !item.hasSeen).map(item => item.id),
+    [allBroadcasts]
+  );
+
+  const uniqueBroadcasts = useMemo(() => {
+    const seenTitles = new Set<string>();
+    return allBroadcasts.filter(item => {
+      if (seenTitles.has(item.title)) return false;
+      seenTitles.add(item.title);
+      return true;
+    });
+  }, [allBroadcasts]);
 
   const {
     isOpen,
@@ -203,7 +247,7 @@ export function PrimaryNavigationWhatsNew() {
           <WhatsNewContent
             unseenPostIds={unseenPostIds}
             isPending={isPending}
-            broadcasts={Array.isArray(broadcasts) ? broadcasts : []}
+            broadcasts={uniqueBroadcasts}
           />
         </PrimaryNavigation.ButtonOverlay>
       )}

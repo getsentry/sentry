@@ -54,11 +54,11 @@ describe('OrganizationDropdown', () => {
 
     expect(await screen.findByRole('menuitemradio', {name: /Org 1/})).toHaveAttribute(
       'href',
-      `/organizations/org-1/issues/`
+      '/organizations/org-1/issues/'
     );
     expect(await screen.findByRole('menuitemradio', {name: /Org 2/})).toHaveAttribute(
       'href',
-      `/organizations/org-2/issues/`
+      '/organizations/org-2/issues/'
     );
   });
 

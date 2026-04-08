@@ -45,7 +45,7 @@ export default function TeamProjects() {
     refetch: refetchLinkedProjects,
   } = useApiQuery<Project[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/projects/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
@@ -63,7 +63,7 @@ export default function TeamProjects() {
     refetch: refetchUnlinkedProjects,
   } = useApiQuery<Project[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/projects/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {

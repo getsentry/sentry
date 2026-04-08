@@ -64,22 +64,22 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `http_response_rate(3)`,
+    key: 'http_response_rate(3)',
     name: t('3XXs'),
     width: 50,
   },
   {
-    key: `http_response_rate(4)`,
+    key: 'http_response_rate(4)',
     name: t('4XXs'),
     width: 50,
   },
   {
-    key: `http_response_rate(5)`,
+    key: 'http_response_rate(5)',
     name: t('5XXs'),
     width: 50,
   },
   {
-    key: `avg(span.self_time)`,
+    key: 'avg(span.self_time)',
     name: DataTitles.avg,
     width: COL_WIDTH_UNDEFINED,
   },

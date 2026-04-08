@@ -159,7 +159,7 @@ function SpikeProtectionProjects({subscription}: Props) {
         setProjects(newProjects);
         await fetchData();
         addSuccessMessage(
-          tct(`[action] spike protection for all projects`, {
+          tct('[action] spike protection for all projects', {
             action: isEnabling ? t('Enabled') : t('Disabled'),
           })
         );
@@ -200,7 +200,7 @@ function SpikeProtectionProjects({subscription}: Props) {
   function AllProjectsAction(isEnabling: boolean) {
     const action = isEnabling ? t('Enable') : t('Disable');
     const confirmationText = tct(
-      `This will [action] spike protection for all projects in the organization immediately. Are you sure?`,
+      'This will [action] spike protection for all projects in the organization immediately. Are you sure?',
       {action: action.toLowerCase()}
     );
     return (
@@ -219,7 +219,7 @@ function SpikeProtectionProjects({subscription}: Props) {
             title: hasOrgWrite
               ? undefined
               : tct(
-                  `You do not have permission to [action] spike protection for all projects.`,
+                  'You do not have permission to [action] spike protection for all projects.',
                   {action: action.toLowerCase()}
                 ),
           }}

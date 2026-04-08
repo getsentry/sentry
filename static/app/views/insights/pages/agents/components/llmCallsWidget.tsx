@@ -151,7 +151,7 @@ export function LLMCallsWidget() {
               ],
               groupBy: ['gen_ai.request.model'],
               query: fullQuery,
-              sort: `-count(span.duration)`,
+              sort: '-count(span.duration)',
               interval: pageFilterChartParams.interval,
             }}
             onOpenFullScreen={() => {

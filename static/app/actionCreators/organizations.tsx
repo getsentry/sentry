@@ -234,7 +234,7 @@ export async function fetchOrganizations(api: Client, query?: Record<string, any
   const regions = ConfigStore.get('memberRegions');
   const results = await Promise.all(
     regions.map(region =>
-      api.requestPromise(`/organizations/`, {
+      api.requestPromise('/organizations/', {
         host: region.url,
         query,
         // Authentication errors can happen as we span regions.

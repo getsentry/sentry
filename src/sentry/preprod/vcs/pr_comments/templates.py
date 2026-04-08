@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from sentry.models.project import Project
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.url_utils import get_preprod_artifact_url
 
 
-def format_pr_comment(artifacts: list[PreprodArtifact]) -> str:
+def format_pr_comment(artifacts: list[PreprodArtifact], project: Project) -> str:
     if not artifacts:
         raise ValueError("No installable artifacts to format")
 
@@ -45,5 +46,10 @@ def format_pr_comment(artifacts: list[PreprodArtifact]) -> str:
             sections.append(f"### Android\n\n{header}\n{separator}\n" + "\n".join(android_rows))
         else:
             sections.append(f"{header}\n{separator}\n" + "\n".join(android_rows))
+
+    settings_url = project.organization.absolute_url(
+        f"/settings/projects/{project.slug}/mobile-builds/", query="tab=distribution"
+    )
+    sections.append(f"[Configure {project.name} build distribution settings]({settings_url})")
 
     return "\n\n".join(sections)

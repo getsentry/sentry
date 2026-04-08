@@ -54,7 +54,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `avg(span.self_time)`,
+    key: 'avg(span.self_time)',
     name: DataTitles.avg,
     width: COL_WIDTH_UNDEFINED,
   },

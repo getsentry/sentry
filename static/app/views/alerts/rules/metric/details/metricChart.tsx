@@ -693,7 +693,7 @@ function getMetricChartTooltipFormatter({
           : theme.colors.green400;
 
     return [
-      `<div class="tooltip-series">`,
+      '<div class="tooltip-series">',
       isModified &&
         `<div><span class="tooltip-label"><strong>${t(
           'Alert Rule Modified'
@@ -707,8 +707,8 @@ function getMetricChartTooltipFormatter({
       lowerThresholdSeries &&
         lowerThresholdFormatted &&
         `<div><span class="tooltip-label">${lowerThresholdSeries.marker as string} <strong>${t('Lower Threshold')}</strong></span>${lowerThresholdFormatted}</div>`,
-      `</div>`,
-      `<div class="tooltip-footer">`,
+      '</div>',
+      '<div class="tooltip-footer">',
       `<span>${startTime} &mdash; ${endTime}</span>`,
       comparisonPointY !== undefined &&
         Math.abs(changePercentage) !== Infinity &&
@@ -716,7 +716,7 @@ function getMetricChartTooltipFormatter({
         `<span style="color:${changeStatusColor};margin-left:10px;">${
           Math.sign(changePercentage) === 1 ? '+' : '-'
         }${Math.abs(changePercentage).toFixed(2)}%</span>`,
-      `</div>`,
+      '</div>',
       '<div class="tooltip-arrow"></div>',
     ]
       .filter(e => e)

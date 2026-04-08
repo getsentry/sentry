@@ -32,7 +32,7 @@ function getWebVitalScore(data: PerformanceScores, webVital: WebVitals): number 
 }
 
 function getTotalScore(data: TotalPerformanceScore): number {
-  return data[`performance_score(measurements.score.total)`] * 100;
+  return data['performance_score(measurements.score.total)'] * 100;
 }
 
 function getWebVitalScoreCount(data: CountScores, webVital: WebVitals | 'total'): number {

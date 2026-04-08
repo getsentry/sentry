@@ -80,17 +80,17 @@ describe('Performance > Widgets > WidgetContainer', () => {
     ConfigStore.init();
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events-stats/`,
+      url: '/organizations/org-slug/events-stats/',
       body: [],
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events-timeseries/`,
+      url: '/organizations/org-slug/events-timeseries/',
       body: {},
     });
     eventsMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events/`,
+      url: '/organizations/org-slug/events/',
       body: {
         data: [{}],
         meta: {},
@@ -99,7 +99,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
     });
     issuesListMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events/`,
+      url: '/organizations/org-slug/events/',
       body: {
         data: [
           {
@@ -123,13 +123,13 @@ describe('Performance > Widgets > WidgetContainer', () => {
 
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/metrics-compatibility/`,
+      url: '/organizations/org-slug/metrics-compatibility/',
       body: [],
     });
 
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/metrics-compatibility-sums/`,
+      url: '/organizations/org-slug/metrics-compatibility-sums/',
       body: [],
     });
   });
@@ -279,7 +279,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
 
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events-stats/`,
+      url: '/organizations/org-slug/events-stats/',
       statusCode: 400,
       body: {
         detail: 'Request did not work :(',
@@ -287,7 +287,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events-timeseries/`,
+      url: '/organizations/org-slug/events-timeseries/',
       statusCode: 400,
       body: {
         detail: 'Request did not work :(',
@@ -383,7 +383,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
 
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events-stats/`,
+      url: '/organizations/org-slug/events-stats/',
       body: {
         data: [],
         isMetricsData: true,
@@ -391,7 +391,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events-timeseries/`,
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
         timeSeries: [],
       },
@@ -399,7 +399,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
 
     eventsMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events/`,
+      url: '/organizations/org-slug/events/',
       body: {
         data: [{}],
         meta: {isMetricsData: true},
@@ -445,7 +445,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
 
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events-stats/`,
+      url: '/organizations/org-slug/events-stats/',
       body: {
         data: [],
         isMetricsData: undefined,
@@ -453,7 +453,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events-timeseries/`,
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
         timeSeries: [],
       },
@@ -487,7 +487,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
 
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events-stats/`,
+      url: '/organizations/org-slug/events-stats/',
       body: {
         data: [],
         isMetricsData: false,
@@ -495,7 +495,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events-timeseries/`,
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
         timeSeries: [],
       },
@@ -503,7 +503,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
 
     eventsMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events/`,
+      url: '/organizations/org-slug/events/',
       body: {
         data: [{}],
         meta: {isMetricsData: false},

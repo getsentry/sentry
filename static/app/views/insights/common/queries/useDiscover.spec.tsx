@@ -119,7 +119,7 @@ describe('useDiscover', () => {
             per_page: 10,
             project: [],
             sort: '-epm()',
-            query: `span.group:221aa7ebd216 transaction:/api/details release:0.0.1`,
+            query: 'span.group:221aa7ebd216 transaction:/api/details release:0.0.1',
             referrer: 'api-spec',
             sampling: SAMPLING_MODE.NORMAL,
             statsPeriod: '10d',
@@ -258,7 +258,8 @@ describe('useDiscover', () => {
             per_page: 10,
             project: [],
             sort: '-span.group',
-            query: `span.group:221aa7ebd216 measurements.inp:<50 measurements.inp:>0 transaction:/api/details release:0.0.1`,
+            query:
+              'span.group:221aa7ebd216 measurements.inp:<50 measurements.inp:>0 transaction:/api/details release:0.0.1',
             referrer: 'api-spec',
             statsPeriod: '10d',
           },

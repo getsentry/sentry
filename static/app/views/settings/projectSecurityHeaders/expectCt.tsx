@@ -35,7 +35,7 @@ function ProjectExpectCtReports() {
     refetch,
   } = useApiQuery<ProjectKey[]>(
     [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/`, {
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/', {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectId},
       }),
     ],

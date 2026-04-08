@@ -21,7 +21,7 @@ export function MonitorsDropdown() {
 
   const {data: cronsData, isPending: cronsIsPending} = useApiQuery<Counts>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/monitors-count/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/monitors-count/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
@@ -40,7 +40,7 @@ export function MonitorsDropdown() {
 
   const {data: uptimeData, isPending: uptimeIsPending} = useApiQuery<Counts>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/uptime-count/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/uptime-count/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {

@@ -64,7 +64,7 @@ describe('FullSpanDescription', () => {
           {
             project: project.slug,
             span_id: spanId,
-            'span.description': `{"insert": "my_cool_collection😎", "a": {}}`,
+            'span.description': '{"insert": "my_cool_collection😎", "a": {}}',
             'db.system': 'mongodb',
           },
         ],
@@ -92,7 +92,8 @@ describe('FullSpanDescription', () => {
           {
             project: project.slug,
             span_id: spanId,
-            'span.description': `{"insert": "my_cool_collection😎", "a": {}, "uh_oh":"the_query_is_truncated", "ohno*`,
+            'span.description':
+              '{"insert": "my_cool_collection😎", "a": {}, "uh_oh":"the_query_is_truncated", "ohno*',
             'db.system': 'mongodb',
           },
         ],

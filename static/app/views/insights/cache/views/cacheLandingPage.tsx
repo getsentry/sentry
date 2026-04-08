@@ -165,12 +165,12 @@ export default PageWithProviders;
 const addCustomMeta = (meta?: EventsMetaType) => {
   if (meta?.fields) {
     meta.fields[`avg(${CACHE_ITEM_SIZE})`] = 'size';
-    meta.fields[`avg(span.duration)`] = 'duration';
+    meta.fields['avg(span.duration)'] = 'duration';
     meta.units[`avg(${CACHE_ITEM_SIZE})`] = 'byte';
   }
 
   if (meta?.units) {
-    meta.units[`avg(span.duration)`] = 'millisecond';
+    meta.units['avg(span.duration)'] = 'millisecond';
   }
 };
 

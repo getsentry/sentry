@@ -856,6 +856,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /.agents/skills/lint-fix/                              @getsentry/design-engineering
 /.agents/skills/lint-new/                              @getsentry/design-engineering
 /.agents/skills/react-component-documentation/         @getsentry/design-engineering
+# Orphaned files we had to touch to fix errors
+/static/gsAdmin/views/sentryAppDetails.spec.tsx        @getsentry/design-engineering
 ## End of Frontend Platform
 
 # Coding Workflows

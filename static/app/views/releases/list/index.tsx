@@ -99,7 +99,7 @@ function makeReleaseListQueryKey({
   };
 
   return [
-    getApiUrl(`/organizations/$organizationIdOrSlug/releases/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/releases/', {
       path: {organizationIdOrSlug: organizationSlug},
     }),
     {query},

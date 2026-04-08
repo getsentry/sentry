@@ -145,7 +145,7 @@ export default function TeamStatsIssues() {
             <DescriptionCard
               title={t('Time to Resolution')}
               description={t(
-                `The mean time it took for issues to be resolved by your team.`
+                'The mean time it took for issues to be resolved by your team.'
               )}
             >
               <TeamResolutionTime

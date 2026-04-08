@@ -90,7 +90,8 @@ function getWebItems(): MenuItemProps[] {
         />
       ),
       textValue: keyToTitle('general'),
-      externalHref: `https://docs.sentry.io/platforms/javascript/session-replay/configuration/#general-integration-configuration`,
+      externalHref:
+        'https://docs.sentry.io/platforms/javascript/session-replay/configuration/#general-integration-configuration',
     },
     {
       key: 'masking',
@@ -101,7 +102,8 @@ function getWebItems(): MenuItemProps[] {
         />
       ),
       textValue: keyToTitle('masking'),
-      externalHref: `https://docs.sentry.io/platforms/javascript/session-replay/privacy/#privacy-configuration`,
+      externalHref:
+        'https://docs.sentry.io/platforms/javascript/session-replay/privacy/#privacy-configuration',
     },
     {
       key: 'users',
@@ -112,7 +114,8 @@ function getWebItems(): MenuItemProps[] {
         />
       ),
       textValue: keyToTitle('users'),
-      externalHref: `https://docs.sentry.io/platforms/javascript/session-replay/configuration/#identifying-users`,
+      externalHref:
+        'https://docs.sentry.io/platforms/javascript/session-replay/configuration/#identifying-users',
     },
     {
       key: 'network',
@@ -123,7 +126,8 @@ function getWebItems(): MenuItemProps[] {
         />
       ),
       textValue: keyToTitle('network'),
-      externalHref: `https://docs.sentry.io/platforms/javascript/session-replay/configuration/#network-details`,
+      externalHref:
+        'https://docs.sentry.io/platforms/javascript/session-replay/configuration/#network-details',
     },
     {
       key: 'canvas',
@@ -137,7 +141,8 @@ function getWebItems(): MenuItemProps[] {
         />
       ),
       textValue: keyToTitle('canvas'),
-      externalHref: `https://docs.sentry.io/platforms/javascript/session-replay/#canvas-recording`,
+      externalHref:
+        'https://docs.sentry.io/platforms/javascript/session-replay/#canvas-recording',
     },
   ] satisfies MenuItemProps[];
 }

@@ -326,7 +326,7 @@ export default function IntegrationOrganizationLink() {
     const target_url = `https://github.com/${installationData?.account.login}`;
 
     const alertText = tct(
-      `GitHub user [sender_login] has installed GitHub app to [account_type] [account_login]. Proceed if you want to attach this installation to your Sentry account.`,
+      'GitHub user [sender_login] has installed GitHub app to [account_type] [account_login]. Proceed if you want to attach this installation to your Sentry account.',
       {
         account_type: <strong>{installationData?.account.type}</strong>,
         account_login: (

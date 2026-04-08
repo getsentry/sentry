@@ -10,9 +10,28 @@ class DetectorDeletionTask(ModelDeletionTask[Detector]):
     manager_name = "objects_for_deletion"
 
     def get_child_relations(self, instance: Detector) -> list[BaseRelation]:
-        from sentry.workflow_engine.models import DataConditionGroup, DataSource
+        from sentry.incidents.models.alert_rule import AlertRule
+        from sentry.workflow_engine.models import (
+            AlertRuleDetector,
+            DataConditionGroup,
+            DataSource,
+        )
 
         model_relations: list[BaseRelation] = []
+
+        # If this detector was dual-written from an AlertRule, cascade deletion
+        # to the AlertRule. AlertRuleDeletionTask will handle cleaning up
+        # AlertRuleDetector, AlertRuleWorkflow, triggers, and incidents.
+        # NOTE: AlertRule must be deleted before DataSource so that
+        # QuerySubscriptionDeletionTask sees no remaining AlertRule referencing
+        # the SnubaQuery and can safely delete it.
+        alert_rule_ids = list(
+            AlertRuleDetector.objects.filter(detector_id=instance.id).values_list(
+                "alert_rule_id", flat=True
+            )
+        )
+        if alert_rule_ids:
+            model_relations.append(ModelRelation(AlertRule, {"id__in": alert_rule_ids}))
 
         # check that no other rows are related to the data source
         data_source_ids = DataSource.objects.filter(detector=instance.id).values_list(

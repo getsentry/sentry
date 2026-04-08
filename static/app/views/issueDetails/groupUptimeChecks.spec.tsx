@@ -32,7 +32,7 @@ describe('GroupUptimeChecks', () => {
     location: {
       pathname: `/organizations/${organization.slug}/issues/${group.id}/uptime-checks/`,
     },
-    route: `/organizations/:orgId/issues/:groupId/uptime-checks/`,
+    route: '/organizations/:orgId/issues/:groupId/uptime-checks/',
   };
 
   beforeEach(() => {

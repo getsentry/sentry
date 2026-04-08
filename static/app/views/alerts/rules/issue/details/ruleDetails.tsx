@@ -279,7 +279,7 @@ export default function AlertRuleDetails() {
 
   const duplicateLink = {
     pathname: makeAlertsPathname({
-      path: `/new/issue/`,
+      path: '/new/issue/',
       organization,
     }),
     query: {
@@ -403,7 +403,7 @@ export default function AlertRuleDetails() {
                 {
                   label: t('Alerts'),
                   to: makeAlertsPathname({
-                    path: `/rules/`,
+                    path: '/rules/',
                     organization,
                   }),
                 },

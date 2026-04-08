@@ -56,7 +56,7 @@ export function CreditCardSetup({
         cardMode="setup"
         intentDataQueryKey={
           [
-            getApiUrl(`/organizations/$organizationIdOrSlug/payments/setup/`, {
+            getApiUrl('/organizations/$organizationIdOrSlug/payments/setup/', {
               path: {organizationIdOrSlug: organization.slug},
             }),
           ] satisfies ApiQueryKey

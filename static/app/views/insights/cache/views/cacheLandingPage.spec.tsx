@@ -36,7 +36,7 @@ describe('CacheLandingPage', () => {
       pathname: `/organizations/${organization.slug}/insights/backend/caches/`,
       query: {statsPeriod: '10d', project: '1'},
     },
-    route: `/organizations/:orgId/insights/backend/caches/`,
+    route: '/organizations/:orgId/insights/backend/caches/',
   };
 
   ProjectsStore.loadInitialData([
