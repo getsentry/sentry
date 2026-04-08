@@ -559,22 +559,10 @@ class GitHubBaseClient(
         cache_key = f"github:accessible_repos:{self.integration.id}"
         cached = default_cache.get(cache_key)
         if cached is not None:
-            logger.info(
-                "get_accessible_repos_cached.cache_hit",
-                extra={"integration_id": self.integration.id, "count": len(cached)},
-            )
             return cached
 
-        logger.info(
-            "get_accessible_repos_cached.cache_miss",
-            extra={"integration_id": self.integration.id},
-        )
         repos = self.get_repos()
         default_cache.set(cache_key, repos, ttl)
-        logger.info(
-            "get_accessible_repos_cached.cached",
-            extra={"integration_id": self.integration.id, "count": len(repos)},
-        )
         return repos
 
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:
