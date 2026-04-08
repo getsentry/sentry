@@ -279,7 +279,13 @@ class SlackEventEndpoint(SlackDMEndpoint):
             sentry_sdk.set_tag("organization.slug", organization.slug)
         identity_user = slack_request.get_identity_user()
         if identity_user:
-            sentry_sdk.set_tag("user.email", identity_user.email)
+            sentry_sdk.set_user(
+                {
+                    "id": identity_user.id,
+                    "email": identity_user.email,
+                    "username": identity_user.username,
+                }
+            )
 
         logger_params = {
             "integration_id": slack_request.integration.id,
