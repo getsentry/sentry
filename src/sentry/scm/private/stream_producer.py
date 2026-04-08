@@ -47,18 +47,18 @@ def produce_event_to_scm_stream(
             f"{PREFIX}.failed", 1, {"reason": "provider-not-supported", "provider": event["type"]}
         )
         if is_dev:
-            logger.error("Failed to process SCM webhook event.")
+            logger.exception("Failed to process SCM webhook event.")
     except SCMProviderEventNotSupported:
         record_count(
             f"{PREFIX}.failed", 1, {"reason": "event-not-supported", "provider": event["type"]}
         )
         if is_dev:
-            logger.error("Failed to process SCM webhook event.")
+            logger.exception("Failed to process SCM webhook event.")
     except Exception as e:
         record_count(f"{PREFIX}.failed", 1, {"reason": "processing"})
         report_error(e)
         if is_dev:
-            logger.error("Failed to process SCM webhook event.")
+            logger.exception("Failed to process SCM webhook event.")
 
 
 __all__ = [
