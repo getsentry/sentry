@@ -188,7 +188,7 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
                         event_name="REPO_ADDED",
                         organization_id=organization_id,
                         repo=repo,
-                        source="repository sync",
+                        source="automatic SCM syncing",
                         provider=integration.provider,
                     )
 
@@ -197,7 +197,7 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
                         event_name="REPO_ENABLED",
                         organization_id=organization_id,
                         repo=repo,
-                        source="repository sync",
+                        source="automatic SCM syncing",
                         provider=integration.provider,
                     )
 
@@ -246,7 +246,7 @@ def github_repo_sync_beat() -> None:
         name="github_repo_sync",
         schedule_key="github-repo-sync-beat",
         queryset=OrganizationIntegration.objects.filter(
-            integration__provider="github",
+            integration__provider__in=["github", "github_enterprise"],
             integration__status=ObjectStatus.ACTIVE,
             status=ObjectStatus.ACTIVE,
         ),

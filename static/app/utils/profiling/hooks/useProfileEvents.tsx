@@ -69,7 +69,7 @@ export function useProfileEvents<F extends string>({
   );
 }
 
-export type ProfilingFieldType =
+type ProfilingFieldType =
   | 'id'
   | 'trace'
   | 'profile.id'

@@ -395,3 +395,31 @@ if (typeof globalThis.setImmediate === 'undefined') {
   // @ts-expect-error clearImmediate is not defined in jsdom, but we can use clearTimeout as a polyfill
   globalThis.clearImmediate = clearTimeout;
 }
+
+/**
+ * it.isKnownFlake — wraps a known-flaky test for stress-testing in CI.
+ *
+ * When RERUN_KNOWN_FLAKY_TESTS is "true" (set by the "Frontend: Rerun Flaky
+ * Tests" PR label), the test runs 50x inside a describe block. Otherwise it
+ * runs once, behaving identically to a normal `it()`.
+ */
+const FLAKY_RERUN_COUNT = 50;
+
+/* eslint-disable jest/valid-title */
+it.isKnownFlake = function isKnownFlake(
+  name: string,
+  fn: jest.ProvidesCallback,
+  timeout?: number
+) {
+  if (process.env.RERUN_KNOWN_FLAKY_TESTS !== 'true') {
+    it(name, fn, timeout);
+    return;
+  }
+
+  describe(`[flaky rerun x${FLAKY_RERUN_COUNT}] ${name}`, () => {
+    for (let i = 1; i <= FLAKY_RERUN_COUNT; i++) {
+      it(`run ${i}/${FLAKY_RERUN_COUNT}`, fn, timeout);
+    }
+  });
+};
+/* eslint-enable jest/valid-title */

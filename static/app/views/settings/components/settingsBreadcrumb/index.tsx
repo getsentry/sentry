@@ -48,7 +48,8 @@ export function SettingsBreadcrumb({className, routes, params}: Props) {
         if (!route.name) {
           return null;
         }
-        const pathTitle = pathMap[getRouteStringFromRoutes(routes.slice(0, i + 1))];
+        const pathTitle =
+          pathMap[getRouteStringFromRoutes({routes: routes.slice(0, i + 1)})];
         const isLast = i === lastRouteIndex;
         const Menu = MENUS[route.name];
         const hasMenu = !!Menu;
