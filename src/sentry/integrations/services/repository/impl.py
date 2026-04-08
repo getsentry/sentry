@@ -215,7 +215,6 @@ class DatabaseBackedRepositoryService(RepositoryService):
         integration_id: int,
     ) -> None:
         with transaction.atomic(router.db_for_write(Repository)):
-            # Disassociate repos from the organization integration being deleted
             repos = list(
                 Repository.objects.filter(
                     organization_id=organization_id, integration_id=integration_id
@@ -223,6 +222,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
             )
             repo_ids = [repo_id for repo_id, _, _ in repos]
             if repo_ids:
+                # Disassociate repos from the organization integration being deleted
                 Repository.objects.filter(id__in=repo_ids).update(integration_id=None)
                 self._cleanup_seer_project_repositories(organization_id, repos)
 
