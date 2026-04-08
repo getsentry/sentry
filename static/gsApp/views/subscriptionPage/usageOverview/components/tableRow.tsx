@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -74,7 +74,6 @@ export function UsageOverviewTableRow({
   const showPanelInline = useMedia(
     `(max-width: calc(${theme.breakpoints[SIDE_PANEL_MIN_SCREEN_BREAKPOINT]} - 1px))`
   );
-  const [isHovered, setIsHovered] = useState(false);
   const showAdditionalSpendColumn =
     subscription.canSelfServe || supportsPayg(subscription);
 
@@ -238,8 +237,6 @@ export function UsageOverviewTableRow({
     <Fragment>
       <ProductRow
         data-test-id={`product-row-${product}`}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
         isSelected={isSelected}
         onClick={() => onRowClick(product)}
         onKeyDown={e => {
@@ -355,8 +352,6 @@ export function UsageOverviewTableRow({
             </td>
           ) : null}
         </Fragment>
-
-        {(isSelected || isHovered) && <SelectedPill isSelected={isSelected} />}
       </ProductRow>
       {showPanelInline && isSelected && (
         <Row>
@@ -386,14 +381,11 @@ function DisabledProductRow({
   usageData,
   subscription,
 }: DisabledProductRowProps) {
-  const [isHovered, setIsHovered] = useState(false);
   const isSelected = selectedProduct === product;
   return (
     <Fragment>
       <ProductRow
         data-test-id={`product-row-disabled-${product}`}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
         isSelected={isSelected}
         onClick={() => onRowClick(product)}
         onKeyDown={e => {
@@ -448,7 +440,6 @@ function DisabledProductRow({
             </td>
           </Fragment>
         )}
-        {(isSelected || isHovered) && <SelectedPill isSelected={isSelected} />}
       </ProductRow>
       {showPanelInline && isSelected && (
         <Row>
@@ -493,25 +484,32 @@ const ProductRow = styled(Row)<{isSelected: boolean}>`
   &:active {
     background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
   }
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: -1px;
+    top: 30%;
+    width: 4px;
+    height: 22px;
+    border-radius: 2px;
+    background: ${p =>
+      p.isSelected
+        ? p.theme.tokens.graphics.accent.vibrant
+        : p.theme.tokens.graphics.neutral.moderate};
+    opacity: ${p => (p.isSelected ? 1 : 0)};
+    pointer-events: none;
+  }
+
+  &:hover::after {
+    opacity: 1;
+  }
 `;
 
 const MobilePanelContainer = styled('td')`
   display: grid;
   grid-template-columns: subgrid;
   grid-column: 1 / -1;
-`;
-
-const SelectedPill = styled('td')<{isSelected: boolean}>`
-  position: absolute;
-  right: -1px;
-  top: 30%;
-  width: 4px;
-  height: 22px;
-  border-radius: 2px;
-  background: ${p =>
-    p.isSelected
-      ? p.theme.tokens.graphics.accent.vibrant
-      : p.theme.tokens.graphics.neutral.moderate};
 `;
 
 const IconContainer = styled('span')`
