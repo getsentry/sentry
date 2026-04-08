@@ -55,6 +55,10 @@ describe('MetricAlertDetails', () => {
       url: '/organizations/org-slug/issues/',
       body: [GroupFixture()],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/alert-rule-detector/',
+      body: [],
+    });
   });
 
   afterEach(() => {
