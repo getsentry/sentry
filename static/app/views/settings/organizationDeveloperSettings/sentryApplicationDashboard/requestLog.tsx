@@ -82,6 +82,12 @@ const getEventTypes = memoize((app: SentryApp) => {
         ]
       : []),
     ...issueLinkEvents,
+    ...(app.events.includes('preprod_artifact')
+      ? [
+          'preprod_artifact.size_analysis_completed',
+          'preprod_artifact.build_distribution_completed',
+        ]
+      : []),
   ];
 
   return events;
@@ -122,7 +128,7 @@ function makeRequestLogQueryKey(
   query: Record<string, string>
 ): ApiQueryKey {
   return [
-    getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/webhook-requests/`, {
+    getApiUrl('/sentry-apps/$sentryAppIdOrSlug/webhook-requests/', {
       path: {sentryAppIdOrSlug: slug},
     }),
     {query},

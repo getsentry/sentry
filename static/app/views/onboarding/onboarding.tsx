@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
+import {AnimatedSentryLogo} from 'sentry/components/animatedSentryLogo';
 import Hook from 'sentry/components/hook';
 import {LogoSentry} from 'sentry/components/logoSentry';
 import {
@@ -23,7 +24,6 @@ import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {testableTransition} from 'sentry/utils/testableTransition';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -101,6 +101,16 @@ const scmOnboardingSteps: StepDescriptor[] = [
   },
 ];
 
+/**
+ * The SCM steps that display the animated logo progress indicator.
+ * Order determines the progress level (first = 0, last = 1).
+ */
+const SCM_LOGO_STEPS = [
+  OnboardingStepId.SCM_CONNECT,
+  OnboardingStepId.SCM_PLATFORM_FEATURES,
+  OnboardingStepId.SCM_PROJECT_DETAILS,
+];
+
 function WelcomeVariable(props: StepProps) {
   const hasNewWelcomeUI = useHasNewWelcomeUI();
 
@@ -117,7 +127,9 @@ interface ContainerVariableProps {
 
 function ContainerVariable(props: PropsWithChildren<ContainerVariableProps>) {
   const newWelcomeUIStep = props.hasNewWelcomeUI && props.id === OnboardingStepId.WELCOME;
-  const Component = newWelcomeUIStep ? ContainerNewWelcomeUI : Container;
+  const Component = newWelcomeUIStep
+    ? OnboardingContainerNewWelcomeUI
+    : OnboardingContainer;
 
   return (
     <Component hasFooter={props.hasFooter || newWelcomeUIStep}>
@@ -143,9 +155,9 @@ function OnboardingStepVariable(props: PropsWithChildren<OnboardingStepVariableP
       animate="animate"
       exit="exit"
       variants={{animate: {}}}
-      transition={testableTransition({
+      transition={{
         staggerChildren: 0.2,
-      })}
+      }}
       key={props.id}
       data-test-id={`onboarding-step-${props.id}`}
     >
@@ -160,7 +172,8 @@ export function OnboardingWithoutContext() {
   const {step: stepId} = useParams<{step: string}>();
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
-  const selectedProjectSlug = onboardingContext.selectedPlatform?.key;
+  const selectedProjectSlug =
+    onboardingContext.createdProjectSlug ?? onboardingContext.selectedPlatform?.key;
 
   const hasNewWelcomeUI = useHasNewWelcomeUI();
   const hasScmOnboarding = organization.features.includes('onboarding-scm');
@@ -255,7 +268,11 @@ export function OnboardingWithoutContext() {
   });
 
   const goNextStep = useCallback(
-    (step: StepDescriptor, platform?: OnboardingSelectedSDK) => {
+    (
+      step: StepDescriptor,
+      platform?: OnboardingSelectedSDK,
+      query?: Record<string, string[]>
+    ) => {
       const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
       const nextStep = onboardingSteps[currentStepIndex + 1]!;
 
@@ -267,7 +284,8 @@ export function OnboardingWithoutContext() {
         return;
       }
 
-      navigate(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));
+      const pathname = `/onboarding/${organization.slug}/${nextStep.id}/`;
+      navigate(query ? normalizeUrl({pathname, query}) : normalizeUrl(pathname));
     },
     [organization.slug, navigate, onboardingSteps, onboardingContext.selectedPlatform]
   );
@@ -284,7 +302,7 @@ export function OnboardingWithoutContext() {
           onboardingContext.setSelectedPlatform(undefined);
           activateSidebar({
             userClicked: false,
-            source: `targeted_onboarding_select_platform_skip`,
+            source: 'targeted_onboarding_select_platform_skip',
           });
         }}
         to={normalizeUrl(
@@ -295,6 +313,12 @@ export function OnboardingWithoutContext() {
       </SkipOnboardingLink>
     );
   };
+
+  const scmLogoIndex = stepObj ? SCM_LOGO_STEPS.indexOf(stepObj.id) : -1;
+  const scmLogoProgress =
+    scmLogoIndex >= 0 && SCM_LOGO_STEPS.length > 1
+      ? scmLogoIndex / (SCM_LOGO_STEPS.length - 1)
+      : null;
 
   // Redirect to the first step if we end up in an invalid state
   const isInvalidDocsStep = stepId === 'setup-docs' && !projectSlug;
@@ -345,12 +369,11 @@ export function OnboardingWithoutContext() {
           <BackMotionDiv
             initial="initial"
             animate="visible"
-            transition={testableTransition()}
             variants={{
               initial: {opacity: 0, visibility: 'hidden'},
               visible: {
                 opacity: 1,
-                transition: testableTransition({delay: 1}),
+                transition: {delay: 1},
                 transitionEnd: {
                   visibility: 'visible',
                 },
@@ -366,15 +389,20 @@ export function OnboardingWithoutContext() {
             </Button>
           </BackMotionDiv>
         )}
+        {scmLogoProgress !== null && (
+          <Container alignSelf="center">
+            <AnimatedSentryLogo progress={scmLogoProgress} />
+          </Container>
+        )}
         <AnimatePresence mode="wait" onExitComplete={updateAnimationState}>
           <OnboardingStepVariable id={stepObj.id} hasNewWelcomeUI={hasNewWelcomeUI}>
             {stepObj.Component && (
               <stepObj.Component
                 data-test-id={`onboarding-step-${stepObj.id}`}
                 stepIndex={stepIndex}
-                onComplete={platform => {
+                onComplete={(platform, query) => {
                   if (stepObj) {
-                    goNextStep(stepObj, platform);
+                    goNextStep(stepObj, platform, query);
                   }
                 }}
                 recentCreatedProject={recentCreatedProject}
@@ -396,7 +424,7 @@ function Onboarding() {
   );
 }
 
-const ContainerNewWelcomeUI = styled('div')<{hasFooter: boolean}>`
+const OnboardingContainerNewWelcomeUI = styled('div')<{hasFooter: boolean}>`
   flex-grow: 1;
   display: flex;
   flex-direction: column;
@@ -415,7 +443,7 @@ const ContainerNewWelcomeUI = styled('div')<{hasFooter: boolean}>`
   }
 `;
 
-const Container = styled('div')<{hasFooter: boolean}>`
+const OnboardingContainer = styled('div')<{hasFooter: boolean}>`
   flex-grow: 1;
   display: flex;
   flex-direction: column;

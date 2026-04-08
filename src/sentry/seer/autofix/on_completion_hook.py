@@ -3,18 +3,30 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from sentry import features
+from django.utils import timezone
+
+from sentry import analytics, features
+from sentry.analytics.events.autofix_events import AiAutofixPrCreatedCompletedEvent
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.seer.autofix.autofix_agent import (
+    STEP_CONFIGS,
     AutofixStep,
     trigger_autofix_explorer,
     trigger_coding_agent_handoff,
+    trigger_push_changes,
 )
+from sentry.seer.autofix.coding_agent import IntegrationNotFound
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.utils import AutofixStoppingPoint, get_project_seer_preferences
+from sentry.seer.autofix.utils import (
+    AutofixStoppingPoint,
+    get_project_seer_preferences,
+    resolve_repository_ids,
+    set_project_seer_preference,
+    write_preference_to_sentry_db,
+)
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
-from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.client_models import Artifact
 from sentry.seer.explorer.client_utils import fetch_run_status
 from sentry.seer.explorer.on_completion_hook import ExplorerOnCompletionHook
@@ -23,6 +35,7 @@ from sentry.seer.models import (
     SeerApiResponseValidationError,
     SeerAutomationHandoffConfiguration,
 )
+from sentry.seer.models.seer_api_models import SeerProjectPreference
 from sentry.seer.supergroups.embeddings import trigger_supergroups_embedding
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
@@ -76,13 +89,20 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             )
             return
 
-        # Send webhook for the completed step
-        cls._send_step_webhook(organization, run_id, state)
+        group_id = state.metadata.get("group_id") if state.metadata else None
+        if group_id is None:
+            return
 
-        cls._maybe_trigger_supergroups_embedding(organization, run_id, state)
+        group = Group.objects.get(id=group_id, project__organization_id=organization.id)
+        group.update(seer_explorer_autofix_last_triggered=timezone.now())
+
+        # Send webhook for the completed step
+        cls._send_step_webhook(organization, run_id, state, group)
+
+        cls._maybe_trigger_supergroups_embedding(organization, run_id, state, group)
 
         # Continue the automated pipeline if stopping_point hasn't been reached
-        cls._maybe_continue_pipeline(organization, run_id, state)
+        cls._maybe_continue_pipeline(organization, run_id, state, group)
 
     @classmethod
     def find_latest_artifact_for_step(cls, state: SeerRunState, key: str) -> Artifact | None:
@@ -95,23 +115,30 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         return None
 
     @classmethod
-    def _send_step_webhook(cls, organization, run_id, state: SeerRunState):
+    def _send_step_webhook(
+        cls,
+        organization: Organization,
+        run_id: int,
+        state: SeerRunState,
+        group: Group,
+    ):
         """
         Send webhook for the completed step.
 
         Determines which step just completed and sends the appropriate webhook event.
         """
-        current_step = cls._get_current_step(state)
+        current_step, current_referrer = cls._get_current_step(state)
 
-        webhook_payload = {"run_id": run_id}
-
-        group_id = state.metadata.get("group_id") if state.metadata else None
-        if group_id is not None:
-            webhook_payload["group_id"] = group_id
+        webhook_payload = {
+            "run_id": run_id,
+            "group_id": group.id,
+        }
 
         # Iterate through blocks in reverse order (most recent first)
         # to find which step just completed
         webhook_action_type: SeerActionType | None = None
+
+        is_pr_created = False
 
         if current_step is not None:
             artifact = cls.find_latest_artifact_for_step(state, current_step)
@@ -143,6 +170,15 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                     }
                     for pull_request in state.repo_pr_states.values()
                 ]
+                is_pr_created = True
+                analytics.record(
+                    AiAutofixPrCreatedCompletedEvent(
+                        organization_id=organization.id,
+                        project_id=group.project_id,
+                        group_id=group.id,
+                        referrer=None if current_referrer is None else current_referrer.value,
+                    )
+                )
             else:
                 webhook_action_type = SeerActionType.CODING_COMPLETED
                 diffs_by_repo = state.get_diffs_by_repo()
@@ -207,29 +243,33 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                 },
             )
 
+        if current_step is not None and not is_pr_created:
+            referrer = current_referrer.value if current_referrer is not None else None
+            metrics.incr(
+                "autofix.explorer.complete", tags={"step": current_step.value, "referrer": referrer}
+            )
+            completed_event_cls = STEP_CONFIGS[current_step].completed_event
+            if completed_event_cls is not None:
+                analytics.record(
+                    completed_event_cls(
+                        organization_id=organization.id,
+                        project_id=group.project_id,
+                        group_id=group.id,
+                        referrer=referrer,
+                    )
+                )
+
     @classmethod
     def _maybe_trigger_supergroups_embedding(
         cls,
         organization: Organization,
         run_id: int,
         state: SeerRunState,
+        group: Group,
     ) -> None:
         """Trigger supergroups embedding if feature flag is enabled."""
-        current_step = cls._get_current_step(state)
+        current_step, _ = cls._get_current_step(state)
         if current_step != AutofixStep.ROOT_CAUSE:
-            return
-
-        group_id = state.metadata.get("group_id") if state.metadata else None
-        if group_id is None:
-            return
-
-        try:
-            group = Group.objects.get(id=group_id)
-        except Group.DoesNotExist:
-            logger.warning(
-                "autofix.supergroup_embedding.group_not_found",
-                extra={"group_id": group_id},
-            )
             return
 
         if not features.has("projects:supergroup-embeddings-explorer", group.project):
@@ -242,7 +282,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         try:
             trigger_supergroups_embedding(
                 organization_id=organization.id,
-                group_id=group_id,
+                group_id=group.id,
                 project_id=group.project_id,
                 artifact_data=root_cause_artifact.data,
             )
@@ -252,25 +292,38 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                 extra={
                     "run_id": run_id,
                     "organization_id": organization.id,
-                    "group_id": group_id,
+                    "group_id": group.id,
                 },
             )
 
     @classmethod
-    def _get_current_step(cls, state: SeerRunState) -> AutofixStep | None:
+    def _get_current_step(
+        cls, state: SeerRunState
+    ) -> tuple[AutofixStep, AutofixReferrer | None] | tuple[None, None]:
         """Determine which step just completed."""
         for block in reversed(state.blocks):
             message = block.message
             if message.metadata is not None:
+                referrer = message.metadata.get("referrer")
+                if referrer is not None:
+                    try:
+                        autofix_referrer = AutofixReferrer(referrer)
+                    except ValueError:
+                        autofix_referrer = None
+                else:
+                    autofix_referrer = None
+
                 # find the first message with a valid step metadata
                 step = message.metadata.get("step")
                 if step is not None:
                     try:
-                        return AutofixStep(step)
+                        autofix_step = AutofixStep(step)
                     except ValueError:
                         continue
 
-        return None
+                    return autofix_step, autofix_referrer
+
+        return None, None
 
     @classmethod
     def _get_next_step(cls, current_step: AutofixStep) -> AutofixStep | None:
@@ -289,6 +342,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         organization: Organization,
         run_id: int,
         state: SeerRunState,
+        group: Group,
     ) -> None:
         """
         Continue to the next step if stopping_point hasn't been reached.
@@ -298,7 +352,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             run_id: The run ID
             state: The current run state
         """
-        current_step = cls._get_current_step(state)
+        current_step, _ = cls._get_current_step(state)
 
         # Get pipeline metadata from state
         metadata = state.metadata
@@ -307,14 +361,6 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             return
 
         stopping_point = AutofixStoppingPoint(metadata["stopping_point"])
-        group_id = metadata.get("group_id")
-
-        if not group_id:
-            logger.warning(
-                "autofix.on_completion_hook.no_group_id_in_metadata",
-                extra={"run_id": run_id, "organization_id": organization.id},
-            )
-            return
 
         if current_step is None:
             logger.warning(
@@ -330,11 +376,9 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             return
 
         # Check if we should trigger coding agent handoff instead of continuing
-        handoff_config = cls._get_handoff_config_if_applicable(
-            stopping_point, current_step, group_id
-        )
+        handoff_config = cls._get_handoff_config_if_applicable(stopping_point, current_step, group)
         if handoff_config:
-            cls._trigger_coding_agent_handoff(organization, run_id, group_id, handoff_config)
+            cls._trigger_coding_agent_handoff(organization, run_id, group, handoff_config)
             return
 
         # Special case: if stopping_point is open_pr and we just finished code_changes, push changes
@@ -342,7 +386,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             stopping_point == AutofixStoppingPoint.OPEN_PR
             and current_step == AutofixStep.CODE_CHANGES
         ):
-            cls._push_changes(organization, run_id, state)
+            cls._push_changes(group, run_id, state)
             return
 
         # Get the next step
@@ -359,20 +403,6 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                 extra={
                     "run_id": run_id,
                     "organization_id": organization.id,
-                },
-            )
-            return
-
-        # Get the group
-        try:
-            group = Group.objects.get(id=group_id, project__organization=organization)
-        except Group.DoesNotExist:
-            logger.warning(
-                "autofix.on_completion_hook.group_not_found",
-                extra={
-                    "run_id": run_id,
-                    "organization_id": organization.id,
-                    "group_id": group_id,
                 },
             )
             return
@@ -396,7 +426,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         )
 
     @classmethod
-    def _push_changes(cls, organization: Organization, run_id: int, state: SeerRunState) -> None:
+    def _push_changes(cls, group: Group, run_id: int, state: SeerRunState) -> None:
         """Push code changes to create PRs."""
         # Check if there are code changes to push
         has_changes, is_synced = state.has_code_changes()
@@ -405,7 +435,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                 "autofix.on_completion_hook.no_changes_to_push",
                 extra={
                     "run_id": run_id,
-                    "organization_id": organization.id,
+                    "organization_id": group.organization.id,
                     "has_changes": has_changes,
                     "is_synced": is_synced,
                 },
@@ -414,16 +444,20 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
 
         logger.info(
             "autofix.on_completion_hook.pushing_changes",
-            extra={"run_id": run_id, "organization_id": organization.id},
+            extra={"run_id": run_id, "organization_id": group.organization.id},
         )
 
         try:
-            client = SeerExplorerClient(organization=organization, user=None)
-            client.push_changes(run_id, blocking=False)
+            trigger_push_changes(
+                group,
+                run_id,
+                referrer=AutofixReferrer.ON_COMPLETION_HOOK,
+                state=state,
+            )
         except Exception:
             logger.exception(
                 "autofix.on_completion_hook.push_changes_failed",
-                extra={"run_id": run_id, "organization_id": organization.id},
+                extra={"run_id": run_id, "organization_id": group.organization.id},
             )
 
     @classmethod
@@ -431,7 +465,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         cls,
         stopping_point: AutofixStoppingPoint,
         current_step: AutofixStep | None,
-        group_id: int,
+        group: Group,
     ) -> SeerAutomationHandoffConfiguration | None:
         """
         Read project preferences and return handoff config if applicable.
@@ -454,13 +488,12 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             return None
 
         # Check project preferences
-        group = Group.objects.get(id=group_id)
         try:
             preference_response = get_project_seer_preferences(group.project_id)
         except (SeerApiError, SeerApiResponseValidationError):
             logger.exception(
                 "autofix.on_completion_hook.get_preferences_failed",
-                extra={"group_id": group_id, "project_id": group.project_id},
+                extra={"group_id": group.id, "project_id": group.project_id},
             )
             return None
         if not preference_response or not preference_response.preference:
@@ -472,11 +505,40 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         return handoff_config
 
     @classmethod
+    def _clear_handoff_preference(
+        cls, project: Project, run_id: int, organization: Organization
+    ) -> None:
+        """Clear automation_handoff from project preferences after integration is not found."""
+        try:
+            preference_response = get_project_seer_preferences(project.id)
+            if preference_response and preference_response.preference:
+                updated_preference = preference_response.preference.copy(
+                    update={"automation_handoff": None}
+                )
+                set_project_seer_preference(updated_preference)
+
+                if features.has("organizations:seer-project-settings-dual-write", organization):
+                    try:
+                        validated_pref = SeerProjectPreference.validate(updated_preference)
+                        resolved_pref = resolve_repository_ids(organization.id, [validated_pref])
+                        write_preference_to_sentry_db(project, resolved_pref[0])
+                    except Exception:
+                        logger.exception(
+                            "seer.write_preferences.failed",
+                            extra={"project_id": project.id, "organization_id": organization.id},
+                        )
+        except (SeerApiError, SeerApiResponseValidationError):
+            logger.exception(
+                "autofix.on_completion_hook.clear_handoff_preference_failed",
+                extra={"run_id": run_id, "organization_id": organization.id},
+            )
+
+    @classmethod
     def _trigger_coding_agent_handoff(
         cls,
         organization: Organization,
         run_id: int,
-        group_id: int,
+        group: Group,
         handoff_config: SeerAutomationHandoffConfiguration,
     ) -> None:
         """Trigger coding agent handoff using the configured integration."""
@@ -485,17 +547,17 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             extra={
                 "run_id": run_id,
                 "organization_id": organization.id,
-                "group_id": group_id,
+                "group_id": group.id,
                 "integration_id": handoff_config.integration_id,
                 "target": handoff_config.target,
             },
         )
 
         try:
-            group = Group.objects.get(id=group_id)
             result = trigger_coding_agent_handoff(
                 group=group,
                 run_id=run_id,
+                referrer=AutofixReferrer.ON_COMPLETION_HOOK,
                 integration_id=handoff_config.integration_id,
             )
             logger.info(
@@ -507,15 +569,16 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                     "failures": len(result.get("failures", [])),
                 },
             )
-        except Group.DoesNotExist:
+        except IntegrationNotFound:
             logger.exception(
-                "autofix.on_completion_hook.coding_agent_handoff_group_not_found",
+                "autofix.on_completion_hook.coding_agent_handoff_integration_not_found",
                 extra={
                     "run_id": run_id,
                     "organization_id": organization.id,
-                    "group_id": group_id,
+                    "integration_id": handoff_config.integration_id,
                 },
             )
+            cls._clear_handoff_preference(group.project, run_id, organization)
         except Exception:
             logger.exception(
                 "autofix.on_completion_hook.coding_agent_handoff_failed",

@@ -171,21 +171,23 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         )
 
     def test_span_alert_time_window_validation(self) -> None:
-        params = self.valid_params.copy()
-        params["dataset"] = Dataset.EventsAnalyticsPlatform.value
-        params["event_types"] = [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()]
-        params["time_window"] = 1
-        params["query"] = "span.op:http.client"
-        params["aggregate"] = "count()"
+        base_params = self.valid_params.copy()
+        base_params["dataset"] = Dataset.EventsAnalyticsPlatform.value
+        base_params["event_types"] = [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()]
+        base_params["query"] = "span.op:http.client"
+        base_params["aggregate"] = "count()"
 
-        self.run_fail_validation_test(
-            params,
-            {
-                "nonFieldErrors": [
-                    "Invalid Time Window: Time window for this alert type must be at least 5 minutes."
-                ]
-            },
-        )
+        # Below the 5-minute floor
+        base_params["time_window"] = 1
+        serializer = AlertRuleSerializer(context=self.context, data=base_params)
+        assert not serializer.is_valid()
+        assert "Invalid Time Window" in serializer.errors["nonFieldErrors"][0]
+
+        # Above the floor but not a valid granularity (7 minutes = 420 seconds)
+        base_params["time_window"] = 7
+        serializer = AlertRuleSerializer(context=self.context, data=base_params)
+        assert not serializer.is_valid()
+        assert "Invalid Time Window" in serializer.errors["nonFieldErrors"][0]
 
     def test_dataset(self) -> None:
         invalid_values = ["Invalid dataset, valid values are %s" % [item.value for item in Dataset]]
@@ -916,7 +918,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         # Verify the mock was called with correct project IDs
         mock_are_any_projects_error_upsampled.assert_called_once_with([self.project.id])
 
-    def test_update_marks_query_as_user_updated_when_snapshot_exists(self):
+    def test_update_marks_query_as_user_updated_when_snapshot_exists(self) -> None:
         alert_rule = self.create_alert_rule()
 
         alert_rule.snuba_query.query_snapshot = {
@@ -941,7 +943,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert updated_alert_rule.snuba_query.query_snapshot is not None
         assert updated_alert_rule.snuba_query.query_snapshot.get("user_updated") is True
 
-    def test_update_does_not_mark_user_updated_when_no_snapshot(self):
+    def test_update_does_not_mark_user_updated_when_no_snapshot(self) -> None:
         alert_rule = self.create_alert_rule()
 
         alert_rule.snuba_query.query_snapshot = None

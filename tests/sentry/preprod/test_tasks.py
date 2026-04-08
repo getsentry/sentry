@@ -467,6 +467,69 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         call_kwargs = mock_produce_to_kafka.call_args[1]
         assert PreprodFeature.SIZE_ANALYSIS in call_kwargs["requested_features"]
 
+    @patch("sentry.preprod.tasks.dispatch_taskbroker")
+    @patch("sentry.preprod.tasks.produce_preprod_artifact_to_kafka")
+    def test_only_taskbroker_dispatched_when_flag_enabled(
+        self, mock_produce_to_kafka, mock_shadow
+    ) -> None:
+        content = b"test shadow taskbroker dispatch"
+        fileobj = ContentFile(content)
+        total_checksum = sha1(content).hexdigest()
+
+        blob = FileBlob.from_file_with_organization(fileobj, self.organization)
+
+        artifact = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            build_configuration_name="release",
+        )
+        assert artifact is not None
+
+        with self.feature("organizations:launchpad-taskbroker-rollout"):
+            assemble_preprod_artifact(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                checksum=total_checksum,
+                chunks=[blob.checksum],
+                artifact_id=artifact.id,
+            )
+
+        mock_produce_to_kafka.assert_not_called()
+        mock_shadow.assert_called_once_with(self.project.id, self.organization.id, artifact.id)
+
+    @patch("sentry.preprod.tasks.dispatch_taskbroker")
+    @patch("sentry.preprod.tasks.produce_preprod_artifact_to_kafka")
+    def test_only_kafka_dispatched_when_flag_disabled(
+        self, mock_produce_to_kafka, mock_shadow
+    ) -> None:
+        content = b"test only kafka dispatch when flag disabled"
+        fileobj = ContentFile(content)
+        total_checksum = sha1(content).hexdigest()
+
+        blob = FileBlob.from_file_with_organization(fileobj, self.organization)
+
+        artifact = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            build_configuration_name="release",
+        )
+        assert artifact is not None
+
+        assemble_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            chunks=[blob.checksum],
+            artifact_id=artifact.id,
+        )
+
+        mock_produce_to_kafka.assert_called_once()
+        mock_shadow.assert_not_called()
+        artifact.refresh_from_db()
+        assert artifact.state != PreprodArtifact.ArtifactState.FAILED
+
 
 class CreatePreprodArtifactTest(TestCase):
     def test_create_preprod_artifact_with_all_vcs_params_succeeds(self) -> None:
@@ -632,7 +695,8 @@ class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
         )
         return status, details
 
-    def test_assemble_preprod_artifact_installable_app_success(self) -> None:
+    @patch("sentry.preprod.tasks.send_build_distribution_webhook")
+    def test_assemble_preprod_artifact_installable_app_success(self, mock_send_webhook) -> None:
         status, details = self._run_task_and_verify_status(b"test installable app content")
 
         assert status == ChunkFileState.OK
@@ -647,7 +711,13 @@ class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
         self.preprod_artifact.refresh_from_db()
         assert self.preprod_artifact.installable_app_file_id == installable_files[0].id
 
-    def test_assemble_preprod_artifact_installable_app_error_cases(self) -> None:
+        # Verify webhook was sent
+        mock_send_webhook.assert_called_once()
+        call_kwargs = mock_send_webhook.call_args
+        assert call_kwargs.kwargs["organization_id"] == self.organization.id
+
+    @patch("sentry.preprod.tasks.send_build_distribution_webhook")
+    def test_assemble_preprod_artifact_installable_app_error_cases(self, mock_send_webhook) -> None:
         # Test nonexistent artifact
         status, details = self._run_task_and_verify_status(
             b"nonexistent artifact", artifact_id=99999
@@ -677,6 +747,9 @@ class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
         # Verify PreprodArtifact was not updated for error cases
         self.preprod_artifact.refresh_from_db()
         assert self.preprod_artifact.installable_app_file_id is None
+
+        # Verify webhook was NOT sent for any error case
+        mock_send_webhook.assert_not_called()
 
 
 class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
@@ -1041,7 +1114,7 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
 
 
 class DetectExpiredPreprodArtifactsTest(TestCase):
-    def test_detect_expired_preprod_artifacts_no_expired(self):
+    def test_detect_expired_preprod_artifacts_no_expired(self) -> None:
         """Test that no artifacts are marked as expired when none are expired"""
         recent_artifact = self.create_preprod_artifact(
             project=self.project,
@@ -1082,7 +1155,7 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
         assert recent_size_metric.state == PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING
         assert recent_size_comparison.state == PreprodArtifactSizeComparison.State.PROCESSING
 
-    def test_detect_expired_preprod_artifacts_with_expired(self):
+    def test_detect_expired_preprod_artifacts_with_expired(self) -> None:
         """Test that expired artifacts are marked as failed"""
         current_time = timezone.now()
         old_time = current_time - timedelta(minutes=35)  # 35 minutes ago (expired)
@@ -1173,7 +1246,7 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
             and "30 minutes" in expired_size_comparison.error_message
         )
 
-    def test_detect_expired_preprod_artifacts_captures_sentry_message(self):
+    def test_detect_expired_preprod_artifacts_captures_sentry_message(self) -> None:
         """Test that Sentry messages are captured for each expired artifact"""
         current_time = timezone.now()
         old_time = current_time - timedelta(minutes=35)
@@ -1209,7 +1282,7 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
                 assert call[1]["level"] == "error"
                 assert "artifact_id" in call[1]["extras"]
 
-    def test_detect_expired_preprod_artifacts_mixed_states(self):
+    def test_detect_expired_preprod_artifacts_mixed_states(self) -> None:
         """Test that only artifacts in the right states are considered for expiration"""
         current_time = timezone.now()
         old_time = current_time - timedelta(minutes=35)  # 35 minutes ago (expired)
@@ -1275,7 +1348,7 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
         assert processing_size_metric.state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED
         assert completed_size_metric.state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
 
-    def test_detect_expired_preprod_artifacts_boundary_time(self):
+    def test_detect_expired_preprod_artifacts_boundary_time(self) -> None:
         """Test the 30-minute boundary for expiration"""
         current_time = timezone.now()
         exactly_30_min_ago = current_time - timedelta(minutes=30)
@@ -1319,7 +1392,7 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
         )  # Still processing
         assert just_over_30_artifact.state == PreprodArtifact.ArtifactState.FAILED
 
-    def test_detect_expired_preprod_artifacts_skips_snapshot_artifacts(self):
+    def test_detect_expired_preprod_artifacts_skips_snapshot_artifacts(self) -> None:
         from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
 
         current_time = timezone.now()

@@ -187,7 +187,7 @@ function useDemoTrace(
   const demoEventQuery = useApiQuery<EventTransaction>(
     [
       getApiUrl(
-        `/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/`,
+        '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
         {
           path: {
             organizationIdOrSlug: organization.slug,
@@ -288,7 +288,7 @@ export function useTrace(
 
   const traceQuery = useApiQuery<TraceSplitResults<TraceTree.Transaction>>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/events-trace/$traceId/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/events-trace/$traceId/', {
         path: {organizationIdOrSlug: organization.slug, traceId: options.traceSlug ?? ''},
       }),
       {query: queryParams},
@@ -301,7 +301,7 @@ export function useTrace(
 
   const eapTraceQuery = useApiQuery<TraceTree.EAPTrace>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/trace/$traceId/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/trace/$traceId/', {
         path: {organizationIdOrSlug: organization.slug, traceId: options.traceSlug ?? ''},
       }),
       {
@@ -331,7 +331,7 @@ export function useTrace(
 
   const traceFallbackQuery = useApiQuery<TraceSplitResults<TraceTree.Transaction>>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/events-trace/$traceId/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/events-trace/$traceId/', {
         path: {organizationIdOrSlug: organization.slug, traceId: options.traceSlug ?? ''},
       }),
       {query: fallbackQueryParams},
@@ -349,7 +349,7 @@ export function useTrace(
 
   const eapTraceFallbackQuery = useApiQuery<TraceTree.EAPTrace>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/trace/$traceId/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/trace/$traceId/', {
         path: {organizationIdOrSlug: organization.slug, traceId: options.traceSlug ?? ''},
       }),
       {

@@ -30,6 +30,8 @@ import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {trackEngagementAnalytics} from 'sentry/views/dashboards/widgetBuilder/utils/trackEngagementAnalytics';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {WidgetSyncContextProvider} from './contexts/widgetSyncContext';
 import {ADD_WIDGET_BUTTON_DRAG_ID, AddWidget} from './addWidget';
@@ -49,7 +51,7 @@ import {
 import {SortableWidget} from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
 import {DashboardFilterKeys, WidgetType} from './types';
-import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
+import {connectDashboardCharts, getMergedDashboardFilters} from './utils';
 import type {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
@@ -99,7 +101,7 @@ interface LayoutState extends Record<string, Layout[]> {
   [MOBILE]: Layout[];
 }
 
-export function Dashboard({
+function DashboardInner({
   dashboard,
   handleAddCustomWidget,
   handleUpdateWidgetList,
@@ -121,7 +123,21 @@ export function Dashboard({
   const location = useLocation();
   const organization = useOrganization();
   const api = useApi();
+
   const {selection} = usePageFilters();
+
+  // Push dashboard metadata into the LLM context tree for Seer Explorer.
+  useLLMContext({
+    contextHint:
+      'This is a Sentry dashboard. The dateRange, environments, and projects below are global page filters that scope every widget query. Each child widget node contains its own query config that can be used with tools like telemetry_live_search and telemetry_index_list_nodes to fetch data for that widget and dig deeper. Based on the user question, data might be needed from multiple widgets.',
+    title: dashboard.title,
+    widgetCount: dashboard.widgets.length,
+    filters: dashboard.filters,
+    isEditingDashboard,
+    dateRange: selection.datetime,
+    environments: selection.environments,
+    projects: selection.projects,
+  });
   const {queue} = useWidgetQueryQueue();
   const layouts = useMemo<LayoutState>(() => {
     const desktopLayout = getDashboardLayout(dashboard.widgets);
@@ -446,7 +462,7 @@ export function Dashboard({
               isPreview={isPreview}
               isPrebuiltDashboard={defined(dashboard.prebuiltId)}
               isGeneratedDashboard={isGeneratedDashboard}
-              dashboardFilters={getDashboardFiltersFromURL(location) ?? dashboard.filters}
+              dashboardFilters={getMergedDashboardFilters(dashboard.filters, location)}
               dashboardPermissions={dashboard.permissions}
               dashboardCreator={dashboard.createdBy}
               isMobile={isMobile}
@@ -496,3 +512,5 @@ const ResizeHandle = styled(Button)`
     display: none;
   }
 `;
+
+export const Dashboard = registerLLMContext('dashboard', DashboardInner);

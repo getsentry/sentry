@@ -1,0 +1,38 @@
+name: 'Early Devservices'
+description: 'Starts devservices in the background so image pulls overlap with venv setup'
+inputs:
+  mode:
+    description: 'devservices mode (must match the mode passed to setup-sentry)'
+    required: true
+  timeout-minutes:
+    description: 'Maximum minutes for devservices up'
+    required: false
+    default: '10'
+
+runs:
+  using: 'composite'
+  steps:
+    - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
+      with:
+        version: '0.9.28'
+        enable-cache: false
+
+    - name: Start devservices in background
+      shell: bash --noprofile --norc -euo pipefail {0}
+      run: |
+        DS_VERSION=$(python3 -c "
+        import tomllib
+        with open('uv.lock', 'rb') as f:
+            lock = tomllib.load(f)
+        for pkg in lock['package']:
+            if pkg['name'] == 'devservices':
+                print(pkg['version'])
+                break
+        ")
+        echo "Installing devservices==${DS_VERSION}"
+        uv venv /tmp/ds-venv --python python3 -q
+        uv pip install --python /tmp/ds-venv/bin/python -q \
+          --index-url https://pypi.devinfra.sentry.io/simple \
+          "devservices==${DS_VERSION}"
+        (set +e; timeout ${{ inputs.timeout-minutes }}m /tmp/ds-venv/bin/devservices up --mode ${{ inputs.mode }}; echo $? > /tmp/ds-exit) \
+          > /tmp/ds.log 2>&1 &

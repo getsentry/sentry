@@ -15,9 +15,14 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.explorer.client import SeerExplorerClient
-from sentry.seer.explorer.client_utils import has_seer_explorer_access_with_detail
+from sentry.seer.explorer.client_utils import (
+    has_seer_explorer_access_with_detail,
+    snapshot_to_markdown,
+)
 from sentry.seer.models import SeerPermissionError
+from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +42,13 @@ class SeerExplorerChatSerializer(serializers.Serializer):
         required=False,
         allow_null=True,
         help_text="Optional context from the user's screen.",
+    )
+    page_name = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        default=None,
+        help_text="The UI page name where the request originated (e.g., route string).",
     )
     override_ce_enable = serializers.BooleanField(
         required=False,
@@ -83,7 +95,13 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         Get the current state of a Seer Explorer session.
         """
         has_access, error = has_seer_explorer_access_with_detail(organization, request.user)
-        if not has_access:
+
+        has_seer_access, _ = has_seer_access_with_detail(organization, request.user)
+        has_dashboards_ai_generate_access = has_seer_access and features.has(
+            "organizations:dashboards-ai-generate", organization, actor=request.user
+        )
+
+        if not has_access and not has_dashboards_ai_generate_access:
             raise PermissionDenied(error)
 
         if not run_id:
@@ -115,7 +133,17 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         - run_id: The run ID.
         """
         has_access, error = has_seer_explorer_access_with_detail(organization, request.user)
-        if not has_access:
+
+        has_seer_access, _ = has_seer_access_with_detail(organization, request.user)
+        has_dashboards_ai_generate_access = has_seer_access and features.has(
+            "organizations:dashboards-ai-generate", organization, actor=request.user
+        )
+        # Orgs with dashboards AI generate access can continue existing dashboard generate runs, but cannot start new runs from this endpoint.
+        can_continue_dashboards_generate_run = (
+            has_dashboards_ai_generate_access and run_id is not None
+        )
+
+        if not has_access and not can_continue_dashboards_generate_run:
             raise PermissionDenied(error)
 
         serializer = SeerExplorerChatSerializer(data=request.data)
@@ -126,7 +154,17 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         query = validated_data["query"]
         insert_index = validated_data.get("insert_index")
         on_page_context = validated_data.get("on_page_context")
+        page_name = validated_data.get("page_name")
         override_ce_enable = validated_data["override_ce_enable"]
+
+        # If the frontend sent a structured LLMContext JSON snapshot, convert to markdown.
+        if on_page_context:
+            try:
+                snapshot = json.loads(on_page_context)
+                if isinstance(snapshot, dict) and "nodes" in snapshot:
+                    on_page_context = snapshot_to_markdown(snapshot)
+            except (json.JSONDecodeError, TypeError, AttributeError):
+                pass
 
         try:
             enable_coding = organization.get_option(
@@ -147,12 +185,14 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
                     prompt=query,
                     insert_index=insert_index,
                     on_page_context=on_page_context,
+                    page_name=page_name,
                 )
             else:
                 # Start new conversation
                 result_run_id = client.start_run(
                     prompt=query,
                     on_page_context=on_page_context,
+                    page_name=page_name,
                     override_ce_enable=override_ce_enable,
                 )
 

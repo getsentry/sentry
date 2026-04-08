@@ -15,9 +15,19 @@ import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import {Dashboard} from 'sentry/views/dashboards/dashboard';
 import {FiltersBar} from 'sentry/views/dashboards/filtersBar';
-import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {
+  DashboardDetails,
+  DashboardFilters,
+  Widget,
+} from 'sentry/views/dashboards/types';
+import {
+  DashboardFilterKeys,
+  DisplayType,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
 import {getSavedFiltersAsPageFilters} from 'sentry/views/dashboards/utils';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
 
 import {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
@@ -85,12 +95,12 @@ describe('Dashboards > Dashboard', () => {
   beforeEach(() => {
     initialData = initializeOrg({organization, projects: []});
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/dashboards/widgets/`,
+      url: '/organizations/org-slug/dashboards/widgets/',
       method: 'POST',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/releases/stats/`,
+      url: '/organizations/org-slug/releases/stats/',
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -798,6 +808,112 @@ describe('Dashboards > Dashboard', () => {
       await screen.findByText('Test Discover Widget');
 
       expect(screen.queryByRole('button', {name: /add widget/i})).not.toBeInTheDocument();
+    });
+  });
+
+  it('includes saved global filters in widget data requests when URL has release param', async () => {
+    const savedGlobalFilters: DashboardFilters = {
+      [DashboardFilterKeys.GLOBAL_FILTER]: [
+        {
+          dataset: WidgetType.SPANS,
+          tag: {key: 'span.op', name: 'span.op'},
+          value: 'span.op:db',
+        },
+      ],
+    };
+    const spansWidget: Widget = {
+      id: '10',
+      title: 'Spans Widget',
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: 'span.description:test',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+    };
+    const dashboardWithGlobalFilters: DashboardDetails = {
+      ...mockDashboard,
+      filters: savedGlobalFilters,
+      widgets: [spansWidget],
+    };
+
+    const eventsStatsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      method: 'GET',
+      body: [],
+    });
+
+    // URL has release= but no globalFilter — saved global filters must still
+    // be applied to the widget data request.
+    render(
+      <MEPSettingProvider forceTransactions={false}>
+        <Dashboard
+          dashboard={dashboardWithGlobalFilters}
+          isEditingDashboard={false}
+          onUpdate={() => undefined}
+          handleUpdateWidgetList={() => undefined}
+          handleAddCustomWidget={() => undefined}
+          widgetLimitReached={false}
+          widgetLegendState={widgetLegendState}
+        />
+      </MEPSettingProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
+            query: {release: '', statsPeriod: '90d', project: '11276'},
+          },
+        },
+      }
+    );
+
+    await waitFor(() => expect(eventsStatsMock).toHaveBeenCalled());
+    const requestQuery = eventsStatsMock.mock.calls[0]![1]!.query!.query as string;
+    expect(requestQuery).toContain('span.op:db');
+  });
+
+  it('registers dashboard node with metadata in LLM context snapshot', async () => {
+    const snapshotRef: {current: (() => LLMContextSnapshot) | null} = {current: null};
+
+    function SnapshotCapture() {
+      const {getLLMContext} = useLLMContext();
+      snapshotRef.current = getLLMContext;
+      return null;
+    }
+
+    render(
+      <div>
+        <Dashboard
+          dashboard={{...mockDashboard, title: 'LLM Test Dashboard'}}
+          onUpdate={() => undefined}
+          handleUpdateWidgetList={() => undefined}
+          handleAddCustomWidget={() => undefined}
+          widgetLimitReached={false}
+          isEditingDashboard={false}
+          widgetLegendState={widgetLegendState}
+        />
+        <SnapshotCapture />
+      </div>
+    );
+
+    await waitFor(() => {
+      const snapshot = snapshotRef.current!();
+      expect(snapshot.nodes).toHaveLength(1);
+      expect(snapshot.nodes[0]!.nodeType).toBe('dashboard');
+      expect(snapshot.nodes[0]!.data).toEqual(
+        expect.objectContaining({
+          title: 'LLM Test Dashboard',
+          widgetCount: 0,
+        })
+      );
     });
   });
 });

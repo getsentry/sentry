@@ -3,13 +3,14 @@ from unittest.mock import ANY, MagicMock, patch
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.utils import json
 
 
 @with_feature("organizations:seer-explorer")
 @with_feature("organizations:gen-ai-features")
 @with_feature("organizations:gen-ai-consent-flow-removal")
 class OrganizationSeerExplorerChatEndpointTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization.flags.allow_joinleave = True
         self.organization.save()
@@ -73,6 +74,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         mock_client.start_run.assert_called_once_with(
             prompt="What is this error about?",
             on_page_context=None,
+            page_name=None,
             override_ce_enable=True,
         )
 
@@ -126,6 +128,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             prompt="Follow up question",
             insert_index=2,
             on_page_context=None,
+            page_name=None,
         )
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
@@ -151,6 +154,121 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
                 enable_coding=feature_enabled and option_enabled,
             )
 
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    def test_get_run_allowed_with_dashboards_ai_generate_flag(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        """GET with run_id should succeed with dashboards-ai-generate flag even without seer-explorer."""
+        from sentry.seer.explorer.client_models import SeerRunState
+
+        mock_state = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+        mock_client = MagicMock()
+        mock_client.get_run.return_value = mock_state
+        mock_client_class.return_value = mock_client
+
+        with self.feature(
+            {
+                "organizations:seer-explorer": False,
+                "organizations:dashboards-ai-generate": True,
+            }
+        ):
+            response = self.client.get(f"{self.url}123/")
+
+        assert response.status_code == 200
+        assert response.data["session"]["run_id"] == 123
+
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    def test_continue_run_allowed_with_dashboards_ai_generate_flag(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        """POST with run_id should succeed with dashboards-ai-generate flag."""
+        mock_client = MagicMock()
+        mock_client.continue_run.return_value = 789
+        mock_client_class.return_value = mock_client
+
+        data = {"query": "Follow up question"}
+        with self.feature(
+            {
+                "organizations:seer-explorer": False,
+                "organizations:dashboards-ai-generate": True,
+            }
+        ):
+            response = self.client.post(f"{self.url}789/", data, format="json")
+
+        assert response.status_code == 200
+        assert response.data == {"run_id": 789}
+
+    def test_new_run_denied_without_seer_explorer_flag(self) -> None:
+        """POST without run_id should be denied with only dashboards-ai-generate flag."""
+        data = {"query": "Start a new conversation"}
+        with self.feature(
+            {
+                "organizations:seer-explorer": False,
+                "organizations:dashboards-ai-generate": True,
+            }
+        ):
+            response = self.client.post(self.url, data, format="json")
+
+        assert response.status_code == 403
+
+    def test_get_denied_without_either_flag(self) -> None:
+        """GET should be denied without seer-explorer or dashboards-ai-generate."""
+        with self.feature(
+            {
+                "organizations:seer-explorer": False,
+                "organizations:dashboards-ai-generate": False,
+            }
+        ):
+            response = self.client.get(self.url)
+
+        assert response.status_code == 403
+
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    def test_post_json_on_page_context_converted_to_markdown(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        mock_client = MagicMock()
+        mock_client.start_run.return_value = 456
+        mock_client_class.return_value = mock_client
+
+        snapshot = {
+            "version": 1,
+            "nodes": [
+                {
+                    "nodeType": "dashboard",
+                    "data": {"title": "My Dashboard", "widgetCount": 2},
+                    "children": [],
+                }
+            ],
+        }
+        data = {"query": "Help me", "on_page_context": json.dumps(snapshot)}
+        response = self.client.post(self.url, data, format="json")
+
+        assert response.status_code == 200
+        call_kwargs = mock_client.start_run.call_args[1]
+        context = call_kwargs["on_page_context"]
+        assert "# Dashboard" in context
+        assert '- **title**: "My Dashboard"' in context
+
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    def test_post_ascii_on_page_context_passed_through(self, mock_client_class: MagicMock) -> None:
+        mock_client = MagicMock()
+        mock_client.start_run.return_value = 456
+        mock_client_class.return_value = mock_client
+
+        ascii_screenshot = "+--------+\n| chart  |\n+--------+"
+        data = {"query": "Help me", "on_page_context": ascii_screenshot}
+        response = self.client.post(self.url, data, format="json")
+
+        assert response.status_code == 200
+        call_kwargs = mock_client.start_run.call_args[1]
+        assert call_kwargs["on_page_context"] == ascii_screenshot
+
 
 @with_feature("organizations:seer-explorer")
 @with_feature("organizations:gen-ai-features")
@@ -158,7 +276,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
 class OrganizationSeerExplorerChatContextEngineTest(APITestCase):
     """End-to-end tests verifying is_context_engine_enabled reaches make_explorer_chat_request."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-chat/"

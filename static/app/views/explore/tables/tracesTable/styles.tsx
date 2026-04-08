@@ -1,8 +1,8 @@
-import type {ComponentProps, CSSProperties} from 'react';
+import type {ComponentProps} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex, type Responsive} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Panel} from 'sentry/components/panels/panel';
@@ -11,6 +11,7 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 
 export const StyledPanel = styled(Panel)`
   margin-bottom: 0px;
+  overflow: hidden;
 `;
 
 interface StyledPanelHeaderProps extends ComponentProps<typeof PanelHeader> {
@@ -31,19 +32,17 @@ export function StyledPanelHeader({
     <Flex justify={justify} radius={radius} height="100%">
       {flexProps => (
         <Text as="div" wrap="nowrap">
-          <PanelHeader lightText={lightText} {...flexProps} {...props}>
+          <TablePanelHeader lightText={lightText} {...flexProps} {...props}>
             {children}
-          </PanelHeader>
+          </TablePanelHeader>
         </Text>
       )}
     </Flex>
   );
 }
 
-export const TracePanelContent = styled('div')`
-  width: 100%;
-  display: grid;
-  grid-template-columns: 116px auto repeat(3, min-content) 95px;
+const TablePanelHeader = styled(PanelHeader)`
+  border-radius: 0;
 `;
 
 export const StyledPanelItem = styled(PanelItem)<{
@@ -124,15 +123,23 @@ export const BreakdownPanelItem = styled(StyledPanelItem)<{highlightedSliceName:
         `}
 `;
 
-export const EmptyStateText = styled('div')<{
+export function EmptyStateText({
+  children,
+  size,
+  textAlign,
+}: {
+  children: React.ReactNode;
   size: 'xl' | 'md';
-  textAlign?: CSSProperties['textAlign'];
-}>`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size[p.size]};
-  padding-bottom: ${p => p.theme.space.md};
-  ${p => p.textAlign && `text-align: ${p.textAlign}`};
-`;
+  textAlign?: Responsive<'left' | 'center' | 'right' | 'justify'>;
+}) {
+  return (
+    <Container>
+      <Text as="div" size={size} align={textAlign} variant="muted">
+        {children}
+      </Text>
+    </Container>
+  );
+}
 
 export const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};

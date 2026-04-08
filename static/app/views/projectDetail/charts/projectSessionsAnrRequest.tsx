@@ -85,7 +85,7 @@ export function ProjectSessionsAnrRequest({
 
   const {data, isRefetching, isError} = useApiQuery<SessionApiResponse>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/sessions/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/sessions/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: queryParams},

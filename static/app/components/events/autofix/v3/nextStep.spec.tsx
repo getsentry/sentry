@@ -234,6 +234,33 @@ describe('SeerDrawerNextStep', () => {
         await screen.findByRole('button', {name: 'More code fix options'})
       ).toBeInTheDocument();
     });
+
+    it('shows Add Integration link in dropdown footer', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/coding-agents/',
+        body: {
+          integrations: [
+            {id: '1', name: 'Copilot', provider: 'github', requires_identity: false},
+          ],
+        },
+      });
+      const autofix = makeAutofix();
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('root_cause')]}
+          autofix={autofix}
+        />
+      );
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'More code fix options'})
+      );
+      const addIntegrationLink = screen.getByRole('button', {name: 'Add Integration'});
+      expect(addIntegrationLink).toHaveAttribute(
+        'href',
+        '/settings/org-slug/integrations/?category=coding%20agent'
+      );
+    });
   });
 
   describe('SolutionNextStep', () => {
@@ -334,57 +361,6 @@ describe('SeerDrawerNextStep', () => {
         screen.getByRole('button', {name: 'Nevermind, write a code fix'})
       );
       expect(autofix.startStep).toHaveBeenCalledWith('code_changes', 1);
-    });
-
-    it('shows coding agent dropdown when integrations exist', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/integrations/coding-agents/',
-        body: {
-          integrations: [
-            {id: '1', name: 'Copilot', provider: 'github', requires_identity: false},
-          ],
-        },
-      });
-      const autofix = makeAutofix();
-      render(
-        <SeerDrawerNextStep
-          group={GroupFixture()}
-          sections={[makeSection('solution')]}
-          autofix={autofix}
-        />
-      );
-      expect(
-        await screen.findByRole('button', {name: 'More code fix options'})
-      ).toBeInTheDocument();
-    });
-
-    it('calls triggerCodingAgentHandoff when coding agent option is clicked', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/integrations/coding-agents/',
-        body: {
-          integrations: [
-            {id: '1', name: 'Copilot', provider: 'github', requires_identity: false},
-          ],
-        },
-      });
-      const autofix = makeAutofix();
-      render(
-        <SeerDrawerNextStep
-          group={GroupFixture()}
-          sections={[makeSection('solution')]}
-          autofix={autofix}
-        />
-      );
-      await userEvent.click(
-        await screen.findByRole('button', {name: 'More code fix options'})
-      );
-      await userEvent.click(screen.getByText('Send to Copilot'));
-      expect(autofix.triggerCodingAgentHandoff).toHaveBeenCalledWith(1, {
-        id: '1',
-        name: 'Copilot',
-        provider: 'github',
-        requires_identity: false,
-      });
     });
   });
 

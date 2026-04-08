@@ -3,6 +3,7 @@ import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, MAX_TABLE_LIMIT, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {AI_AGENTS_OVERVIEW_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
 import {
   WIDGET_COLUMN_LABELS,
   TABLE_MIN_HEIGHT,
@@ -118,15 +119,18 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
         {
           name: '',
           conditions: AI_CLIENT_FILTER,
-          fields: [SpanFields.GEN_AI_REQUEST_MODEL, `count(${SpanFields.SPAN_DURATION})`],
+          fields: [
+            SpanFields.GEN_AI_RESPONSE_MODEL,
+            `count(${SpanFields.SPAN_DURATION})`,
+          ],
           aggregates: [`count(${SpanFields.SPAN_DURATION})`],
-          columns: [SpanFields.GEN_AI_REQUEST_MODEL],
+          columns: [SpanFields.GEN_AI_RESPONSE_MODEL],
           fieldAliases: [t('Model'), t('Calls')],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
           linkedDashboards: [
             {
               dashboardId: '-1',
-              field: SpanFields.GEN_AI_REQUEST_MODEL,
+              field: SpanFields.GEN_AI_RESPONSE_MODEL,
               staticDashboardId: 17,
             },
           ],
@@ -146,17 +150,17 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           name: '',
           conditions: AI_CLIENT_FILTER,
           fields: [
-            SpanFields.GEN_AI_REQUEST_MODEL,
+            SpanFields.GEN_AI_RESPONSE_MODEL,
             `sum(${SpanFields.GEN_AI_USAGE_TOTAL_TOKENS})`,
           ],
           aggregates: [`sum(${SpanFields.GEN_AI_USAGE_TOTAL_TOKENS})`],
-          columns: [SpanFields.GEN_AI_REQUEST_MODEL],
+          columns: [SpanFields.GEN_AI_RESPONSE_MODEL],
           fieldAliases: [t('Model'), t('Total Tokens')],
           orderby: `-sum(${SpanFields.GEN_AI_USAGE_TOTAL_TOKENS})`,
           linkedDashboards: [
             {
               dashboardId: '-1',
-              field: SpanFields.GEN_AI_REQUEST_MODEL,
+              field: SpanFields.GEN_AI_RESPONSE_MODEL,
               staticDashboardId: 17,
             },
           ],
@@ -225,7 +229,7 @@ const AGENTS_TRACES_TABLE = {
 export const AI_AGENTS_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
-  title: 'AI Agents Overview',
+  title: AI_AGENTS_OVERVIEW_DASHBOARD_TITLE,
   filters: {
     globalFilter: DEFAULT_GLOBAL_FILTERS,
   },

@@ -149,7 +149,11 @@ export function AttributeComparisonSection({
           </LegendHint>
         </Stack>
         {isLoading ? (
-          <Placeholder height="200px" />
+          <Grid columns="repeat(auto-fill, minmax(min(300px, 100%), 1fr))" gap="md">
+            {Array.from({length: CHARTS_PER_PAGE}).map((_, i) => (
+              <Placeholder key={i} height="200px" />
+            ))}
+          </Grid>
         ) : error ? (
           <AttributeBreakdownsComponent.ErrorState error={error} />
         ) : filteredRankedAttributes.length > 0 ? (

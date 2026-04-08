@@ -367,16 +367,16 @@ class User(Model, AbstractBaseUser):
     def outboxes_for_user_update(
         identifier: int, is_user_delete: bool = False
     ) -> list[ControlOutboxBase]:
-        # User deletions must fan out to all regions to ensure cascade behavior
+        # User deletions must fan out to all cells to ensure cascade behavior
         # of anything with a HybridCloudForeignKey, even if the user is no longer
-        # a member of any organizations in that region.
+        # a member of any organizations in that cell.
         if is_user_delete:
-            user_regions = set(find_all_cell_names())
+            user_cells = set(find_all_cell_names())
         else:
-            user_regions = find_cells_for_user(identifier)
+            user_cells = find_cells_for_user(identifier)
 
         return OutboxCategory.USER_UPDATE.as_control_outboxes(
-            cell_names=user_regions,
+            cell_names=user_cells,
             object_identifier=identifier,
             shard_identifier=identifier,
         )

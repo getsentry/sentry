@@ -59,6 +59,8 @@ export interface StackTraceContextValue {
   frames: Frame[];
   /** True when any visible frame row has expandable details. */
   hasAnyExpandableFrames: boolean;
+  /** True when the SCM source context feature is enabled for this org. */
+  hasScmSourceContext: boolean;
   /** Hidden-system-frame expansion state keyed by frame index. */
   hiddenFrameToggleMap: Record<number, boolean>;
   /** True when the "Unminify Code" source map action must be hidden. */

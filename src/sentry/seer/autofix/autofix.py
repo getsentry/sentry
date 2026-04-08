@@ -25,10 +25,11 @@ from sentry.issues.auto_source_code_config.code_mapping import (
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
-from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.constants import CODING_PAYLOAD_TYPES, AutofixReferrer
 from sentry.seer.autofix.types import (
     AutofixCreatePRPayload,
     AutofixSelectRootCausePayload,
@@ -38,10 +39,15 @@ from sentry.seer.autofix.types import (
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     get_autofix_repos_from_project_code_mappings,
+    get_org_default_seer_automation_handoff,
+    get_project_seer_preferences,
     make_autofix_start_request,
     make_autofix_update_request,
+    set_project_seer_preference,
+    write_preference_to_sentry_db,
 )
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
+from sentry.seer.models import SeerProjectPreference
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -529,6 +535,7 @@ def _call_autofix(
     auto_run_source: str | None = None,
     stopping_point: AutofixStoppingPoint | None = None,
     github_username: str | None = None,
+    preference: SeerProjectPreference | None = None,
 ):
     body = orjson.dumps(
         {
@@ -567,6 +574,7 @@ def _call_autofix(
                 ),
                 "stopping_point": stopping_point.value if stopping_point else None,
             },
+            "preference": preference.dict() if preference else None,
         },
         option=orjson.OPT_NON_STR_KEYS,
     )
@@ -690,6 +698,43 @@ def get_all_tags_overview(
     }
 
 
+def _resolve_project_preference(
+    organization: Organization, project: Project, fallback_repos: list[dict]
+) -> SeerProjectPreference:
+    """
+    Resolve the Seer project preference for a project before triggering autofix.
+
+    If an existing preference is found in Seer, returns it.
+    If not, creates one from fallback_repos.
+    """
+    preference_response = get_project_seer_preferences(project.id)
+    if preference_response.preference:
+        return preference_response.preference
+
+    default_stopping_point, default_handoff = get_org_default_seer_automation_handoff(organization)
+    preference = SeerProjectPreference(
+        organization_id=organization.id,
+        project_id=project.id,
+        repositories=fallback_repos,
+        automated_run_stopping_point=default_stopping_point,
+        automation_handoff=default_handoff,
+    )
+
+    set_project_seer_preference(preference)
+
+    if features.has("organizations:seer-project-settings-dual-write", organization):
+        try:
+            write_preference_to_sentry_db(project, preference)
+        except Exception:
+            logger.exception(
+                "seer.write_preferences.resolve_project_preference.sentry_db_write_failed",
+                extra={"project_id": project.id, "organization_id": organization.id},
+                exc_info=True,
+            )
+
+    return preference
+
+
 def trigger_autofix(
     *,
     group: Group,
@@ -737,6 +782,21 @@ def trigger_autofix(
 
     code_mappings = get_sorted_code_mapping_configs(group.project)
     repos = get_autofix_repos_from_project_code_mappings(group.project, code_mappings=code_mappings)
+
+    # Resolve the project preference from Seer, or bootstrap one from code mapping repos.
+    # On success, preference.repositories becomes the source of truth for repos
+    # (even if empty — matching Seer's behavior of unconditionally using preference repos).
+    # On failure, we fall back to the original code mapping repos above.
+    preference: SeerProjectPreference | None = None
+    try:
+        preference = _resolve_project_preference(group.organization, group.project, repos)
+        repos = [repo.dict() for repo in preference.repositories]
+    except Exception:
+        logger.exception(
+            "seer.write_preferences.resolve_project_preference.failed",
+            extra={"project_id": group.project.id, "organization_id": group.organization.id},
+            exc_info=True,
+        )
 
     # Pre-resolve stacktrace frame paths using code mappings so Seer can skip
     # expensive git tree fetches for large repos.
@@ -795,6 +855,7 @@ def trigger_autofix(
             auto_run_source=auto_run_source,
             stopping_point=stopping_point,
             github_username=github_username,
+            preference=preference,
         )
     except Exception:
         logger.exception("Failed to send autofix to seer")
@@ -832,6 +893,15 @@ def update_autofix(
     """
     Issue an update to an autofix run. Intentionally matching the output of trigger_autofix.
     """
+    if payload.get("type") in CODING_PAYLOAD_TYPES:
+        try:
+            org = Organization.objects.get(id=organization_id)
+            if not org.get_option("sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT):
+                return Response(
+                    {"detail": "Code generation is disabled for this organization"}, status=403
+                )
+        except Organization.DoesNotExist:
+            return Response({"detail": "Organization not found"}, status=404)
 
     data = AutofixUpdateRequest(organization_id=organization_id, run_id=run_id, payload=payload)
     body = orjson.dumps(data)

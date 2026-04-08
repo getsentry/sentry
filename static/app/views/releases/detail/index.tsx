@@ -4,8 +4,8 @@ import type {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Stack} from '@sentry/scraps/layout';
 
-import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
@@ -34,7 +34,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useRouter} from 'sentry/utils/useRouter';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import type {ReleaseBounds} from 'sentry/views/releases/utils';
 import {getReleaseBounds, searchReleaseVersion} from 'sentry/views/releases/utils';
@@ -120,7 +119,7 @@ function ReleasesDetail({
     error: sessionsError,
   } = useApiQuery<SessionApiResponse>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/sessions/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/sessions/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
@@ -160,7 +159,7 @@ function ReleasesDetail({
       );
       return (
         <SentryDocumentTitle title={pageTitle}>
-          <Layout.Page>
+          <Stack flex={1}>
             <Alert.Container>
               <Alert variant="danger">
                 {possiblyWrongProject
@@ -168,7 +167,7 @@ function ReleasesDetail({
                   : t('There was an error loading the release details')}
               </Alert>
             </Alert.Container>
-          </Layout.Page>
+          </Stack>
         </SentryDocumentTitle>
       );
     },
@@ -189,9 +188,9 @@ function ReleasesDetail({
   if (isPending) {
     return (
       <SentryDocumentTitle title={pageTitle}>
-        <Layout.Page>
+        <Stack flex={1}>
           <LoadingIndicator />
-        </Layout.Page>
+        </Stack>
       </SentryDocumentTitle>
     );
   }
@@ -205,7 +204,7 @@ function ReleasesDetail({
 
   return (
     <SentryDocumentTitle title={pageTitle}>
-      <Layout.Page>
+      <Stack flex={1}>
         <NoProjectMessage organization={organization}>
           <ReleaseHeader
             location={location}
@@ -230,7 +229,7 @@ function ReleasesDetail({
             {children}
           </ReleaseContext>
         </NoProjectMessage>
-      </Layout.Page>
+      </Stack>
     </SentryDocumentTitle>
   );
 }
@@ -242,7 +241,6 @@ function ReleasesDetailContainer() {
   const params = useParams<{release: string}>();
   const location = useLocation();
   const navigate = useNavigate();
-  const router = useRouter();
   const organization = useOrganization();
   const {release} = params;
 
@@ -267,20 +265,20 @@ function ReleasesDetailContainer() {
 
   if (isPending) {
     return (
-      <Layout.Page>
+      <Stack flex={1}>
         <LoadingIndicator />
-      </Layout.Page>
+      </Stack>
     );
   }
 
   if (isError && error.status === 404) {
     // This catches a 404 coming from the release endpoint and displays a custom error message.
     return (
-      <Layout.Page withPadding>
+      <Stack flex={1} padding="2xl 3xl">
         <Alert.Container>
           <Alert variant="danger">{t('This release could not be found.')}</Alert>
         </Alert.Container>
-      </Layout.Page>
+      </Stack>
     );
   }
 
@@ -299,7 +297,6 @@ function ReleasesDetailContainer() {
           id: String(id),
           slug,
         }))}
-        router={router}
         nextPath={{
           pathname: makeReleasesPathname({
             path: `/${encodeURIComponent(release)}/`,

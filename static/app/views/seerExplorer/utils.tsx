@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
+import {useMatches} from 'react-router-dom';
 import type {LocationDescriptor} from 'history';
 import queryString from 'query-string';
 
@@ -8,7 +9,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,
@@ -93,6 +93,12 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
         : `Queried logs${projectInfo}: '${question}'`;
     }
 
+    if (dataset === 'metrics' || dataset === 'tracemetrics') {
+      return isLoading
+        ? `Querying metrics${projectInfo}: '${question}'...`
+        : `Queried metrics${projectInfo}: '${question}'`;
+    }
+
     // Default to spans dataset
     return isLoading
       ? `Querying spans${projectInfo}: '${question}'...`
@@ -136,7 +142,7 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     }
 
     // shouldn't happen (issue_id required)
-    return isLoading ? `Inspecting issue...` : `Inspected issue`;
+    return isLoading ? 'Inspecting issue...' : 'Inspected issue';
   },
 
   get_event_details: (args, isLoading, resultMetadata) => {
@@ -162,7 +168,7 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     }
 
     // shouldn't happen (either event_id or issue_id required)
-    return isLoading ? `Analyzing event...` : `Analyzed event`;
+    return isLoading ? 'Analyzing event...' : 'Analyzed event';
   },
 
   code_search: (args, isLoading) => {
@@ -615,6 +621,20 @@ export function buildToolLinkUrl(
         };
       }
 
+      if (dataset === 'metrics' || dataset === 'tracemetrics') {
+        // TODO: The metrics explore page reads metric-specific state (metric name,
+        // type, aggregations, group bys) from a JSON-encoded `metric` URL param.
+        // Currently we only pass page filter params (project, statsPeriod, etc.)
+        // which means the search query context is lost on navigation. To fully
+        // preserve context, the Seer backend should include structured metric
+        // metadata (name, type, unit) in tool_link params so we can build the
+        // `metric` param here via encodeMetricsQueryParams().
+        return {
+          pathname: `/organizations/${orgSlug}/explore/metrics/`,
+          query: queryParams,
+        };
+      }
+
       // Default to spans (traces) search
       const {y_axes, group_by, mode} = toolLink.params;
       const aggregateFields: string[] = [];
@@ -832,8 +852,8 @@ export function getValidToolLinks(
  */
 export function usePageReferrer(): {getPageReferrer: () => string} {
   // Track the normalized path of the current page (e.g. /issues/:groupId/) for analytics.
-  const routes = useRoutes();
-  const routeString = getRouteStringFromRoutes(routes);
+  const matches = useMatches();
+  const routeString = getRouteStringFromRoutes({matches});
   const routeStringRef = useRef(routeString);
 
   useEffect(() => {

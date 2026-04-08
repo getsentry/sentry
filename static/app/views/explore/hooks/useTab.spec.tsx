@@ -12,7 +12,7 @@ function Wrapper({children}: {children: ReactNode}) {
 function makeInitialRouterConfig({table}: {table: string}) {
   return {
     location: {
-      pathname: `/organizations/org-slug/explore/traces/`,
+      pathname: '/organizations/org-slug/explore/traces/',
       query: {table},
     },
   };

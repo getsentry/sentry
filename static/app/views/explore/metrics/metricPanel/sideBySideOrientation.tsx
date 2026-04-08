@@ -4,6 +4,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {SplitPanel} from 'sentry/components/splitPanel';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
 import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
 import {MetricsGraph} from 'sentry/views/explore/metrics/metricGraph';
@@ -15,6 +16,7 @@ import {
 import {HideContentButton} from 'sentry/views/explore/metrics/metricPanel/hideContentButton';
 import {PanelPositionSelector} from 'sentry/views/explore/metrics/metricPanel/panelPositionSelector';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
 
 const MIN_LEFT_WIDTH = 400;
 
@@ -40,15 +42,20 @@ export function SideBySideOrientation({
   timeseriesResult: ReturnType<typeof useMetricTimeseries>['result'];
   traceMetric: TraceMetric;
 }) {
+  const organization = useOrganization();
+  const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
   const measureRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: measureRef});
 
   const hasSize = width > 0;
   // Default split is 65% of the available width but not less than MIN_LEFT_WIDTH
   // while also accommodating the desired right panel width to show all of the telemetry icons.
+  const rightPanelDesiredWidth = hasMetricsUIRefresh
+    ? SAMPLES_PANEL_MIN_WIDTH
+    : WIDTH_WITH_TELEMETRY_ICONS_VISIBLE;
   const defaultSplit = Math.min(
     Math.max(width * 0.65, MIN_LEFT_WIDTH),
-    width - (WIDTH_WITH_TELEMETRY_ICONS_VISIBLE + PADDING_SIZE + DIVIDER_WIDTH)
+    width - (rightPanelDesiredWidth + PADDING_SIZE + DIVIDER_WIDTH)
   );
 
   const additionalActions = (

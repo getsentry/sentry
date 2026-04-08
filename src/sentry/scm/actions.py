@@ -13,8 +13,20 @@ from sentry.scm.private.helpers import (
     map_repository_model_to_repository,
 )
 from sentry.scm.private.ipc import record_count_metric
-from sentry.scm.private.provider import (
+from sentry.scm.private.rate_limit import RateLimitProvider
+from sentry.scm.types import (
     ALL_PROTOCOLS,
+    SHA,
+    ActionResult,
+    ArchiveFormat,
+    ArchiveLink,
+    BranchName,
+    BuildConclusion,
+    BuildStatus,
+    CheckRun,
+    CheckRunOutput,
+    Comment,
+    Commit,
     CompareCommitsProtocol,
     CreateBranchProtocol,
     CreateCheckRunProtocol,
@@ -38,6 +50,7 @@ from sentry.scm.private.provider import (
     DeletePullRequestCommentProtocol,
     DeletePullRequestCommentReactionProtocol,
     DeletePullRequestReactionProtocol,
+    FileContent,
     GetArchiveLinkProtocol,
     GetBranchProtocol,
     GetCheckRunProtocol,
@@ -58,33 +71,15 @@ from sentry.scm.private.provider import (
     GetPullRequestReactionsProtocol,
     GetPullRequestsProtocol,
     GetTreeProtocol,
-    MinimizeCommentProtocol,
-    Provider,
-    RequestReviewProtocol,
-    UpdateBranchProtocol,
-    UpdateCheckRunProtocol,
-    UpdatePullRequestProtocol,
-)
-from sentry.scm.types import (
-    SHA,
-    ActionResult,
-    ArchiveFormat,
-    ArchiveLink,
-    BranchName,
-    BuildConclusion,
-    BuildStatus,
-    CheckRun,
-    CheckRunOutput,
-    Comment,
-    Commit,
-    FileContent,
     GitBlob,
     GitCommitObject,
     GitRef,
     GitTree,
     InputTreeEntry,
+    MinimizeCommentProtocol,
     PaginatedActionResult,
     PaginationParams,
+    Provider,
     PullRequest,
     PullRequestCommit,
     PullRequestFile,
@@ -95,12 +90,16 @@ from sentry.scm.types import (
     Repository,
     RepositoryId,
     RequestOptions,
+    RequestReviewProtocol,
     ResourceId,
     Review,
     ReviewComment,
     ReviewCommentInput,
     ReviewEvent,
     ReviewSide,
+    UpdateBranchProtocol,
+    UpdateCheckRunProtocol,
+    UpdatePullRequestProtocol,
 )
 
 
@@ -144,6 +143,7 @@ class SourceCodeManager(Facade):
         integration: Integration | RpcIntegration,
         *,
         referrer: Referrer = "shared",
+        rate_limit_provider: RateLimitProvider | None = None,
         record_count: Callable[[str, int, dict[str, str]], None] = record_count_metric,
     ) -> Self:
         provider = initialize_provider(
@@ -151,7 +151,7 @@ class SourceCodeManager(Facade):
             repository.id,
             fetch_repository=lambda _, __: map_repository_model_to_repository(repository),
             fetch_service_provider=lambda oid, repo: map_integration_to_provider(
-                oid, integration, repo
+                oid, integration, repo, rate_limit_provider=rate_limit_provider
             ),
         )
 

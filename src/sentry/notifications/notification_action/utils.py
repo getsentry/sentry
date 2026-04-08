@@ -114,29 +114,28 @@ def execute_via_metric_alert_handler(invocation: ActionInvocation) -> None:
 
 def issue_notification_data_factory(invocation: ActionInvocation) -> IssueNotificationData:
     from sentry.notifications.notification_action.types import BaseIssueAlertHandler
-    from sentry.workflow_engine.typings.notification_action import SlackDataBlob
 
     action = invocation.action
     detector = invocation.detector
     event_data = invocation.event_data
-
-    blob = SlackDataBlob(**action.data)
-    tags_set = {t.strip() for t in blob.tags.split(",") if t.strip()} if blob.tags else set()
 
     rule_instance = BaseIssueAlertHandler.create_rule_instance_from_action(
         action=action,
         detector=detector,
         event_data=event_data,
     )
+    tags = action.data.get("tags", None)
+    tag_list = [tag.strip() for tag in tags.split(",")] if tags else None
+    notes = action.data.get("notes", None)
     rule = SerializableRuleProxy.from_rule(rule_instance)
 
     event_id = getattr(event_data.event, "event_id", None) if event_data.event else None
 
     return IssueNotificationData(
+        tags=tag_list,
+        notes=notes,
         event_id=event_id,
         group_id=event_data.group.id,
-        tags=tags_set,
-        notes=blob.notes,
         notification_uuid=invocation.notification_uuid,
         rule=rule,
     )

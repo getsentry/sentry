@@ -18,7 +18,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
-import {Section} from 'sentry/components/workflowEngine/ui/section';
+import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
@@ -268,7 +268,7 @@ export function DetectorDetailsOpenPeriodIssues({
   };
 
   return (
-    <Section
+    <DetailSection
       title={tn('Ongoing Issue', 'Ongoing Issues', numIssues)}
       trailingItems={
         <LinkButton
@@ -299,7 +299,7 @@ export function DetectorDetailsOpenPeriodIssues({
           </SimpleTable>
         )}
       </ErrorBoundary>
-    </Section>
+    </DetailSection>
   );
 }
 

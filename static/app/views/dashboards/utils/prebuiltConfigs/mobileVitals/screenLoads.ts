@@ -3,6 +3,7 @@ import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {SCREEN_LOADS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const TRANSACTION_CONDITION = `is_transaction:true ${SpanFields.TRANSACTION_OP}:[ui.load,navigation]`;
@@ -249,14 +250,14 @@ const SPAN_OPERATIONS_TABLE: Widget = {
       fields: [
         SpanFields.SPAN_OP,
         SpanFields.SPAN_DESCRIPTION,
-        `equation|ttid_contribution_rate()`,
-        `equation|ttfd_contribution_rate()`,
+        'equation|ttid_contribution_rate()',
+        'equation|ttfd_contribution_rate()',
         `avg(${SpanFields.SPAN_SELF_TIME})`,
         `sum(${SpanFields.SPAN_SELF_TIME})`,
       ],
       aggregates: [
-        `equation|ttid_contribution_rate()`,
-        `equation|ttfd_contribution_rate()`,
+        'equation|ttid_contribution_rate()',
+        'equation|ttfd_contribution_rate()',
         `avg(${SpanFields.SPAN_SELF_TIME})`,
         `sum(${SpanFields.SPAN_SELF_TIME})`,
       ],
@@ -298,7 +299,7 @@ const THIRD_ROW_WIDGETS: Widget[] = [TTID_BAR_CHART_WIDGET, TTFD_BAR_CHART_WIDGE
 
 export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
-  title: t('Mobile Vitals Screen Loads'),
+  title: SCREEN_LOADS_DASHBOARD_TITLE,
   projects: [],
   widgets: [
     ...HEADER_ROW_WIDGETS,

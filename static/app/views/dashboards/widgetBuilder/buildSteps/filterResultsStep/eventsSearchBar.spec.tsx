@@ -17,17 +17,17 @@ describe('EventsSearchBar', () => {
     organization = OrganizationFixture();
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/recent-searches/`,
+      url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/recent-searches/`,
+      url: '/organizations/org-slug/recent-searches/',
       body: [],
       method: 'POST',
     });
   });
 
-  it('does not show function tags in has: dropdown', async () => {
+  it.isKnownFlake('does not show function tags in has: dropdown', async () => {
     render(
       <EventsSearchBar
         onClose={jest.fn()}
@@ -56,7 +56,7 @@ describe('EventsSearchBar', () => {
     await userEvent.paste('has:p', {delay: null});
 
     await userEvent.click(
-      screen.getByRole('button', {name: 'Edit value for filter: has'})
+      await screen.findByRole('button', {name: 'Edit value for filter: has'})
     );
 
     // Assert we actually have has: dropdown options before checking exclusions.

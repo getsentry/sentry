@@ -299,8 +299,8 @@ const StepWrapper = styled('div')`
 const StepButton = styled('button')<{hasTrailingItems: boolean}>`
   ${p =>
     p.hasTrailingItems
-      ? `flex: 1; min-width: 0; text-align: left;`
-      : `grid-area: heading;`}
+      ? 'flex: 1; min-width: 0; text-align: left;'
+      : 'grid-area: heading;'}
 
   position: relative;
   background: none;
@@ -372,6 +372,7 @@ const ChildrenWrapper = styled('div')<{isActive: boolean}>`
 
 const StepDetails = styled('div')`
   grid-area: details;
+  min-width: 0;
 `;
 
 GuidedSteps.Step = Step;

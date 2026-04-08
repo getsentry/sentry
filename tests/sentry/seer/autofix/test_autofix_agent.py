@@ -1,11 +1,15 @@
 from unittest.mock import MagicMock, patch
 
+import pytest
+from rest_framework.exceptions import PermissionDenied
+
 from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     build_step_prompt,
     generate_autofix_handoff_prompt,
     trigger_autofix_explorer,
     trigger_coding_agent_handoff,
+    trigger_push_changes,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.explorer.client_models import (
@@ -37,7 +41,7 @@ class TestGenerateAutofixHandoffPrompt(TestCase):
             updated_at="2024-01-01T00:00:00Z",
         )
 
-    def test_basic_prompt_without_artifacts(self):
+    def test_basic_prompt_without_artifacts(self) -> None:
         """Test prompt generation with no artifacts."""
         state = SeerRunState(
             run_id=123,
@@ -52,7 +56,7 @@ class TestGenerateAutofixHandoffPrompt(TestCase):
         assert "Root Cause" not in prompt
         assert "Solution" not in prompt
 
-    def test_prompt_with_instruction(self):
+    def test_prompt_with_instruction(self) -> None:
         """Test that custom instruction is included in prompt."""
         state = SeerRunState(
             run_id=123,
@@ -65,7 +69,7 @@ class TestGenerateAutofixHandoffPrompt(TestCase):
 
         assert "Focus on the database layer" in prompt
 
-    def test_prompt_with_root_cause_artifact(self):
+    def test_prompt_with_root_cause_artifact(self) -> None:
         """Test prompt includes root cause details."""
         state = self._make_state_with_artifacts(
             [
@@ -90,7 +94,7 @@ class TestGenerateAutofixHandoffPrompt(TestCase):
         assert "- Step 1" in prompt
         assert "- Step 2" in prompt
 
-    def test_prompt_with_solution_artifact(self):
+    def test_prompt_with_solution_artifact(self) -> None:
         """Test prompt includes solution details."""
         state = self._make_state_with_artifacts(
             [
@@ -115,7 +119,7 @@ class TestGenerateAutofixHandoffPrompt(TestCase):
         assert "**Step 1**: Add TTL parameter" in prompt
         assert "**Step 2**: Update cache config" in prompt
 
-    def test_prompt_with_both_artifacts(self):
+    def test_prompt_with_both_artifacts(self) -> None:
         """Test prompt includes both root cause and solution."""
         state = self._make_state_with_artifacts(
             [
@@ -139,7 +143,7 @@ class TestGenerateAutofixHandoffPrompt(TestCase):
         assert "## Proposed Solution" in prompt
         assert "Fix the handler" in prompt
 
-    def test_prompt_with_short_id(self):
+    def test_prompt_with_short_id(self) -> None:
         """Test that short_id is included in prompt when provided."""
         state = SeerRunState(
             run_id=123,
@@ -152,7 +156,7 @@ class TestGenerateAutofixHandoffPrompt(TestCase):
 
         assert "Include 'Fixes AIML-2301' in the commit message" in prompt
 
-    def test_prompt_without_short_id(self):
+    def test_prompt_without_short_id(self) -> None:
         """Test that 'Fixes' is not in prompt when short_id is None."""
         state = SeerRunState(
             run_id=123,
@@ -165,7 +169,7 @@ class TestGenerateAutofixHandoffPrompt(TestCase):
 
         assert "Fixes" not in prompt
 
-    def test_prompt_with_short_id_and_instruction(self):
+    def test_prompt_with_short_id_and_instruction(self) -> None:
         """Test that both short_id and instruction are included."""
         state = SeerRunState(
             run_id=123,
@@ -183,7 +187,7 @@ class TestGenerateAutofixHandoffPrompt(TestCase):
 
 
 class TestBuildStepPrompt(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(
             project=self.project,
@@ -192,7 +196,7 @@ class TestBuildStepPrompt(TestCase):
         self.group.culprit = "app.views.handler"
         self.group.save()
 
-    def test_root_cause_prompt_contains_issue_details(self):
+    def test_root_cause_prompt_contains_issue_details(self) -> None:
         prompt = build_step_prompt(AutofixStep.ROOT_CAUSE, self.group)
 
         assert self.group.qualified_short_id in prompt
@@ -201,7 +205,7 @@ class TestBuildStepPrompt(TestCase):
         assert "ROOT CAUSE" in prompt
         assert "root_cause artifact" in prompt
 
-    def test_solution_prompt_contains_issue_details(self):
+    def test_solution_prompt_contains_issue_details(self) -> None:
         prompt = build_step_prompt(AutofixStep.SOLUTION, self.group)
 
         assert self.group.qualified_short_id in prompt
@@ -210,7 +214,7 @@ class TestBuildStepPrompt(TestCase):
         assert "solution" in prompt.lower()
         assert "Do NOT implement" in prompt
 
-    def test_code_changes_prompt_contains_issue_details(self):
+    def test_code_changes_prompt_contains_issue_details(self) -> None:
         prompt = build_step_prompt(AutofixStep.CODE_CHANGES, self.group)
 
         assert self.group.qualified_short_id in prompt
@@ -218,7 +222,7 @@ class TestBuildStepPrompt(TestCase):
         assert "app.views.handler" in prompt
         assert "Implement the fix" in prompt
 
-    def test_impact_assessment_prompt_contains_issue_details(self):
+    def test_impact_assessment_prompt_contains_issue_details(self) -> None:
         prompt = build_step_prompt(AutofixStep.IMPACT_ASSESSMENT, self.group)
 
         assert self.group.qualified_short_id in prompt
@@ -227,7 +231,7 @@ class TestBuildStepPrompt(TestCase):
         assert "impact" in prompt.lower()
         assert "impact_assessment artifact" in prompt
 
-    def test_triage_prompt_contains_issue_details(self):
+    def test_triage_prompt_contains_issue_details(self) -> None:
         prompt = build_step_prompt(AutofixStep.TRIAGE, self.group)
 
         assert self.group.qualified_short_id in prompt
@@ -236,7 +240,7 @@ class TestBuildStepPrompt(TestCase):
         assert "triage" in prompt.lower()
         assert "suspect_commit" in prompt
 
-    def test_prompt_with_missing_culprit_uses_default(self):
+    def test_prompt_with_missing_culprit_uses_default(self) -> None:
         self.group.culprit = None
         self.group.save()
 
@@ -244,7 +248,7 @@ class TestBuildStepPrompt(TestCase):
 
         assert "unknown" in prompt
 
-    def test_all_prompts_are_dedented(self):
+    def test_all_prompts_are_dedented(self) -> None:
         for step in AutofixStep:
             prompt = build_step_prompt(step, self.group)
             # Dedented prompts should not start with whitespace
@@ -253,7 +257,7 @@ class TestBuildStepPrompt(TestCase):
 
 
 class TestTriggerAutofixExplorer(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
 
@@ -358,7 +362,7 @@ class TestTriggerAutofixExplorer(TestCase):
 class TestTriggerCodingAgentHandoff(TestCase):
     """Tests for trigger_coding_agent_handoff function."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
 
@@ -442,6 +446,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
         result = trigger_coding_agent_handoff(
             group=self.group,
             run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
             integration_id=456,
         )
 
@@ -467,6 +472,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
         result = trigger_coding_agent_handoff(
             group=self.group,
             run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
             integration_id=456,
         )
 
@@ -507,6 +513,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
         trigger_coding_agent_handoff(
             group=self.group,
             run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
             integration_id=456,
         )
 
@@ -540,6 +547,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
         trigger_coding_agent_handoff(
             group=self.group,
             run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
             integration_id=456,
         )
 
@@ -568,6 +576,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
         trigger_coding_agent_handoff(
             group=self.group,
             run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
             integration_id=456,
         )
 
@@ -595,6 +604,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
         trigger_coding_agent_handoff(
             group=self.group,
             run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
             integration_id=456,
         )
 
@@ -614,6 +624,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
         result = trigger_coding_agent_handoff(
             group=self.group,
             run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
             integration_id=456,
         )
 
@@ -654,7 +665,12 @@ class TestTriggerCodingAgentHandoff(TestCase):
         )
         mock_get_autofix_state.return_value = None
 
-        trigger_coding_agent_handoff(group=self.group, run_id=123, integration_id=456)
+        trigger_coding_agent_handoff(
+            group=self.group,
+            run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
+            integration_id=456,
+        )
 
         repos = mock_client.launch_coding_agents.call_args.kwargs["repos"]
         assert len(repos) == 1
@@ -688,7 +704,12 @@ class TestTriggerCodingAgentHandoff(TestCase):
         )
         mock_get_autofix_state.return_value = None
 
-        trigger_coding_agent_handoff(group=self.group, run_id=123, integration_id=456)
+        trigger_coding_agent_handoff(
+            group=self.group,
+            run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
+            integration_id=456,
+        )
 
         repos = mock_client.launch_coding_agents.call_args.kwargs["repos"]
         assert len(repos) == 1
@@ -736,7 +757,12 @@ class TestTriggerCodingAgentHandoff(TestCase):
         )
         mock_get_autofix_state.return_value = None
 
-        trigger_coding_agent_handoff(group=self.group, run_id=123, integration_id=456)
+        trigger_coding_agent_handoff(
+            group=self.group,
+            run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
+            integration_id=456,
+        )
 
         repos = mock_client.launch_coding_agents.call_args.kwargs["repos"]
         assert len(repos) == 1
@@ -750,6 +776,17 @@ class TestTriggerCodingAgentHandoff(TestCase):
                 "relevant_repo": "owner/nonexistent-repo",
             },
         )
+
+    def test_raises_permission_denied_when_coding_disabled(self):
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        with pytest.raises(PermissionDenied, match="Code generation is disabled"):
+            trigger_coding_agent_handoff(
+                group=self.group,
+                run_id=123,
+                referrer=AutofixReferrer.UNKNOWN,
+                integration_id=456,
+            )
 
     @patch("sentry.seer.autofix.autofix_agent.get_autofix_state")
     @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")
@@ -798,7 +835,12 @@ class TestTriggerCodingAgentHandoff(TestCase):
             status=AutofixStatus.COMPLETED,
         )
 
-        trigger_coding_agent_handoff(group=self.group, run_id=123, integration_id=456)
+        trigger_coding_agent_handoff(
+            group=self.group,
+            run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
+            integration_id=456,
+        )
 
         repos = mock_client.launch_coding_agents.call_args.kwargs["repos"]
         assert repos[0].branch_name == "main"
@@ -828,8 +870,55 @@ class TestTriggerCodingAgentHandoff(TestCase):
             ]
         )
 
-        trigger_coding_agent_handoff(group=self.group, run_id=123, integration_id=456)
+        trigger_coding_agent_handoff(
+            group=self.group,
+            run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
+            integration_id=456,
+        )
 
         mock_get_autofix_state.assert_not_called()
         repos = mock_client.launch_coding_agents.call_args.kwargs["repos"]
         assert repos[0].branch_name == "release/v2"
+
+
+class TestTriggerPushChanges(TestCase):
+    """Tests for trigger_push_changes function."""
+
+    def setUp(self):
+        super().setUp()
+        self.group = self.create_group(project=self.project)
+
+    def test_raises_permission_denied_when_coding_disabled(self):
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        with pytest.raises(PermissionDenied, match="Code generation is disabled"):
+            trigger_push_changes(
+                group=self.group,
+                run_id=123,
+                referrer=AutofixReferrer.UNKNOWN,
+            )
+
+    @patch("sentry.seer.explorer.client.make_explorer_update_request")
+    def test_passes_correct_pr_description_suffix(self, mock_post):
+        """push_changes is called with pr_description_suffix matching the group's qualified short id."""
+        mock_post.return_value = MagicMock(status=200)
+        state = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={},
+            metadata={"group_id": self.group.id},
+        )
+
+        with self.feature("organizations:gen-ai-features"):
+            trigger_push_changes(
+                group=self.group,
+                run_id=123,
+                referrer=AutofixReferrer.UNKNOWN,
+                state=state,
+            )
+
+        body = mock_post.call_args[0][0]
+        assert body["payload"]["pr_description_suffix"] == f"Fixes {self.group.qualified_short_id}"

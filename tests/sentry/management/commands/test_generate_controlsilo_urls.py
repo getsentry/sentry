@@ -27,8 +27,12 @@ class TestGenerateControlsiloUrls(TestCase):
     def test_render_code(self) -> None:
         result = self.call_command(format="js")
         assert "new RegExp('^api/0/users/$')," in result
-        assert "new RegExp('^api/0/internal/integration-proxy/$')," in result
         assert "export const controlsiloUrlPatterns: RegExp[] = [" in result
+
+        assert "api/0/internal/org-cell-mappings" not in result
+        assert "api/0/internal/projectkey-cell-mappings" not in result
+        assert "api/0/internal/integration-proxy" not in result
+        assert "api/0/internal/rpc" not in result
 
     def test_write_file(self) -> None:
         with tempfile.NamedTemporaryFile() as tf:

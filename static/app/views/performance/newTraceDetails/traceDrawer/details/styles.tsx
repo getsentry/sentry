@@ -59,7 +59,7 @@ import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes
 import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useDrawerContainerRef} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
-import {tryParseJson} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import {tryParseJsonRecursive} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {
   makeTraceContinuousProfilingLink,
   makeTransactionProfilingLink,
@@ -321,15 +321,15 @@ const getDurationComparison = (
 
   const deltaText =
     status === 'equal'
-      ? tct(`equal to avg [formattedBaseDuration]`, {
+      ? tct('equal to avg [formattedBaseDuration]', {
           formattedBaseDuration,
         })
       : status === 'faster'
-        ? tct(`[deltaPct] faster than avg [formattedBaseDuration]`, {
+        ? tct('[deltaPct] faster than avg [formattedBaseDuration]', {
             formattedBaseDuration,
             deltaPct: `${deltaPct}%`,
           })
-        : tct(`[deltaPct] slower than avg [formattedBaseDuration]`, {
+        : tct('[deltaPct] slower than avg [formattedBaseDuration]', {
             formattedBaseDuration,
             deltaPct: `${deltaPct}%`,
           });
@@ -1319,7 +1319,7 @@ function MultilineJSON({
   const {hoverProps, isHovered} = useHover({});
   const theme = useTheme();
 
-  const json = useMemo(() => tryParseJson(value), [value]);
+  const json = useMemo(() => tryParseJsonRecursive(value), [value]);
 
   // Ensure root ('$') is always expanded, while children follow maxDefaultDepth rules
   const computedExpandedPaths = useMemo(() => {

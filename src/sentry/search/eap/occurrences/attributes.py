@@ -1,12 +1,9 @@
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     ResolvedAttribute,
-    VirtualColumnDefinition,
     datetime_processor,
-    project_context_constructor,
-    project_term_resolver,
 )
-from sentry.search.eap.common_columns import COMMON_COLUMNS
+from sentry.search.eap.common_columns import COMMON_COLUMNS, project_virtual_contexts
 from sentry.utils.validators import is_event_id_or_list
 
 OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
@@ -283,16 +280,17 @@ OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
                 internal_name="frame_stack_levels",
                 search_type="string",
             ),
+            ResolvedAttribute(
+                public_alias="issue",
+                internal_name="group_id",
+                search_type="string",
+                internal_type=constants.INT,
+            ),
         ]
     )
 }
 
 
 OCCURRENCE_VIRTUAL_CONTEXTS = {
-    key: VirtualColumnDefinition(
-        constructor=project_context_constructor(key),
-        term_resolver=project_term_resolver,
-        filter_column="project.id",
-    )
-    for key in constants.PROJECT_FIELDS
+    **project_virtual_contexts(),
 }

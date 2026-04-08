@@ -20,7 +20,7 @@ export function useScmPlatformDetection(repoId: string | undefined) {
 
   const query = useQuery({
     queryKey: [
-      getApiUrl(`/organizations/$organizationIdOrSlug/repos/$repoId/platforms/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/repos/$repoId/platforms/', {
         path: {
           organizationIdOrSlug: organization.slug,
           repoId: repoId!,

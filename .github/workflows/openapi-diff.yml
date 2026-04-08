@@ -27,11 +27,24 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
+      - name: Start devservices early
+        uses: ./.github/actions/setup-devservices
+        if: steps.changes.outputs.api_docs == 'true'
+        with:
+          mode: migrations
+
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         with:
           mode: migrations
+          skip-devservices: 'true'
         if: steps.changes.outputs.api_docs == 'true'
+
+      - name: Wait for devservices
+        if: steps.changes.outputs.api_docs == 'true'
+        run: |
+          sentry init
+          ./.github/actions/setup-devservices/wait.sh
 
       - name: Checkout getsentry/sentry-api-schema
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7

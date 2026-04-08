@@ -1,11 +1,13 @@
 import {useCallback, useMemo, useState, type ReactNode} from 'react';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
+import {MenuComponents} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {
   organizationIntegrationsCodingAgents,
   type CodingAgentIntegration,
@@ -18,6 +20,7 @@ import {
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
@@ -152,14 +155,6 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
   const organization = useOrganization();
   const {isPolling, startStep} = autofix;
 
-  const {codingAgentIntegrations, handleCodingAgentHandoff} = useCodingAgents({
-    autofix,
-    runId,
-    group,
-    step: 'solution',
-    referrer,
-  });
-
   const handleYesClick = useCallback(() => {
     startStep('code_changes', runId);
     trackAnalytics('autofix.solution.code', {
@@ -201,8 +196,6 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
       rethinkPrompt={t('How can this plan be improved?')}
       labelNevermind={t('Nevermind, write a code fix')}
       labelRethink={t('Rethink plan')}
-      codingAgentIntegrations={codingAgentIntegrations}
-      onCodingAgentHandoff={handleCodingAgentHandoff}
     />
   );
 }
@@ -285,6 +278,8 @@ function NextStepTemplate({
   codingAgentIntegrations,
   onCodingAgentHandoff,
 }: NextStepTemplateProps) {
+  const organization = useOrganization();
+
   const codingAgentOptions = useMemo(() => {
     return (codingAgentIntegrations ?? []).map(integration => {
       const actionLabel =
@@ -294,6 +289,7 @@ function NextStepTemplate({
 
       return {
         key: `agent:${integration.id ?? integration.provider}`,
+        textValue: actionLabel,
         label: (
           <Flex gap="md" align="center">
             <PluginIcon pluginId={integration.provider} size={16} />
@@ -359,6 +355,17 @@ function NextStepTemplate({
                 />
               )}
               position="bottom-end"
+              shouldCloseOnBlur={false}
+              menuFooter={
+                <DropdownMenuFooter>
+                  <MenuComponents.CTALinkButton
+                    icon={<IconAdd />}
+                    to={`/settings/${organization.slug}/integrations/?category=coding%20agent`}
+                  >
+                    {t('Add Integration')}
+                  </MenuComponents.CTALinkButton>
+                </DropdownMenuFooter>
+              }
             />
           ) : null}
         </ButtonBar>

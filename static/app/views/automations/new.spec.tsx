@@ -281,7 +281,7 @@ describe('AutomationNewSettings', () => {
                 ],
               },
             ],
-            config: {frequency: 1440},
+            config: {frequency: 0},
             detectorIds: [],
             enabled: true,
           },

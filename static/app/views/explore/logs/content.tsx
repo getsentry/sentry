@@ -1,6 +1,7 @@
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -19,11 +20,13 @@ import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {ExploreBreadcrumb} from 'sentry/views/explore/components/breadcrumb';
+import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
+import {useTableExpando} from 'sentry/views/explore/logs/tables/useTableExpando';
 import {
   useQueryParamsId,
   useQueryParamsTitle,
@@ -33,6 +36,7 @@ import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnbo
 
 export default function LogsContent() {
   const organization = useOrganization();
+  const tableExpando = useTableExpando();
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.LOG_BYTE],
   });
@@ -57,25 +61,33 @@ export default function LogsContent() {
             : undefined
         }
       >
-        <LogsQueryParamsProvider
-          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-          source="location"
-        >
-          <Layout.Page>
-            <LogsHeader />
-            <LogsPageDataProvider allowHighFidelity>
-              {defined(onboardingProject) ? (
-                <LogsTabOnboarding
-                  organization={organization}
-                  project={onboardingProject}
-                  datePageFilterProps={datePageFilterProps}
-                />
-              ) : (
-                <LogsTabContent datePageFilterProps={datePageFilterProps} />
-              )}
-            </LogsPageDataProvider>
-          </Layout.Page>
-        </LogsQueryParamsProvider>
+        <AnalyticsArea name="explore.logs">
+          <LogsQueryParamsProvider
+            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+            source="location"
+          >
+            <ViewportConstrainedPage
+              constrained={tableExpando.enabled}
+              hideFooter={tableExpando.expanded === true}
+            >
+              <LogsHeader />
+              <LogsPageDataProvider allowHighFidelity>
+                {defined(onboardingProject) ? (
+                  <LogsTabOnboarding
+                    organization={organization}
+                    project={onboardingProject}
+                    datePageFilterProps={datePageFilterProps}
+                  />
+                ) : (
+                  <LogsTabContent
+                    datePageFilterProps={datePageFilterProps}
+                    tableExpando={tableExpando}
+                  />
+                )}
+              </LogsPageDataProvider>
+            </ViewportConstrainedPage>
+          </LogsQueryParamsProvider>
+        </AnalyticsArea>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );

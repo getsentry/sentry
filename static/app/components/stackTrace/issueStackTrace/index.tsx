@@ -5,7 +5,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
-import {CommitRow} from 'sentry/components/commitRow';
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
@@ -41,6 +40,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
@@ -149,6 +149,8 @@ function IssueStackTraceContent({
   isStandalone,
 }: IssueStackTraceBaseProps & {isStandalone: boolean; values: ExceptionValue[]}) {
   const {isMinified, isNewestFirst, view} = useStackTraceViewState();
+  const organization = useOrganization();
+  const hasScmSourceContext = organization.features.includes('scm-source-context');
   const {hiddenExceptions, toggleRelatedExceptions, expandException} =
     useHiddenExceptions(values);
 
@@ -182,6 +184,8 @@ function IssueStackTraceContent({
           rawStacktraceContent({
             data: isMinified ? (exc.rawStacktrace ?? exc.stacktrace) : exc.stacktrace,
             platform: event.platform,
+            exception: isStandalone ? undefined : exc,
+            isMinified,
           })
         )
         .join('\n\n'),
@@ -209,7 +213,7 @@ function IssueStackTraceContent({
                       ? (exc.rawStacktrace ?? exc.stacktrace)
                       : exc.stacktrace,
                     platform: event.platform,
-                    exception: exc,
+                    exception: isStandalone ? undefined : exc,
                     isMinified,
                   })
                 )
@@ -257,6 +261,7 @@ function IssueStackTraceContent({
           <StackTraceProvider
             exceptionIndex={isStandalone ? undefined : exc.exceptionIndex}
             event={event}
+            hasScmSourceContext={hasScmSourceContext}
             stacktrace={exc.stacktrace}
             minifiedStacktrace={exc.rawStacktrace ?? undefined}
             meta={isStandalone ? rawEntryMeta : excMeta?.stacktrace}
@@ -343,6 +348,7 @@ function IssueStackTraceContent({
                   <StackTraceProvider
                     exceptionIndex={exc.exceptionIndex}
                     event={event}
+                    hasScmSourceContext={hasScmSourceContext}
                     stacktrace={exc.stacktrace}
                     minifiedStacktrace={exc.rawStacktrace ?? undefined}
                     meta={exceptionValuesMeta?.[exc.exceptionIndex]?.stacktrace}
@@ -378,12 +384,7 @@ function IssueStackTraceSuspectCommits({
 
   return (
     <ErrorBoundary mini message={t('There was an error loading suspect commits')}>
-      <SuspectCommits
-        projectSlug={projectSlug}
-        eventId={event.id}
-        group={group}
-        commitRow={CommitRow}
-      />
+      <SuspectCommits projectSlug={projectSlug} eventId={event.id} group={group} />
     </ErrorBoundary>
   );
 }

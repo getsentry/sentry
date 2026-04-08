@@ -16,13 +16,13 @@ import {
 } from 'sentry/components/guidedSteps/guidedSteps';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PanelBody} from 'sentry/components/panels/panelBody';
+import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
 import {t} from 'sentry/locale';
 import {DEFAULT_CODE_REVIEW_TRIGGERS} from 'sentry/types/integrations';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {useSeerOnboardingContext} from 'getsentry/views/seerAutomation/onboarding/hooks/seerOnboardingContext';
-import {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useBulkUpdateRepositorySettings';
 
 import {MaxWidthPanel, PanelDescription, StepContent} from './common';
 import {RepositorySelector} from './repositorySelector';
@@ -151,14 +151,14 @@ export function ConfigureCodeReviewStep() {
           <PanelBody>
             <PanelDescription>
               <Flex direction="column" gap="lg">
-                <Text>{t(`You've successfully connected to GitHub!`)}</Text>
+                <Text>{t("You've successfully connected to GitHub!")}</Text>
                 <Separator orientation="horizontal" border="muted" />
 
                 <Flex direction="column" gap="sm">
                   <Text bold>{t('AI Code Review')}</Text>
                   <Text variant="muted" density="comfortable">
                     {t(
-                      `For all selected repositories below, Seer's AI Code Review will be run to review your PRs and flag potential bugs. `
+                      "For all selected repositories below, Seer's AI Code Review will be run to review your PRs and flag potential bugs. "
                     )}
                   </Text>
                 </Flex>

@@ -14,6 +14,10 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.events.types import SnubaParams
+from sentry.seer.autofix.utils import (
+    bulk_get_project_preferences,
+    get_autofix_repos_from_project_code_mappings,
+)
 from sentry.seer.explorer.context_engine_utils import (
     EVENT_COUNT_LOOKBACK_DAYS,
     ProjectEventCounts,
@@ -30,12 +34,15 @@ from sentry.seer.explorer.explorer_service_map_utils import (
 )
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
+    ExplorerIndexOrgRepoRequest,
     ExplorerIndexSentryKnowledgeRequest,
     OrgProjectKnowledgeIndexRequest,
     OrgProjectKnowledgeProjectData,
+    RepoDetails,
     SeerViewerContext,
     make_index_sentry_knowledge_request,
     make_org_project_knowledge_index_request,
+    make_org_repo_knowledge_index_request,
 )
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
@@ -47,7 +54,7 @@ logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
-    name="sentry.tasks.context_engine_index.index_org_project_knowledge",
+    name="sentry.tasks.seer.context_engine_index.index_org_project_knowledge",
     namespace=seer_tasks,
     processing_deadline_duration=10 * 60,
 )
@@ -136,7 +143,7 @@ def index_org_project_knowledge(org_id: int) -> None:
 
 
 @instrumented_task(
-    name="sentry.tasks.context_engine_index.build_service_map",
+    name="sentry.tasks.seer.context_engine_index.build_service_map",
     namespace=seer_tasks,
     processing_deadline_duration=10 * 60,  # 10 minutes
     retry=Retry(times=3, on=(SnubaRPCRateLimitExceeded,), delay=60),
@@ -213,12 +220,96 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
         raise
 
 
+@instrumented_task(
+    name="sentry.tasks.seer.context_engine_index.index_repos",
+    namespace=seer_tasks,
+    processing_deadline_duration=10 * 60,  # 10 minutes
+    retry=Retry(times=3, on=(SeerApiError,), delay=60),
+)
+def index_repos(organization_id: int, *args, **kwargs) -> None:
+    if not options.get("explorer.context_engine_indexing.enable"):
+        logger.info("explorer.context_engine_indexing.enable flag is disabled")
+        return
+
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.error("Organization not found", extra={"org_id": organization_id})
+        return
+
+    if not features.has("organizations:context-engine-experiments", organization):
+        logger.info("organizations:context-engine-experiments flag is disabled")
+        return
+
+    logger.info(
+        "Starting repo index task",
+        extra={"org_id": organization_id},
+    )
+
+    projects = list(
+        Project.objects.filter(organization_id=organization_id, status=ObjectStatus.ACTIVE)
+    )
+    project_map = {p.id: p for p in projects}
+
+    if not project_map:
+        logger.info("No projects found for organization", extra={"org_id": organization_id})
+        return
+
+    org_repo_definitions: dict[tuple[str, str, str], RepoDetails] = {}
+
+    preferences_by_id = bulk_get_project_preferences(organization_id, list(project_map.keys()))
+
+    for project_id, project in project_map.items():
+        existing_pref = preferences_by_id.get(str(project_id))
+        if not existing_pref:
+            continue
+
+        project_pref_repos = existing_pref.get("repositories") or []
+
+        autofix_repos = get_autofix_repos_from_project_code_mappings(project)
+        # Use autofix repos to get repo languages
+        language_map: dict[tuple[str, str, str], list[str]] = {}
+        for autofix_repo in autofix_repos:
+            key = (autofix_repo["provider"], autofix_repo["owner"], autofix_repo["name"])
+            language_map[key] = autofix_repo["languages"]
+
+        for repo in project_pref_repos:
+            key = (repo["provider"], repo["owner"], repo["name"])
+            if key in org_repo_definitions:
+                repo_definition = org_repo_definitions[key]
+                repo_definition["project_ids"].append(project_id)
+            else:
+                org_repo_definitions[key] = {
+                    "project_ids": [project_id],
+                    "provider": repo["provider"],
+                    "owner": repo["owner"],
+                    "name": repo["name"],
+                    "external_id": repo["external_id"],
+                    "languages": language_map.get(key, []),
+                    "integration_id": repo.get("integration_id"),
+                }
+
+    viewer_context = SeerViewerContext(organization_id=organization_id)
+    response = make_org_repo_knowledge_index_request(
+        ExplorerIndexOrgRepoRequest(
+            org_id=organization.id, repos=list(org_repo_definitions.values())
+        ),
+        timeout=30,
+        viewer_context=viewer_context,
+    )
+
+    if response.status >= 400:
+        raise SeerApiError("Seer request failed", response.status)
+
+    logger.info("Successfully indexed repos for org", extra={"org_id": organization_id})
+
+
 def get_allowed_org_ids_context_engine_indexing() -> list[int]:
     """
     Get the list of allowed organizations for context engine indexing.
 
     Divides all active orgs with github integration (Seer prerequisite) into 24 buckets via md5 hash.
-    Only the bucket matching the current hour is checked for the seer-explorer-context-engine
+    Only the bucket matching the current hour is checked for the seer-explorer-index
     feature flag, keeping feature check volume at ~1/24th of total orgs.
     """
     with sentry_sdk.start_span(
@@ -255,7 +346,7 @@ def get_allowed_org_ids_context_engine_indexing() -> list[int]:
             Organization.objects.filter(id__in=hourly_scm_org_ids, status=ObjectStatus.ACTIVE),
             result_value_getter=lambda o: o.id,
         ):
-            if features.has("organizations:seer-explorer-context-engine", org):
+            if features.has("organizations:seer-explorer-index", org):
                 eligible_org_ids.append(org.id)
 
         logger.info(
@@ -266,7 +357,7 @@ def get_allowed_org_ids_context_engine_indexing() -> list[int]:
 
 
 @instrumented_task(
-    name="sentry.tasks.context_engine_index.schedule_context_engine_indexing_tasks",
+    name="sentry.tasks.seer.context_engine_index.schedule_context_engine_indexing_tasks",
     namespace=seer_tasks,
     processing_deadline_duration=30 * 60,
     retry=Retry(times=3, on=(RpcRemoteException,), delay=60),
@@ -276,19 +367,24 @@ def schedule_context_engine_indexing_tasks() -> None:
     Schedule context engine indexing tasks for all allowed organizations.
 
     Dispatches index_org_project_knowledge and build_service_map for each org
-    with the seer-explorer-context-engine feature flag enabled.
+    with the seer-explorer-index feature flag enabled.
     """
     if not options.get("explorer.context_engine_indexing.enable"):
         logger.info("explorer.context_engine_indexing.enable flag is disabled")
         return
 
     allowed_org_ids = get_allowed_org_ids_context_engine_indexing()
+    now = datetime.now(UTC)
 
     dispatched = 0
     for org_id in allowed_org_ids:
         try:
             index_org_project_knowledge.apply_async(args=[org_id])
             build_service_map.apply_async(args=[org_id])
+
+            if now.weekday() == 6:  # Sunday
+                index_repos.apply_async(args=[org_id])
+
             dispatched += 1
         except Exception:
             logger.exception(
@@ -307,7 +403,7 @@ def schedule_context_engine_indexing_tasks() -> None:
 
 
 @instrumented_task(
-    name="sentry.tasks.context_engine_index.index_sentry_knowledge",
+    name="sentry.tasks.seer.context_engine_index.index_sentry_knowledge",
     namespace=seer_tasks,
     processing_deadline_duration=30,
 )

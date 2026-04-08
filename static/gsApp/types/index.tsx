@@ -571,8 +571,6 @@ export type BillingStatTotal = {
 };
 
 export type CustomerUsage = {
-  onDemandEventsAllowed: number;
-  onDemandMaxSpend: number;
   periodEnd: string;
   periodStart: string;
   stats: Record<string, BillingStats>;

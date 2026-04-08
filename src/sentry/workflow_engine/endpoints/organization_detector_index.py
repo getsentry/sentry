@@ -11,7 +11,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, features
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -19,7 +19,6 @@ from sentry.api.bases import OrganizationEndpoint
 from sentry.api.bases.organization import OrganizationDetectorPermission
 from sentry.api.event_search import SearchConfig, SearchFilter, SearchKey, default_config
 from sentry.api.event_search import parse_search_query as base_parse_search_query
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
@@ -49,21 +48,19 @@ from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
-    DetectorSerializer,
     DetectorSerializerResponse,
 )
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id, to_valid_int_id_list
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id_list
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
-from sentry.workflow_engine.endpoints.validators.detector_workflow import (
-    BulkDetectorWorkflowsValidator,
-    can_delete_detectors,
-    can_edit_detectors,
-)
 from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
     DetectorWorkflowMutationValidator,
 )
-from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
+from sentry.workflow_engine.endpoints.validators.utils import (
+    can_delete_detectors,
+    can_edit_detectors,
+    get_unknown_detector_type_error,
+)
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 
@@ -149,7 +146,6 @@ def get_detector_validator(
 class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
-        "POST": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
     }
@@ -298,81 +294,6 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             on_results=lambda x: serialize(x, request.user),
             count_hits=True,
         )
-
-    @extend_schema(
-        operation_id="Create a Monitor for a Project",
-        parameters=[
-            GlobalParams.ORG_ID_OR_SLUG,
-        ],
-        request=BaseDetectorTypeValidator,
-        responses={
-            201: DetectorSerializer,
-            400: RESPONSE_BAD_REQUEST,
-            401: RESPONSE_UNAUTHORIZED,
-            403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOT_FOUND,
-        },
-        examples=WorkflowEngineExamples.CREATE_DETECTOR,
-    )
-    def post(self, request: Request, organization: Organization) -> Response:
-        """
-        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
-
-        Create a Monitor for a project
-        """
-        detector_type = request.data.get("type")
-        if not detector_type:
-            raise ValidationError({"type": ["This field is required."]})
-
-        # Restrict creating metric issue detectors by plan type
-        if detector_type == MetricIssue.slug and not features.has(
-            "organizations:incidents", organization, actor=request.user
-        ):
-            raise ResourceDoesNotExist
-
-        project_id = request.data.get("projectId")
-        if not project_id:
-            raise ValidationError({"projectId": ["This field is required."]})
-
-        validated_project_id = to_valid_int_id("projectId", project_id)
-        try:
-            project = Project.objects.get(id=validated_project_id)
-        except Project.DoesNotExist:
-            raise ValidationError({"projectId": ["Project not found"]})
-
-        if project.organization.id != organization.id:
-            raise ValidationError({"projectId": ["Project not found"]})
-
-        # TODO: Should be in the validator?
-        if not request.access.has_project_access(project):
-            return Response(status=status.HTTP_403_FORBIDDEN)
-
-        validator = get_detector_validator(request, project, detector_type)
-        if not validator.is_valid():
-            return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        with transaction.atomic(router.db_for_write(Detector)):
-            detector = validator.save()
-
-            # Handle workflow connections in bulk
-            workflow_ids = request.data.get("workflowIds", [])
-            if workflow_ids:
-                bulk_validator = BulkDetectorWorkflowsValidator(
-                    data={
-                        "detector_id": detector.id,
-                        "workflow_ids": workflow_ids,
-                    },
-                    context={
-                        "organization": organization,
-                        "request": request,
-                    },
-                )
-                if not bulk_validator.is_valid():
-                    raise ValidationError({"workflowIds": bulk_validator.errors})
-
-                bulk_validator.save()
-
-        return Response(serialize(detector, request.user), status=status.HTTP_201_CREATED)
 
     @extend_schema(
         operation_id="Mutate an Organization's Monitors",

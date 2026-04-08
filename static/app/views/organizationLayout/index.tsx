@@ -9,6 +9,7 @@ import {useFeedbackOnboardingDrawer} from 'sentry/components/feedback/feedbackOn
 import {Footer} from 'sentry/components/footer';
 import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {usePerformanceOnboardingDrawer} from 'sentry/components/performanceOnboarding/sidebar';
 import {useProfilingOnboardingDrawer} from 'sentry/components/profiling/profilingOnboardingSidebar';
 import {useReplaysOnboardingDrawer} from 'sentry/components/replaysOnboarding/sidebar';
@@ -92,11 +93,15 @@ function AppLayout({organization}: LayoutProps) {
           <AppBodyContent>
             {organization && <OrganizationHeader organization={organization} />}
             <OrganizationDetailsBody>
-              <TopBar />
-              <Outlet />
+              <TopBar.Slot.Provider>
+                <TopBar />
+                <Layout.Page>
+                  <Outlet />
+                  <Footer />
+                </Layout.Page>
+              </TopBar.Slot.Provider>
             </OrganizationDetailsBody>
           </AppBodyContent>
-          <Footer />
         </ContentStack>
       </Flex>
       {organization ? <AppDrawers /> : null}

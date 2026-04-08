@@ -14,7 +14,6 @@ import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {ROOT_ELEMENT} from 'sentry/constants';
 import {ModalStore} from 'sentry/stores/modalStore';
 import {getModalPortal} from 'sentry/utils/getModalPortal';
-import {testableTransition} from 'sentry/utils/testableTransition';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
@@ -265,11 +264,11 @@ export function GlobalModal({onClose}: Props) {
                 transition={
                   hasPageFrame
                     ? theme.motion.framer.enter.moderate
-                    : testableTransition({
+                    : {
                         type: 'spring',
                         stiffness: 450,
                         damping: 25,
-                      })
+                      }
                 }
               >
                 <Surface variant="overlay" elevation="high">
@@ -309,6 +308,7 @@ const Backdrop = styled('div')`
 
 const Container = styled('div')`
   ${fullPageCss};
+  right: var(--scrollbar-size, 0);
   z-index: ${p => p.theme.zIndex.modal};
   display: flex;
   justify-content: center;

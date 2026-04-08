@@ -9,9 +9,10 @@ import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
 import * as qs from 'query-string';
 
+import {Grid, Stack} from '@sentry/scraps/layout';
+
 import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {CursorHandler} from 'sentry/components/pagination';
@@ -47,8 +48,10 @@ import {usePrevious} from 'sentry/utils/usePrevious';
 import {IssueListTable} from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
 import {IssueViewsHeader} from 'sentry/views/issueList/issueViewsHeader';
+import {useSuperGroups} from 'sentry/views/issueList/supergroups/useSuperGroups';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {IssueListFilters} from './filters';
 import {
@@ -162,6 +165,9 @@ function IssueListOverview({
   }, [groups]);
 
   useIssuesINPObserver();
+
+  const {data: supergroupLookup, isLoading: supergroupsLoading} =
+    useSuperGroups(groupIds);
 
   const onRealtimePoll = useCallback(
     (data: any, {queryCount: newQueryCount}: {queryCount: number}) => {
@@ -490,6 +496,7 @@ function IssueListOverview({
     page: parsePageQueryParam(location, 0),
     query,
     num_issues: groups.length,
+    group_ids: groups.map(group => group.id),
     total_issues_count: queryCount,
     sort,
     realtime_active: realtimeActive,
@@ -867,8 +874,10 @@ function IssueListOverview({
 
   const {numPreviousIssues, numIssuesOnPage} = getPageCounts();
 
+  const hasPageFrame = useHasPageFrameFeature();
+
   return (
-    <Layout.Page>
+    <Stack flex={1}>
       <IssueViewsHeader
         selectedProjectIds={selection.projects}
         title={title}
@@ -878,7 +887,10 @@ function IssueListOverview({
         headerActions={headerActions}
       />
       <StyledBody>
-        <StyledMain>
+        <Grid
+          area="content"
+          padding={hasPageFrame ? {sm: 'md lg', md: 'md xl'} : {sm: 'xl', md: '2xl 3xl'}}
+        >
           <IssuesDataConsentBanner source="issues" />
           <IssueListFilters
             query={query}
@@ -899,8 +911,9 @@ function IssueListOverview({
             displayReprocessingActions={displayReprocessingActions}
             memberList={memberList}
             selectedProjectIds={selection.projects}
-            issuesLoading={issuesLoading}
+            issuesLoading={issuesLoading || supergroupsLoading}
             statsLoading={statsLoading}
+            supergroupLookup={supergroupLookup}
             error={error}
             refetchGroups={fetchData}
             paginationCaption={
@@ -925,9 +938,9 @@ function IssueListOverview({
             issuesSuccessfullyLoaded={issuesSuccessfullyLoaded}
             pageSize={MAX_ITEMS}
           />
-        </StyledMain>
+        </Grid>
       </StyledBody>
-    </Layout.Page>
+    </Stack>
   );
 }
 
@@ -936,13 +949,4 @@ export default Sentry.withProfiler(IssueListOverview);
 const StyledBody = styled('div')`
   background-color: ${p => p.theme.tokens.background.primary};
   flex: 1;
-`;
-
-const StyledMain = styled('section')`
-  grid-area: content;
-  padding: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${p => p.theme.space['2xl']} ${p => p.theme.space['3xl']};
-  }
 `;

@@ -93,7 +93,10 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
             if integration.provider != "github_copilot"
         ]
 
-        if features.has("organizations:integrations-github-copilot-agent", organization):
+        github_copilot_installed = any(i.provider == "github_copilot" for i in integrations)
+        if github_copilot_installed and features.has(
+            "organizations:integrations-github-copilot-agent", organization
+        ):
             has_identity = False
             if request.user and request.user.id:
                 try:
@@ -150,6 +153,8 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
             trigger_source=trigger_source,
             instruction=instruction,
             user_id=request.user.id,
+            initiator="user",
+            referrer="api.organization_coding_agents",
         )
 
         successes = results["successes"]

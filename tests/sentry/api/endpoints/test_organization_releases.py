@@ -2996,7 +2996,7 @@ class OrganizationReleasesBaseEndpointGetProjectsTest(TestCase):
     def endpoint(self) -> OrganizationReleasesBaseEndpoint:
         return OrganizationReleasesBaseEndpoint()
 
-    def test_api_token_cross_organization_returns_empty(self):
+    def test_api_token_cross_organization_returns_empty(self) -> None:
         """
         Test that an API token with project:releases scope cannot access
         projects in an organization where the token owner is not a member.
@@ -3034,7 +3034,7 @@ class OrganizationReleasesBaseEndpointGetProjectsTest(TestCase):
         # Should return empty list - no cross-org access allowed
         assert projects == []
 
-    def test_api_token_same_organization_returns_projects(self):
+    def test_api_token_same_organization_returns_projects(self) -> None:
         """
         Test that an API token with project:releases scope CAN access
         projects in an organization where the token owner IS a member.

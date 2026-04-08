@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {InputGroup} from '@sentry/scraps/input';
@@ -24,10 +25,10 @@ import {
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseApiError} from 'sentry/utils/parseApiError';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {useMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
@@ -39,6 +40,7 @@ import {
   isSizeInfoCompleted,
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
+import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
 import {
   getCompareApiUrl,
   getCompareBuildPath,
@@ -88,26 +90,20 @@ export function SizeCompareSelectionContent({
   }
   const fullQuery = searchFilters.join(' ');
 
-  const queryParams: Record<string, any> = {
-    per_page: 25,
-    project: headBuildDetails.project_id,
-    query: fullQuery,
-    ...(cursor && {cursor}),
-  };
+  const buildsQuery = useQuery({
+    ...buildDetailsApiOptions({
+      organization,
+      queryParams: {
+        per_page: 25,
+        project: headBuildDetails.project_id,
+        query: fullQuery,
+        ...(cursor && {cursor}),
+      },
+    }),
+    select: selectJsonWithHeaders,
+  });
 
-  const buildsQuery = useApiQuery<BuildDetailsApiResponse[]>(
-    [
-      getApiUrl(`/organizations/$organizationIdOrSlug/builds/`, {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: queryParams},
-    ],
-    {
-      staleTime: 0,
-    }
-  );
-
-  const pageLinks = buildsQuery.getResponseHeader?.('Link') || null;
+  const pageLinks = buildsQuery.data?.headers.Link || null;
 
   const parsedLinks = pageLinks ? parseLinkHeader(pageLinks) : {};
   const hasPagination =
@@ -194,9 +190,9 @@ export function SizeCompareSelectionContent({
       {buildsQuery.isError && (
         <Alert variant="danger">{buildsQuery.error?.message}</Alert>
       )}
-      {buildsQuery.data && (
+      {buildsQuery.data?.json && (
         <Stack gap="md">
-          {buildsQuery.data?.map(build => {
+          {buildsQuery.data.json.map(build => {
             if (build.id === headBuildDetails.id) {
               return null;
             }

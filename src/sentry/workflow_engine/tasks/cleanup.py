@@ -15,28 +15,30 @@ from sentry.utils.query import bulk_delete_objects
 
 logger = logging.getLogger(__name__)
 
-FIRE_HISTORY_RETENTION_DAYS = 90
+OPEN_PERIOD_ACTIVITY_RETENTION_DAYS = 90
 
 
 @instrumented_task(
-    name="sentry.workflow_engine.tasks.cleanup.prune_old_fire_history",
+    name="sentry.workflow_engine.tasks.cleanup.prune_old_open_period_activity",
     namespace=workflow_engine_tasks,
     processing_deadline_duration=15,
     silo_mode=SiloMode.CELL,
 )
-def prune_old_fire_history() -> None:
-    from sentry.workflow_engine.models import WorkflowFireHistory
+def prune_old_open_period_activity() -> None:
+    from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity
 
-    time_limit: float = options.get("workflow_engine.fire_history_cleanup.time_limit_seconds")
-    batch_size: int = options.get("workflow_engine.fire_history_cleanup.batch_size")
+    time_limit: float = options.get(
+        "workflow_engine.open_period_activity_cleanup.time_limit_seconds"
+    )
+    batch_size: int = options.get("workflow_engine.open_period_activity_cleanup.batch_size")
 
-    cutoff = timezone.now() - timedelta(days=FIRE_HISTORY_RETENTION_DAYS)
+    cutoff = timezone.now() - timedelta(days=OPEN_PERIOD_ACTIVITY_RETENTION_DAYS)
     start = time.time()
     batches_deleted = 0
 
     while (time.time() - start) < time_limit:
         has_more = bulk_delete_objects(
-            WorkflowFireHistory,
+            GroupOpenPeriodActivity,
             limit=batch_size,
             logger=logger,
             date_added__lte=cutoff,
@@ -46,7 +48,7 @@ def prune_old_fire_history() -> None:
         batches_deleted += 1
 
     metrics.incr(
-        "workflow_engine.tasks.prune_old_fire_history.batches_deleted",
+        "workflow_engine.tasks.prune_old_open_period_activity.batches_deleted",
         amount=batches_deleted,
         sample_rate=1.0,
     )

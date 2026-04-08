@@ -1,3 +1,4 @@
+import type {AutofixStoppingPoint} from 'sentry/components/events/autofix/types';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import type {
   DatasetSource,
@@ -64,7 +65,10 @@ export interface Organization extends OrganizationSummary {
   dataScrubber: boolean;
   dataScrubberDefaults: boolean;
   debugFilesRole: string;
+  defaultAutomatedRunStoppingPoint: AutofixStoppingPoint;
   defaultCodeReviewTriggers: CodeReviewTrigger[];
+  defaultCodingAgent: string | null;
+  defaultCodingAgentIntegrationId: string | number | null;
   defaultRole: string;
   enhancedPrivacy: boolean;
   eventsMemberAdmin: boolean;
@@ -99,6 +103,7 @@ export interface Organization extends OrganizationSummary {
   teamRoleList: TeamRole[];
   trustedRelays: Relay[];
   consoleSdkInviteQuota?: number;
+  dashboardsAsyncQueueParallelLimit?: number;
   defaultAutofixAutomationTuning?:
     | 'off'
     | 'super_low'
@@ -112,6 +117,7 @@ export interface Organization extends OrganizationSummary {
   enableSeerCoding?: boolean;
   enableSeerEnhancedAlerts?: boolean;
   enabledConsolePlatforms?: string[];
+  experiments?: Record<string, string>;
   extraOptions?: {
     traces: {
       checkSpanExtractionDate: boolean;
@@ -236,12 +242,14 @@ export interface MissingMember {
 }
 
 /**
- * Minimal organization shape used on shared issue views.
+ * Minimal organization shape from SharedProjectSerializer.
+ * Backend provides {slug, name}. Features is added client-side
+ * for compatibility with OrganizationContext.
  */
 export type SharedViewOrganization = {
   slug: string;
   features?: string[];
-  id?: string;
+  name?: string;
 };
 
 export type AuditLog = {

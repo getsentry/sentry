@@ -14,7 +14,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 
 class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.url = reverse(
@@ -248,7 +248,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             }
         ]
 
-    def test_post_requires_one_or_more_project_ids(self):
+    def test_post_requires_one_or_more_project_ids(self) -> None:
         response = self.client.post(
             self.url,
             {"automatedRunStoppingPoint": AutofixStoppingPoint.OPEN_PR.value},
@@ -264,7 +264,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         )
         assert response.status_code == 400
 
-    def test_post_rejects_invalid_project_ids(self):
+    def test_post_rejects_invalid_project_ids(self) -> None:
         response = self.client.post(
             self.url,
             {
@@ -274,7 +274,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         )
         assert response.status_code == 403
 
-    def test_post_rejects_invalid_tuning(self):
+    def test_post_rejects_invalid_tuning(self) -> None:
         response = self.client.post(
             self.url,
             {
@@ -284,7 +284,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         )
         assert response.status_code == 400
 
-    def test_post_rejects_invalid_stopping_point(self):
+    def test_post_rejects_invalid_stopping_point(self) -> None:
         response = self.client.post(
             self.url,
             {
@@ -294,7 +294,30 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         )
         assert response.status_code == 400
 
-    def test_post_rejects_projects_not_in_organization(self):
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
+    )
+    def test_post_accepts_root_cause_stopping_point_with_flag(
+        self, mock_bulk_set_preferences, mock_bulk_get_preferences
+    ) -> None:
+        project = self.create_project(organization=self.organization)
+        mock_bulk_get_preferences.return_value = {}
+        mock_bulk_set_preferences.return_value = None
+
+        with self.feature("organizations:root-cause-stopping-point"):
+            response = self.client.post(
+                self.url,
+                {
+                    "projectIds": [project.id],
+                    "automatedRunStoppingPoint": "root_cause",
+                },
+            )
+        assert response.status_code == 204
+
+    def test_post_rejects_projects_not_in_organization(self) -> None:
         project = self.create_project(organization=self.organization)
         other_org = self.create_organization()
         other_project = self.create_project(organization=other_org)
@@ -940,6 +963,37 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
     @patch(
         "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
     )
+    def test_post_handles_null_existing_preference(
+        self, mock_bulk_get_preferences, mock_bulk_set_preferences
+    ):
+        project = self.create_project(organization=self.organization)
+
+        mock_bulk_get_preferences.return_value = {
+            str(project.id): None,
+        }
+
+        response = self.client.post(
+            self.url,
+            {
+                "projectIds": [project.id],
+                "automatedRunStoppingPoint": AutofixStoppingPoint.OPEN_PR.value,
+            },
+        )
+        assert response.status_code == 204
+
+        mock_bulk_set_preferences.assert_called_once()
+        call_args = mock_bulk_set_preferences.call_args
+        preferences = call_args[0][1]
+        assert len(preferences) == 1
+        assert preferences[0]["project_id"] == project.id
+        assert preferences[0]["automated_run_stopping_point"] == AutofixStoppingPoint.OPEN_PR.value
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
+    )
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
     def test_post_append_resolves_repo_id_for_existing_repos(
         self, mock_bulk_get_preferences, mock_bulk_set_preferences
     ):
@@ -998,3 +1052,28 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         assert len(seer_repos) == 2
         assert seer_repos[0].repository_id == existing_repo.id
         assert seer_repos[1].repository_id == new_repo.id
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
+    )
+    def test_post_rejects_unsupported_repo_provider(self, mock_bulk_set_preferences):
+        project = self.create_project(organization=self.organization)
+
+        repo_data = {
+            "provider": "gitlab",
+            "owner": "test-org",
+            "name": "test-repo",
+            "externalId": "12345",
+        }
+
+        response = self.client.post(
+            self.url,
+            {
+                "projectIds": [project.id],
+                "projectRepoMappings": {
+                    str(project.id): [repo_data],
+                },
+            },
+        )
+        assert response.status_code == 400
+        mock_bulk_set_preferences.assert_not_called()

@@ -43,7 +43,7 @@ function getReplayTabs({
           <Tooltip
             isHoverable
             title={tct(
-              `Powered by generative AI. Learn more about our [link:AI privacy principles].`,
+              'Powered by generative AI. Learn more about our [link:AI privacy principles].',
               {
                 link: (
                   <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-privacy-and-security/" />

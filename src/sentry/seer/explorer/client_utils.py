@@ -52,6 +52,7 @@ class ExplorerChatRequest(TypedDict):
     run_id: int | None
     insert_index: int | None
     on_page_context: str | None
+    page_name: NotRequired[str | None]
     user_org_context: NotRequired[dict[str, Any] | None]
     intelligence_level: NotRequired[str]
     is_interactive: NotRequired[bool]
@@ -86,6 +87,12 @@ class ExplorerUpdateRequest(TypedDict):
     run_id: int
     organization_id: int
     payload: NotRequired[dict[str, Any]]
+
+
+class ExplorerPrStateRequest(TypedDict):
+    organization_id: int
+    provider: str
+    pr_id: int
 
 
 def make_explorer_state_request(
@@ -140,6 +147,39 @@ def make_explorer_update_request(
     )
 
 
+def make_explorer_state_pr_request(
+    body: ExplorerPrStateRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or explorer_connection_pool,
+        "/v1/automation/explorer/state/pr",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        viewer_context=viewer_context,
+    )
+
+
+def get_explorer_state_from_pr_id(
+    organization_id: int, provider: str, pr_id: int
+) -> SeerRunState | None:
+    body = ExplorerPrStateRequest(organization_id=organization_id, provider=provider, pr_id=pr_id)
+    response = make_explorer_state_pr_request(body)
+
+    if response.status >= 400:
+        raise SeerApiError("Seer request failed", response.status)
+
+    result = response.json()
+    if not result:
+        return None
+
+    session = result.get("session")
+    if session is None:
+        return None
+
+    return SeerRunState(**session)
+
+
 def has_seer_explorer_access_with_detail(
     organization: Organization, actor: SentryUser | AnonymousUser | RpcUser | None = None
 ) -> tuple[bool, str | None]:
@@ -162,7 +202,6 @@ def has_seer_explorer_access_with_detail(
         "organizations:seer-explorer",
         # Access to seer explorer powered autofix
         "organizations:autofix-on-explorer",
-        "organizations:autofix-on-explorer-v2",
     ]
 
     batch_features = features.batch_has(
@@ -189,7 +228,7 @@ def has_seer_explorer_access_with_detail(
 
 
 def collect_user_org_context(
-    user: SentryUser | AnonymousUser | None,
+    user: SentryUser | RpcUser | AnonymousUser | None,
     organization: Organization,
     request: Request | None = None,
 ) -> dict[str, Any]:
@@ -235,7 +274,7 @@ def collect_user_org_context(
 
     # Handle name attribute - SentryUser has name
     user_name: str | None = None
-    if isinstance(user, SentryUser):
+    if isinstance(user, (SentryUser, RpcUser)):
         user_name = user.name
 
     # Get user's timezone setting (IANA timezone name, e.g., "America/Los_Angeles")
@@ -301,3 +340,36 @@ def poll_until_done(
 
         # Wait before next poll
         time.sleep(poll_interval)
+
+
+def _render_node(node: dict[str, Any], depth: int) -> str:
+    """Recursively render an LLMContextSnapshot node and its children as markdown."""
+    heading = "#" * min(depth + 1, 6)
+    lines = [f"{heading} {(node.get('nodeType') or 'unknown').capitalize()}"]
+
+    data = node.get("data")
+    if isinstance(data, dict):
+        for key, value in data.items():
+            lines.append(f"- **{key}**: {orjson.dumps(value).decode()}")
+    elif data is not None:
+        lines.append(f"- {orjson.dumps(data).decode()}")
+
+    for child in node.get("children", []):
+        lines.append(_render_node(child, depth + 1))
+
+    return "\n".join(lines)
+
+
+def snapshot_to_markdown(snapshot: dict[str, Any]) -> str:
+    """Convert an LLMContextSnapshot dict to a markdown string.
+
+    Expected shape: ``{"version": int, "nodes": [{"nodeType": str, "data": ..., "children": [...]}]}``
+    The top-level nodes list contains a single root node (the page).
+    """
+    nodes = snapshot.get("nodes", [])
+    if not nodes:
+        return ""
+    preamble = (
+        "> This is a structured summary of the page the user is viewing, not an exact screenshot.\n"
+    )
+    return preamble + _render_node(nodes[0], 0)

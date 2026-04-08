@@ -1,9 +1,9 @@
 import type {ButtonProps} from '@sentry/scraps/button';
-import type {SelectKey} from '@sentry/scraps/compactSelect';
 
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
 import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
+import type {InstallationInfo} from 'sentry/components/pipeline/pipelineIntegrationGitHub';
 import type {DateRange} from 'sentry/components/timeRangeSelector/dateRange';
 import type {SelectorItems} from 'sentry/components/timeRangeSelector/selectorItems';
 import type {SentryRouteObject} from 'sentry/router/types';
@@ -11,6 +11,7 @@ import type {DataCategory} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import type {UseExperimentOptions, UseExperimentResult} from 'sentry/utils/useExperiment';
 import type {
   useDefaultMaxPickableDays,
   useMaxPickableDays,
@@ -137,6 +138,15 @@ type FirstPartyIntegrationAlertProps = {
   wrapWithContainer?: boolean;
 };
 
+export type ScmGithubMultiOrgInstallProps = {
+  installations: InstallationInfo[];
+  onNewInstall: () => void;
+  onSelectInstallation: (installationId: string) => void;
+  isDisabled?: boolean;
+  newInstallDisabled?: boolean;
+  popupBlockedNotice?: React.ReactNode;
+};
+
 type FirstPartyIntegrationAdditionalCTAProps = {
   integrations: Integration[];
 };
@@ -167,12 +177,6 @@ export type PartnershipAgreementProps = {
 export type MembershipSettingsProps = {
   onSave: (previous: Organization, updated: Organization) => void;
   organization: Organization;
-};
-export type GithubInstallationInstallButtonProps = {
-  handleSubmit: (e: React.MouseEvent) => void;
-  hasSCMMultiOrg: boolean;
-  installationID: SelectKey;
-  isSaving: boolean;
 };
 
 type DashboardLimitProviderProps = {
@@ -230,7 +234,7 @@ type ComponentHooks = {
   'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
   'component:replay-settings-alert': () => React.ComponentType | null;
-  'component:scm-multi-org-install-button': () => React.ComponentType<GithubInstallationInstallButtonProps>;
+  'component:scm-github-multi-org-install': () => React.ComponentType<ScmGithubMultiOrgInstallProps>;
   'component:seer-beta-closing-alert': () => React.ComponentType;
   'component:superuser-access-category': React.ComponentType<any>;
   'component:superuser-warning': React.ComponentType<any>;
@@ -347,6 +351,7 @@ type ReactHooks = {
     dataset: WidgetType;
   }) => number;
   'react-hook:use-default-max-pickable-days': typeof useDefaultMaxPickableDays;
+  'react-hook:use-experiment': (options: UseExperimentOptions) => UseExperimentResult;
   'react-hook:use-get-max-retention-days': () => number | undefined;
   'react-hook:use-max-pickable-days': typeof useMaxPickableDays;
   'react-hook:use-metric-detector-limit': () => {

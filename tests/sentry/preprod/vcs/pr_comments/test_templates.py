@@ -14,7 +14,7 @@ from sentry.testutils.silo import cell_silo_test
 
 @cell_silo_test
 class FormatPrCommentTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.organization)
@@ -53,10 +53,10 @@ class FormatPrCommentTest(TestCase):
             "mobile_app_info", "build_configuration", "project", "project__organization"
         ).get(id=artifact.id)
 
-    def test_single_ios_artifact(self):
+    def test_single_ios_artifact(self) -> None:
         artifact = self._create_artifact()
 
-        result = format_pr_comment([artifact])
+        result = format_pr_comment([artifact], project=self.project)
 
         assert "## Sentry Build Distribution" in result
         assert "| App Name | App ID | Version | Configuration | Install Page |" in result
@@ -68,18 +68,18 @@ class FormatPrCommentTest(TestCase):
         # Single platform — no subheader
         assert "### iOS" not in result
 
-    def test_single_android_artifact(self):
+    def test_single_android_artifact(self) -> None:
         artifact = self._create_artifact(
             artifact_type=PreprodArtifact.ArtifactType.AAB,
             app_name="AndroidApp",
         )
 
-        result = format_pr_comment([artifact])
+        result = format_pr_comment([artifact], project=self.project)
 
         assert "AndroidApp" in result
         assert "### Android" not in result
 
-    def test_multiple_platforms_shows_subheaders(self):
+    def test_multiple_platforms_shows_subheaders(self) -> None:
         ios_artifact = self._create_artifact(app_name="iOSApp")
         android_artifact = self._create_artifact(
             artifact_type=PreprodArtifact.ArtifactType.APK,
@@ -87,13 +87,21 @@ class FormatPrCommentTest(TestCase):
             app_name="AndroidApp",
         )
 
-        result = format_pr_comment([ios_artifact, android_artifact])
+        result = format_pr_comment([ios_artifact, android_artifact], project=self.project)
 
         assert "### iOS" in result
         assert "### Android" in result
         assert "iOSApp" in result
         assert "AndroidApp" in result
 
-    def test_empty_list_raises(self):
+    def test_settings_link(self) -> None:
+        artifact = self._create_artifact()
+
+        result = format_pr_comment([artifact], project=self.project)
+
+        assert f"[Configure {self.project.name} build distribution settings](" in result
+        assert f"/settings/projects/{self.project.slug}/mobile-builds/?tab=distribution" in result
+
+    def test_empty_list_raises(self) -> None:
         with pytest.raises(ValueError, match="No installable artifacts"):
-            format_pr_comment([])
+            format_pr_comment([], project=self.project)

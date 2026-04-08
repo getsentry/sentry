@@ -3,6 +3,7 @@ from collections.abc import Sequence
 from copy import deepcopy
 from datetime import UTC, datetime
 
+from django.db import connections, router, transaction
 from django.db.models import (
     Case,
     DateTimeField,
@@ -43,6 +44,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import InvalidParams
 from sentry.incidents.endpoints.bases import OrganizationAlertRuleBaseEndpoint
 from sentry.incidents.endpoints.serializers.alert_rule import (
@@ -111,6 +113,7 @@ from sentry.workflow_engine.utils.legacy_metric_tracking import (
 )
 
 logger = logging.getLogger(__name__)
+
 
 # Sentinel values for incident_status annotation when sorting combined rules
 # Used to ensure proper sort order for rules without active incidents
@@ -232,6 +235,10 @@ class AlertRuleFetchMixin(Endpoint):
     Can be used with any endpoint base class (OrganizationEndpoint, ProjectEndpoint, etc).
     """
 
+    # Subclasses may set a per-method granular flag (e.g. for GET) that is OR'd
+    # with the broad workflow-engine-rule-serializers flag.
+    workflow_engine_method_flags: dict[str, str] = {}
+
     def fetch_metric_alerts(
         self,
         request: Request,
@@ -249,8 +256,11 @@ class AlertRuleFetchMixin(Endpoint):
                 extra={"organization": organization.id},
             )
 
-        use_workflow_engine = features.has(
-            "organizations:workflow-engine-rule-serializers", organization
+        method_flag = self.workflow_engine_method_flags.get(request.method or "")
+        use_workflow_engine = (
+            features.has("organizations:workflow-engine-rule-serializers", organization)
+            or method_flag is not None
+            and features.has(method_flag, organization)
         )
 
         if use_workflow_engine:
@@ -515,33 +525,48 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 ),
             )
 
-        # Build intermediaries for pagination
-        intermediaries: list[CombinedQuerysetIntermediary] = []
-
         def has_type(rule_type: str) -> bool:
             return not type_filter or rule_type in type_filter
 
-        if has_type("alert_rule"):
-            intermediaries.append(CombinedQuerysetIntermediary(metric_detectors, sort_key))
-        if has_type("rule"):
-            intermediaries.append(CombinedQuerysetIntermediary(issue_workflows, sort_key))
-        if has_type("uptime"):
-            intermediaries.append(CombinedQuerysetIntermediary(uptime_rules, sort_key))
-        if has_type("monitor"):
-            intermediaries.append(CombinedQuerysetIntermediary(crons_rules, sort_key))
+        # Disable JIT on the Detector/DetectorGroup database for the combined paginator queries.
+        # The planner thinks our metric detector query is going to be very slow because DetectorGroup
+        # in general has many Groups per Detector, even though for metrics detectors (our case here) it's effectively
+        # one-to-one.
+        # It decides to spend ~400ms JITing the query, thinking it is justified due to the bulk of the data, but it is
+        # wrong. What's worse, we send this query twice, and pay for the JIT twice.
+        # Disabling it makes this endpoint considerably faster.
+        # The risk of other regression here should be low; our API endpoint isn't generally doing the sort of bulk
+        # work that benefits from JIT.
+        # in_test_hide_transaction_boundary is safe here: this transaction is only
+        # used to scope SET LOCAL, not to guard data mutations. No writes happen
+        # inside this block, so there's no cross-db atomicity concern to enforce.
+        db = router.db_for_write(Detector)
+        with in_test_hide_transaction_boundary(), transaction.atomic(using=db):
+            with connections[db].cursor() as cursor:
+                cursor.execute("SET LOCAL jit = off")
 
-        response = self.paginate(
-            request,
-            paginator_cls=CombinedQuerysetPaginator,
-            on_results=lambda x: serialize(
-                x, request.user, WorkflowEngineCombinedRuleSerializer(expand=expand)
-            ),
-            default_per_page=25,
-            intermediaries=intermediaries,
-            desc=not is_asc,
-            cursor_cls=StringCursor if case_insensitive else Cursor,
-            case_insensitive=case_insensitive,
-        )
+            intermediaries: list[CombinedQuerysetIntermediary] = []
+            if has_type("alert_rule"):
+                intermediaries.append(CombinedQuerysetIntermediary(metric_detectors, sort_key))
+            if has_type("rule"):
+                intermediaries.append(CombinedQuerysetIntermediary(issue_workflows, sort_key))
+            if has_type("uptime"):
+                intermediaries.append(CombinedQuerysetIntermediary(uptime_rules, sort_key))
+            if has_type("monitor"):
+                intermediaries.append(CombinedQuerysetIntermediary(crons_rules, sort_key))
+
+            response = self.paginate(
+                request,
+                paginator_cls=CombinedQuerysetPaginator,
+                on_results=lambda x: serialize(
+                    x, request.user, WorkflowEngineCombinedRuleSerializer(expand=expand)
+                ),
+                default_per_page=25,
+                intermediaries=intermediaries,
+                desc=not is_asc,
+                cursor_cls=StringCursor if case_insensitive else Cursor,
+                case_insensitive=case_insensitive,
+            )
         response[MAX_QUERY_SUBSCRIPTIONS_HEADER] = get_max_metric_alert_subscriptions(organization)
         return response
 
@@ -607,7 +632,9 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         # Common setup: type filter
         type_filter = request.GET.getlist("alertType", [])
 
-        if features.has("organizations:workflow-engine-rule-serializers", organization):
+        if features.has(
+            "organizations:workflow-engine-rule-serializers", organization
+        ) or features.has("organizations:workflow-engine-combinedruleindex-get", organization):
             return self._get_workflow_engine(
                 request=request,
                 organization=organization,
@@ -888,6 +915,9 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
         "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationAlertRulePermission,)
+    workflow_engine_method_flags = {
+        "GET": "organizations:workflow-engine-orgalertruleindex-get",
+    }
 
     @extend_schema(
         operation_id="(DEPRECATED) List an Organization's Metric Alert Rules",
@@ -1006,12 +1036,12 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
         ```
 
         ### [Transaction Duration](/product/alerts/alert-types/#transaction-duration)
-        -  `dataset`: If a custom percentile is used, `dataset` is `transactions`. Otherwise, `dataset` is `generic_metrics`.
+        -  `dataset`: If a custom percentile is used, `dataset` is `transactions`. Otherwise, `dataset` is `events_analytics_platform`.
         -  `aggregate`: Valid values are `avg(transaction.duration)`, `p50(transaction.duration)`, `p75(transaction.duration)`, `p95(transaction.duration)`, `p99(transaction.duration)`, `p100(transaction.duration)`, and `percentile(transaction.duration,x)`, where `x` is your custom percentile.
         ```json
         {
             "queryType": 1,
-            "dataset": "generic_metrics",
+            "dataset": "events_analytics_platform",
             "aggregate": "avg(transaction.duration)"
         }
         ```
@@ -1036,29 +1066,29 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
         ```
 
         ### [Largest Contentful Paint](/product/alerts/alert-types/#largest-contentful-display)
-        - `dataset`: If a custom percentile is used, `dataset` is `transactions`. Otherwise, `dataset` is `generic_metrics`.
+        - `dataset`: If a custom percentile is used, `dataset` is `transactions`. Otherwise, `dataset` is `events_analytics_platform`.
         - `aggregate`: Valid values are `avg(measurements.lcp)`, `p50(measurements.lcp)`, `p75(measurements.lcp)`, `p95(measurements.lcp)`, `p99(measurements.lcp)`, `p100(measurements.lcp)`, and `percentile(measurements.lcp,x)`, where `x` is your custom percentile.
         ```json
         {
             "queryType": 1,
-            "dataset": "generic_metrics",
+            "dataset": "events_analytics_platform",
             "aggregate": "p50(measurements.lcp)"
         }
         ```
 
         ### [First Input Delay](/product/alerts/alert-types/#first-input-delay)
-        - `dataset`: If a custom percentile is used, `dataset` is `transactions`. Otherwise, `dataset` is `generic_metrics`.
+        - `dataset`: If a custom percentile is used, `dataset` is `transactions`. Otherwise, `dataset` is `events_analytics_platform`.
         - `aggregate`: Valid values are `avg(measurements.fid)`, `p50(measurements.fid)`, `p75(measurements.fid)`, `p95(measurements.fid)`, `p99(measurements.fid)`, `p100(measurements.fid)`, and `percentile(measurements.fid,x)`, where `x` is your custom percentile.
         ```json
         {
             "queryType": 1,
-            "dataset": "generic_metrics",
+            "dataset": "events_analytics_platform",
             "aggregate": "p100(measurements.fid)"
         }
         ```
 
         ### [Cumulative Layout Shift](/product/alerts/alert-types/#cumulative-layout-shift)
-        - `dataset`: If a custom percentile is used, `dataset` is `transactions`. Otherwise, `dataset` is `generic_metrics`.
+        - `dataset`: If a custom percentile is used, `dataset` is `transactions`. Otherwise, `dataset` is `events_analytics_platform`.
         - `aggregate`: Valid values are `avg(measurements.cls)`, `p50(measurements.cls)`, `p75(measurements.cls)`, `p95(measurements.cls)`, `p99(measurements.cls)`, `p100(measurements.cls)`, and `percentile(measurements.cls,x)`, where `x` is your custom percentile.
         ```json
         {
@@ -1069,7 +1099,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
         ```
 
         ### [Custom Metric](/product/alerts/alert-types/#custom-metric)
-        - `dataset`: If a custom percentile is used, `dataset` is `transactions`. Otherwise, `dataset` is `generic_metrics`.
+        - `dataset`: If a custom percentile is used, `dataset` is `transactions`. Otherwise, `dataset` is `events_analytics_platform`.
         - `aggregate`: Valid values are:
             - `avg(x)`, where `x` is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`.
             - `p50(x)`, where `x` is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`.
@@ -1084,7 +1114,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
         ```json
         {
             "queryType": 1,
-            "dataset": "generic_metrics",
+            "dataset": "events_analytics_platform",
             "aggregate": "p75(measurements.ttfb)"
         }
         ```

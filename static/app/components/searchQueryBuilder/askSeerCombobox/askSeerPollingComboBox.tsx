@@ -10,6 +10,7 @@ import {Input} from '@sentry/scraps/input';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerProgressBlocks} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerProgressBlocks';
 import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchHeader';
@@ -95,13 +96,6 @@ interface AskSeerPollingComboBoxProps<T extends QueryTokensProps> extends Omit<
    */
   analyticsSource: string;
   applySeerSearchQuery: (item: T) => void;
-  /**
-   * The owner of the feedback form, must be an underscore-separated identifier like
-   * "trace_explorer_ai_query" or "issue_list_ai_query"
-   *
-   * @example 'trace_explorer_ai_query'
-   */
-  feedbackSource: string;
   initialQuery: string;
   projectIds: number[];
   strategy: string;
@@ -119,7 +113,6 @@ interface AskSeerPollingComboBoxProps<T extends QueryTokensProps> extends Omit<
 
 export function AskSeerPollingComboBox<T extends QueryTokensProps>({
   initialQuery,
-  feedbackSource,
   analyticsSource,
   projectIds,
   strategy,
@@ -150,6 +143,8 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     enableAISearch,
   } = useSearchQueryBuilder();
 
+  const analyticsArea = useAnalyticsArea();
+
   const {
     submitQuery,
     isPending,
@@ -166,6 +161,11 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     strategy,
     onError: error => {
       addErrorMessage(t('Failed to process AI query: %(error)s', {error: error.message}));
+      trackAnalytics('ai_query.error', {
+        organization,
+        area: analyticsArea,
+        natural_language_query: searchQuery,
+      });
     },
   });
 
@@ -186,7 +186,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
       openForm({
         messagePlaceholder: t('Why were these queries incorrect?'),
         tags: {
-          ['feedback.source']: feedbackSource,
+          ['feedback.source']: `ai_query.${analyticsArea}`,
           ['feedback.owner']: 'ml-ai',
           ['feedback.natural_language_query']: searchQuery,
           ['feedback.raw_result']: JSON.stringify(queries).replace(/\n/g, ''),
@@ -233,6 +233,12 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
       if (key === 'none-of-these') {
         trackAnalytics(`${analyticsSource}.ai_query_rejected`, {
           organization,
+          natural_language_query: searchQuery,
+          num_queries_returned: queries.length ?? 0,
+        });
+        trackAnalytics('ai_query.rejected', {
+          organization,
+          area: analyticsArea,
           natural_language_query: searchQuery,
           num_queries_returned: queries.length ?? 0,
         });
@@ -306,6 +312,11 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
                 organization,
                 action: 'closed',
               });
+              trackAnalytics('ai_query.interface', {
+                organization,
+                area: analyticsArea,
+                action: 'closed',
+              });
               setDisplayAskSeerFeedback(false);
               setDisplayAskSeer(false);
             }
@@ -317,6 +328,12 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
             if (state.isOpen && state.selectionManager.focusedKey === 'none-of-these') {
               trackAnalytics(`${analyticsSource}.ai_query_rejected`, {
                 organization,
+                natural_language_query: searchQuery,
+                num_queries_returned: queries.length ?? 0,
+              });
+              trackAnalytics('ai_query.rejected', {
+                organization,
+                area: analyticsArea,
                 natural_language_query: searchQuery,
                 num_queries_returned: queries.length ?? 0,
               });
@@ -348,6 +365,11 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
             ) {
               trackAnalytics(`${analyticsSource}.ai_query_submitted`, {
                 organization,
+                natural_language_query: searchQuery.trim(),
+              });
+              trackAnalytics('ai_query.submitted', {
+                organization,
+                area: analyticsArea,
                 natural_language_query: searchQuery.trim(),
               });
               askSeerNLQueryRef.current = searchQuery.trim();
@@ -414,10 +436,16 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
         organization,
         natural_language_query: searchQuery.trim(),
       });
+      trackAnalytics('ai_query.submitted', {
+        organization,
+        area: analyticsArea,
+        natural_language_query: searchQuery.trim(),
+      });
       submitQuery(searchQuery.trim());
       setAutoSubmitSeer(false);
     }
   }, [
+    analyticsArea,
     analyticsSource,
     autoSubmitSeer,
     organization,
@@ -442,7 +470,6 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
         askSeerMutationOptions={fallbackMutationOptions}
         applySeerSearchQuery={props.applySeerSearchQuery}
         analyticsSource={analyticsSource}
-        feedbackSource={feedbackSource}
       />
     );
   }
@@ -472,6 +499,11 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
           onClick={() => {
             trackAnalytics(`${analyticsSource}.ai_query_interface`, {
               organization,
+              action: 'closed',
+            });
+            trackAnalytics('ai_query.interface', {
+              organization,
+              area: analyticsArea,
               action: 'closed',
             });
             setDisplayAskSeerFeedback(false);
@@ -534,7 +566,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
                   openForm({
                     messagePlaceholder: t('How can we make Seer search better for you?'),
                     tags: {
-                      ['feedback.source']: feedbackSource,
+                      ['feedback.source']: `ai_query.${analyticsArea}`,
                       ['feedback.owner']: 'ml-ai',
                     },
                   })

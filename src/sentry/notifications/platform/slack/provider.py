@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 from slack_sdk.models.blocks import (
     ActionsBlock,
@@ -58,6 +58,7 @@ class SlackProviderThreadingContext(ProviderThreadingContext):
 
 class SlackRenderable(TypedDict):
     blocks: list[Block]
+    attachments: NotRequired[list[dict[str, Any]]]
     text: str
 
 
@@ -138,12 +139,17 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
         from sentry.notifications.platform.slack.renderers.issue import (
             IssueSlackRenderer,
         )
+        from sentry.notifications.platform.slack.renderers.metric_alert import (
+            SlackMetricAlertRenderer,
+        )
         from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
 
         if category == NotificationCategory.SEER:
             return SeerSlackRenderer
         if category == NotificationCategory.ISSUE:
             return IssueSlackRenderer
+        if category == NotificationCategory.METRIC_ALERT:
+            return SlackMetricAlertRenderer
         return cls.default_renderer
 
     @classmethod
@@ -200,3 +206,8 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
             return SendSuccessResult(provider_message_id=response.get("ts"), is_threaded=True)
         except IntegrationError as e:
             return integration_error_result(e, is_threaded=True)
+
+
+@provider_registry.register(NotificationProviderKey.SLACK_STAGING)
+class SlackStagingNotificationProvider(SlackNotificationProvider):
+    key = NotificationProviderKey.SLACK_STAGING

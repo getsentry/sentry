@@ -1,3 +1,5 @@
+import {useEffect} from 'react';
+
 import {Flex} from '@sentry/scraps/layout';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
@@ -22,6 +24,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {showIntercom} from 'sentry/utils/intercom';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {activateZendesk, hasZendesk} from 'sentry/utils/zendesk';
@@ -32,6 +35,58 @@ import {
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
+function getContactSupportItem(organization: Organization): MenuItemProps | null {
+  const supportEmail = ConfigStore.get('supportEmail');
+
+  if (!supportEmail) {
+    return null;
+  }
+
+  const hasIntercom = organization.features.includes('intercom-support');
+
+  // Use Intercom if feature flag is enabled (lazily initialized on first click)
+  if (hasIntercom) {
+    return {
+      key: 'support',
+      label: t('Contact Support'),
+      async onAction() {
+        trackAnalytics('intercom_link.clicked', {
+          organization,
+          source: 'sidebar',
+        });
+        try {
+          await showIntercom(organization.slug);
+        } catch {
+          // Fall back to mailto
+          window.location.href = `mailto:${supportEmail}`;
+        }
+      },
+    };
+  }
+
+  // Fall back to Zendesk if available
+  if (hasZendesk()) {
+    return {
+      key: 'support',
+      label: t('Contact Support'),
+      onAction() {
+        activateZendesk();
+        trackAnalytics('zendesk_link.clicked', {
+          organization,
+          source: 'sidebar',
+        });
+      },
+    };
+  }
+
+  // Fall back to mailto
+  return {
+    key: 'support',
+    label: t('Contact Support'),
+    externalHref: `mailto:${supportEmail}`,
+  };
+}
+
 export function PrimaryNavigationHelpMenu() {
   const organization = useOrganization();
   const contactSupportItem = getContactSupportItem(organization);
@@ -39,6 +94,13 @@ export function PrimaryNavigationHelpMenu() {
   const {startTour} = useNavigationTour();
   const {privacyUrl, termsUrl} = useLegacyStore(ConfigStore);
   const hasPageFrame = useHasPageFrameFeature();
+  const hasIntercom = organization.features.includes('intercom-support');
+
+  useEffect(() => {
+    if (hasIntercom) {
+      trackAnalytics('intercom_link.viewed', {organization, source: 'sidebar'});
+    }
+  }, [hasIntercom, organization]);
 
   const items = hasPageFrame
     ? getPageFrameItems({contactSupportItem, privacyUrl, termsUrl})
@@ -308,32 +370,4 @@ function getLegacyItems({
       ],
     },
   ];
-}
-
-function getContactSupportItem(organization: Organization): MenuItemProps | null {
-  const supportEmail = ConfigStore.get('supportEmail');
-
-  if (!supportEmail) {
-    return null;
-  }
-
-  if (hasZendesk()) {
-    return {
-      key: 'support',
-      label: t('Contact Support'),
-      onAction() {
-        activateZendesk();
-        trackAnalytics('zendesk_link.clicked', {
-          organization,
-          source: 'sidebar',
-        });
-      },
-    };
-  }
-
-  return {
-    key: 'support',
-    label: t('Contact Support'),
-    externalHref: `mailto:${supportEmail}`,
-  };
 }

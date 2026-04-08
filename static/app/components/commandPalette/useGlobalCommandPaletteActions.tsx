@@ -1,33 +1,49 @@
+import {useState} from 'react';
+import {SentryGlobalSearch} from '@sentry-internal/global-search';
+import DOMPurify from 'dompurify';
+
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import {
-  makeCommandPaletteCallback,
-  makeCommandPaletteGroup,
-  makeCommandPaletteLink,
-} from 'sentry/components/commandPalette/makeCommandPaletteAction';
+import {openSudo} from 'sentry/actionCreators/sudoModal';
+import {useCommandPaletteActionsRegister} from 'sentry/components/commandPalette/context';
 import type {
+  CMDKQueryOptions,
   CommandPaletteAction,
-  CommandPaletteActionChild,
+  CommandPaletteAsyncResult,
 } from 'sentry/components/commandPalette/types';
-import {useCommandPaletteActions} from 'sentry/components/commandPalette/useCommandPaletteActions';
+import {
+  DSN_PATTERN,
+  getDsnNavTargets,
+} from 'sentry/components/search/sources/dsnLookupUtils';
+import type {DsnLookupResponse} from 'sentry/components/search/sources/dsnLookupUtils';
 import {
   IconAdd,
-  IconChevron,
   IconCompass,
   IconDashboard,
   IconDiscord,
   IconDocs,
+  IconSearch,
   IconGithub,
   IconGraph,
   IconIssues,
+  IconList,
   IconOpen,
   IconSettings,
   IconStar,
   IconUser,
+  IconPanel,
+  IconLock,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {QUERY_API_CLIENT, queryOptions, useMutation} from 'sentry/utils/queryClient';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
 import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
@@ -39,6 +55,12 @@ import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/i
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 
+const DSN_ICONS: React.ReactElement[] = [
+  <IconIssues key="issues" />,
+  <IconSettings key="settings" />,
+  <IconList key="list" />,
+];
+
 // This hook generates actions for all pages in the primary and secondary navigation.
 // TODO: Consider refactoring the navigation so that this can read from the same source
 // of truth and avoid divergence.
@@ -49,217 +71,233 @@ function useNavigationActions(): CommandPaletteAction[] {
   const prefix = `/organizations/${slug}`;
   const {starredViews} = useStarredIssueViews();
   const {data: starredDashboards = []} = useGetStarredDashboards();
+  const {projects} = useProjects();
 
-  const issuesChildren: CommandPaletteActionChild[] = [
-    makeCommandPaletteLink({
+  const issuesChildren: CommandPaletteAction[] = [
+    {
       display: {
         label: t('Feed'),
       },
       to: `${prefix}/issues/`,
-    }),
-    ...Object.values(ISSUE_TAXONOMY_CONFIG).map(config =>
-      makeCommandPaletteLink({
-        display: {
-          label: config.label,
-        },
-        to: `${prefix}/issues/${config.key}/`,
-      })
-    ),
-    makeCommandPaletteLink({
+    },
+    ...Object.values(ISSUE_TAXONOMY_CONFIG).map(config => ({
+      display: {
+        label: config.label,
+      },
+      to: `${prefix}/issues/${config.key}/`,
+    })),
+    {
       display: {
         label: t('User Feedback'),
       },
       to: `${prefix}/issues/feedback/`,
-    }),
-    makeCommandPaletteLink({
+    },
+    {
       display: {
         label: t('All Views'),
       },
       to: `${prefix}/issues/views/`,
-    }),
-    ...starredViews.map(view =>
-      makeCommandPaletteLink({
-        display: {
-          label: view.label,
-          icon: <IconStar />,
-        },
-        to: `${prefix}/issues/views/${view.id}/`,
-      })
-    ),
+    },
+    ...starredViews.map(view => ({
+      display: {
+        label: view.label,
+        icon: <IconStar />,
+      },
+      to: `${prefix}/issues/views/${view.id}/`,
+    })),
   ];
 
-  const exploreChildren: CommandPaletteActionChild[] = [
-    makeCommandPaletteLink({
+  const exploreChildren: CommandPaletteAction[] = [
+    {
       display: {
         label: t('Traces'),
       },
       to: `${prefix}/explore/traces/`,
-    }),
-    makeCommandPaletteLink({
-      display: {
-        label: t('Logs'),
-      },
-      to: `${prefix}/explore/logs/`,
-      hidden: !organization.features.includes('ourlogs-enabled'),
-    }),
-    makeCommandPaletteLink({
+    },
+    organization.features.includes('ourlogs-enabled')
+      ? {
+          display: {
+            label: t('Logs'),
+          },
+          to: `${prefix}/explore/logs/`,
+        }
+      : undefined,
+    {
       display: {
         label: t('Discover'),
       },
       to: `${prefix}/explore/discover/homepage/`,
-    }),
-    makeCommandPaletteLink({
-      display: {
-        label: t('Profiles'),
-      },
-      to: `${prefix}/explore/profiling/`,
-      hidden: !organization.features.includes('profiling'),
-    }),
-    makeCommandPaletteLink({
-      display: {
-        label: t('Replays'),
-      },
-      to: `${prefix}/explore/replays/`,
-      hidden: !organization.features.includes('session-replay-ui'),
-    }),
-    makeCommandPaletteLink({
+    },
+    organization.features.includes('profiling')
+      ? {
+          display: {
+            label: t('Profiles'),
+          },
+          to: `${prefix}/explore/profiling/`,
+        }
+      : undefined,
+    organization.features.includes('session-replay-ui')
+      ? {
+          display: {
+            label: t('Replays'),
+          },
+          to: `${prefix}/explore/replays/`,
+        }
+      : undefined,
+    {
       display: {
         label: t('Releases'),
       },
       to: `${prefix}/explore/releases/`,
-    }),
-    makeCommandPaletteLink({
+    },
+    {
       display: {
         label: t('All Queries'),
       },
       to: `${prefix}/explore/saved-queries/`,
-    }),
-  ];
+    },
+  ].filter(action => action !== undefined);
 
-  const dashboardsChildren: CommandPaletteActionChild[] = [
-    makeCommandPaletteLink({
+  const dashboardsChildren: CommandPaletteAction[] = [
+    {
       display: {
         label: t('All Dashboards'),
       },
       to: `${prefix}/dashboards/`,
-    }),
-    ...starredDashboards.map(dashboard =>
-      makeCommandPaletteLink({
+    },
+    {
+      display: {
+        label: t('Starred Dashboards'),
+        icon: <IconStar />,
+      },
+      actions: starredDashboards.map(dashboard => ({
         display: {
           label: dashboard.title,
           icon: <IconStar />,
         },
         to: `${prefix}/dashboard/${dashboard.id}/`,
-      })
-    ),
+      })),
+    },
   ];
 
-  const insightsChildren: CommandPaletteActionChild[] = [
-    makeCommandPaletteLink({
+  const insightsChildren: CommandPaletteAction[] = [
+    {
       display: {
         label: t('Frontend'),
       },
       to: `${prefix}/insights/${FRONTEND_LANDING_SUB_PATH}/`,
-    }),
-    makeCommandPaletteLink({
+    },
+    {
       display: {
         label: t('Backend'),
       },
       to: `${prefix}/insights/${BACKEND_LANDING_SUB_PATH}/`,
-    }),
-    makeCommandPaletteLink({
+    },
+    {
       display: {
         label: t('Mobile'),
       },
       to: `${prefix}/insights/${MOBILE_LANDING_SUB_PATH}/`,
-    }),
-    makeCommandPaletteLink({
+    },
+    {
       display: {
         label: t('Agents'),
       },
       to: `${prefix}/insights/${AGENTS_LANDING_SUB_PATH}/`,
-    }),
-    makeCommandPaletteLink({
+    },
+    {
       display: {
         label: t('MCP'),
       },
       to: `${prefix}/insights/${MCP_LANDING_SUB_PATH}/`,
-    }),
-    makeCommandPaletteLink({
+    },
+    {
       display: {
         label: t('Crons'),
       },
       to: `${prefix}/insights/crons/`,
-    }),
-    makeCommandPaletteLink({
-      display: {
-        label: t('Uptime'),
-      },
-      to: `${prefix}/insights/uptime/`,
-      hidden: !organization.features.includes('uptime'),
-    }),
-    makeCommandPaletteLink({
+    },
+    organization.features.includes('uptime')
+      ? {
+          display: {
+            label: t('Uptime'),
+          },
+          to: `${prefix}/insights/uptime/`,
+        }
+      : undefined,
+    {
       display: {
         label: t('All Projects'),
       },
       to: `${prefix}/insights/projects/`,
-    }),
-  ];
-
-  const settingsChildren: CommandPaletteActionChild[] =
-    getUserOrgNavigationConfiguration().flatMap(item =>
-      item.items.map(settingsChildItem =>
-        makeCommandPaletteLink({
-          display: {
-            label: settingsChildItem.title,
-          },
-          to: settingsChildItem.path,
-        })
-      )
-    );
+    },
+  ].filter(action => action !== undefined);
 
   return [
-    makeCommandPaletteGroup({
-      groupingKey: 'navigate',
+    {
       display: {
-        label: t('Issues'),
-        icon: <IconIssues />,
+        label: t('Go to...'),
       },
-      actions: issuesChildren,
-    }),
-    makeCommandPaletteGroup({
-      groupingKey: 'navigate',
-      display: {
-        label: t('Explore'),
-        icon: <IconCompass />,
-      },
-      actions: exploreChildren,
-    }),
-    makeCommandPaletteGroup({
-      groupingKey: 'navigate',
-      display: {
-        label: t('Dashboards'),
-        icon: <IconDashboard />,
-      },
-      actions: dashboardsChildren,
-    }),
-    makeCommandPaletteGroup({
-      groupingKey: 'navigate',
-      display: {
-        label: t('Insights'),
-        icon: <IconGraph type="area" />,
-      },
-      actions: insightsChildren,
-      hidden: !organization.features.includes('performance-view'),
-    }),
-    makeCommandPaletteGroup({
-      groupingKey: 'navigate',
-      display: {
-        label: t('Settings'),
-        icon: <IconSettings />,
-      },
-      actions: settingsChildren,
-    }),
+      actions: [
+        {
+          display: {
+            label: t('Issues'),
+            icon: <IconIssues />,
+          },
+          actions: issuesChildren,
+        },
+        {
+          display: {
+            label: t('Explore'),
+            icon: <IconCompass />,
+          },
+          actions: exploreChildren,
+        },
+        {
+          display: {
+            label: t('Dashboards'),
+            icon: <IconDashboard />,
+          },
+          actions: dashboardsChildren,
+        },
+        organization.features.includes('performance-view')
+          ? {
+              display: {
+                label: t('Insights'),
+                icon: <IconGraph type="area" />,
+              },
+              actions: insightsChildren,
+            }
+          : undefined,
+        {
+          display: {
+            label: t('Settings'),
+            icon: <IconSettings />,
+          },
+          actions: getUserOrgNavigationConfiguration().flatMap(item =>
+            item.items.map(settingsChildItem => ({
+              display: {
+                label: settingsChildItem.title,
+              },
+              to: settingsChildItem.path,
+            }))
+          ),
+        },
+        {
+          display: {
+            label: t('Project Settings'),
+            icon: <IconSettings />,
+          },
+          actions: projects.map(project => ({
+            display: {
+              label: project.name,
+              icon: <ProjectAvatar project={project} size={16} />,
+            },
+            to: `/settings/${slug}/projects/${project.slug}/`,
+          })),
+        },
+      ].filter(action => action !== undefined),
+    },
   ];
 }
 
@@ -268,12 +306,11 @@ function useNavigationToggleCollapsed(): CommandPaletteAction {
   const isCollapsed = view !== 'expanded';
 
   return {
-    type: 'callback',
     display: {
       label: isCollapsed
         ? t('Expand Navigation Sidebar')
         : t('Collapse Navigation Sidebar'),
-      icon: <IconChevron isDouble direction={isCollapsed ? 'right' : 'left'} />,
+      icon: <IconPanel direction={isCollapsed ? 'right' : 'left'} />,
     },
     onAction: () => {
       setView(view === 'expanded' ? 'collapsed' : 'expanded');
@@ -286,117 +323,315 @@ function useNavigationToggleCollapsed(): CommandPaletteAction {
  */
 export function useGlobalCommandPaletteActions() {
   const organization = useOrganization();
+  const user = useUser();
+  const {mutate: exitSuperuser} = useMutation({
+    mutationFn: () =>
+      QUERY_API_CLIENT.requestPromise('/auth/superuser/', {method: 'DELETE'}),
+    onSuccess: () => window.location.reload(),
+  });
+  const hasDsnLookup = organization.features.includes('cmd-k-dsn-lookup');
+  const {projects} = useProjects();
   const navigateActions = useNavigationActions();
   const {mutateAsync: mutateUserOptions} = useMutateUserOptions();
   const navigationToggleAction = useNavigationToggleCollapsed();
 
+  const [search] = useState(() => new SentryGlobalSearch(['docs', 'develop']));
+
   const navPrefix = `/organizations/${organization.slug}`;
 
-  useCommandPaletteActions([
+  const adminActions: CommandPaletteAction[] = user.isStaff
+    ? [
+        {
+          display: {
+            label: t('Admin'),
+          },
+          actions: [
+            {
+              display: {
+                label: t('Open _admin'),
+                icon: <IconOpen />,
+              },
+              keywords: [t('superuser')],
+              onAction: () => window.open('/_admin/', '_blank', 'noreferrer'),
+            },
+            {
+              display: {
+                label: t('Open %s in _admin', organization.name),
+                icon: <IconOpen />,
+              },
+              keywords: [t('superuser')],
+              onAction: () =>
+                window.open(
+                  `/_admin/customers/${organization.slug}/`,
+                  '_blank',
+                  'noreferrer'
+                ),
+            },
+            ...(isActiveSuperuser()
+              ? []
+              : [
+                  {
+                    display: {
+                      label: t('Open Superuser Modal'),
+                      icon: <IconLock locked />,
+                    },
+                    keywords: [t('superuser')],
+                    onAction: () =>
+                      openSudo({
+                        isSuperuser: true,
+                        needsReload: true,
+                      }),
+                  },
+                ]),
+            ...(isActiveSuperuser()
+              ? [
+                  {
+                    display: {
+                      label: t('Exit Superuser'),
+                      icon: <IconLock locked={false} />,
+                    },
+                    keywords: [t('superuser')],
+                    onAction: () => exitSuperuser(),
+                  },
+                ]
+              : []),
+          ],
+        },
+      ]
+    : [];
+
+  useCommandPaletteActionsRegister([
     ...navigateActions,
-    makeCommandPaletteLink({
+    ...adminActions,
+    // BEGIN ADD ACTIONS
+    {
       display: {
-        label: t('Create Dashboard'),
-        icon: <IconAdd />,
-      },
-      groupingKey: 'add',
-      to: `${navPrefix}/dashboards/new/`,
-    }),
-    makeCommandPaletteLink({
-      display: {
-        label: t('Create Alert'),
-        icon: <IconAdd />,
-      },
-      groupingKey: 'add',
-      to: `${navPrefix}/issues/alerts/wizard/`,
-    }),
-    makeCommandPaletteLink({
-      groupingKey: 'add',
-      display: {
-        label: t('Create Project'),
-        icon: <IconAdd />,
-      },
-      to: `${navPrefix}/projects/new/`,
-    }),
-    makeCommandPaletteCallback({
-      display: {
-        label: t('Invite Members'),
-        icon: <IconUser />,
-      },
-      groupingKey: 'add',
-      onAction: () => openInviteMembersModal(),
-    }),
-    makeCommandPaletteCallback({
-      display: {
-        label: t('Open Documentation'),
-        icon: <IconDocs />,
-      },
-      groupingKey: 'help',
-      onAction: () => window.open('https://docs.sentry.io', '_blank', 'noreferrer'),
-    }),
-    makeCommandPaletteCallback({
-      display: {
-        label: t('Join Discord'),
-        icon: <IconDiscord />,
-      },
-      groupingKey: 'help',
-      onAction: () => window.open('https://discord.gg/sentry', '_blank', 'noreferrer'),
-    }),
-    makeCommandPaletteCallback({
-      display: {
-        label: t('Open GitHub Repository'),
-        icon: <IconGithub />,
-      },
-      groupingKey: 'help',
-      onAction: () =>
-        window.open('https://github.com/getsentry/sentry', '_blank', 'noreferrer'),
-    }),
-    makeCommandPaletteCallback({
-      display: {
-        label: t('View Changelog'),
-        icon: <IconOpen />,
-      },
-      groupingKey: 'help',
-      onAction: () => window.open('https://sentry.io/changelog/', '_blank', 'noreferrer'),
-    }),
-    navigationToggleAction,
-    makeCommandPaletteGroup({
-      display: {
-        label: t('Change Color Theme'),
-        icon: <IconSettings />,
+        label: t('Add'),
       },
       actions: [
-        makeCommandPaletteCallback({
+        {
           display: {
-            label: t('System'),
+            label: t('Create Dashboard'),
+            icon: <IconAdd />,
           },
-          onAction: async () => {
-            addLoadingMessage(t('Saving…'));
-            await mutateUserOptions({theme: 'system'});
-            addSuccessMessage(t('Theme preference saved: System'));
-          },
-        }),
-        makeCommandPaletteCallback({
+          keywords: [t('add dashboard')],
+          to: `${navPrefix}/dashboards/new/`,
+        },
+        {
           display: {
-            label: t('Light'),
+            label: t('Create Alert'),
+            icon: <IconAdd />,
           },
-          onAction: async () => {
-            addLoadingMessage(t('Saving…'));
-            await mutateUserOptions({theme: 'light'});
-            addSuccessMessage(t('Theme preference saved: Light'));
-          },
-        }),
-        makeCommandPaletteCallback({
+          keywords: [t('add alert')],
+          to: `${navPrefix}/issues/alerts/wizard/`,
+        },
+        {
           display: {
-            label: t('Dark'),
+            label: t('Create Project'),
+            icon: <IconAdd />,
           },
-          onAction: async () => {
-            addLoadingMessage(t('Saving…'));
-            await mutateUserOptions({theme: 'dark'});
-            addSuccessMessage(t('Theme preference saved: Dark'));
+          keywords: [t('add project')],
+          to: `${navPrefix}/projects/new/`,
+        },
+        {
+          display: {
+            label: t('Invite Members'),
+            icon: <IconUser />,
           },
-        }),
+          keywords: [t('team invite')],
+          onAction: openInviteMembersModal,
+        },
       ],
-    }),
+    },
+    // END ADD
+    // BEGIN DSN LOOKUP
+    {
+      display: {label: t('DSN')},
+      keywords: [t('client keys')],
+      actions: [
+        {
+          display: {
+            label: t('Project DSN Keys'),
+            icon: <IconLock locked />,
+          },
+          keywords: [t('client keys'), t('dsn keys')],
+          actions: projects.map(project => ({
+            display: {
+              label: project.name,
+              icon: <ProjectAvatar project={project} size={16} />,
+            },
+            keywords: [`dsn ${project.name}`, `dsn ${project.slug}`],
+            to: `/settings/${organization.slug}/projects/${project.slug}/keys/`,
+          })),
+        },
+        hasDsnLookup
+          ? {
+              display: {
+                label: t('Reverse DSN lookup'),
+                details: t(
+                  'Paste a DSN into the search bar to find the project it belongs to.'
+                ),
+                icon: <IconSearch />,
+              },
+              actions: [],
+              resource: (query: string): CMDKQueryOptions => {
+                return queryOptions({
+                  ...apiOptions.as<DsnLookupResponse>()(
+                    '/organizations/$organizationIdOrSlug/dsn-lookup/',
+                    {
+                      path: {organizationIdOrSlug: organization.slug},
+                      query: {dsn: query},
+                      staleTime: 30_000,
+                    }
+                  ),
+                  enabled: DSN_PATTERN.test(query),
+                  select: data =>
+                    getDsnNavTargets(data.json).map((target, i) => ({
+                      to: target.to,
+                      display: {
+                        label: target.label,
+                        details: target.description,
+                        icon: DSN_ICONS[i],
+                      },
+                      keywords: [query],
+                    })),
+                });
+              },
+            }
+          : undefined,
+      ].filter(action => action !== undefined),
+    },
+    // END DSN LOOKUP
+    // BEGIN HELP ACTIONS
+    {
+      display: {
+        label: t('Help'),
+      },
+      actions: [
+        {
+          display: {
+            label: t('Open Documentation'),
+            icon: <IconDocs />,
+          },
+          onAction: () => window.open('https://docs.sentry.io', '_blank', 'noreferrer'),
+        },
+        {
+          display: {
+            label: t('Join Discord'),
+            icon: <IconDiscord />,
+          },
+          onAction: () =>
+            window.open('https://discord.gg/sentry', '_blank', 'noreferrer'),
+        },
+        {
+          display: {
+            label: t('Open GitHub Repository'),
+            icon: <IconGithub />,
+          },
+          onAction: () =>
+            window.open('https://github.com/getsentry/sentry', '_blank', 'noreferrer'),
+        },
+        {
+          display: {
+            label: t('View Changelog'),
+            icon: <IconOpen />,
+          },
+          onAction: () =>
+            window.open('https://sentry.io/changelog/', '_blank', 'noreferrer'),
+        },
+      ],
+      resource: (query: string) => {
+        return queryOptions({
+          queryKey: ['command-palette-help-search', query, search],
+          queryFn: () => {
+            return search.query(
+              query,
+              {
+                searchAllIndexes: true,
+              },
+              {
+                analyticsTags: ['source:command-palette'],
+              }
+            );
+          },
+          select: data => {
+            const actions: CommandPaletteAsyncResult[] = [];
+
+            for (const index of data) {
+              // We'll limit async results to avoid overwhelming the UI
+              for (const hit of index.hits.slice(0, 3)) {
+                actions.push({
+                  display: {
+                    label: DOMPurify.sanitize(hit.title ?? '', {ALLOWED_TAGS: []}),
+                    details: DOMPurify.sanitize(
+                      hit.context?.context1 ?? hit.context?.context2 ?? '',
+                      {ALLOWED_TAGS: []}
+                    ),
+                    icon: <IconDocs />,
+                  },
+                  keywords: [hit.context?.context1, hit.context?.context2].filter(
+                    value => value !== undefined && typeof value === 'string'
+                  ),
+                  onAction: () => {
+                    window.open(hit.url, '_blank', 'noreferrer');
+                  },
+                });
+              }
+            }
+
+            return actions;
+          },
+        });
+      },
+    },
+    // END HELP ACTIONS
+    // START UI ACTIONS
+    {
+      display: {
+        label: t('Interface'),
+      },
+      actions: [
+        navigationToggleAction,
+        {
+          display: {
+            label: t('Change Color Theme'),
+            icon: <IconSettings />,
+          },
+          actions: [
+            {
+              display: {
+                label: t('System'),
+              },
+              onAction: async () => {
+                addLoadingMessage(t('Saving…'));
+                await mutateUserOptions({theme: 'system'});
+                addSuccessMessage(t('Theme preference saved: System'));
+              },
+            },
+            {
+              display: {
+                label: t('Light'),
+              },
+              onAction: async () => {
+                addLoadingMessage(t('Saving…'));
+                await mutateUserOptions({theme: 'light'});
+                addSuccessMessage(t('Theme preference saved: Light'));
+              },
+            },
+            {
+              display: {
+                label: t('Dark'),
+              },
+              onAction: async () => {
+                addLoadingMessage(t('Saving…'));
+                await mutateUserOptions({theme: 'dark'});
+                addSuccessMessage(t('Theme preference saved: Dark'));
+              },
+            },
+          ],
+        },
+      ],
+    },
+    // END UI ACTIONS
   ]);
 }

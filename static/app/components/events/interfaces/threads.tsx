@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {CommitRow} from 'sentry/components/commitRow';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
   StacktraceContext,
@@ -40,7 +39,6 @@ import {defined} from 'sentry/utils';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {setActiveThreadId} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {ExceptionContent} from './crashContent/exception';
 import {StackTraceContent} from './crashContent/stackTrace';
@@ -175,7 +173,6 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
     () => (data.values ?? []).toSorted((a, b) => Number(b.crashed) - Number(a.crashed)),
     [data.values]
   );
-  const hasStreamlinedUI = useHasStreamlinedUI();
   const [activeThread, setActiveThread] = useActiveThreadState(event, threads);
 
   // Sync active thread to module store for copy functionality
@@ -388,7 +385,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
             exception={exception}
             platform={platform}
           />
-          {hasStreamlinedUI && group && (
+          {group && (
             <ErrorBoundary
               mini
               message={t('There was an error loading the suspect commits')}
@@ -396,7 +393,6 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
               <SuspectCommits
                 projectSlug={projectSlug}
                 eventId={event.id}
-                commitRow={CommitRow}
                 group={group}
               />
             </ErrorBoundary>
@@ -406,25 +402,17 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
     </Fragment>
   );
 
-  if (hasStreamlinedUI) {
-    // If there is only one thread, we expect the stacktrace to wrap itself in a section
-    return hasMoreThanOneThread ? (
-      <InterimSection
-        title={tn('Stack Trace', 'Stack Traces', threads.length)}
-        type={SectionKey.STACKTRACE}
-        disableCollapsePersistence
-      >
-        <Flex direction="column" gap="xl">
-          {threadComponent}
-        </Flex>
-      </InterimSection>
-    ) : (
-      threadComponent
-    );
-  }
-
+  // If there is only one thread, we expect the stacktrace to wrap itself in a section
   return hasMoreThanOneThread ? (
-    <ThreadTraceWrapper>{threadComponent}</ThreadTraceWrapper>
+    <InterimSection
+      title={tn('Stack Trace', 'Stack Traces', threads.length)}
+      type={SectionKey.STACKTRACE}
+      disableCollapsePersistence
+    >
+      <Flex direction="column" gap="xl">
+        {threadComponent}
+      </Flex>
+    </InterimSection>
   ) : (
     threadComponent
   );
@@ -447,16 +435,6 @@ const TheadStateContainer = styled('div')`
 const LockReason = styled(TextOverflow)`
   font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const ThreadTraceWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xl};
-  padding: ${p => p.theme.space.md} ${p => p.theme.space['3xl']};
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  }
 `;
 
 const ThreadHeading = styled('h3')`

@@ -24,7 +24,7 @@ from sentry.utils import json
 
 @cell_silo_test
 class CreatePreprodStatusCheckTaskTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.organization)
@@ -115,7 +115,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
         return mock_client, mock_provider, patcher_client, patcher_provider
 
-    def test_create_preprod_status_check_task_nonexistent_artifact(self):
+    def test_create_preprod_status_check_task_nonexistent_artifact(self) -> None:
         """Test task handles nonexistent PreprodArtifact gracefully and makes no API calls."""
         _, mock_provider, client_patch, provider_patch = self._create_no_api_calls_setup()
 
@@ -126,7 +126,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             # Verify no API calls were made since artifact doesn't exist
             mock_provider.create_status_check.assert_not_called()
 
-    def test_create_preprod_status_check_task_no_commit_comparison(self):
+    def test_create_preprod_status_check_task_no_commit_comparison(self) -> None:
         """Test task returns early when PreprodArtifact has no CommitComparison and makes no API calls."""
         preprod_artifact = self._create_preprod_artifact(with_commit_comparison=False)
         _, mock_provider, client_patch, provider_patch = self._create_no_api_calls_setup()
@@ -138,7 +138,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             # Verify no API calls were made since there's no commit comparison
             mock_provider.create_status_check.assert_not_called()
 
-    def test_create_preprod_status_check_task_missing_git_info(self):
+    def test_create_preprod_status_check_task_missing_git_info(self) -> None:
         """Test task handles missing git info in CommitComparison and makes no API calls."""
         preprod_artifact = PreprodArtifact.objects.create(
             project=self.project,
@@ -168,7 +168,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             # Verify no API calls were made due to missing git info
             mock_provider.create_status_check.assert_not_called()
 
-    def test_create_preprod_status_check_task_missing_head_repo_name(self):
+    def test_create_preprod_status_check_task_missing_head_repo_name(self) -> None:
         """Test task handles missing head_repo_name in CommitComparison and makes no API calls."""
         preprod_artifact = PreprodArtifact.objects.create(
             project=self.project,
@@ -198,7 +198,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             # Verify no API calls were made due to missing head_repo_name
             mock_provider.create_status_check.assert_not_called()
 
-    def test_create_preprod_status_check_task_no_repository_integration(self):
+    def test_create_preprod_status_check_task_no_repository_integration(self) -> None:
         """Test task handles missing repository integration gracefully and makes no API calls."""
         preprod_artifact = self._create_preprod_artifact()
 
@@ -211,7 +211,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             # Verify no API calls were made due to missing repository integration
             mock_provider.create_status_check.assert_not_called()
 
-    def test_create_preprod_status_check_task_repository_no_integration_id(self):
+    def test_create_preprod_status_check_task_repository_no_integration_id(self) -> None:
         """Test task handles repository with no integration_id and makes no API calls."""
         preprod_artifact = self._create_preprod_artifact()
 
@@ -232,7 +232,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             # Verify no API calls were made due to missing integration_id
             mock_provider.create_status_check.assert_not_called()
 
-    def test_create_preprod_status_check_task_unsupported_provider(self):
+    def test_create_preprod_status_check_task_unsupported_provider(self) -> None:
         """Test task handles unsupported VCS provider gracefully and makes no API calls."""
         preprod_artifact = self._create_preprod_artifact()
         # Change provider to unsupported one (GitLab is not supported)
@@ -248,7 +248,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             # Verify no API calls were made due to unsupported provider
             mock_provider.create_status_check.assert_not_called()
 
-    def test_create_preprod_status_check_task_all_artifact_states(self):
+    def test_create_preprod_status_check_task_all_artifact_states(self) -> None:
         """Test task handles all valid artifact states and creates correct status checks."""
         test_cases = [
             (PreprodArtifact.ArtifactState.UPLOADING, StatusCheckStatus.IN_PROGRESS, None),
@@ -274,6 +274,13 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                         max_download_size=1024 * 1024,
                         min_install_size=2 * 1024 * 1024,
                         max_install_size=2 * 1024 * 1024,
+                    )
+                else:
+                    # In production, size metrics are created at artifact creation time
+                    PreprodArtifactSizeMetrics.objects.create(
+                        preprod_artifact=preprod_artifact,
+                        metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                        state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
                     )
 
                 _, mock_provider, client_patch, provider_patch = (
@@ -306,7 +313,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                 assert call_kwargs["summary"]  # Just check it exists
                 assert call_kwargs["external_id"] == str(preprod_artifact.id)
 
-    def test_create_preprod_status_check_task_api_failure_handling(self):
+    def test_create_preprod_status_check_task_api_failure_handling(self) -> None:
         """Test task handles status check API failures gracefully."""
         preprod_artifact = self._create_preprod_artifact(
             state=PreprodArtifact.ArtifactState.PROCESSED
@@ -336,7 +343,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         # Verify API was called but task completed without exception
         mock_provider.create_status_check.assert_called_once()
 
-    def test_create_preprod_status_check_task_multiple_artifacts_same_commit(self):
+    def test_create_preprod_status_check_task_multiple_artifacts_same_commit(self) -> None:
         """Test task handles multiple artifacts for the same commit (monorepo scenario)."""
         # Create base commit comparison (represents the previous commit)
         base_commit_comparison = CommitComparison.objects.create(
@@ -426,7 +433,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         assert "com.example.app1" in summary
         assert "com.example.app2" in summary
 
-    def test_create_preprod_status_check_task_mixed_states_monorepo(self):
+    def test_create_preprod_status_check_task_mixed_states_monorepo(self) -> None:
         """Test task handles mixed artifact states in monorepo scenario."""
         from sentry.preprod.models import PreprodArtifactSizeMetrics
 
@@ -458,19 +465,30 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             max_install_size=2 * 1024 * 1024,
         )
 
-        _ = PreprodArtifact.objects.create(
+        uploading_artifact = PreprodArtifact.objects.create(
             project=self.project,
             state=PreprodArtifact.ArtifactState.UPLOADING,
             app_id="com.example.uploading",
             commit_comparison=commit_comparison,
         )
+        # In production, size metrics are created at artifact creation time
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=uploading_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+        )
 
-        _ = PreprodArtifact.objects.create(
+        failed_artifact = PreprodArtifact.objects.create(
             project=self.project,
             state=PreprodArtifact.ArtifactState.FAILED,
             app_id="com.example.failed",
             error_message="Upload timeout",
             commit_comparison=commit_comparison,
+        )
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=failed_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
         )
 
         _, mock_provider, client_patch, provider_patch = self._create_working_status_check_setup(
@@ -499,7 +517,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         assert "Upload timeout" in summary
 
     @responses.activate
-    def test_create_preprod_status_check_task_github_permission_error(self):
+    def test_create_preprod_status_check_task_github_permission_error(self) -> None:
         """Test task handles GitHub permission errors without retrying."""
         preprod_artifact = self._create_preprod_artifact(
             state=PreprodArtifact.ArtifactState.PROCESSED
@@ -554,7 +572,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         )
 
     @responses.activate
-    def test_create_preprod_status_check_task_github_non_permission_403(self):
+    def test_create_preprod_status_check_task_github_non_permission_403(self) -> None:
         """Test task re-raises non-permission 403 errors (allows retry for transient issues)."""
         preprod_artifact = self._create_preprod_artifact(
             state=PreprodArtifact.ArtifactState.PROCESSED
@@ -610,7 +628,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         )
 
     @responses.activate
-    def test_create_preprod_status_check_task_github_400_error(self):
+    def test_create_preprod_status_check_task_github_400_error(self) -> None:
         """Test task converts 400 errors to IntegrationConfigurationError (no retry)."""
         preprod_artifact = self._create_preprod_artifact(
             state=PreprodArtifact.ArtifactState.PROCESSED
@@ -661,7 +679,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
-    def test_create_preprod_status_check_task_github_429_error(self):
+    def test_create_preprod_status_check_task_github_429_error(self) -> None:
         """Test task allows 429 rate limit errors to retry"""
         preprod_artifact = self._create_preprod_artifact(
             state=PreprodArtifact.ArtifactState.PROCESSED
@@ -714,7 +732,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
-    def test_create_preprod_status_check_task_github_403_rate_limit_error(self):
+    def test_create_preprod_status_check_task_github_403_rate_limit_error(self) -> None:
         """Test task converts 403 rate limit errors to ApiRateLimitedError (allows retry).
 
         GitHub sometimes returns 403 instead of 429 for rate limiting. This test ensures
@@ -769,7 +787,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
-    def test_create_preprod_status_check_task_truncates_long_summary(self):
+    def test_create_preprod_status_check_task_truncates_long_summary(self) -> None:
         """Test task truncates summary when it exceeds GitHub's byte limit."""
         commit_comparison = CommitComparison.objects.create(
             organization_id=self.organization.id,
@@ -794,6 +812,18 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                 commit_comparison=commit_comparison,
             )
             artifacts.append(artifact)
+
+        # In production, size metrics are created at artifact creation time
+        PreprodArtifactSizeMetrics.objects.bulk_create(
+            [
+                PreprodArtifactSizeMetrics(
+                    preprod_artifact=a,
+                    metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                    state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+                )
+                for a in artifacts
+            ]
+        )
 
         integration = self.create_integration(
             organization=self.organization,
@@ -832,7 +862,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         assert summary.endswith("..."), "Truncated summary should end with '...'"
 
     @responses.activate
-    def test_create_preprod_status_check_task_github_enterprise(self):
+    def test_create_preprod_status_check_task_github_enterprise(self) -> None:
         """Test that status checks work with GitHub Enterprise integration."""
         commit_comparison = self.create_commit_comparison(
             organization=self.organization,
@@ -908,7 +938,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         request_body = json.loads(responses.calls[0].request.body)
         assert request_body["head_sha"] == commit_comparison.head_sha
 
-    def test_sibling_deduplication_after_reprocessing(self):
+    def test_sibling_deduplication_after_reprocessing(self) -> None:
         """Test that get_sibling_artifacts_for_commit() deduplicates by (app_id, artifact_type, build_configuration_id).
 
         When artifacts are reprocessed (e.g., CI retry), new artifacts are created
@@ -1043,7 +1073,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         assert ios_old.id in sibling_ids_from_ios_old
         assert android_old.id in sibling_ids_from_ios_old
 
-    def test_sibling_deduplication_with_same_app_id_different_platforms(self):
+    def test_sibling_deduplication_with_same_app_id_different_platforms(self) -> None:
         """Test that iOS and Android builds with the same app_id are not deduplicated.
 
         Users can upload both Android and iOS builds with the same app_id (e.g., "com.example.app").
@@ -1166,7 +1196,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             "Old iOS artifact should be deduplicated (not the triggering artifact)"
         )
 
-    def test_posted_status_check_success(self):
+    def test_posted_status_check_success(self) -> None:
         """Test that successful status check posts are recorded in artifact extras."""
         preprod_artifact = self._create_preprod_artifact(
             state=PreprodArtifact.ArtifactState.PROCESSED
@@ -1198,7 +1228,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         assert preprod_artifact.extras["posted_status_checks"]["size"]["success"] is True
         assert preprod_artifact.extras["posted_status_checks"]["size"]["check_id"] == "check_12345"
 
-    def test_posted_status_check_failure_null_check_id(self):
+    def test_posted_status_check_failure_null_check_id(self) -> None:
         """Test that failed status check posts (null check_id) are recorded in artifact extras."""
         preprod_artifact = self._create_preprod_artifact(
             state=PreprodArtifact.ArtifactState.PROCESSED
@@ -1234,7 +1264,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         )
 
     @responses.activate
-    def test_posted_status_check_failure_integration_error(self):
+    def test_posted_status_check_failure_integration_error(self) -> None:
         """Test that integration errors during status check creation are recorded in artifact extras."""
         preprod_artifact = self._create_preprod_artifact(
             state=PreprodArtifact.ArtifactState.PROCESSED
@@ -1290,7 +1320,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             == StatusCheckErrorType.INTEGRATION_ERROR.value
         )
 
-    def test_posted_status_check_preserves_existing_extras(self):
+    def test_posted_status_check_preserves_existing_extras(self) -> None:
         """Test that recording status check result preserves other fields in extras."""
         preprod_artifact = self._create_preprod_artifact(
             state=PreprodArtifact.ArtifactState.PROCESSED
@@ -1328,7 +1358,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         assert preprod_artifact.extras["posted_status_checks"]["size"]["success"] is True
         assert preprod_artifact.extras["posted_status_checks"]["size"]["check_id"] == "check_67890"
 
-    def test_with_rules_configured_preserves_actual_status(self):
+    def test_with_rules_configured_preserves_actual_status(self) -> None:
         """Test that actual status is preserved when rules are configured.
 
         When users configure rules, they want to see the real status (IN_PROGRESS, FAILURE, SUCCESS)
@@ -1366,6 +1396,13 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                         min_install_size=2 * 1024 * 1024,
                         max_install_size=2 * 1024 * 1024,
                     )
+                else:
+                    # In production, size metrics are created at artifact creation time
+                    PreprodArtifactSizeMetrics.objects.create(
+                        preprod_artifact=preprod_artifact,
+                        metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                        state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+                    )
 
                 _, mock_provider, client_patch, provider_patch = (
                     self._create_working_status_check_setup(preprod_artifact)
@@ -1379,7 +1416,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                 call_kwargs = mock_provider.create_status_check.call_args.kwargs
                 assert call_kwargs["status"] == expected_status
 
-    def test_skipped_artifacts_not_included_in_status_check(self):
+    def test_skipped_artifacts_not_included_in_status_check(self) -> None:
         """SKIPPED artifacts are filtered out from the status check."""
         commit_comparison = CommitComparison.objects.create(
             organization_id=self.organization.id,
@@ -1432,8 +1469,8 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             assert "com.valid" in kwargs["summary"]
             assert "com.skipped" not in kwargs["summary"]
 
-    def test_all_skipped_artifacts_no_status_check(self):
-        """No status check created when all artifacts are SKIPPED."""
+    def test_all_skipped_artifacts_shows_neutral_status(self) -> None:
+        """NEUTRAL status check posted when all artifacts are SKIPPED."""
         artifact = self._create_preprod_artifact(state=PreprodArtifact.ArtifactState.PROCESSED)
         PreprodArtifactSizeMetrics.objects.create(
             preprod_artifact=artifact,
@@ -1449,9 +1486,15 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         with client_patch, provider_patch:
             with self.tasks():
                 create_preprod_status_check_task(artifact.id)
-            mock_provider.create_status_check.assert_not_called()
 
-    def test_no_quota_shows_neutral_status(self):
+            mock_provider.create_status_check.assert_called_once()
+            kwargs = mock_provider.create_status_check.call_args.kwargs
+            assert kwargs["status"] == StatusCheckStatus.NEUTRAL
+            assert "skipped" in kwargs["subtitle"].lower()
+            assert "Configure" in kwargs["summary"]
+            assert kwargs["completed_at"] is not None
+
+    def test_no_quota_shows_neutral_status(self) -> None:
         """NO_QUOTA artifacts trigger neutral status with quota exceeded message."""
         artifact = self._create_preprod_artifact(state=PreprodArtifact.ArtifactState.PROCESSED)
         PreprodArtifactSizeMetrics.objects.create(
@@ -1475,7 +1518,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             assert "Quota exceeded" in kwargs["subtitle"]
             assert "No quota available" in kwargs["summary"]
 
-    def test_skipped_triggering_artifact_uses_sibling_url(self):
+    def test_skipped_triggering_artifact_uses_sibling_url(self) -> None:
         """When triggering artifact is SKIPPED, target_url points to a non-SKIPPED sibling."""
         commit_comparison = CommitComparison.objects.create(
             organization_id=self.organization.id,
@@ -1526,3 +1569,90 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             kwargs = mock_provider.create_status_check.call_args.kwargs
             assert f"/size/{valid.id}" in kwargs["target_url"]
             assert f"/size/{skipped.id}" not in kwargs["target_url"]
+
+    def test_snapshot_only_artifact_not_counted_as_processing(self) -> None:
+        """Snapshot-only artifacts (no artifact_type, no size metrics) should be excluded."""
+        commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+        )
+
+        size_artifact = Factories.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            commit_comparison=commit_comparison,
+        )
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=size_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_download_size=1024,
+            max_install_size=2048,
+        )
+
+        # Snapshot artifact: UPLOADED state, no artifact_type, no size metrics
+        PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADED,
+            app_id="com.example.snapshot",
+            commit_comparison=commit_comparison,
+        )
+
+        _, mock_provider, client_patch, provider_patch = self._create_working_status_check_setup(
+            size_artifact
+        )
+
+        with client_patch, provider_patch:
+            with self.tasks():
+                create_preprod_status_check_task(size_artifact.id)
+
+            mock_provider.create_status_check.assert_called_once()
+            kwargs = mock_provider.create_status_check.call_args.kwargs
+            assert "1 component analyzed" in kwargs["subtitle"]
+            assert "processing" not in kwargs["subtitle"]
+
+    def test_uploading_artifact_with_size_metrics_not_excluded(self) -> None:
+        """An UPLOADING artifact with size metrics should still be counted (not filtered out)."""
+        commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+        )
+
+        # Normal artifact still in UPLOADING state but with size metrics already created
+        uploading_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADING,
+            app_id="com.example.uploading",
+            commit_comparison=commit_comparison,
+        )
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=uploading_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+        )
+
+        _, mock_provider, client_patch, provider_patch = self._create_working_status_check_setup(
+            uploading_artifact
+        )
+
+        with client_patch, provider_patch:
+            with self.tasks():
+                create_preprod_status_check_task(uploading_artifact.id)
+
+            mock_provider.create_status_check.assert_called_once()
+            kwargs = mock_provider.create_status_check.call_args.kwargs
+            # The artifact is still UPLOADING, so should show as processing
+            assert "processing" in kwargs["subtitle"]

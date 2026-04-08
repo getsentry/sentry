@@ -53,7 +53,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
 if TYPE_CHECKING:
-    from sentry.api.serializers.models.organization import OrganizationSerializerResponse
+    from sentry.api.serializers.models.organization import OrganizationSummarySerializerResponse
 
 STATUS_LABELS = {
     ObjectStatus.ACTIVE: "active",
@@ -951,7 +951,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     secondaryGroupingExpiry: int
     secondaryGroupingConfig: str | None
     fingerprintingRules: str
-    organization: OrganizationSerializerResponse
+    organization: OrganizationSummarySerializerResponse
     plugins: list[Plugin]
     platforms: list[str]
     processingIssues: int
@@ -964,6 +964,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     tempestFetchScreenshots: NotRequired[bool]
     autofixAutomationTuning: NotRequired[str]
     seerScannerAutomation: NotRequired[bool]
+    scmSourceContextEnabled: NotRequired[bool]
     debugFilesRole: NotRequired[str | None]
 
 
@@ -1114,6 +1115,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 attrs, "sentry:seer_scanner_automation"
             ),
             "debugFilesRole": attrs["options"].get("sentry:debug_files_role"),
+            "scmSourceContextEnabled": self.get_value_with_default(
+                attrs, "sentry:scm_source_context_enabled"
+            ),
         }
 
         if has_tempest_access(obj.organization):
@@ -1174,6 +1178,15 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:preprod_size_status_checks_rules": options.get(
                 "sentry:preprod_size_status_checks_rules"
             ),
+            "sentry:preprod_snapshot_status_checks_enabled": options.get(
+                "sentry:preprod_snapshot_status_checks_enabled", True
+            ),
+            "sentry:preprod_snapshot_status_checks_fail_on_added": options.get(
+                "sentry:preprod_snapshot_status_checks_fail_on_added", False
+            ),
+            "sentry:preprod_snapshot_status_checks_fail_on_removed": options.get(
+                "sentry:preprod_snapshot_status_checks_fail_on_removed", True
+            ),
             "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
             "sentry:preprod_size_enabled_query": options.get("sentry:preprod_size_enabled_query"),
             "sentry:preprod_distribution_enabled_query": options.get(
@@ -1187,6 +1200,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             ),
             "sentry:preprod_distribution_pr_comments_enabled_by_customer": self.get_value_with_default(
                 attrs, "sentry:preprod_distribution_pr_comments_enabled_by_customer"
+            ),
+            "sentry:preprod_snapshot_pr_comments_enabled": self.get_value_with_default(
+                attrs, "sentry:preprod_snapshot_pr_comments_enabled"
             ),
         }
 

@@ -155,7 +155,7 @@ function AccountClose() {
         <PanelBody>
           <PanelAlert variant="warning">
             {t(
-              `Organizations with checked boxes will be deleted. Boxes which can't be unchecked mean that you are the only organization owner and the organization will be deleted. If an organization is not deleted, its ownership will persist among other organization owners.`
+              "Organizations with checked boxes will be deleted. Boxes which can't be unchecked mean that you are the only organization owner and the organization will be deleted. If an organization is not deleted, its ownership will persist among other organization owners."
             )}
           </PanelAlert>
 

@@ -107,7 +107,13 @@ class ProduceProcessingErrorsToEAPTest(TestCase):
         )
         errors = [{"type": "js_no_source", "symbolicator_type": "missing_sourcemap"}]
 
-        produce_processing_errors_to_eap(self.project, event_data, errors)
+        produce_processing_errors_to_eap(
+            self.project,
+            event_data,
+            errors,
+            group_id=12345,
+            title="ReferenceError: undefined variable",
+        )
 
         payload = mock_producer.produce.call_args[0][1]
         trace_item = codec.decode(payload.value)
@@ -117,6 +123,8 @@ class ProduceProcessingErrorsToEAPTest(TestCase):
         assert trace_item.attributes["platform"].string_value == "javascript"
         assert trace_item.attributes["sdk_name"].string_value == "sentry.javascript.browser"
         assert trace_item.attributes["sdk_version"].string_value == "7.0.0"
+        assert trace_item.attributes["title"].string_value == "ReferenceError: undefined variable"
+        assert trace_item.attributes["group_id"].int_value == 12345
 
     @patch("sentry.processing_errors.eap.producer._eap_producer")
     @patch("sentry.processing_errors.eap.producer.get_topic_definition")
@@ -138,6 +146,8 @@ class ProduceProcessingErrorsToEAPTest(TestCase):
         assert "sdk_name" not in trace_item.attributes
         assert "sdk_version" not in trace_item.attributes
         assert "symbolicator_type" not in trace_item.attributes
+        assert "title" not in trace_item.attributes
+        assert "group_id" not in trace_item.attributes
 
     @patch("sentry.processing_errors.eap.producer.logger")
     @patch("sentry.processing_errors.eap.producer._eap_producer")
@@ -158,6 +168,32 @@ class ProduceProcessingErrorsToEAPTest(TestCase):
     def test_skips_when_no_contexts(self, mock_producer, mock_logger):
         event_data = self._make_event_data()
         del event_data["contexts"]
+        errors = [{"type": "js_no_source"}]
+
+        produce_processing_errors_to_eap(self.project, event_data, errors)
+
+        mock_producer.produce.assert_not_called()
+        mock_logger.debug.assert_called_once_with(
+            "Skipping EAP processing error production: missing trace_id"
+        )
+
+    @patch("sentry.processing_errors.eap.producer.logger")
+    @patch("sentry.processing_errors.eap.producer._eap_producer")
+    def test_skips_when_contexts_is_none(self, mock_producer, mock_logger):
+        event_data = self._make_event_data(contexts=None)
+        errors = [{"type": "js_no_source"}]
+
+        produce_processing_errors_to_eap(self.project, event_data, errors)
+
+        mock_producer.produce.assert_not_called()
+        mock_logger.debug.assert_called_once_with(
+            "Skipping EAP processing error production: missing trace_id"
+        )
+
+    @patch("sentry.processing_errors.eap.producer.logger")
+    @patch("sentry.processing_errors.eap.producer._eap_producer")
+    def test_skips_when_trace_context_is_none(self, mock_producer, mock_logger):
+        event_data = self._make_event_data(contexts={"trace": None})
         errors = [{"type": "js_no_source"}]
 
         produce_processing_errors_to_eap(self.project, event_data, errors)
