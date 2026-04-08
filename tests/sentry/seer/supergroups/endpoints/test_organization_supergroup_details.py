@@ -47,7 +47,7 @@ class OrganizationSupergroupDetailsEndpointTest(APITestCase):
             self.get_success_response(self.organization.slug, "1")
 
         body = mock_seer.call_args.args[0]
-        assert body["rca_source"] == "explorer"
+        assert body["rca_source"] == "EXPLORER"
 
     @patch(
         "sentry.seer.supergroups.endpoints.organization_supergroup_details.make_supergroups_get_request"
@@ -64,4 +64,4 @@ class OrganizationSupergroupDetailsEndpointTest(APITestCase):
             self.get_success_response(self.organization.slug, "1")
 
         body = mock_seer.call_args.args[0]
-        assert body["rca_source"] == "lightweight"
+        assert body["rca_source"] == "LIGHTWEIGHT"

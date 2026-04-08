@@ -371,8 +371,8 @@ class SummarizeIssueRequest(TypedDict):
 
 
 class RCASource(StrEnum):
-    EXPLORER = "explorer"
-    LIGHTWEIGHT = "lightweight"
+    EXPLORER = "EXPLORER"
+    LIGHTWEIGHT = "LIGHTWEIGHT"
 
 
 class SupergroupsEmbeddingRequest(TypedDict):
