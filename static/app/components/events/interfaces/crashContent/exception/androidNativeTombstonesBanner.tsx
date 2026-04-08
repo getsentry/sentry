@@ -12,8 +12,6 @@ import type {EntryException, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 const ANDROID_NATIVE_SDK_PREFIX = 'sentry.native.android';
 const TOMBSTONES_DOCS_URL =
@@ -76,78 +74,76 @@ export function AndroidNativeTombstonesBanner({event, projectId}: Props) {
   }
 
   return (
-    <InterimSection type={SectionKey.EXCEPTION} title={t('Improve Native Crash Reports')}>
-      <BannerWrapper>
-        <div>
-          <BannerTitle>{t('Enable Tombstone Collection')}</BannerTitle>
-          <BannerDescription>
-            {t(
-              'This native crash was captured via the Android NDK integration only. Enable Tombstone collection in your application to get richer crash reports with more context, including additional thread information, better stack traces and more.'
-            )}
-          </BannerDescription>
-          <CodeBlock
-            tabs={[
-              {label: 'AndroidManifest.xml', value: 'manifest'},
-              {label: 'Kotlin', value: 'kotlin'},
-              {label: 'Java', value: 'java'},
-            ]}
-            selectedTab={codeTab}
-            onTabClick={setCodeTab}
-            language={codeTab === 'manifest' ? 'xml' : codeTab}
-          >
-            {CODE_SNIPPETS[codeTab]}
-          </CodeBlock>
-          <LinkButton
-            style={{marginTop: '12px'}}
-            href={TOMBSTONES_DOCS_URL}
-            external
-            priority="primary"
-            size="sm"
-            analyticsEventName="Clicked Android Tombstones Onboarding CTA"
-            analyticsEventKey="issue-details.android-tombstones-onboarding-cta-clicked"
-            analyticsParams={{
-              organization,
-              sdk_name: event.sdk?.name ?? '',
-            }}
-          >
-            {t('Learn More')}
-          </LinkButton>
-        </div>
-        <CloseDropdownMenu
-          position="bottom-end"
-          triggerProps={{
-            showChevron: false,
-            priority: 'transparent',
-            icon: <IconClose variant="muted" />,
-          }}
-          size="xs"
-          items={[
-            {
-              key: 'dismiss',
-              label: t('Dismiss'),
-              onAction: () => {
-                dismissPrompt();
-                trackAnalytics('issue-details.android-tombstones-cta-dismiss', {
-                  organization,
-                  type: 'dismiss',
-                });
-              },
-            },
-            {
-              key: 'snooze',
-              label: t('Snooze'),
-              onAction: () => {
-                snoozePrompt();
-                trackAnalytics('issue-details.android-tombstones-cta-dismiss', {
-                  organization,
-                  type: 'snooze',
-                });
-              },
-            },
+    <BannerWrapper>
+      <div>
+        <BannerTitle>{t('Enable Tombstone Collection')}</BannerTitle>
+        <BannerDescription>
+          {t(
+            'This native crash was captured via the Android NDK integration only. Enable Tombstone collection in your application to get richer crash reports with more context, including additional thread information, better stack traces and more.'
+          )}
+        </BannerDescription>
+        <CodeBlock
+          tabs={[
+            {label: 'AndroidManifest.xml', value: 'manifest'},
+            {label: 'Kotlin', value: 'kotlin'},
+            {label: 'Java', value: 'java'},
           ]}
-        />
-      </BannerWrapper>
-    </InterimSection>
+          selectedTab={codeTab}
+          onTabClick={setCodeTab}
+          language={codeTab === 'manifest' ? 'xml' : codeTab}
+        >
+          {CODE_SNIPPETS[codeTab]}
+        </CodeBlock>
+        <LinkButton
+          style={{marginTop: '12px'}}
+          href={TOMBSTONES_DOCS_URL}
+          external
+          priority="primary"
+          size="sm"
+          analyticsEventName="Clicked Android Tombstones Onboarding CTA"
+          analyticsEventKey="issue-details.android-tombstones-onboarding-cta-clicked"
+          analyticsParams={{
+            organization,
+            sdk_name: event.sdk?.name ?? '',
+          }}
+        >
+          {t('Learn More')}
+        </LinkButton>
+      </div>
+      <CloseDropdownMenu
+        position="bottom-end"
+        triggerProps={{
+          showChevron: false,
+          priority: 'transparent',
+          icon: <IconClose variant="muted" />,
+        }}
+        size="xs"
+        items={[
+          {
+            key: 'dismiss',
+            label: t('Dismiss'),
+            onAction: () => {
+              dismissPrompt();
+              trackAnalytics('issue-details.android-tombstones-cta-dismiss', {
+                organization,
+                type: 'dismiss',
+              });
+            },
+          },
+          {
+            key: 'snooze',
+            label: t('Snooze'),
+            onAction: () => {
+              snoozePrompt();
+              trackAnalytics('issue-details.android-tombstones-cta-dismiss', {
+                organization,
+                type: 'snooze',
+              });
+            },
+          },
+        ]}
+      />
+    </BannerWrapper>
   );
 }
 
