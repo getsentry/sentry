@@ -26,7 +26,7 @@ class DiscordMetricAlertRenderer(NotificationRenderer[DiscordRenderable]):
     ) -> DiscordRenderable:
         if not isinstance(data, MetricAlertNotificationData):
             raise ValueError(
-                f"DiscordMetricAlertRenderer does not support {data.__class__.__name__}"
+                f"DiscordMetricAlertRenderer does not support '{data.__class__.__name__}'. Provide a MetricAlertNotificationData instead."
             )
 
         status = get_status_text(IncidentStatus(data.new_status))
