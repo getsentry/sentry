@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {forceCheck} from 'react-lazyload';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -251,6 +251,7 @@ export default function ReleasesList() {
     }),
     staleTime: 60_000,
     enabled: !!hasPreprodFeature,
+    placeholderData: keepPreviousData,
   });
 
   // When "All Projects" is selected (represented by [-1]), check all accessible projects
