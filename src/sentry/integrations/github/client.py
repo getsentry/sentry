@@ -8,6 +8,7 @@ from typing import Any, TypedDict
 
 import orjson
 import sentry_sdk
+from django.core.cache import cache
 from requests import PreparedRequest
 
 from sentry.constants import ObjectStatus
@@ -548,6 +549,22 @@ class GitHubBaseClient(
                 response_key="repositories",
                 page_number_limit=page_number_limit,
             )
+
+    def get_accessible_repo_ids(self, ttl: int = 300) -> set[int]:
+        """
+        Return the set of GitHub repo IDs accessible to this installation.
+        Cached in Django cache (Redis) for ``ttl`` seconds to avoid
+        re-fetching all pages on every keystroke.
+        """
+        cache_key = f"github:accessible_repo_ids:{self.integration.id}"
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return set(cached)
+
+        all_repos = self.get_repos()
+        repo_ids = {r["id"] for r in all_repos if not r.get("archived")}
+        cache.set(cache_key, list(repo_ids), ttl)
+        return repo_ids
 
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:
         """

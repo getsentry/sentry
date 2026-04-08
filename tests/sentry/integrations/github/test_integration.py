@@ -679,9 +679,31 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     def test_get_repositories_accessible_only(self) -> None:
-        """When accessible_only=True, fetches installation repos and filters locally."""
+        """accessible_only+query uses Search API filtered by cached accessible IDs."""
         with self.tasks():
             self.assert_setup_flow()
+
+        querystring = urlencode({"q": "fork:true org:Test Organization foo"})
+        responses.add(
+            responses.GET,
+            f"{self.base_url}/search/repositories?{querystring}",
+            json={
+                "items": [
+                    {
+                        "id": 1296269,
+                        "name": "foo",
+                        "full_name": "Test-Organization/foo",
+                        "default_branch": "master",
+                    },
+                    {
+                        "id": 9999999,
+                        "name": "foo-external",
+                        "full_name": "Other-Org/foo-external",
+                        "default_branch": "main",
+                    },
+                ]
+            },
+        )
 
         integration = Integration.objects.get(provider=self.provider.key)
         installation = get_installation_of_type(
@@ -689,6 +711,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
         result = installation.get_repositories("foo", accessible_only=True)
+        # foo-external is filtered out: its id (9999999) is the archived repo's id,
+        # which is excluded from the accessible set
         assert result == [
             {
                 "name": "foo",
@@ -700,9 +724,16 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     def test_get_repositories_accessible_only_no_match(self) -> None:
-        """When accessible_only=True and nothing matches, returns empty list."""
+        """When accessible_only=True and search returns no accessible repos, returns empty list."""
         with self.tasks():
             self.assert_setup_flow()
+
+        querystring = urlencode({"q": "fork:true org:Test Organization nonexistent"})
+        responses.add(
+            responses.GET,
+            f"{self.base_url}/search/repositories?{querystring}",
+            json={"items": []},
+        )
 
         integration = Integration.objects.get(provider=self.provider.key)
         installation = get_installation_of_type(
@@ -711,6 +742,49 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         result = installation.get_repositories("nonexistent", accessible_only=True)
         assert result == []
+
+    @responses.activate
+    def test_get_repositories_accessible_only_caches_ids(self) -> None:
+        """Second accessible_only call uses cached IDs instead of re-fetching all repos."""
+        with self.tasks():
+            self.assert_setup_flow()
+
+        querystring = urlencode({"q": "fork:true org:Test Organization foo"})
+        responses.add(
+            responses.GET,
+            f"{self.base_url}/search/repositories?{querystring}",
+            json={
+                "items": [
+                    {
+                        "id": 1296269,
+                        "name": "foo",
+                        "full_name": "Test-Organization/foo",
+                        "default_branch": "master",
+                    },
+                ]
+            },
+        )
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        # First call: cache miss, fetches /installation/repositories + search
+        result1 = installation.get_repositories("foo", accessible_only=True)
+        install_repo_calls = [
+            c for c in responses.calls if "/installation/repositories" in c.request.url
+        ]
+        first_fetch_count = len(install_repo_calls)
+        assert first_fetch_count > 0
+
+        # Second call: cache hit, only search is called (no new /installation/repositories)
+        result2 = installation.get_repositories("foo", accessible_only=True)
+        install_repo_calls = [
+            c for c in responses.calls if "/installation/repositories" in c.request.url
+        ]
+        assert len(install_repo_calls) == first_fetch_count
+        assert result1 == result2
 
     @responses.activate
     def test_get_repositories_all_and_pagination(self) -> None:

@@ -336,9 +336,12 @@ class GitHubIntegration(
         This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
         """
-        if not query or accessible_only:
-            all_repos = self.get_client().get_repos(page_number_limit=page_number_limit)
-            repos: list[RepositoryInfo] = [
+        client = self.get_client()
+
+        # No query: fetch all accessible repos (existing behavior)
+        if not query:
+            all_repos = client.get_repos(page_number_limit=page_number_limit)
+            return [
                 {
                     "name": i["name"],
                     "identifier": i["full_name"],
@@ -348,14 +351,27 @@ class GitHubIntegration(
                 for i in all_repos
                 if not i.get("archived")
             ]
-            if query:
-                query_lower = query.lower()
-                repos = [r for r in repos if query_lower in str(r["identifier"]).lower()]
-            return repos
 
+        # Query + accessible_only: use Search API + cached ID set
+        if accessible_only:
+            accessible_ids = client.get_accessible_repo_ids()
+            full_query = build_repository_query(self.model.metadata, self.model.name, query)
+            response = client.search_repositories(full_query)
+            return [
+                {
+                    "name": i["name"],
+                    "identifier": i["full_name"],
+                    "external_id": self.get_repo_external_id(i),
+                    "default_branch": i.get("default_branch"),
+                }
+                for i in response.get("items", [])
+                if i["id"] in accessible_ids
+            ]
+
+        # Query without accessible_only: existing search behavior
         full_query = build_repository_query(self.model.metadata, self.model.name, query)
-        response = self.get_client().search_repositories(full_query)
-        search_repos: list[RepositoryInfo] = [
+        response = client.search_repositories(full_query)
+        return [
             {
                 "name": i["name"],
                 "identifier": i["full_name"],
@@ -364,7 +380,6 @@ class GitHubIntegration(
             }
             for i in response.get("items", [])
         ]
-        return search_repos
 
     def get_unmigratable_repositories(self) -> list[RpcRepository]:
         accessible_repos = self.get_repositories()
