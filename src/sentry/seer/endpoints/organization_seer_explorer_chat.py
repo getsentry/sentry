@@ -172,11 +172,15 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
             ) and features.has(
                 "organizations:seer-explorer-chat-coding", organization, actor=request.user
             )
+            enable_mcp_tools = features.has(
+                "organizations:seer-explorer-mcp-tools", organization, actor=request.user
+            )
             client = SeerExplorerClient(
                 organization,
                 request.user,
                 is_interactive=True,
                 enable_coding=enable_coding,
+                enable_mcp_tools=enable_mcp_tools,
             )
             if run_id:
                 # Continue existing conversation
@@ -186,6 +190,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
                     insert_index=insert_index,
                     on_page_context=on_page_context,
                     page_name=page_name,
+                    request=request,
                 )
             else:
                 # Start new conversation

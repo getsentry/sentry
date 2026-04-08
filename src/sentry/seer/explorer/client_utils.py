@@ -58,6 +58,7 @@ class ExplorerChatRequest(TypedDict):
     intelligence_level: NotRequired[str]
     is_interactive: NotRequired[bool]
     enable_coding: NotRequired[bool]
+    enable_mcp_tools: NotRequired[bool]
     project_id: NotRequired[int]
     query_metadata: NotRequired[dict[str, str]]
     artifact_key: NotRequired[str]
