@@ -1,7 +1,8 @@
 import pytest
 from django.urls import reverse
 
-from sentry.testutils.cases import SnubaTestCase, SpanTestCase
+from sentry.api.endpoints.organization_insights_tree import OrganizationInsightsTreeEndpoint
+from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
@@ -164,3 +165,30 @@ class OrganizationInsightsTreeEndpointTest(
         assert element["function.nextjs.path"] == ["(route-group)"]
 
         assert "INSERT value INTO table" not in span_descriptions
+
+
+class DescriptionParsingTest(TestCase):
+    """Verifies that old (<10.32.0) and new (>=10.32.0) SDK formats produce identical parsed output."""
+
+    _endpoint = OrganizationInsightsTreeEndpoint()
+
+    def _parse(self, desc):
+        response = type("R", (), {"data": {"data": [{"span.description": desc}]}})()
+        self._endpoint._separate_span_description_info(response)
+        row = response.data["data"][0]
+        return row["function.nextjs.component_type"], row["function.nextjs.path"]
+
+    def test_page_simple_route(self):
+        assert self._parse("Page Server Component (/dashboard)") == self._parse(
+            'resolve page server component "/dashboard"'
+        )
+
+    def test_page_nested_route(self):
+        assert self._parse("Page Server Component (/nested/route)") == self._parse(
+            'resolve page server component "/nested/route"'
+        )
+
+    def test_layout_simple_route(self):
+        assert self._parse("Layout Server Component (/settings)") == self._parse(
+            'resolve layout server component "/settings"'
+        )
