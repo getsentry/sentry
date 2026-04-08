@@ -97,7 +97,7 @@ class ExploreLinkSharedEvent(BaseEventTest):
     def test_share_explore_links_unlinked_user(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
-        with self.feature("organizations:discover-basic"):
+        with self.feature("organizations:data-browsing-widget-unfurl"):
             data = self.share_explore_links_ephemeral_sdk()
 
         blocks = orjson.loads(data["blocks"])
