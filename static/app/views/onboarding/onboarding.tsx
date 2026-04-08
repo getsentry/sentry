@@ -289,7 +289,7 @@ export function OnboardingWithoutContext() {
           onboardingContext.setSelectedPlatform(undefined);
           activateSidebar({
             userClicked: false,
-            source: `targeted_onboarding_select_platform_skip`,
+            source: 'targeted_onboarding_select_platform_skip',
           });
         }}
         to={normalizeUrl(

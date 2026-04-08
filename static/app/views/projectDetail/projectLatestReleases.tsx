@@ -66,7 +66,7 @@ function useHasOlderReleases({
 
   const {data: olderReleases, isPending} = useApiQuery<Release[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/releases/stats/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/releases/stats/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
@@ -168,7 +168,7 @@ export function ProjectLatestReleases({
     isError,
   } = useApiQuery<Release[]>(
     [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/`, {
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/', {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
       }),
       {

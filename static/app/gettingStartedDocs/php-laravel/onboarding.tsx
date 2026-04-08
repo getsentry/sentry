@@ -59,7 +59,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'code',
           language: 'bash',
-          code: `composer require sentry/sentry-laravel`,
+          code: 'composer require sentry/sentry-laravel',
         },
         ...(params.isProfilingSelected
           ? ([

@@ -65,14 +65,14 @@ const getMembersQueryKey = ({
   orgSlug: string;
   query: Record<string, string>;
 }): ApiQueryKey => [
-  getApiUrl(`/organizations/$organizationIdOrSlug/members/`, {
+  getApiUrl('/organizations/$organizationIdOrSlug/members/', {
     path: {organizationIdOrSlug: orgSlug},
   }),
   {query},
 ];
 
 const getInviteRequestsQueryKey = ({organization}: any): ApiQueryKey => [
-  getApiUrl(`/organizations/$organizationIdOrSlug/invite-requests/`, {
+  getApiUrl('/organizations/$organizationIdOrSlug/invite-requests/', {
     path: {organizationIdOrSlug: organization.slug},
   }),
 ];
@@ -88,7 +88,7 @@ function OrganizationMembersList() {
   >(getInviteRequestsQueryKey({organization}), {staleTime: 0});
   const {data: authProvider} = useApiQuery<OrganizationAuthProvider>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/auth-provider/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/auth-provider/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
@@ -96,7 +96,7 @@ function OrganizationMembersList() {
   );
   const {data: currentMember} = useApiQuery<Member>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/members/$memberId/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/members/$memberId/', {
         path: {organizationIdOrSlug: organization.slug, memberId: 'me'},
       }),
     ],
@@ -476,7 +476,7 @@ function InviteMembersButton({
       <Tooltip
         skipWrapper
         title={t(
-          `Your organization must use its single sign-on provider to register new members.`
+          'Your organization must use its single sign-on provider to register new members.'
         )}
       >
         {action}

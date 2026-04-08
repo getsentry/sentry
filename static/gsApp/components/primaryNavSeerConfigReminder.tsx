@@ -39,7 +39,7 @@ function useScmIntegrations() {
   const organization = useOrganization();
   const {data, isPending} = useApiQuery<Integration[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: {includeConfig: 0}},

@@ -121,7 +121,7 @@ export function ProjectOwnershipModal({
     error,
   } = useApiQuery<TagWithTopValues>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/issues/$issueId/tags/$key/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/tags/$key/', {
         path: {organizationIdOrSlug: organization.slug, issueId, key: 'url'},
       }),
     ],
@@ -134,7 +134,7 @@ export function ProjectOwnershipModal({
     isError: isOwnershipError,
   } = useApiQuery<IssueOwnershipResponse>(
     [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/ownership/`, {
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/ownership/', {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
       }),
     ],

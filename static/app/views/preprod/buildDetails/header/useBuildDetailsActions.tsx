@@ -47,7 +47,7 @@ export function useBuildDetailsActions({
   const {mutate: rerunAnalysis} = useMutation<void, RequestError>({
     mutationFn: () => {
       return fetchMutation({
-        url: `/internal/preprod-artifact/rerun-analysis/`,
+        url: '/internal/preprod-artifact/rerun-analysis/',
         method: 'POST',
         data: {
           preprod_artifact_id: artifactId,

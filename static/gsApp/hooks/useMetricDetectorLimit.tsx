@@ -45,7 +45,7 @@ export function useMetricDetectorLimit(): MetricDetectorLimitResponse {
     getResponseHeader: getMetricRulesResponseHeader,
   } = useApiQuery<any[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/alert-rules/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/alert-rules/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: {limit: 1}},

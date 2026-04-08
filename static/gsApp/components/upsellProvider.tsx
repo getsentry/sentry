@@ -157,7 +157,7 @@ function UpsellProvider({
       return (
         <div data-test-id="confirm-content">
           {tct(
-            `Your organization is about to start a [trialLength]-day free trial. Click confirm to start your trial.`,
+            'Your organization is about to start a [trialLength]-day free trial. Click confirm to start your trial.',
             {
               trialLength,
             }

@@ -95,7 +95,7 @@ function useSourceMapUploads({
     refetch: archivesRefetch,
   } = useApiQuery<SourceMapsArchive[]>(
     [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/files/source-maps/`, {
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/files/source-maps/', {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
       }),
       {
@@ -116,7 +116,7 @@ function useSourceMapUploads({
   } = useApiQuery<DebugIdBundle[]>(
     [
       getApiUrl(
-        `/projects/$organizationIdOrSlug/$projectIdOrSlug/files/artifact-bundles/`,
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/artifact-bundles/',
         {
           path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
         }
@@ -138,7 +138,7 @@ function useSourceMapUploads({
 
   const {data: releasesData, isPending: releasesLoading} = useApiQuery<Release[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/releases/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/releases/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
@@ -223,7 +223,7 @@ export function SourceMapsList({project}: Props) {
       <SettingsPageHeader title={t('Source Map Uploads')} />
       <TextBlock>
         {tct(
-          `These source map archives help Sentry identify where to look when code is minified. By providing this information, you can get better context for your stack traces when debugging. To learn more about source maps, [link: read the docs].`,
+          'These source map archives help Sentry identify where to look when code is minified. By providing this information, you can get better context for your stack traces when debugging. To learn more about source maps, [link: read the docs].',
           {
             link: <ExternalLink href={sourceMapsLinks.sourcemaps} />,
           }

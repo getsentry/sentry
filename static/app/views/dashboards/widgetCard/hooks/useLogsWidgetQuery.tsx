@@ -103,7 +103,7 @@ export function useLogsSeriesQuery(
       }
 
       return [
-        getApiUrl(`/organizations/$organizationIdOrSlug/events-stats/`, {
+        getApiUrl('/organizations/$organizationIdOrSlug/events-stats/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
         {
@@ -268,7 +268,7 @@ export function useLogsTableQuery(
       };
 
       const baseQueryKey: ApiQueryKey = [
-        getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+        getApiUrl('/organizations/$organizationIdOrSlug/events/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
         {

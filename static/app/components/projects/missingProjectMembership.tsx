@@ -153,7 +153,7 @@ export function MissingProjectMembership({
             </Grid>
           }
         >
-          {t(`You'll need to join a team with access before you can view this data.`)}
+          {t("You'll need to join a team with access before you can view this data.")}
         </EmptyMessage>
       ) : (
         <EmptyMessage icon={<IconFlag />}>

@@ -315,7 +315,7 @@ export function UsageOverviewTableRow({
                 )}
               </Text>
               {formattedFree && (
-                <Text size="xs">{tct(` ([formattedFree] gifted)`, {formattedFree})}</Text>
+                <Text size="xs">{tct(' ([formattedFree] gifted)', {formattedFree})}</Text>
               )}
             </Flex>
           </td>

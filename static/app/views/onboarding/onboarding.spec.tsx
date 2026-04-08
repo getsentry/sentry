@@ -995,7 +995,7 @@ describe('Onboarding', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/javascript-react-slug/keys/`,
+      url: '/projects/org-slug/javascript-react-slug/keys/',
       method: 'GET',
       body: [ProjectKeysFixture()[0]],
     });
