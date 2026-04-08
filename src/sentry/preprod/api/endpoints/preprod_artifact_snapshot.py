@@ -394,9 +394,11 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                             source="github",
                         )
                     )
+            is_auto_approved = any((a.extras or {}).get("auto_approval") is True for a in approved)
             approval_info = SnapshotApprovalInfo(
                 status="approved",
                 approvers=approver_list,
+                is_auto_approved=is_auto_approved,
             )
         elif all_approvals:
             # If records exist but none are APPROVED, they must be NEEDS_APPROVAL

@@ -5,6 +5,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
@@ -15,6 +16,7 @@ import {
   IconCheckmark,
   IconDelete,
   IconEllipsis,
+  IconInfo,
   IconRefresh,
   IconThumb,
   IconTimer,
@@ -47,6 +49,7 @@ export function SnapshotHeaderActions({
   const [isDeleting, setIsDeleting] = useState(false);
 
   const isApproved = data.approval_info?.status === 'approved';
+  const isAutoApproved = data.approval_info?.is_auto_approved ?? false;
   const approvers: AvatarUser[] = (data.approval_info?.approvers ?? []).map((a, i) => ({
     id: a.id ?? `approver-${i}`,
     name: a.name ?? '',
@@ -148,9 +151,22 @@ export function SnapshotHeaderActions({
       {data.approval_info &&
         (isApproved ? (
           <Flex align="center" gap="xl">
-            <Tag variant="success" icon={<IconCheckmark />}>
-              {t('Approved')}
-            </Tag>
+            <Flex align="center" gap="xs">
+              <Tag variant="success" icon={<IconCheckmark />}>
+                {isAutoApproved ? t('Auto-approved') : t('Approved')}
+              </Tag>
+              {isAutoApproved && (
+                <Tooltip
+                  title={t(
+                    'Automatically approved because the changes match a previously approved build on this PR.'
+                  )}
+                >
+                  <Flex align="center">
+                    <IconInfo size="sm" />
+                  </Flex>
+                </Tooltip>
+              )}
+            </Flex>
             {approvers.length > 0 && (
               <AvatarList users={approvers} avatarSize={24} maxVisibleAvatars={2} />
             )}
