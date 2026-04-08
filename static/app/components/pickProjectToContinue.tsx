@@ -47,6 +47,7 @@ export function PickProjectToContinue({
     path = `${nextPath.pathname}?${newPathQuery}`;
   }
 
+  // if the project in URL is missing, but this release belongs to only one project, redirect there
   const shouldRedirect = projects.length === 1;
   useEffect(() => {
     if (shouldRedirect) {
