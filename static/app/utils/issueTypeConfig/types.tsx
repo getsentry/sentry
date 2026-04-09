@@ -74,10 +74,14 @@ export type IssueTypeConfig = {
    * Configuration for the issue-level information header
    */
   header: {
+    /**
+     * Controls the "X in this issue" event navigation row
+     */
+    eventNavigation: DisabledWithReasonConfig;
     filterBar: DisabledWithReasonConfig & {
-      // Display the environment filter in an inactive, locked state
+      /** Display the environment filter in an inactive, locked state */
       fixedEnvironment?: boolean;
-      // The search bar can be hidden if the issue type does not support event filtering
+      /** The search bar can be hidden if the issue type does not support event filtering */
       searchBar?: DisabledWithReasonConfig;
     };
     graph: DisabledWithReasonConfig & {

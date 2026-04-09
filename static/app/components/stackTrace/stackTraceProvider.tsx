@@ -66,9 +66,8 @@ export function StackTraceProvider({
         frameCountMap: {},
         newestFirst: isNewestFirst,
         framesOmitted: activeStacktrace.framesOmitted,
-        maxDepth,
       }),
-    [frames, isNewestFirst, activeStacktrace.framesOmitted, maxDepth]
+    [frames, isNewestFirst, activeStacktrace.framesOmitted]
   );
 
   const rows = useMemo(

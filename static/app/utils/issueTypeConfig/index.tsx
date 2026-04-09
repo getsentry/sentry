@@ -52,6 +52,7 @@ const BASE_CONFIG: IssueTypeConfig = {
   header: {
     filterBar: {enabled: true, fixedEnvironment: false, searchBar: {enabled: true}},
     graph: {enabled: true, type: 'discover-events'},
+    eventNavigation: {enabled: true},
     tagDistribution: {enabled: true},
     occurrenceSummary: {enabled: false},
   },

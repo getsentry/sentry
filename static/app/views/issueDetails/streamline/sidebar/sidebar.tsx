@@ -30,6 +30,7 @@ import {MergedIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/s
 import {PeopleSection} from 'sentry/views/issueDetails/streamline/sidebar/peopleSection';
 import {SeerSection} from 'sentry/views/issueDetails/streamline/sidebar/seerSection';
 import {SimilarIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/similarIssuesSidebarSection';
+import {SupergroupSection} from 'sentry/views/issueDetails/streamline/sidebar/supergroupSection';
 
 type Props = {group: Group; project: Project; event?: Event};
 
@@ -130,6 +131,9 @@ export function StreamlinedSidebar({group, event, project}: Props) {
           {issueTypeConfig.detector.enabled && (
             <DetectorSection group={group} project={project} />
           )}
+          <ErrorBoundary mini>
+            <SupergroupSection group={group} />
+          </ErrorBoundary>
         </Side>
       )}
     </SharedTourElement>

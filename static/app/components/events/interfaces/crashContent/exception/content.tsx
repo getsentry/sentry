@@ -10,7 +10,8 @@ import {StacktraceBanners} from 'sentry/components/events/interfaces/crashConten
 import {useLineCoverageContext} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageContext';
 import {
   prepareSourceMapDebuggerFrameInformation,
-  useSourceMapDebuggerData,
+  useSourceMapDebugQuery,
+  type SourceMapDebugBlueThunderResponse,
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
@@ -164,7 +165,7 @@ function InnerContent({
   hasChainedExceptions: boolean;
   hiddenExceptions: ExceptionRenderStateMap;
   isSampleError: boolean;
-  sourceMapDebuggerData: ReturnType<typeof useSourceMapDebuggerData>;
+  sourceMapDebuggerData: SourceMapDebugBlueThunderResponse | undefined;
   toggleRelatedExceptions: (exceptionId: number) => void;
   values: ExceptionValue[];
   project?: Project;
@@ -265,7 +266,11 @@ export function Content({
 }: Props) {
   const {projects} = useProjects({slugs: [projectSlug]});
 
-  const sourceMapDebuggerData = useSourceMapDebuggerData(event, projectSlug);
+  const {data: sourceMapDebuggerData} = useSourceMapDebugQuery(
+    projectSlug,
+    event.id,
+    event.sdk?.name ?? null
+  );
   const {hiddenExceptions, toggleRelatedExceptions, expandException} =
     useHiddenExceptions(values);
 
