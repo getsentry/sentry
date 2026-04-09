@@ -509,8 +509,8 @@ def trigger_coding_agent_handoff(
         preference = read_preference_from_sentry_db(group.project)
         if preference:
             repo_definitions = preference.repositories
-        if preference and preference.automation_handoff:
-            auto_create_pr = preference.automation_handoff.auto_create_pr
+            if preference.automation_handoff:
+                auto_create_pr = preference.automation_handoff.auto_create_pr
     else:
         try:
             preference = get_project_seer_preferences(group.project_id).preference

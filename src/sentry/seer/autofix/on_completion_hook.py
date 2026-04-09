@@ -510,28 +510,43 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         cls, project: Project, run_id: int, organization: Organization
     ) -> None:
         """Clear automation_handoff from project preferences after integration is not found."""
-        try:
-            preference = get_project_seer_preferences(project.id).preference
-            if preference:
-                updated_preference = preference.copy(update={"automation_handoff": None})
-                set_project_seer_preference(updated_preference)
+        if features.has("organizations:seer-project-settings-read-from-sentry", organization):
+            preference = read_preference_from_sentry_db(project)
+        else:
+            try:
+                preference = get_project_seer_preferences(project.id).preference
+            except (SeerApiError, SeerApiResponseValidationError):
+                logger.exception(
+                    "autofix.on_completion_hook.clear_handoff_preference_failed",
+                    extra={"run_id": run_id, "organization_id": organization.id},
+                )
+                return
 
-                if features.has("organizations:seer-project-settings-dual-write", organization):
-                    try:
-                        resolved_preference = resolve_repository_ids(
-                            organization.id, [SeerProjectPreference.validate(updated_preference)]
-                        )[0]
-                        write_preference_to_sentry_db(project, resolved_preference)
-                    except Exception:
-                        logger.exception(
-                            "seer.write_preferences.failed",
-                            extra={"project_id": project.id, "organization_id": organization.id},
-                        )
+        if not preference:
+            return
+
+        updated_preference = preference.copy(update={"automation_handoff": None})
+
+        try:
+            set_project_seer_preference(updated_preference)
         except (SeerApiError, SeerApiResponseValidationError):
             logger.exception(
                 "autofix.on_completion_hook.clear_handoff_preference_failed",
                 extra={"run_id": run_id, "organization_id": organization.id},
             )
+            return
+
+        if features.has("organizations:seer-project-settings-dual-write", organization):
+            try:
+                resolved_preference = resolve_repository_ids(
+                    organization.id, [SeerProjectPreference.validate(updated_preference)]
+                )[0]
+                write_preference_to_sentry_db(project, resolved_preference)
+            except Exception:
+                logger.exception(
+                    "seer.write_preferences.failed",
+                    extra={"project_id": project.id, "organization_id": organization.id},
+                )
 
     @classmethod
     def _trigger_coding_agent_handoff(
