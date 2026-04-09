@@ -50,37 +50,39 @@ function TopBarContent() {
         zIndex: theme.zIndex.sidebarPanel - 1,
       }}
     >
-      <Slot.Outlet name="title">
-        {props => <Flex {...props} align="center" gap="sm" />}
-      </Slot.Outlet>
-
-      <Flex align="center" gap="sm">
-        <Slot.Outlet name="actions">
+      <SizeProvider size="sm">
+        <Slot.Outlet name="title">
           {props => <Flex {...props} align="center" gap="sm" />}
         </Slot.Outlet>
 
-        {organization && isSeerExplorerEnabled(organization) ? (
-          <Button icon={<IconSeer />} onClick={openExplorerPanel}>
-            {t('Ask Seer')}
-          </Button>
-        ) : null}
+        <Flex align="center" gap="sm">
+          <Slot.Outlet name="actions">
+            {props => <Flex {...props} align="center" gap="sm" />}
+          </Slot.Outlet>
 
-        <Slot.Outlet name="feedback">
-          {props => (
-            <Flex {...props}>
-              {/* If no component registers a feedback button, show the default one */}
-              <Slot.Fallback>
-                <FeedbackButton
-                  aria-label={t('Give Feedback')}
-                  feedbackOptions={{tags: {'feedback.source': 'top_navigation'}}}
-                >
-                  {null}
-                </FeedbackButton>
-              </Slot.Fallback>
-            </Flex>
-          )}
-        </Slot.Outlet>
-      </Flex>
+          {organization && isSeerExplorerEnabled(organization) ? (
+            <Button icon={<IconSeer />} onClick={openExplorerPanel}>
+              {t('Ask Seer')}
+            </Button>
+          ) : null}
+
+          <Slot.Outlet name="feedback">
+            {props => (
+              <Flex {...props}>
+                {/* If no component registers a feedback button, show the default one */}
+                <Slot.Fallback>
+                  <FeedbackButton
+                    aria-label={t('Give Feedback')}
+                    feedbackOptions={{tags: {'feedback.source': 'top_navigation'}}}
+                  >
+                    {null}
+                  </FeedbackButton>
+                </Slot.Fallback>
+              </Flex>
+            )}
+          </Slot.Outlet>
+        </Flex>
+      </SizeProvider>
     </Flex>
   );
 }
