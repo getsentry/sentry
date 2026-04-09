@@ -4,7 +4,7 @@ import {XAxis} from 'sentry/components/charts/components/xAxis';
 import {LineSeries} from 'sentry/components/charts/series/lineSeries';
 import {timeSeriesItemToEChartsDataPoint} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {formatTimeSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesName';
+import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 
 import {DEFAULT_FONT_FAMILY, makeSlackChartDefaults, slackChartSize} from './slack';
 import type {RenderDescriptor} from './types';
@@ -74,7 +74,7 @@ export const makeExploreCharts = (theme: Theme): Array<RenderDescriptor<ChartTyp
 
       const series = sorted.map((ts, i) => {
         return LineSeries({
-          name: formatTimeSeriesName(ts),
+          name: formatTimeSeriesLabel(ts),
           data: ts.values.map(timeSeriesItemToEChartsDataPoint),
           lineStyle: {color: color?.[i], opacity: 1},
           itemStyle: {color: color?.[i]},
