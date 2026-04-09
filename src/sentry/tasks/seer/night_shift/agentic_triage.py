@@ -22,7 +22,7 @@ logger = logging.getLogger("sentry.tasks.seer.night_shift")
 
 class _TriageVerdict(pydantic.BaseModel):
     group_id: int
-    action: str
+    action: TriageAction
     reason: str
 
 
@@ -87,7 +87,7 @@ def _triage_candidates(
             )
             return []
 
-        verdicts_data = orjson.loads(content)
+        triage_response: _TriageResponse = _TriageResponse.model_validate_json(content)
     except Exception:
         logger.exception(
             "night_shift.triage_request_error",
@@ -95,23 +95,17 @@ def _triage_candidates(
         )
         return []
 
-    results: list[TriageResult] = []
-    for verdict in verdicts_data.get("verdicts", []):
-        group = groups_by_id.get(verdict["group_id"])
-        raw_action = verdict.get("action", "skip")
-        try:
-            action = TriageAction(raw_action)
-        except ValueError:
-            continue
-        if group is None:
-            continue
-        results.append(TriageResult(group=group, action=action))
+    results = [
+        TriageResult(group=groups_by_id[v.group_id], action=v.action)
+        for v in triage_response.verdicts
+        if v.group_id in groups_by_id
+    ]
 
     logger.info(
         "night_shift.triage_verdicts",
         extra={
             "organization_id": organization.id,
-            "verdicts": {v["group_id"]: v["action"] for v in verdicts_data.get("verdicts", [])},
+            "verdicts": {v.group_id: v.action for v in triage_response.verdicts},
         },
     )
 
