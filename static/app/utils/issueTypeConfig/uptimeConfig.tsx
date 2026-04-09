@@ -17,6 +17,7 @@ export const uptimeConfig: IssueCategoryConfigMapping = {
     header: {
       filterBar: {enabled: true, fixedEnvironment: true},
       graph: {enabled: true, type: 'uptime-checks'},
+      eventNavigation: {enabled: true},
       tagDistribution: {enabled: false},
       occurrenceSummary: {enabled: true, downtime: true},
     },

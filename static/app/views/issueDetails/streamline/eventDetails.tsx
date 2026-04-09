@@ -6,6 +6,7 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useIsStuck} from 'sentry/utils/useIsStuck';
 import {useMedia} from 'sentry/utils/useMedia';
 import {
@@ -28,10 +29,14 @@ export function EventDetails({group, event, project}: EventDetailsContentProps) 
     );
   }
 
+  const issueTypeConfig = getConfigForIssueType(group, project);
+
   return (
     <PageErrorBoundary mini message={t('There was an error loading the event content')}>
       <GroupContent role="main">
-        <StickyEventNav event={event} group={group} />
+        {issueTypeConfig.header.eventNavigation.enabled && (
+          <StickyEventNav event={event} group={group} />
+        )}
         <ContentPadding>
           <EventDetailsContent group={group} event={event} project={project} />
         </ContentPadding>
