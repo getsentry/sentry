@@ -42,7 +42,7 @@ export function ScmConnect({onComplete}: StepProps) {
   } = useScmProviders();
 
   // Pre-warm platform detection so results are cached when the user advances
-  useScmPlatformDetection(selectedRepository?.id);
+  useScmPlatformDetection(selectedRepository);
 
   // Derive integration from explicit selection, falling back to existing
   const effectiveIntegration = selectedIntegration ?? activeIntegrationExisting;
