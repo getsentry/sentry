@@ -269,6 +269,7 @@ class SeerExplorerClient:
             raise ValueError("artifact_key and artifact_schema must be provided together")
 
         user_org_context = collect_user_org_context(self.user, self.organization, request=request)
+        user_auth_token = user_org_context.pop("user_auth_token", None)
 
         chat_body: ExplorerChatRequest = ExplorerChatRequest(
             organization_id=self.organization.id,
@@ -282,7 +283,7 @@ class SeerExplorerClient:
             is_interactive=self.is_interactive,
             enable_coding=self.enable_coding,
             enable_code_mode_tools=self.enable_code_mode_tools,
-            user_auth_token=user_org_context.get("user_auth_token"),
+            user_auth_token=user_auth_token,
         )
 
         if self.max_iterations is not None:
@@ -372,6 +373,7 @@ class SeerExplorerClient:
             raise ValueError("artifact_key and artifact_schema must be provided together")
 
         user_org_context = collect_user_org_context(self.user, self.organization, request=request)
+        user_auth_token = user_org_context.pop("user_auth_token", None)
 
         chat_body: ExplorerChatRequest = ExplorerChatRequest(
             organization_id=self.organization.id,
@@ -383,7 +385,7 @@ class SeerExplorerClient:
             is_interactive=self.is_interactive,
             enable_coding=self.enable_coding,
             enable_code_mode_tools=self.enable_code_mode_tools,
-            user_auth_token=user_org_context.get("user_auth_token"),
+            user_auth_token=user_auth_token,
         )
 
         if prompt_metadata:
