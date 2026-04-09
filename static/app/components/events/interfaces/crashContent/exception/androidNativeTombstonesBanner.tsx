@@ -15,22 +15,92 @@ import {EntryType} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-const ANDROID_NATIVE_SDK_NAME = 'sentry.native.android';
 const TOMBSTONES_DOCS_URL =
   'https://docs.sentry.io/platforms/android/configuration/tombstones/';
 
-const CODE_SNIPPETS: Record<string, string> = {
-  manifest: `<application>
+type TabConfig = {
+  code: string;
+  label: string;
+  language: string;
+  value: string;
+};
+
+type SdkConfig = {
+  defaultTab: string;
+  tabs: TabConfig[];
+};
+
+const ANDROID_SDK_CONFIG: SdkConfig = {
+  defaultTab: 'manifest',
+  tabs: [
+    {
+      label: 'AndroidManifest.xml',
+      value: 'manifest',
+      language: 'xml',
+      code: `<!-- Requires sentry-android 8.35.0+ -->
+<application>
   <meta-data
     android:name="io.sentry.tombstone.enable"
     android:value="true" />
 </application>`,
-  kotlin: `SentryAndroid.init(context) { options ->
-  options.isReportHistoricalTombstones = true
+    },
+    {
+      label: 'Kotlin',
+      value: 'kotlin',
+      language: 'kotlin',
+      code: `// Requires sentry-android 8.35.0+
+SentryAndroid.init(context) { options ->
+  options.isTombstoneEnabled = true
 }`,
-  java: `SentryAndroid.init(context, options -> {
-  options.setReportHistoricalTombstones(true);
+    },
+    {
+      label: 'Java',
+      value: 'java',
+      language: 'java',
+      code: `// Requires sentry-android 8.35.0+
+SentryAndroid.init(context, options -> {
+  options.setTombstoneEnabled(true);
 });`,
+    },
+  ],
+};
+
+const REACT_NATIVE_SDK_CONFIG: SdkConfig = {
+  defaultTab: 'javascript',
+  tabs: [
+    {
+      label: 'JavaScript',
+      value: 'javascript',
+      language: 'javascript',
+      code: `// Requires @sentry/react-native 8.5.0+
+Sentry.init({
+  enableTombstone: true,
+});`,
+    },
+  ],
+};
+
+const FLUTTER_SDK_CONFIG: SdkConfig = {
+  defaultTab: 'dart',
+  tabs: [
+    {
+      label: 'Dart',
+      value: 'dart',
+      language: 'dart',
+      code: `// Requires sentry_flutter 9.15.0+
+await SentryFlutter.init(
+  (options) {
+    options.enableTombstone = true;
+  },
+);`,
+    },
+  ],
+};
+
+const SDK_CONFIGS: Record<string, SdkConfig> = {
+  'sentry.native.android': ANDROID_SDK_CONFIG,
+  'sentry.native.android.react-native': REACT_NATIVE_SDK_CONFIG,
+  'sentry.native.android.flutter': FLUTTER_SDK_CONFIG,
 };
 
 function hasSignalHandlerMechanism(event: Event): boolean {
@@ -47,12 +117,16 @@ function hasSignalHandlerMechanism(event: Event): boolean {
   );
 }
 
-function isAndroidNativeSdk(event: Event): boolean {
-  return event.sdk?.name === ANDROID_NATIVE_SDK_NAME;
+function getSdkConfig(event: Event): SdkConfig | undefined {
+  const sdkName = event.sdk?.name;
+  if (!sdkName) {
+    return undefined;
+  }
+  return SDK_CONFIGS[sdkName];
 }
 
 export function shouldShowTombstonesBanner(event: Event): boolean {
-  return isAndroidNativeSdk(event) && hasSignalHandlerMechanism(event);
+  return getSdkConfig(event) !== undefined && hasSignalHandlerMechanism(event);
 }
 
 interface Props {
@@ -62,7 +136,8 @@ interface Props {
 
 export function AndroidNativeTombstonesBanner({event, projectId}: Props) {
   const organization = useOrganization();
-  const [codeTab, setCodeTab] = useState('manifest');
+  const sdkConfig = getSdkConfig(event);
+  const [codeTab, setCodeTab] = useState(sdkConfig?.defaultTab ?? 'manifest');
 
   const {isLoading, isError, isPromptDismissed, dismissPrompt, snoozePrompt} = usePrompt({
     feature: 'issue_android_tombstones_onboarding',
@@ -71,9 +146,12 @@ export function AndroidNativeTombstonesBanner({event, projectId}: Props) {
     daysToSnooze: 7,
   });
 
-  if (isLoading || isError || isPromptDismissed) {
+  if (isLoading || isError || isPromptDismissed || !sdkConfig) {
     return null;
   }
+
+  const activeTab =
+    sdkConfig.tabs.find(tab => tab.value === codeTab) ?? sdkConfig.tabs[0];
 
   return (
     <BannerWrapper>
@@ -85,19 +163,15 @@ export function AndroidNativeTombstonesBanner({event, projectId}: Props) {
           )}
         </Text>
         <CodeBlock
-          tabs={[
-            {label: 'AndroidManifest.xml', value: 'manifest'},
-            {label: 'Kotlin', value: 'kotlin'},
-            {label: 'Java', value: 'java'},
-          ]}
+          tabs={sdkConfig.tabs.map(tab => ({label: tab.label, value: tab.value}))}
           selectedTab={codeTab}
           onTabClick={setCodeTab}
-          language={codeTab === 'manifest' ? 'xml' : codeTab}
+          language={activeTab.language}
         >
-          {CODE_SNIPPETS[codeTab] ?? ''}
+          {activeTab.code}
         </CodeBlock>
         <LinkButton
-          style={{marginTop: '12px'}}
+          style={{alignSelf: 'flex-start'}}
           href={TOMBSTONES_DOCS_URL}
           external
           priority="primary"
