@@ -45,6 +45,8 @@ import {GlobalMonitorProcessingErrors} from 'sentry/views/insights/crons/compone
 import {useCronsUpsertGuideState} from 'sentry/views/insights/crons/components/useCronsUpsertGuideState';
 import {MODULE_DESCRIPTION, MODULE_DOC_LINK} from 'sentry/views/insights/crons/settings';
 import {monitorListApiOptions} from 'sentry/views/insights/crons/utils';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 const CronsListPageHeader = HookOrDefault({
   hookName: 'component:crons-list-page-header',
@@ -55,6 +57,7 @@ function CronsOverview() {
   const navigate = useNavigate();
   const location = useLocation();
   const {guideVisible} = useCronsUpsertGuideState();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const project = decodeList(location.query?.project);
 
   const {data, isPending, refetch} = useQuery({
@@ -99,7 +102,13 @@ function CronsOverview() {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <Grid flow="column" align="center" gap="md">
-            <FeedbackButton />
+            {hasPageFrameFeature ? (
+              <TopBar.Slot name="feedback">
+                <FeedbackButton>{null}</FeedbackButton>
+              </TopBar.Slot>
+            ) : (
+              <FeedbackButton />
+            )}
             <Button
               icon={<IconList />}
               size="sm"

@@ -5,5 +5,3 @@ export const CONVERSATIONS_LANDING_TITLE = t('AI Conversations');
 export const CONVERSATIONS_SIDEBAR_LABEL = t('Conversations');
 
 export const MAX_PICKABLE_DAYS = 30;
-
-export const MODULES: never[] = [];

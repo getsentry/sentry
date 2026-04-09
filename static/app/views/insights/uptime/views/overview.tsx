@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
@@ -23,7 +24,7 @@ import {Panel} from 'sentry/components/panels/panel';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {type UptimeDetector} from 'sentry/types/workflowEngine/detectors';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -33,32 +34,36 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
-import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
+import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 import {makeMonitorTypePathname} from 'sentry/views/detectors/pathnames';
 import {OverviewTimeline} from 'sentry/views/insights/uptime/components/overviewTimeline';
 import {MODULE_DESCRIPTION, MODULE_DOC_LINK} from 'sentry/views/insights/uptime/settings';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export default function UptimeOverview() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const project = decodeList(location.query?.project);
   const {projects} = useProjects();
 
-  const {
-    data: detectors,
-    getResponseHeader: uptimeListHeaders,
-    isPending,
-  } = useDetectorsQuery<UptimeDetector>({
-    query: `type:uptime ${location.query.query ?? ''}`,
-    cursor: decodeScalar(location.query.cursor),
-    projects: project.map(Number),
+  const {data, isPending} = useQuery({
+    ...detectorListApiOptions(organization, {
+      type: 'uptime',
+      query: decodeScalar(location.query.query),
+      cursor: decodeScalar(location.query.cursor),
+      projects: project.map(Number),
+    }),
+    select: selectJsonWithHeaders,
   });
+  const detectors = data?.json;
 
   useRouteAnalyticsEventNames('uptime.page_viewed', 'Uptime: Page Viewed');
   useRouteAnalyticsParams({empty_state: !detectors || detectors.length === 0});
 
-  const uptimeListPageLinks = uptimeListHeaders?.('Link');
+  const uptimeListPageLinks = data?.headers.Link;
 
   const canCreateAlert =
     hasEveryAccess(['alerts:write'], {organization}) ||
@@ -82,7 +87,13 @@ export default function UptimeOverview() {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <Grid flow="column" align="center" gap="md">
-            <FeedbackButton />
+            {hasPageFrameFeature ? (
+              <TopBar.Slot name="feedback">
+                <FeedbackButton>{null}</FeedbackButton>
+              </TopBar.Slot>
+            ) : (
+              <FeedbackButton />
+            )}
             <LinkButton
               size="sm"
               priority="primary"

@@ -64,7 +64,7 @@ import {
   useTransactionsDeprecationWarning,
 } from './widgetCardContextMenu';
 import {WidgetFrame} from './widgetFrame';
-import {getWidgetQueryLLMHint} from './widgetLLMContext';
+import {getWidgetQueryLLMHint, readableConditions} from './widgetLLMContext';
 
 export type OnDataFetchedParams = {
   tableResults?: TableDataWithTitle[];
@@ -165,7 +165,7 @@ function WidgetCard(props: Props) {
     queryHint: getWidgetQueryLLMHint(resolvedDisplayType),
     queries: props.widget.queries.map(q => ({
       name: q.name,
-      conditions: q.conditions,
+      conditions: readableConditions(q.conditions),
       aggregates: q.aggregates,
       columns: q.columns,
       orderby: q.orderby,

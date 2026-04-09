@@ -8,9 +8,9 @@ import {QUERY_API_CLIENT, type UseInfiniteQueryResult} from 'sentry/utils/queryC
 
 export type ApiResponse<TResponseData = unknown> = {
   headers: {
-    Link: string | undefined;
-    'X-Hits': number | undefined;
-    'X-Max-Hits': number | undefined;
+    Link?: string;
+    'X-Hits'?: number;
+    'X-Max-Hits'?: number;
   };
   json: TResponseData;
 };

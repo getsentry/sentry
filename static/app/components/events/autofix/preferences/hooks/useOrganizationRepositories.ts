@@ -17,9 +17,7 @@ interface Props {
 /**
  * @deprecated Use organizationRepositoriesInfiniteOptions instead.
  */
-export function useOrganizationRepositories<T extends Repository = Repository>(
-  {query = {}} = {} as Props
-) {
+export function useOrganizationRepositories({query = {}} = {} as Props) {
   const queryRef = useRef<Record<string, string>>(query);
   useEffect(() => {
     queryRef.current = query;
@@ -39,7 +37,7 @@ export function useOrganizationRepositories<T extends Repository = Repository>(
     [organization.slug]
   );
 
-  const {pages, isFetching, ...rest} = useFetchSequentialPages<T[]>({
+  const {pages, isFetching, ...rest} = useFetchSequentialPages<Repository[]>({
     getQueryKey,
     perPage: 100,
     enabled: true,
@@ -47,7 +45,7 @@ export function useOrganizationRepositories<T extends Repository = Repository>(
 
   const data = useMemo(() => {
     const flattenedRepos = pages.flat();
-    const uniqueReposMap = new Map<string, T>();
+    const uniqueReposMap = new Map<string, Repository>();
     flattenedRepos.forEach(repo => {
       if (repo.externalId && !uniqueReposMap.has(repo.externalId)) {
         uniqueReposMap.set(repo.externalId, repo);

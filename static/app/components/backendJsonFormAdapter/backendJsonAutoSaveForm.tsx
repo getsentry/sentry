@@ -11,71 +11,7 @@ import {ChoiceMapperDropdown, ChoiceMapperTable} from './choiceMapperAdapter';
 import {ProjectMapperAddRow, ProjectMapperTable} from './projectMapperAdapter';
 import {TableBody, TableHeaderRow} from './tableAdapter';
 import type {FieldValue, JsonFormAdapterFieldConfig} from './types';
-
-function getZodType(fieldType: JsonFormAdapterFieldConfig['type']) {
-  switch (fieldType) {
-    case 'boolean':
-      return z.boolean();
-    case 'string':
-    case 'text':
-    case 'secret':
-    case 'textarea':
-      return z.string();
-    case 'number':
-      return z.number();
-    case 'email':
-      return z.email();
-    case 'url':
-      return z.url();
-    case 'choice_mapper':
-      return z.object({});
-    case 'project_mapper':
-    case 'table':
-      return z.array(z.any());
-    case 'select':
-    case 'choice':
-      return z.any();
-    default:
-      unreachable(fieldType);
-      return z.any();
-  }
-}
-
-function transformChoices(
-  choices?: Array<[value: string, label: string]>
-): Array<{label: string; value: string}> {
-  if (!choices) {
-    return [];
-  }
-  return choices.map(([value, label]) => ({value, label}));
-}
-
-function getDefaultForType(fieldType: JsonFormAdapterFieldConfig['type']): unknown {
-  switch (fieldType) {
-    case 'boolean':
-      return false;
-    case 'string':
-    case 'text':
-    case 'url':
-    case 'email':
-    case 'secret':
-    case 'textarea':
-      return '';
-    case 'number':
-      return 0;
-    case 'choice_mapper':
-      return {};
-    case 'project_mapper':
-    case 'table':
-      return [];
-    case 'select':
-    case 'choice':
-      return null;
-    default:
-      unreachable(fieldType);
-      return '';
-  }
-}
+import {getDefaultForField, getZodType, transformChoices} from './utils';
 
 interface BackendJsonFormAdapterProps<
   TField extends JsonFormAdapterFieldConfig,
@@ -87,7 +23,7 @@ interface BackendJsonFormAdapterProps<
   initialValue?: FieldValue<TField>;
 }
 
-export function BackendJsonFormAdapter<
+export function BackendJsonAutoSaveForm<
   TField extends JsonFormAdapterFieldConfig,
   TData,
   TContext,
@@ -104,7 +40,7 @@ export function BackendJsonFormAdapter<
     [fieldName, field.type]
   );
 
-  const value = initialValue ?? field.default ?? getDefaultForType(field.type);
+  const value = initialValue ?? field.default ?? getDefaultForField(field);
 
   if (field.type === 'table') {
     return (
@@ -304,6 +240,8 @@ export function BackendJsonFormAdapter<
                 />
               </fieldApi.Layout.Row>
             );
+          case 'blank':
+            return null;
           default:
             unreachable(field);
             return null;

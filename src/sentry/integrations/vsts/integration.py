@@ -32,7 +32,10 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import RpcRepository, repository_service
-from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.source_code_management.repository import (
+    RepositoryInfo,
+    RepositoryIntegration,
+)
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import (
@@ -132,7 +135,7 @@ metadata = IntegrationMetadata(
 logger = logging.getLogger("sentry.integrations")
 
 
-class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
+class VstsIntegration(RepositoryIntegration[VstsApiClient], VstsIssuesSpec):
     logger = logger
     comment_key = "sync_comments"
     outbound_status_key = "sync_status_forward"
@@ -312,17 +315,18 @@ class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
         query: str | None = None,
         page_number_limit: int | None = None,
         accessible_only: bool = False,
-    ) -> list[dict[str, Any]]:
+    ) -> list[RepositoryInfo]:
         try:
             repos = self.get_client().get_repos()
         except (ApiError, IdentityNotValid) as e:
             raise IntegrationError(self.message_from_error(e))
-        data = []
+        data: list[RepositoryInfo] = []
         for repo in repos["value"]:
             data.append(
                 {
                     "name": "{}/{}".format(repo["project"]["name"], repo["name"]),
-                    "identifier": repo["id"],
+                    "identifier": str(repo["id"]),
+                    "external_id": self.get_repo_external_id(repo),
                 }
             )
         return data

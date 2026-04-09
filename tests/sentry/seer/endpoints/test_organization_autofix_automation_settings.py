@@ -1052,3 +1052,28 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         assert len(seer_repos) == 2
         assert seer_repos[0].repository_id == existing_repo.id
         assert seer_repos[1].repository_id == new_repo.id
+
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
+    )
+    def test_post_rejects_unsupported_repo_provider(self, mock_bulk_set_preferences):
+        project = self.create_project(organization=self.organization)
+
+        repo_data = {
+            "provider": "gitlab",
+            "owner": "test-org",
+            "name": "test-repo",
+            "externalId": "12345",
+        }
+
+        response = self.client.post(
+            self.url,
+            {
+                "projectIds": [project.id],
+                "projectRepoMappings": {
+                    str(project.id): [repo_data],
+                },
+            },
+        )
+        assert response.status_code == 400
+        mock_bulk_set_preferences.assert_not_called()

@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -111,19 +112,25 @@ export function DashboardChatPanel({
       margin="0 auto"
       style={{zIndex: theme.zIndex.dropdown, marginBottom: '24px'}}
     >
-      {hasHistory && (
+      <Flex justify="between">
         <ChatHistoryToggle
           onClick={() => setIsHistoryExpanded(prev => !prev)}
           aria-expanded={isHistoryExpanded}
           priority="transparent"
+          disabled={!hasHistory}
         >
           <Flex align="center" gap="sm">
             <IconSeer size="sm" />
             {t('Conversation')} ({blocks.length})
-            <IconChevron direction={isHistoryExpanded ? 'down' : 'up'} size="xs" />
+            {hasHistory && (
+              <IconChevron direction={isHistoryExpanded ? 'down' : 'up'} size="xs" />
+            )}
           </Flex>
         </ChatHistoryToggle>
-      )}
+        <Container padding="md xl">
+          <FeatureBadge type="beta" />
+        </Container>
+      </Flex>
       {hasHistory && isHistoryExpanded && (
         <ChatHistory
           ref={chatContainerRef}
@@ -177,7 +184,7 @@ const ChatHistory = memo(function ChatHistoryInner({
       maxHeight={`${MAX_CHAT_HISTORY_HEIGHT}px`}
       overflowY="auto"
       overflowX="hidden"
-      border="primary"
+      borderTop="primary"
     >
       <Stack>
         {blocks.map((block, index) => (
