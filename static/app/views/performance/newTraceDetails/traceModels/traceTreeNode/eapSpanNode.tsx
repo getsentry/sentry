@@ -77,6 +77,22 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     }
   }
 
+  /**
+   * Build the summarized child list for a collapsed EAP transaction.
+   *
+   * In the collapsed state we do not render the full span tree. Instead, we surface the
+   * first descendant EAP transaction reachable on each branch so the user still sees
+   * embedded transactions without expanding all intermediary spans.
+   *
+   * This traversal intentionally preserves real parentage. Nested transactions stay attached
+   * to their actual span parents and are only surfaced as visible descendants in the collapsed
+   * summary; we do not reparent them under the collapsed transaction node.
+   *
+   * We also have to traverse through non-EAP wrapper nodes via `getNextTraversalNodes()`.
+   * After `ApplyPreferences` runs, wrappers like `ParentAutogroupNode` can sit between this
+   * transaction and a nested descendant transaction. If we stopped at `!isEAPSpanNode(node)`,
+   * those descendant transactions would disappear from the collapsed summary.
+   */
   private getCollapsedTransactionChildren(): BaseNode[] {
     const queue: BaseNode[] = [];
     const collapsedChildren: BaseNode[] = [];
@@ -88,17 +104,14 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     while (queue.length > 0) {
       const node = queue.pop()!;
 
-      if (!isEAPSpanNode(node)) {
-        continue;
-      }
-
-      if (node.value.is_transaction) {
+      if (isEAPSpanNode(node) && node.value.is_transaction) {
         collapsedChildren.push(node);
         continue;
       }
 
-      for (let i = node.children.length - 1; i >= 0; i--) {
-        queue.push(node.children[i]!);
+      const nextNodes = node.getNextTraversalNodes();
+      for (let i = nextNodes.length - 1; i >= 0; i--) {
+        queue.push(nextNodes[i]!);
       }
     }
 

@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   makeEAPError,
   makeEAPOccurrence,
@@ -426,6 +427,48 @@ describe('EapSpanNode', () => {
       const transaction = new EapSpanNode(null, transactionValue, extra);
       const childSpan = new EapSpanNode(transaction, childSpanValue, extra);
       const nestedTransaction = new EapSpanNode(childSpan, nestedTransactionValue, extra);
+
+      transaction.expanded = false;
+
+      expect(transaction.directVisibleChildren).toEqual([nestedTransaction]);
+      expect(nestedTransaction.parent).toBe(childSpan);
+    });
+
+    it('should surface nested transactions beneath parent autogroups', () => {
+      const extra = createMockExtra();
+      const transactionValue = makeEAPSpan({
+        event_id: 'transaction',
+        is_transaction: true,
+      });
+      const groupHeadValue = makeEAPSpan({
+        event_id: 'group-head',
+        is_transaction: false,
+        op: 'db.query',
+      });
+      const groupTailValue = makeEAPSpan({
+        event_id: 'group-tail',
+        is_transaction: false,
+        op: 'db.query',
+      });
+      const childSpanValue = makeEAPSpan({
+        event_id: 'child-span',
+        is_transaction: false,
+        op: 'http.client',
+      });
+      const nestedTransactionValue = makeEAPSpan({
+        event_id: 'nested-transaction',
+        is_transaction: true,
+        parent_span_id: 'child-span',
+        op: 'rpc.call',
+      });
+
+      const transaction = new EapSpanNode(null, transactionValue, extra);
+      const groupHead = new EapSpanNode(transaction, groupHeadValue, extra);
+      const groupTail = new EapSpanNode(groupHead, groupTailValue, extra);
+      const childSpan = new EapSpanNode(groupTail, childSpanValue, extra);
+      const nestedTransaction = new EapSpanNode(childSpan, nestedTransactionValue, extra);
+
+      expect(TraceTree.AutogroupDirectChildrenSpanNodes(transaction)).toBe(1);
 
       transaction.expanded = false;
 
