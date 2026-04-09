@@ -34,7 +34,7 @@ class CreatePreprodSnapshotPrCommentTaskTest(TestCase):
         provider: str = "github",
         app_id: str = "com.example.app",
         image_count: int = 10,
-        commit_comparison: CommitComparison | None = _sentinel,
+        commit_comparison: CommitComparison | None | object = _sentinel,
         with_commit_comparison: bool = True,
     ) -> tuple[PreprodArtifact, PreprodSnapshotMetrics]:
         if commit_comparison is _sentinel:
