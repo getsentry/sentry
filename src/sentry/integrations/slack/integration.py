@@ -224,8 +224,13 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         history_scopes = [SlackScope.CHANNELS_HISTORY, SlackScope.GROUPS_HISTORY]
         installed_scope_set = frozenset(self.model.metadata.get("scopes", []))
 
-        if all(s in installed_scope_set for s in history_scopes):
+        installed_history_scopes = [s in installed_scope_set for s in history_scopes]
+
+        if all(installed_history_scopes):
             return True
+
+        if not any(installed_history_scopes):
+            return False
 
         conversation_data = self.get_conversations_info(channel_id=channel_id)
 
@@ -258,7 +263,7 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
 
             assert isinstance(conversations.data, dict)
             return conversations.data
-        except SlackApiError as e:
+        except (SlackApiError, AssertionError) as e:
             _logger.warning(
                 "slack.get_conversations_info.error",
                 extra={"channel_id": channel_id, "error": str(e)},
