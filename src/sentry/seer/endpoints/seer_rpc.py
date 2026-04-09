@@ -883,7 +883,8 @@ def bulk_get_project_preferences(*, organization_id: int, project_ids: list[int]
     """Bulk get Seer project preferences from Sentry DB.
 
     Returns a dict keyed by stringified project ID. Values are preference dicts or None
-    for projects with no configured preferences.
+    for projects with no configured preferences. Projects that don't belong to the
+    given organization are silently excluded from the result.
     """
     preferences = bulk_read_preferences_from_sentry_db(organization_id, project_ids)
     return {
