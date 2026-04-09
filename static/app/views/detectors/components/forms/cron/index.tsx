@@ -7,8 +7,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {t} from 'sentry/locale';
 import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
-import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
-import {DescribeSection} from 'sentry/views/detectors/components/forms/common/describeSection';
+import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
 import {ProjectSection} from 'sentry/views/detectors/components/forms/common/projectSection';
 import {CronDetectorFormDetectSection} from 'sentry/views/detectors/components/forms/cron/detect';
 import {
@@ -22,12 +21,22 @@ import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDe
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 import {useCronsUpsertGuideState} from 'sentry/views/insights/crons/components/useCronsUpsertGuideState';
 
+import {CronIssuePreview} from './cronIssuePreview';
 import {PreviewSection} from './previewSection';
 
 function useIsShowingPlatformGuide() {
   const {platformKey, guideKey} = useCronsUpsertGuideState();
   return platformKey && guideKey !== 'manual';
 }
+
+const FORM_SECTIONS = [
+  ProjectSection,
+  CronDetectorFormDetectSection,
+  CronDetectorFormResolveSection,
+  IssueOwnershipSection,
+  CronIssuePreview,
+  AutomateSection,
+];
 
 function CronDetectorForm({detector}: {detector?: CronDetector}) {
   const dataSource = detector?.dataSources[0];
@@ -44,12 +53,9 @@ function CronDetectorForm({detector}: {detector?: CronDetector}) {
         </Alert>
       )}
       <PreviewSection />
-      <ProjectSection />
-      <CronDetectorFormDetectSection />
-      <CronDetectorFormResolveSection />
-      <AssignSection />
-      <DescribeSection />
-      <AutomateSection />
+      {FORM_SECTIONS.map((FormSection, index) => (
+        <FormSection key={index} step={index + 1} />
+      ))}
     </Fragment>
   );
 

@@ -27,12 +27,12 @@ describe('ExploreSecondaryNavigation', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/broadcasts/`,
+      url: '/organizations/org-slug/broadcasts/',
       body: [],
     });
 
     MockApiClient.addMockResponse({
-      url: `/assistant/`,
+      url: '/assistant/',
       body: [],
     });
   });

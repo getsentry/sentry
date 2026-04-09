@@ -129,7 +129,7 @@ export function ChartWithIssues(props: Props) {
                   <Flex justify="between">
                     {title}
                     {hasData && recentIssues?.length ? (
-                      <LinkButton size="xs" to={{pathname: `/issues/`}}>
+                      <LinkButton size="xs" to={{pathname: '/issues/'}}>
                         {t('View All')}
                       </LinkButton>
                     ) : null}
@@ -154,7 +154,7 @@ export function ChartWithIssues(props: Props) {
             }}
           />
           {hasData && recentIssues?.length ? (
-            <LinkButton size="xs" to={{pathname: `/issues/`}}>
+            <LinkButton size="xs" to={{pathname: '/issues/'}}>
               {t('View All')}
             </LinkButton>
           ) : null}

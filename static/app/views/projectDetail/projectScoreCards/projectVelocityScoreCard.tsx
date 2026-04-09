@@ -46,7 +46,7 @@ const useReleaseCount = (props: Props) => {
 
   const currentQuery = useApiQuery<Release[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/releases/stats/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/releases/stats/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
@@ -67,7 +67,7 @@ const useReleaseCount = (props: Props) => {
 
   const previousQuery = useApiQuery<Release[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/releases/stats/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/releases/stats/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
@@ -95,7 +95,7 @@ const useReleaseCount = (props: Props) => {
 
   const allTimeQuery = useApiQuery<Release[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/releases/stats/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/releases/stats/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {

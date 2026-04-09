@@ -18,7 +18,12 @@ from sentry.api.serializers import serialize
 from sentry.auth.superuser import superuser_has_permission
 from sentry.constants import ObjectStatus
 from sentry.features.exceptions import FeatureNotRegistered
-from sentry.integrations.base import IntegrationData, IntegrationDomain, IntegrationProvider
+from sentry.integrations.base import (
+    IntegrationData,
+    IntegrationDomain,
+    IntegrationProvider,
+    is_provider_enabled,
+)
 from sentry.integrations.manager import default_manager
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -73,6 +78,11 @@ def initialize_integration_pipeline(
     )
 
     assert isinstance(pipeline.provider, IntegrationProvider)
+
+    if not is_provider_enabled(pipeline.provider, organization):
+        raise IntegrationPipelineError(
+            "This integration is not available for your organization.", not_found=True
+        )
 
     is_feature_enabled: dict[str, bool] = {}
     for feature in pipeline.provider.features:

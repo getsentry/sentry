@@ -1,4 +1,5 @@
 import type {ComponentProps, CSSProperties} from 'react';
+import {parseAsInteger, useQueryState} from 'nuqs';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -16,7 +17,6 @@ import {
   getResponseBodySize,
 } from 'sentry/utils/replays/resourceFrame';
 import type {SpanFrame} from 'sentry/utils/replays/types';
-import {useUrlParams} from 'sentry/utils/url/useUrlParams';
 import {TimestampButton} from 'sentry/views/replays/detail/timestampButton';
 import {operationName} from 'sentry/views/replays/detail/utils';
 
@@ -47,8 +47,8 @@ export function NetworkTableCell({
   // Rows include the sortable header, the dataIndex does not
   const dataIndex = rowIndex - 1;
 
-  const {getParamValue} = useUrlParams('n_detail_row', '');
-  const isSelected = getParamValue() === String(dataIndex);
+  const [detailRow] = useQueryState('n_detail_row', parseAsInteger);
+  const isSelected = detailRow === dataIndex;
 
   const method = getFrameMethod(frame);
   const statusCode = getFrameStatus(frame);

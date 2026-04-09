@@ -116,7 +116,7 @@ const AppContainer = styled('div')`
   padding-left: var(--sidebarWidth);
 `;
 
-const Content = styled(`main`)`
+const Content = styled('main')`
   width: 100%;
   max-width: var(--contentWidth);
   padding: 0 ${p => p.theme.space['2xl']};

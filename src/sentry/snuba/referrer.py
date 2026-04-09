@@ -625,6 +625,7 @@ class Referrer(StrEnum):
     DELETIONS_GROUP = "deletions.group"
     DISCOVER = "discover"
     DISCOVER_SLACK_UNFURL = "discover.slack.unfurl"
+    EXPLORE_SLACK_UNFURL = "explore.slack.unfurl"
     DYNAMIC_SAMPLING_COUNTERS_GET_ORG_TRANSACTION_VOLUMES = (
         "dynamic_sampling.counters.get_org_transaction_volumes"
     )

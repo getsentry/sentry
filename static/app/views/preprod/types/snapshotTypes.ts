@@ -36,6 +36,7 @@ export interface SnapshotApprover {
 export interface SnapshotApprovalInfo {
   approvers: SnapshotApprover[];
   status: 'approved' | 'requires_approval';
+  is_auto_approved?: boolean;
 }
 
 export interface SnapshotDetailsApiResponse {

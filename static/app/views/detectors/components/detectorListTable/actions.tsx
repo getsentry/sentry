@@ -68,8 +68,8 @@ export function DetectorsTableActions({
       );
     }
     return tn(
-      `Are you sure you want to enable this %s monitor?`,
-      `Are you sure you want to enable these %s monitors?`,
+      'Are you sure you want to enable this %s monitor?',
+      'Are you sure you want to enable these %s monitors?',
       selected.size
     );
   }, [allInQuerySelected, queryCount, selected.size]);
@@ -84,8 +84,8 @@ export function DetectorsTableActions({
       );
     }
     return tn(
-      `Are you sure you want to disable this %s monitor?`,
-      `Are you sure you want to disable these %s monitors?`,
+      'Are you sure you want to disable this %s monitor?',
+      'Are you sure you want to disable these %s monitors?',
       selected.size
     );
   }, [allInQuerySelected, queryCount, selected.size]);
@@ -128,8 +128,8 @@ export function DetectorsTableActions({
       );
     }
     return tn(
-      `Are you sure you want to delete this %s monitor?`,
-      `Are you sure you want to delete these %s monitors?`,
+      'Are you sure you want to delete this %s monitor?',
+      'Are you sure you want to delete these %s monitors?',
       selected.size
     );
   }, [allInQuerySelected, queryCount, selected.size]);

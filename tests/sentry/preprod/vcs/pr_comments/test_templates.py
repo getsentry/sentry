@@ -56,7 +56,7 @@ class FormatPrCommentTest(TestCase):
     def test_single_ios_artifact(self) -> None:
         artifact = self._create_artifact()
 
-        result = format_pr_comment([artifact])
+        result = format_pr_comment([artifact], project=self.project)
 
         assert "## Sentry Build Distribution" in result
         assert "| App Name | App ID | Version | Configuration | Install Page |" in result
@@ -74,7 +74,7 @@ class FormatPrCommentTest(TestCase):
             app_name="AndroidApp",
         )
 
-        result = format_pr_comment([artifact])
+        result = format_pr_comment([artifact], project=self.project)
 
         assert "AndroidApp" in result
         assert "### Android" not in result
@@ -87,13 +87,21 @@ class FormatPrCommentTest(TestCase):
             app_name="AndroidApp",
         )
 
-        result = format_pr_comment([ios_artifact, android_artifact])
+        result = format_pr_comment([ios_artifact, android_artifact], project=self.project)
 
         assert "### iOS" in result
         assert "### Android" in result
         assert "iOSApp" in result
         assert "AndroidApp" in result
 
+    def test_settings_link(self) -> None:
+        artifact = self._create_artifact()
+
+        result = format_pr_comment([artifact], project=self.project)
+
+        assert f"[Configure {self.project.name} build distribution settings](" in result
+        assert f"/settings/projects/{self.project.slug}/mobile-builds/?tab=distribution" in result
+
     def test_empty_list_raises(self) -> None:
         with pytest.raises(ValueError, match="No installable artifacts"):
-            format_pr_comment([])
+            format_pr_comment([], project=self.project)

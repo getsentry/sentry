@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import defaultdict, deque
 from dataclasses import dataclass
 from enum import Enum, auto, unique
 from functools import lru_cache
@@ -667,41 +667,47 @@ def get_exportable_sentry_models() -> set[type[models.base.Model]]:
     )
 
 
-def dedupe_and_reassign_groupseen_in_org(
-    organization_id: int, from_user_id: int, to_user_id: int
-) -> None:
+def _get_org_scope_condition(model_relations: ModelRelations, organization_id: int) -> Q:
     """
-    Dedupe GroupSeen rows inside an organization and reassign them to the new user.
+    Finds a path from this model to Organization through FK relationships and returns a Q object
+    scoping the model to the given organization_id. Uses BFS to find the shortest path.
+
+    Only traverses real DB-level FK types (FlexibleForeignKey, DefaultForeignKey, OneToOneField
+    variants). HybridCloudForeignKey and ImplicitForeignKey are skipped because they don't support
+    Django ORM __ traversal. We skip over nullable relations to avoid generating conditions
+    that don't find any records.
+
+    Returns Q() if no path to Organization is found (caller's queries will be unscoped).
     """
-    from sentry.models.groupseen import GroupSeen
+    from sentry.models.organization import Organization
 
-    scoped = Q(group__project__organization_id=organization_id)
-    # Remove from_user rows that would collide with to_user for the same group
-    GroupSeen.objects.filter(
-        scoped,
-        user_id=from_user_id,
-        group_id__in=GroupSeen.objects.filter(scoped, user_id=to_user_id).values("group_id"),
-    ).delete()
-    GroupSeen.objects.filter(scoped, user_id=from_user_id).update(user_id=to_user_id)
+    traversable = {
+        ForeignFieldKind.FlexibleForeignKey,
+        ForeignFieldKind.DefaultForeignKey,
+        ForeignFieldKind.OneToOneCascadeDeletes,
+        ForeignFieldKind.DefaultOneToOneField,
+    }
+    all_deps = dependencies()
+    visited: set[NormalizedModelName] = {get_model_name(model_relations.model)}
+    queue: deque[tuple[ModelRelations, str]] = deque([(model_relations, "")])
 
+    while queue:
+        current, prefix = queue.popleft()
+        for field_name, fk in current.foreign_keys.items():
+            if fk.model is Organization:
+                col = field_name if field_name.endswith("_id") else f"{field_name}_id"
+                return Q(**{f"{prefix}{col}": organization_id})
+            if fk.kind not in traversable:
+                continue
+            if fk.nullable:
+                continue
+            related_name = get_model_name(fk.model)
+            if related_name not in visited and related_name in all_deps:
+                visited.add(related_name)
+                traversal = field_name[:-3] if field_name.endswith("_id") else field_name
+                queue.append((all_deps[related_name], f"{prefix}{traversal}__"))
 
-def dedupe_and_reassign_groupsubscription_in_org(
-    organization_id: int, from_user_id: int, to_user_id: int
-) -> None:
-    """
-    Dedupe GroupSubscription rows inside an organization and reassign them to the new user.
-    """
-    from sentry.models.groupsubscription import GroupSubscription
-
-    scoped = Q(group__project__organization_id=organization_id)
-    GroupSubscription.objects.filter(
-        scoped,
-        user_id=from_user_id,
-        group_id__in=GroupSubscription.objects.filter(scoped, user_id=to_user_id).values(
-            "group_id"
-        ),
-    ).delete()
-    GroupSubscription.objects.filter(scoped, user_id=from_user_id).update(user_id=to_user_id)
+    return Q()
 
 
 def merge_users_for_model_in_org(
@@ -710,34 +716,46 @@ def merge_users_for_model_in_org(
     """
     All instances of this model in a certain organization that reference both the organization and
     user in question will be pointed at the new user instead.
+
+    For models with unique constraints that include a user field, conflicting rows (where the
+    to_user already has a row matching the other unique fields) are deleted before the update to
+    avoid IntegrityErrors.
     """
-
-    from sentry.models.groupseen import GroupSeen
-    from sentry.models.groupsubscription import GroupSubscription
-    from sentry.models.organization import Organization
     from sentry.users.models.user import User
-
-    # Special-case: GroupSeen has unique_together (user_id, group). Dedupe conflicts inside org
-    # then update remaining rows.
-    if model is GroupSeen:
-        dedupe_and_reassign_groupseen_in_org(organization_id, from_user_id, to_user_id)
-        return
-
-    # Special-case: GroupSubscription has unique_together (group, user_id). Same pattern.
-    if model is GroupSubscription:
-        dedupe_and_reassign_groupsubscription_in_org(organization_id, from_user_id, to_user_id)
-        return
 
     model_relations = dependencies()[get_model_name(model)]
     user_refs = {k for k, v in model_relations.foreign_keys.items() if v.model == User}
+    for_this_org = _get_org_scope_condition(model_relations, organization_id)
 
-    org_refs = {
-        k if k.endswith("_id") else f"{k}_id"
-        for k, v in model_relations.foreign_keys.items()
-        if v.model == Organization
-    }
-    for_this_org = Q(**{field_name: organization_id for field_name in org_refs})
+    # model_relations.uniques only contains fields, and needs to be json encodable.
+    unique_constraints: list[tuple[frozenset[str], Q]] = []
+    for unique_fields in model._meta.unique_together:
+        unique_constraints.append((frozenset(unique_fields), Q()))
+    for constraint in model._meta.constraints:
+        if not isinstance(constraint, UniqueConstraint):
+            continue
+        unique_constraints.append((frozenset(constraint.fields), constraint.condition or Q()))
 
     for user_ref in user_refs:
-        q = for_this_org & Q(**{user_ref: from_user_id})
-        model.objects.filter(q).update(**{user_ref: to_user_id})
+        # For any unique constraint that includes a user/user_id field, delete rows that would
+        # collide after reassignment before doing the update.
+        user_uniques = [u for u in unique_constraints if user_ref in u[0]]
+        for user_constraint in user_uniques:
+            other_fields = list(user_constraint[0] - {user_ref})
+            if not other_fields:
+                # user_ref is unique on its own, delete from_user row so that
+                # updates of to_user -> from_user don't conflict.
+                model.objects.filter(
+                    for_this_org, user_constraint[1], **{user_ref: from_user_id}
+                ).delete()
+            else:
+                for matching in model.objects.filter(
+                    for_this_org, user_constraint[1], **{user_ref: to_user_id}
+                ).values(*other_fields):
+                    model.objects.filter(
+                        for_this_org, user_constraint[1], **{user_ref: from_user_id}, **matching
+                    ).delete()
+
+        model.objects.filter(for_this_org & Q(**{user_ref: from_user_id})).update(
+            **{user_ref: to_user_id}
+        )

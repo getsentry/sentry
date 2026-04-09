@@ -34,7 +34,7 @@ const WIDGET_OPTIONS: Record<
     title: t('Duration Percentiles'),
     spanCategoryTitle: t('Span Category Percentiles'),
     description: t(
-      `Compare the duration at each percentile. Compare with Latency Histogram to see transaction volume at duration intervals.`
+      'Compare the duration at each percentile. Compare with Latency Histogram to see transaction volume at duration intervals.'
     ),
     disabled: false,
   },
@@ -54,7 +54,7 @@ const WIDGET_OPTIONS: Record<
     description: t(
       'Web Vitals Breakdown reflects the 75th percentile of web vitals over time.'
     ),
-    disabled: true,
+    disabled: false,
   },
 };
 

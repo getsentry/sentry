@@ -118,8 +118,7 @@ describe('IntegrationDetailedView', () => {
       initialRouterConfig: createRouterConfig('bitbucket'),
       organization,
     });
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
-    expect(screen.getByText('Bitbucket')).toBeInTheDocument();
+    expect(await screen.findByText('Bitbucket')).toBeInTheDocument();
     expect(screen.getByText('Installed')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Add integration'})).toBeEnabled();
   });
@@ -129,9 +128,7 @@ describe('IntegrationDetailedView', () => {
       initialRouterConfig: createRouterConfig('bitbucket', {tab: 'configurations'}),
       organization,
     });
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
-
-    expect(screen.getByTestId('integration-name')).toHaveTextContent(
+    expect(await screen.findByTestId('integration-name')).toHaveTextContent(
       '{fb715533-bbd7-4666-aa57-01dc93dd9cc0}'
     );
     expect(screen.getByRole('button', {name: 'Configure'})).toBeEnabled();
@@ -149,9 +146,7 @@ describe('IntegrationDetailedView', () => {
       },
       organization: lowerAccessOrg,
     });
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
-
-    expect(screen.getByRole('button', {name: 'Configure'})).toHaveAttribute(
+    expect(await screen.findByRole('button', {name: 'Configure'})).toHaveAttribute(
       'aria-disabled',
       'true'
     );
@@ -209,9 +204,7 @@ describe('IntegrationDetailedView', () => {
       },
       organization: lowerAccessOrganization,
     });
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
-
-    expect(screen.getByRole('button', {name: 'Configure'})).toBeEnabled();
+    expect(await screen.findByRole('button', {name: 'Configure'})).toBeEnabled();
   });
 
   it('shows features tab for github only', async () => {
@@ -219,8 +212,7 @@ describe('IntegrationDetailedView', () => {
       initialRouterConfig: createRouterConfig('github'),
       organization,
     });
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
-    expect(screen.getByText('features')).toBeInTheDocument();
+    expect(await screen.findByText('features')).toBeInTheDocument();
   });
 
   it('cannot enable PR bot without GitHub integration', async () => {
@@ -233,9 +225,7 @@ describe('IntegrationDetailedView', () => {
       initialRouterConfig: createRouterConfig('github'),
       organization,
     });
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByText('features'));
+    await userEvent.click(await screen.findByText('features'));
 
     expect(
       screen.getByRole('checkbox', {name: /Enable Comments on Suspect Pull Requests/})
@@ -247,9 +237,7 @@ describe('IntegrationDetailedView', () => {
       initialRouterConfig: createRouterConfig('github'),
       organization,
     });
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByText('features'));
+    await userEvent.click(await screen.findByText('features'));
 
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -288,9 +276,8 @@ describe('IntegrationDetailedView', () => {
       initialRouterConfig: createRouterConfig('gitlab'),
       organization,
     });
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByText('features'));
+    await userEvent.click(await screen.findByText('features'));
 
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,

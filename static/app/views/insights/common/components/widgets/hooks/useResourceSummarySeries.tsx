@@ -47,7 +47,7 @@ export function useResourceSummarySeries(props: Props) {
     {
       query: search,
       yAxis: [
-        `epm()`,
+        'epm()',
         `avg(${SPAN_SELF_TIME})`,
         `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
         `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,

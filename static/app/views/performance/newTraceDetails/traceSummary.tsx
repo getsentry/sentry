@@ -38,7 +38,7 @@ const makeTraceSummaryQueryKey = (
   organizationSlug: string,
   traceSlug: string
 ): ApiQueryKey => [
-  getApiUrl(`/organizations/$organizationIdOrSlug/trace-summary/`, {
+  getApiUrl('/organizations/$organizationIdOrSlug/trace-summary/', {
     path: {organizationIdOrSlug: organizationSlug},
   }),
   {method: 'POST', data: {traceSlug}},

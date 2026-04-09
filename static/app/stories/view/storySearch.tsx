@@ -9,6 +9,7 @@ import type {CollectionChildren} from '@react-types/shared';
 import {ListBox} from '@sentry/scraps/compactSelect';
 import {useHotkeys, Hotkey} from '@sentry/scraps/hotkey';
 import {InputGroup} from '@sentry/scraps/input';
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Overlay} from 'sentry/components/overlay';
@@ -209,7 +210,7 @@ function SearchComboBox(props: SearchComboBoxProps) {
     onInputChange: setInputValue,
     defaultFilter: filter,
     shouldCloseOnBlur: true,
-    allowsEmptyCollection: false,
+    allowsEmptyCollection: true,
     onSelectionChange: handleSelectionChange,
   });
 
@@ -233,20 +234,48 @@ function SearchComboBox(props: SearchComboBoxProps) {
       <SearchInput ref={inputRef} placeholder={props.label} {...inputProps} />
       {state.isOpen && (
         <StyledOverlay placement="bottom-start" ref={popoverRef}>
-          <ListBox
-            size="sm"
-            virtualized
-            listState={state}
-            hasSearch={!!state.inputValue}
-            overlayIsOpen={state.isOpen}
-            {...listBoxProps}
-            style={{maxHeight: 320, minHeight: 132}}
-          >
-            {props.children}
-          </ListBox>
+          {state.collection.size === 0 ? (
+            inputValue.length === 0 ? (
+              <SearchEmpty />
+            ) : (
+              <SearchNotFound inputValue={inputValue} />
+            )
+          ) : (
+            <ListBox
+              size="sm"
+              virtualized
+              listState={state}
+              hasSearch={!!state.inputValue}
+              overlayIsOpen={state.isOpen}
+              {...listBoxProps}
+              className="story-search-results"
+            >
+              {props.children}
+            </ListBox>
+          )}
         </StyledOverlay>
       )}
     </StorySearchContainer>
+  );
+}
+
+function SearchEmpty() {
+  return (
+    <Flex align="center" justify="start" padding="lg">
+      <Text variant="muted" size="sm">
+        {t('Type to search stories...')}
+      </Text>
+    </Flex>
+  );
+}
+
+function SearchNotFound({inputValue}: {inputValue: string}) {
+  return (
+    <Flex align="center" justify="start" padding="lg">
+      <Text variant="muted" size="sm">
+        {t('No stories match "%s"', inputValue)}
+      </Text>
+    </Flex>
   );
 }
 
@@ -259,22 +288,20 @@ const StorySearchContainer = styled('div')`
 `;
 
 const StyledOverlay = styled(Overlay)`
-  overflow: hidden;
-  position: fixed;
-  top: 48px;
-  left: 256px;
+  position: absolute;
+  top: 100%;
+  left: 0;
   width: 320px;
-
-  max-height: 320px;
-  min-height: 132px;
-  > div {
-    max-height: 320px !important;
-    min-height: 132px !important;
-  }
 
   /* Make section headers darker in this component */
   p[id][aria-hidden='true'] {
     color: ${p => p.theme.tokens.content.primary};
+  }
+
+  .story-search-results {
+    max-height: 320px;
+    min-height: 64px;
+    padding-block-end: calc(${p => p.theme.space.md} + 1px);
   }
 `;
 

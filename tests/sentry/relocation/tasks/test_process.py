@@ -258,7 +258,7 @@ class UploadingStartTest(RelocationTaskTestCase):
             self.uuid = str(self.relocation.uuid)
 
     @override_settings(
-        SENTRY_MONOLITH_REGION=REQUESTING_TEST_REGION, SENTRY_REGION=REQUESTING_TEST_REGION
+        SENTRY_MONOLITH_REGION=REQUESTING_TEST_REGION, SENTRY_LOCAL_CELL=REQUESTING_TEST_REGION
     )
     @patch("sentry.relocation.tasks.process.cross_region_export_timeout_check.apply_async")
     def test_success_saas_to_saas(

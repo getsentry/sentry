@@ -99,7 +99,7 @@ class AlertRuleBase(APITestCase):
         return {
             "aggregate": "count()",
             "query": "",
-            "timeWindow": "300",
+            "timeWindow": "5",
             "resolveThreshold": 100,
             "thresholdType": 0,
             "triggers": [
@@ -2067,13 +2067,18 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         data = deepcopy(self.alert_rule_dict)
         data["dataset"] = "events_analytics_platform"
         data["alertType"] = "eap_metrics"
+
+        # Below the 5-minute floor
         data["timeWindow"] = 1
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_error_response(self.organization.slug, status_code=400, **data)
-        assert (
-            resp.data["nonFieldErrors"][0]
-            == "Invalid Time Window: Time window for this alert type must be at least 5 minutes."
-        )
+        assert "Invalid Time Window" in resp.data["nonFieldErrors"][0]
+
+        # Above the floor but not a valid granularity (7 minutes = 420 seconds)
+        data["timeWindow"] = 7
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert "Invalid Time Window" in resp.data["nonFieldErrors"][0]
 
     def test_transactions_dataset_deprecation_validation(self) -> None:
         data = deepcopy(self.alert_rule_dict)

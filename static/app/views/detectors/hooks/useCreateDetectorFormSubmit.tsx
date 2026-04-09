@@ -60,6 +60,8 @@ export function useCreateDetectorFormSubmit<
       );
 
       try {
+        formModel.setFormSaving();
+
         const resultDetector = await createDetector(payload);
 
         trackAnalytics('monitor.created', {
@@ -68,7 +70,7 @@ export function useCreateDetectorFormSubmit<
           success: true,
         });
 
-        addSuccessMessage(t('Monitor created successfully'));
+        addSuccessMessage(t('Monitor created'));
 
         if (onSuccess) {
           onSuccess(resultDetector);

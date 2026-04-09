@@ -30,7 +30,7 @@ from sentry.types.cell import Cell, RegionCategory
 class AcceptInviteTest(TestCase, HybridCloudTestMixin):
     def setUp(self) -> None:
         super().setUp()
-        with override_settings(SENTRY_REGION=settings.SENTRY_MONOLITH_REGION):
+        with override_settings(SENTRY_LOCAL_CELL=settings.SENTRY_MONOLITH_REGION):
             self.organization = self.create_organization(owner=self.create_user("foo@example.com"))
         self.user = self.create_user("bar@example.com")
 

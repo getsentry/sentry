@@ -252,7 +252,7 @@ function getPageParam(
       firstTimestamp = BigInt(firstRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
       lastTimestamp = BigInt(lastRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
     } catch {
-      logger.warn(`No timestamp precise found for log row, using timestamp instead`, {
+      logger.warn('No timestamp precise found for log row, using timestamp instead', {
         logId: firstRow[OurLogKnownFieldKey.ID],
         timestamp: firstRow[OurLogKnownFieldKey.TIMESTAMP],
         timestampPrecise: firstRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE],

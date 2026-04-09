@@ -52,6 +52,7 @@ class ExplorerChatRequest(TypedDict):
     run_id: int | None
     insert_index: int | None
     on_page_context: str | None
+    page_name: NotRequired[str | None]
     user_org_context: NotRequired[dict[str, Any] | None]
     intelligence_level: NotRequired[str]
     is_interactive: NotRequired[bool]
@@ -339,3 +340,36 @@ def poll_until_done(
 
         # Wait before next poll
         time.sleep(poll_interval)
+
+
+def _render_node(node: dict[str, Any], depth: int) -> str:
+    """Recursively render an LLMContextSnapshot node and its children as markdown."""
+    heading = "#" * min(depth + 1, 6)
+    lines = [f"{heading} {(node.get('nodeType') or 'unknown').capitalize()}"]
+
+    data = node.get("data")
+    if isinstance(data, dict):
+        for key, value in data.items():
+            lines.append(f"- **{key}**: {orjson.dumps(value).decode()}")
+    elif data is not None:
+        lines.append(f"- {orjson.dumps(data).decode()}")
+
+    for child in node.get("children", []):
+        lines.append(_render_node(child, depth + 1))
+
+    return "\n".join(lines)
+
+
+def snapshot_to_markdown(snapshot: dict[str, Any]) -> str:
+    """Convert an LLMContextSnapshot dict to a markdown string.
+
+    Expected shape: ``{"version": int, "nodes": [{"nodeType": str, "data": ..., "children": [...]}]}``
+    The top-level nodes list contains a single root node (the page).
+    """
+    nodes = snapshot.get("nodes", [])
+    if not nodes:
+        return ""
+    preamble = (
+        "> This is a structured summary of the page the user is viewing, not an exact screenshot.\n"
+    )
+    return preamble + _render_node(nodes[0], 0)

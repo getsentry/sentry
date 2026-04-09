@@ -13,27 +13,27 @@ describe('Subscription > PaymentHistory', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/customers/dogz-rule/billing-config/`,
+      url: '/customers/dogz-rule/billing-config/',
       method: 'GET',
       body: BillingConfigFixture(PlanTier.AM1),
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/dogz-rule/promotions/trigger-check/`,
+      url: '/organizations/dogz-rule/promotions/trigger-check/',
       method: 'POST',
     });
     MockApiClient.addMockResponse({
-      url: `/customers/dogz-rule/plan-migrations/`,
+      url: '/customers/dogz-rule/plan-migrations/',
       query: {scheduled: 1, applied: 0},
       method: 'GET',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/customers/dogz-rule/recurring-credits/`,
+      url: '/customers/dogz-rule/recurring-credits/',
       method: 'GET',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/dogz-rule/prompts-activity/`,
+      url: '/organizations/dogz-rule/prompts-activity/',
       body: {},
     });
   });
@@ -55,7 +55,7 @@ describe('Subscription > PaymentHistory', () => {
     render(<PaymentHistory />, {organization});
 
     await screen.findByText('Receipts');
-    expect(screen.getByTestId('payment-list')).toBeInTheDocument();
+    expect(await screen.findByTestId('payment-list')).toBeInTheDocument();
   });
 
   it('renders no receipts found', async () => {

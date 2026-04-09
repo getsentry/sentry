@@ -19,7 +19,7 @@ export function MonitorHeader({monitor, orgSlug, onUpdate}: Props) {
   const crumbs = [
     {
       label: t('Alerts'),
-      to: makeAlertsPathname({path: `/rules/`, organization}),
+      to: makeAlertsPathname({path: '/rules/', organization}),
       preservePageFilters: true,
     },
     {

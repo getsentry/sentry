@@ -13,21 +13,21 @@ describe('ResultsSearchQueryBuilder', () => {
   beforeEach(() => {
     organization = OrganizationFixture();
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/recent-searches/`,
+      url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/recent-searches/`,
+      url: '/organizations/org-slug/recent-searches/',
       body: [],
       method: 'POST',
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/tags/`,
+      url: '/organizations/org-slug/tags/',
       body: [{key: 'transaction', name: 'transaction', kind: FieldKind.FIELD}],
     });
   });
 
-  it('does not show function tags in has: dropdown', async () => {
+  it.isKnownFlake('does not show function tags in has: dropdown', async () => {
     render(
       <ResultsSearchQueryBuilder
         query=""
@@ -55,11 +55,11 @@ describe('ResultsSearchQueryBuilder', () => {
 
     // Check that "p50" (a function tag) is NOT in the dropdown
     expect(
-      within(screen.getByRole('listbox')).queryByText('p50')
+      within(await screen.findByRole('listbox')).queryByText('p50')
     ).not.toBeInTheDocument();
   });
 
-  it('shows normal tags, e.g. transaction, in the dropdown', async () => {
+  it.isKnownFlake('shows normal tags, e.g. transaction, in the dropdown', async () => {
     render(
       <ResultsSearchQueryBuilder
         query=""

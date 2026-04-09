@@ -236,7 +236,7 @@ describe('TeamMembers', () => {
       organization,
     });
 
-    await screen.findAllByRole('button', {name: 'Add Member'});
+    await screen.findAllByRole('button', {name: 'Remove'});
 
     expect(deleteMock).not.toHaveBeenCalled();
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]!);
@@ -267,7 +267,7 @@ describe('TeamMembers', () => {
       organization: organizationMember,
     });
 
-    await screen.findAllByRole('button', {name: 'Add Member'});
+    await screen.findAllByTestId('letter_avatar-avatar');
 
     expect(deleteMock).not.toHaveBeenCalled();
 

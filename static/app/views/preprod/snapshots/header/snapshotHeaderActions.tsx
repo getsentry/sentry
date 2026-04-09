@@ -5,6 +5,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
@@ -15,6 +16,7 @@ import {
   IconCheckmark,
   IconDelete,
   IconEllipsis,
+  IconInfo,
   IconRefresh,
   IconThumb,
   IconTimer,
@@ -47,6 +49,7 @@ export function SnapshotHeaderActions({
   const [isDeleting, setIsDeleting] = useState(false);
 
   const isApproved = data.approval_info?.status === 'approved';
+  const isAutoApproved = data.approval_info?.is_auto_approved ?? false;
   const approvers: AvatarUser[] = (data.approval_info?.approvers ?? []).map((a, i) => ({
     id: a.id ?? `approver-${i}`,
     name: a.name ?? '',
@@ -86,12 +89,28 @@ export function SnapshotHeaderActions({
     );
   }, [organizationSlug, data.head_artifact_id, queryClient, apiUrl]);
 
-  const handleRerunComparison = useCallback(() => {
+  const handleRerunStatusChecks = useCallback(() => {
     clientRef.current.request(
       `/organizations/${organizationSlug}/preprod-artifact/rerun-status-checks/${data.head_artifact_id}/`,
       {
         method: 'POST',
         data: {check_types: ['snapshots']},
+        success: () => {
+          addSuccessMessage(t('Status checks rerun initiated'));
+          queryClient.invalidateQueries({queryKey: [apiUrl]});
+        },
+        error: (_resp: any) => {
+          addErrorMessage(t('Failed to rerun status checks'));
+        },
+      }
+    );
+  }, [organizationSlug, data.head_artifact_id, queryClient, apiUrl]);
+
+  const handleRerunComparison = useCallback(() => {
+    clientRef.current.request(
+      `/organizations/${organizationSlug}/preprodartifacts/snapshots/${data.head_artifact_id}/recompare/`,
+      {
+        method: 'POST',
         success: () => {
           addSuccessMessage(t('Re-run comparison initiated'));
           queryClient.invalidateQueries({queryKey: [apiUrl]});
@@ -131,10 +150,23 @@ export function SnapshotHeaderActions({
     <Flex align="center" gap="md">
       {data.approval_info &&
         (isApproved ? (
-          <Flex align="center" gap="sm">
-            <Tag variant="success" icon={<IconCheckmark />}>
-              {t('Approved')}
-            </Tag>
+          <Flex align="center" gap="xl">
+            <Flex align="center" gap="xs">
+              <Tag variant="success" icon={<IconCheckmark />}>
+                {isAutoApproved ? t('Auto-approved') : t('Approved')}
+              </Tag>
+              {isAutoApproved && (
+                <Tooltip
+                  title={t(
+                    'Automatically approved because the changes match a previously approved build on this PR.'
+                  )}
+                >
+                  <Flex align="center">
+                    <IconInfo size="sm" />
+                  </Flex>
+                </Tooltip>
+              )}
+            </Flex>
             {approvers.length > 0 && (
               <AvatarList users={approvers} avatarSize={24} maxVisibleAvatars={2} />
             )}
@@ -165,6 +197,17 @@ export function SnapshotHeaderActions({
       >
         {({open: openDeleteModal}) => {
           const menuItems: MenuItemProps[] = [
+            {
+              key: 'rerun-status-checks',
+              label: (
+                <Flex align="center" gap="sm">
+                  <IconRefresh size="sm" />
+                  {t('Rerun Status Checks')}
+                </Flex>
+              ),
+              onAction: handleRerunStatusChecks,
+              textValue: t('Rerun Status Checks'),
+            },
             {
               key: 'delete',
               label: (

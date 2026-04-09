@@ -130,12 +130,18 @@ make reset-db
 #### Development Setup
 
 ```bash
-# Start the development server
+# Start the full development server (requires devservices up)
 pnpm run dev
 
 # Start only the UI development server with hot reload
+# Proxies API requests to production sentry.io
 pnpm run dev-ui
 ```
+
+**Dev server URLs:**
+
+- Full devserver: http://dev.getsentry.net:8000
+- Frontend-only (`dev-ui`): https://sentry.dev.getsentry.net:7999/
 
 #### Typechecking
 

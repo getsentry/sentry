@@ -37,8 +37,15 @@ def _validate_with_serializer(
 
     if project is None:
         return None
+    # Strip fields that require request-scoped context (project permissions,
+    # environment access) which we don't have in the completion hook.
+    # The serializer validation here targets widget-level correctness.
+    artifact_data = artifact.dict()
+    artifact_data.pop("projects", None)
+    artifact_data.pop("environment", None)
+
     serializer = DashboardSerializer(
-        data=artifact.dict(),
+        data=artifact_data,
         context={
             "organization": organization,
             "request": SimpleNamespace(user=None),  # mock request to satisfy serializer

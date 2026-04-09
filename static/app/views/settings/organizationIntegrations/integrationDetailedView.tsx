@@ -98,7 +98,7 @@ function makeIntegrationQueryKey({
   orgSlug: string;
 }): ApiQueryKey {
   return [
-    getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
       path: {organizationIdOrSlug: orgSlug},
     }),
     {
@@ -129,7 +129,7 @@ export default function IntegrationDetailedView() {
     isError: isInformationError,
   } = useApiQuery<IntegrationInformation>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/config/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
@@ -245,7 +245,7 @@ export default function IntegrationDetailedView() {
         });
         queryClient.invalidateQueries({
           queryKey: [
-            getApiUrl(`/organizations/$organizationIdOrSlug/config/integrations/`, {
+            getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
               path: {organizationIdOrSlug: organization.slug},
             }),
           ],
@@ -328,46 +328,8 @@ export default function IntegrationDetailedView() {
         return null;
       }
 
-      const showStagingButton =
-        integrationSlug === 'slack' &&
-        organization.features.includes('slack-staging-app');
-
       return (
         <Flex gap="md">
-          {showStagingButton && (
-            <IntegrationContext
-              value={{
-                provider,
-                type: integrationType,
-                installStatus: installationStatus,
-                modalParams: {use_staging: '1'},
-                analyticsParams: {
-                  view: 'integrations_directory_integration_detail',
-                  already_installed: installationStatus !== 'Not Installed',
-                  ...(referrer && {referrer}),
-                },
-              }}
-            >
-              <IntegrationButton
-                userHasAccess={userHasAccess}
-                onAddIntegration={onInstall}
-                onExternalClick={() => {
-                  trackIntegrationAnalytics('integrations.installation_start', {
-                    view: 'integrations_directory_integration_detail',
-                    integration: integrationSlug,
-                    integration_type: integrationType,
-                    already_installed: installationStatus !== 'Not Installed',
-                    organization,
-                  });
-                }}
-                buttonProps={{
-                  ...buttonProps,
-                  'data-test-id': 'install-staging-button',
-                  buttonText: t('Add %s to Staging', provider.metadata.noun),
-                }}
-              />
-            </IntegrationContext>
-          )}
           <IntegrationContext
             value={{
               provider,

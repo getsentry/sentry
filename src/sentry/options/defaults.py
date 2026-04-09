@@ -687,10 +687,6 @@ register("slack.debug-workspace", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Log unfurl payloads for debugging
 register("slack.log-unfurl-payload", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# When enabled, new Slack installations will request extended scopes
-# (reactions:write, channels:history, groups:history, app_mentions:read)
-# Existing installations must re-authorize to get these scopes.
-register("slack.extended-scopes-enabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Slack Staging App
 register("slack-staging.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -932,6 +928,37 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register("snuba.search.hits-sample-size", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register(
+    "snuba.search.recommended.recency-weight",
+    default=0.20,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "snuba.search.recommended.spike-weight",
+    default=0.20,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "snuba.search.recommended.severity-weight",
+    default=0.20,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "snuba.search.recommended.user-impact-weight",
+    default=0.05,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "snuba.search.recommended.event-volume-weight",
+    default=0.20,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "snuba.search.recommended.group-type-boost",
+    type=Dict,
+    default={7001: 0.15},
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register("snuba.track-outcomes-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
@@ -1345,6 +1372,17 @@ register(
     type=Float,
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.night_shift.enable",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.night_shift.issues_per_org",
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # ## sentry.killswitches
@@ -3166,6 +3204,12 @@ register(
     default=10 * 1024 * 1024,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# When enabled, oversized segments are split into chunks instead of being dropped.
+register(
+    "spans.buffer.chunk-oversized-segments",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # TTL for keys in Redis. This is a downside protection in case of bugs.
 register(
     "spans.buffer.redis-ttl",
@@ -3548,18 +3592,18 @@ register(
     default=10000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Tuning knobs for the periodic fire-history cleanup task.
+# Tuning knobs for the periodic open-period-activity cleanup task.
 # time_limit is a wall-clock budget checked *between* batches, so a single
 # batch that exceeds it will still run to completion. Setting it to 0
 # prevents any batches from running.
 register(
-    "workflow_engine.fire_history_cleanup.time_limit_seconds",
+    "workflow_engine.open_period_activity_cleanup.time_limit_seconds",
     type=Float,
     default=5.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "workflow_engine.fire_history_cleanup.batch_size",
+    "workflow_engine.open_period_activity_cleanup.batch_size",
     type=Int,
     default=10000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -4073,4 +4117,13 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# ViewerContext — unified caller identity for all entrypoints.
+# Set via deploy config (SENTRY_OPTIONS); requires restart to change.
+register(
+    "viewer-context.enabled",
+    default=True,
+    type=Bool,
+    flags=FLAG_NOSTORE,
 )

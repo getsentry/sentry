@@ -1,5 +1,10 @@
+from __future__ import annotations
+
 from enum import StrEnum
-from typing import Final
+from typing import TYPE_CHECKING, Any, Final
+
+if TYPE_CHECKING:
+    from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 
 
 class SentryAppActionType(StrEnum):
@@ -106,3 +111,25 @@ EVENT_EXPANSION: Final[dict[SentryAppResourceType, list[str]]] = {
 # per-event-type (issue.created, project.deleted, etc.). These are valid
 # resources a Sentry App may subscribe to.
 VALID_EVENT_RESOURCES = EVENT_EXPANSION.keys()
+
+
+def find_alert_rule_action_ui_component(
+    app_platform_event: AppPlatformEvent[dict[str, Any]],
+) -> bool:
+    """
+    Returns True if the metric alert event contains a sentry app action with UI component settings.
+    Used to gate recording of AlertRuleUiComponentWebhookSentEvent analytics.
+    """
+    triggers = (
+        getattr(app_platform_event, "data", {})
+        .get("metric_alert", {})
+        .get("alert_rule", {})
+        .get("triggers", [])
+    )
+    actions = [
+        action
+        for trigger in triggers
+        for action in trigger.get("actions", [])
+        if (action.get("type") == "sentry_app" and action.get("settings") is not None)
+    ]
+    return bool(len(actions))

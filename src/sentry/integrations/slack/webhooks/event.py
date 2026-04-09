@@ -176,6 +176,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
     ) -> dict[LinkType, list[UnfurlableUrl]]:
         matches: dict[LinkType, list[UnfurlableUrl]] = defaultdict(list)
         links_seen = set()
+        link_types: set[str] = set()
 
         for item in data.get("links", []):
             with MessagingInteractionEvent(
@@ -194,13 +195,16 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 if link_type is None or args is None:
                     continue
 
+                feature_flag = {
+                    LinkType.DISCOVER: "organizations:discover-basic",
+                    LinkType.EXPLORE: "organizations:data-browsing-widget-unfurl",
+                }.get(link_type)
+
                 if (
                     organization
-                    and link_type == LinkType.DISCOVER
+                    and feature_flag
                     and not slack_request.has_identity
-                    and features.has(
-                        "organizations:discover-basic", organization, actor=request.user
-                    )
+                    and features.has(feature_flag, organization, actor=request.user)
                 ):
                     try:
                         analytics.record(
@@ -223,6 +227,10 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
                 links_seen.add(seen_marker)
                 matches[link_type].append(UnfurlableUrl(url=url, args=args))
+                link_types.add(getattr(link_type, "value", str(link_type)))
+
+        if len(link_types) > 0:
+            sentry_sdk.set_tag("slack.link_type", ",".join(sorted(link_types)))
 
         return matches
 
@@ -266,6 +274,18 @@ class SlackEventEndpoint(SlackDMEndpoint):
             else None
         )
         organization = organization_context.organization if organization_context else None
+
+        if organization:
+            sentry_sdk.set_tag("organization.slug", organization.slug)
+        identity_user = slack_request.get_identity_user()
+        if identity_user:
+            sentry_sdk.set_user(
+                {
+                    "id": str(identity_user.id),
+                    "email": identity_user.email,
+                    "username": identity_user.username,
+                }
+            )
 
         logger_params = {
             "integration_id": slack_request.integration.id,
@@ -427,6 +447,9 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
         if slack_request.is_challenge():
             return self.on_url_verification(request, slack_request.data)
+
+        sentry_sdk.set_tag("slack.event_type", slack_request.type)
+
         if slack_request.type == "link_shared":
             if self.on_link_shared(request, slack_request):
                 return self.respond()

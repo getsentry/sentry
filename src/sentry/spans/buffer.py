@@ -143,8 +143,11 @@ class Span(NamedTuple):
             return self.segment_id or self.parent_span_id or self.span_id
 
 
+type SpanPayload = dict[str, Any]
+
+
 class OutputSpan(NamedTuple):
-    payload: dict[str, Any]
+    payload: SpanPayload
 
 
 class FlushedSegment(NamedTuple):
@@ -156,6 +159,45 @@ class FlushedSegment(NamedTuple):
     )
     ingested_count: int = 0  # Ingested count at flush time, used for conditional data cleanup
     payload_keys: list[PayloadKey] = []  # For cleanup
+
+    def to_messages(self) -> list[dict[str, Any]]:
+        """
+        Build producer messages for this segment.
+
+        If chunk-oversized-segments is enabled and the segment exceeds
+        max_segment_bytes, the segment is split into multiple messages with
+        skip_enrichment=True. Otherwise, returns a single message.
+        """
+        chunk_oversized_segments = options.get("spans.buffer.chunk-oversized-segments")
+        max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
+
+        spans: list[SpanPayload] = [span.payload for span in self.spans]
+        if not chunk_oversized_segments:
+            return [{"spans": spans}]
+
+        sizes = [len(orjson.dumps(s)) for s in spans]
+        if sum(sizes) <= max_segment_bytes:
+            return [{"spans": spans}]
+
+        messages: list[dict[str, Any]] = []
+        current: list[SpanPayload] = []
+        current_size = 0
+
+        for span, size in zip(spans, sizes):
+            if current and current_size + size > max_segment_bytes:
+                messages.append({"spans": current, "skip_enrichment": True})
+                current = []
+                current_size = 0
+            current.append(span)
+            current_size += size
+
+        if current:
+            messages.append({"spans": current, "skip_enrichment": True})
+
+        if len(messages) > 1:
+            metrics.incr("spans.buffer.oversized_segments_chunked_messages", len(messages))
+
+        return messages
 
 
 class SpansBuffer:
@@ -710,6 +752,7 @@ class SpansBuffer:
                 cursors[payload_key] = 0
             payload_keys_map[key] = segment_payload_keys
 
+        chunk_oversized_segments = options.get("spans.buffer.chunk-oversized-segments")
         dropped_segments: set[SegmentKey] = set()
 
         def _add_spans(key: SegmentKey, raw_data: bytes) -> bool:
@@ -724,7 +767,7 @@ class SpansBuffer:
             decompress_latency_ms += (time.monotonic() - decompress_start) * 1000
 
             sizes[key] = sizes.get(key, 0) + sum(len(span) for span in decompressed)
-            if sizes[key] > max_segment_bytes:
+            if sizes[key] > max_segment_bytes and not chunk_oversized_segments:
                 metrics.incr("spans.buffer.flush_segments.segment_size_exceeded")
                 logger.warning("Skipping too large segment, byte size %s", sizes[key])
                 payloads.pop(key, None)
