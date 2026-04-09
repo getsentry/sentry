@@ -1,6 +1,6 @@
 import {useCallback} from 'react';
 
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -36,30 +36,37 @@ export function MetricToolbar({traceMetric, queryIndex}: MetricToolbarProps) {
 
   if (canUseMetricsUIRefresh(organization)) {
     return (
-      <Flex width="100%" align="start" gap="md" data-test-id="metric-toolbar">
+      <Grid
+        width="100%"
+        align="center"
+        gap="md"
+        columns={`auto 2fr 3fr 6fr ${canRemoveMetric ? '24px' : '0'}`}
+        data-test-id="metric-toolbar"
+        paddingLeft="lg"
+        paddingRight="lg"
+        paddingTop="md"
+      >
         <VisualizeLabel
           index={queryIndex}
           visualize={visualize}
           onClick={toggleVisibility}
         />
-        <Stack flex="1" minWidth={0} gap="sm" width="100%">
-          <Flex minWidth={0} gap="xs" align="center">
-            <Container width="100%" maxWidth={canRemoveMetric ? '225px' : undefined}>
-              <MetricSelector traceMetric={traceMetric} onChange={setTraceMetric} />
-            </Container>
-            {canRemoveMetric && <DeleteMetricButton />}
-          </Flex>
+        <Flex minWidth={0}>
+          <MetricSelector traceMetric={traceMetric} onChange={setTraceMetric} />
+        </Flex>
+        <Flex gap="md" minWidth={0}>
           <Flex flex="2 1 0" minWidth={0}>
             <AggregateDropdown traceMetric={traceMetric} />
           </Flex>
           <Flex flex="3 1 0" minWidth={0}>
             <GroupBySelector traceMetric={traceMetric} />
           </Flex>
-          <Flex minWidth={0} width="100%">
-            <Filter traceMetric={traceMetric} />
-          </Flex>
-        </Stack>
-      </Flex>
+        </Flex>
+        <Flex minWidth={0}>
+          <Filter traceMetric={traceMetric} />
+        </Flex>
+        {canRemoveMetric && <DeleteMetricButton />}
+      </Grid>
     );
   }
 
