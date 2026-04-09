@@ -17,6 +17,7 @@ from sentry.hybridcloud.rpc.service import (
 )
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.utils.env import in_test_environment
+from sentry.viewer_context import ViewerContext, viewer_context_scope
 
 
 @internal_all_silo_endpoint
@@ -61,8 +62,18 @@ class InternalRpcServiceEndpoint(Endpoint):
                 sentry_sdk.capture_exception()
                 raise ParseError from e
 
+        meta = request.data.get("meta") or {}
+        vc_data = meta.get("viewer_context")
+        vc = ViewerContext()
+        if vc_data:
+            try:
+                vc = ViewerContext.deserialize(vc_data)
+            except Exception as e:
+                sentry_sdk.capture_exception()
+                raise ParseError from e
+
         try:
-            with auth_context.applied_to_request(request):
+            with viewer_context_scope(vc), auth_context.applied_to_request(request):
                 result = dispatch_to_local_service(service_name, method_name, arguments)
         except RpcValidationException as e:
             return Response(

@@ -42,7 +42,10 @@ export interface AddIntegrationParams {
  * prefix.
  */
 const API_PIPELINE_FEATURE_FLAGS = {
+  bitbucket: 'integration-api-pipeline-bitbucket',
   github: 'integration-api-pipeline-github',
+  gitlab: 'integration-api-pipeline-gitlab',
+  slack: 'integration-api-pipeline-slack',
 } as const satisfies Partial<Record<ProvidersByType['integration'], string>>;
 
 type ApiPipelineProvider = keyof typeof API_PIPELINE_FEATURE_FLAGS;

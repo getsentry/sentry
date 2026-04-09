@@ -76,7 +76,7 @@ describe('ReplayList', () => {
       body: [],
     });
     mockFetchReplayListRequest = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/replays/`,
+      url: '/organizations/org-slug/replays/',
       body: {},
     });
     // Request made by SearchQueryBuilder:

@@ -49,7 +49,7 @@ import {SplitInstallationIdModal} from 'sentry/views/settings/organizationIntegr
 
 function makeSentryAppInstallationsQueryKey({orgSlug}: {orgSlug: string}): ApiQueryKey {
   return [
-    getApiUrl(`/organizations/$organizationIdOrSlug/sentry-app-installations/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/sentry-app-installations/', {
       path: {organizationIdOrSlug: orgSlug},
     }),
   ];
@@ -70,7 +70,7 @@ export default function SentryAppDetailedView() {
     isError: isSentryAppError,
   } = useApiQuery<SentryApp>(
     [
-      getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/`, {
+      getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
         path: {sentryAppIdOrSlug: integrationSlug},
       }),
     ],
@@ -86,7 +86,7 @@ export default function SentryAppDetailedView() {
     isError: isFeatureDataError,
   } = useApiQuery<IntegrationFeature[]>(
     [
-      getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/features/`, {
+      getApiUrl('/sentry-apps/$sentryAppIdOrSlug/features/', {
         path: {sentryAppIdOrSlug: integrationSlug},
       }),
     ],

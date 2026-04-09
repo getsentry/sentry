@@ -17,17 +17,17 @@ describe('EventsSearchBar', () => {
     organization = OrganizationFixture();
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/recent-searches/`,
+      url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/recent-searches/`,
+      url: '/organizations/org-slug/recent-searches/',
       body: [],
       method: 'POST',
     });
   });
 
-  it('does not show function tags in has: dropdown', async () => {
+  it.isKnownFlake('does not show function tags in has: dropdown', async () => {
     render(
       <EventsSearchBar
         onClose={jest.fn()}

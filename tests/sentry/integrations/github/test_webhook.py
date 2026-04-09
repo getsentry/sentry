@@ -455,7 +455,8 @@ class InstallationRepositoriesEventWebhookTest(APITestCase):
         assert repos[0].provider == "integrations:github"
         assert repos[1].name == "getsentry/snuba"
 
-    def test_end_to_end_repos_removed(self) -> None:
+    @patch("sentry.integrations.services.repository.impl.bulk_cleanup_seer_repository_preferences")
+    def test_end_to_end_repos_removed(self, mock_seer_cleanup: MagicMock) -> None:
         """Full end-to-end: webhook URL → handler → task → Repository disabled."""
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         integration = self.create_integration(
@@ -772,6 +773,40 @@ class PushEventWebhookTest(APITestCase):
         assert repo.name == "baxterthehacker/public-repo"
 
         assert_success_metric(mock_record)
+
+    @responses.activate
+    @override_options({"viewer-context.enabled": True})
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_viewer_context_set_during_handler(self, mock_record: MagicMock) -> None:
+        """ViewerContext is set with org_id and actor_type=INTEGRATION during webhook processing."""
+        from sentry.viewer_context import ActorType, get_viewer_context
+
+        Repository.objects.create(
+            organization_id=self.project.organization.id,
+            external_id="35129377",
+            provider="integrations:github",
+            name="baxterthehacker/repo",
+        )
+
+        captured_contexts: list = []
+
+        from sentry.integrations.github.webhook import PushEventWebhook
+
+        original_handle = PushEventWebhook._handle
+
+        def capturing_handle(self_handler, **kwargs):
+            captured_contexts.append(get_viewer_context())
+            return original_handle(self_handler, **kwargs)
+
+        with patch.object(PushEventWebhook, "_handle", capturing_handle):
+            self._create_integration_and_send_push_event()
+
+        assert len(captured_contexts) == 1
+        ctx = captured_contexts[0]
+        assert ctx is not None
+        assert ctx.organization_id == self.project.organization.id
+        assert ctx.actor_type == ActorType.INTEGRATION
+        assert ctx.user_id is None
 
     @responses.activate
     @patch("sentry.integrations.github.webhook.metrics")

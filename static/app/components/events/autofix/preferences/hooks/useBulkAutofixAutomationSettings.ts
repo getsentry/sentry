@@ -114,7 +114,7 @@ export function useUpdateBulkAutofixAutomationSettings(
       return fetchMutation({
         method: 'POST',
         url: getApiUrl(
-          `/organizations/$organizationIdOrSlug/autofix/automation-settings/`,
+          '/organizations/$organizationIdOrSlug/autofix/automation-settings/',
           {
             path: {organizationIdOrSlug: organization.slug},
           }
@@ -124,13 +124,14 @@ export function useUpdateBulkAutofixAutomationSettings(
     },
     ...options,
     onSettled: (...args) => {
+      const bulkAutofixAutomationSettingsQueryOptions =
+        bulkAutofixAutomationSettingsInfiniteOptions({
+          organization,
+        });
       queryClient.invalidateQueries({
-        queryKey: [
-          getApiUrl(`/organizations/$organizationIdOrSlug/autofix/automation-settings/`, {
-            path: {organizationIdOrSlug: organization.slug},
-          }),
-        ],
+        queryKey: bulkAutofixAutomationSettingsQueryOptions.queryKey,
       });
+
       const [, , data] = args;
       data.projectIds.forEach(projectId => {
         const project = projectsById.get(projectId);
@@ -140,7 +141,7 @@ export function useUpdateBulkAutofixAutomationSettings(
         // Invalidate the query for ProjectOptions to Settings>Project>Seer details page
         queryClient.invalidateQueries({
           queryKey: [
-            getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/`, {
+            getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
               path: {
                 organizationIdOrSlug: organization.slug,
                 projectIdOrSlug: project.slug,
@@ -152,7 +153,7 @@ export function useUpdateBulkAutofixAutomationSettings(
         queryClient.invalidateQueries({
           queryKey: [
             getApiUrl(
-              `/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/preferences/`,
+              '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/preferences/',
               {
                 path: {
                   organizationIdOrSlug: organization.slug,

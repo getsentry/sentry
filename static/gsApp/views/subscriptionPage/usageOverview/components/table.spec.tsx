@@ -6,7 +6,7 @@ import {
   SubscriptionFixture,
   SubscriptionWithLegacySeerFixture,
 } from 'getsentry-test/fixtures/subscription';
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
 
@@ -46,6 +46,27 @@ describe('UsageOverviewTable', () => {
     expect(
       screen.getAllByRole('button', {name: /^View .+ usage$/i}).length
     ).toBeGreaterThan(0);
+  });
+
+  it('does not add an extra cell when hovering a product row', async () => {
+    render(
+      <UsageOverviewTable
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+        onRowClick={jest.fn()}
+        selectedProduct={DataCategory.ERRORS}
+      />
+    );
+
+    await screen.findByRole('columnheader', {name: 'Feature'});
+
+    const attachmentsRow = screen.getByTestId('product-row-attachments');
+    expect(within(attachmentsRow).getAllByRole('cell')).toHaveLength(3);
+
+    await userEvent.hover(attachmentsRow);
+
+    expect(within(attachmentsRow).getAllByRole('cell')).toHaveLength(3);
   });
 
   it('renders columns for non-billing users', async () => {

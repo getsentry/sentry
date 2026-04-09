@@ -27,7 +27,10 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.repository import repository_service
 from sentry.integrations.services.repository.model import RpcRepository
-from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.source_code_management.repository import (
+    RepositoryInfo,
+    RepositoryIntegration,
+)
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import (
@@ -253,7 +256,7 @@ class OAuthCallbackView:
                 )
 
 
-class BitbucketServerIntegration(RepositoryIntegration):
+class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
     """
     IntegrationInstallation implementation for Bitbucket Server
     """
@@ -285,13 +288,14 @@ class BitbucketServerIntegration(RepositoryIntegration):
         query: str | None = None,
         page_number_limit: int | None = None,
         accessible_only: bool = False,
-    ) -> list[dict[str, Any]]:
+    ) -> list[RepositoryInfo]:
         if not query:
             resp = self.get_client().get_repos()
 
             return [
                 {
                     "identifier": repo["project"]["key"] + "/" + repo["slug"],
+                    "external_id": self.get_repo_external_id(repo),
                     "project": repo["project"]["key"],
                     "repo": repo["slug"],
                     "name": repo["project"]["name"] + "/" + repo["name"],
@@ -304,6 +308,7 @@ class BitbucketServerIntegration(RepositoryIntegration):
         return [
             {
                 "identifier": repo["project"]["key"] + "/" + repo["slug"],
+                "external_id": self.get_repo_external_id(repo),
                 "project": repo["project"]["key"],
                 "repo": repo["slug"],
                 "name": repo["project"]["name"] + "/" + repo["name"],

@@ -563,9 +563,6 @@ from sentry.seer.endpoints.trace_explorer_ai_translate_agentic import SearchAgen
 from sentry.seer.supergroups.endpoints.organization_supergroup_details import (
     OrganizationSupergroupDetailsEndpoint,
 )
-from sentry.seer.supergroups.endpoints.organization_supergroups import (
-    OrganizationSupergroupsEndpoint,
-)
 from sentry.seer.supergroups.endpoints.organization_supergroups_by_group import (
     OrganizationSupergroupsByGroupEndpoint,
 )
@@ -2438,11 +2435,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-update/(?P<run_id>[^/]+)/$",
         OrganizationSeerExplorerUpdateEndpoint.as_view(),
         name="sentry-api-0-organization-seer-explorer-update",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/seer/supergroups/$",
-        OrganizationSupergroupsEndpoint.as_view(),
-        name="sentry-api-0-organization-supergroups",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/supergroups/by-group/$",

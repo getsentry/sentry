@@ -34,7 +34,7 @@ function makeAutofixSetupQueryKey(
   checkWriteAccess?: boolean
 ): ApiQueryKey {
   return [
-    getApiUrl(`/organizations/$organizationIdOrSlug/issues/$issueId/autofix/setup/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/setup/', {
       path: {organizationIdOrSlug: orgSlug, issueId: groupId},
     }),
     {

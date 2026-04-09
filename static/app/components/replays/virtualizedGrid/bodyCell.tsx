@@ -11,9 +11,9 @@ const cellBackground = (p: CellProps & {theme: Theme}) => {
     return `background-color: ${p.theme.colors.red100};`;
   }
   if (p.isStatusWarning) {
-    return `background-color: var(--background-warning-default, rgba(245, 176, 0, 0.09));`;
+    return 'background-color: var(--background-warning-default, rgba(245, 176, 0, 0.09));';
   }
-  return `background-color: inherit;`;
+  return 'background-color: inherit;';
 };
 
 const cellColor = (p: CellProps & {theme: Theme}) => {
@@ -22,7 +22,7 @@ const cellColor = (p: CellProps & {theme: Theme}) => {
     return `color: ${color};`;
   }
 
-  return `color: inherit`;
+  return 'color: inherit';
 };
 
 type CellProps = {

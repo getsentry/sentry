@@ -150,7 +150,7 @@ export function ProjectIssues({organization, location, projectId, query, api}: P
   function getDiscoverUrl() {
     return {
       pathname: makeDiscoverPathname({
-        path: `/results/`,
+        path: '/results/',
         organization,
       }),
       query: {

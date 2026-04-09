@@ -152,7 +152,7 @@ describe('NewWidgetBuilder', () => {
     // Test sort by selector for table display type
     expect(screen.getByText('Sort by')).toBeInTheDocument();
     expect(screen.getByText('High to low')).toBeInTheDocument();
-    expect(screen.getByText(`Select a column\u{2026}`)).toBeInTheDocument();
+    expect(screen.getByText('Select a column\u{2026}')).toBeInTheDocument();
 
     expect(await screen.findByPlaceholderText('Name')).toBeInTheDocument();
     expect(await screen.findByTestId('add-description')).toBeInTheDocument();

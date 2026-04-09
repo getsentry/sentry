@@ -17,7 +17,7 @@ export function useExplorerSessions({
   const organization = useOrganization({allowNull: true});
   const query = useApiQuery<SessionsResponse>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/seer/explorer-runs/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-runs/', {
         path: {organizationIdOrSlug: organization?.slug ?? ''},
       }),
       {

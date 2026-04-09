@@ -370,8 +370,18 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             f"{self.base_url}/search/repositories?{querystring}",
             json={
                 "items": [
-                    {"name": "example", "full_name": "test/example", "default_branch": "main"},
-                    {"name": "exhaust", "full_name": "test/exhaust", "default_branch": "main"},
+                    {
+                        "id": 10,
+                        "name": "example",
+                        "full_name": "test/example",
+                        "default_branch": "main",
+                    },
+                    {
+                        "id": 11,
+                        "name": "exhaust",
+                        "full_name": "test/exhaust",
+                        "default_branch": "main",
+                    },
                 ]
             },
         )
@@ -381,8 +391,18 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         )
         result = installation.get_repositories("ex")
         assert result == [
-            {"identifier": "test/example", "name": "example", "default_branch": "main"},
-            {"identifier": "test/exhaust", "name": "exhaust", "default_branch": "main"},
+            {
+                "identifier": "test/example",
+                "name": "example",
+                "external_id": "10",
+                "default_branch": "main",
+            },
+            {
+                "identifier": "test/exhaust",
+                "name": "exhaust",
+                "external_id": "11",
+                "default_branch": "main",
+            },
         ]
 
     @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
@@ -640,8 +660,18 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             json={
                 "total_count": 2,
                 "repositories": [
-                    {"name": "repo1", "full_name": "Test-Organization/repo1", "archived": False},
-                    {"name": "repo2", "full_name": "Test-Organization/repo2", "archived": False},
+                    {
+                        "id": 1,
+                        "name": "repo1",
+                        "full_name": "Test-Organization/repo1",
+                        "archived": False,
+                    },
+                    {
+                        "id": 2,
+                        "name": "repo2",
+                        "full_name": "Test-Organization/repo2",
+                        "archived": False,
+                    },
                 ],
             },
         )

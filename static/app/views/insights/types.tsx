@@ -129,6 +129,13 @@ export enum SpanFields {
   AI_TOTAL_COST = 'ai.total_cost',
   AI_TOTAL_TOKENS_USED = 'ai.total_tokens.used',
 
+  // Span Operation Breakdown fields
+  SPANS_BROWSER = 'spans.browser',
+  SPANS_DB = 'spans.db',
+  SPANS_HTTP = 'spans.http',
+  SPANS_RESOURCE = 'spans.resource',
+  SPANS_UI = 'spans.ui',
+
   // DB fields
   DB_SYSTEM = 'db.system', // TODO: this is a duplicate of `SPAN_SYSTEM`
 

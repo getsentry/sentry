@@ -169,7 +169,7 @@ function McpToolCell({tool}: {tool: string}) {
       },
     ],
     query: search.formatString(),
-    sort: `-count(span.duration)`,
+    sort: '-count(span.duration)',
     field: ['span.description', 'mcp.tool.result.content', 'span.duration', 'timestamp'],
   });
   return <Link to={link}>{tool}</Link>;

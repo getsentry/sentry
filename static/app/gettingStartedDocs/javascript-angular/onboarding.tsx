@@ -123,7 +123,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
         {
           type: 'text',
           text: tct(
-            `Initialize the Sentry Angular SDK in your [code:main.ts] file as early as possible, before initializing Angular:`,
+            'Initialize the Sentry Angular SDK in your [code:main.ts] file as early as possible, before initializing Angular:',
             {
               code: <code />,
             }

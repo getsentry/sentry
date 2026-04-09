@@ -299,7 +299,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                 typeof renderDisabled === 'function' &&
                 renderDisabled({...innerProps, hasFeature, children: null})}
               {t(
-                `Discarding this event will result in the deletion of most data associated with this issue and future events being discarded before reaching your stream. Are you sure you wish to continue?`
+                'Discarding this event will result in the deletion of most data associated with this issue and future events being discarded before reaching your stream. Are you sure you wish to continue?'
               )}
             </Body>
             <Footer>

@@ -405,6 +405,7 @@ export default typescript.config([
       'prefer-promise-reject-errors': 'off', // Disabled in favor of @typescript-eslint/prefer-promise-reject-errors
       'object-shorthand': ['error', 'properties'],
       'prefer-arrow-callback': ['error', {allowNamedFunctions: true}],
+      quotes: ['error', 'single', {avoidEscape: true, allowTemplateLiterals: false}],
       radix: 'error',
       'require-await': 'off', // Disabled in favor of @typescript-eslint/require-await
       'spaced-comment': [
@@ -824,6 +825,10 @@ export default typescript.config([
       'jest/expect-expect': 'off', // Disabled as we have many tests which render as simple validations
       'jest/no-conditional-expect': 'off', // TODO(ryan953): Fix violations then delete this line
       'jest/no-disabled-tests': 'error', // `recommended` set this to warn, we've upgraded to error
+      'jest/no-standalone-expect': [
+        'error',
+        {additionalTestBlockFunctions: ['it.isKnownFlake']},
+      ],
     },
   },
   {

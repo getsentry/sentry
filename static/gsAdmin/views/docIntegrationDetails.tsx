@@ -36,7 +36,7 @@ export function DocIntegrationDetails() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const ENDPOINT = getApiUrl(`/doc-integrations/$docIntegrationIdOrSlug/`, {
+  const ENDPOINT = getApiUrl('/doc-integrations/$docIntegrationIdOrSlug/', {
     path: {docIntegrationIdOrSlug: docIntegrationSlug},
   });
 

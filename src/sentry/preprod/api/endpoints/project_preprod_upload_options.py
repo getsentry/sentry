@@ -16,6 +16,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.utils import generate_locality_url
 from sentry.models.project import Project
+from sentry.objectstore import get_preprod_session
 from sentry.objectstore.types import ObjectstoreUploadOptions
 from sentry.utils.http import absolute_uri
 
@@ -35,6 +36,7 @@ class ProjectPreprodUploadOptionsEndpoint(ProjectEndpoint):
             return Response({"detail": "Feature not enabled"}, status=403)
 
         organization = project.organization
+        session = get_preprod_session(org=organization.id, project=project.id)
 
         path = reverse(
             "sentry-api-0-organization-objectstore",
@@ -53,6 +55,7 @@ class ProjectPreprodUploadOptionsEndpoint(ProjectEndpoint):
                 ("org", str(organization.id)),
                 ("project", str(project.id)),
             ],
+            authToken=session.mint_token(),
             expirationPolicy=format_expiration(
                 TimeToLive(timedelta(days=30))
             ),  # Hardcoded for now, check with Objectstore before increasing

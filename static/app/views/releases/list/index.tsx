@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {forceCheck} from 'react-lazyload';
 import styled from '@emotion/styled';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -41,6 +42,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
 import {ReleaseArchivedNotice} from 'sentry/views/releases/detail/overview/releaseArchivedNotice';
 import {MobileBuilds} from 'sentry/views/releases/list/mobileBuilds';
 import {ReleaseHealthCTA} from 'sentry/views/releases/list/releaseHealthCTA';
@@ -99,16 +103,24 @@ function makeReleaseListQueryKey({
   };
 
   return [
-    getApiUrl(`/organizations/$organizationIdOrSlug/releases/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/releases/', {
       path: {organizationIdOrSlug: organizationSlug},
     }),
     {query},
   ];
 }
 
+const releasesFeedbackOptions = {
+  messagePlaceholder: t('How can we improve the Releases experience?'),
+  tags: {
+    ['feedback.source']: 'releases-list-header',
+  },
+};
+
 export default function ReleasesList() {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
   const location = useLocation();
@@ -232,13 +244,29 @@ export default function ReleasesList() {
       : selectedIds.map(id => `${id}`);
   }, [selection.projects]);
 
-  const shouldShowMobileBuildsTab = useMemo(() => {
-    if (!organization.features?.includes('preprod-frontend-routes')) {
-      return false;
-    }
+  const hasPreprodFeature = organization.features?.includes('preprod-frontend-routes');
 
-    // When "All Projects" is selected (represented by [-1]), check all accessible projects
-    // When specific projects are selected, check only those projects
+  const {statsPeriod, start, end, utc} = normalizeDateTimeParams(location.query);
+  const buildsProbeQuery = useQuery({
+    ...buildDetailsApiOptions({
+      organization,
+      queryParams: {
+        per_page: 1,
+        project: selectedProjectIds,
+        ...(statsPeriod && {statsPeriod}),
+        ...(start && {start}),
+        ...(end && {end}),
+        ...(utc && {utc}),
+      },
+    }),
+    staleTime: 60_000,
+    enabled: !!hasPreprodFeature,
+    placeholderData: keepPreviousData,
+  });
+
+  // When "All Projects" is selected (represented by [-1]), check all accessible projects
+  // When specific projects are selected, check only those projects
+  const hasAnyStrictlyMobileProject = useMemo(() => {
     const isAllProjects =
       selectedProjectIds.length === 1 &&
       selectedProjectIds[0] === `${ALL_ACCESS_PROJECTS}`;
@@ -247,13 +275,17 @@ export default function ReleasesList() {
       : selectedProjectIds;
 
     // Check if at least one project has a mobile platform
-    const hasAnyStrictlyMobileProject = projectIdsToCheck
+    return projectIdsToCheck
       .map(id => ProjectsStore.getById(id))
       .filter(Boolean)
       .some(project => project?.platform && isMobileRelease(project.platform, false));
+  }, [selectedProjectIds, projects]);
 
-    return hasAnyStrictlyMobileProject;
-  }, [organization.features, selectedProjectIds, projects]);
+  const hasBuildsData =
+    !buildsProbeQuery.isPending && (buildsProbeQuery.data?.length ?? 0) > 0;
+
+  const shouldShowMobileBuildsTab =
+    hasPreprodFeature && (hasBuildsData || hasAnyStrictlyMobileProject);
 
   const selectedTab = useMemo(() => {
     if (!shouldShowMobileBuildsTab) {
@@ -425,16 +457,15 @@ export default function ReleasesList() {
                   </Layout.Title>
                 </Layout.HeaderContent>
                 <Layout.HeaderActions>
-                  <FeedbackButton
-                    feedbackOptions={{
-                      messagePlaceholder: t(
-                        'How can we improve the Releases experience?'
-                      ),
-                      tags: {
-                        ['feedback.source']: 'releases-list-header',
-                      },
-                    }}
-                  />
+                  {hasPageFrameFeature ? (
+                    <TopBar.Slot name="feedback">
+                      <FeedbackButton feedbackOptions={releasesFeedbackOptions}>
+                        {null}
+                      </FeedbackButton>
+                    </TopBar.Slot>
+                  ) : (
+                    <FeedbackButton feedbackOptions={releasesFeedbackOptions} />
+                  )}
                 </Layout.HeaderActions>
               </Flex>
 

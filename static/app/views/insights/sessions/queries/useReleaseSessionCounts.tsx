@@ -55,7 +55,7 @@ export function useReleaseSessionCounts({pageFilters}: {pageFilters?: PageFilter
           })),
           meta: {
             fields: {
-              [`total_sessions`]: 'integer' as const,
+              ['total_sessions']: 'integer' as const,
               time: 'date' as const,
             },
             units: {},

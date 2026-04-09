@@ -1,4 +1,3 @@
-import {useCallback} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -13,7 +12,6 @@ import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPa
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
@@ -25,6 +23,7 @@ import {
 } from 'sentry/views/explore/components/styles';
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {useMetricsAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
+import {useControlSectionExpanded} from 'sentry/views/explore/hooks/useControlSectionExpanded';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {MetricPanel} from 'sentry/views/explore/metrics/metricPanel';
 import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
@@ -50,25 +49,10 @@ type MetricsTabProps = {
 
 const METRICS_TOOLBAR_STORAGE_KEY = 'explore-metrics-toolbar';
 
-function useMetricsControlSectionExpanded() {
-  const [controlSectionExpanded, _setControlSectionExpanded] = useLocalStorageState(
-    METRICS_TOOLBAR_STORAGE_KEY,
-    'expanded'
-  );
-
-  const setControlSectionExpanded = useCallback(
-    (expanded: boolean) => {
-      _setControlSectionExpanded(expanded ? 'expanded' : '');
-    },
-    [_setControlSectionExpanded]
-  );
-
-  return [controlSectionExpanded === 'expanded', setControlSectionExpanded] as const;
-}
-
 function MetricsTabContentRefreshLayout({datePageFilterProps}: MetricsTabProps) {
-  const [controlSectionExpanded, setControlSectionExpanded] =
-    useMetricsControlSectionExpanded();
+  const [controlSectionExpanded, setControlSectionExpanded] = useControlSectionExpanded(
+    METRICS_TOOLBAR_STORAGE_KEY
+  );
 
   return (
     <MultiMetricsQueryParamsProvider>

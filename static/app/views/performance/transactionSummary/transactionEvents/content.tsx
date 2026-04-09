@@ -13,7 +13,6 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
@@ -28,18 +27,13 @@ import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay'
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {OverviewSpansTable} from 'sentry/views/performance/eap/overviewSpansTable';
-import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {
   Filter,
   filterToSearchConditions,
 } from 'sentry/views/performance/transactionSummary/filter';
-import {SpanCategoryFilter} from 'sentry/views/performance/transactionSummary/spanCategoryFilter';
 import type {SetStateAction} from 'sentry/views/performance/transactionSummary/types';
 import {
   platformToPerformanceType,
@@ -47,29 +41,7 @@ import {
 } from 'sentry/views/performance/utils';
 
 import {EventsTable} from './eventsTable';
-import type {EventsDisplayFilterName} from './utils';
-import {getEventsFilterOptions} from './utils';
-
-function EAPSearchBar({
-  projects,
-  initialQuery,
-  onSearch,
-}: {
-  initialQuery: string;
-  onSearch: (query: string) => void;
-  projects: number[];
-}) {
-  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
-    projects,
-    initialQuery,
-    onSearch,
-    searchSource: 'transaction_events',
-  });
-
-  return (
-    <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} disallowFreeText />
-  );
-}
+import {EventsDisplayFilterName, getEventsFilterOptions} from './utils';
 
 type Props = {
   eventView: EventView;
@@ -110,16 +82,10 @@ export function EventsContent(props: Props) {
     projectId,
     projects,
   } = props;
-  const routes = useRoutes();
   const theme = useTheme();
   const domainViewFilters = useDomainViewFilters();
-  const shouldUseEAP = useTransactionSummaryEAP();
 
   const {eventView, titles} = useMemo(() => {
-    if (shouldUseEAP) {
-      return {eventView: originalEventView, titles: []};
-    }
-
     const eventViewClone = originalEventView.clone();
     const transactionsListTitles = TRANSACTIONS_LIST_TITLES.slice();
     const project = projects.find(p => p.id === projectId);
@@ -192,7 +158,6 @@ export function EventsContent(props: Props) {
       titles: transactionsListTitles,
     };
   }, [
-    shouldUseEAP,
     originalEventView,
     location,
     organization,
@@ -202,18 +167,11 @@ export function EventsContent(props: Props) {
     webVital,
   ]);
 
-  const table = shouldUseEAP ? (
-    <OverviewSpansTable
-      eventView={eventView}
-      totalValues={null}
-      transactionName={transactionName}
-    />
-  ) : (
+  const table = (
     <EventsTable
       theme={theme}
       eventView={eventView}
       organization={organization}
-      routes={routes}
       location={location}
       setError={setError}
       columnTitles={titles}
@@ -240,7 +198,6 @@ function Search(props: Props) {
     eventsDisplayFilterName,
     onChangeEventsDisplayFilter,
     percentileValues,
-    transactionName,
   } = props;
 
   const navigate = useNavigate();
@@ -274,69 +231,52 @@ function Search(props: Props) {
   };
 
   const projectIds = useMemo(() => eventView.project?.slice(), [eventView.project]);
-  const shouldUseEAP = useTransactionSummaryEAP();
 
   const maxPickableDays = useMaxPickableDays({
-    dataCategories: [shouldUseEAP ? DataCategory.SPANS : DataCategory.TRANSACTIONS],
+    dataCategories: [DataCategory.TRANSACTIONS],
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   return (
     <FilterActions>
-      {shouldUseEAP ? (
-        <SpanCategoryFilter segmentSpanName={transactionName} />
-      ) : (
-        <Filter
-          organization={organization}
-          currentFilter={spanOperationBreakdownFilter}
-          onChangeFilter={onChangeSpanOperationBreakdownFilter}
-        />
-      )}
+      <Filter
+        organization={organization}
+        currentFilter={spanOperationBreakdownFilter}
+        onChangeFilter={onChangeSpanOperationBreakdownFilter}
+      />
       <PageFilterBar condensed>
         <EnvironmentPageFilter />
         <DatePageFilter {...datePageFilterProps} />
       </PageFilterBar>
       <StyledSearchBarWrapper>
-        {shouldUseEAP ? (
-          <EAPSearchBar
-            projects={projectIds ?? []}
-            initialQuery={query}
-            onSearch={handleSearch}
-          />
-        ) : (
-          <TransactionSearchQueryBuilder
-            projects={projectIds}
-            initialQuery={query}
-            onSearch={handleSearch}
-            searchSource="transaction_events"
-          />
-        )}
-      </StyledSearchBarWrapper>
-      {!shouldUseEAP && (
-        <CompactSelect
-          trigger={triggerProps => (
-            <OverlayTrigger.Button {...triggerProps} prefix={t('Percentile')} />
-          )}
-          value={eventsDisplayFilterName}
-          onChange={opt => onChangeEventsDisplayFilter(opt.value)}
-          options={Object.entries(eventsFilterOptions).map(([name, filter]) => ({
-            value: name as EventsDisplayFilterName,
-            label: filter.label,
-          }))}
+        <TransactionSearchQueryBuilder
+          projects={projectIds}
+          initialQuery={query}
+          onSearch={handleSearch}
+          searchSource="transaction_events"
         />
-      )}
-      {!shouldUseEAP && (
-        <LinkButton
-          to={eventView.getResultsViewUrlTarget(
-            organization,
-            false,
-            hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
-          )}
-          onClick={handleDiscoverButtonClick}
-        >
-          {t('Open in Discover')}
-        </LinkButton>
-      )}
+      </StyledSearchBarWrapper>
+      <CompactSelect
+        trigger={triggerProps => (
+          <OverlayTrigger.Button {...triggerProps} prefix={t('Percentile')} />
+        )}
+        value={eventsDisplayFilterName}
+        onChange={opt => onChangeEventsDisplayFilter(opt.value)}
+        options={Object.entries(eventsFilterOptions).map(([name, filter]) => ({
+          value: name as EventsDisplayFilterName,
+          label: filter.label,
+        }))}
+      />
+      <LinkButton
+        to={eventView.getResultsViewUrlTarget(
+          organization,
+          false,
+          hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
+        )}
+        onClick={handleDiscoverButtonClick}
+      >
+        {t('Open in Discover')}
+      </LinkButton>
     </FilterActions>
   );
 }

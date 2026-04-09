@@ -336,7 +336,7 @@ export function Table({
           <Link
             to={target}
             onClick={handleSummaryClick}
-            style={{display: `block`, width: `100%`}}
+            style={{display: 'block', width: '100%'}}
           >
             {rendered}
           </Link>

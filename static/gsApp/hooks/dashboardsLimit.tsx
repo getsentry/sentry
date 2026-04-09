@@ -35,7 +35,7 @@ export function useDashboardsLimit(): UseDashboardsLimitResult {
   const {data: dashboardsTotalCount, isLoading: isLoadingDashboardsTotalCount} =
     useApiQuery<DashboardListItem[]>(
       [
-        getApiUrl(`/organizations/$organizationIdOrSlug/dashboards/`, {
+        getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
         {

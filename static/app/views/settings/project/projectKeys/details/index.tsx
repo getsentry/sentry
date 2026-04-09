@@ -34,7 +34,7 @@ export default function ProjectKeyDetails() {
     isPending,
   } = useApiQuery<ProjectKey>(
     [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/`, {
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/', {
         path: {
           organizationIdOrSlug: organization.slug,
           projectIdOrSlug: projectId,
@@ -49,7 +49,7 @@ export default function ProjectKeyDetails() {
     setApiQueryData<ProjectKey>(
       queryClient,
       [
-        getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/`, {
+        getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/', {
           path: {
             organizationIdOrSlug: organization.slug,
             projectIdOrSlug: projectId,
