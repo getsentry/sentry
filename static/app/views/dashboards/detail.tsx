@@ -996,26 +996,32 @@ class DashboardDetail extends Component<Props, State> {
     seerRunId: number | null
   ) => {
     const {organization} = this.props;
-    this.setState(state => {
-      const dashboard = cloneDashboard(state.modifiedDashboard ?? this.props.dashboard);
-      const updatedDashboard = {
-        ...dashboard,
-        widgets,
-        ...(title === undefined ? {} : {title}),
-      };
-      validateDashboardAndRecordMetrics({
-        organization,
-        dashboard: updatedDashboard,
-        seerRunId,
-        source: 'edit',
-      });
-      return {
-        widgetLimitReached: widgets.length >= MAX_WIDGETS,
-        seerEditApplied: true,
-        seerRunId,
-        modifiedDashboard: updatedDashboard,
-      };
-    });
+    this.setState(
+      state => {
+        const dashboard = cloneDashboard(state.modifiedDashboard ?? this.props.dashboard);
+        const updatedDashboard = {
+          ...dashboard,
+          widgets,
+          ...(title === undefined ? {} : {title}),
+        };
+        return {
+          widgetLimitReached: widgets.length >= MAX_WIDGETS,
+          seerEditApplied: true,
+          seerRunId,
+          modifiedDashboard: updatedDashboard,
+        };
+      },
+      () => {
+        if (this.state.modifiedDashboard) {
+          validateDashboardAndRecordMetrics({
+            organization,
+            dashboard: this.state.modifiedDashboard,
+            seerRunId,
+            source: 'edit',
+          });
+        }
+      }
+    );
   };
 
   handleUpdateEditStateWidgets = (widgets: Widget[]) => {
