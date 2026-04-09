@@ -33,7 +33,6 @@ export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
     return null;
   }
 
-  const narrowedVisualize = visualize;
   const groups = GROUPED_OPTIONS_BY_TYPE[traceMetric.type] ?? [];
   const selectedNames = new Set(
     visualizes.map(v => (isVisualizeFunction(v) ? (v.parsedFunction?.name ?? '') : ''))
@@ -43,16 +42,14 @@ export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
     if (selectedOptions.length === 0) {
       setMetricVisualizes([
         updateVisualizeYAxis(
-          narrowedVisualize,
+          visualize,
           DEFAULT_YAXIS_BY_TYPE[traceMetric.type]!,
           traceMetric
         ),
       ]);
     } else {
       setMetricVisualizes(
-        selectedOptions.map(o =>
-          updateVisualizeYAxis(narrowedVisualize, o.value, traceMetric)
-        )
+        selectedOptions.map(o => updateVisualizeYAxis(visualize, o.value, traceMetric))
       );
     }
   }
