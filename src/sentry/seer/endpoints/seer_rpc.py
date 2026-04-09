@@ -631,6 +631,7 @@ def trigger_coding_agent_launch(
                         organization.id, [SeerProjectPreference.validate(updated_preference)]
                     )[0]
                     write_preference_to_sentry_db(project, resolved_preference)
+                    # Returning the error code will prompt Seer to clear the preference handoff in its own DB too.
         except Exception:
             logger.exception(
                 "coding_agent.clear_handoff_preference_failed",

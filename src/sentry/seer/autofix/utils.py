@@ -834,10 +834,8 @@ def has_project_connected_repos(
         has_repos = bool(preference and preference.repositories)
     else:
         try:
-            project_preferences = get_project_seer_preferences(project.id)
-            has_repos = bool(
-                project_preferences.preference and project_preferences.preference.repositories
-            )
+            preference = get_project_seer_preferences(project.id).preference
+            has_repos = bool(preference and preference.repositories)
         except (SeerApiError, SeerApiResponseValidationError):
             pass
 

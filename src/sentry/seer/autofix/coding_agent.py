@@ -235,7 +235,6 @@ def _launch_agents_for_repos(
     if features.has("organizations:seer-project-settings-read-from-sentry", organization):
         try:
             project = Project.objects.get_from_cache(id=autofix_state.request.project_id)
-
             preference = read_preference_from_sentry_db(project)
             if preference and preference.automation_handoff:
                 auto_create_pr = preference.automation_handoff.auto_create_pr
@@ -250,12 +249,9 @@ def _launch_agents_for_repos(
             )
     else:
         try:
-            preference_response = get_project_seer_preferences(autofix_state.request.project_id)
-            if preference_response and preference_response.preference:
-                if preference_response.preference.automation_handoff:
-                    auto_create_pr = (
-                        preference_response.preference.automation_handoff.auto_create_pr
-                    )
+            preference = get_project_seer_preferences(autofix_state.request.project_id).preference
+            if preference and preference.automation_handoff:
+                auto_create_pr = preference.automation_handoff.auto_create_pr
         except (SeerApiError, SeerApiResponseValidationError):
             logger.exception(
                 "coding_agent.get_project_seer_preferences_error",

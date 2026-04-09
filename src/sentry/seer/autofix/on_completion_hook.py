@@ -468,23 +468,19 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         # Check project preferences
         if features.has("organizations:seer-project-settings-read-from-sentry", group.organization):
             preference = read_preference_from_sentry_db(group.project)
-            if not preference:
-                return None
-            handoff_config = preference.automation_handoff
         else:
             try:
-                preference_response = get_project_seer_preferences(group.project_id)
+                preference = get_project_seer_preferences(group.project_id).preference
             except (SeerApiError, SeerApiResponseValidationError):
                 logger.exception(
                     "autofix.on_completion_hook.get_preferences_failed",
                     extra={"group_id": group.id, "project_id": group.project_id},
                 )
                 return None
-            if not preference_response or not preference_response.preference:
-                return None
-            handoff_config = preference_response.preference.automation_handoff
 
-        return handoff_config
+        if not preference:
+            return None
+        return preference.automation_handoff
 
     @classmethod
     def _clear_handoff_preference(

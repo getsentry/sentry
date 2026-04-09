@@ -447,13 +447,11 @@ def trigger_coding_agent_handoff(
             auto_create_pr = preference.automation_handoff.auto_create_pr
     else:
         try:
-            preference_response = get_project_seer_preferences(group.project_id)
-            if preference_response and preference_response.preference:
-                repo_definitions = list(preference_response.preference.repositories)
-                if preference_response.preference.automation_handoff:
-                    auto_create_pr = (
-                        preference_response.preference.automation_handoff.auto_create_pr
-                    )
+            preference = get_project_seer_preferences(group.project_id).preference
+            if preference:
+                repo_definitions = preference.repositories
+                if preference.automation_handoff:
+                    auto_create_pr = preference.automation_handoff.auto_create_pr
         except Exception:
             logger.exception(
                 "autofix.coding_agent_handoff.get_preferences_error",
