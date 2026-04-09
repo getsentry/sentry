@@ -6,14 +6,17 @@ import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 
 export function useMetricReferences() {
   const metricQueries = useMultiMetricsQueryParams();
+
+  // TODO: This is only correct since all queries are listed before equations. If
+  // this changes we need to update this to persist the labels of the queries so
+  // references are still valid.
   return useMemo(() => {
     return new Set(
       metricQueries
-        .map((metricQuery, queryIndex) => ({metricQuery, queryIndex}))
-        .filter(({metricQuery}) =>
+        .filter(metricQuery =>
           metricQuery.queryParams.visualizes.some(isVisualizeFunction)
         )
-        .map(({queryIndex}) => getVisualizeLabel(queryIndex))
+        .map((_metricQuery, index) => getVisualizeLabel(index))
     );
   }, [metricQueries]);
 }
