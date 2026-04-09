@@ -34,76 +34,7 @@ _logger = logging.getLogger(__name__)
 
 DEFAULT_PERIOD = "14d"
 DEFAULT_Y_AXIS = "count(span.duration)"
-
-# All `multiPlotType: line` fields in /static/app/utils/discover/fields.tsx
-LINE_PLOT_FIELDS = {
-    "count_unique",
-    "min",
-    "max",
-    "p50",
-    "p75",
-    "p90",
-    "p95",
-    "p99",
-    "p100",
-    "percentile",
-    "avg",
-}
-
 TOP_N = 5
-
-
-def _serialize_single_series(series: dict[str, Any]) -> dict[str, Any]:
-    """Convert a single TimeSeries into events-stats format."""
-    values = series.get("values", [])
-    data = []
-    for row in values:
-        # events-timeseries uses milliseconds, events-stats uses seconds
-        timestamp = int(row["timestamp"] / 1000)
-        data.append((timestamp, [{"count": row.get("value", 0)}]))
-
-    start = int(values[0]["timestamp"] / 1000) if values else 0
-    end = int(values[-1]["timestamp"] / 1000) if values else 0
-
-    return {
-        "data": data,
-        "start": start,
-        "end": end,
-        "isMetricsData": False,
-    }
-
-
-def timeseries_to_chart_data(
-    resp_data: dict[str, Any], y_axis: str, has_groups: bool = False
-) -> dict[str, Any]:
-    """
-    Converts an events-timeseries StatsResponse into the events-stats format
-    that Chartcuterie expects.
-
-    For single series:
-        {"data": [(timestamp_sec, [{"count": N}]), ...], "start": sec, "end": sec}
-
-    For top events (grouped):
-        {"group_label": {"data": [...], "order": N, ...}, ...}
-    """
-    time_series = resp_data.get("timeSeries", [])
-    matching = [ts for ts in time_series if ts.get("yAxis") == y_axis]
-
-    if not matching:
-        return {"data": [], "start": 0, "end": 0, "isMetricsData": False}
-
-    if has_groups:
-        # Top events: return dict keyed by group label
-        result = {}
-        for i, ts in enumerate(matching):
-            group_by = ts.get("groupBy", [])
-            label = ",".join(str(g.get("value", "")) for g in group_by) if group_by else str(i)
-            series_data = _serialize_single_series(ts)
-            series_data["order"] = ts.get("meta", {}).get("order", i)
-            result[label] = series_data
-        return result
-
-    return _serialize_single_series(matching[0])
 
 
 def unfurl_explore(
@@ -158,16 +89,9 @@ def _unfurl_explore(
 
         group_bys = params.getlist("groupBy")
 
-        # Only one yAxis is charted; multiple charts per unfurl not yet supported.
+        style = ChartType.SLACK_EXPLORE_LINE
         if group_bys:
-            aggregate_fn = y_axes[-1].split("(")[0]
-            if aggregate_fn in LINE_PLOT_FIELDS:
-                style = ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE
-            else:
-                style = ChartType.SLACK_DISCOVER_TOP5_PERIOD
             params.setlist("topEvents", [str(TOP_N)])
-        else:
-            style = ChartType.SLACK_DISCOVER_TOTAL_PERIOD
 
         if not params.get("statsPeriod") and not params.get("start"):
             params["statsPeriod"] = DEFAULT_PERIOD
@@ -186,11 +110,9 @@ def _unfurl_explore(
             _logger.warning("Failed to load events-timeseries for explore unfurl")
             continue
 
-        # QueryDict.items() sends only the last value per key to the API,
-        # so we must match that by charting the last yAxis
-        y_axis = y_axes[-1]
-        stats = timeseries_to_chart_data(resp.data, y_axis, has_groups=bool(group_bys))
-        chart_data = {"seriesName": y_axis, "stats": stats}
+        chart_data = {
+            "timeSeries": resp.data.get("timeSeries", []),
+        }
 
         try:
             url = charts.generate_chart(style, chart_data)
