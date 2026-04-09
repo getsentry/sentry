@@ -59,7 +59,7 @@ describe('ResultsSearchQueryBuilder', () => {
     const input = await screen.findByRole('combobox');
     await userEvent.click(input);
     await screen.findByRole('listbox');
-    await userEvent.keyboard('has:p');
+    await userEvent.keyboard('has:p', {delay: null});
 
     // Check that "p50" (a function tag) is NOT in the dropdown
     const listbox = await screen.findByRole('listbox');
@@ -92,10 +92,11 @@ describe('ResultsSearchQueryBuilder', () => {
       }
     );
 
+    // Focus the input and type "transact" to simulate a search for transaction
     const input = await screen.findByRole('combobox');
     await userEvent.click(input);
     await screen.findByRole('listbox');
-    await userEvent.keyboard('transact');
+    await userEvent.keyboard('transact', {delay: null});
 
     // Check that a normal tag (e.g. "transaction") IS in the dropdown
     const listbox = await screen.findByRole('listbox');
