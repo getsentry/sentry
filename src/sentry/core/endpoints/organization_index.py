@@ -3,7 +3,8 @@ import logging
 import sentry_sdk
 from django.conf import settings
 from django.db import IntegrityError
-from django.db.models import Count, Q
+from django.db.models import Count, OuterRef, Q, Subquery
+from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -302,7 +303,15 @@ class OrganizationIndexEndpoint(Endpoint):
         sort_by = request.GET.get("sortBy")
         paginator_cls: type[PaginatorLike]
         if sort_by == "members":
-            queryset = queryset.annotate(member_count=Count("organizationmembermapping"))
+            member_count_subquery = (
+                OrganizationMemberMapping.objects.filter(
+                    organization_id=OuterRef("organization_id")
+                )
+                .values("organization_id")
+                .annotate(member_count=Count("id"))
+                .values("member_count")[:1]
+            )
+            queryset = queryset.annotate(member_count=Coalesce(Subquery(member_count_subquery), 0))
             order_by = "-member_count"
             paginator_cls = OffsetPaginator
         elif sort_by == "projects":

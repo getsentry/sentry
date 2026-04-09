@@ -174,6 +174,22 @@ class OrganizationsControlListTest(OrganizationIndexTest):
             == "The control-silo organizations endpoint does not support owner=1."
         )
 
+    def test_sort_by_members(self) -> None:
+        smaller_org = self.create_organization(
+            cell="us", owner=self.user, name="Smaller Org", slug="smaller-org"
+        )
+        larger_org = self.create_organization(
+            cell="de", owner=self.user, name="Larger Org", slug="larger-org"
+        )
+
+        self.create_member(user=self.create_user(), organization=smaller_org)
+        self.create_member(user=self.create_user(), organization=larger_org)
+        self.create_member(user=self.create_user(), organization=larger_org)
+
+        response = self.get_success_response(sortBy="members")
+
+        assert [item["id"] for item in response.data] == [str(larger_org.id), str(smaller_org.id)]
+
 
 class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
     method = "post"
