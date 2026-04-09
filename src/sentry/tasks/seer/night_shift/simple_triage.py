@@ -63,6 +63,14 @@ def fixability_score_strategy(
         referrer=Referrer.SEER_NIGHT_SHIFT_FIXABILITY_SCORE_STRATEGY.value,
     )
 
+    logger.info(
+        "night_shift.search_results",
+        extra={
+            "num_projects": len(projects),
+            "num_results": len(result.results),
+        },
+    )
+
     candidates: list[ScoredCandidate] = []
     for group in result.results:
         if not is_issue_category_eligible(group):

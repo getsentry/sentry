@@ -98,6 +98,8 @@ class TestGetEligibleProjects(TestCase):
 
 @django_db_all
 class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
+    reset_snuba_data = False
+
     def _make_eligible(self, project):
         project.update_option(
             "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
@@ -183,6 +185,8 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
 
 @django_db_all
 class TestFixabilityScoreStrategy(TestCase, SnubaTestCase):
+    reset_snuba_data = False
+
     def _store_event_and_update_group(self, project, fingerprint, **group_attrs):
         event = self.store_event(
             data={
