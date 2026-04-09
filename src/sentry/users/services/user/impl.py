@@ -62,7 +62,9 @@ class DatabaseBackedUserService(UserService):
         auth_context: AuthenticationContext | None = None,
         serializer: UserSerializeType | None = None,
     ) -> list[OpaqueSerializedResponse]:
-        return self._FQ.serialize_many(filter, as_user, auth_context, serializer)
+        return self._FQ.serialize_many(
+            filter, as_user, auth_context, serializer, select_related=False
+        )
 
     def get_many(self, *, filter: UserFilterArgs) -> list[RpcUser]:
         return self._FQ.get_many(filter)

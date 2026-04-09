@@ -2084,13 +2084,6 @@ function buildRoutes(): RouteObject[] {
         },
       ],
     },
-    // Redirect old conversations links to the new explore location
-    {
-      path: `${CONVERSATIONS_LANDING_SUB_PATH}/*`,
-      component: make(
-        () => import('sentry/views/insights/pages/conversations/conversationsRedirect')
-      ),
-    },
     // Redirect old links to the new agents landing page
     {
       path: 'ai/*',
@@ -2324,13 +2317,10 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
-          handle: {module: undefined},
           component: make(
             () => import('sentry/views/insights/pages/conversations/overview')
           ),
         },
-        transactionSummaryRoute,
-        traceView,
       ],
     },
     {

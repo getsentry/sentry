@@ -22,8 +22,13 @@ class OrganizationIntegrationReposTest(APITestCase):
     )
     def test_simple(self, get_repositories: MagicMock) -> None:
         get_repositories.return_value = [
-            {"name": "rad-repo", "identifier": "Example/rad-repo", "default_branch": "main"},
-            {"name": "cool-repo", "identifier": "Example/cool-repo"},
+            {
+                "name": "rad-repo",
+                "identifier": "Example/rad-repo",
+                "default_branch": "main",
+                "external_id": "rad-repo",
+            },
+            {"name": "cool-repo", "identifier": "Example/cool-repo", "external_id": "cool-repo"},
         ]
         response = self.client.get(self.path, format="json")
 
@@ -35,12 +40,14 @@ class OrganizationIntegrationReposTest(APITestCase):
                     "identifier": "Example/rad-repo",
                     "defaultBranch": "main",
                     "isInstalled": False,
+                    "externalId": "rad-repo",
                 },
                 {
                     "name": "cool-repo",
                     "identifier": "Example/cool-repo",
                     "defaultBranch": None,
                     "isInstalled": False,
+                    "externalId": "cool-repo",
                 },
             ],
             "searchable": True,
@@ -55,8 +62,9 @@ class OrganizationIntegrationReposTest(APITestCase):
                 "name": "rad-repo",
                 "identifier": "Example/rad-repo",
                 "default_branch": "main",
+                "external_id": "rad-repo",
             },
-            {"name": "cool-repo", "identifier": "Example/cool-repo"},
+            {"name": "cool-repo", "identifier": "Example/cool-repo", "external_id": "cool-repo"},
         ]
 
         self.create_repo(
@@ -75,6 +83,7 @@ class OrganizationIntegrationReposTest(APITestCase):
                     "identifier": "Example/cool-repo",
                     "defaultBranch": None,
                     "isInstalled": False,
+                    "externalId": "cool-repo",
                 },
             ],
             "searchable": True,
@@ -85,9 +94,23 @@ class OrganizationIntegrationReposTest(APITestCase):
     )
     def test_installable_only(self, get_repositories: MagicMock) -> None:
         get_repositories.return_value = [
-            {"name": "rad-repo", "identifier": "Example/rad-repo", "default_branch": "main"},
-            {"name": "cool-repo", "identifier": "Example/cool-repo", "default_branch": "dev"},
-            {"name": "awesome-repo", "identifier": "Example/awesome-repo"},
+            {
+                "name": "rad-repo",
+                "identifier": "Example/rad-repo",
+                "default_branch": "main",
+                "external_id": "rad-repo",
+            },
+            {
+                "name": "cool-repo",
+                "identifier": "Example/cool-repo",
+                "default_branch": "dev",
+                "external_id": "cool-repo",
+            },
+            {
+                "name": "awesome-repo",
+                "identifier": "Example/awesome-repo",
+                "external_id": "awesome-repo",
+            },
         ]
 
         self.create_repo(
@@ -105,12 +128,14 @@ class OrganizationIntegrationReposTest(APITestCase):
                     "identifier": "Example/cool-repo",
                     "defaultBranch": "dev",
                     "isInstalled": False,
+                    "externalId": "cool-repo",
                 },
                 {
                     "name": "awesome-repo",
                     "identifier": "Example/awesome-repo",
                     "defaultBranch": None,
                     "isInstalled": False,
+                    "externalId": "awesome-repo",
                 },
             ],
             "searchable": True,
@@ -121,8 +146,18 @@ class OrganizationIntegrationReposTest(APITestCase):
     )
     def test_is_installed_field(self, get_repositories: MagicMock) -> None:
         get_repositories.return_value = [
-            {"name": "rad-repo", "identifier": "Example/rad-repo", "default_branch": "main"},
-            {"name": "rad-repo", "identifier": "Example2/rad-repo", "default_branch": "dev"},
+            {
+                "name": "rad-repo",
+                "identifier": "Example/rad-repo",
+                "default_branch": "main",
+                "external_id": "rad-repo",
+            },
+            {
+                "name": "rad-repo",
+                "identifier": "Example2/rad-repo",
+                "default_branch": "dev",
+                "external_id": "rad-repo",
+            },
         ]
 
         self.create_repo(
@@ -141,11 +176,13 @@ class OrganizationIntegrationReposTest(APITestCase):
                     "identifier": "Example/rad-repo",
                     "defaultBranch": "main",
                     "isInstalled": True,
+                    "externalId": "rad-repo",
                 },
                 {
                     "name": "rad-repo",
                     "identifier": "Example2/rad-repo",
                     "defaultBranch": "dev",
+                    "externalId": "rad-repo",
                     "isInstalled": False,
                 },
             ],
@@ -161,7 +198,12 @@ class OrganizationIntegrationReposTest(APITestCase):
         one organization should not affect the available repos for the other.
         """
         get_repositories.return_value = [
-            {"name": "shared-repo", "identifier": "Example/shared-repo", "default_branch": "main"},
+            {
+                "name": "shared-repo",
+                "identifier": "Example/shared-repo",
+                "default_branch": "main",
+                "external_id": "shared-repo",
+            },
         ]
 
         other_org = self.create_organization(owner=self.user, name="other-org")
@@ -182,6 +224,7 @@ class OrganizationIntegrationReposTest(APITestCase):
                     "identifier": "Example/shared-repo",
                     "defaultBranch": "main",
                     "isInstalled": False,
+                    "externalId": "shared-repo",
                 },
             ],
             "searchable": True,
@@ -193,7 +236,12 @@ class OrganizationIntegrationReposTest(APITestCase):
     def test_accessible_only_passes_param(self, get_repositories: MagicMock) -> None:
         """When accessibleOnly=true, passes accessible_only to get_repositories."""
         get_repositories.return_value = [
-            {"name": "rad-repo", "identifier": "Example/rad-repo", "default_branch": "main"},
+            {
+                "name": "rad-repo",
+                "identifier": "Example/rad-repo",
+                "default_branch": "main",
+                "external_id": "rad-repo",
+            },
         ]
         response = self.client.get(
             self.path, format="json", data={"search": "rad", "accessibleOnly": "true"}
@@ -208,6 +256,7 @@ class OrganizationIntegrationReposTest(APITestCase):
                     "identifier": "Example/rad-repo",
                     "defaultBranch": "main",
                     "isInstalled": False,
+                    "externalId": "rad-repo",
                 },
             ],
             "searchable": True,
@@ -219,7 +268,12 @@ class OrganizationIntegrationReposTest(APITestCase):
     def test_accessible_only_without_search(self, get_repositories: MagicMock) -> None:
         """When accessibleOnly=true but no search, passes both params through."""
         get_repositories.return_value = [
-            {"name": "rad-repo", "identifier": "Example/rad-repo", "default_branch": "main"},
+            {
+                "name": "rad-repo",
+                "identifier": "Example/rad-repo",
+                "default_branch": "main",
+                "external_id": "rad-repo",
+            },
         ]
         response = self.client.get(self.path, format="json", data={"accessibleOnly": "true"})
 
@@ -232,8 +286,18 @@ class OrganizationIntegrationReposTest(APITestCase):
     def test_accessible_only_with_installable_only(self, get_repositories: MagicMock) -> None:
         """Both filters compose: accessible scopes the fetch, installable excludes installed repos."""
         get_repositories.return_value = [
-            {"name": "rad-repo", "identifier": "Example/rad-repo", "default_branch": "main"},
-            {"name": "cool-repo", "identifier": "Example/cool-repo", "default_branch": "dev"},
+            {
+                "name": "rad-repo",
+                "identifier": "Example/rad-repo",
+                "default_branch": "main",
+                "external_id": "rad-repo",
+            },
+            {
+                "name": "cool-repo",
+                "identifier": "Example/cool-repo",
+                "default_branch": "dev",
+                "external_id": "cool-repo",
+            },
         ]
 
         self.create_repo(
@@ -257,6 +321,7 @@ class OrganizationIntegrationReposTest(APITestCase):
                     "identifier": "Example/cool-repo",
                     "defaultBranch": "dev",
                     "isInstalled": False,
+                    "externalId": "cool-repo",
                 },
             ],
             "searchable": True,

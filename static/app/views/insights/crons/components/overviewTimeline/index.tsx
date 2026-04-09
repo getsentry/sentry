@@ -41,7 +41,7 @@ export function OverviewTimeline({monitorList}: Props) {
   const location = useLocation();
 
   const elementRef = useRef<HTMLDivElement>(null);
-  const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const {width: containerWidth} = useDimensions({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 1000);
 
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});

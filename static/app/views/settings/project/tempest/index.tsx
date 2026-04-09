@@ -16,6 +16,8 @@ import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
@@ -34,6 +36,7 @@ const PS5_WARNING_DISMISS_KEY = 'tempest-ps5-warning-dismissed';
 export default function TempestSettings() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const location = useLocation();
   const navigate = useNavigate();
   const {dismiss: dismissPS5Warning, isDismissed: isPS5WarningDismissed} =
@@ -110,7 +113,13 @@ export default function TempestSettings() {
         title={getPageTitle()}
         action={
           <Grid flow="column" align="center" gap="lg">
-            <FeedbackButton />
+            {hasPageFrameFeature ? (
+              <TopBar.Slot name="feedback">
+                <FeedbackButton>{null}</FeedbackButton>
+              </TopBar.Slot>
+            ) : (
+              <FeedbackButton />
+            )}
             <RequestSdkAccessButton
               gamingPlatform="playstation"
               organization={organization}

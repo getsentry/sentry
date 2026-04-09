@@ -267,6 +267,16 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["conditions"][0]["name"]
         assert response.data["filters"][0]["name"]
 
+    @with_feature("organizations:workflow-engine-issue-alert-endpoints-get")
+    def test_deleted_dual_written_rule_returns_404(self) -> None:
+        rule = self.create_project_rule(self.project)
+        # DELETE schedules deletion but we intentionally do NOT run it
+        self.get_success_response(
+            self.organization.slug, rule.project.slug, rule.id, method="delete", status_code=202
+        )
+        # GET should 404 even though the scheduled deletion hasn't executed
+        self.get_error_response(self.organization.slug, rule.project.slug, rule.id, status_code=404)
+
     def test_non_existing_rule(self) -> None:
         self.get_error_response(self.organization.slug, self.project.slug, 12345, status_code=404)
 

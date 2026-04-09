@@ -47,7 +47,10 @@ from sentry.integrations.source_code_management.commit_context import (
     PRCommentWorkflow,
 )
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
-from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.source_code_management.repository import (
+    RepositoryInfo,
+    RepositoryIntegration,
+)
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import (
@@ -237,7 +240,7 @@ def get_document_origin(org) -> str:
 
 
 class GitHubIntegration(
-    RepositoryIntegration,
+    RepositoryIntegration[GitHubBaseClient],
     GitHubIssuesSpec,
     GitHubIssueSyncSpec,
     CommitContextIntegration,
@@ -322,7 +325,7 @@ class GitHubIntegration(
         query: str | None = None,
         page_number_limit: int | None = None,
         accessible_only: bool = False,
-    ) -> list[dict[str, Any]]:
+    ) -> list[RepositoryInfo]:
         """
         args:
         * query - a query to filter the repositories by
@@ -335,10 +338,11 @@ class GitHubIntegration(
         """
         if not query or accessible_only:
             all_repos = self.get_client().get_repos(page_number_limit=page_number_limit)
-            repos = [
+            repos: list[RepositoryInfo] = [
                 {
                     "name": i["name"],
                     "identifier": i["full_name"],
+                    "external_id": self.get_repo_external_id(i),
                     "default_branch": i.get("default_branch"),
                 }
                 for i in all_repos
@@ -346,19 +350,21 @@ class GitHubIntegration(
             ]
             if query:
                 query_lower = query.lower()
-                repos = [r for r in repos if query_lower in r["identifier"].lower()]
+                repos = [r for r in repos if query_lower in str(r["identifier"]).lower()]
             return repos
 
         full_query = build_repository_query(self.model.metadata, self.model.name, query)
         response = self.get_client().search_repositories(full_query)
-        return [
+        search_repos: list[RepositoryInfo] = [
             {
                 "name": i["name"],
                 "identifier": i["full_name"],
+                "external_id": self.get_repo_external_id(i),
                 "default_branch": i.get("default_branch"),
             }
             for i in response.get("items", [])
         ]
+        return search_repos
 
     def get_unmigratable_repositories(self) -> list[RpcRepository]:
         accessible_repos = self.get_repositories()

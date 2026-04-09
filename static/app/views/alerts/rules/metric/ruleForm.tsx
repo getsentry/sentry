@@ -1427,10 +1427,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       dataset,
       traceItemType
     );
-    const showWorkflowEngineMetricIssueUi = organization.features.includes(
-      'workflow-engine-metric-issue-ui'
-    );
-
     // Rendering the main form body
     return (
       <Main width="full">
@@ -1536,9 +1532,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                     {
                       <div>
                         <Flex align="center" gap="sm">
-                          {showWorkflowEngineMetricIssueUi
-                            ? t('Set issue detection thresholds')
-                            : t('Set thresholds')}
+                          {t('Set issue detection thresholds')}
 
                           {showExtrapolationModeChangeWarning && (
                             <WarningIcon
@@ -1564,13 +1558,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                     }
                   </AlertListItem>
                   <Stack gap="lg">
-                    {showWorkflowEngineMetricIssueUi && (
-                      <Text>
-                        {t(
-                          'Metric alerts create metric issues and events. The thresholds below will determine: when the issue is created, resolved, and re-opened, as well as the issue priority.'
-                        )}
-                      </Text>
-                    )}
+                    <Text>
+                      {t(
+                        'Metric alerts create metric issues and events. The thresholds below will determine: when the issue is created, resolved, and re-opened, as well as the issue priority.'
+                      )}
+                    </Text>
                     {thresholdTypeForm(formDisabled)}
                   </Stack>
                   {showErrorMigrationWarning && (

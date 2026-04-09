@@ -15,14 +15,14 @@ import {AutomationBuilderDrawerForm} from 'sentry/views/automations/components/a
 import {ConnectAutomationsDrawer} from 'sentry/views/detectors/components/connectAutomationsDrawer';
 import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';
 import {ConnectedAlertsEmptyState} from 'sentry/views/detectors/components/connectedAutomationsEmptyState';
-import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
+import {useDetectorFormProject} from 'sentry/views/detectors/components/forms/common/useDetectorFormProject';
 
 export function AutomateSection({step}: {step?: number}) {
   const ref = useRef<HTMLButtonElement>(null);
   const formContext = useContext(FormContext);
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
 
-  const {project} = useDetectorFormContext();
+  const project = useDetectorFormProject();
   const workflowIds = useFormField('workflowIds') as string[];
   const setWorkflowIds = useCallback(
     (newWorkflowIds: string[]) =>

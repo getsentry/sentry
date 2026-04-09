@@ -74,7 +74,7 @@ export enum PerformanceTerm {
 
 type TermFormatter = (organization: Organization) => string;
 
-export const PERFORMANCE_TERMS: Record<PerformanceTerm, TermFormatter> = {
+const PERFORMANCE_TERMS: Record<PerformanceTerm, TermFormatter> = {
   tpm: () => t('TPM is the number of recorded transaction events per minute.'),
   throughput: () =>
     t('Throughput is the number of recorded transaction events per minute.'),
