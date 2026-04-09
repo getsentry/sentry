@@ -1,3 +1,4 @@
+import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 
 const INSTALLABLE_KEY = 'installable';
@@ -23,4 +24,20 @@ export function removeInstallableFilter(query: string): string {
   const search = new MutableSearch(query);
   search.removeFilter(INSTALLABLE_KEY);
   return search.formatString();
+}
+
+/**
+ * Returns the updated query string for a display change.
+ * Distribution display adds `installable:true`; other displays strip it.
+ */
+export function getUpdatedQueryForDisplay(
+  currentQuery: string | null,
+  display: PreprodBuildsDisplay
+): string | undefined {
+  const trimmed = (currentQuery ?? '').trim();
+  const updated =
+    display === PreprodBuildsDisplay.DISTRIBUTION
+      ? addInstallableFilter(trimmed)
+      : removeInstallableFilter(trimmed);
+  return updated || undefined;
 }

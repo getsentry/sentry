@@ -1,4 +1,10 @@
-import {addInstallableFilter, removeInstallableFilter} from './installableQueryUtils';
+import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
+
+import {
+  addInstallableFilter,
+  getUpdatedQueryForDisplay,
+  removeInstallableFilter,
+} from './installableQueryUtils';
 
 describe('addInstallableFilter', () => {
   it('adds installable:true to an empty query', () => {
@@ -43,5 +49,35 @@ describe('removeInstallableFilter', () => {
 
   it('returns empty string for empty input', () => {
     expect(removeInstallableFilter('')).toBe('');
+  });
+});
+
+describe('getUpdatedQueryForDisplay', () => {
+  it('adds installable:true for Distribution display', () => {
+    expect(getUpdatedQueryForDisplay('', PreprodBuildsDisplay.DISTRIBUTION)).toBe(
+      'installable:true'
+    );
+  });
+
+  it('removes installable filter for Size display', () => {
+    expect(
+      getUpdatedQueryForDisplay('installable:true', PreprodBuildsDisplay.SIZE)
+    ).toBeUndefined();
+  });
+
+  it('handles null query', () => {
+    expect(getUpdatedQueryForDisplay(null, PreprodBuildsDisplay.DISTRIBUTION)).toBe(
+      'installable:true'
+    );
+  });
+
+  it('preserves other tokens when switching to Distribution', () => {
+    expect(
+      getUpdatedQueryForDisplay('app_id:com.example', PreprodBuildsDisplay.DISTRIBUTION)
+    ).toBe('app_id:com.example installable:true');
+  });
+
+  it('returns undefined when result is empty', () => {
+    expect(getUpdatedQueryForDisplay('', PreprodBuildsDisplay.SIZE)).toBeUndefined();
   });
 });

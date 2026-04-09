@@ -5,10 +5,7 @@ import {Container} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
-import {
-  addInstallableFilter,
-  removeInstallableFilter,
-} from 'sentry/components/preprod/installableQueryUtils';
+import {getUpdatedQueryForDisplay} from 'sentry/components/preprod/installableQueryUtils';
 import {
   getPreprodBuildsDisplay,
   PreprodBuildsDisplay,
@@ -127,19 +124,13 @@ export default function PreprodBuilds() {
 
   const handleDisplayChange = useCallback(
     (display: PreprodBuildsDisplay) => {
-      const currentQuery = (urlSearchQuery ?? '').trim();
-      const updatedQuery =
-        display === PreprodBuildsDisplay.DISTRIBUTION
-          ? addInstallableFilter(currentQuery)
-          : removeInstallableFilter(currentQuery);
-
       navigate({
         ...location,
         query: {
           ...location.query,
           cursor: undefined,
           display,
-          query: updatedQuery || undefined,
+          query: getUpdatedQueryForDisplay(urlSearchQuery, display),
         },
       });
     },
