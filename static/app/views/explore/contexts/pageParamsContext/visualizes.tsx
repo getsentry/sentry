@@ -137,10 +137,14 @@ export function updateVisualizeAggregate({
 
   // Check if old arguments are valid for score functions with restricted columns
   if (
-    oldArguments?.length &&
-    (newAggregate === AggregationKey.PERFORMANCE_SCORE ||
-      newAggregate === AggregationKey.OPPORTUNITY_SCORE)
+    newAggregate === AggregationKey.PERFORMANCE_SCORE ||
+    newAggregate === AggregationKey.OPPORTUNITY_SCORE
   ) {
+    if (!oldArguments?.length) {
+      // No old arguments (e.g., switching from count()), use score defaults
+      const params = newFieldDefinition?.parameters?.map(p => p.defaultValue || '');
+      return `${newAggregate}(${params?.join(',')})`;
+    }
     const param = newFieldDefinition?.parameters?.[0];
     if (param?.kind === 'column' && typeof param.columnTypes === 'function') {
       const isValid = param.columnTypes({
