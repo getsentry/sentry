@@ -19,9 +19,9 @@ import {
   useSetQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
 
-const NON_SORTABLE_COLUMNS = new Set<SampleTableColumnKey>([
-  VirtualTableSampleColumnKey.EXPAND_ROW,
-  VirtualTableSampleColumnKey.PROJECT_BADGE,
+const SORTABLE_COLUMNS = new Set<SampleTableColumnKey>([
+  TraceMetricKnownFieldKey.METRIC_VALUE,
+  TraceMetricKnownFieldKey.TIMESTAMP,
 ]);
 
 interface MetricsSamplesTableHeaderProps {
@@ -76,7 +76,7 @@ function FieldHeaderCellWrapper({
   const columnType = getMetricTableColumnType(field);
   const label = getFieldLabel(field);
   const hasPadding = field !== VirtualTableSampleColumnKey.EXPAND_ROW;
-  const canSort = !NON_SORTABLE_COLUMNS.has(field);
+  const canSort = SORTABLE_COLUMNS.has(field);
 
   function handleSortClick() {
     const kind = sort === 'desc' ? 'asc' : 'desc';
