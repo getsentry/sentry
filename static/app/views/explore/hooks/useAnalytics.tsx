@@ -98,7 +98,7 @@ function useTrackAnalytics({
     queryType === 'aggregate'
       ? (aggregatesTableResult.result.error?.message ?? '')
       : queryType === 'traces'
-        ? (tracesTableResult?.result.error?.message ?? '')
+        ? (tracesTableResult?.error?.message ?? '')
         : (spansTableResult.result.error?.message ?? '');
   const chartError = timeseriesResult.error?.message ?? '';
   const query_status = tableError || chartError ? 'error' : 'success';

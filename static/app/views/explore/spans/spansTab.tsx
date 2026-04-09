@@ -22,6 +22,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {parseError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -40,7 +41,10 @@ import {useCrossEventQueries} from 'sentry/views/explore/hooks/useCrossEventQuer
 import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
-import {useExploreTracesTableApiOptions} from 'sentry/views/explore/hooks/useExploreTracesTable';
+import {
+  type TracesTableResult,
+  useExploreTracesTableApiOptions,
+} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {
@@ -231,7 +235,10 @@ function SpanTabContentSection({
     select: selectJsonWithHeaders,
     enabled: isReady && queryType === 'traces',
   });
-  const tracesTableResult = {result: tracesTableQuery};
+  const tracesTableResult = {
+    result: tracesTableQuery,
+    error: parseError(tracesTableQuery.error),
+  } satisfies TracesTableResult;
 
   const {result: timeseriesResult, samplingMode: timeseriesSamplingMode} =
     useExploreTimeseries({
@@ -271,7 +278,7 @@ function SpanTabContentSection({
     : queryType === 'samples'
       ? spansTableResult.result.error
       : queryType === 'traces'
-        ? tracesTableResult.result.error
+        ? tracesTableResult.error
         : queryType === 'aggregate'
           ? aggregatesTableResult.result.error
           : null;
