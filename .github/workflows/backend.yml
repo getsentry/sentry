@@ -266,6 +266,24 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    services:
+      redis-cluster:
+        image: ghcr.io/getsentry/docker-redis-cluster:7.0.10
+        ports: ['7000:7000', '7001:7001', '7002:7002', '7003:7003', '7004:7004', '7005:7005']
+        env:
+          IP: 0.0.0.0
+      zookeeper:
+        image: ghcr.io/getsentry/image-mirror-confluentinc-cp-zookeeper:6.2.0
+        env:
+          ZOOKEEPER_CLIENT_PORT: 2181
+      kafka:
+        image: ghcr.io/getsentry/image-mirror-confluentinc-cp-kafka:6.2.0
+        env:
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://127.0.0.1:9092
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+          KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS: 1
+        ports: ['9092:9092']
     strategy:
       fail-fast: false
       matrix:
