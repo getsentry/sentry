@@ -56,7 +56,7 @@ function VisualizationCell({detector}: {detector: CronDetector}) {
   const cronEnvironments = detector.dataSources[0].queryObj.environments;
 
   const elementRef = useRef<HTMLDivElement>(null);
-  const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const {width: containerWidth} = useDimensions({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 1000);
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
   const {data: monitorStats, isPending} = useMonitorStats({

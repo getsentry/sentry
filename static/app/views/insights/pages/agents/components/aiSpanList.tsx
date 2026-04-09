@@ -141,7 +141,7 @@ function TransactionWrapper({
     for (const node of nodes) {
       const parent = getIsAiAgentNode(node)
         ? node
-        : (node as AITraceSpanNode).findParent<AITraceSpanNode>(p => getIsAiAgentNode(p));
+        : (node as AITraceSpanNode).findParent(p => getIsAiAgentNode(p));
       if (parent) {
         parents[node.id] = parent;
       }
