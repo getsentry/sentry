@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {Grid, Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
@@ -58,10 +60,17 @@ export default function MultiQueryMode() {
             <Layout.Title>{title ? title : t('Compare Queries')}</Layout.Title>
           </Layout.HeaderContent>
           {hasPageFrameFeature ? (
-            <TopBar.Slot name="actions">
-              <StarSavedQueryButton />
-              {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
-            </TopBar.Slot>
+            <Fragment>
+              <TopBar.Slot name="actions">
+                <StarSavedQueryButton />
+                {defined(id) && savedQuery?.isPrebuilt === false && (
+                  <SavedQueryEditMenu />
+                )}
+              </TopBar.Slot>
+              <TopBar.Slot name="feedback">
+                <FeedbackButton>{null}</FeedbackButton>
+              </TopBar.Slot>
+            </Fragment>
           ) : (
             <Layout.HeaderActions>
               <Grid flow="column" align="center" gap="md">

@@ -282,41 +282,49 @@ export function TransactionHeader({
         </Layout.Title>
       </Layout.HeaderContent>
       {hasPageFrameFeature ? (
-        <TopBar.Slot name="actions">
-          <Feature organization={organization} features="incidents">
-            {({hasFeature}) =>
-              hasFeature &&
-              !metricsCardinality?.isLoading &&
-              !deprecateTransactionAlerts(organization) ? (
-                <CreateAlertFromViewButton
-                  eventView={eventView}
-                  organization={organization}
-                  projects={projects}
-                  onClick={handleCreateAlertSuccess}
-                  referrer="performance"
-                  alertType="trans_duration"
-                  aria-label={t('Create Alert')}
-                  disableMetricDataset={
-                    metricsCardinality?.outcome?.forceTransactionsOnly
-                  }
-                />
-              ) : null
-            }
-          </Feature>
-          <TeamKeyTransactionButton
-            transactionName={transactionName}
-            eventView={eventView}
-            organization={organization}
-          />
-          <GuideAnchor target="project_transaction_threshold_override" position="bottom">
-            <TransactionThresholdButton
-              organization={organization}
+        <Fragment>
+          <TopBar.Slot name="actions">
+            <Feature organization={organization} features="incidents">
+              {({hasFeature}) =>
+                hasFeature &&
+                !metricsCardinality?.isLoading &&
+                !deprecateTransactionAlerts(organization) ? (
+                  <CreateAlertFromViewButton
+                    eventView={eventView}
+                    organization={organization}
+                    projects={projects}
+                    onClick={handleCreateAlertSuccess}
+                    referrer="performance"
+                    alertType="trans_duration"
+                    aria-label={t('Create Alert')}
+                    disableMetricDataset={
+                      metricsCardinality?.outcome?.forceTransactionsOnly
+                    }
+                  />
+                ) : null
+              }
+            </Feature>
+            <TeamKeyTransactionButton
               transactionName={transactionName}
               eventView={eventView}
-              onChangeThreshold={onChangeThreshold}
+              organization={organization}
             />
-          </GuideAnchor>
-        </TopBar.Slot>
+            <GuideAnchor
+              target="project_transaction_threshold_override"
+              position="bottom"
+            >
+              <TransactionThresholdButton
+                organization={organization}
+                transactionName={transactionName}
+                eventView={eventView}
+                onChangeThreshold={onChangeThreshold}
+              />
+            </GuideAnchor>
+          </TopBar.Slot>
+          <TopBar.Slot name="feedback">
+            <FeedbackButton>{null}</FeedbackButton>
+          </TopBar.Slot>
+        </Fragment>
       ) : (
         <Layout.HeaderActions>
           <Grid flow="column" align="center" gap="md">

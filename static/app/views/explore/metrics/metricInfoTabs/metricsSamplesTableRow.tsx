@@ -1,14 +1,13 @@
 import {useRef, useState, type ReactNode} from 'react';
-import {useTheme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Count} from 'sentry/components/count';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -20,11 +19,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import {TimestampRenderer} from 'sentry/views/explore/logs/fieldRenderers';
-import {getLogColors} from 'sentry/views/explore/logs/styles';
-import {SeverityLevel} from 'sentry/views/explore/logs/utils';
-import {NoPaddingColumns} from 'sentry/views/explore/metrics/constants';
-import {useTraceTelemetry} from 'sentry/views/explore/metrics/hooks/useTraceTelemetry';
 import {MetricDetails} from 'sentry/views/explore/metrics/metricInfoTabs/metricDetails';
 import {
   ExpandedRowContainer,
@@ -50,13 +44,12 @@ import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHe
 import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
-const MAX_TELEMETRY_WIDTH = 40;
 const VALUE_COLUMN_MIN_WIDTH = '50px';
+
 interface SampleTableRowProps {
   columns: SampleTableColumnKey[];
   meta: EventsMetaType;
   row: TraceMetricEventsResponseItem;
-  telemetryData: ReturnType<typeof useTraceTelemetry>['data'];
   embedded?: boolean;
   ref?: (element: HTMLElement | null) => void;
 }
@@ -75,18 +68,7 @@ function FieldCellWrapper({
   embedded?: boolean;
 }) {
   const columnType = getMetricTableColumnType(field);
-  const hasPadding = !NoPaddingColumns.includes(field as VirtualTableSampleColumnKey);
-  if (columnType === 'stat') {
-    return (
-      <NumericSimpleTableRowCell
-        key={`stat-${index}`}
-        data-column-name={field}
-        embedded={embedded}
-      >
-        {children}
-      </NumericSimpleTableRowCell>
-    );
-  }
+  const hasPadding = field !== VirtualTableSampleColumnKey.EXPAND_ROW;
   if (columnType === 'metric_value') {
     return (
       <NumericSimpleTableRowCell
@@ -109,7 +91,6 @@ function FieldCellWrapper({
 
 export function SampleTableRow({
   row,
-  telemetryData,
   columns,
   meta,
   embedded = false,
@@ -118,7 +99,6 @@ export function SampleTableRow({
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const location = useLocation();
-  const theme = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
   const measureRef = useRef<HTMLTableRowElement>(null);
   const projects = useProjects();
@@ -127,7 +107,6 @@ export function SampleTableRow({
   const projectSlug = project?.slug ?? '';
 
   const traceId = row[TraceMetricKnownFieldKey.TRACE];
-  const telemetry = telemetryData?.get?.(traceId);
 
   const renderExpandRowCell = () => {
     return (
@@ -149,9 +128,6 @@ export function SampleTableRow({
     const spanIdToUse = oldSpanId || spanId;
     const strippedLocation = stripMetricParamsFromLocation(location);
 
-    const hasSpans = (telemetry?.spansCount ?? 0) > 0;
-    const shouldGoToSpans = spanIdToUse && hasSpans;
-
     const target = getTraceDetailsUrl({
       organization,
       traceSlug: traceId,
@@ -163,8 +139,8 @@ export function SampleTableRow({
       timestamp,
       location: strippedLocation,
       source: TraceViewSources.TRACE_METRICS,
-      spanId: shouldGoToSpans ? spanIdToUse : undefined,
-      // tab: shouldGoToSpans ? TraceLayoutTabKeys.WATERFALL : TraceLayoutTabKeys.METRICS, // TODO: Can use this if want to go to the waterfall view if we add metrics to span details.
+      spanId: spanIdToUse || undefined,
+      // tab: spanIdToUse ? TraceLayoutTabKeys.WATERFALL : TraceLayoutTabKeys.METRICS, // TODO: Can use this if want to go to the waterfall view if we add metrics to span details.
       tab: TraceLayoutTabKeys.METRICS,
     });
 
@@ -177,66 +153,15 @@ export function SampleTableRow({
     );
   };
 
-  const renderLogsCell = () => {
-    return (
-      <WrappingText
-        style={{
-          maxWidth: MAX_TELEMETRY_WIDTH,
-          alignItems: 'center',
-          justifyContent: 'flex-end',
-        }}
-      >
-        <Count value={telemetry?.logsCount ?? 0} />
-      </WrappingText>
-    );
-  };
-
-  const renderSpansCell = () => {
-    return (
-      <WrappingText
-        style={{
-          maxWidth: MAX_TELEMETRY_WIDTH,
-          alignItems: 'center',
-          justifyContent: 'flex-end',
-        }}
-      >
-        <Count value={telemetry?.spansCount ?? 0} />
-      </WrappingText>
-    );
-  };
-
-  const renderErrorsCell = () => {
-    return (
-      <WrappingText
-        style={{
-          maxWidth: MAX_TELEMETRY_WIDTH,
-          alignItems: 'center',
-          justifyContent: 'flex-end',
-        }}
-      >
-        <Count value={telemetry?.errorsCount ?? 0} />
-      </WrappingText>
-    );
-  };
-
   const renderTimestampCell = (field: string) => {
+    const timestamp = row[field];
+    if (timestamp === undefined) {
+      return null;
+    }
+
     return (
       <StyledTimestampWrapper>
-        {TimestampRenderer({
-          item: {
-            fieldKey: field,
-            value: row[field] ?? null,
-          },
-          extra: {
-            attributes: row,
-            attributeTypes: meta.fields ?? {},
-            highlightTerms: [],
-            logColors: getLogColors(SeverityLevel.INFO, theme),
-            location,
-            organization,
-            theme,
-          },
-        })}
+        <TimeSince date={timestamp} unitStyle="short" tooltipShowSeconds />
       </StyledTimestampWrapper>
     );
   };
@@ -279,8 +204,12 @@ export function SampleTableRow({
 
   const renderProjectCell = () => {
     return (
-      <Flex align="center" justify="center" minWidth="18px">
-        <ProjectBadge avatarSize={14} project={project ?? {slug: projectSlug}} hideName />
+      <Flex align="center" minWidth="0" width="100%">
+        <ProjectBadge
+          avatarSize={14}
+          project={project ?? {slug: projectSlug}}
+          disableLink
+        />
       </Flex>
     );
   };
@@ -290,9 +219,6 @@ export function SampleTableRow({
     [TraceMetricKnownFieldKey.TRACE]: renderTraceCell,
     [TraceMetricKnownFieldKey.TIMESTAMP]: () =>
       renderTimestampCell(TraceMetricKnownFieldKey.TIMESTAMP),
-    [VirtualTableSampleColumnKey.LOGS]: renderLogsCell,
-    [VirtualTableSampleColumnKey.SPANS]: renderSpansCell,
-    [VirtualTableSampleColumnKey.ERRORS]: renderErrorsCell,
     [VirtualTableSampleColumnKey.PROJECT_BADGE]: renderProjectCell,
     [TraceMetricKnownFieldKey.METRIC_TYPE]: renderMetricTypeCell,
   };

@@ -97,6 +97,14 @@ export default function LogsContent() {
   );
 }
 
+const logsFeedbackOptions = {
+  messagePlaceholder: t('How can we make logs work better for you?'),
+  tags: {
+    ['feedback.source']: 'logs-listing',
+    ['feedback.owner']: 'performance',
+  },
+};
+
 function LogsHeader() {
   const pageId = useQueryParamsId();
   const title = useQueryParamsTitle();
@@ -131,31 +139,13 @@ function LogsHeader() {
             </TopBar.Slot>
           )}
           <TopBar.Slot name="feedback">
-            <FeedbackButton
-              feedbackOptions={{
-                messagePlaceholder: t('How can we make logs work better for you?'),
-                tags: {
-                  ['feedback.source']: 'logs-listing',
-                  ['feedback.owner']: 'performance',
-                },
-              }}
-            >
-              {null}
-            </FeedbackButton>
+            <FeedbackButton feedbackOptions={logsFeedbackOptions}>{null}</FeedbackButton>
           </TopBar.Slot>
         </Fragment>
       ) : (
         <Layout.HeaderActions>
           <Grid flow="column" align="center" gap="md">
-            <FeedbackButton
-              feedbackOptions={{
-                messagePlaceholder: t('How can we make logs work better for you?'),
-                tags: {
-                  ['feedback.source']: 'logs-listing',
-                  ['feedback.owner']: 'performance',
-                },
-              }}
-            />
+            <FeedbackButton feedbackOptions={logsFeedbackOptions} />
             {defined(onboardingProject) && <SetupLogsButton />}
           </Grid>
         </Layout.HeaderActions>

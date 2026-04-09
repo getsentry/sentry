@@ -50,6 +50,12 @@ interface BuildDetailsHeaderContentProps {
   projectType: string | null;
 }
 
+const buildDetailsFeedbackOptions = {
+  tags: {
+    'feedback.source': 'preprod.buildDetails',
+  },
+};
+
 export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps) {
   const hasPageFrameFeature = useHasPageFrameFeature();
   const organization = useOrganization();
@@ -291,13 +297,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
             </ConfirmDelete>
           </TopBar.Slot>
           <TopBar.Slot name="feedback">
-            <FeedbackButton
-              feedbackOptions={{
-                tags: {
-                  'feedback.source': 'preprod.buildDetails',
-                },
-              }}
-            >
+            <FeedbackButton feedbackOptions={buildDetailsFeedbackOptions}>
               {null}
             </FeedbackButton>
           </TopBar.Slot>
@@ -305,13 +305,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
       ) : (
         <Layout.HeaderActions>
           <Flex align="center" gap="sm" flexShrink={0}>
-            <FeedbackButton
-              feedbackOptions={{
-                tags: {
-                  'feedback.source': 'preprod.buildDetails',
-                },
-              }}
-            />
+            <FeedbackButton feedbackOptions={buildDetailsFeedbackOptions} />
             <Button
               size="sm"
               priority="default"

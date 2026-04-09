@@ -33,6 +33,13 @@ import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
+const userFeedbackFeedbackOptions = {
+  messagePlaceholder: t('How can we improve the User Feedback experience?'),
+  tags: {
+    ['feedback.source']: 'feedback-list',
+  },
+};
+
 export default function FeedbackListPage() {
   const hasPageFrameFeature = useHasPageFrameFeature();
   const organization = useOrganization();
@@ -176,17 +183,7 @@ export default function FeedbackListPage() {
                   </LinkButton>
                 </TopBar.Slot>
                 <TopBar.Slot name="feedback">
-                  <FeedbackButton
-                    size="sm"
-                    feedbackOptions={{
-                      messagePlaceholder: t(
-                        'How can we improve the User Feedback experience?'
-                      ),
-                      tags: {
-                        ['feedback.source']: 'feedback-list',
-                      },
-                    }}
-                  >
+                  <FeedbackButton size="sm" feedbackOptions={userFeedbackFeedbackOptions}>
                     {null}
                   </FeedbackButton>
                 </TopBar.Slot>
@@ -196,14 +193,7 @@ export default function FeedbackListPage() {
                 <Flex gap="lg">
                   <FeedbackButton
                     size="sm"
-                    feedbackOptions={{
-                      messagePlaceholder: t(
-                        'How can we improve the User Feedback experience?'
-                      ),
-                      tags: {
-                        ['feedback.source']: 'feedback-list',
-                      },
-                    }}
+                    feedbackOptions={userFeedbackFeedbackOptions}
                   />
                   <LinkButton
                     size="sm"

@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import {TabList} from '@sentry/scraps/tabs';
@@ -67,27 +69,32 @@ export function AlertHeader({activeTab}: Props) {
         </Layout.Title>
       </Layout.HeaderContent>
       {hasPageFrameFeature ? (
-        <TopBar.Slot name="actions">
-          <CreateAlertButton
-            organization={organization}
-            iconProps={{size: 'sm'}}
-            priority="primary"
-            referrer="alert_stream"
-            projectSlug={
-              selection.projects.length === 1
-                ? ProjectsStore.getById(`${selection.projects[0]}`)?.slug
-                : undefined
-            }
-          >
-            {t('Create Alert')}
-          </CreateAlertButton>
-          <LinkButton
-            onClick={handleNavigateToSettings}
-            href="#"
-            icon={<IconSettings size="sm" />}
-            aria-label={t('Settings')}
-          />
-        </TopBar.Slot>
+        <Fragment>
+          <TopBar.Slot name="actions">
+            <CreateAlertButton
+              organization={organization}
+              iconProps={{size: 'sm'}}
+              priority="primary"
+              referrer="alert_stream"
+              projectSlug={
+                selection.projects.length === 1
+                  ? ProjectsStore.getById(`${selection.projects[0]}`)?.slug
+                  : undefined
+              }
+            >
+              {t('Create Alert')}
+            </CreateAlertButton>
+            <LinkButton
+              onClick={handleNavigateToSettings}
+              href="#"
+              icon={<IconSettings size="sm" />}
+              aria-label={t('Settings')}
+            />
+          </TopBar.Slot>
+          <TopBar.Slot name="feedback">
+            <FeedbackButton>{null}</FeedbackButton>
+          </TopBar.Slot>
+        </Fragment>
       ) : (
         <Layout.HeaderActions>
           <Grid flow="column" align="center" gap="md">

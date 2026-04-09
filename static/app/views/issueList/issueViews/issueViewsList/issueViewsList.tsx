@@ -323,6 +323,15 @@ function SortDropdown() {
   );
 }
 
+const issueViewsFeedbackOptions = {
+  formTitle: t('Give Feedback'),
+  messagePlaceholder: t('How can we make issue views better for you?'),
+  tags: {
+    ['feedback.source']: 'custom_views',
+    ['feedback.owner']: 'issues',
+  },
+};
+
 export default function IssueViewsList() {
   const hasPageFrameFeature = useHasPageFrameFeature();
   const organization = useOrganization();
@@ -407,17 +416,7 @@ export default function IssueViewsList() {
                 </Feature>
               </TopBar.Slot>
               <TopBar.Slot name="feedback">
-                <FeedbackButton
-                  size="sm"
-                  feedbackOptions={{
-                    formTitle: t('Give Feedback'),
-                    messagePlaceholder: t('How can we make issue views better for you?'),
-                    tags: {
-                      ['feedback.source']: 'custom_views',
-                      ['feedback.owner']: 'issues',
-                    },
-                  }}
-                >
+                <FeedbackButton size="sm" feedbackOptions={issueViewsFeedbackOptions}>
                   {null}
                 </FeedbackButton>
               </TopBar.Slot>
@@ -425,17 +424,7 @@ export default function IssueViewsList() {
           ) : (
             <Layout.HeaderActions>
               <Grid flow="column" align="center" gap="md">
-                <FeedbackButton
-                  size="sm"
-                  feedbackOptions={{
-                    formTitle: t('Give Feedback'),
-                    messagePlaceholder: t('How can we make issue views better for you?'),
-                    tags: {
-                      ['feedback.source']: 'custom_views',
-                      ['feedback.owner']: 'issues',
-                    },
-                  }}
-                />
+                <FeedbackButton size="sm" feedbackOptions={issueViewsFeedbackOptions} />
                 <Feature
                   features="organizations:issue-views"
                   hookName="feature-disabled:issue-views"
