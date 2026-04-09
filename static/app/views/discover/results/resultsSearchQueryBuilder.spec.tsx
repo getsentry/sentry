@@ -17,8 +17,6 @@ import {ResultsSearchQueryBuilder} from './resultsSearchQueryBuilder';
 describe('ResultsSearchQueryBuilder', () => {
   let organization: Organization;
   beforeEach(() => {
-    MockApiClient.clearMockResponses();
-
     organization = OrganizationFixture();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
@@ -94,16 +92,15 @@ describe('ResultsSearchQueryBuilder', () => {
       }
     );
 
-    // Check that a normal tag (e.g. "transaction") IS in the dropdown
     const input = await screen.findByRole('combobox');
     await userEvent.click(input);
     await screen.findByRole('listbox');
     await userEvent.keyboard('transact');
 
+    // Check that a normal tag (e.g. "transaction") IS in the dropdown
+    const listbox = await screen.findByRole('listbox');
     expect(
-      await within(screen.getByRole('listbox')).findByRole('option', {
-        name: 'transaction',
-      })
+      await within(listbox).findByRole('option', {name: 'transaction'})
     ).toBeInTheDocument();
 
     await waitFor(() => {
