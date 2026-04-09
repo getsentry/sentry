@@ -179,6 +179,7 @@ class GitlabIntegration(
         query: str | None = None,
         page_number_limit: int | None = None,
         accessible_only: bool = False,
+        use_cache: bool = False,
     ) -> list[RepositoryInfo]:
         try:
             # Note: gitlab projects are the same things as repos everywhere else
