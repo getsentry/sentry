@@ -17,7 +17,7 @@ describe('TeamReleases', () => {
     const project = ProjectFixture({id: '123'});
 
     const releaseCountApi = MockApiClient.addMockResponse({
-      url: `/teams/org-slug/team-slug/release-count/`,
+      url: '/teams/org-slug/team-slug/release-count/',
       body: TeamReleaseCountsFixture(),
     });
 
@@ -39,7 +39,7 @@ describe('TeamReleases', () => {
 
   it('should render no release counts', async () => {
     MockApiClient.addMockResponse({
-      url: `/teams/org-slug/team-slug/release-count/`,
+      url: '/teams/org-slug/team-slug/release-count/',
       body: TeamReleaseCountsFixture(),
     });
     const team = TeamFixture();
@@ -65,7 +65,7 @@ describe('TeamReleases', () => {
     const projectB = ProjectFixture({id: '234', slug: 'other-project-slug'});
 
     const releaseCountApi = MockApiClient.addMockResponse({
-      url: `/teams/org-slug/team-slug/release-count/`,
+      url: '/teams/org-slug/team-slug/release-count/',
       body: TeamReleaseCountsFixture(),
     });
 

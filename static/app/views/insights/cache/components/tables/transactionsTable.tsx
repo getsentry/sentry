@@ -87,7 +87,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `sum(span.self_time)`,
+    key: 'sum(span.self_time)',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },
@@ -96,7 +96,7 @@ const COLUMN_ORDER: Column[] = [
 const SORTABLE_FIELDS = [
   `${EPM}()`,
   `${CACHE_MISS_RATE}()`,
-  `sum(span.self_time)`,
+  'sum(span.self_time)',
   `avg(${CACHE_ITEM_SIZE})`,
 ] as const;
 

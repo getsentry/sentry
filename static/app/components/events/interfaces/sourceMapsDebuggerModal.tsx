@@ -210,11 +210,13 @@ function getPlatform({
 export function getSourceMapsDocLinks(platform: string) {
   if (platform === 'react-native') {
     return {
-      sourcemaps: `https://docs.sentry.io/platforms/react-native/sourcemaps/`,
-      legacyUploadingMethods: `https://docs.sentry.io/platforms/react-native/sourcemaps/troubleshooting/legacy-uploading-methods/`,
-      sentryCli: `https://docs.sentry.io/platforms/react-native/sourcemaps/uploading/`,
-      bundlerPluginRepoLink: `https://docs.sentry.io/platforms/react-native/manual-setup/metro/`,
-      debugIds: `https://docs.sentry.io/platforms/react-native/sourcemaps/debug-ids/`,
+      sourcemaps: 'https://docs.sentry.io/platforms/react-native/sourcemaps/',
+      legacyUploadingMethods:
+        'https://docs.sentry.io/platforms/react-native/sourcemaps/troubleshooting/legacy-uploading-methods/',
+      sentryCli: 'https://docs.sentry.io/platforms/react-native/sourcemaps/uploading/',
+      bundlerPluginRepoLink:
+        'https://docs.sentry.io/platforms/react-native/manual-setup/metro/',
+      debugIds: 'https://docs.sentry.io/platforms/react-native/sourcemaps/debug-ids/',
     };
   }
 
@@ -228,7 +230,8 @@ export function getSourceMapsDocLinks(platform: string) {
     // Although we have a few specific sourcemap pages (see: https://github.com/getsentry/sentry-docs/tree/master/platform-includes/sourcemaps/primer),
     // they don't include the Sentry bundler section. All the others just render content for JavaScript.
     // Therefore, we have a static link here.
-    sentryBundleSupport: `https://docs.sentry.io/platforms/javascript/sourcemaps/#sentry-bundler-support`,
+    sentryBundleSupport:
+      'https://docs.sentry.io/platforms/javascript/sourcemaps/#sentry-bundler-support',
     // cordova and capacitor are not supported. (see: https://github.com/getsentry/sentry-docs/blob/c64fb081cad715dc9dd7639265e09c372c3a65e3/docs/platforms/javascript/common/sourcemaps/troubleshooting_js/artifact-bundles.mdx?plain=1#L4-L6)
     debugIds: ['cordova', 'capacitor'].includes(platform)
       ? undefined
@@ -266,7 +269,8 @@ export function getSourceMapsDocLinks(platform: string) {
     ].includes(platform)
       ? undefined
       : `${basePlatformUrl}/sourcemaps/uploading/hosting-publicly/`,
-    bundlerPluginRepoLink: `https://github.com/getsentry/sentry-javascript-bundler-plugins`,
+    bundlerPluginRepoLink:
+      'https://github.com/getsentry/sentry-javascript-bundler-plugins',
   };
 }
 

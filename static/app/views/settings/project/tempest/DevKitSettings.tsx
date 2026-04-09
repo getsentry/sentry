@@ -117,7 +117,7 @@ export function DevKitSettings({organization, project}: Props) {
                                   <Stack gap="md">
                                     <p>
                                       {t(
-                                        `Using the Windows tool enter the URL as the 'Request Check URL' and 'Upload URL'.`
+                                        "Using the Windows tool enter the URL as the 'Request Check URL' and 'Upload URL'."
                                       )}
                                     </p>
                                   </Stack>
@@ -143,7 +143,7 @@ export function DevKitSettings({organization, project}: Props) {
                                   <Stack gap="md">
                                     <p>
                                       {t(
-                                        `If you haven't done it via the Windows tool, you can set up the 'Upload URL' and 'Request Check URL' directly in the DevKit. This can be done under 'Debug Settings' > 'Core Dump' > 'Upload' > 'Upload URL' and 'Debug Settings' > 'Core Dump' > 'Data Request' > 'Request Check URL' respectively.`
+                                        "If you haven't done it via the Windows tool, you can set up the 'Upload URL' and 'Request Check URL' directly in the DevKit. This can be done under 'Debug Settings' > 'Core Dump' > 'Upload' > 'Upload URL' and 'Debug Settings' > 'Core Dump' > 'Data Request' > 'Request Check URL' respectively."
                                       )}
                                     </p>
                                   </Stack>

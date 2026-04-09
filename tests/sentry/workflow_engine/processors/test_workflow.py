@@ -327,6 +327,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
     @patch("sentry.workflow_engine.processors.detector.logger")
     def test_no_detector(self, mock_logger: MagicMock, mock_incr: MagicMock) -> None:
         self.group_event.occurrence = self.build_occurrence(evidence_data={})
+        self.issue_stream_detector.delete()
 
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
         assert result.msg == "No Detectors associated with the issue were found"
@@ -446,13 +447,8 @@ class TestProcessWorkflows(BaseWorkflowTest):
         assert len(result.data.triggered_actions) == 0
 
     def test_multiple_detectors__preferred(self) -> None:
-        _, issue_stream_detector, _, _ = self.create_detector_and_workflow(
-            name_prefix="issue_stream",
-            workflow_triggers=self.create_data_condition_group(),
-            detector_type=IssueStreamGroupType.slug,
-        )
         self.create_detector_workflow(
-            detector=issue_stream_detector,
+            detector=self.issue_stream_detector,
             workflow=self.error_workflow,
         )
 

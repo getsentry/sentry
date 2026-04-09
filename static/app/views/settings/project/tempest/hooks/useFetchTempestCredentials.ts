@@ -12,7 +12,7 @@ const makeFetchTempestCredentialsQueryKey = ({
   projectSlug: string;
 }) =>
   [
-    getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/tempest-credentials/`, {
+    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/tempest-credentials/', {
       path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
     }),
   ] as const;

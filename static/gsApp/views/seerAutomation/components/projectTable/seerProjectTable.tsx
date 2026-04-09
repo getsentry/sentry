@@ -25,6 +25,7 @@ import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {useFetchAgentOptions} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
 
 import {ProjectTableHeader} from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableHeader';
 import {SeerProjectTableRow} from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableRow';
@@ -33,6 +34,8 @@ export function SeerProjectTable() {
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const {projects, fetching, fetchError} = useProjects();
+
+  const agentOptions = useFetchAgentOptions({organization});
 
   const autofixSettingsQueryOptions = bulkAutofixAutomationSettingsInfiniteOptions({
     organization,
@@ -128,19 +131,24 @@ export function SeerProjectTable() {
           : b.name.localeCompare(a.name);
       }
 
-      // TODO: if we can bulk-fetch all the preferences, then it'll be easier to sort by fixes, pr creation, and repos
-      // if (sort.field === 'fixes') {
-      //   return a.slug.localeCompare(b.slug);
-      // }
-      // if (sort.field === 'pr_creation') {
-      //   return a.platform.localeCompare(b.platform);
-      // }
-      // if (sort.field === 'repos') {
-      //   return a.status.localeCompare(b.status);
-      // }
+      const aSettings = autofixSettingsByProjectId.get(a.id);
+      const bSettings = autofixSettingsByProjectId.get(b.id);
+      if (sort.field === 'agent') {
+        const aAgent = aSettings?.automationHandoff?.target ?? 'seer';
+        const bAgent = bSettings?.automationHandoff?.target ?? 'seer';
+        return sort.kind === 'asc'
+          ? aAgent.localeCompare(bAgent)
+          : bAgent.localeCompare(aAgent);
+      }
+
+      if (sort.field === 'repo_count') {
+        return sort.kind === 'asc'
+          ? (aSettings?.reposCount ?? 0) - (bSettings?.reposCount ?? 0)
+          : (bSettings?.reposCount ?? 0) - (aSettings?.reposCount ?? 0);
+      }
       return 0;
     });
-  }, [projects, sort]);
+  }, [projects, sort, autofixSettingsByProjectId]);
 
   const filteredProjects = useMemo(() => {
     const lowerCase = searchTerm?.toLowerCase() ?? '';
@@ -216,6 +224,7 @@ export function SeerProjectTable() {
               integrations={integrations ?? []}
               isPendingIntegrations={isPendingIntegrations}
               project={project}
+              agentOptions={agentOptions}
             />
           ))
         )}

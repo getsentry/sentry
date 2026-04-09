@@ -59,6 +59,7 @@ class SnapshotApprover(BaseModel):
 class SnapshotApprovalInfo(BaseModel):
     status: Literal["approved", "requires_approval"]
     approvers: list[SnapshotApprover] = []
+    is_auto_approved: bool = False
 
 
 class SnapshotDetailsApiResponse(BaseModel):

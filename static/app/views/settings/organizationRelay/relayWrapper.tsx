@@ -161,7 +161,7 @@ function RelayUsageList({
 }) {
   const {isPending, isError, refetch, data} = useApiQuery<RelayActivity[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/relay_usage/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/relay_usage/', {
         path: {organizationIdOrSlug: orgSlug},
       }),
     ],

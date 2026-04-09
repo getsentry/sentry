@@ -18,8 +18,14 @@ export function useExperiment(options: UseExperimentOptions): UseExperimentResul
   const {feature, reportExposure = true} = options;
   const organization = useOrganization();
 
+  // Gate on organization.features so that SENTRY_FEATURES, self.feature(),
+  // and devlocal.py all work without needing experiment-specific overrides.
+  const inExperiment = organization.features.includes(feature);
+
+  // Use organization.experiments only for exposure tracking — this field is
+  // populated by get_experiment_assignments which requires the getsentry
+  // entity handler and is empty in plain sentry / test environments.
   const assignment = organization.experiments?.[feature] ?? 'control';
-  const inExperiment = assignment === 'active';
 
   const {mutate: logExposure} = useMutation({
     mutationFn: () =>

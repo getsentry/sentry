@@ -1,8 +1,11 @@
 from unittest import TestCase
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    AttributeAggregation,
     AttributeKey,
     AttributeValue,
+    ExtrapolationMode,
+    Function,
     StrArray,
 )
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
@@ -137,3 +140,13 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query(None)
         assert where is None
         assert having is None
+
+    def test_count_unique(self) -> None:
+        resolved_column, virtual_context = self.resolver.resolve_column("count_unique(event_id)")
+        assert resolved_column.proto_definition == AttributeAggregation(
+            aggregate=Function.FUNCTION_UNIQ,
+            key=AttributeKey(name="event_id", type=AttributeKey.Type.TYPE_STRING),
+            label="count_unique(event_id)",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+        )
+        assert virtual_context is None

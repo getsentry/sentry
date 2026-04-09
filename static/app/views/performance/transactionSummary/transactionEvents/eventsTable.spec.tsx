@@ -155,7 +155,6 @@ describe('Performance GridEditable Table', () => {
         theme={theme}
         eventView={eventView}
         organization={organization}
-        routes={initialData.router.routes}
         location={initialData.router.location}
         setError={() => {}}
         columnTitles={transactionsListTitles}
@@ -200,7 +199,6 @@ describe('Performance GridEditable Table', () => {
         theme={theme}
         eventView={eventView}
         organization={organization}
-        routes={initialData.router.routes}
         location={initialData.router.location}
         setError={() => {}}
         columnTitles={transactionsListTitles}
@@ -234,7 +232,6 @@ describe('Performance GridEditable Table', () => {
         theme={theme}
         eventView={eventView}
         organization={organization}
-        routes={initialData.router.routes}
         location={initialData.router.location}
         setError={() => {}}
         columnTitles={transactionsListTitles}
@@ -273,7 +270,6 @@ describe('Performance GridEditable Table', () => {
         theme={theme}
         eventView={eventView}
         organization={organization}
-        routes={initialData.router.routes}
         location={initialData.router.location}
         setError={() => {}}
         columnTitles={transactionsListTitles}
@@ -317,7 +313,6 @@ describe('Performance GridEditable Table', () => {
         theme={theme}
         eventView={eventView}
         organization={organization}
-        routes={initialData.router.routes}
         location={initialData.router.location}
         setError={() => {}}
         columnTitles={transactionsListTitles}
@@ -352,7 +347,6 @@ describe('Performance GridEditable Table', () => {
         theme={theme}
         eventView={eventView}
         organization={organization}
-        routes={initialData.router.routes}
         location={initialData.router.location}
         setError={() => {}}
         columnTitles={transactionsListTitles}

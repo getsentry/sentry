@@ -2006,7 +2006,7 @@ def _get_severity_metadata_for_group(
 
     Returns {} if conditions aren't met or on exception.
     """
-    from sentry.receivers.rules import PLATFORMS_WITH_PRIORITY_ALERTS
+    from sentry.workflow_engine.receivers.project_workflows import PLATFORMS_WITH_PRIORITY_ALERTS
 
     if killswitch_matches_context(
         "issues.severity.skip-seer-requests", {"project_id": event.project_id}

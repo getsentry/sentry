@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
@@ -7,7 +6,6 @@ import {
   getAutofixRunExists,
   isIssueQuickFixable,
 } from 'sentry/components/events/autofix/utils';
-import {EventAnnotation} from 'sentry/components/events/eventAnnotation';
 import {ShortId} from 'sentry/components/group/inboxBadges/shortId';
 import {TimesTag} from 'sentry/components/group/inboxBadges/timesTag';
 import {UnhandledTag} from 'sentry/components/group/inboxBadges/unhandledTag';
@@ -19,9 +17,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {IconChat} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {getTitle} from 'sentry/utils/events';
-import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -72,13 +68,10 @@ export function GroupMetaRow({data, showAssignee, showLifetime = true}: Props) {
   const location = useLocation();
 
   const issuesPath = `/organizations/${organization.slug}/issues/`;
-  const {getReplayCountForIssue} = useReplayCountForIssues();
 
   const showReplayCount =
     organization.features.includes('session-replay') &&
-    projectCanLinkToReplay(organization, project) &&
-    data.issueCategory &&
-    !!getReplayCountForIssue(data.id, data.issueCategory);
+    projectCanLinkToReplay(organization, project);
 
   const autofixRunExists = getAutofixRunExists(data);
   const seerFixable = isIssueQuickFixable(data);
@@ -89,76 +82,62 @@ export function GroupMetaRow({data, showAssignee, showLifetime = true}: Props) {
 
   const {subtitle} = getTitle(data);
 
-  const items = [
-    shortId ? (
-      <ShortId
-        shortId={shortId}
-        avatar={
-          project && <ShadowlessProjectBadge project={project} avatarSize={12} hideName />
-        }
-      />
-    ) : null,
-    isUnhandled ? <UnhandledTag /> : null,
-    showLifetime ? (
-      <Lifetime firstSeen={firstSeen} lastSeen={lastSeen} lifetime={lifetime} />
-    ) : null,
-    subtitle ? <Location>{subtitle}</Location> : null,
-    numComments > 0 ? (
-      <CommentsLink
-        to={{
-          pathname: `${issuesPath}${id}/activity/`,
-          // Filter activity to only show comments
-          query: {filter: 'comments'},
-        }}
-      >
-        <IconChat
-          size="xs"
-          variant={subscriptionDetails?.reason === 'mentioned' ? 'success' : undefined}
-        />
-        <span>{numComments}</span>
-      </CommentsLink>
-    ) : null,
-    showReplayCount ? <IssueReplayCount group={data} /> : null,
-    showSeer ? <IssueSeerBadge group={data} key="issue-seer-badge" /> : null,
-    logger ? (
-      <LoggerAnnotation>
-        <Link
-          to={{
-            pathname: issuesPath,
-            query: {
-              ...extractSelectionParameters(location.query),
-              query: `logger:${logger}`,
-            },
-          }}
-        >
-          {logger}
-        </Link>
-      </LoggerAnnotation>
-    ) : null,
-    ...(annotations?.map((annotation, key) => (
-      <AnnotationNoMargin key={key}>
-        <ExternalLink href={annotation.url}>{annotation.displayName}</ExternalLink>
-      </AnnotationNoMargin>
-    )) ?? []),
-    showAssignee && assignedTo ? (
-      <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>
-    ) : null,
-  ].filter(defined);
-
   return (
     <GroupExtra>
-      {items.map((item, i) => {
-        if (!item) {
-          return null;
-        }
-
-        return (
-          <Fragment key={i}>
-            {item}
-            {i < items.length - 1 ? <Separator /> : null}
-          </Fragment>
-        );
-      })}
+      {shortId ? (
+        <ShortId
+          shortId={shortId}
+          avatar={
+            project && (
+              <ShadowlessProjectBadge project={project} avatarSize={12} hideName />
+            )
+          }
+        />
+      ) : null}
+      {isUnhandled ? <UnhandledTag /> : null}
+      {showLifetime ? (
+        <Lifetime firstSeen={firstSeen} lastSeen={lastSeen} lifetime={lifetime} />
+      ) : null}
+      {subtitle ? <Location>{subtitle}</Location> : null}
+      {numComments > 0 ? (
+        <CommentsLink
+          to={{
+            pathname: `${issuesPath}${id}/activity/`,
+            query: {filter: 'comments'},
+          }}
+        >
+          <IconChat
+            size="xs"
+            variant={subscriptionDetails?.reason === 'mentioned' ? 'success' : undefined}
+          />
+          <span>{numComments}</span>
+        </CommentsLink>
+      ) : null}
+      {showReplayCount ? <IssueReplayCount group={data} /> : null}
+      {showSeer ? <IssueSeerBadge group={data} /> : null}
+      {logger ? (
+        <LoggerAnnotation>
+          <Link
+            to={{
+              pathname: issuesPath,
+              query: {
+                ...extractSelectionParameters(location.query),
+                query: `logger:${logger}`,
+              },
+            }}
+          >
+            {logger}
+          </Link>
+        </LoggerAnnotation>
+      ) : null}
+      {annotations?.map((annotation, key) => (
+        <Annotation key={key}>
+          <ExternalLink href={annotation.url}>{annotation.displayName}</ExternalLink>
+        </Annotation>
+      ))}
+      {showAssignee && assignedTo ? (
+        <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>
+      ) : null}
     </GroupExtra>
   );
 }
@@ -166,7 +145,6 @@ export function GroupMetaRow({data, showAssignee, showLifetime = true}: Props) {
 const GroupExtra = styled('div')`
   display: inline-grid;
   grid-auto-flow: column dense;
-  gap: ${p => p.theme.space.sm};
   justify-content: start;
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
@@ -184,17 +162,25 @@ const GroupExtra = styled('div')`
     color: ${p => p.theme.tokens.interactive.link.accent.hover};
   }
 
+  /* Adds a 1px vertical separator between visible siblings, automatically
+     skipping children that render null */
+  & > * + * {
+    margin-left: ${p => p.theme.space.sm};
+    padding-left: ${p => p.theme.space.sm};
+    /* eslint-disable @sentry/scraps/use-semantic-token */
+    background-image: linear-gradient(
+      ${p => p.theme.tokens.border.secondary},
+      ${p => p.theme.tokens.border.secondary}
+    );
+    /* eslint-enable @sentry/scraps/use-semantic-token */
+    background-position: left center;
+    background-size: 1px 10px;
+    background-repeat: no-repeat;
+  }
+
   @media (min-width: ${p => p.theme.breakpoints.xl}) {
     line-height: 1;
   }
-`;
-
-const Separator = styled('div')`
-  height: 10px;
-  width: 1px;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-  background-color: ${p => p.theme.tokens.border.secondary};
-  border-radius: 1px;
 `;
 
 const ShadowlessProjectBadge = styled(ProjectBadge)`
@@ -212,20 +198,18 @@ const CommentsLink = styled(Link)`
   position: relative;
 `;
 
-const AnnotationNoMargin = styled(EventAnnotation)`
-  margin-left: 0;
-  padding-left: 0;
-  border-left: none;
-  position: relative;
+const Annotation = styled('span')`
+  a {
+    color: ${p => p.theme.tokens.content.secondary};
+  }
 
-  & > a:hover {
+  a:hover {
     color: ${p => p.theme.tokens.interactive.link.accent.hover};
   }
 `;
 
-const LoggerAnnotation = styled(AnnotationNoMargin)`
+const LoggerAnnotation = styled(Annotation)`
   color: ${p => p.theme.tokens.content.primary};
-  position: relative;
   min-width: 10px;
   display: block;
   width: 100%;

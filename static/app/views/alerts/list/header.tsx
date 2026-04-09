@@ -15,6 +15,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type Props = {
   activeTab: 'stream' | 'rules';
@@ -25,6 +27,7 @@ export function AlertHeader({activeTab}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   /**
    * Incidents list is currently at the organization level, but the link needs to
    * go down to a specific project scope.
@@ -79,7 +82,13 @@ export function AlertHeader({activeTab}: Props) {
           >
             {t('Create Alert')}
           </CreateAlertButton>
-          <FeedbackButton />
+          {hasPageFrameFeature ? (
+            <TopBar.Slot name="feedback">
+              <FeedbackButton>{null}</FeedbackButton>
+            </TopBar.Slot>
+          ) : (
+            <FeedbackButton />
+          )}
           <LinkButton
             size="sm"
             onClick={handleNavigateToSettings}

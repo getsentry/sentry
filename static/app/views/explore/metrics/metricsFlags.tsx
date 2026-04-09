@@ -21,13 +21,6 @@ export const canUseMetricsAlertsUI = (organization: Organization) => {
   );
 };
 
-export const canUseMetricsSidePanelUI = (organization: Organization) => {
-  return (
-    canUseMetricsUI(organization) &&
-    organization.features.includes('tracemetrics-attributes-dropdown-side-panel')
-  );
-};
-
 export const canUseMetricsUIRefresh = (organization: Organization) => {
   return (
     canUseMetricsUI(organization) &&

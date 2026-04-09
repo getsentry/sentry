@@ -148,8 +148,14 @@ class IssueAlertMigratorTest(TestCase):
         assert error_detector.type == ErrorGroupType.slug
         assert error_detector.config == {}
 
-        error_detector_workflow = DetectorWorkflow.objects.get(detector=error_detector)
-        assert error_detector_workflow.workflow == workflow
+        ## This ensures that the error detector is not directly connected to the workflow,
+        # _and_ confirms that the issue stream detector would trigger for the general use case.
+        assert not DetectorWorkflow.objects.filter(detector=error_detector).exists()
+        assert DetectorWorkflow.objects.filter(
+            detector__type=IssueStreamGroupType.slug,
+            detector__project=self.project,
+            workflow=workflow,
+        ).exists()
 
         return error_detector
 

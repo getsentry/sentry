@@ -403,7 +403,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
     refetch,
   } = useApiQuery<Filter[]>(
     [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/filters/`, {
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/filters/', {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
       }),
     ],

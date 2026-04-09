@@ -14,6 +14,9 @@ from fixtures.github_enterprise import (
     PULL_REQUEST_OPENED_EVENT_EXAMPLE,
     PUSH_EVENT_EXAMPLE_INSTALLATION,
 )
+from sentry.integrations.github_enterprise.webhook import (
+    GitHubEnterpriseInstallationRepositoriesEventWebhook,
+)
 from sentry.integrations.services.integration import integration_service
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -251,6 +254,66 @@ class WebhookTest(APITestCase):
         )
         assert response.status_code == 400
         assert b"Missing headers X-Hub-Signature-256 or X-Hub-Signature" in response.content
+
+
+@patch("sentry.integrations.github_enterprise.client.get_jwt")
+@patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
+class InstallationRepositoriesEventWebhookTest(APITestCase):
+    def setUp(self) -> None:
+        self.url = "/extensions/github-enterprise/webhook/"
+        self.metadata = {
+            "url": "35.232.149.196",
+            "id": "2",
+            "name": "test-app",
+            "webhook_secret": "b3002c3e321d4b7880360d397db2ccfd",
+            "private_key": "private_key",
+            "verify_ssl": True,
+        }
+
+    @patch(
+        "sentry.integrations.github.tasks.sync_repos_on_install_change.sync_repos_on_install_change.apply_async"
+    )
+    def test_handler_dispatches_task_with_ghe_provider(
+        self,
+        mock_apply_async: MagicMock,
+        mock_get_installation_metadata: MagicMock,
+        mock_get_jwt: MagicMock,
+    ) -> None:
+        """Verify the GHE handler looks up integrations with the correct provider."""
+        mock_get_jwt.return_value = ""
+        mock_get_installation_metadata.return_value = self.metadata
+
+        integration = self.create_integration(
+            external_id="35.232.149.196:12345",
+            organization=self.project.organization,
+            provider="github_enterprise",
+            metadata={
+                "domain_name": "35.232.149.196/testorg",
+                "installation_id": "12345",
+                "installation": {
+                    "id": "2",
+                    "private_key": "private_key",
+                    "verify_ssl": True,
+                },
+            },
+        )
+
+        handler = GitHubEnterpriseInstallationRepositoriesEventWebhook()
+        handler(
+            event={
+                "installation": {"id": 12345},
+                "action": "added",
+                "repositories_added": [{"id": 1, "full_name": "testorg/repo", "private": False}],
+                "repositories_removed": [],
+                "repository_selection": "selected",
+                "sender": {"id": 1, "login": "testuser"},
+            },
+            host="35.232.149.196",
+        )
+
+        mock_apply_async.assert_called_once()
+        kwargs = mock_apply_async.call_args[1]["kwargs"]
+        assert kwargs["integration_id"] == integration.id
 
 
 @patch("sentry.integrations.github_enterprise.client.get_jwt")

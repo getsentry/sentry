@@ -12,7 +12,7 @@ export function useOrganizationProjects({
 }) {
   return useQuery({
     queryKey: [
-      getApiUrl(`/organizations/$organizationIdOrSlug/projects/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
         path: {organizationIdOrSlug: organization?.slug!},
       }),
       {

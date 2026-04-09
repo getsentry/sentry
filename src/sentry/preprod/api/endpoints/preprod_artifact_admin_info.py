@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+from django.db.models import F
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -15,7 +16,9 @@ from sentry.preprod.models import (
     InstallablePreprodArtifact,
     PreprodArtifact,
     PreprodArtifactSizeMetrics,
+    PreprodComparisonApproval,
 )
+from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +85,51 @@ class PreprodArtifactAdminInfoEndpoint(Endpoint):
 
         installable_artifacts = list(
             InstallablePreprodArtifact.objects.filter(preprod_artifact_id=head_artifact_id_int)
+        )
+
+        snapshot_metrics = PreprodSnapshotMetrics.objects.filter(
+            preprod_artifact_id=head_artifact_id_int
+        ).first()
+
+        snapshot_comparison = None
+        if snapshot_metrics:
+            snapshot_comparison = (
+                PreprodSnapshotComparison.objects.filter(head_snapshot_metrics=snapshot_metrics)
+                .order_by("-date_added")
+                .values(
+                    "id",
+                    "state",
+                    "error_code",
+                    "error_message",
+                    "images_added",
+                    "images_removed",
+                    "images_changed",
+                    "images_unchanged",
+                    "images_renamed",
+                    "extras",
+                    "date_added",
+                    "date_updated",
+                    base_artifact_id=F("base_snapshot_metrics__preprod_artifact_id"),
+                )
+                .first()
+            )
+
+        snapshot_approval = (
+            PreprodComparisonApproval.objects.filter(
+                preprod_artifact_id=head_artifact_id_int,
+                preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+            )
+            .order_by("-date_added")
+            .values(
+                "id",
+                "approval_status",
+                "approved_at",
+                "approved_by_id",
+                "extras",
+                "date_added",
+                "date_updated",
+            )
+            .first()
         )
 
         mobile_app_info = preprod_artifact.get_mobile_app_info()
@@ -233,6 +281,19 @@ class PreprodArtifactAdminInfoEndpoint(Endpoint):
                 }
                 for installable in installable_artifacts
             ],
+            "snapshot_metrics": (
+                {
+                    "id": snapshot_metrics.id,
+                    "image_count": snapshot_metrics.image_count,
+                    "extras": snapshot_metrics.extras,
+                    "date_added": snapshot_metrics.date_added,
+                    "date_updated": snapshot_metrics.date_updated,
+                }
+                if snapshot_metrics
+                else None
+            ),
+            "snapshot_comparison": snapshot_comparison,
+            "snapshot_approval": snapshot_approval,
             # Extra data
             "extras": preprod_artifact.extras,
         }

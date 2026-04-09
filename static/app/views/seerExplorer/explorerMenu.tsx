@@ -476,7 +476,7 @@ const MenuPanel = styled('div')<{
   border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   max-height: ${p =>
-    p.panelSize === 'max' ? 'calc(100vh - 120px)' : `calc(50vh - 80px)`};
+    p.panelSize === 'max' ? 'calc(100vh - 120px)' : 'calc(50vh - 80px)'};
   overflow-y: auto;
   z-index: 10;
 `;

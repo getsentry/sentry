@@ -990,6 +990,8 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.workflow_engine.tasks.cleanup",
     "sentry.tasks.seer.explorer_index",
     "sentry.tasks.seer.context_engine_index",
+    "sentry.tasks.seer.lightweight_rca_cluster",
+    "sentry.tasks.seer.night_shift",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
@@ -1171,6 +1173,11 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "seer:sentry.tasks.seer.context_engine_index.index_sentry_knowledge",
         # Run once a month at midnight
         "schedule": crontab("0", "0", "*", "1", "*"),
+    },
+    "seer-night-shift": {
+        "task": "seer:sentry.tasks.seer.night_shift.schedule_night_shift",
+        # Run daily at 10:00 AM UTC (2/3 AM Pacific)
+        "schedule": crontab("0", "10", "*", "*", "*"),
     },
     "refresh-artifact-bundles-in-use": {
         "task": "attachments:sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
@@ -2810,7 +2817,7 @@ DEFAULT_GROUPING_CONFIG = FALL_2025_GROUPING_CONFIG
 BETA_GROUPING_CONFIG = ""
 
 # How long the migration phase for grouping lasts
-SENTRY_GROUPING_CONFIG_TRANSITION_DURATION = 30 * 24 * 3600  # 30 days
+SENTRY_GROUPING_CONFIG_TRANSITION_DURATION = 90 * 24 * 3600  # 90 days, until groups age out
 
 SENTRY_USE_GRANIAN = True
 

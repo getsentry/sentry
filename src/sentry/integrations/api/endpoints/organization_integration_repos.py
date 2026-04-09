@@ -22,6 +22,7 @@ class IntegrationRepository(TypedDict):
     identifier: str
     isInstalled: bool
     defaultBranch: str | None
+    externalId: str
 
 
 @cell_silo_endpoint
@@ -85,6 +86,7 @@ class OrganizationIntegrationReposEndpoint(CellOrganizationIntegrationBaseEndpoi
                     identifier=repo["identifier"],
                     defaultBranch=repo.get("default_branch"),
                     isInstalled=repo["identifier"] in installed_repo_names,
+                    externalId=repo["external_id"],
                 )
                 for repo in repositories
                 if not installable_only or repo["identifier"] not in installed_repo_names

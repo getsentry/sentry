@@ -62,6 +62,19 @@ class ViewerContext:
             result["token"] = {"kind": self.token.kind, "scopes": list(self.token.get_scopes())}
         return result
 
+    @classmethod
+    def deserialize(cls, data: dict[str, Any]) -> ViewerContext:
+        """Reconstruct from a serialized dict. Token is not deserialized."""
+        try:
+            actor_type = ActorType(data.get("actor_type", "unknown"))
+        except ValueError:
+            actor_type = ActorType.UNKNOWN
+        return cls(
+            organization_id=data.get("organization_id"),
+            user_id=data.get("user_id"),
+            actor_type=actor_type,
+        )
+
 
 @contextlib.contextmanager
 def viewer_context_scope(ctx: ViewerContext) -> Generator[None]:

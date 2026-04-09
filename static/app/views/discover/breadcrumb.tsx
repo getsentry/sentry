@@ -50,7 +50,7 @@ export function DiscoverBreadcrumb({
     if (defined(eventView.id)) {
       crumbs.push({
         to: makeDiscoverPathname({
-          path: `/queries/`,
+          path: '/queries/',
           organization,
         }),
         label: t('Saved Queries'),

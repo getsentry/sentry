@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useMatches} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -48,7 +49,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {appendQueryDatasetParam, hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {
   getExpandedResults,
@@ -107,8 +107,8 @@ export function TableView(props: TableViewProps) {
   const theme = useTheme();
   const navigate = useNavigate();
   const {projects} = useProjects();
-  const routes = useRoutes();
-  const replayLinkGenerator = generateReplayLink(routes);
+  const matches = useMatches();
+  const replayLinkGenerator = generateReplayLink(matches);
 
   function _renderPrependColumns(
     isHeader: boolean,

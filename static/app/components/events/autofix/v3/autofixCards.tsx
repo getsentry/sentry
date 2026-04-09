@@ -280,7 +280,12 @@ export function PullRequestsCard({section}: AutofixCardProps) {
         ) {
           return (
             <Flex key={pullRequest.repo_name} gap="xs" align="center">
-              <LinkButton external href={pullRequest.pr_url} priority="primary">
+              <LinkButton
+                external
+                href={pullRequest.pr_url}
+                priority="primary"
+                icon={<IconOpen />}
+              >
                 {t('View %s#%s', pullRequest.repo_name, pullRequest.pr_number)}
               </LinkButton>
               <Button

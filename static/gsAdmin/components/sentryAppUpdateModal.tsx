@@ -81,7 +81,7 @@ export function SentryAppUpdateModal(props: Props) {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<IntegrationFeature[]>([getApiUrl(`/integration-features/`)], {
+  } = useApiQuery<IntegrationFeature[]>([getApiUrl('/integration-features/')], {
     staleTime: 0,
   });
 

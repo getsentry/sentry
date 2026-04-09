@@ -9,11 +9,11 @@ import {getReplayConfigOptions} from 'sentry/components/onboarding/gettingStarte
 const getIntegrations = (params: DocsParams): string[] => {
   const integrations = [];
   if (params.isPerformanceSelected) {
-    integrations.push(`Sentry.browserTracingIntegration()`);
+    integrations.push('Sentry.browserTracingIntegration()');
   }
 
   if (params.isProfilingSelected) {
-    integrations.push(`Sentry.browserProfilingIntegration()`);
+    integrations.push('Sentry.browserProfilingIntegration()');
   }
 
   if (params.isReplaySelected) {

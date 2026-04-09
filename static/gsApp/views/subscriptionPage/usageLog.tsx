@@ -99,7 +99,7 @@ export default function UsageLog() {
     refetch,
   } = useApiQuery<UsageLogs>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/subscription/usage-logs/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/subscription/usage-logs/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {

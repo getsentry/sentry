@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
 
@@ -10,15 +11,17 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tn} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {EmptyState} from 'sentry/views/releases/detail/commitsAndFiles/emptyState';
 import {FileChange} from 'sentry/views/releases/detail/commitsAndFiles/fileChange';
 import {RepositorySwitcher} from 'sentry/views/releases/detail/commitsAndFiles/repositorySwitcher';
 import {getFilesByRepository, getReposToRender} from 'sentry/views/releases/detail/utils';
 import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';
-import {useReleaseCommitFiles} from 'sentry/views/releases/utils/useReleaseCommitFiles';
+import {releaseCommitFilesApiOptions} from 'sentry/views/releases/utils/releaseCommitFilesApiOptions';
 
 interface FilesChangedProps {
   release: string;
@@ -27,6 +30,7 @@ interface FilesChangedProps {
 
 export function FilesChangedList({releaseRepos, release}: FilesChangedProps) {
   const navigate = useNavigate();
+  const organization = useOrganization();
   const {
     [ReleasesDrawerFields.ACTIVE_REPO]: rdActiveRepo,
     [ReleasesDrawerFields.FILES_CURSOR]: rdFilesCursor,
@@ -40,20 +44,24 @@ export function FilesChangedList({releaseRepos, release}: FilesChangedProps) {
     releaseRepos.find(repo => repo.name === rdActiveRepo) ?? releaseRepos[0];
 
   const {
-    data: fileList = [],
+    data,
     isPending: isLoadingFileList,
     error: fileListError,
     refetch,
-    getResponseHeader,
-  } = useReleaseCommitFiles({
-    release,
-    activeRepository: activeReleaseRepo,
-    cursor: rdFilesCursor,
+  } = useQuery({
+    ...releaseCommitFilesApiOptions({
+      organization,
+      release,
+      activeRepository: activeReleaseRepo,
+      cursor: rdFilesCursor,
+    }),
+    select: selectJsonWithHeaders,
   });
+  const fileList = data?.json ?? [];
 
   const filesByRepository = getFilesByRepository(fileList);
   const reposToRender = getReposToRender(Object.keys(filesByRepository));
-  const fileListPageLinks = getResponseHeader?.('Link');
+  const fileListPageLinks = data?.headers.Link;
 
   return (
     <div>

@@ -33,6 +33,7 @@ from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.projectoptions.defaults import SEER_PROJECT_PREFERENCE_OPTION_KEYS
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixStatus
+from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.models import (
     AutofixHandoffPoint,
     BranchOverride,
@@ -907,8 +908,13 @@ def get_autofix_repos_from_project_code_mappings(
         repo: Repository = code_mapping.repository
         repo_name_sections = repo.name.split("/")
 
-        # We expect a repository name to be in the format of "owner/name" for now.
-        if len(repo_name_sections) > 1 and repo.provider:
+        if (
+            # We expect a repository name to be in the format of "owner/name" for now.
+            len(repo_name_sections) > 1
+            # Filter out code mappings with unsupported providers.
+            and repo.provider
+            and repo.provider in SEER_SUPPORTED_SCM_PROVIDERS
+        ):
             repo_dict = {
                 "repository_id": repo.id,
                 "organization_id": repo.organization_id,
@@ -919,6 +925,7 @@ def get_autofix_repos_from_project_code_mappings(
                 "owner": repo_name_sections[0],
                 "name": "/".join(repo_name_sections[1:]),
                 "external_id": repo.external_id,
+                "languages": repo.languages or [],
             }
             repo_key = (repo_dict["provider"], repo_dict["owner"], repo_dict["name"])
 

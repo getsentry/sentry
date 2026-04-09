@@ -47,7 +47,7 @@ export function DetailsTimeline({monitor, onStatsLoaded, onEnvironmentUpdated}: 
   const queryClient = useQueryClient();
 
   const elementRef = useRef<HTMLDivElement>(null);
-  const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const {width: containerWidth} = useDimensions({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 500);
 
   // Use the nextCheckIn timestamp from the earliest scheduled environment as a

@@ -69,7 +69,7 @@ export function convertWidgetToQueryParams(
     sort,
     legendAlias,
     selectedAggregate: firstWidgetQuery?.selectedAggregate,
-    legendType: widget.legendType,
+    legendType: widget.legendType ?? undefined,
     thresholds: widget.thresholds ? serializeThresholds(widget.thresholds) : undefined,
     axisRange: getAxisRange(widget.axisRange) ?? 'auto',
     linkedDashboards: firstWidgetQuery?.linkedDashboards

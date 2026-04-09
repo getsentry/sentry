@@ -13,6 +13,7 @@ from sentry.grouping.context import GroupingContext
 from sentry.grouping.parameterization import (
     ParameterizationRegex,
     Parameterizer,
+    _log_example_data,
     experimental_parameterizer,
     is_valid_ip,
     parameterizer,
@@ -717,3 +718,33 @@ def test_replacement_callback_false_positive_triggers_individual_regex_fallback(
             )
             == 1
         )
+
+
+@patch("sentry.grouping.parameterization.logger")
+def test_example_data_logging(mock_logger: MagicMock) -> None:
+    for i in range(15):
+        _log_example_data("dog_fact_1", extra={"input_str": "dogs are great", "num": i}, limit=10)
+
+    for i in range(105):
+        _log_example_data("dog_fact_2", extra={"input_str": "all dogs are good dogs", "num": i})
+
+    # In the first loop, we specified a limit of 10, so the logger was called 10 times, even though
+    # we called the helper 15 times
+    assert (
+        count_matching_calls(
+            mock_logger.info,
+            "grouping.parameterization.dog_fact_1",
+            extra={"input_str": "dogs are great", "num": ANY},
+        )
+        == 10
+    )
+    # In the second loop, we didn't specify a limit, so the logger was called 100 times (the
+    # default limit), even though we called the helper 105 times
+    assert (
+        count_matching_calls(
+            mock_logger.info,
+            "grouping.parameterization.dog_fact_2",
+            extra={"input_str": "all dogs are good dogs", "num": ANY},
+        )
+        == 100
+    )
