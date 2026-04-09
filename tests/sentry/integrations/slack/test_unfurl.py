@@ -1497,9 +1497,9 @@ class UnfurlTest(TestCase):
             == SlackDiscoverMessageBuilder(title="Explore Traces", chart_url="chart-url").build()
         )
         assert len(mock_generate_chart.mock_calls) == 1
-        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_TOTAL_PERIOD
+        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_EXPLORE_LINE
         chart_data = mock_generate_chart.call_args[0][1]
-        assert chart_data["seriesName"] == "avg(span.duration)"
+        assert "timeSeries" in chart_data
 
     @patch(
         "sentry.integrations.slack.unfurl.explore.client.get",
@@ -1546,8 +1546,7 @@ class UnfurlTest(TestCase):
 
         assert len(unfurls) == 1
         assert len(mock_generate_chart.mock_calls) == 1
-        # avg is a line plot field, so top5line display mode
-        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE
+        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_EXPLORE_LINE
 
     @patch(
         "sentry.integrations.slack.unfurl.explore.client.get",
@@ -1575,7 +1574,7 @@ class UnfurlTest(TestCase):
         assert len(unfurls) == 1
         assert len(mock_generate_chart.mock_calls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
-        assert chart_data["seriesName"] == "count(span.duration)"
+        assert "timeSeries" in chart_data
 
     @patch(
         "sentry.integrations.slack.unfurl.explore.client.get",
@@ -1603,7 +1602,7 @@ class UnfurlTest(TestCase):
         # Should still unfurl with default yAxis
         assert len(unfurls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
-        assert chart_data["seriesName"] == "count(span.duration)"
+        assert "timeSeries" in chart_data
 
     @patch(
         "sentry.integrations.slack.unfurl.explore.client.get",
@@ -1651,19 +1650,18 @@ class UnfurlTest(TestCase):
         chart_type = mock_generate_chart.call_args[0][0]
         chart_data = mock_generate_chart.call_args[0][1]
 
-        assert chart_type == ChartType.SLACK_DISCOVER_TOTAL_PERIOD
-        assert chart_data["seriesName"] == "avg(span.duration)"
-        # Stats should be in events-stats format: {data: [(ts, [{count: N}]), ...], start, end}
-        stats = chart_data["stats"]
-        assert "data" in stats
-        assert "start" in stats
-        assert "end" in stats
-        assert len(stats["data"]) == INTERVALS_PER_DAY
-        # Each data point is (timestamp, [{count: value}])
-        first_point = stats["data"][0]
-        assert isinstance(first_point[0], int)
-        assert isinstance(first_point[1], list)
-        assert "count" in first_point[1][0]
+        assert chart_type == ChartType.SLACK_EXPLORE_LINE
+        # timeSeries should be passed through directly from the API response
+        time_series = chart_data["timeSeries"]
+        assert isinstance(time_series, list)
+        assert len(time_series) > 0
+        first_series = time_series[0]
+        assert first_series["yAxis"] == "avg(span.duration)"
+        assert len(first_series["values"]) == INTERVALS_PER_DAY
+        # Each data point has timestamp (ms) and value directly
+        first_point = first_series["values"][0]
+        assert "timestamp" in first_point
+        assert "value" in first_point
 
         # Step 5: Verify the unfurl result
         assert len(unfurls) == 1

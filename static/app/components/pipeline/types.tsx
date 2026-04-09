@@ -13,8 +13,18 @@ export function getBackendPipelineType(type: PipelineType): string {
  * A single step in a pipeline definition.
  */
 export interface PipelineStepDefinition<StepId extends string = string> {
+  /**
+   * The React component rendered for this step. Receives step data,
+   * an advance callback, and error state via {@link PipelineStepProps}.
+   */
   component: React.ComponentType<PipelineStepProps<any, any>>;
+  /**
+   * Human-readable label shown in the modal header (e.g. "Selecting a project").
+   */
   shortDescription: string;
+  /**
+   * Unique identifier for this step, matching the backend step ID.
+   */
   stepId: StepId;
 }
 
@@ -25,10 +35,26 @@ export interface PipelineDefinition<
   T extends PipelineType = PipelineType,
   P extends string = string,
 > {
+  /**
+   * Title displayed in the pipeline modal header.
+   */
   actionTitle: string;
+  /**
+   * Casts the raw completion response to the typed completion data shape.
+   * Use the {@link pipelineComplete} helper for this.
+   */
   getCompletionData: (data: Record<string, unknown>) => unknown;
+  /**
+   * The integration provider key (e.g. 'github', 'aws_lambda').
+   */
   provider: P;
+  /**
+   * Ordered list of step definitions that make up this pipeline.
+   */
   steps: readonly PipelineStepDefinition[];
+  /**
+   * The pipeline type (e.g. 'integration', 'identity').
+   */
   type: T;
 }
 

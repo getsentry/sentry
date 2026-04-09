@@ -19,8 +19,12 @@ import {
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {useMetricsAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
+import {useMetricReferences} from 'sentry/views/explore/metrics/hooks/useMetricReferences';
 import {MetricPanel} from 'sentry/views/explore/metrics/metricPanel';
-import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
+import {
+  canUseMetricsEquations,
+  canUseMetricsUIRefresh,
+} from 'sentry/views/explore/metrics/metricsFlags';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
 import {MetricSaveAs} from 'sentry/views/explore/metrics/metricToolbar/metricSaveAs';
@@ -73,6 +77,8 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
   const organization = useOrganization();
   const metricQueries = useMultiMetricsQueryParams();
   const addMetricQuery = useAddMetricQuery();
+  const addEquationQuery = useAddMetricQuery({type: 'equation'});
+  const hasEquations = canUseMetricsEquations(organization);
 
   if (canUseMetricsUIRefresh(organization)) {
     return (
@@ -94,6 +100,15 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
                 label={t('Add Metric')}
                 display="button"
               />
+
+              {hasEquations && (
+                <ToolbarVisualizeAddChart
+                  display="button"
+                  add={addEquationQuery}
+                  disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
+                  label={t('Add Equation')}
+                />
+              )}
               <MetricSaveAs size="md" />
             </Flex>
           </FilterBarWithSaveAsContainer>
@@ -125,6 +140,9 @@ function MetricsQueryBuilderSection() {
   const organization = useOrganization();
   const metricQueries = useMultiMetricsQueryParams();
   const addMetricQuery = useAddMetricQuery();
+  const addEquationQuery = useAddMetricQuery({type: 'equation'});
+  const hasEquations = canUseMetricsEquations(organization);
+  const references = useMetricReferences();
 
   if (canUseMetricsUIRefresh(organization)) {
     return null;
@@ -143,15 +161,28 @@ function MetricsQueryBuilderSection() {
               setTraceMetric={metricQuery.setTraceMetric}
               removeMetric={metricQuery.removeMetric}
             >
-              <MetricToolbar traceMetric={metricQuery.metric} queryIndex={index} />
+              <MetricToolbar
+                traceMetric={metricQuery.metric}
+                queryIndex={index}
+                references={references}
+              />
             </MetricsQueryParamsProvider>
           );
         })}
-        <ToolbarVisualizeAddChart
-          add={addMetricQuery}
-          disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
-          label={t('Add Metric')}
-        />
+        <Flex direction="row" gap="sm" align="center" minWidth={0} width="100%">
+          <ToolbarVisualizeAddChart
+            add={addMetricQuery}
+            disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
+            label={t('Add Metric')}
+          />
+          {hasEquations && (
+            <ToolbarVisualizeAddChart
+              add={addEquationQuery}
+              disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
+              label={t('Add Equation')}
+            />
+          )}
+        </Flex>
       </Flex>
     </MetricsQueryBuilderContainer>
   );
@@ -165,12 +196,15 @@ function MetricsTabBodySection() {
   const {isFetching: areToolbarsLoading, isMetricOptionsEmpty} = useMetricOptions({
     enabled: true,
   });
+  const addEquationQuery = useAddMetricQuery({type: 'equation'});
+  const hasEquations = canUseMetricsEquations(organization);
   useMetricsAnalytics({
     interval,
     metricQueries,
     areToolbarsLoading,
     isMetricOptionsEmpty,
   });
+  const references = useMetricReferences();
 
   if (canUseMetricsUIRefresh(organization)) {
     return (
@@ -187,18 +221,30 @@ function MetricsTabBodySection() {
                   setTraceMetric={metricQuery.setTraceMetric}
                   removeMetric={metricQuery.removeMetric}
                 >
-                  <MetricPanel traceMetric={metricQuery.metric} queryIndex={index} />
+                  <MetricPanel
+                    traceMetric={metricQuery.metric}
+                    queryIndex={index}
+                    references={references}
+                  />
                 </MetricsQueryParamsProvider>
               );
             })}
-            <Container>
+            <Flex gap="sm" direction="row">
               <ToolbarVisualizeAddChart
                 add={addMetricQuery}
                 disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
                 label={t('Add Metric')}
                 display="button"
               />
-            </Container>
+              {hasEquations && (
+                <ToolbarVisualizeAddChart
+                  display="button"
+                  add={addEquationQuery}
+                  disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
+                  label={t('Add Equation')}
+                />
+              )}
+            </Flex>
           </WidgetSyncContextProvider>
         </Stack>
       </ExploreContentSection>
@@ -220,7 +266,11 @@ function MetricsTabBodySection() {
                   setTraceMetric={metricQuery.setTraceMetric}
                   removeMetric={metricQuery.removeMetric}
                 >
-                  <MetricPanel traceMetric={metricQuery.metric} queryIndex={index} />
+                  <MetricPanel
+                    traceMetric={metricQuery.metric}
+                    queryIndex={index}
+                    references={references}
+                  />
                 </MetricsQueryParamsProvider>
               );
             })}
