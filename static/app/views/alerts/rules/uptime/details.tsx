@@ -155,14 +155,12 @@ export default function UptimeAlertDetails() {
         {hasPageFrameFeature ? (
           <TopBar.Slot name="actions">
             <StatusToggleButton
-              size="sm"
               uptimeDetector={detector}
               onToggleStatus={data => toggleStatus(data)}
               disabled={!canEdit}
               {...(canEdit ? {} : {tooltipProps: {title: permissionTooltipText}})}
             />
             <LinkButton
-              size="sm"
               icon={<IconEdit />}
               disabled={!canEdit}
               tooltipProps={{title: canEdit ? undefined : permissionTooltipText}}
