@@ -723,7 +723,9 @@ def _build_automation_handoff(
 
 
 def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference | None:
-    """Read a single project's Seer preferences from Sentry DB."""
+    """Read a single project's Seer preferences from Sentry DB.
+
+    Should only be used under feature flag `organizations:seer-project-settings-read-from-sentry`."""
     seer_project_repo_qs = (
         SeerProjectRepository.objects.filter(project=project)
         .select_related("repository")
@@ -752,7 +754,9 @@ def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference | 
 def bulk_read_preferences_from_sentry_db(
     organization_id: int, project_ids: list[int]
 ) -> dict[int, SeerProjectPreference | None]:
-    """Bulk read Seer preferences from Sentry DB."""
+    """Bulk read Seer preferences from Sentry DB.
+
+    Should only be used under feature flag `organizations:seer-project-settings-read-from-sentry`."""
     if not project_ids:
         return {}
 
@@ -788,7 +792,7 @@ def bulk_read_preferences_from_sentry_db(
         def get_project_option(key: str) -> Any:
             value = project_options[key][project.id]
             if value is None:
-                return projectoptions.lookup_well_known_key(key).get_default(project)
+                return projectoptions.get_well_known_default(key, project=project)
             return value
 
         result[project.id] = SeerProjectPreference(
