@@ -832,6 +832,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/components/core/                          @getsentry/design-engineering
 /static/app/components/dnd/                           @getsentry/design-engineering
 /static/app/components/pageFilters/                   @getsentry/design-engineering
+/static/app/components/backendJsonFormAdapter/        @getsentry/design-engineering
 /static/app/icons/                                    @getsentry/design-engineering
 /static/app/stories/                                  @getsentry/design-engineering
 /static/app/components/commandPalette/                @getsentry/design-engineering
