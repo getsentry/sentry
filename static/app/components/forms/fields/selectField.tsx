@@ -1,39 +1,40 @@
-import { Component } from "react";
+import {Component} from 'react';
 
-import type { ControlProps } from "@sentry/scraps/select";
-import { Select, SelectOption } from "@sentry/scraps/select";
-import { Tooltip } from "@sentry/scraps/tooltip";
+import type {ControlProps} from '@sentry/scraps/select';
+import {Select, SelectOption} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import { openConfirmModal } from "sentry/components/confirm";
+import {openConfirmModal} from 'sentry/components/confirm';
 import type {
   OptionsType,
   OptionTypeBase,
   ValueType,
-} from "sentry/components/forms/controls/reactSelectWrapper";
-import { components as SelectComponents } from "sentry/components/forms/controls/reactSelectWrapper";
-import { FormField } from "sentry/components/forms/formField";
-import { FormFieldControlState } from "sentry/components/forms/formField/controlState";
-import { t } from "sentry/locale";
-import type { Choices, SelectValue } from "sentry/types/core";
+} from 'sentry/components/forms/controls/reactSelectWrapper';
+import {components as SelectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
+import {FormField} from 'sentry/components/forms/formField';
+import {FormFieldControlState} from 'sentry/components/forms/formField/controlState';
+import {t} from 'sentry/locale';
+import type {Choices, SelectValue} from 'sentry/types/core';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
-import type { InputFieldProps } from "./inputField";
+import type {InputFieldProps} from './inputField';
 
-const NONE_SELECTED_LABEL = t("None selected");
+const NONE_SELECTED_LABEL = t('None selected');
 
 export interface SelectFieldProps<OptionType extends OptionTypeBase>
-  extends InputFieldProps,
+  extends
+    InputFieldProps,
     Omit<
       ControlProps<OptionType>,
-      | "onChange"
-      | "defaultValue"
-      | "disabled"
-      | "name"
-      | "onBlur"
-      | "onFocus"
-      | "onKeyDown"
-      | "placeholder"
-      | "tabIndex"
+      | 'onChange'
+      | 'defaultValue'
+      | 'disabled'
+      | 'name'
+      | 'onBlur'
+      | 'onFocus'
+      | 'onKeyDown'
+      | 'placeholder'
+      | 'tabIndex'
     > {
   /**
    * Should the select be clearable?
@@ -60,11 +61,9 @@ export interface SelectFieldProps<OptionType extends OptionTypeBase>
   inFieldLabel?: string;
 }
 
-function getChoices<T extends OptionTypeBase>(
-  props: SelectFieldProps<T>
-): Choices {
+function getChoices<T extends OptionTypeBase>(props: SelectFieldProps<T>): Choices {
   const choices = props.choices;
-  if (typeof choices === "function") {
+  if (typeof choices === 'function') {
     return choices(props as any);
   }
   if (choices === undefined) {
@@ -89,20 +88,17 @@ export class SelectField<OptionType extends SelectValue<any>> extends Component<
   static defaultProps = {
     allowClear: false,
     allowEmpty: false,
-    placeholder: "--",
+    placeholder: '--',
     escapeMarkup: true,
     multiple: false,
     small: false,
     formatMessageValue: (value: any, props: any) =>
-      (getChoices(props).find((choice) => choice[0] === value) || [
-        null,
-        value,
-      ])[1],
+      (getChoices(props).find(choice => choice[0] === value) || [null, value])[1],
   };
 
   handleChange = (
-    onBlur: InputFieldProps["onBlur"],
-    onChange: InputFieldProps["onChange"],
+    onBlur: InputFieldProps['onBlur'],
+    onChange: InputFieldProps['onChange'],
     optionObj: ValueType<OptionType, boolean>
   ) => {
     let value: any = undefined;
@@ -112,7 +108,7 @@ export class SelectField<OptionType extends SelectValue<any>> extends Component<
       value = optionObj;
     } else if (this.props.multiple && isArray(optionObj)) {
       // List of optionObjs
-      value = optionObj.map(({ value: val }) => val);
+      value = optionObj.map(({value: val}) => val);
     } else if (!isArray(optionObj)) {
       value = optionObj.value;
     }
@@ -127,14 +123,8 @@ export class SelectField<OptionType extends SelectValue<any>> extends Component<
   };
 
   render() {
-    const {
-      allowClear,
-      confirm,
-      multiple,
-      hideControlState,
-      components,
-      ...otherProps
-    } = this.props;
+    const {allowClear, confirm, multiple, hideControlState, components, ...otherProps} =
+      this.props;
 
     return (
       <FormField {...otherProps} hideControlState flexibleControlStateSize>
@@ -162,10 +152,7 @@ export class SelectField<OptionType extends SelectValue<any>> extends Component<
                 value={showTempNoneOption ? undefined : props.value}
                 options={
                   showTempNoneOption && Array.isArray(props.options)
-                    ? [
-                        { label: NONE_SELECTED_LABEL, value: props.value },
-                        ...props.options,
-                      ]
+                    ? [{label: NONE_SELECTED_LABEL, value: props.value}, ...props.options]
                     : props.options
                 }
                 choices={
@@ -184,7 +171,7 @@ export class SelectField<OptionType extends SelectValue<any>> extends Component<
                   if (option.label === NONE_SELECTED_LABEL) {
                     return true;
                   }
-                  return typeof isOptionDisabled === "function"
+                  return typeof isOptionDisabled === 'function'
                     ? isOptionDisabled(option)
                     : false;
                 }}
@@ -203,15 +190,11 @@ export class SelectField<OptionType extends SelectValue<any>> extends Component<
                     </SelectComponents.IndicatorsContainer>
                   ),
                   Option: (
-                    optionProps: React.ComponentProps<
-                      typeof SelectComponents.Option
-                    >
+                    optionProps: React.ComponentProps<typeof SelectComponents.Option>
                   ) => {
                     if (optionProps.label === NONE_SELECTED_LABEL) {
                       // The isDisabled prop is passed here to ensure the options are styled accordingly.
-                      return (
-                        <SelectOption {...optionProps} isDisabled isSelected />
-                      );
+                      return <SelectOption {...optionProps} isDisabled isSelected />;
                     }
                     return <SelectOption {...optionProps} />;
                   },
@@ -220,7 +203,7 @@ export class SelectField<OptionType extends SelectValue<any>> extends Component<
                 styles={{
                   control: (provided: any) => ({
                     ...provided,
-                    height: "auto",
+                    height: 'auto',
                   }),
                   ...props.styles,
                 }}
@@ -245,15 +228,11 @@ export class SelectField<OptionType extends SelectValue<any>> extends Component<
 
                     openConfirmModal({
                       onConfirm: () => this.handleChange(onBlur, onChange, val),
-                      message:
-                        confirm[val?.value] ??
-                        t("Continue with these changes?"),
+                      message: confirm[val?.value] ?? t('Continue with these changes?'),
                     });
                   } catch (e: any) {
                     // Swallow expected error to prevent bubbling up.
-                    if (
-                      e.message === "Invalid selection. Field cannot be empty."
-                    ) {
+                    if (e.message === 'Invalid selection. Field cannot be empty.') {
                       return;
                     }
                     throw e;
