@@ -96,6 +96,8 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   private getCollapsedTransactionChildren(): BaseNode[] {
     const queue: BaseNode[] = [];
     const collapsedChildren: BaseNode[] = [];
+    const visited = new Set<BaseNode>();
+    visited.add(this);
 
     for (let i = this.children.length - 1; i >= 0; i--) {
       queue.push(this.children[i]!);
@@ -103,6 +105,11 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
 
     while (queue.length > 0) {
       const node = queue.pop()!;
+
+      if (visited.has(node)) {
+        continue;
+      }
+      visited.add(node);
 
       if (isEAPSpanNode(node) && node.value.is_transaction) {
         collapsedChildren.push(node);
@@ -224,7 +231,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
         }
       }
 
-      // Flip expanded so that we can collect visible children
+      // Insert expanded children into the flat list
       tree.list.splice(index + 1, 0, ...this.visibleChildren);
     } else {
       tree.list.splice(index + 1, this.visibleChildren.length);
