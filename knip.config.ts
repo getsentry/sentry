@@ -67,6 +67,10 @@ const config: KnipConfig = {
     // ignore eslint plugins in production
     '!static/eslint/**/*.ts!',
   ],
+  ignore: [
+    // api-docs has its own package.json with its own dependencies
+    'api-docs/**',
+  ],
   ignoreExportsUsedInFile: isProductionMode,
   ignoreDependencies: [
     'core-js',
@@ -85,7 +89,6 @@ const config: KnipConfig = {
   rules: {
     binaries: 'off',
     enumMembers: 'off',
-    unlisted: 'off',
   },
   include: ['nsExports', 'nsTypes'],
   mdx: {
