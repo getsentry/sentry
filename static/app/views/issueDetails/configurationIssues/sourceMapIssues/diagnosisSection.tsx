@@ -14,7 +14,15 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 
-function getDiagnosisMessage(data: SourceMapDebugBlueThunderResponse): ReactNode | null {
+function getDiagnosisMessage(
+  data: SourceMapDebugBlueThunderResponse | undefined
+): ReactNode | null {
+  if (!data) {
+    return (
+      <Text>{t('Unable to load source map diagnostic information for this event.')}</Text>
+    );
+  }
+
   const release = data.release ? (
     <InlineCode variant="neutral">{data.release}</InlineCode>
   ) : null;
