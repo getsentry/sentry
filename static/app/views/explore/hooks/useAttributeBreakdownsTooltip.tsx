@@ -83,7 +83,7 @@ export function useAttributeBreakdownsTooltip({
 }: Params): TooltipOption {
   const [frozenPosition, setFrozenPosition] = useState<[number, number] | null>(null);
   const tooltipContentRef = useRef<string | null>(null);
-  const tooltipValueRef = useRef<string>('');
+  const tooltipValueRef = useRef<string | null>(null);
 
   // This effect runs on load and when the frozen position changes.
   // - If frozen position is set, trigger a re-render of the tooltip with frozen position to show the
@@ -111,7 +111,7 @@ export function useAttributeBreakdownsTooltip({
       if (frozenPosition) {
         setFrozenPosition(null);
         tooltipContentRef.current = null;
-        tooltipValueRef.current = '';
+        tooltipValueRef.current = null;
       } else {
         // If the tooltip is not frozen, set the frozen position to the current pixel point.
         setFrozenPosition(pixelPoint);
