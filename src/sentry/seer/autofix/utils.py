@@ -681,6 +681,8 @@ def build_repo_definition_from_project_repo(
     """Build a SeerRepoDefinition from a SeerProjectRepository with its joined Repository."""
     repo = seer_project_repo.repository
     repo_name_sections = repo.name.split("/")
+    if len(repo_name_sections) < 2:
+        raise ValueError(f"Invalid repository name format: {repo.name}")
 
     return SeerRepoDefinition(
         repository_id=repo.id,
