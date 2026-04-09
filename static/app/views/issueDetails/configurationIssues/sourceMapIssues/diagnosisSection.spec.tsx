@@ -1,4 +1,9 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {
+  SourceMapDebugFrameFixture,
+  SourceMapDebugReleaseProcessFixture,
+  SourceMapDebugResponseFixture,
+} from 'sentry-fixture/sourceMapDebug';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -19,30 +24,6 @@ function TestWrapper() {
   return <DiagnosisSection sourceMapQuery={sourceMapQuery} />;
 }
 
-const MOCKED_FRAME = {
-  debug_id_process: {
-    debug_id: null,
-    uploaded_source_file_with_correct_debug_id: false,
-    uploaded_source_map_with_correct_debug_id: false,
-  },
-  release_process: null,
-  scraping_process: {source_file: null, source_map: null},
-};
-
-const MOCKED_SOURCE_MAP_DEBUG_RESPONSE = {
-  dist: null,
-  release: null,
-  exceptions: [],
-  has_debug_ids: false,
-  min_debug_id_sdk_version: null,
-  sdk_version: null,
-  project_has_some_artifact_bundle: false,
-  release_has_some_artifact: false,
-  has_uploaded_some_artifact_with_a_debug_id: false,
-  sdk_debug_id_support: 'not-supported',
-  has_scraping_data: false,
-};
-
 describe('DiagnosisSection', () => {
   const organization = OrganizationFixture();
   const apiUrl = `/projects/${organization.slug}/${PROJECT_SLUG}/events/${EVENT_ID}/source-map-debug-blue-thunder-edition/`;
@@ -60,7 +41,7 @@ describe('DiagnosisSection', () => {
   });
 
   it('shows upload instructions when no artifacts exist for the project', async () => {
-    MockApiClient.addMockResponse({url: apiUrl, body: MOCKED_SOURCE_MAP_DEBUG_RESPONSE});
+    MockApiClient.addMockResponse({url: apiUrl, body: SourceMapDebugResponseFixture()});
 
     render(<TestWrapper />, {organization});
 
@@ -78,7 +59,7 @@ describe('DiagnosisSection', () => {
   it('includes the release in the no-artifacts message when a release is set', async () => {
     MockApiClient.addMockResponse({
       url: apiUrl,
-      body: {...MOCKED_SOURCE_MAP_DEBUG_RESPONSE, release: '2.5.0'},
+      body: SourceMapDebugResponseFixture({release: '2.5.0'}),
     });
 
     render(<TestWrapper />, {organization});
@@ -95,27 +76,20 @@ describe('DiagnosisSection', () => {
   it('shows dist mismatch message when the source file dist does not match', async () => {
     MockApiClient.addMockResponse({
       url: apiUrl,
-      body: {
-        ...MOCKED_SOURCE_MAP_DEBUG_RESPONSE,
+      body: SourceMapDebugResponseFixture({
         project_has_some_artifact_bundle: true,
         exceptions: [
           {
             frames: [
-              {
-                ...MOCKED_FRAME,
-                release_process: {
-                  abs_path: '~/static/app.min.js',
-                  matching_source_file_names: ['~/static/app.min.js'],
-                  matching_source_map_name: null,
-                  source_map_reference: null,
+              SourceMapDebugFrameFixture({
+                release_process: SourceMapDebugReleaseProcessFixture({
                   source_file_lookup_result: 'wrong-dist',
-                  source_map_lookup_result: 'unsuccessful',
-                },
-              },
+                }),
+              }),
             ],
           },
         ],
-      },
+      }),
     });
 
     render(<TestWrapper />, {organization});
@@ -132,27 +106,21 @@ describe('DiagnosisSection', () => {
   it('shows dist mismatch message when the source map dist does not match', async () => {
     MockApiClient.addMockResponse({
       url: apiUrl,
-      body: {
-        ...MOCKED_SOURCE_MAP_DEBUG_RESPONSE,
+      body: SourceMapDebugResponseFixture({
         project_has_some_artifact_bundle: true,
         exceptions: [
           {
             frames: [
-              {
-                ...MOCKED_FRAME,
-                release_process: {
-                  abs_path: '~/static/app.min.js',
-                  matching_source_file_names: ['~/static/app.min.js'],
-                  matching_source_map_name: 'app.min.js.map',
+              SourceMapDebugFrameFixture({
+                release_process: SourceMapDebugReleaseProcessFixture({
                   source_map_reference: 'app.min.js.map',
-                  source_file_lookup_result: 'found',
                   source_map_lookup_result: 'wrong-dist',
-                },
-              },
+                }),
+              }),
             ],
           },
         ],
-      },
+      }),
     });
 
     render(<TestWrapper />, {organization});
@@ -169,27 +137,20 @@ describe('DiagnosisSection', () => {
   it('shows not-found message when the source file is missing and has no source map reference', async () => {
     MockApiClient.addMockResponse({
       url: apiUrl,
-      body: {
-        ...MOCKED_SOURCE_MAP_DEBUG_RESPONSE,
+      body: SourceMapDebugResponseFixture({
         project_has_some_artifact_bundle: true,
         exceptions: [
           {
             frames: [
-              {
-                ...MOCKED_FRAME,
-                release_process: {
-                  abs_path: '~/static/app.min.js',
-                  matching_source_file_names: ['~/static/app.min.js'],
-                  matching_source_map_name: null,
-                  source_map_reference: null,
+              SourceMapDebugFrameFixture({
+                release_process: SourceMapDebugReleaseProcessFixture({
                   source_file_lookup_result: 'unsuccessful',
-                  source_map_lookup_result: 'unsuccessful',
-                },
-              },
+                }),
+              }),
             ],
           },
         ],
-      },
+      }),
     });
 
     render(<TestWrapper />, {organization});
@@ -206,27 +167,21 @@ describe('DiagnosisSection', () => {
   it('shows not-found message when the source map reference cannot be resolved', async () => {
     MockApiClient.addMockResponse({
       url: apiUrl,
-      body: {
-        ...MOCKED_SOURCE_MAP_DEBUG_RESPONSE,
+      body: SourceMapDebugResponseFixture({
         project_has_some_artifact_bundle: true,
         exceptions: [
           {
             frames: [
-              {
-                ...MOCKED_FRAME,
-                release_process: {
-                  abs_path: '~/static/app.min.js',
-                  matching_source_file_names: ['~/static/app.min.js'],
-                  matching_source_map_name: 'app.min.js.map',
+              SourceMapDebugFrameFixture({
+                release_process: SourceMapDebugReleaseProcessFixture({
                   source_map_reference: 'app.min.js.map',
-                  source_file_lookup_result: 'found',
                   source_map_lookup_result: 'unsuccessful',
-                },
-              },
+                }),
+              }),
             ],
           },
         ],
-      },
+      }),
     });
 
     render(<TestWrapper />, {organization});
@@ -243,15 +198,13 @@ describe('DiagnosisSection', () => {
   it('shows scraping failure message when Sentry cannot fetch the source file', async () => {
     MockApiClient.addMockResponse({
       url: apiUrl,
-      body: {
-        ...MOCKED_SOURCE_MAP_DEBUG_RESPONSE,
+      body: SourceMapDebugResponseFixture({
         project_has_some_artifact_bundle: true,
         has_scraping_data: true,
         exceptions: [
           {
             frames: [
-              {
-                ...MOCKED_FRAME,
+              SourceMapDebugFrameFixture({
                 scraping_process: {
                   source_file: {
                     status: 'failure',
@@ -260,11 +213,11 @@ describe('DiagnosisSection', () => {
                   },
                   source_map: null,
                 },
-              },
+              }),
             ],
           },
         ],
-      },
+      }),
     });
 
     render(<TestWrapper />, {organization});
@@ -281,15 +234,13 @@ describe('DiagnosisSection', () => {
   it('shows scraping failure message when Sentry cannot fetch the source map', async () => {
     MockApiClient.addMockResponse({
       url: apiUrl,
-      body: {
-        ...MOCKED_SOURCE_MAP_DEBUG_RESPONSE,
+      body: SourceMapDebugResponseFixture({
         project_has_some_artifact_bundle: true,
         has_scraping_data: true,
         exceptions: [
           {
             frames: [
-              {
-                ...MOCKED_FRAME,
+              SourceMapDebugFrameFixture({
                 scraping_process: {
                   source_file: {status: 'success', url: 'https://example.com/app.js'},
                   source_map: {
@@ -298,11 +249,11 @@ describe('DiagnosisSection', () => {
                     reason: 'timeout',
                   },
                 },
-              },
+              }),
             ],
           },
         ],
-      },
+      }),
     });
 
     render(<TestWrapper />, {organization});
@@ -319,11 +270,10 @@ describe('DiagnosisSection', () => {
   it('shows fallback message when source maps are present but issue cannot be pinpointed', async () => {
     MockApiClient.addMockResponse({
       url: apiUrl,
-      body: {
-        ...MOCKED_SOURCE_MAP_DEBUG_RESPONSE,
+      body: SourceMapDebugResponseFixture({
         project_has_some_artifact_bundle: true,
         release_has_some_artifact: true,
-      },
+      }),
     });
 
     render(<TestWrapper />, {organization});
