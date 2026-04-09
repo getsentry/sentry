@@ -38,7 +38,10 @@ async function startDashboardEditSession(
 }
 
 interface UseSeerDashboardSessionOptions {
-  onDashboardUpdate: (data: {title: string; widgets: Widget[]}) => void;
+  onDashboardUpdate: (
+    data: {title: string; widgets: Widget[]},
+    seerRunId: number | null
+  ) => void;
   dashboard?: Pick<DashboardDetails, 'title' | 'widgets'>;
   enabled?: boolean;
   onPostCompletePollEnd?: () => void;
@@ -127,10 +130,17 @@ export function useSeerDashboardSession({
       }
       const dashboardData = extractDashboardFromSession(session);
       if (dashboardData) {
-        onDashboardUpdate(dashboardData);
+        onDashboardUpdate(dashboardData, seerRunId);
       }
     }
-  }, [isUpdating, sessionStatus, session, sessionUpdatedAt, onDashboardUpdate]);
+  }, [
+    isUpdating,
+    sessionStatus,
+    session,
+    sessionUpdatedAt,
+    onDashboardUpdate,
+    seerRunId,
+  ]);
 
   const sendFollowUpMessage = useCallback(
     async (message: string) => {
