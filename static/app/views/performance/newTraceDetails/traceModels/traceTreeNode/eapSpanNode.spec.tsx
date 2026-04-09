@@ -7,7 +7,7 @@ import {
   makeEAPSpan,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 
-import type {TraceTreeNodeExtra} from './baseNode';
+import type {BaseNode, TraceTreeNodeExtra} from './baseNode';
 import {EapSpanNode} from './eapSpanNode';
 
 const createMockExtra = (
@@ -531,7 +531,7 @@ describe('EapSpanNode', () => {
 
   describe('expand method', () => {
     const createMockTraceTree = () => ({
-      list: [] as EapSpanNode[],
+      list: [] as BaseNode[],
     });
 
     it('should handle expanding transaction with reparenting', () => {
