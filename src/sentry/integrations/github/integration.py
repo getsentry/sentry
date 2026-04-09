@@ -325,6 +325,7 @@ class GitHubIntegration(
         query: str | None = None,
         page_number_limit: int | None = None,
         accessible_only: bool = False,
+        use_cache: bool = False,
     ) -> list[RepositoryInfo]:
         """
         args:
@@ -332,6 +333,8 @@ class GitHubIntegration(
         * accessible_only - when True with a query, fetch only installation-
           accessible repos and filter locally instead of using the Search API
           (which may return repos outside the installation's scope)
+        * use_cache - when True, serve repos from a short-lived cache instead
+          of re-fetching all pages from GitHub on every call
 
         This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
@@ -349,24 +352,29 @@ class GitHubIntegration(
                 for i in raw_repos
             ]
 
-        # No query: fetch all accessible repos (without cache)
+        def _get_all_repos():
+            if use_cache:
+                return client.get_accessible_repos_cached()
+            return client.get_repos(page_number_limit=page_number_limit)
+
+        # No query: return all non-archived repos
         if not query:
-            all_repos = client.get_repos(page_number_limit=page_number_limit)
+            all_repos = _get_all_repos()
             return to_repo_info(r for r in all_repos if not r.get("archived"))
 
-        # accessible_only: fetch and filter accessible repos (cached)
-        # avoids re-fetching all pages on every debounced keystroke and
-        # avoids the Search API's 30 req/min shared rate limit.
+        # accessible_only: fetch accessible repos and filter locally
+        # avoids the Search API's 30 req/min shared rate limit
         if accessible_only:
-            all_repos_cached = client.get_accessible_repos_cached()
+            all_repos = _get_all_repos()
             query_lower = query.lower()
             return to_repo_info(
                 r
-                for r in all_repos_cached
+                for r in all_repos
                 if not r.get("archived") and query_lower in r["full_name"].lower()
             )
 
-        # Query without accessible_only: existing search behavior
+        # Query without accessible_only: use the Search API
+        assert not use_cache, "use_cache is not supported with the Search API path"
         full_query = build_repository_query(self.model.metadata, self.model.name, query)
         response = client.search_repositories(full_query)
         return to_repo_info(response.get("items", []))

@@ -724,7 +724,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
         # First call: cache miss, fetches /installation/repositories
-        result1 = installation.get_repositories("foo", accessible_only=True)
+        result1 = installation.get_repositories("foo", accessible_only=True, use_cache=True)
         install_repo_calls = [
             c for c in responses.calls if "/installation/repositories" in c.request.url
         ]
@@ -732,7 +732,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert first_fetch_count > 0
 
         # Second call: cache hit, no new /installation/repositories calls
-        result2 = installation.get_repositories("foo", accessible_only=True)
+        result2 = installation.get_repositories("foo", accessible_only=True, use_cache=True)
         install_repo_calls = [
             c for c in responses.calls if "/installation/repositories" in c.request.url
         ]
