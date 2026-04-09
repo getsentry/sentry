@@ -84,7 +84,13 @@ event types are limited in terms of frequency.
     the tree.
 
   - As we extract the subsegments and reassemble them, if the segment is too big
-    we drop it entirely and record an `invalid` outcome.
+    we either drop it or chunk it depending on the
+    `spans.buffer.chunk-oversized-segments` option:
+    - **Default (disabled)**: The segment is dropped entirely and an `invalid`
+      outcome is recorded.
+    - **Enabled**: The segment is kept and split into multiple Kafka messages,
+      each within `max-segment-bytes`, and every chunk is sent with the flag
+      `skip_enrichment=True`.
 
 ### Flushing segments
 

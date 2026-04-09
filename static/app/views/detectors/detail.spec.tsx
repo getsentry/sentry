@@ -97,11 +97,11 @@ describe('DetectorDetails', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/1/`,
+      url: '/organizations/org-slug/issues/1/',
       body: GroupFixture(),
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/detectors/`,
+      url: '/organizations/org-slug/detectors/',
       body: [issueStreamDetector],
       match: [
         MockApiClient.matchQuery({
@@ -111,7 +111,7 @@ describe('DetectorDetails', () => {
       ],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/workflows/`,
+      url: '/organizations/org-slug/workflows/',
       body: [],
       match: [(_url, options) => options.query?.detector === undefined],
     });

@@ -1,5 +1,6 @@
 import {useEffect, useMemo} from 'react';
 
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -193,10 +194,12 @@ export function useConversation(
   const hasConversationTimestamps =
     conversation.startTimestamp !== undefined && conversation.endTimestamp !== undefined;
 
+  // When conversation timestamps are provided (e.g. from a shared link),
+  // search across all projects and environments so the conversation is found
+  // regardless of which project/environment the page filter is currently set to.
   const queryParams = hasConversationTimestamps
     ? {
-        project: selection.projects,
-        environment: selection.environments,
+        project: [ALL_ACCESS_PROJECTS],
         start: new Date(conversation.startTimestamp! - ONE_HOUR_MS).toISOString(),
         end: new Date(conversation.endTimestamp! + ONE_HOUR_MS).toISOString(),
         per_page: 1000,

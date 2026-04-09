@@ -1395,6 +1395,25 @@ class TestReadPreferenceFromSentryDb(TestCase):
         assert result is not None
         assert result.automation_handoff is None
 
+    def test_invalid_repo_name_is_skipped(self):
+        bad_repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="ext_bad",
+            name="no-slash-repo",
+        )
+        SeerProjectRepository.objects.create(
+            project=self.project, repository=bad_repo, branch_name="main"
+        )
+        SeerProjectRepository.objects.create(
+            project=self.project, repository=self.repo, branch_name="main"
+        )
+
+        result = read_preference_from_sentry_db(self.project)
+        assert result is not None
+        assert len(result.repositories) == 1
+        assert result.repositories[0].name == "test-repo"
+
 
 class TestBulkReadPreferencesFromSentryDb(TestCase):
     def setUp(self):

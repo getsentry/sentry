@@ -95,12 +95,12 @@ describe('Dashboards > Dashboard', () => {
   beforeEach(() => {
     initialData = initializeOrg({organization, projects: []});
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/dashboards/widgets/`,
+      url: '/organizations/org-slug/dashboards/widgets/',
       method: 'POST',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/releases/stats/`,
+      url: '/organizations/org-slug/releases/stats/',
       body: [],
     });
     MockApiClient.addMockResponse({

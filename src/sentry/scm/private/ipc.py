@@ -16,7 +16,7 @@ from typing import assert_never, cast
 import msgspec
 import sentry_sdk
 
-from sentry.scm.errors import SCMProviderNotSupported
+from sentry.scm.errors import SCMProviderEventNotSupported, SCMProviderNotSupported
 from sentry.scm.private.event_stream import SourceCodeManagerEventStream, scm_event_stream
 from sentry.scm.private.webhooks.github import deserialize_github_event
 from sentry.scm.types import (
@@ -356,10 +356,8 @@ def produce_to_listeners(
     """
     parsed_event = deserialize_raw_event(event)
 
-    # Most events are not supported. We drop them. They could be processed elsewhere but they're
-    # not processed by the unified SCM platform.
     if parsed_event is None:
-        return None
+        raise SCMProviderEventNotSupported(f"Unsupported event type `{event['event_type_hint']}`.")
 
     message = serialize_event(parsed_event)
 

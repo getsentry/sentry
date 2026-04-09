@@ -6,7 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
+import {SQLishFormatter} from 'sentry/utils/sqlish';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';

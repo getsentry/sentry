@@ -82,7 +82,7 @@ const ALL_FEATURE_LIST: Feature[] = [
     name: t('Extended Data Retention'),
     image: dataRetentionImg,
     desc: tct(
-      `Want to access your event data for longer? Extend your data history to 90 days for more visibility into events and the root cause of exceptions.`,
+      'Want to access your event data for longer? Extend your data history to 90 days for more visibility into events and the root cause of exceptions.',
       {strong: <strong />}
     ),
   },
@@ -92,7 +92,7 @@ const ALL_FEATURE_LIST: Feature[] = [
     name: t('SAML2 Sign In'),
     image: ssoImg,
     desc: tct(
-      `Streamline onboarding and off-boarding by logging in securely through one of our SSO integrations: [strong: Okta, Active Directory, OneLogin, and AuthO].`,
+      'Streamline onboarding and off-boarding by logging in securely through one of our SSO integrations: [strong: Okta, Active Directory, OneLogin, and AuthO].',
       {strong: <strong />}
     ),
   },
@@ -102,7 +102,7 @@ const ALL_FEATURE_LIST: Feature[] = [
     name: t('Event Volume Controls'),
     image: dataVolumeImg,
     desc: tct(
-      `Control event volume with robust data filters and rate limits. Have something big coming up? Track daily usage by project in Organization Stats.`,
+      'Control event volume with robust data filters and rate limits. Have something big coming up? Track daily usage by project in Organization Stats.',
       {strong: <strong />}
     ),
   },
@@ -112,7 +112,7 @@ const ALL_FEATURE_LIST: Feature[] = [
     name: t('Error Metric Alerts'),
     image: incidentsImg,
     desc: tct(
-      `Go beyond Issues and set Metric Alerts to detect critical spikes on the frequency of any subset of your events, filtered on tags or attributes.`,
+      'Go beyond Issues and set Metric Alerts to detect critical spikes on the frequency of any subset of your events, filtered on tags or attributes.',
       {strong: <strong />}
     ),
   },
@@ -122,7 +122,7 @@ const ALL_FEATURE_LIST: Feature[] = [
     name: t('Metric Alerts'),
     image: incidentsPerformanceImg,
     desc: tct(
-      `Set metric alerts to detect spikes in error count, latency, apdex, failure rate, throughput and more. Assign them to the most relevant teams.`,
+      'Set metric alerts to detect spikes in error count, latency, apdex, failure rate, throughput and more. Assign them to the most relevant teams.',
       {strong: <strong />}
     ),
   },
@@ -132,7 +132,7 @@ const ALL_FEATURE_LIST: Feature[] = [
     name: t('Distributed Tracing'),
     image: tracingImg,
     desc: tct(
-      `Track the performance of your app to identify N+1 queries, associated errors, or any other bottlenecks, from frontend web vitals to backend API calls.`,
+      'Track the performance of your app to identify N+1 queries, associated errors, or any other bottlenecks, from frontend web vitals to backend API calls.',
       {strong: <strong />}
     ),
   },
@@ -142,7 +142,7 @@ const ALL_FEATURE_LIST: Feature[] = [
     name: t('Transaction Summary'),
     image: performanceViewImg,
     desc: tct(
-      `Understand how transactions are doing by percentile, operation, and more. We'll narrow down what's causing slowdowns and link to any related issues.`,
+      "Understand how transactions are doing by percentile, operation, and more. We'll narrow down what's causing slowdowns and link to any related issues.",
       {strong: <strong />}
     ),
   },
@@ -164,7 +164,7 @@ const ALL_FEATURE_LIST: Feature[] = [
     name: t('Unlimited Custom Dashboards'),
     image: dashboardsImg,
     desc: tct(
-      `Build custom dashboards for your team with a range of rich data visualizations such as histograms, time series, tables, global maps and more.`,
+      'Build custom dashboards for your team with a range of rich data visualizations such as histograms, time series, tables, global maps and more.',
       {strong: <strong />}
     ),
   },
@@ -174,7 +174,7 @@ const ALL_FEATURE_LIST: Feature[] = [
     name: t('Advanced Integrations'),
     image: integrationAlerts,
     desc: tct(
-      `Automatically create Jira and Azure DevOps Tickets based on custom alerts you set up in Sentry. Stop manually filling out forms.`,
+      'Automatically create Jira and Azure DevOps Tickets based on custom alerts you set up in Sentry. Stop manually filling out forms.',
       {strong: <strong />}
     ),
   },
@@ -226,7 +226,7 @@ export class Details extends Component<Props, State> {
 
   componentDidMount() {
     const {organization, source, subscription} = this.props;
-    trackGetsentryAnalytics(`business_landing.viewed`, {
+    trackGetsentryAnalytics('business_landing.viewed', {
       organization,
       subscription,
       source,
@@ -248,7 +248,7 @@ export class Details extends Component<Props, State> {
 
   componentWillUnmount() {
     const {organization, source, subscription} = this.props;
-    trackGetsentryAnalytics(`business_landing.closed`, {
+    trackGetsentryAnalytics('business_landing.closed', {
       organization,
       subscription,
       source,
@@ -293,7 +293,7 @@ export class Details extends Component<Props, State> {
       hasClickedFeature: true,
     }));
     const {organization, source, subscription} = this.props;
-    trackGetsentryAnalytics(`business_landing.clicked`, {
+    trackGetsentryAnalytics('business_landing.clicked', {
       organization,
       subscription,
       source,
@@ -307,10 +307,10 @@ export class Details extends Component<Props, State> {
     if (showTrialResetContent) {
       return [
         t(
-          `Here’s another free 14-day trial of the Sentry Business Plan, because we believe in second chances.`
+          'Here’s another free 14-day trial of the Sentry Business Plan, because we believe in second chances.'
         ),
         t(
-          `Your Sentry organization is perfect just the way it is, but try out all the Business Plan features to make it even better.`
+          'Your Sentry organization is perfect just the way it is, but try out all the Business Plan features to make it even better.'
         ),
       ];
     }
@@ -382,7 +382,7 @@ export class Details extends Component<Props, State> {
     const {subscription, organization, showTrialResetContent} = this.props;
     if (showTrialResetContent) {
       return t(
-        `Start your trial again to invite team members, integrate with Sentry with services like Slack, GitHub, and Jira, and build custom dashboards to view issues across projects.`
+        'Start your trial again to invite team members, integrate with Sentry with services like Slack, GitHub, and Jira, and build custom dashboards to view issues across projects.'
       );
     }
     return subscription.canTrial && !subscription.isTrial

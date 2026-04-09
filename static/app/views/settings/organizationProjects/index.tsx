@@ -45,7 +45,7 @@ function OrganizationProjects() {
     isError,
   } = useApiQuery<Project[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/projects/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {

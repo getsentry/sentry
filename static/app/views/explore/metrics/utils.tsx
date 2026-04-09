@@ -17,7 +17,6 @@ import type {
   SavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {isRawVisualize} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {TraceSamplesTableStatColumns} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
   defaultMetricQuery,
@@ -26,7 +25,6 @@ import {
 } from 'sentry/views/explore/metrics/metricQuery';
 import {
   TraceMetricKnownFieldKey,
-  VirtualTableSampleColumnKey,
   type SampleTableColumnKey,
 } from 'sentry/views/explore/metrics/types';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
@@ -173,10 +171,7 @@ export function getMetricsUrlFromSavedQueryUrl({
 
 export function getMetricTableColumnType(
   column: SampleTableColumnKey
-): 'value' | 'stat' | 'metric_value' {
-  if (TraceSamplesTableStatColumns.includes(column as VirtualTableSampleColumnKey)) {
-    return 'stat';
-  }
+): 'value' | 'metric_value' {
   if (column === TraceMetricKnownFieldKey.METRIC_VALUE) {
     return 'metric_value'; // Special cased for headers and rendering usually.
   }

@@ -105,7 +105,10 @@ class TestSlackMetricAlertHandlerSendAlert(MetricAlertHandlerBase):
         mock_client_instance.chat_postMessage.assert_called_once()
         call_kwargs = mock_client_instance.chat_postMessage.call_args.kwargs
         assert call_kwargs["channel"] == "channel123"
-        blocks = call_kwargs["blocks"]
+        assert call_kwargs["attachments"] is not None
+        attachments: list[Any] = call_kwargs["attachments"]
+        assert len(attachments) == 1
+        blocks: list[Any] = attachments[0]["blocks"]
         assert len(blocks) >= 1
         assert blocks[0]["type"] == "section"
         assert blocks[0]["text"]["type"] == "mrkdwn"

@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -34,7 +35,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {useTransactionSamplesWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useTransactionSamplesWebVitalsScoresQuery';
 import {
@@ -153,7 +153,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   const {projects} = useProjects();
   const organization = useOrganization();
   const {replayExists} = useReplayExists();
-  const routes = useRoutes();
+  const matches = useMatches();
   const navigate = useNavigate();
   const domainViewFilters = useDomainViewFilters();
 
@@ -184,7 +184,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     sortableFields: sortableFields as unknown as string[],
   });
 
-  const replayLinkGenerator = generateReplayLink(routes);
+  const replayLinkGenerator = generateReplayLink(matches);
 
   const project = useMemo(
     () => projects.find(p => p.id === String(location.query.project)),

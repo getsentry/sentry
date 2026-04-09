@@ -32,10 +32,7 @@ import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
 import {useHasMetricUnitsUI} from 'sentry/views/explore/metrics/hooks/useHasMetricUnitsUI';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {
-  canUseMetricsSidePanelUI,
-  canUseMetricsUIRefresh,
-} from 'sentry/views/explore/metrics/metricsFlags';
+import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import {
   TraceMetricKnownFieldKey,
@@ -557,14 +554,12 @@ export function MetricSelector({
                     )}
                   </Container>
                 </Stack>
-                {canUseMetricsSidePanelUI(organization) ? (
-                  <Container width={{sm: '280px'}} padding="lg" minHeight={{sm: '200px'}}>
-                    <MetricDetailPanel
-                      metric={highlightedOption ?? optionFromTraceMetric}
-                      hasMetricUnitsUI={hasMetricUnitsUI}
-                    />
-                  </Container>
-                ) : null}
+                <Container width={{sm: '280px'}} padding="lg" minHeight={{sm: '200px'}}>
+                  <MetricDetailPanel
+                    metric={highlightedOption ?? optionFromTraceMetric}
+                    hasMetricUnitsUI={hasMetricUnitsUI}
+                  />
+                </Container>
               </Flex>
             </FocusScope>
           </Overlay>

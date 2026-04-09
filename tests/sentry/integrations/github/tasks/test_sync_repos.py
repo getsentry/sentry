@@ -4,14 +4,17 @@ import pytest
 import responses
 from taskbroker_client.retry import RetryTaskError
 
+from sentry import audit_log
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.github.tasks.sync_repos import sync_repos_for_org
+from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegrationProvider
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import IntegrationTestCase
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.testutils.cases import IntegrationTestCase, TestCase
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 
 
 @control_silo_test
@@ -60,6 +63,13 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
         assert repos[0].provider == "integrations:github"
         assert repos[1].name == "getsentry/snuba"
 
+        with assume_test_silo_mode_of(AuditLogEntry):
+            entries = AuditLogEntry.objects.filter(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("REPO_ADDED"),
+            )
+            assert entries.count() == 2
+
     @responses.activate
     def test_disables_removed_repos(self, _: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
@@ -89,6 +99,16 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
                 organization_id=self.organization.id, external_id="1"
             ).exists()
 
+        with assume_test_silo_mode_of(AuditLogEntry):
+            assert AuditLogEntry.objects.filter(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("REPO_DISABLED"),
+            ).exists()
+            assert AuditLogEntry.objects.filter(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("REPO_ADDED"),
+            ).exists()
+
     @responses.activate
     def test_re_enables_restored_repos(self, _: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
@@ -112,6 +132,12 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
         with assume_test_silo_mode(SiloMode.CELL):
             repo.refresh_from_db()
             assert repo.status == ObjectStatus.ACTIVE
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            assert AuditLogEntry.objects.filter(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("REPO_ENABLED"),
+            ).exists()
 
     @responses.activate
     def test_no_changes_needed(self, _: MagicMock) -> None:
@@ -193,3 +219,44 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
 
         with self.feature("organizations:github-repo-auto-sync"), pytest.raises(RetryTaskError):
             sync_repos_for_org(self.oi.id)
+
+
+@control_silo_test
+class SyncReposForOrgGHETestCase(TestCase):
+    @patch("sentry.integrations.github.client.GitHubBaseClient.get_repos")
+    def test_creates_new_repos_for_ghe(self, mock_get_repos: MagicMock) -> None:
+        GitHubEnterpriseIntegrationProvider().setup()
+
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="35.232.149.196:12345",
+            provider="github_enterprise",
+            metadata={
+                "domain_name": "35.232.149.196/testorg",
+                "installation_id": "12345",
+                "installation": {
+                    "id": "2",
+                    "private_key": "private_key",
+                    "verify_ssl": True,
+                },
+            },
+        )
+        oi = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=integration
+        )
+
+        mock_get_repos.return_value = [
+            {"id": 1, "full_name": "testorg/repo1"},
+            {"id": 2, "full_name": "testorg/repo2"},
+        ]
+
+        with self.feature(
+            ["organizations:github-repo-auto-sync", "organizations:github-repo-auto-sync-apply"]
+        ):
+            sync_repos_for_org(oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repos = Repository.objects.filter(organization_id=self.organization.id).order_by("name")
+
+        assert len(repos) == 2
+        assert repos[0].provider == "integrations:github_enterprise"

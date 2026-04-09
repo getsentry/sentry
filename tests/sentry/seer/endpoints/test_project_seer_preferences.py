@@ -684,6 +684,25 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert response.data["detail"] == "Invalid repository"
         mock_request.assert_not_called()
 
+    def test_post_rejects_unsupported_repo_provider(self, mock_request: MagicMock) -> None:
+        request_data = {
+            "repositories": [
+                {
+                    "organization_id": self.org.id,
+                    "integration_id": "111",
+                    "provider": "gitlab",
+                    "owner": "getsentry",
+                    "name": "sentry",
+                    "external_id": "123456",
+                }
+            ],
+        }
+
+        response = self.client.post(self.url, data=request_data)
+
+        assert response.status_code == 400
+        mock_request.assert_not_called()
+
     @with_feature("organizations:seer-project-settings-dual-write")
     @patch("sentry.seer.endpoints.project_seer_preferences.write_preference_to_sentry_db")
     @patch("sentry.seer.endpoints.project_seer_preferences.make_set_project_preference_request")

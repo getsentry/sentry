@@ -7,6 +7,7 @@ from typing import Any, NotRequired, TypedDict
 
 import orjson
 import pydantic
+import sentry_sdk
 from django.conf import settings
 from django.db import router, transaction
 from pydantic import BaseModel
@@ -33,6 +34,7 @@ from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.projectoptions.defaults import SEER_PROJECT_PREFERENCE_OPTION_KEYS
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixStatus
+from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.models import (
     AutofixHandoffPoint,
     BranchOverride,
@@ -676,10 +678,15 @@ def bulk_write_preferences_to_sentry_db(
 
 def build_repo_definition_from_project_repo(
     seer_project_repo: SeerProjectRepository,
-) -> SeerRepoDefinition:
-    """Build a SeerRepoDefinition from a SeerProjectRepository with its joined Repository."""
+) -> SeerRepoDefinition | None:
+    """Build a SeerRepoDefinition from a SeerProjectRepository with its joined Repository.
+
+    Returns None if Repository name is invalid."""
     repo = seer_project_repo.repository
     repo_name_sections = repo.name.split("/")
+    if len(repo_name_sections) < 2:
+        sentry_sdk.capture_exception(ValueError(f"Invalid repository name format: {repo.name}"))
+        return None
 
     return SeerRepoDefinition(
         repository_id=repo.id,
@@ -722,15 +729,18 @@ def _build_automation_handoff(
 
 
 def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference | None:
-    """Read a single project's Seer preferences from Sentry DB."""
+    """Read a single project's Seer preferences from Sentry DB.
+
+    For now, should only be used under feature flag `organizations:seer-project-settings-read-from-sentry`."""
     seer_project_repo_qs = (
         SeerProjectRepository.objects.filter(project=project)
         .select_related("repository")
         .prefetch_related("branch_overrides")
     )
     repo_definitions = [
-        build_repo_definition_from_project_repo(project_repo)
+        repo_def
         for project_repo in seer_project_repo_qs
+        if (repo_def := build_repo_definition_from_project_repo(project_repo)) is not None
     ]
 
     has_configured_options = any(
@@ -751,7 +761,9 @@ def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference | 
 def bulk_read_preferences_from_sentry_db(
     organization_id: int, project_ids: list[int]
 ) -> dict[int, SeerProjectPreference | None]:
-    """Bulk read Seer preferences from Sentry DB."""
+    """Bulk read Seer preferences from Sentry DB.
+
+    For now, should only be used under feature flag `organizations:seer-project-settings-read-from-sentry`."""
     if not project_ids:
         return {}
 
@@ -763,9 +775,9 @@ def bulk_read_preferences_from_sentry_db(
         .select_related("repository")
         .prefetch_related("branch_overrides")
     ):
-        repo_definitions_by_project[project_repo.project_id].append(
-            build_repo_definition_from_project_repo(project_repo)
-        )
+        repo_def = build_repo_definition_from_project_repo(project_repo)
+        if repo_def is not None:
+            repo_definitions_by_project[project_repo.project_id].append(repo_def)
 
     # get_value_bulk_id returns None for missing options, unlike project.get_option
     # which automatically falls back to the registered well-known key default.
@@ -784,20 +796,20 @@ def bulk_read_preferences_from_sentry_db(
             result[project.id] = None
             continue
 
-        def get_project_option(key: str) -> Any:
+        def _get_project_option(key: str) -> Any:
             value = project_options[key][project.id]
             if value is None:
-                return projectoptions.lookup_well_known_key(key).default
+                return projectoptions.get_well_known_default(key, project=project)
             return value
 
         result[project.id] = SeerProjectPreference(
             organization_id=project.organization_id,
             project_id=project.id,
             repositories=repo_definitions_by_project.get(project.id, []),
-            automated_run_stopping_point=get_project_option(
+            automated_run_stopping_point=_get_project_option(
                 "sentry:seer_automated_run_stopping_point"
             ),
-            automation_handoff=_build_automation_handoff(get_project_option),
+            automation_handoff=_build_automation_handoff(_get_project_option),
         )
 
     return result
@@ -902,8 +914,13 @@ def get_autofix_repos_from_project_code_mappings(
         repo: Repository = code_mapping.repository
         repo_name_sections = repo.name.split("/")
 
-        # We expect a repository name to be in the format of "owner/name" for now.
-        if len(repo_name_sections) > 1 and repo.provider:
+        if (
+            # We expect a repository name to be in the format of "owner/name" for now.
+            len(repo_name_sections) > 1
+            # Filter out code mappings with unsupported providers.
+            and repo.provider
+            and repo.provider in SEER_SUPPORTED_SCM_PROVIDERS
+        ):
             repo_dict = {
                 "repository_id": repo.id,
                 "organization_id": repo.organization_id,
@@ -914,6 +931,7 @@ def get_autofix_repos_from_project_code_mappings(
                 "owner": repo_name_sections[0],
                 "name": "/".join(repo_name_sections[1:]),
                 "external_id": repo.external_id,
+                "languages": repo.languages or [],
             }
             repo_key = (repo_dict["provider"], repo_dict["owner"], repo_dict["name"])
 

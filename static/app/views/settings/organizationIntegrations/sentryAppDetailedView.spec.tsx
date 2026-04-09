@@ -44,7 +44,7 @@ describe('SentryAppDetailedView', () => {
 
     beforeEach(() => {
       sentryAppInteractionRequest = MockApiClient.addMockResponse({
-        url: `/sentry-apps/clickup/interaction/`,
+        url: '/sentry-apps/clickup/interaction/',
         method: 'POST',
         statusCode: 200,
         body: {},
@@ -111,7 +111,7 @@ describe('SentryAppDetailedView', () => {
       renderSentryAppDetailedView({integrationSlug: 'clickup'});
 
       expect(sentryAppInteractionRequest).toHaveBeenCalledWith(
-        `/sentry-apps/clickup/interaction/`,
+        '/sentry-apps/clickup/interaction/',
         expect.objectContaining({
           method: 'POST',
           data: {
@@ -152,7 +152,7 @@ describe('SentryAppDetailedView', () => {
   describe('Internal Sentry App', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
-        url: `/sentry-apps/my-headband-washer-289499/interaction/`,
+        url: '/sentry-apps/my-headband-washer-289499/interaction/',
         method: 'POST',
         statusCode: 200,
         body: {},
@@ -221,7 +221,7 @@ describe('SentryAppDetailedView', () => {
 
     beforeEach(() => {
       MockApiClient.addMockResponse({
-        url: `/sentry-apps/la-croix-monitor/interaction/`,
+        url: '/sentry-apps/la-croix-monitor/interaction/',
         method: 'POST',
         statusCode: 200,
         body: {},
@@ -302,7 +302,7 @@ describe('SentryAppDetailedView', () => {
     let createRequest: jest.Mock;
     beforeEach(() => {
       MockApiClient.addMockResponse({
-        url: `/sentry-apps/go-to-google/interaction/`,
+        url: '/sentry-apps/go-to-google/interaction/',
         method: 'POST',
         statusCode: 200,
         body: {},

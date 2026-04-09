@@ -38,7 +38,7 @@ export function FirstEventFooter({
 
   const {data: issues} = useApiQuery<Group[]>(
     [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/`, {
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/', {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
       }),
     ],

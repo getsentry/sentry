@@ -13,7 +13,7 @@ function HelpfulMembers() {
   const organization = useOrganization();
   const {data: billingMembers} = useApiQuery<Member[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/members/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/members/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: {query: 'scope:"org:billing"'}},

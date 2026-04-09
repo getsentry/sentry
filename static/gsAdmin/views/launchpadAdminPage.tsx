@@ -33,32 +33,42 @@ export function LaunchpadAdminPage() {
 
   const {mutate: rerunAnalysis} = useMutation({
     mutationFn: () => {
+      const ids = rerunArtifactId
+        .split(',')
+        .map(id => id.trim())
+        .filter(id => id);
       return fetchMutation({
-        url: `/internal/preprod-artifact/rerun-analysis/`,
+        url: '/internal/preprod-artifact/batch-rerun-analysis/',
         method: 'POST',
-        data: {
-          preprod_artifact_id: rerunArtifactId,
-        },
-        options: {
-          host: region?.url,
-        },
+        data: {artifact_ids: ids},
+        options: {host: region?.url},
       });
     },
-    onSuccess: () => {
-      addSuccessMessage(
-        `Analysis rerun initiated successfully for artifact: ${rerunArtifactId}`
-      );
+    onSuccess: (data: any) => {
+      const results = data?.results ?? [];
+      const succeeded = results.filter((r: any) => r.success);
+      const failed = results.filter((r: any) => !r.success);
+      if (failed.length > 0) {
+        addErrorMessage(
+          `Failed to dispatch ${failed.length} artifact${failed.length > 1 ? 's' : ''}: ${failed.map((r: any) => r.artifact_id).join(', ')}`
+        );
+      }
+      if (succeeded.length > 0) {
+        addSuccessMessage(
+          `Analysis rerun initiated for ${succeeded.length} artifact${succeeded.length > 1 ? 's' : ''}`
+        );
+      }
       setRerunArtifactId('');
     },
     onError: () => {
-      addErrorMessage(`Failed to rerun analysis for artifact: ${rerunArtifactId}`);
+      addErrorMessage('Failed to rerun analysis');
     },
   });
 
   const {mutate: deleteArtifactData} = useMutation({
     mutationFn: () => {
       return fetchMutation({
-        url: `/internal/preprod-artifact/batch-delete/`,
+        url: '/internal/preprod-artifact/batch-delete/',
         method: 'DELETE',
         data: {
           preprod_artifact_ids: [deleteArtifactId],
@@ -108,7 +118,7 @@ export function LaunchpadAdminPage() {
   const {mutate: batchDeleteArtifacts} = useMutation({
     mutationFn: () => {
       return fetchMutation({
-        url: `/internal/preprod-artifact/batch-delete/`,
+        url: '/internal/preprod-artifact/batch-delete/',
         method: 'DELETE',
         data: {
           preprod_artifact_ids: batchDeleteArtifactIds
@@ -129,7 +139,7 @@ export function LaunchpadAdminPage() {
       setBatchDeleteArtifactIds('');
     },
     onError: () => {
-      addErrorMessage(`Failed to batch delete artifacts`);
+      addErrorMessage('Failed to batch delete artifacts');
     },
   });
 
@@ -310,7 +320,8 @@ export function LaunchpadAdminPage() {
               <Flex direction="column" gap="md">
                 <Heading as="h3">Fetch Artifact Info</Heading>
                 <Text as="p" variant="muted">
-                  Retrieve all data and details for a specific preprod artifact.
+                  Retrieve all data and details for a specific preprod artifact (includes
+                  snapshot info).
                 </Text>
                 <label htmlFor="fetchInfoArtifactId">
                   <Text bold>Preprod Artifact ID:</Text>
@@ -370,19 +381,20 @@ export function LaunchpadAdminPage() {
           <form onSubmit={handleRerunSubmit}>
             <Container background="secondary" border="primary" radius="md" padding="lg">
               <Flex direction="column" gap="md">
-                <Heading as="h3">Rerun Analysis</Heading>
+                <Heading as="h3">Batch Rerun Analyses</Heading>
                 <Text as="p" variant="muted">
-                  Rerun analysis for a specific preprod artifact.
+                  Rerun analysis for one or more preprod artifacts using comma-separated
+                  IDs.
                 </Text>
                 <label htmlFor="rerunArtifactId">
-                  <Text bold>Preprod Artifact ID:</Text>
+                  <Text bold>Preprod Artifact ID (comma-separated):</Text>
                 </label>
                 <StyledInput
                   type="text"
                   name="rerunArtifactId"
                   value={rerunArtifactId}
                   onChange={e => setRerunArtifactId(e.target.value)}
-                  placeholder="Enter preprod artifact ID"
+                  placeholder="e.g., 123, 456, 789"
                 />
                 <Button
                   priority="primary"

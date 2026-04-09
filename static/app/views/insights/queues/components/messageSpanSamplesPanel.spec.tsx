@@ -16,7 +16,7 @@ describe('messageSpanSamplesPanel', () => {
   let traceItemAttributesMock: jest.Mock;
 
   const basePath = `/organizations/${organization.slug}/insights/queues/`;
-  const baseRoute = `/organizations/:orgId/insights/queues/`;
+  const baseRoute = '/organizations/:orgId/insights/queues/';
 
   const baseRouterConfig = {
     location: {

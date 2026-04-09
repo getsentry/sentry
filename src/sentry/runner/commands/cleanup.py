@@ -739,8 +739,10 @@ def remove_old_nodestore_values(days: int) -> None:
 def remove_cross_project_bulk_query_models(
     bulk_query_deletes: list[tuple[type[BaseModel], str, str | None]],
 ) -> list[tuple[type[BaseModel], str, str | None]]:
+    from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity
     from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 
+    bulk_query_deletes.remove((GroupOpenPeriodActivity, "date_added", None))
     bulk_query_deletes.remove((WorkflowFireHistory, "date_added", None))
     return bulk_query_deletes
 
@@ -749,6 +751,7 @@ def generate_bulk_query_deletes() -> list[tuple[type[BaseModel], str, str | None
     from django.apps import apps
 
     from sentry.models.groupemailthread import GroupEmailThread
+    from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity
     from sentry.models.userreport import UserReport
     from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 
@@ -763,6 +766,7 @@ def generate_bulk_query_deletes() -> list[tuple[type[BaseModel], str, str | None
     BULK_QUERY_DELETES = [
         (UserReport, "date_added", None),
         (GroupEmailThread, "date", None),
+        (GroupOpenPeriodActivity, "date_added", None),
         (WorkflowFireHistory, "date_added", None),
     ] + additional_bulk_query_deletes
 

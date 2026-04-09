@@ -19,7 +19,7 @@ describe('DatabaseSpanSummaryPage', () => {
   const groupId = '1756baf8fd19c116';
 
   const initialRouterConfig = {
-    route: `/organizations/:orgId/insights/backend/database/spans/span/:groupId/`,
+    route: '/organizations/:orgId/insights/backend/database/spans/span/:groupId/',
     location: {
       pathname: `/organizations/${organization.slug}/insights/backend/database/spans/span/${groupId}/`,
       query: {statsPeriod: '10d', transactionsCursor: '0:25:0'},
@@ -138,7 +138,7 @@ describe('DatabaseSpanSummaryPage', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug//releases/1.0.0/`,
+      url: '/projects/org-slug//releases/1.0.0/',
       method: 'GET',
       body: [],
     });

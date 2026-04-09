@@ -9,7 +9,7 @@ import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
-import {BackendJsonFormAdapter} from 'sentry/components/backendJsonFormAdapter';
+import {BackendJsonAutoSaveForm} from 'sentry/components/backendJsonFormAdapter/backendJsonAutoSaveForm';
 import type {FieldValue} from 'sentry/components/backendJsonFormAdapter/types';
 import {Confirm} from 'sentry/components/confirm';
 import {List} from 'sentry/components/list';
@@ -67,7 +67,7 @@ const makeIntegrationQuery = (
   integrationId: string
 ): ApiQueryKey => {
   return [
-    getApiUrl(`/organizations/$organizationIdOrSlug/integrations/$integrationId/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/integrations/$integrationId/', {
       path: {organizationIdOrSlug: organization.slug, integrationId},
     }),
   ];
@@ -75,7 +75,7 @@ const makeIntegrationQuery = (
 
 const makePluginQuery = (organization: Organization): ApiQueryKey => {
   return [
-    getApiUrl(`/organizations/$organizationIdOrSlug/plugins/configs/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/plugins/configs/', {
       path: {organizationIdOrSlug: organization.slug},
     }),
   ];
@@ -103,7 +103,7 @@ function ConfigureIntegration() {
     providers: IntegrationProvider[];
   }>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/config/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
@@ -399,7 +399,7 @@ function ConfigureIntegration() {
             }
           >
             {integration.configOrganization.map(fieldConfig => (
-              <BackendJsonFormAdapter
+              <BackendJsonAutoSaveForm
                 key={fieldConfig.name}
                 field={fieldConfig}
                 initialValue={

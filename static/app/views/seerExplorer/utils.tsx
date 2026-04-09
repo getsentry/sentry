@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
+import {useMatches} from 'react-router-dom';
 import type {LocationDescriptor} from 'history';
 import queryString from 'query-string';
 
@@ -8,7 +9,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,
@@ -142,7 +142,7 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     }
 
     // shouldn't happen (issue_id required)
-    return isLoading ? `Inspecting issue...` : `Inspected issue`;
+    return isLoading ? 'Inspecting issue...' : 'Inspected issue';
   },
 
   get_event_details: (args, isLoading, resultMetadata) => {
@@ -168,7 +168,7 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     }
 
     // shouldn't happen (either event_id or issue_id required)
-    return isLoading ? `Analyzing event...` : `Analyzed event`;
+    return isLoading ? 'Analyzing event...' : 'Analyzed event';
   },
 
   code_search: (args, isLoading) => {
@@ -852,8 +852,8 @@ export function getValidToolLinks(
  */
 export function usePageReferrer(): {getPageReferrer: () => string} {
   // Track the normalized path of the current page (e.g. /issues/:groupId/) for analytics.
-  const routes = useRoutes();
-  const routeString = getRouteStringFromRoutes(routes);
+  const matches = useMatches();
+  const routeString = getRouteStringFromRoutes({matches});
   const routeStringRef = useRef(routeString);
 
   useEffect(() => {

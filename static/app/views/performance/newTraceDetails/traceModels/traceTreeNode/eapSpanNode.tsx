@@ -283,7 +283,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
       (this.op || 'unknown span') +
       ' - ' +
       (this.description || 'unknown description') +
-      (this.value.is_transaction ? ` (eap-transaction)` : '')
+      (this.value.is_transaction ? ' (eap-transaction)' : '')
     );
   }
 
