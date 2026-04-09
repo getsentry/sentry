@@ -864,10 +864,14 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
 
 
 def get_project_preferences(*, organization_id: int, project_id: int) -> dict | None:
-    try:
-        project = Project.objects.get(id=project_id, organization_id=organization_id)
-    except Project.DoesNotExist:
-        return None
+    """Get Seer project preferences for a single project from Sentry DB.
+
+    Raises Project.DoesNotExist if the project is not found or doesn't belong to the org.
+    Returns None if the project has no configured preferences.
+    """
+    project = Project.objects.get_from_cache(id=project_id)
+    if project.organization_id != organization_id:
+        raise Project.DoesNotExist
 
     preference = read_preference_from_sentry_db(project)
     if preference is None:
@@ -876,6 +880,11 @@ def get_project_preferences(*, organization_id: int, project_id: int) -> dict | 
 
 
 def bulk_get_project_preferences(*, organization_id: int, project_ids: list[int]) -> dict:
+    """Bulk get Seer project preferences from Sentry DB.
+
+    Returns a dict keyed by stringified project ID. Values are preference dicts or None
+    for projects with no configured preferences.
+    """
     preferences = bulk_read_preferences_from_sentry_db(organization_id, project_ids)
     return {
         str(project_id): preference.dict() if preference else None

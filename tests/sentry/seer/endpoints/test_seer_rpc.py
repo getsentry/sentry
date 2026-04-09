@@ -14,6 +14,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDeta
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.seer.endpoints.seer_rpc import (
     bulk_get_project_preferences,
@@ -1509,12 +1510,21 @@ class TestSeerRpcMethods(APITestCase):
         )
         assert result is None
 
-    def test_get_project_preferences_returns_none_for_nonexistent_project(self) -> None:
-        result = get_project_preferences(
-            organization_id=self.organization.id,
-            project_id=999999,
-        )
-        assert result is None
+    def test_get_project_preferences_raises_for_nonexistent_project(self) -> None:
+        with pytest.raises(Project.DoesNotExist):
+            get_project_preferences(
+                organization_id=self.organization.id,
+                project_id=999999,
+            )
+
+    def test_get_project_preferences_raises_for_wrong_org(self) -> None:
+        project = self.create_project(organization=self.organization)
+        other_org = self.create_organization(owner=self.user)
+        with pytest.raises(Project.DoesNotExist):
+            get_project_preferences(
+                organization_id=other_org.id,
+                project_id=project.id,
+            )
 
     @patch("sentry.seer.endpoints.seer_rpc.bulk_read_preferences_from_sentry_db")
     def test_bulk_get_project_preferences_returns_preferences(self, mock_bulk_read: Any) -> None:
