@@ -107,6 +107,8 @@ export function encodeMetricQueryParams(metricQuery: BaseMetricQuery): string {
 export function defaultMetricQuery({
   type = 'aggregate',
 }: {type?: 'aggregate' | 'equation'} = {}): BaseMetricQuery {
+  const newFields =
+    type === 'equation' ? [defaultAggregateEquation()] : defaultAggregateFields();
   return {
     metric: {name: '', type: ''},
     queryParams: new ReadableQueryParams({
@@ -119,11 +121,8 @@ export function defaultMetricQuery({
       sortBys: defaultSortBys(defaultFields()),
 
       aggregateCursor: '',
-      aggregateFields:
-        type === 'equation' ? [defaultAggregateEquation()] : defaultAggregateFields(),
-      aggregateSortBys: defaultAggregateSortBys(
-        type === 'equation' ? [defaultAggregateEquation()] : defaultAggregateFields()
-      ),
+      aggregateFields: newFields,
+      aggregateSortBys: defaultAggregateSortBys(newFields),
     }),
   };
 }
