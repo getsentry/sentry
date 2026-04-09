@@ -1,11 +1,8 @@
 import {Fragment, useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Text} from '@sentry/scraps/text';
 
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -37,7 +34,6 @@ import {
   useQueryParamsTopEventsLimit,
 } from 'sentry/views/explore/queryParams/context';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
-import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
@@ -61,13 +57,11 @@ interface MetricsGraphProps {
   additionalActions?: React.ReactNode;
   infoContentHidden?: boolean;
   isMetricOptionsEmpty?: boolean;
-  queryIndex?: number;
 }
 
 export function MetricsGraph({
   timeseriesResult,
   orientation,
-  queryIndex = 0,
   additionalActions,
   infoContentHidden,
   isMetricOptionsEmpty,
@@ -97,7 +91,6 @@ export function MetricsGraph({
       additionalActions={additionalActions}
       infoContentHidden={infoContentHidden}
       isMetricOptionsEmpty={isMetricOptionsEmpty}
-      queryIndex={queryIndex}
     />
   );
 }
@@ -117,7 +110,6 @@ function Graph({
   infoContentHidden,
   additionalActions,
   isMetricOptionsEmpty,
-  queryIndex = 0,
 }: GraphProps) {
   const organization = useOrganization();
   const aggregate = visualize.yAxis;
@@ -189,26 +181,7 @@ function Graph({
     return metricLabel ?? prettifyAggregation(aggregate) ?? aggregate;
   }, [aggregate, metricLabel, metricName, visualizes.length]);
 
-  const Title = canUseMetricsUIRefresh(organization) ? (
-    <Flex align="center" gap="xs">
-      <VisualizeLabel
-        justify="center"
-        align="center"
-        radius="md"
-        paddingLeft="sm"
-        paddingRight="sm"
-        paddingTop="xs"
-        paddingBottom="xs"
-      >
-        <Text bold variant="accent">
-          {getVisualizeLabel(queryIndex)}
-        </Text>
-      </VisualizeLabel>
-      <Widget.WidgetTitle title={chartTitle} />
-    </Flex>
-  ) : (
-    <Widget.WidgetTitle title={chartTitle} />
-  );
+  const Title = <Widget.WidgetTitle title={chartTitle} />;
 
   const chartIcon =
     visualize.chartType === ChartType.LINE
@@ -315,7 +288,3 @@ function Graph({
     </WidgetWrapper>
   );
 }
-
-const VisualizeLabel = styled(Flex)`
-  background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
-`;

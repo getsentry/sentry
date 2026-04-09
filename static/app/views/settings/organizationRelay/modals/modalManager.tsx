@@ -93,7 +93,7 @@ export class ModalManager<
     this.setValidForm(isFormValid);
   }
 
-  clearError<F extends keyof Values>(field: F) {
+  clearError(field: keyof Values) {
     this.setState(prevState => ({
       errors: omit(prevState.errors, field),
     }));
@@ -147,31 +147,29 @@ export class ModalManager<
     }
   };
 
-  handleValidate =
-    <F extends keyof Values>(field: F) =>
-    () => {
-      const isFieldValueEmpty = !this.state.values[field].replace(/\s/g, '');
+  handleValidate = (field: keyof Values) => () => {
+    const isFieldValueEmpty = !this.state.values[field].replace(/\s/g, '');
 
-      const fieldErrorAlreadyExist = this.state.errors[field];
+    const fieldErrorAlreadyExist = this.state.errors[field];
 
-      if (isFieldValueEmpty && fieldErrorAlreadyExist) {
-        return;
-      }
+    if (isFieldValueEmpty && fieldErrorAlreadyExist) {
+      return;
+    }
 
-      if (isFieldValueEmpty && !fieldErrorAlreadyExist) {
-        this.setState(prevState => ({
-          errors: {
-            ...prevState.errors,
-            [field]: t('Field Required'),
-          },
-        }));
-        return;
-      }
+    if (isFieldValueEmpty && !fieldErrorAlreadyExist) {
+      this.setState(prevState => ({
+        errors: {
+          ...prevState.errors,
+          [field]: t('Field Required'),
+        },
+      }));
+      return;
+    }
 
-      if (!isFieldValueEmpty && fieldErrorAlreadyExist) {
-        this.clearError(field);
-      }
-    };
+    if (!isFieldValueEmpty && fieldErrorAlreadyExist) {
+      this.clearError(field);
+    }
+  };
 
   handleValidateKey = () => {
     const {savedRelays} = this.props;

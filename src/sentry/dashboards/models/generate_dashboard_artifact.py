@@ -38,7 +38,7 @@ WidgetType: TypeAlias = Literal[tuple(_ALLOWED_WIDGET_TYPES)]  # type: ignore[va
 Intervals = Literal["5m", "15m", "30m", "1h", "4h", "12h", "24h"]
 
 # Blocklist for frequently hallucinated functions or functions we want to avoid using
-FUNCTION_BLOCKLIST: set[str] = {"spm", "apdex", "http_error_count"}
+FUNCTION_BLOCKLIST: set[str] = {"spm", "apdex", "http_error_count", "http_error_count_percent"}
 
 
 class GeneratedWidgetQuery(BaseModel):

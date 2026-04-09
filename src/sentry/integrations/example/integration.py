@@ -22,7 +22,10 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
-from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.source_code_management.repository import (
+    RepositoryInfo,
+    RepositoryIntegration,
+)
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView
@@ -151,8 +154,8 @@ class ExampleIntegration(RepositoryIntegration, SourceCodeIssueIntegration, Issu
         query: str | None = None,
         page_number_limit: int | None = None,
         accessible_only: bool = False,
-    ) -> list[dict[str, Any]]:
-        return [{"name": "repo", "identifier": "user/repo"}]
+    ) -> list[RepositoryInfo]:
+        return [{"name": "repo", "identifier": "user/repo", "external_id": "1"}]
 
     def get_unmigratable_repositories(self):
         return []

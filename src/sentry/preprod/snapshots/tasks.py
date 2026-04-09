@@ -232,6 +232,7 @@ def _try_auto_approve_snapshot(
         extra={
             "head_artifact_id": head_artifact.id,
             "prev_approved_artifact_id": approved_sibling.id,
+            "organization_slug": head_artifact.project.organization.slug,
         },
     )
 
@@ -259,7 +260,7 @@ def compare_snapshots(
     )
 
     try:
-        head_artifact = PreprodArtifact.objects.get(
+        head_artifact = PreprodArtifact.objects.select_related("project__organization").get(
             id=head_artifact_id,
             project__organization_id=org_id,
             project_id=project_id,
@@ -722,6 +723,7 @@ def compare_snapshots(
             extra={
                 "head_artifact_id": head_artifact_id,
                 "base_artifact_id": base_artifact_id,
+                "organization_slug": head_artifact.project.organization.slug,
                 "changed": changed_count,
                 "unchanged": unchanged_count,
                 "added": len(added),
@@ -737,6 +739,7 @@ def compare_snapshots(
             extra={
                 "head_artifact_id": head_artifact_id,
                 "base_artifact_id": base_artifact_id,
+                "organization_slug": head_artifact.project.organization.slug,
             },
         )
         if comparison is not None:

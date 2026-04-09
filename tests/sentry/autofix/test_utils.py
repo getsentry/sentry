@@ -49,6 +49,30 @@ class TestGetRepoFromCodeMappings(TestCase):
         ]
         assert repos == expected_repos
 
+    def test_filters_out_unsupported_providers(self) -> None:
+        project = self.create_project()
+        github_repo = self.create_repo(
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="123",
+            integration_id=234,
+        )
+        self.create_code_mapping(project=project, repo=github_repo)
+
+        gitlab_repo = self.create_repo(
+            name="getsentry/sentry-gitlab",
+            provider="integrations:gitlab",
+            external_id="456",
+            integration_id=345,
+        )
+        self.create_code_mapping(
+            project=project, repo=gitlab_repo, stack_root="gitlab/", source_root="src/gitlab/"
+        )
+
+        repos = get_autofix_repos_from_project_code_mappings(project)
+        assert len(repos) == 1
+        assert repos[0]["provider"] == "integrations:github"
+
 
 class TestGetAutofixStateFromPrId(TestCase):
     @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")

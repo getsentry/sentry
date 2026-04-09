@@ -16,6 +16,7 @@ import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
@@ -32,6 +33,7 @@ type Props = {
 
 function DisabledMemberView(props: Props) {
   const {orgId} = useParams<{orgId: string}>();
+  const navigate = useNavigate();
   const api = useApi({persistInFlight: true});
   const [requested, setRequested] = useState(false);
 
@@ -95,7 +97,7 @@ function DisabledMemberView(props: Props) {
         organization: organization!,
         subscription,
       });
-      redirectToRemainingOrganization({orgId, removeOrg: true});
+      redirectToRemainingOrganization({navigate, orgId, removeOrg: true});
     },
     onError: () => {
       addErrorMessage(t('Unable to leave organization'));

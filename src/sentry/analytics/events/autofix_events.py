@@ -72,6 +72,7 @@ class AiAutofixPrCreatedCompletedEvent(AiAutofixPhaseEvent):
 @analytics.eventclass("ai.autofix.agent_handoff")
 class AiAutofixAgentHandoffEvent(AiAutofixPhaseEvent):
     coding_agent: str | None
+    initiator: str | None = None
 
 
 analytics.register(AiAutofixRootCauseStartedEvent)

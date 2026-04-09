@@ -50,7 +50,7 @@ const javaThreadStatesMap: ThreadStatesMap = {
   Suspended: ThreadStates.RUNNABLE, // suspended by GC or debugger
 };
 
-export const THREAD_STATE_TERMS: Record<ThreadStates, string> = {
+const THREAD_STATE_TERMS: Record<ThreadStates, string> = {
   [ThreadStates.RUNNABLE]: t(
     'A thread executing in the Java virtual machine is in this state.'
   ),
