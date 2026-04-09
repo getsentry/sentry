@@ -20,7 +20,7 @@ import type {Actor} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
-import {deployApiOptions} from 'sentry/utils/deployApiOptions';
+import {deploysApiOptions} from 'sentry/utils/deploysApiOptions';
 import {uniqueId} from 'sentry/utils/guid';
 import {releaseApiOptions} from 'sentry/utils/releaseApiOptions';
 import {useRepositories} from 'sentry/utils/useRepositories';
@@ -54,7 +54,7 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
     isPending: isDeploysLoading,
     isError: isDeploysError,
   } = useQuery(
-    deployApiOptions({
+    deploysApiOptions({
       orgSlug: organization.slug,
       releaseVersion,
     })

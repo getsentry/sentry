@@ -1,7 +1,7 @@
 import type {Deploy} from 'sentry/types/release';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
-export function deployApiOptions({
+export function deploysApiOptions({
   orgSlug,
   releaseVersion,
   query,

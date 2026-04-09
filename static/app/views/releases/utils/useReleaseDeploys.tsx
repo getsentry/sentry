@@ -1,6 +1,6 @@
 import {useQuery} from '@tanstack/react-query';
 
-import {deployApiOptions} from 'sentry/utils/deployApiOptions';
+import {deploysApiOptions} from 'sentry/utils/deploysApiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
 
@@ -15,7 +15,7 @@ export function useReleaseDeploys({
   const project = useProjectFromSlug({organization, projectSlug});
 
   return useQuery({
-    ...deployApiOptions({
+    ...deploysApiOptions({
       orgSlug: organization.slug,
       releaseVersion: release,
       // Should be disabled if project is undefined

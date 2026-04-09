@@ -27,7 +27,7 @@ import type {
 } from 'sentry/types/release';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {deployApiOptions} from 'sentry/utils/deployApiOptions';
+import {deploysApiOptions} from 'sentry/utils/deploysApiOptions';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -99,7 +99,7 @@ function ReleasesDetail({
     isPending: isDeploysPending,
     error: deploysError,
   } = useQuery({
-    ...deployApiOptions({
+    ...deploysApiOptions({
       orgSlug: organization.slug,
       releaseVersion: params.release,
       query: {project: location.query.project},
