@@ -131,6 +131,7 @@ export function DetailsHeader({
             </Access>
           )}
           <LinkButton
+            size="sm"
             icon={<IconCopy />}
             to={duplicateLink}
             disabled={deprecateTransactionsAlerts}
@@ -146,7 +147,7 @@ export function DetailsHeader({
           >
             {t('Duplicate')}
           </LinkButton>
-          <LinkButton icon={<IconEdit />} to={settingsLink}>
+          <LinkButton size="sm" icon={<IconEdit />} to={settingsLink}>
             {t('Edit Rule')}
           </LinkButton>
         </TopBar.Slot>

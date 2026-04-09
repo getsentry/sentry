@@ -186,6 +186,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
         <React.Fragment>
           <TopBar.Slot name="actions">
             <Button
+              size="sm"
               priority="default"
               icon={<IconTelescope />}
               onClick={handleCompareClick}
@@ -201,6 +202,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
             <Feature features="organizations:preprod-frontend-routes">
               {project && (
                 <LinkButton
+                  size="sm"
                   icon={<IconSettings />}
                   aria-label={t('Settings')}
                   to={`/settings/${organization.slug}/projects/${project.slug}/mobile-builds/`}

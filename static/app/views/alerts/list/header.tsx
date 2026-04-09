@@ -72,6 +72,7 @@ export function AlertHeader({activeTab}: Props) {
         <Fragment>
           <TopBar.Slot name="actions">
             <CreateAlertButton
+              size="sm"
               organization={organization}
               iconProps={{size: 'sm'}}
               priority="primary"
@@ -85,6 +86,7 @@ export function AlertHeader({activeTab}: Props) {
               {t('Create Alert')}
             </CreateAlertButton>
             <LinkButton
+              size="sm"
               onClick={handleNavigateToSettings}
               href="#"
               icon={<IconSettings size="sm" />}

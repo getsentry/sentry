@@ -441,6 +441,7 @@ export default function AlertRuleDetails() {
                 )}
               </Access>
               <LinkButton
+                size="sm"
                 icon={<IconCopy />}
                 to={duplicateLink}
                 disabled={rule.status === 'disabled'}
@@ -448,6 +449,7 @@ export default function AlertRuleDetails() {
                 {t('Duplicate')}
               </LinkButton>
               <LinkButton
+                size="sm"
                 icon={<IconEdit />}
                 to={makeAlertsPathname({
                   path: `/rules/${projectSlug}/${ruleId}/`,

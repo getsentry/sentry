@@ -165,6 +165,7 @@ export default function FeedbackListPage() {
               <Fragment>
                 <TopBar.Slot name="actions">
                   <LinkButton
+                    size="sm"
                     icon={<IconSiren />}
                     to={{
                       pathname: makeAlertsPathname({

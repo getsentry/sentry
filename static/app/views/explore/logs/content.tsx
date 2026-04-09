@@ -181,7 +181,7 @@ function SetupLogsButton() {
       priority="primary"
       href="https://docs.sentry.io/product/explore/logs/getting-started/"
       external
-      size="xs"
+      size="sm"
       onClick={() => {
         trackAnalytics('logs.explorer.setup_button_clicked', {
           organization,

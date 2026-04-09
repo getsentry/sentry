@@ -207,6 +207,7 @@ function DiscoverLanding() {
             {hasPageFrameFeature ? (
               <TopBar.Slot name="actions">
                 <LinkButton
+                  size="sm"
                   data-test-id="build-new-query"
                   to={to}
                   priority="primary"

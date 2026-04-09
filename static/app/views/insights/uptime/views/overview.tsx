@@ -89,6 +89,7 @@ export default function UptimeOverview() {
           <Fragment>
             <TopBar.Slot name="actions">
               <LinkButton
+                size="sm"
                 priority="primary"
                 to={makeAlertsPathname({path: '/new/uptime/', organization})}
                 icon={<IconAdd />}
