@@ -7,9 +7,8 @@ from taskbroker_client.retry import RetryTaskError
 from sentry import audit_log
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
-from sentry.integrations.github.tasks.sync_repos import sync_repos_for_org
-from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegrationProvider
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.source_code_management.sync_repos import sync_repos_for_org
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
@@ -24,13 +23,13 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
     base_url = "https://api.github.com"
     key = "github"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.oi = OrganizationIntegration.objects.get(
             organization_id=self.organization.id, integration=self.integration
         )
 
-    def _add_repos_response(self, repos):
+    def _add_repos_response(self, repos: list[dict[str, object]]) -> None:
         responses.add(
             responses.GET,
             self.base_url + "/installation/repositories?per_page=100",
@@ -225,6 +224,10 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
 class SyncReposForOrgGHETestCase(TestCase):
     @patch("sentry.integrations.github.client.GitHubBaseClient.get_repos")
     def test_creates_new_repos_for_ghe(self, mock_get_repos: MagicMock) -> None:
+        from sentry.integrations.github_enterprise.integration import (
+            GitHubEnterpriseIntegrationProvider,
+        )
+
         GitHubEnterpriseIntegrationProvider().setup()
 
         integration = self.create_integration(
