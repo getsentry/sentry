@@ -211,7 +211,7 @@ export function BackendJsonSubmitForm({
       {!isLoading && (
         <Stack gap="xl">
           {fields
-            .filter(field => field.hasOwnProperty('name') && field.type !== 'blank')
+            .filter(field => field.type !== 'blank')
             .map(field => (
               <form.AppField key={field.name} name={field.name}>
                 {fieldApi => {
