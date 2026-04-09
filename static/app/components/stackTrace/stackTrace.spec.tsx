@@ -812,6 +812,46 @@ describe('Core StackTrace', () => {
     expect(screen.getByText('abc123')).toBeInTheDocument();
   });
 
+  it('shows in-app frames with maxDepth even when system frames outnumber them', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+    const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
+
+    // 2 in-app frames followed by 10 system frames — the in-app frames are
+    // near the start, so a naive maxDepth slice on all frames would miss them.
+    const appFrames = Array.from({length: 2}, (_, i) => ({
+      ...frame,
+      inApp: true,
+      function: `app_fn_${i}`,
+      lineNo: i + 1,
+      instructionAddr: `0xA${i}`,
+    }));
+    const systemFrames = Array.from({length: 10}, (_, i) => ({
+      ...frame,
+      inApp: false,
+      function: `system_fn_${i}`,
+      lineNo: i + 100,
+      instructionAddr: `0xS${i}`,
+    }));
+
+    render(
+      <TestStackTraceProvider
+        event={event}
+        stacktrace={{
+          ...stacktrace,
+          frames: [...appFrames, ...systemFrames],
+        }}
+        maxDepth={4}
+      >
+        <StackTraceFrames frameContextComponent={FrameContent} />
+      </TestStackTraceProvider>
+    );
+
+    const rows = await screen.findAllByTestId('core-stacktrace-frame-row');
+    expect(rows.length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('app_fn_0')).toBeInTheDocument();
+    expect(screen.getByText('app_fn_1')).toBeInTheDocument();
+  });
+
   it('renders empty source notation for single frame with no details', async () => {
     const {event, stacktrace} = makeStackTraceData();
     const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
