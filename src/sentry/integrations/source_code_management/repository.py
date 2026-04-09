@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, Generic, NotRequired, TypedDict, TypeVar
 from urllib.parse import quote as urlquote
 from urllib.parse import unquote, urlparse, urlunparse
 
@@ -29,14 +29,37 @@ from sentry.shared_integrations.exceptions import (
 from sentry.users.models.identity import Identity
 
 
+class RepositoryInfo(TypedDict):
+    """Common shape returned by get_repositories() across all SCM providers."""
+
+    name: str
+    identifier: str
+    external_id: str
+    default_branch: NotRequired[str | None]  # GitHub, GitHub Enterprise
+    project: NotRequired[str]  # Bitbucket Server
+    repo: NotRequired[str]  # Bitbucket Server
+
+
 class BaseRepositoryIntegration(ABC):
+    def get_repo_external_id(self, repo: Mapping[str, Any]) -> str:
+        """
+        Extract the external_id from a raw repository API response.
+
+        This is the canonical definition of how each provider maps its
+        API response to the external_id stored in Sentry's Repository model.
+        Override in provider-specific installation classes as needed.
+
+        Default assumes the API returns an ``id`` field.
+        """
+        return str(repo["id"])
+
     @abstractmethod
     def get_repositories(
         self,
         query: str | None = None,
         page_number_limit: int | None = None,
         accessible_only: bool = False,
-    ) -> list[dict[str, Any]]:
+    ) -> list[RepositoryInfo]:
         """
         Get a list of available repositories for an installation
 
@@ -46,11 +69,14 @@ class BaseRepositoryIntegration(ABC):
         return [{
             'name': display_name,
             'identifier': external_repo_id,
+            'external_id': provider_internal_id,
         }]
 
         The shape of the `identifier` should match the data
         returned by the integration's
         IntegrationRepositoryProvider.repository_external_slug()
+
+        The `external_id` is derived from `self.get_repo_external_id(repo)`.
 
         You can use the `query` argument to filter repositories.
         When `accessible_only` is True and a query is provided,
@@ -61,7 +87,12 @@ class BaseRepositoryIntegration(ABC):
         raise NotImplementedError
 
 
-class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, ABC):
+ClientT = TypeVar("ClientT", bound="RepositoryClient", default="RepositoryClient")
+
+
+class RepositoryIntegration(
+    IntegrationInstallation, BaseRepositoryIntegration, Generic[ClientT], ABC
+):
     @property
     def codeowners_locations(self) -> list[str] | None:
         """
@@ -79,7 +110,7 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
         raise NotImplementedError
 
     @abstractmethod
-    def get_client(self) -> RepositoryClient:
+    def get_client(self) -> ClientT:
         """Returns the client for the integration. The client must be a subclass of RepositoryClient."""
         raise NotImplementedError
 
@@ -109,7 +140,7 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
         raise NotImplementedError
 
     @staticmethod
-    def find_repo_info(repositories: list[dict[str, Any]], repo_name: str) -> dict[str, Any] | None:
+    def find_repo_info(repositories: list[RepositoryInfo], repo_name: str) -> RepositoryInfo | None:
         """
         Find a repository dict by matching identifier first, then name.
         """

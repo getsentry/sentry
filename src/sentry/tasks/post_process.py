@@ -1277,7 +1277,9 @@ def process_processing_errors_eap(job: PostProcessJob) -> None:
 
     from sentry.processing_errors.eap.producer import produce_processing_errors_to_eap
 
-    produce_processing_errors_to_eap(event.project, event.data, processing_errors)
+    produce_processing_errors_to_eap(
+        event.project, event.data, processing_errors, group_id=event.group_id, title=event.title
+    )
 
 
 def process_processing_issue_detection(job: PostProcessJob) -> None:
@@ -1593,8 +1595,9 @@ def kick_off_lightweight_rca_cluster(job: PostProcessJob) -> None:
     event = job["event"]
     group = event.group
 
-    enabled_orgs: list[int] = options.get("supergroups.lightweight-enabled-orgs")
-    if group.organization.id not in enabled_orgs:
+    if not features.has(
+        "organizations:supergroups-lightweight-rca-clustering-write", group.organization
+    ):
         return
 
     trigger_lightweight_rca_cluster_task.delay(group.id)

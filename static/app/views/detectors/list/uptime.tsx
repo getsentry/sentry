@@ -114,7 +114,12 @@ export default function UptimeDetectorsList() {
             {t('Uptime monitors have been moved from Insights to Monitors.')}
           </InsightsRedirectNotice>
           <DetectorListHeader showTimeRangeSelector showTypeFilter={false} />
-          <DetectorListContent {...detectorListQuery} />
+          <DetectorListContent
+            isError={detectorListQuery.isError}
+            isLoading={detectorListQuery.isLoading}
+            isSuccess={detectorListQuery.isSuccess}
+            data={detectorListQuery.data}
+          />
         </WorkflowEngineListLayout>
       </SentryDocumentTitle>
     </MonitorViewContext.Provider>

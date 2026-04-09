@@ -12,6 +12,7 @@ from sentry.integrations.perforce.client import (
     P4UserInfo,
     PerforceClient,
 )
+from sentry.integrations.perforce.integration import PerforceIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
@@ -24,7 +25,7 @@ from sentry.shared_integrations.exceptions import IntegrationError
 logger = logging.getLogger(__name__)
 
 
-class PerforceRepositoryProvider(IntegrationRepositoryProvider):
+class PerforceRepositoryProvider(IntegrationRepositoryProvider[PerforceIntegration]):
     """Repository provider for Perforce integration."""
 
     name = "Perforce"

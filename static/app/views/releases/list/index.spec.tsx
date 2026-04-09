@@ -100,6 +100,10 @@ describe('ReleasesList', () => {
       method: 'POST',
       body: {attributes: {}},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/builds/`,
+      body: [],
+    });
   });
 
   afterEach(() => {
