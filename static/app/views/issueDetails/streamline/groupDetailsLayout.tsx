@@ -84,13 +84,14 @@ export function GroupDetailsLayout({
             {tourProps => (
               <div {...tourProps}>
                 <GroupContent>
-                  {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING && (
-                    <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
-                      <IssueEventNavigation event={event} group={group} />
-                      {/* Since the event details header is disabled, display the sidebar toggle here */}
-                      {!hasFilterBar && <ToggleSidebar size="sm" />}
-                    </NavigationSidebarWrapper>
-                  )}
+                  {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING &&
+                    issueTypeConfig.header.eventNavigation.enabled && (
+                      <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
+                        <IssueEventNavigation event={event} group={group} />
+                        {/* Since the event details header is disabled, display the sidebar toggle here */}
+                        {!hasFilterBar && <ToggleSidebar size="sm" />}
+                      </NavigationSidebarWrapper>
+                    )}
                   <ContentPadding>{children}</ContentPadding>
                 </GroupContent>
               </div>
