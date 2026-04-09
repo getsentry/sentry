@@ -192,7 +192,7 @@ export default function ReleasesList() {
   }, [location.query]);
 
   const {
-    data: releasesResponse,
+    data,
     isPending: isReleasesPending,
     isRefetching: isReleasesRefetching,
     error: releasesError,
@@ -207,7 +207,7 @@ export default function ReleasesList() {
     placeholderData: keepPreviousData,
   });
 
-  const releases = useMemo(() => releasesResponse?.json ?? [], [releasesResponse?.json]);
+  const releases = data?.json;
 
   useEffect(() => {
     /**
@@ -423,7 +423,7 @@ export default function ReleasesList() {
     // Has no releases
     !releases?.length
   );
-  const releasesPageLinks = releasesResponse?.headers.Link;
+  const releasesPageLinks = data?.headers.Link;
 
   const releasesErrorMessage = useMemo(() => {
     if (!releasesError) {
@@ -532,7 +532,7 @@ export default function ReleasesList() {
                   <Fragment>
                     <ReleaseHealthCTA
                       organization={organization}
-                      releases={releases}
+                      releases={releases ?? []}
                       selectedProject={selectedProject}
                       selection={selection}
                     />
@@ -584,7 +584,7 @@ export default function ReleasesList() {
                               activeDisplay={activeDisplay}
                               loading={isReleasesPending}
                               organization={organization}
-                              releases={releases}
+                              releases={releases ?? []}
                               releasesPageLinks={releasesPageLinks}
                               reloading={isReleasesRefetching}
                               selectedProject={selectedProject}
