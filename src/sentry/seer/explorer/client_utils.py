@@ -303,13 +303,9 @@ def collect_user_org_context(
             scoping_organization_id=organization.id,
             scope_list=[
                 "org:read",
-                "org:write",
                 "project:read",
-                "project:write",
                 "event:read",
-                "event:write",
                 "alerts:read",
-                "alerts:write",
                 "member:read",
                 "team:read",
             ],
