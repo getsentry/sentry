@@ -3,13 +3,10 @@ import {useState} from 'react';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {
-  ChartIntervalUnspecifiedStrategy,
-  useChartInterval,
-} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
 import {
   DisplayType,
   WidgetType,
@@ -47,9 +44,7 @@ export function WidgetPreview({
   const location = useLocation();
   const navigate = useNavigate();
   const pageFilters = usePageFilters();
-  const [chartInterval] = useChartInterval({
-    unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SECOND_BIGGEST,
-  });
+  const [chartInterval] = useDashboardChartInterval();
 
   const {state, dispatch} = useWidgetBuilderContext();
   const [tableWidths, setTableWidths] = useState<number[]>();
