@@ -558,16 +558,15 @@ class GitHubBaseClient(
                 page_number_limit=page_number_limit,
             )
 
-    def get_accessible_repos_cached(self, ttl: int = 300) -> list[CachedRepo]:
+    def get_repos_cached(self, ttl: int = 300) -> list[CachedRepo]:
         """
-        Return all repos accessible to this installation.
-        Cached in Django cache for ``ttl`` seconds so that debounced
-        search keystrokes don't re-fetch all pages from GitHub.
+        Return all repos accessible to this installation, cached in
+        Django cache for ``ttl`` seconds.
 
         Only the fields used by get_repositories() are stored to keep
         the cache payload small.
         """
-        cache_key = f"github:accessible_repos:{self.integration.id}"
+        cache_key = f"github:repos:{self.integration.id}"
         cached = cache.get(cache_key)
         if cached is not None:
             return cached

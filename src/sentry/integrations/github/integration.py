@@ -354,16 +354,13 @@ class GitHubIntegration(
 
         def _get_all_repos():
             if use_cache:
-                return client.get_accessible_repos_cached()
+                return client.get_repos_cached()
             return client.get_repos(page_number_limit=page_number_limit)
 
-        # No query: return all non-archived repos
         if not query:
             all_repos = _get_all_repos()
             return to_repo_info(r for r in all_repos if not r.get("archived"))
 
-        # accessible_only: fetch accessible repos and filter locally
-        # avoids the Search API's 30 req/min shared rate limit
         if accessible_only:
             all_repos = _get_all_repos()
             query_lower = query.lower()
@@ -373,7 +370,6 @@ class GitHubIntegration(
                 if not r.get("archived") and query_lower in r["full_name"].lower()
             )
 
-        # Query without accessible_only: use the Search API
         assert not use_cache, "use_cache is not supported with the Search API path"
         full_query = build_repository_query(self.model.metadata, self.model.name, query)
         response = client.search_repositories(full_query)
