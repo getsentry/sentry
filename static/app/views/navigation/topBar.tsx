@@ -18,7 +18,9 @@ import {
   PRIMARY_HEADER_HEIGHT,
 } from './constants';
 
-const Slot = slot(['title', 'actions', 'feedback'] as const);
+const Slot = slot(['title', 'actions', 'feedback'] as const, {
+  providers: ({children}) => <SizeProvider size="sm">{children}</SizeProvider>,
+});
 
 function TopBarContent() {
   const theme = useTheme();
@@ -48,39 +50,37 @@ function TopBarContent() {
         zIndex: theme.zIndex.sidebarPanel - 1,
       }}
     >
-      <SizeProvider size="sm">
-        <Slot.Outlet name="title">
+      <Slot.Outlet name="title">
+        {props => <Flex {...props} align="center" gap="sm" />}
+      </Slot.Outlet>
+
+      <Flex align="center" gap="sm">
+        <Slot.Outlet name="actions">
           {props => <Flex {...props} align="center" gap="sm" />}
         </Slot.Outlet>
 
-        <Flex align="center" gap="sm">
-          <Slot.Outlet name="actions">
-            {props => <Flex {...props} align="center" gap="sm" />}
-          </Slot.Outlet>
+        {organization && isSeerExplorerEnabled(organization) ? (
+          <Button icon={<IconSeer />} onClick={openExplorerPanel}>
+            {t('Ask Seer')}
+          </Button>
+        ) : null}
 
-          {organization && isSeerExplorerEnabled(organization) ? (
-            <Button icon={<IconSeer />} onClick={openExplorerPanel}>
-              {t('Ask Seer')}
-            </Button>
-          ) : null}
-
-          <Slot.Outlet name="feedback">
-            {props => (
-              <Flex {...props}>
-                {/* If no component registers a feedback button, show the default one */}
-                <Slot.Fallback>
-                  <FeedbackButton
-                    aria-label={t('Give Feedback')}
-                    feedbackOptions={{tags: {'feedback.source': 'top_navigation'}}}
-                  >
-                    {null}
-                  </FeedbackButton>
-                </Slot.Fallback>
-              </Flex>
-            )}
-          </Slot.Outlet>
-        </Flex>
-      </SizeProvider>
+        <Slot.Outlet name="feedback">
+          {props => (
+            <Flex {...props}>
+              {/* If no component registers a feedback button, show the default one */}
+              <Slot.Fallback>
+                <FeedbackButton
+                  aria-label={t('Give Feedback')}
+                  feedbackOptions={{tags: {'feedback.source': 'top_navigation'}}}
+                >
+                  {null}
+                </FeedbackButton>
+              </Slot.Fallback>
+            </Flex>
+          )}
+        </Slot.Outlet>
+      </Flex>
     </Flex>
   );
 }
