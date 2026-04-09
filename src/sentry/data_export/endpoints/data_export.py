@@ -14,7 +14,15 @@ from sentry.api.bases.organization import OrganizationDataExportPermission, Orga
 from sentry.api.helpers.environments import get_environment_id
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
-from sentry.data_export.processors.explore import SUPPORTED_TRACE_ITEM_DATASETS, ExploreProcessor
+from sentry.data_export.base import ExportQueryType
+from sentry.data_export.models import ExportedData
+from sentry.data_export.processors.discover import DiscoverProcessor
+from sentry.data_export.processors.explore import (
+    SUPPORTED_TRACE_ITEM_DATASETS,
+    ExploreProcessor,
+)
+from sentry.data_export.tasks import assemble_download
+from sentry.data_export.writers import OutputMode
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.environment import Environment
@@ -30,11 +38,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils import metrics
 from sentry.utils.snuba import MAX_FIELDS
 
-from ..base import ExportQueryType
-from ..models import ExportedData
-from ..processors.discover import DiscoverProcessor
-from ..tasks import assemble_download
-
 # To support more datasets we may need to change the QueryBuilder being used
 SUPPORTED_DATASETS = {
     "discover": Dataset.Discover,
@@ -49,6 +52,98 @@ logger = logging.getLogger(__name__)
 class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
     query_type = serializers.ChoiceField(choices=ExportQueryType.as_str_choices(), required=True)
     query_info = serializers.JSONField(required=True)
+    format = serializers.ChoiceField(
+        choices=OutputMode.supported_values(), required=False, default=OutputMode.CSV.value
+    )
+
+    def _validate_dataset(self, query_type: str, query_info: dict[str, Any]) -> dict[str, Any]:
+        dataset = query_info.get("dataset")
+        if query_type == ExportQueryType.DISCOVER_STR:
+            dataset = dataset or "discover"
+            if dataset not in SUPPORTED_DATASETS:
+                raise serializers.ValidationError(f"{dataset} is not supported for exports")
+        elif query_type == ExportQueryType.EXPLORE_STR:
+            if not dataset:
+                raise serializers.ValidationError(
+                    f"Please specify dataset. Supported datasets for this query type are {str(SUPPORTED_TRACE_ITEM_DATASETS.keys())}."
+                )
+
+            if dataset not in SUPPORTED_TRACE_ITEM_DATASETS:
+                raise serializers.ValidationError(f"{dataset} is not supported for exports")
+        query_info["dataset"] = dataset
+        return query_info
+
+    def _validate_query_info(
+        self, query_type: str, query_info: dict[str, Any], *, export_format: str
+    ) -> dict[str, Any]:
+        base_fields = query_info.get("field")
+        if base_fields is None:
+            base_fields = []
+        elif not isinstance(base_fields, list):
+            base_fields = [base_fields]
+
+        is_jsonl_trace_item_full_export = (
+            query_type == ExportQueryType.EXPLORE_STR
+            and export_format == OutputMode.JSONL.value
+            and len(base_fields) == 0
+        )
+
+        if len(base_fields) > MAX_FIELDS:
+            detail = f"You can export up to {MAX_FIELDS} fields at a time. Please delete some and try again."
+            raise serializers.ValidationError(detail)
+        elif len(base_fields) == 0:
+            if not is_jsonl_trace_item_full_export:
+                raise serializers.ValidationError("at least one field is required to export")
+
+        if "query" not in query_info:
+            if is_jsonl_trace_item_full_export:
+                query_info["query"] = ""
+            else:
+                raise serializers.ValidationError(
+                    "query is a required to export, please pass an empty string if you don't want to set one"
+                )
+
+        if len(base_fields) > 0:
+            equations, fields = categorize_columns(base_fields)
+            query_info["field"] = fields
+            query_info["equations"] = equations
+        else:
+            query_info["field"] = []
+            query_info["equations"] = []
+        if not query_info.get("project"):
+            projects = self.context["get_projects"]()
+            query_info["project"] = [project.id for project in projects]
+
+        # make sure to fix the export start/end times to ensure consistent results
+        try:
+            start, end = get_date_range_from_params(query_info)
+        except InvalidParams as err:
+            sentry_sdk.set_tag("query.error_reason", "Invalid date params")
+            sentry_sdk.capture_exception(err)
+            raise serializers.ValidationError("Invalid date parameters.")
+
+        if "statsPeriod" in query_info:
+            del query_info["statsPeriod"]
+        if "statsPeriodStart" in query_info:
+            del query_info["statsPeriodStart"]
+        if "statsPeriodEnd" in query_info:
+            del query_info["statsPeriodEnd"]
+        query_info["start"] = start.isoformat()
+        query_info["end"] = end.isoformat()
+
+        if query_type == ExportQueryType.EXPLORE_STR:
+            sort = query_info.get("sort", [])
+            if sort and isinstance(sort, str):
+                sort = [sort]
+                query_info["sort"] = sort
+
+            sampling_mode = query_info.get("sampling", None)
+            if sampling_mode is not None:
+                if sampling_mode.upper() not in SAMPLING_MODE_MAP:
+                    raise serializers.ValidationError(
+                        f"sampling mode: {sampling_mode} is not supported"
+                    )
+        return query_info
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         organization = self.context["organization"]
@@ -68,49 +163,16 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
             query_info["project"] = [project.id for project in projects]
 
         # Discover Pre-processing
-        if data["query_type"] == ExportQueryType.DISCOVER_STR:
-            # coerce the fields into a list as needed
-            base_fields = query_info.get("field", [])
-            if not isinstance(base_fields, list):
-                base_fields = [base_fields]
+        query_type = data.get("query_type", "")
+        query_info = data.get("query_info", {})
+        export_format = data.get("format", OutputMode.CSV.value)
 
-            equations, fields = categorize_columns(base_fields)
-
-            if len(base_fields) > MAX_FIELDS:
-                detail = f"You can export up to {MAX_FIELDS} fields at a time. Please delete some and try again."
-                raise serializers.ValidationError(detail)
-            elif len(base_fields) == 0:
-                raise serializers.ValidationError("at least one field is required to export")
-
-            if "query" not in query_info:
-                detail = "query is a required to export, please pass an empty string if you don't want to set one"
-                raise serializers.ValidationError(detail)
-
-            query_info["field"] = fields
-            query_info["equations"] = equations
-
-            if not query_info.get("project"):
-                projects = self.context["get_projects"]()
-                query_info["project"] = [project.id for project in projects]
-
-            # make sure to fix the export start/end times to ensure consistent results
-            try:
-                start, end = get_date_range_from_params(query_info)
-            except InvalidParams as e:
-                sentry_sdk.set_tag("query.error_reason", "Invalid date params")
-                raise serializers.ValidationError(str(e))
-
-            if "statsPeriod" in query_info:
-                del query_info["statsPeriod"]
-            if "statsPeriodStart" in query_info:
-                del query_info["statsPeriodStart"]
-            if "statsPeriodEnd" in query_info:
-                del query_info["statsPeriodEnd"]
-            query_info["start"] = start.isoformat()
-            query_info["end"] = end.isoformat()
-            dataset = query_info.get("dataset", "discover")
-            if dataset not in SUPPORTED_DATASETS:
-                raise serializers.ValidationError(f"{dataset} is not supported for csv exports")
+        if query_type == ExportQueryType.DISCOVER_STR:
+            query_info = self._validate_query_info(
+                query_type, query_info, export_format=export_format
+            )
+            query_info = self._validate_dataset(query_type, query_info)
+            dataset = query_info["dataset"]
 
             # validate the query string by trying to parse it
             processor = DiscoverProcessor(
@@ -133,99 +195,53 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
                     params={},
                     snuba_params=processor.snuba_params,
                     query=query_info["query"],
-                    selected_columns=fields.copy(),
-                    equations=equations,
+                    selected_columns=query_info["field"].copy(),
+                    equations=query_info.get("equations", []).copy(),
                     config=config,
                 )
                 builder.get_snql_query()
             except InvalidSearchQuery as err:
-                raise serializers.ValidationError(str(err))
-
-        elif data["query_type"] == ExportQueryType.EXPLORE_STR:
-            # coerce the fields into a list as needed
-            base_fields = query_info.get("field", [])
-            if not isinstance(base_fields, list):
-                base_fields = [base_fields]
-
-            equations, fields = categorize_columns(base_fields)
-
-            if len(base_fields) > MAX_FIELDS:
-                detail = f"You can export up to {MAX_FIELDS} fields at a time. Please delete some and try again."
-                raise serializers.ValidationError(detail)
-            elif len(base_fields) == 0:
-                raise serializers.ValidationError("at least one field is required to export")
-
-            if "query" not in query_info:
-                detail = "query is a required to export, please pass an empty string if you don't want to set one"
-                raise serializers.ValidationError(detail)
-
-            query_info["field"] = fields
-            query_info["equations"] = equations
-
-            if not query_info.get("project"):
-                projects = self.context["get_projects"]()
-                query_info["project"] = [project.id for project in projects]
-
-            # make sure to fix the export start/end times to ensure consistent results
-            try:
-                start, end = get_date_range_from_params(query_info)
-            except InvalidParams as err:
-                sentry_sdk.set_tag("query.error_reason", "Invalid date params")
-                raise serializers.ValidationError(str(err))
-
-            if "statsPeriod" in query_info:
-                del query_info["statsPeriod"]
-            if "statsPeriodStart" in query_info:
-                del query_info["statsPeriodStart"]
-            if "statsPeriodEnd" in query_info:
-                del query_info["statsPeriodEnd"]
-            query_info["start"] = start.isoformat()
-            query_info["end"] = end.isoformat()
-            dataset = query_info.get("dataset")
-            if not dataset:
-                raise serializers.ValidationError(
-                    f"Please specify dataset. Supported datasets for this query type are {str(SUPPORTED_TRACE_ITEM_DATASETS.keys())}."
-                )
-
-            if dataset not in SUPPORTED_TRACE_ITEM_DATASETS:
-                raise serializers.ValidationError(f"{dataset} is not supported for csv exports")
-
-            sort = query_info.get("sort", [])
-            if sort and isinstance(sort, str):
-                sort = [sort]
-                query_info["sort"] = sort
-
-            sampling_mode = query_info.get("sampling", None)
-            if sampling_mode is not None:
-                if sampling_mode.upper() not in SAMPLING_MODE_MAP:
-                    raise serializers.ValidationError(
-                        f"sampling mode: {sampling_mode} is not supported"
-                    )
-
-            explore_processor = ExploreProcessor(
-                explore_query=query_info,
-                organization=organization,
-            )
-
-            try:
-                rpc_dataset_common.TableQuery(
-                    query_string=query_info["query"],
-                    selected_columns=fields,
-                    orderby=sort,
-                    offset=0,
-                    limit=1,
-                    referrer=Referrer.DATA_EXPORT_TASKS_EXPLORE,
-                    sampling_mode=explore_processor.sampling_mode,
-                    resolver=explore_processor.search_resolver,
-                    equations=equations,
-                )
-            except InvalidSearchQuery as err:
                 sentry_sdk.capture_exception(err)
-                raise serializers.ValidationError("Invalid table query")
+                raise serializers.ValidationError("Invalid search query.")
+
+        elif query_type == ExportQueryType.EXPLORE_STR:
+            query_info = self._validate_query_info(
+                query_type, query_info, export_format=export_format
+            )
+            query_info = self._validate_dataset(query_type, query_info)
+            explore_output_mode = OutputMode.from_value(export_format)
+            is_full_jsonl_trace_item_export = (
+                export_format == OutputMode.JSONL.value and len(query_info.get("field", [])) == 0
+            )
+            if not is_full_jsonl_trace_item_export:
+                try:
+                    explore_processor = ExploreProcessor(
+                        explore_query=query_info,
+                        organization=organization,
+                        output_mode=explore_output_mode,
+                    )
+                    sort = query_info.get("sort", [])
+                    orderby = [sort] if isinstance(sort, str) else sort
+
+                    explore_processor.validate_export_query(
+                        rpc_dataset_common.TableQuery(
+                            query_string=query_info["query"],
+                            selected_columns=query_info["field"],
+                            orderby=orderby,
+                            offset=0,
+                            limit=1,
+                            referrer=Referrer.DATA_EXPORT_TASKS_EXPLORE,
+                            sampling_mode=explore_processor.sampling_mode,
+                            resolver=explore_processor.search_resolver,
+                            equations=query_info.get("equations", []),
+                        )
+                    )
+                except InvalidSearchQuery as err:
+                    sentry_sdk.capture_exception(err)
+                    raise serializers.ValidationError("Invalid table query.")
 
         elif data["query_type"] == ExportQueryType.ISSUES_BY_TAG_STR:
             issues_by_tag_validate(query_info)
-
         return data
 
 
@@ -291,27 +307,38 @@ class DataExportEndpoint(OrganizationEndpoint):
                 ),
                 "get_projects": lambda: self.get_projects(request, organization),
                 "has_metrics": True,
+                "user": request.user,
             },
         )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
-        data = serializer.validated_data
+        validated_data = serializer.validated_data
 
         try:
             # If this user has sent a request with the same payload and organization,
             # we return them the latest one that is NOT complete (i.e. don't start another)
-            query_type = ExportQueryType.from_str(data["query_type"])
+            query_type = ExportQueryType.from_str(validated_data["query_type"])
             data_export, created = ExportedData.objects.get_or_create(
                 organization=organization,
                 user_id=request.user.id,
                 query_type=query_type,
-                query_info=data["query_info"],
+                query_info=validated_data["query_info"],
                 date_finished=None,
+                export_format=validated_data["format"],
             )
             status = 200
             if created:
+                qi = validated_data["query_info"]
+                export_format = validated_data["format"]
+                dataset = qi.get("dataset")
                 metrics.incr(
-                    "dataexport.enqueue", tags={"query_type": data["query_type"]}, sample_rate=1.0
+                    "dataexport.enqueue",
+                    tags={
+                        "query_type": validated_data["query_type"],
+                        "format": export_format,
+                        "dataset": str(dataset) if dataset is not None else "none",
+                    },
+                    sample_rate=1.0,
                 )
                 assemble_download.delay(
                     data_export_id=data_export.id, export_limit=limit, environment_id=environment_id
@@ -323,7 +350,9 @@ class DataExportEndpoint(OrganizationEndpoint):
         except ValidationError as e:
             # This will handle invalid JSON requests
             metrics.incr(
-                "dataexport.invalid", tags={"query_type": data.get("query_type")}, sample_rate=1.0
+                "dataexport.invalid",
+                tags={"query_type": validated_data.get("query_type")},
+                sample_rate=1.0,
             )
             logger.exception("API Request failed", extra=extra)
             return Response({"detail": str(e)}, status=400)

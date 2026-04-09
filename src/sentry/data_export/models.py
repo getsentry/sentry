@@ -11,6 +11,8 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
+from sentry.data_export.base import DEFAULT_EXPIRATION, ExportQueryType, ExportStatus
+from sentry.data_export.writers import OutputMode, get_file_extension
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
@@ -31,8 +33,6 @@ from sentry.notifications.platform.types import (
 )
 from sentry.users.services.user.service import user_service
 
-from .base import DEFAULT_EXPIRATION, ExportQueryType, ExportStatus
-
 logger = logging.getLogger(__name__)
 
 
@@ -52,6 +52,9 @@ class ExportedData(Model):
     date_expired = models.DateTimeField(null=True, db_index=True)
     query_type = BoundedPositiveIntegerField(choices=ExportQueryType.as_choices())
     query_info: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
+    export_format = models.CharField(
+        choices=OutputMode.as_choices(), null=True, default=OutputMode.CSV.value
+    )
 
     @property
     def status(self) -> ExportStatus:
@@ -72,8 +75,10 @@ class ExportedData(Model):
     def file_name(self) -> str:
         date = self.date_added.strftime("%Y-%B-%d")
         export_type = ExportQueryType.as_str(self.query_type)
+        output_mode = OutputMode.from_value(self.export_format)
+        extension = get_file_extension(output_mode)
         # Example: Discover_2020-July-21_27.csv
-        return f"{export_type}_{date}_{self.id}.csv"
+        return f"{export_type}_{date}_{self.id}.{extension}"
 
     @staticmethod
     def format_date(date: datetime | None) -> str | None:
