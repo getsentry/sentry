@@ -12,7 +12,6 @@ from urllib.parse import urljoin, urlparse
 import httpx
 from asgiref.sync import sync_to_async
 from django.conf import settings
-from django.core.exceptions import RequestAborted
 from django.http import HttpRequest, HttpResponse, JsonResponse, StreamingHttpResponse
 from django.http.response import HttpResponseBase
 
@@ -199,7 +198,7 @@ async def proxy_cell_request(
                     return _adapt_response(resp, target_url)
             except asyncio.CancelledError:
                 metrics.incr("apigateway.proxy.request_aborted", tags=metric_tags)
-                raise RequestAborted()
+                raise
             except httpx.TimeoutException:
                 metrics.incr("apigateway.proxy.request_timeout", tags=metric_tags)
                 circuitbreaker.incr_failures()

@@ -42,8 +42,6 @@ def create_issue_occurrence(
             "title": issue.title,
             "trace_id": issue.trace_id,
             "project_id": effective_project_id,
-            "category": issue.category,
-            "subcategory": issue.subcategory,
         },
     )
 

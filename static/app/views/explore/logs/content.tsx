@@ -33,6 +33,8 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export default function LogsContent() {
   const organization = useOrganization();
@@ -93,12 +95,21 @@ export default function LogsContent() {
   );
 }
 
+const logsFeedbackOptions = {
+  messagePlaceholder: t('How can we make logs work better for you?'),
+  tags: {
+    ['feedback.source']: 'logs-listing',
+    ['feedback.owner']: 'performance',
+  },
+};
+
 function LogsHeader() {
   const pageId = useQueryParamsId();
   const title = useQueryParamsTitle();
   const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(pageId);
   const onboardingProject = useOnboardingProject({property: 'hasLogs'});
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const hasSavedQueryTitle =
     defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
@@ -120,15 +131,15 @@ function LogsHeader() {
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <Grid flow="column" align="center" gap="md">
-          <FeedbackButton
-            feedbackOptions={{
-              messagePlaceholder: t('How can we make logs work better for you?'),
-              tags: {
-                ['feedback.source']: 'logs-listing',
-                ['feedback.owner']: 'performance',
-              },
-            }}
-          />
+          {hasPageFrameFeature ? (
+            <TopBar.Slot name="feedback">
+              <FeedbackButton feedbackOptions={logsFeedbackOptions}>
+                {null}
+              </FeedbackButton>
+            </TopBar.Slot>
+          ) : (
+            <FeedbackButton feedbackOptions={logsFeedbackOptions} />
+          )}
           {defined(onboardingProject) && <SetupLogsButton />}
         </Grid>
       </Layout.HeaderActions>

@@ -54,11 +54,13 @@ class BitbucketIntegrationTest(APITestCase):
         responses.add(
             responses.GET,
             url,
-            json={"values": [{"full_name": "sentryuser/stuf"}]},
+            json={"values": [{"full_name": "sentryuser/stuf", "uuid": "{abc-001}"}]},
         )
         installation = self.integration.get_installation(self.organization.id)
         result = installation.get_repositories()
-        assert result == [{"identifier": "sentryuser/stuf", "name": "sentryuser/stuf"}]
+        assert result == [
+            {"identifier": "sentryuser/stuf", "name": "sentryuser/stuf", "external_id": "{abc-001}"}
+        ]
 
     @responses.activate
     def test_get_repositories_exact_match(self) -> None:
@@ -66,7 +68,7 @@ class BitbucketIntegrationTest(APITestCase):
         responses.add(
             responses.GET,
             f"https://api.bitbucket.org/2.0/repositories/sentryuser?{querystring}",
-            json={"values": [{"full_name": "sentryuser/stuf"}]},
+            json={"values": [{"full_name": "sentryuser/stuf", "uuid": "{abc-001}"}]},
         )
 
         querystring = urlencode({"q": 'name~"stuf"'})
@@ -75,18 +77,18 @@ class BitbucketIntegrationTest(APITestCase):
             f"https://api.bitbucket.org/2.0/repositories/sentryuser?{querystring}",
             json={
                 "values": [
-                    {"full_name": "sentryuser/stuff"},
-                    {"full_name": "sentryuser/stuff-2010"},
-                    {"full_name": "sentryuser/stuff-2011"},
-                    {"full_name": "sentryuser/stuff-2012"},
-                    {"full_name": "sentryuser/stuff-2013"},
-                    {"full_name": "sentryuser/stuff-2014"},
-                    {"full_name": "sentryuser/stuff-2015"},
-                    {"full_name": "sentryuser/stuff-2016"},
-                    {"full_name": "sentryuser/stuff-2016"},
-                    {"full_name": "sentryuser/stuff-2017"},
-                    {"full_name": "sentryuser/stuff-2018"},
-                    {"full_name": "sentryuser/stuff-2019"},
+                    {"full_name": "sentryuser/stuff", "uuid": "{abc-002}"},
+                    {"full_name": "sentryuser/stuff-2010", "uuid": "{abc-003}"},
+                    {"full_name": "sentryuser/stuff-2011", "uuid": "{abc-004}"},
+                    {"full_name": "sentryuser/stuff-2012", "uuid": "{abc-005}"},
+                    {"full_name": "sentryuser/stuff-2013", "uuid": "{abc-006}"},
+                    {"full_name": "sentryuser/stuff-2014", "uuid": "{abc-007}"},
+                    {"full_name": "sentryuser/stuff-2015", "uuid": "{abc-008}"},
+                    {"full_name": "sentryuser/stuff-2016", "uuid": "{abc-009}"},
+                    {"full_name": "sentryuser/stuff-2016", "uuid": "{abc-009}"},
+                    {"full_name": "sentryuser/stuff-2017", "uuid": "{abc-010}"},
+                    {"full_name": "sentryuser/stuff-2018", "uuid": "{abc-011}"},
+                    {"full_name": "sentryuser/stuff-2019", "uuid": "{abc-012}"},
                 ]
             },
         )
@@ -94,18 +96,66 @@ class BitbucketIntegrationTest(APITestCase):
         installation = self.integration.get_installation(self.organization.id)
         result = installation.get_repositories("stuf")
         assert result == [
-            {"identifier": "sentryuser/stuf", "name": "sentryuser/stuf"},
-            {"identifier": "sentryuser/stuff", "name": "sentryuser/stuff"},
-            {"identifier": "sentryuser/stuff-2010", "name": "sentryuser/stuff-2010"},
-            {"identifier": "sentryuser/stuff-2011", "name": "sentryuser/stuff-2011"},
-            {"identifier": "sentryuser/stuff-2012", "name": "sentryuser/stuff-2012"},
-            {"identifier": "sentryuser/stuff-2013", "name": "sentryuser/stuff-2013"},
-            {"identifier": "sentryuser/stuff-2014", "name": "sentryuser/stuff-2014"},
-            {"identifier": "sentryuser/stuff-2015", "name": "sentryuser/stuff-2015"},
-            {"identifier": "sentryuser/stuff-2016", "name": "sentryuser/stuff-2016"},
-            {"identifier": "sentryuser/stuff-2017", "name": "sentryuser/stuff-2017"},
-            {"identifier": "sentryuser/stuff-2018", "name": "sentryuser/stuff-2018"},
-            {"identifier": "sentryuser/stuff-2019", "name": "sentryuser/stuff-2019"},
+            {
+                "identifier": "sentryuser/stuf",
+                "name": "sentryuser/stuf",
+                "external_id": "{abc-001}",
+            },
+            {
+                "identifier": "sentryuser/stuff",
+                "name": "sentryuser/stuff",
+                "external_id": "{abc-002}",
+            },
+            {
+                "identifier": "sentryuser/stuff-2010",
+                "name": "sentryuser/stuff-2010",
+                "external_id": "{abc-003}",
+            },
+            {
+                "identifier": "sentryuser/stuff-2011",
+                "name": "sentryuser/stuff-2011",
+                "external_id": "{abc-004}",
+            },
+            {
+                "identifier": "sentryuser/stuff-2012",
+                "name": "sentryuser/stuff-2012",
+                "external_id": "{abc-005}",
+            },
+            {
+                "identifier": "sentryuser/stuff-2013",
+                "name": "sentryuser/stuff-2013",
+                "external_id": "{abc-006}",
+            },
+            {
+                "identifier": "sentryuser/stuff-2014",
+                "name": "sentryuser/stuff-2014",
+                "external_id": "{abc-007}",
+            },
+            {
+                "identifier": "sentryuser/stuff-2015",
+                "name": "sentryuser/stuff-2015",
+                "external_id": "{abc-008}",
+            },
+            {
+                "identifier": "sentryuser/stuff-2016",
+                "name": "sentryuser/stuff-2016",
+                "external_id": "{abc-009}",
+            },
+            {
+                "identifier": "sentryuser/stuff-2017",
+                "name": "sentryuser/stuff-2017",
+                "external_id": "{abc-010}",
+            },
+            {
+                "identifier": "sentryuser/stuff-2018",
+                "name": "sentryuser/stuff-2018",
+                "external_id": "{abc-011}",
+            },
+            {
+                "identifier": "sentryuser/stuff-2019",
+                "name": "sentryuser/stuff-2019",
+                "external_id": "{abc-012}",
+            },
         ]
 
     @responses.activate
@@ -116,18 +166,18 @@ class BitbucketIntegrationTest(APITestCase):
             f"https://api.bitbucket.org/2.0/repositories/sentryuser?{querystring}",
             json={
                 "values": [
-                    {"full_name": "sentryuser/stuff"},
-                    {"full_name": "sentryuser/stuff-2010"},
-                    {"full_name": "sentryuser/stuff-2011"},
-                    {"full_name": "sentryuser/stuff-2012"},
-                    {"full_name": "sentryuser/stuff-2013"},
-                    {"full_name": "sentryuser/stuff-2014"},
-                    {"full_name": "sentryuser/stuff-2015"},
-                    {"full_name": "sentryuser/stuff-2016"},
-                    {"full_name": "sentryuser/stuff-2016"},
-                    {"full_name": "sentryuser/stuff-2017"},
-                    {"full_name": "sentryuser/stuff-2018"},
-                    {"full_name": "sentryuser/stuff-2019"},
+                    {"full_name": "sentryuser/stuff", "uuid": "{abc-002}"},
+                    {"full_name": "sentryuser/stuff-2010", "uuid": "{abc-003}"},
+                    {"full_name": "sentryuser/stuff-2011", "uuid": "{abc-004}"},
+                    {"full_name": "sentryuser/stuff-2012", "uuid": "{abc-005}"},
+                    {"full_name": "sentryuser/stuff-2013", "uuid": "{abc-006}"},
+                    {"full_name": "sentryuser/stuff-2014", "uuid": "{abc-007}"},
+                    {"full_name": "sentryuser/stuff-2015", "uuid": "{abc-008}"},
+                    {"full_name": "sentryuser/stuff-2016", "uuid": "{abc-009}"},
+                    {"full_name": "sentryuser/stuff-2016", "uuid": "{abc-009}"},
+                    {"full_name": "sentryuser/stuff-2017", "uuid": "{abc-010}"},
+                    {"full_name": "sentryuser/stuff-2018", "uuid": "{abc-011}"},
+                    {"full_name": "sentryuser/stuff-2019", "uuid": "{abc-012}"},
                 ]
             },
         )
@@ -142,17 +192,61 @@ class BitbucketIntegrationTest(APITestCase):
         installation = self.integration.get_installation(self.organization.id)
         result = installation.get_repositories("stu")
         assert result == [
-            {"identifier": "sentryuser/stuff", "name": "sentryuser/stuff"},
-            {"identifier": "sentryuser/stuff-2010", "name": "sentryuser/stuff-2010"},
-            {"identifier": "sentryuser/stuff-2011", "name": "sentryuser/stuff-2011"},
-            {"identifier": "sentryuser/stuff-2012", "name": "sentryuser/stuff-2012"},
-            {"identifier": "sentryuser/stuff-2013", "name": "sentryuser/stuff-2013"},
-            {"identifier": "sentryuser/stuff-2014", "name": "sentryuser/stuff-2014"},
-            {"identifier": "sentryuser/stuff-2015", "name": "sentryuser/stuff-2015"},
-            {"identifier": "sentryuser/stuff-2016", "name": "sentryuser/stuff-2016"},
-            {"identifier": "sentryuser/stuff-2017", "name": "sentryuser/stuff-2017"},
-            {"identifier": "sentryuser/stuff-2018", "name": "sentryuser/stuff-2018"},
-            {"identifier": "sentryuser/stuff-2019", "name": "sentryuser/stuff-2019"},
+            {
+                "identifier": "sentryuser/stuff",
+                "name": "sentryuser/stuff",
+                "external_id": "{abc-002}",
+            },
+            {
+                "identifier": "sentryuser/stuff-2010",
+                "name": "sentryuser/stuff-2010",
+                "external_id": "{abc-003}",
+            },
+            {
+                "identifier": "sentryuser/stuff-2011",
+                "name": "sentryuser/stuff-2011",
+                "external_id": "{abc-004}",
+            },
+            {
+                "identifier": "sentryuser/stuff-2012",
+                "name": "sentryuser/stuff-2012",
+                "external_id": "{abc-005}",
+            },
+            {
+                "identifier": "sentryuser/stuff-2013",
+                "name": "sentryuser/stuff-2013",
+                "external_id": "{abc-006}",
+            },
+            {
+                "identifier": "sentryuser/stuff-2014",
+                "name": "sentryuser/stuff-2014",
+                "external_id": "{abc-007}",
+            },
+            {
+                "identifier": "sentryuser/stuff-2015",
+                "name": "sentryuser/stuff-2015",
+                "external_id": "{abc-008}",
+            },
+            {
+                "identifier": "sentryuser/stuff-2016",
+                "name": "sentryuser/stuff-2016",
+                "external_id": "{abc-009}",
+            },
+            {
+                "identifier": "sentryuser/stuff-2017",
+                "name": "sentryuser/stuff-2017",
+                "external_id": "{abc-010}",
+            },
+            {
+                "identifier": "sentryuser/stuff-2018",
+                "name": "sentryuser/stuff-2018",
+                "external_id": "{abc-011}",
+            },
+            {
+                "identifier": "sentryuser/stuff-2019",
+                "name": "sentryuser/stuff-2019",
+                "external_id": "{abc-012}",
+            },
         ]
 
     @responses.activate

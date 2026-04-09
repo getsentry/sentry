@@ -130,10 +130,6 @@ export const MetricsDetailsWrapper = styled(DetailsWrapper)`
   padding-right: calc(15px + ${p => p.theme.space.md});
 `;
 
-export const NumericSimpleTableHeaderCell = styled(StyledSimpleTableHeaderCell)`
-  justify-content: flex-end;
-`;
-
 export const NumericSimpleTableRowCell = styled(StyledSimpleTableRowCell)`
   justify-content: flex-end;
 `;
