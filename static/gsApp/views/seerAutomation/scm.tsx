@@ -22,7 +22,7 @@ export default function SeerAutomationSCM() {
         <SettingsPageHeader
           title={t('Repositories')}
           subtitle={tct(
-            `Integrate with a Seer compatible [scm:Source Code Management] provider and then connect repositories with Sentry. Seer needs read access to your source code to perform code review, and analyze your issues. [read_the_docs:Read the docs] and our [privacy:AI Privacy Principles] to learn more.`,
+            'Integrate with a Seer compatible [scm:Source Code Management] provider and then connect repositories with Sentry. Seer needs read access to your source code to perform code review, and analyze your issues. [read_the_docs:Read the docs] and our [privacy:AI Privacy Principles] to learn more.',
             {
               scm: (
                 <ExternalLink href="https://docs.sentry.io/organization/getting-started/#source-code-management" />

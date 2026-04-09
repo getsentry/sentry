@@ -107,7 +107,7 @@ function useMultiQueryTimeseriesImpl({
 
   const timeseriesResult = useSortedTimeSeries(
     options,
-    `api.explore.spans-timeseries`,
+    'api.explore.spans-timeseries',
     DiscoverDatasets.SPANS
   );
 

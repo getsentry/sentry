@@ -1,16 +1,14 @@
 import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 export function ProblemSection() {
   return (
-    <Stack gap="md" padding="lg">
-      <Text size="lg" bold>
-        {t('Problem')}
-      </Text>
+    <Stack gap="lg" padding="lg">
+      <Heading as="h3">{t('Problem')}</Heading>
       <Text>
         {t(
           "Your source maps aren't configured correctly, so stack traces will show minified code instead of your original source. Fix this to see the exact file, line, and function causing the error."

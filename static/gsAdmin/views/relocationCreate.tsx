@@ -60,7 +60,7 @@ function RelocationForm() {
       }
 
       // Start the relocation.
-      const response = await api.requestPromise(`/relocations/`, {
+      const response = await api.requestPromise('/relocations/', {
         method: 'POST',
         host: region.url,
         data: formData,

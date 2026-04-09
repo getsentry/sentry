@@ -252,7 +252,7 @@ describe('Results', () => {
             pathname: `/organizations/${organization.slug}/explore/discover/results/`,
             query: {query: 'tag:value'},
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });
@@ -289,7 +289,7 @@ describe('Results', () => {
               cursor: '0%3A50%3A0',
             },
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });
@@ -346,7 +346,7 @@ describe('Results', () => {
             pathname: `/organizations/${organization.slug}/explore/discover/results/`,
             query: {...generateFields(), yAxis: 'count()'},
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });
@@ -373,7 +373,7 @@ describe('Results', () => {
             pathname: `/organizations/${organization.slug}/explore/discover/results/`,
             query: {...generateFields(), display: 'default', yAxis: 'count'},
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });
@@ -400,7 +400,7 @@ describe('Results', () => {
             pathname: `/organizations/${organization.slug}/explore/discover/results/`,
             query: {...generateFields(), display: 'previous'},
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });
@@ -426,7 +426,7 @@ describe('Results', () => {
             pathname: `/organizations/${organization.slug}/explore/discover/results/`,
             query: {...generateFields(), statsPeriod: '60d', project: '-1'},
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });
@@ -456,7 +456,7 @@ describe('Results', () => {
               project: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(String),
             },
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });
@@ -482,7 +482,7 @@ describe('Results', () => {
             pathname: `/organizations/${organization.slug}/explore/discover/results/`,
             query: {...generateFields(), statsPeriod: '30d', project: '-1'},
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });
@@ -512,7 +512,7 @@ describe('Results', () => {
               project: [1, 2, 3, 4].map(String),
             },
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });
@@ -539,7 +539,7 @@ describe('Results', () => {
             pathname: `/organizations/${organization.slug}/explore/discover/results/`,
             query: {id: '1', statsPeriod: '24h'},
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });
@@ -594,7 +594,7 @@ describe('Results', () => {
               environment: ['production'],
             },
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });
@@ -626,7 +626,7 @@ describe('Results', () => {
             pathname: `/organizations/${organization.slug}/explore/discover/results/`,
             query: {...generateFields(), yAxis: 'count()'},
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });
@@ -686,7 +686,7 @@ describe('Results', () => {
             pathname: `/organizations/${organization.slug}/explore/discover/results/`,
             query: {...generateFields(), display: 'default', yAxis: 'count()'},
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });
@@ -747,7 +747,7 @@ describe('Results', () => {
             pathname: `/organizations/${organization.slug}/explore/discover/results/`,
             query: {...generateFields(), display: 'default', yAxis: 'count()'},
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });
@@ -808,7 +808,7 @@ describe('Results', () => {
             pathname: `/organizations/${organization.slug}/explore/discover/results/`,
             query: {...generateFields(), display: 'default', yAxis: 'count'},
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });
@@ -862,7 +862,7 @@ describe('Results', () => {
             pathname: `/organizations/${organization.slug}/explore/discover/results/`,
             query: {...generateFields(), display: 'default', yAxis: 'count'},
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });
@@ -898,7 +898,7 @@ describe('Results', () => {
             pathname: `/organizations/${organization.slug}/explore/discover/results/`,
             query: {...generateFields(), yAxis: 'count()'},
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });
@@ -923,7 +923,7 @@ describe('Results', () => {
             pathname: `/organizations/${organization.slug}/explore/discover/results/`,
             query: {fromMetric: 'true', id: '1'},
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });
@@ -950,7 +950,7 @@ describe('Results', () => {
             pathname: `/organizations/${organization.slug}/explore/discover/results/`,
             query: {showUnparameterizedBanner: 'true', id: '1'},
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });
@@ -981,7 +981,7 @@ describe('Results', () => {
             // These fields take priority and should be sent in the request
             query: {field: ['title', 'user'], id: '1'},
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });
@@ -1040,7 +1040,7 @@ describe('Results', () => {
             pathname: `/organizations/${organization.slug}/explore/discover/results/`,
             query: {id: '1'},
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });
@@ -1090,7 +1090,7 @@ describe('Results', () => {
             pathname: `/organizations/${organization.slug}/explore/discover/results/`,
             query: initialQuery as Record<string, string | string[]>,
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });
@@ -1132,7 +1132,7 @@ describe('Results', () => {
             pathname: `/organizations/${organization.slug}/explore/discover/results/`,
             query: {id: '1'},
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });
@@ -1163,7 +1163,7 @@ describe('Results', () => {
             pathname: `/organizations/${organization.slug}/explore/discover/results/`,
             query: {id: '1'},
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });
@@ -1199,7 +1199,7 @@ describe('Results', () => {
             pathname: `/organizations/${organization.slug}/explore/discover/results/`,
             query: initialQuery as Record<string, string | string[]>,
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });
@@ -1230,7 +1230,7 @@ describe('Results', () => {
             pathname: `/organizations/${organization.slug}/explore/discover/results/`,
             query: initialQuery as Record<string, string | string[]>,
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });
@@ -1281,7 +1281,7 @@ describe('Results', () => {
             pathname: `/organizations/${organization.slug}/explore/discover/results/`,
             query: {id: '1'},
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });
@@ -1391,7 +1391,7 @@ describe('Results', () => {
             pathname: `/organizations/${organization.slug}/explore/discover/results/`,
             query: {id: '1'},
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });
@@ -1500,7 +1500,7 @@ describe('Results', () => {
             pathname: `/organizations/${organization.slug}/explore/discover/results/`,
             query: {id: '1'},
           },
-          route: `/organizations/:orgId/explore/discover/results/`,
+          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });

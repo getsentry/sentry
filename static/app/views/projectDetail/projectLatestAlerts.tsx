@@ -97,7 +97,7 @@ export function ProjectLatestAlerts({
     isError: unresolvedAlertsIsError,
   } = useApiQuery<Incident[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/incidents/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/incidents/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: {...query, status: 'open'}},
@@ -110,7 +110,7 @@ export function ProjectLatestAlerts({
     isError: resolvedAlertsIsError,
   } = useApiQuery<Incident[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/incidents/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/incidents/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: {...query, status: 'closed'}},
@@ -126,7 +126,7 @@ export function ProjectLatestAlerts({
   // This is only used to determine if we should show the "Create Alert" button
   const {data: alertRules = [], isPending: alertRulesLoading} = useApiQuery<any[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/alert-rules/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/alert-rules/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
@@ -180,7 +180,7 @@ export function ProjectLatestAlerts({
         <StyledIconLink
           to={{
             pathname: makeAlertsPathname({
-              path: `/`,
+              path: '/',
               organization,
             }),
             query: {

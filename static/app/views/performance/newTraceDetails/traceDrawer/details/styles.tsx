@@ -321,15 +321,15 @@ const getDurationComparison = (
 
   const deltaText =
     status === 'equal'
-      ? tct(`equal to avg [formattedBaseDuration]`, {
+      ? tct('equal to avg [formattedBaseDuration]', {
           formattedBaseDuration,
         })
       : status === 'faster'
-        ? tct(`[deltaPct] faster than avg [formattedBaseDuration]`, {
+        ? tct('[deltaPct] faster than avg [formattedBaseDuration]', {
             formattedBaseDuration,
             deltaPct: `${deltaPct}%`,
           })
-        : tct(`[deltaPct] slower than avg [formattedBaseDuration]`, {
+        : tct('[deltaPct] slower than avg [formattedBaseDuration]', {
             formattedBaseDuration,
             deltaPct: `${deltaPct}%`,
           });

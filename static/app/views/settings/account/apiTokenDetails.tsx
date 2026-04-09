@@ -43,7 +43,7 @@ type FetchApiTokenParameters = {
 type FetchApiTokenResponse = InternalAppApiToken;
 
 const makeFetchApiTokenKey = ({tokenId}: FetchApiTokenParameters) =>
-  [getApiUrl(`/api-tokens/$tokenId/`, {path: {tokenId}})] as const;
+  [getApiUrl('/api-tokens/$tokenId/', {path: {tokenId}})] as const;
 
 const API_TOKEN_LIST_KEY = [getApiUrl('/api-tokens/')] as const;
 

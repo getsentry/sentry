@@ -48,7 +48,7 @@ export function IntegrationReposAddRepository({
   const query = useQuery({
     queryKey: [
       getApiUrl(
-        `/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/`,
+        '/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/',
         {path: {organizationIdOrSlug: organization.slug, integrationId: integration.id}}
       ),
       {method: 'GET', query: {search: debouncedSearch, installableOnly: false}},

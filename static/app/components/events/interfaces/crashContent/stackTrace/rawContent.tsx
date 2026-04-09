@@ -50,7 +50,7 @@ function getRubyFrame(frame: Frame, includeLocation: boolean): string {
     result += ':' + frame.lineNo;
   }
   if (defined(frame.function)) {
-    result += `:in '` + frame.function + "'";
+    result += ":in '" + frame.function + "'";
   }
   return result;
 }

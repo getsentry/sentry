@@ -544,7 +544,7 @@ const addSlowAppInit = (transaction: TransactionEvent) => {
       s.start_timestamp < appInitSpan.start_timestamp
   );
   longTaskSpans.forEach(s => {
-    s.op = `ui.long-task.app-init`;
+    s.op = 'ui.long-task.app-init';
   });
   if (longTaskSpans.length) {
     const sum = longTaskSpans.reduce(

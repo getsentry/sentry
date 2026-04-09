@@ -30,7 +30,7 @@ import {SentryAppUpdateModal} from 'admin/components/sentryAppUpdateModal';
 
 export function SentryAppDetails() {
   const {sentryAppSlug} = useParams<{sentryAppSlug: string}>();
-  const ENDPOINT = getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/`, {
+  const ENDPOINT = getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
     path: {sentryAppIdOrSlug: sentryAppSlug},
   });
   const api = useApi();

@@ -159,8 +159,8 @@ const CollapseExpandButton = styled(Button)`
 function IconDoubleChevron(props: React.ComponentProps<typeof IconChevron>) {
   return (
     <Flex>
-      <IconChevron style={{marginRight: `-3px`}} {...props} />
-      <IconChevron style={{marginLeft: `-3px`}} {...props} />
+      <IconChevron style={{marginRight: '-3px'}} {...props} />
+      <IconChevron style={{marginLeft: '-3px'}} {...props} />
     </Flex>
   );
 }

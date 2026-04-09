@@ -34,7 +34,7 @@ export function LaunchpadAdminPage() {
   const {mutate: rerunAnalysis} = useMutation({
     mutationFn: () => {
       return fetchMutation({
-        url: `/internal/preprod-artifact/rerun-analysis/`,
+        url: '/internal/preprod-artifact/rerun-analysis/',
         method: 'POST',
         data: {
           preprod_artifact_id: rerunArtifactId,
@@ -58,7 +58,7 @@ export function LaunchpadAdminPage() {
   const {mutate: deleteArtifactData} = useMutation({
     mutationFn: () => {
       return fetchMutation({
-        url: `/internal/preprod-artifact/batch-delete/`,
+        url: '/internal/preprod-artifact/batch-delete/',
         method: 'DELETE',
         data: {
           preprod_artifact_ids: [deleteArtifactId],
@@ -108,7 +108,7 @@ export function LaunchpadAdminPage() {
   const {mutate: batchDeleteArtifacts} = useMutation({
     mutationFn: () => {
       return fetchMutation({
-        url: `/internal/preprod-artifact/batch-delete/`,
+        url: '/internal/preprod-artifact/batch-delete/',
         method: 'DELETE',
         data: {
           preprod_artifact_ids: batchDeleteArtifactIds
@@ -129,7 +129,7 @@ export function LaunchpadAdminPage() {
       setBatchDeleteArtifactIds('');
     },
     onError: () => {
-      addErrorMessage(`Failed to batch delete artifacts`);
+      addErrorMessage('Failed to batch delete artifacts');
     },
   });
 

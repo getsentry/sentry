@@ -541,7 +541,7 @@ export function ProjectPageFilter({
         {selectionLimitExceeded && (
           <MenuComponents.Alert variant="warning">
             {tct(
-              `You've selected [count] projects, but only up to [limit] can be selected at a time. Select All Projects to view all projects.`,
+              "You've selected [count] projects, but only up to [limit] can be selected at a time. Select All Projects to view all projects.",
               {
                 limit: SELECTION_COUNT_LIMIT,
                 count: stagedSelect.value.length,

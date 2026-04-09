@@ -28,16 +28,32 @@ describe('AIContentRenderer', () => {
     expect(screen.getByText('name')).toBeInTheDocument();
   });
 
-  it('renders XML tags with styled wrappers', () => {
+  it('renders inline XML tags as italic text within the flow', () => {
     render(<AIContentRenderer text="Before <thinking>inner thought</thinking> After" />);
+    expect(screen.getByText(/thinking: inner thought/)).toBeInTheDocument();
+  });
+
+  it('renders block XML tags with styled wrappers', () => {
+    render(<AIContentRenderer text={'Text\n<thinking>inner thought</thinking>'} />);
     expect(screen.getByText('thinking')).toBeInTheDocument();
   });
 
-  it('renders XML tags with styled wrappers when inline', () => {
+  it('renders inline XML tags as italic text when inline', () => {
     render(
       <AIContentRenderer text="Before <thinking>inner thought</thinking> After" inline />
     );
-    expect(screen.getByText('thinking')).toBeInTheDocument();
+    expect(screen.getByText(/thinking: inner thought/)).toBeInTheDocument();
+  });
+
+  it('renders nested XML tags recursively', () => {
+    const text =
+      '<bug_report>\n<location>file.ts</location>\n<description>a bug</description>\n</bug_report>';
+    render(<AIContentRenderer text={text} />);
+    expect(screen.getByText('bug_report')).toBeInTheDocument();
+    expect(screen.getByText('location')).toBeInTheDocument();
+    expect(screen.getByText('description')).toBeInTheDocument();
+    expect(screen.getByText('file.ts')).toBeInTheDocument();
+    expect(screen.getByText('a bug')).toBeInTheDocument();
   });
 
   it('wraps plain text in MultilineText by default', () => {

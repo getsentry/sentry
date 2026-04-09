@@ -49,7 +49,7 @@ type RemoveSecretQueryVariables = {
 
 export const makeFetchSecretQueryKey = ({orgSlug}: FetchSecretParameters) =>
   [
-    getApiUrl(`/organizations/$organizationIdOrSlug/flags/signing-secrets/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/flags/signing-secrets/', {
       path: {organizationIdOrSlug: orgSlug},
     }),
   ] as const;

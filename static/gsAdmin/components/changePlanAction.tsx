@@ -57,7 +57,7 @@ function ChangePlanAction({
     isError,
   } = useApiQuery<BillingConfig>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/billing-config/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/billing-config/', {
         path: {organizationIdOrSlug: orgId},
       }),
       {query: {tier: 'all'}},

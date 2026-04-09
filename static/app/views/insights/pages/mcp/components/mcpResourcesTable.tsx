@@ -170,7 +170,7 @@ function McpResourceCell({resource}: {resource: string}) {
     ],
     field: ['span.description', 'span.status', 'span.duration', 'timestamp'],
     query: search.formatString(),
-    sort: `-count(span.duration)`,
+    sort: '-count(span.duration)',
   });
   return <Link to={link}>{resource}</Link>;
 }

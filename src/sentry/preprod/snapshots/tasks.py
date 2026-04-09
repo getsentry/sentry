@@ -7,12 +7,13 @@ from typing import NamedTuple
 import orjson
 from django.db import IntegrityError
 from django.utils import timezone
+from objectstore_client import Session
 from objectstore_client.client import RequestError
 from pydantic import ValidationError
 from taskbroker_client.retry import Retry
 
 from sentry.objectstore import get_preprod_session
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.image_diff.compare import compare_images_batch
 from sentry.preprod.snapshots.image_diff.odiff import OdiffServer
 from sentry.preprod.snapshots.manifest import (
@@ -111,6 +112,128 @@ def _create_pixel_batches(
     if current_batch:
         batches.append(current_batch)
     return batches
+
+
+class ImageFingerprint(NamedTuple):
+    name: str
+    status: str
+    head_hash: str | None = None
+    previous_image_file_name: str | None = None
+
+
+def _build_comparison_fingerprints(manifest: ComparisonManifest) -> set[ImageFingerprint]:
+    fingerprints: set[ImageFingerprint] = set()
+    for name, image in manifest.images.items():
+        if image.status == "unchanged":
+            continue
+        if image.status in ("changed", "added"):
+            if not image.head_hash:
+                continue
+            fingerprints.add(ImageFingerprint(name, image.status, image.head_hash))
+        elif image.status == "renamed":
+            if not image.head_hash or not image.previous_image_file_name:
+                continue
+            fingerprints.add(
+                ImageFingerprint(name, "renamed", image.head_hash, image.previous_image_file_name)
+            )
+        else:
+            fingerprints.add(ImageFingerprint(name, image.status))
+    return fingerprints
+
+
+def _try_auto_approve_snapshot(
+    head_artifact: PreprodArtifact,
+    comparison_manifest: ComparisonManifest,
+    session: Session,
+) -> None:
+    cc = head_artifact.commit_comparison
+    if not cc or not cc.pr_number or not cc.head_repo_name:
+        return
+
+    head_fingerprints = _build_comparison_fingerprints(comparison_manifest)
+    if not head_fingerprints:
+        return
+
+    approved_sibling = (
+        PreprodArtifact.objects.filter(
+            project_id=head_artifact.project_id,
+            app_id=head_artifact.app_id,
+            build_configuration=head_artifact.build_configuration,
+            commit_comparison__pr_number=cc.pr_number,
+            commit_comparison__head_repo_name=cc.head_repo_name,
+            preprodcomparisonapproval__preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+            preprodcomparisonapproval__approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+            preprodsnapshotmetrics__snapshot_comparisons_head_metrics__state=PreprodSnapshotComparison.State.SUCCESS,
+        )
+        .exclude(id=head_artifact.id)
+        .order_by("-date_added")
+        .first()
+    )
+
+    if not approved_sibling:
+        return
+
+    sibling_comparison = (
+        PreprodSnapshotComparison.objects.filter(
+            head_snapshot_metrics__preprod_artifact=approved_sibling,
+            state=PreprodSnapshotComparison.State.SUCCESS,
+        )
+        .order_by("-date_updated")
+        .first()
+    )
+
+    if not sibling_comparison:
+        return
+
+    sibling_comparison_key = (sibling_comparison.extras or {}).get("comparison_key")
+    if not sibling_comparison_key:
+        return
+
+    try:
+        sibling_manifest = ComparisonManifest(
+            **orjson.loads(session.get(sibling_comparison_key).payload.read())
+        )
+    except Exception:
+        logger.exception(
+            "auto_approve: failed to load sibling comparison manifest",
+            extra={
+                "head_artifact_id": head_artifact.id,
+                "sibling_artifact_id": approved_sibling.id,
+                "comparison_key": sibling_comparison_key,
+            },
+        )
+        return
+
+    sibling_fingerprints = _build_comparison_fingerprints(sibling_manifest)
+
+    if head_fingerprints != sibling_fingerprints:
+        logger.info(
+            "auto_approve: fingerprints do not match",
+            extra={
+                "head_artifact_id": head_artifact.id,
+                "sibling_artifact_id": approved_sibling.id,
+            },
+        )
+        return
+
+    PreprodComparisonApproval.objects.create(
+        preprod_artifact=head_artifact,
+        preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+        approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        approved_at=timezone.now(),
+        extras={
+            "auto_approval": True,
+            "prev_approved_artifact_id": approved_sibling.id,
+        },
+    )
+
+    logger.info(
+        "auto_approve: snapshot auto-approved",
+        extra={
+            "head_artifact_id": head_artifact.id,
+            "prev_approved_artifact_id": approved_sibling.id,
+        },
+    )
 
 
 @instrumented_task(
@@ -580,6 +703,14 @@ def compare_snapshots(
             and not error_count
         ):
             metrics.incr("preprod.snapshots.diff.zero_changes", sample_rate=1.0, tags=metric_tags)
+
+        try:
+            _try_auto_approve_snapshot(head_artifact, comparison_manifest, session)
+        except Exception:
+            logger.exception(
+                "Auto-approve failed after successful comparison",
+                extra={"head_artifact_id": head_artifact_id},
+            )
 
         create_preprod_snapshot_status_check_task.apply_async(
             kwargs={

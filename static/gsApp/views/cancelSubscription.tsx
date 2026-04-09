@@ -102,7 +102,7 @@ function CancelSubscriptionForm() {
   const api = useApi();
   const {data: subscription, isPending} = useApiQuery<Subscription>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],

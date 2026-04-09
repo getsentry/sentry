@@ -2,8 +2,7 @@ import {useCallback, useContext, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Flex} from '@sentry/scraps/layout';
 
 import {FormContext} from 'sentry/components/forms/formContext';
 import {useDrawer} from 'sentry/components/globalDrawer';
@@ -11,10 +10,11 @@ import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {IconAdd, IconEdit} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {AutomationBuilderDrawerForm} from 'sentry/views/automations/components/automationBuilderDrawerForm';
 import {ConnectAutomationsDrawer} from 'sentry/views/detectors/components/connectAutomationsDrawer';
 import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';
+import {ConnectedAlertsEmptyState} from 'sentry/views/detectors/components/connectedAutomationsEmptyState';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
 
 export function AutomateSection({step}: {step?: number}) {
@@ -110,7 +110,7 @@ export function AutomateSection({step}: {step?: number}) {
           cursor={undefined}
           onCursor={() => {}}
           emptyMessage={
-            <Stack gap="md" align="center" maxWidth="300px">
+            <ConnectedAlertsEmptyState project={project}>
               <Button
                 ref={ref}
                 size="sm"
@@ -119,18 +119,10 @@ export function AutomateSection({step}: {step?: number}) {
               >
                 {t('Connect Existing Alerts')}
               </Button>
-              <Button size="sm" icon={<IconAdd />} onClick={openCreateDrawer}>
+              <Button size="sm" onClick={openCreateDrawer}>
                 {t('Create New Alert')}
               </Button>
-              <Text variant="muted" align="center">
-                {tct(
-                  'Alerts configured for all Issues in [projectName] will also apply to this Monitor.',
-                  {
-                    projectName: <strong>{project.slug}</strong>,
-                  }
-                )}
-              </Text>
-            </Stack>
+            </ConnectedAlertsEmptyState>
           }
         />
       </FormSection>

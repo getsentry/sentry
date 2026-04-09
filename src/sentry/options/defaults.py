@@ -1373,6 +1373,17 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "seer.night_shift.enable",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.night_shift.issues_per_org",
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Supergroups / Lightweight RCA
 register(

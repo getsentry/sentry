@@ -235,6 +235,10 @@ class AlertRuleFetchMixin(Endpoint):
     Can be used with any endpoint base class (OrganizationEndpoint, ProjectEndpoint, etc).
     """
 
+    # Subclasses may set a per-method granular flag (e.g. for GET) that is OR'd
+    # with the broad workflow-engine-rule-serializers flag.
+    workflow_engine_method_flags: dict[str, str] = {}
+
     def fetch_metric_alerts(
         self,
         request: Request,
@@ -252,8 +256,11 @@ class AlertRuleFetchMixin(Endpoint):
                 extra={"organization": organization.id},
             )
 
-        use_workflow_engine = features.has(
-            "organizations:workflow-engine-rule-serializers", organization
+        method_flag = self.workflow_engine_method_flags.get(request.method or "")
+        use_workflow_engine = (
+            features.has("organizations:workflow-engine-rule-serializers", organization)
+            or method_flag is not None
+            and features.has(method_flag, organization)
         )
 
         if use_workflow_engine:
@@ -908,6 +915,9 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
         "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationAlertRulePermission,)
+    workflow_engine_method_flags = {
+        "GET": "organizations:workflow-engine-orgalertruleindex-get",
+    }
 
     @extend_schema(
         operation_id="(DEPRECATED) List an Organization's Metric Alert Rules",
