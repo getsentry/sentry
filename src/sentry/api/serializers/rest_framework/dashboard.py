@@ -863,7 +863,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                     self.create_widget(instance, data)
                 else:
                     sentry_sdk.set_context(
-                        "dashboard_widget_mismatch",
+                        "dashboard",
                         {
                             "org_slug": instance.organization.slug,
                             "dashboard_id": instance.id,
