@@ -476,6 +476,7 @@ function flattenActions(
       if (!isGroup && !('to' in node) && !('onAction' in node)) {
         continue;
       }
+
       results.push({...node, listItemType: isGroup ? 'section' : 'action'});
       if (isGroup) {
         for (const child of node.children) {

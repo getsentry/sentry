@@ -222,6 +222,44 @@ export function GlobalCommandPaletteActions() {
         </CMDKAction>
       </CMDKAction>
 
+      {user.isStaff && (
+        <CMDKAction display={{label: t('Admin')}}>
+          <CMDKAction
+            display={{label: t('Open _admin'), icon: <IconOpen />}}
+            keywords={[t('superuser')]}
+            onAction={() => window.open('/_admin/', '_blank', 'noreferrer')}
+          />
+          <CMDKAction
+            display={{
+              label: t('Open %s in _admin', organization.name),
+              icon: <IconOpen />,
+            }}
+            keywords={[t('superuser')]}
+            onAction={() =>
+              window.open(
+                `/_admin/customers/${organization.slug}/`,
+                '_blank',
+                'noreferrer'
+              )
+            }
+          />
+          {!isActiveSuperuser() && (
+            <CMDKAction
+              display={{label: t('Open Superuser Modal'), icon: <IconLock locked />}}
+              keywords={[t('superuser')]}
+              onAction={() => openSudo({isSuperuser: true, needsReload: true})}
+            />
+          )}
+          {isActiveSuperuser() && (
+            <CMDKAction
+              display={{label: t('Exit Superuser'), icon: <IconLock locked={false} />}}
+              keywords={[t('superuser')]}
+              onAction={() => exitSuperuser()}
+            />
+          )}
+        </CMDKAction>
+      )}
+
       <CMDKAction display={{label: t('Add')}}>
         <CMDKAction
           display={{label: t('Create Dashboard'), icon: <IconAdd />}}
@@ -391,44 +429,6 @@ export function GlobalCommandPaletteActions() {
           />
         </CMDKAction>
       </CMDKAction>
-
-      {user.isStaff && (
-        <CMDKAction display={{label: t('Admin')}}>
-          <CMDKAction
-            display={{label: t('Open _admin'), icon: <IconOpen />}}
-            keywords={[t('superuser')]}
-            onAction={() => window.open('/_admin/', '_blank', 'noreferrer')}
-          />
-          <CMDKAction
-            display={{
-              label: t('Open %s in _admin', organization.name),
-              icon: <IconOpen />,
-            }}
-            keywords={[t('superuser')]}
-            onAction={() =>
-              window.open(
-                `/_admin/customers/${organization.slug}/`,
-                '_blank',
-                'noreferrer'
-              )
-            }
-          />
-          {!isActiveSuperuser() && (
-            <CMDKAction
-              display={{label: t('Open Superuser Modal'), icon: <IconLock locked />}}
-              keywords={[t('superuser')]}
-              onAction={() => openSudo({isSuperuser: true, needsReload: true})}
-            />
-          )}
-          {isActiveSuperuser() && (
-            <CMDKAction
-              display={{label: t('Exit Superuser'), icon: <IconLock locked={false} />}}
-              keywords={[t('superuser')]}
-              onAction={() => exitSuperuser()}
-            />
-          )}
-        </CMDKAction>
-      )}
     </CommandPaletteSlot>
   );
 }
