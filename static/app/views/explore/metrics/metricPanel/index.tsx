@@ -9,7 +9,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import {TraceSamplesTableColumns} from 'sentry/views/explore/metrics/constants';
+import {
+  getTraceSamplesTableFields,
+  TraceSamplesTableColumns,
+} from 'sentry/views/explore/metrics/constants';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
 import {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
@@ -21,7 +24,6 @@ import {StackedOrientation} from 'sentry/views/explore/metrics/metricPanel/stack
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
-import {getMetricTableColumnType} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsMode,
@@ -50,10 +52,8 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
     enabled: Boolean(traceMetric.name) && !isMetricOptionsEmpty,
   });
 
-  const columns = TraceSamplesTableColumns;
-  const fields = columns.filter(c => getMetricTableColumnType(c) !== 'stat');
-
   const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
+  const fields = getTraceSamplesTableFields(TraceSamplesTableColumns);
 
   const metricSamplesTableResult = useMetricSamplesTable({
     disabled: !traceMetric?.name || isMetricOptionsEmpty,
