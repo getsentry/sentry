@@ -1499,7 +1499,6 @@ class UnfurlTest(TestCase):
         assert len(mock_generate_chart.mock_calls) == 1
         assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_EXPLORE_LINE
         chart_data = mock_generate_chart.call_args[0][1]
-        assert chart_data["seriesName"] == "avg(span.duration)"
         assert "timeSeries" in chart_data
 
     @patch(
@@ -1575,7 +1574,7 @@ class UnfurlTest(TestCase):
         assert len(unfurls) == 1
         assert len(mock_generate_chart.mock_calls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
-        assert chart_data["seriesName"] == "count(span.duration)"
+        assert "timeSeries" in chart_data
 
     @patch(
         "sentry.integrations.slack.unfurl.explore.client.get",
@@ -1603,7 +1602,7 @@ class UnfurlTest(TestCase):
         # Should still unfurl with default yAxis
         assert len(unfurls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
-        assert chart_data["seriesName"] == "count(span.duration)"
+        assert "timeSeries" in chart_data
 
     @patch(
         "sentry.integrations.slack.unfurl.explore.client.get",
@@ -1652,7 +1651,6 @@ class UnfurlTest(TestCase):
         chart_data = mock_generate_chart.call_args[0][1]
 
         assert chart_type == ChartType.SLACK_EXPLORE_LINE
-        assert chart_data["seriesName"] == "avg(span.duration)"
         # timeSeries should be passed through directly from the API response
         time_series = chart_data["timeSeries"]
         assert isinstance(time_series, list)

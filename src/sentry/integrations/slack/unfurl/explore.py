@@ -110,9 +110,7 @@ def _unfurl_explore(
             _logger.warning("Failed to load events-timeseries for explore unfurl")
             continue
 
-        y_axis = y_axes[-1]
         chart_data = {
-            "seriesName": y_axis,
             "timeSeries": resp.data.get("timeSeries", []),
         }
 
