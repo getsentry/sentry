@@ -15,6 +15,12 @@ import type {DashboardDetails, Widget} from './types';
 const POLL_INTERVAL_MS = 500;
 const POST_COMPLETE_POLL_MS = 5000;
 
+function buildEditOnPageContext(
+  dashboard: Pick<DashboardDetails, 'title' | 'widgets'>
+): string {
+  return `The user is editing an existing dashboard. The current dashboard state is:\n\n${JSON.stringify({title: dashboard.title, widgets: dashboard.widgets})}\n\nThis session must ONLY modify the dashboard artifact. Produce a COMPLETE dashboard artifact that incorporates the requested changes while preserving widgets the user did not ask to change.`;
+}
+
 async function startDashboardEditSession(
   orgSlug: string,
   message: string,
@@ -169,7 +175,10 @@ export function useSeerDashboardSession({
           await fetchMutation({
             url,
             method: 'POST',
-            data: {query: message},
+            data: {
+              query: message,
+              ...(dashboard ? {on_page_context: buildEditOnPageContext(dashboard)} : {}),
+            },
           });
           queryClient.invalidateQueries({queryKey});
         }
