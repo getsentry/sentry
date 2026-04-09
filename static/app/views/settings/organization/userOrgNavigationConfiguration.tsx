@@ -175,7 +175,6 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           description: t(
             "Manage settings for Seer's automated analysis across your organization"
           ),
-          show: ({organization}) => !!organization && !organization.hideAiFeatures,
           id: 'seer',
         },
         {

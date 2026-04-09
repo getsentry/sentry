@@ -114,6 +114,7 @@ export type KnownSentryApiUrls =
   | '/internal/packages/'
   | '/internal/preprod-artifact/$headArtifactId/info/'
   | '/internal/preprod-artifact/batch-delete/'
+  | '/internal/preprod-artifact/batch-rerun-analysis/'
   | '/internal/preprod-artifact/rerun-analysis/'
   | '/internal/project-config/'
   | '/internal/projectkey-cell-mappings/'

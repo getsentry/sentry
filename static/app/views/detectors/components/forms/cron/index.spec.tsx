@@ -43,7 +43,7 @@ describe('NewCronDetectorForm', () => {
 
   const renderForm = (routerConfig?: any) => {
     return render(
-      <DetectorFormProvider detectorType="monitor_check_in_failure" project={project}>
+      <DetectorFormProvider detectorType="monitor_check_in_failure">
         <NewCronDetectorForm />
       </DetectorFormProvider>,
       {

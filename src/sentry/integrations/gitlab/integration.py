@@ -33,7 +33,10 @@ from sentry.integrations.source_code_management.commit_context import (
     CommitContextIntegration,
     PRCommentWorkflow,
 )
-from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.source_code_management.repository import (
+    RepositoryInfo,
+    RepositoryIntegration,
+)
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -123,7 +126,10 @@ metadata = IntegrationMetadata(
 
 
 class GitlabIntegration(
-    RepositoryIntegration, GitlabIssuesSpec, GitlabIssueSyncSpec, CommitContextIntegration
+    RepositoryIntegration[GitLabApiClient],
+    GitlabIssuesSpec,
+    GitlabIssueSyncSpec,
+    CommitContextIntegration,
 ):
     codeowners_locations = ["CODEOWNERS", ".gitlab/CODEOWNERS", "docs/CODEOWNERS"]
 
@@ -164,18 +170,27 @@ class GitlabIntegration(
         # TODO: define this, used to migrate repositories
         return False
 
+    def get_repo_external_id(self, repo: Mapping[str, Any]) -> str:
+        instance = self.model.metadata["instance"]
+        return f"{instance}:{repo['id']}"
+
     def get_repositories(
         self,
         query: str | None = None,
         page_number_limit: int | None = None,
         accessible_only: bool = False,
-    ) -> list[dict[str, Any]]:
+    ) -> list[RepositoryInfo]:
         try:
             # Note: gitlab projects are the same things as repos everywhere else
             group = self.get_group_id()
             resp = self.get_client().search_projects(group, query)
             return [
-                {"identifier": repo["id"], "name": repo["name_with_namespace"]} for repo in resp
+                {
+                    "identifier": str(repo["id"]),
+                    "name": repo["name_with_namespace"],
+                    "external_id": self.get_repo_external_id(repo),
+                }
+                for repo in resp
             ]
         except (ApiForbiddenError, ApiUnauthorized) as e:
             raise IntegrationConfigurationError(self.message_from_error(e)) from e

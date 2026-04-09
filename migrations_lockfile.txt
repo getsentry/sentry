@@ -39,4 +39,4 @@ tempest: 0003_use_encrypted_char_field
 
 uptime: 0055_backfill_2xx_status_assertion
 
-workflow_engine: 0111_add_workflowfirehistory_date_added_index
+workflow_engine: 0112_drop_redundant_error_detector_workflows

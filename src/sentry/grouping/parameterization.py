@@ -1,16 +1,40 @@
 import dataclasses
+import logging
 import re
-from collections import OrderedDict, defaultdict
+from collections import Counter, OrderedDict, defaultdict
 from collections.abc import Sequence
 from ipaddress import ip_address, ip_interface, ip_network
-from typing import Callable
+from typing import Any, Callable
 
 from sentry.utils import metrics
+
+logger = logging.getLogger("sentry.events.grouping")
+
+
+# Counter for logging a set amount of example data. Not meant to be used directly. (Use the
+# `_log_example_data` helper instead.)
+LOGGING_COUNTER: Counter[str] = Counter()
 
 # Function parameterization regexes can specify to provide a customized replacement string. Can also
 # be used to do conditional replacement, by returning the original value in cases where replacement
 # shouldn't happen.
 ParameterizationReplacementFunction = Callable[[str], str]
+
+
+# Log examples, up to the given limit.
+def _log_example_data(
+    key: str,  # Key used for tracking log count and in logger `event` string
+    extra: dict[str, Any],  # Extra data to add to the log (should include example data)
+    limit: int = 100,  # Number of logs to be gathered per deployment
+) -> None:
+    # Note: In a multi-threaded environment, it's possible to run into a race condition where
+    # multiple threads are simultaneously logging what should theoretically be the last example. As
+    # result, we may end up logging a few more examples than the given limit. To fix this, we'd need
+    # to wrap everything here in a lock, but given that a few extra logs don't hurt anything, it's
+    # not worth blocking ingest by doing so.
+    if LOGGING_COUNTER[key] < limit:
+        logger.info(f"grouping.parameterization.{key}", extra=extra)
+        LOGGING_COUNTER[key] += 1
 
 
 @dataclasses.dataclass
@@ -444,6 +468,10 @@ class Parameterizer:
                     # to see how often our maybe-matches pan out to be actual matches.
                     metrics.incr(
                         "grouping.parameterization_false_positive", tags={"key": matched_key}
+                    )
+                    # TODO: Remove this once we have enough sample data
+                    _log_example_data(
+                        "ip_false_positive", extra={"input_str": input_str, "value": orig_value}
                     )
 
             return replacement_string

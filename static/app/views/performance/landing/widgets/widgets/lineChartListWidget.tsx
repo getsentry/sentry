@@ -25,6 +25,7 @@ import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {withApi} from 'sentry/utils/withApi';
 import {getResourcesEventViewQuery} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/settings';
@@ -105,6 +106,7 @@ const integrationEmptyStateWidgets = [
 
 export function LineChartListWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const mepSetting = useMEPSettingContext();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {organization, InteractiveTitle} = props;
@@ -618,6 +620,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
+                      navigate,
                     })
                   }
                 />
@@ -642,6 +645,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
+                      navigate,
                     })
                   }
                 />
@@ -673,6 +677,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
+                      navigate,
                     })
                   }
                 />
@@ -717,6 +722,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
+                      navigate,
                     })
                   }
                 />
@@ -745,6 +751,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
+                      navigate,
                     })
                   }
                 />
@@ -769,6 +776,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                       excludeTransaction(listItem.transaction!, {
                         eventView: props.eventView,
                         location,
+                        navigate,
                       })
                     }
                   />
@@ -789,6 +797,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
+                      navigate,
                     })
                   }
                 />

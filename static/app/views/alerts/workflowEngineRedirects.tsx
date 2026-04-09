@@ -176,18 +176,13 @@ export const withMetricIssueRedirect = <P extends Record<string, any>>(
   Component: React.ComponentType<P>
 ) => {
   return function MetricIssueRedirectWrapper(props: P) {
-    const organization = useOrganization();
     const location = useLocation();
     const alertId = location.query.alert as string | undefined;
     const notificationUuid = location.query.notification_uuid;
 
-    const hasWorkflowEngineMetricIssueUI = organization.features.includes(
-      'workflow-engine-metric-issue-ui'
-    );
-    const hasMetricIssues = hasWorkflowEngineMetricIssueUI;
-    const shouldRedirectToIssue = notificationUuid && alertId && hasMetricIssues;
+    const shouldRedirectToIssue = notificationUuid && alertId;
 
-    // If the org has metric issues, we want notification links to redirect to the metric issue details page
+    // We want notification links to redirect to the metric issue details page
     if (shouldRedirectToIssue) {
       return (
         <RedirectToIssue alertId={alertId}>

@@ -3,16 +3,11 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Form} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {fields} from 'sentry/data/forms/projectIssueGrouping';
 import {t, tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {EventGroupingConfig} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -23,29 +18,6 @@ import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSet
 export default function ProjectIssueGrouping() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
-
-  const queryKey = getApiUrl(
-    '/projects/$organizationIdOrSlug/$projectIdOrSlug/grouping-configs/',
-    {
-      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
-    }
-  );
-  const {
-    data: groupingConfigs,
-    isPending,
-    isError,
-    refetch,
-  } = useApiQuery<EventGroupingConfig[]>([queryKey], {staleTime: 0, gcTime: 0});
-
-  if (isPending) {
-    return <LoadingIndicator />;
-  }
-
-  if (isError) {
-    return (
-      <LoadingError message={t('Failed to load grouping configs')} onRetry={refetch} />
-    );
-  }
 
   const handleSubmit = (response: Project) => {
     // This will update our project context
@@ -58,10 +30,6 @@ export default function ProjectIssueGrouping() {
   const hasAccess = hasEveryAccess(['project:write'], {organization, project});
 
   const jsonFormProps = {
-    additionalFieldProps: {
-      organization,
-      groupingConfigs,
-    },
     features: new Set(organization.features),
     access,
     disabled: !hasAccess,

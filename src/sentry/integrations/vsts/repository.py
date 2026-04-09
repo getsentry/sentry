@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
@@ -11,22 +11,22 @@ from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.plugins.providers.integration_repository import RepositoryConfig
 
+if TYPE_CHECKING:
+    from sentry.integrations.vsts.integration import VstsIntegration as VstsIntegrationType  # NOQA
+
 MAX_COMMIT_DATA_REQUESTS = 90
 
 logger = logging.getLogger(__name__)
 
 
-class VstsRepositoryProvider(IntegrationRepositoryProvider):
+class VstsRepositoryProvider(IntegrationRepositoryProvider["VstsIntegrationType"]):
     name = "Azure DevOps"
     repo_provider = IntegrationProviderSlug.AZURE_DEVOPS.value
 
     def get_repository_data(
         self, organization: Organization, config: MutableMapping[str, Any]
     ) -> Mapping[str, str]:
-        from sentry.integrations.vsts.integration import VstsIntegration
-
         installation = self.get_installation(config.get("installation"), organization.id)
-        assert isinstance(installation, VstsIntegration), installation
         client = installation.get_client()
 
         repo_id = config["identifier"]
@@ -40,7 +40,7 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider):
                 "instance": installation.instance,
                 "project": repo["project"]["name"],
                 "name": repo["name"],
-                "external_id": str(repo["id"]),
+                "external_id": installation.get_repo_external_id(repo),
                 "url": repo["_links"]["web"]["href"],
             }
         )
@@ -78,6 +78,7 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider):
     def zip_commit_data(
         self, repo: Repository, commit_list: list[dict[str, Any]], organization_id: int
     ) -> list[dict[str, Any]]:
+        assert repo.external_id is not None
         installation = self.get_installation(repo.integration_id, organization_id)
         client = installation.get_client()
         n = 0
@@ -104,6 +105,7 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider):
         self, repo: Repository, start_sha: str | None, end_sha: str
     ) -> Sequence[Mapping[str, str]]:
         """TODO(mgaeta): This function is kinda a mess."""
+        assert repo.external_id is not None
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
 

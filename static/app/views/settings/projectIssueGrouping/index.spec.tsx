@@ -13,47 +13,15 @@ describe('projectIssueGrouping', () => {
   const project = projects[0]!;
 
   it('renders successfully', async () => {
-    const request = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/grouping-configs/`,
-      body: [],
-    });
-
     render(<ProjectIssueGrouping />, {
       organization,
       outletContext: {project},
     });
 
-    expect(request).toHaveBeenCalled();
     expect(await screen.findByText('Issue Grouping')).toBeInTheDocument();
   });
 
-  it('renders error', async () => {
-    const request = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/grouping-configs/`,
-      body: {
-        detail: 'Internal Error',
-      },
-      statusCode: 500,
-    });
-
-    render(<ProjectIssueGrouping />, {
-      organization,
-      outletContext: {project},
-    });
-
-    expect(request).toHaveBeenCalled();
-    expect(
-      await screen.findByText('Failed to load grouping configs')
-    ).toBeInTheDocument();
-  });
-
   it('shows derived grouping enhancements only for superusers', async () => {
-    // Mock the API response
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/grouping-configs/`,
-      body: [],
-    });
-
     // First render with a non-superuser
     const {rerender} = render(<ProjectIssueGrouping />, {
       organization,
