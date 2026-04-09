@@ -245,7 +245,8 @@ def run_taskworker(
             health_check_file_path=health_check_file_path,
             health_check_sec_per_touch=health_check_sec_per_touch,
             grpc_port=worker_rpc_port,
-            push_mode=push_mode**options,
+            push_mode=push_mode,
+            **options,
         )
         exitcode = worker.start()
         raise SystemExit(exitcode)
