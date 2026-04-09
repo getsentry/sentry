@@ -20,6 +20,7 @@ from sentry.seer.explorer.client_utils import (
     ExplorerRunsRequest,
     ExplorerUpdateRequest,
     collect_user_org_context,
+    create_explorer_api_token,
     fetch_run_status,
     make_explorer_chat_request,
     make_explorer_runs_request,
@@ -269,7 +270,11 @@ class SeerExplorerClient:
             raise ValueError("artifact_key and artifact_schema must be provided together")
 
         user_org_context = collect_user_org_context(self.user, self.organization, request=request)
-        user_auth_token = user_org_context.pop("user_auth_token", None)
+        user_auth_token = (
+            create_explorer_api_token(self.user, self.organization)
+            if self.enable_code_mode_tools
+            else None
+        )
 
         chat_body: ExplorerChatRequest = ExplorerChatRequest(
             organization_id=self.organization.id,
@@ -372,8 +377,11 @@ class SeerExplorerClient:
         if bool(artifact_schema) != bool(artifact_key):
             raise ValueError("artifact_key and artifact_schema must be provided together")
 
-        user_org_context = collect_user_org_context(self.user, self.organization, request=request)
-        user_auth_token = user_org_context.pop("user_auth_token", None)
+        user_auth_token = (
+            create_explorer_api_token(self.user, self.organization)
+            if self.enable_code_mode_tools
+            else None
+        )
 
         chat_body: ExplorerChatRequest = ExplorerChatRequest(
             organization_id=self.organization.id,

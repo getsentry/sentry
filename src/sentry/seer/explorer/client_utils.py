@@ -287,16 +287,27 @@ def collect_user_org_context(
     # Get IP address from http request, if provided
     user_ip: str | None = request.META.get("REMOTE_ADDR") if request else None
 
-    # Create a short-lived API token for Seer to call back into Sentry on behalf of the user
-    user_auth_token: str | None = None
+    return {
+        "org_slug": organization.slug,
+        "user_id": user.id,
+        "user_ip": user_ip,
+        "user_name": user_name,
+        "user_email": user.email,
+        "user_timezone": user_timezone,
+        "user_teams": user_teams,
+        "user_projects": user_projects,
+        "all_org_projects": all_org_projects,
+    }
+
+
+def create_explorer_api_token(user: SentryUser | RpcUser, organization: Organization) -> str | None:
+    """Create a short-lived read-only API token for Seer to call back into Sentry."""
     try:
         from sentry.models.apitoken import ApiToken
         from sentry.types.token import AuthTokenType
-        from sentry.users.models.user import User
+        from sentry.users.models.user import User as UserModel
 
-        # request.user may be an RpcUser proxy — ApiToken needs the real User model
-        real_user = User.objects.get(id=user.id)
-
+        real_user = UserModel.objects.get(id=user.id)
         token = ApiToken.objects.create(
             user=real_user,
             token_type=AuthTokenType.USER,
@@ -311,30 +322,10 @@ def collect_user_org_context(
             ],
             expires_at=timezone.now() + timedelta(hours=1),
         )
-        user_auth_token = token.plaintext_token
-        logger.info(
-            "seer_explorer.auth_token_created",
-            extra={
-                "user_id": user.id,
-                "org_id": organization.id,
-                "expires_at": str(token.expires_at),
-            },
-        )
+        return token.plaintext_token
     except Exception:
         logger.exception("Failed to create short-lived API token for Seer Explorer")
-
-    return {
-        "org_slug": organization.slug,
-        "user_id": user.id,
-        "user_ip": user_ip,
-        "user_name": user_name,
-        "user_email": user.email,
-        "user_timezone": user_timezone,
-        "user_teams": user_teams,
-        "user_projects": user_projects,
-        "all_org_projects": all_org_projects,
-        "user_auth_token": user_auth_token,
-    }
+        return None
 
 
 def fetch_run_status(run_id: int, organization: Organization) -> SeerRunState:
