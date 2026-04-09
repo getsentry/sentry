@@ -9,7 +9,7 @@ export function useBillingDetails() {
 
   return useApiQuery<BillingDetails>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/billing-details/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/billing-details/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],

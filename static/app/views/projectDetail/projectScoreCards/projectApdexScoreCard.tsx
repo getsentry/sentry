@@ -57,7 +57,7 @@ const useApdex = (props: Props) => {
 
   const currentQuery = useApiQuery<TableData>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/events/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
@@ -78,7 +78,7 @@ const useApdex = (props: Props) => {
 
   const previousQuery = useApiQuery<TableData>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/events/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {

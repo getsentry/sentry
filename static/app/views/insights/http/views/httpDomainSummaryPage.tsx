@@ -198,21 +198,21 @@ export function HTTPDomainSummaryPage() {
 
                     <MetricReadout
                       title={t('3XXs')}
-                      value={domainMetrics?.[0]?.[`http_response_rate(3)`]}
+                      value={domainMetrics?.[0]?.['http_response_rate(3)']}
                       unit="percentage"
                       isLoading={areDomainMetricsLoading}
                     />
 
                     <MetricReadout
                       title={t('4XXs')}
-                      value={domainMetrics?.[0]?.[`http_response_rate(4)`]}
+                      value={domainMetrics?.[0]?.['http_response_rate(4)']}
                       unit="percentage"
                       isLoading={areDomainMetricsLoading}
                     />
 
                     <MetricReadout
                       title={t('5XXs')}
-                      value={domainMetrics?.[0]?.[`http_response_rate(5)`]}
+                      value={domainMetrics?.[0]?.['http_response_rate(5)']}
                       unit="percentage"
                       isLoading={areDomainMetricsLoading}
                     />

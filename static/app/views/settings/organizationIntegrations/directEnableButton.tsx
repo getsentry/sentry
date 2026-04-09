@@ -38,14 +38,14 @@ export function DirectEnableButton({
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: [
-          getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+          getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
             path: {organizationIdOrSlug: organization.slug},
           }),
         ],
       });
       queryClient.invalidateQueries({
         queryKey: [
-          getApiUrl(`/organizations/$organizationIdOrSlug/config/integrations/`, {
+          getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
             path: {organizationIdOrSlug: organization.slug},
           }),
         ],

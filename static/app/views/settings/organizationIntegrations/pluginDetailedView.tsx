@@ -52,7 +52,7 @@ function makePluginQueryKey({
   pluginSlug: string;
 }): ApiQueryKey {
   return [
-    getApiUrl(`/organizations/$organizationIdOrSlug/plugins/configs/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/plugins/configs/', {
       path: {organizationIdOrSlug: orgSlug},
     }),
     {query: {plugins: pluginSlug}},

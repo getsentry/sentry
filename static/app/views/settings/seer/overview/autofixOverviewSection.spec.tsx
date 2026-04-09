@@ -38,7 +38,7 @@ describe('autofixOverviewSection', () => {
   describe('useAutofixOverviewData', () => {
     function setupSettingsMock(settings: AutofixAutomationSettings[]) {
       return MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/autofix/automation-settings/`,
+        url: '/organizations/org-slug/autofix/automation-settings/',
         method: 'GET',
         body: settings,
       });

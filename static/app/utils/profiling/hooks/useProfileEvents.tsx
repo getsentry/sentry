@@ -35,11 +35,11 @@ export function useProfileEvents<F extends string>({
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  query = `(has:profile.id OR (has:profiler.id has:thread.id)) ${query ? `(${query})` : ''}`;
+  query = `is_transaction:true (has:profile.id OR (has:profiler.id has:thread.id)) ${query ? `(${query})` : ''}`;
 
   const endpointOptions = {
     query: {
-      dataset: 'discover',
+      dataset: 'spans',
       referrer,
       project: projects || selection.projects,
       environment: selection.environments,
@@ -88,5 +88,4 @@ type ProfilingFieldType =
   | 'p75()'
   | 'p95()'
   | 'p99()'
-  | 'count()'
-  | 'last_seen()';
+  | 'count()';

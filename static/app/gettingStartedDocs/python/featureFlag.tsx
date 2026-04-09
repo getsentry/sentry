@@ -16,7 +16,7 @@ const FEATURE_FLAG_CONFIGURATION_MAP: Record<
   FeatureFlagConfiguration
 > = {
   [FeatureFlagProviderEnum.GENERIC]: {
-    integrationName: ``,
+    integrationName: '',
     makeConfigureCode: (dsn: string) => `sentry_sdk.init(
     dsn="${dsn}",
     # Add data like request headers and IP for users, if applicable;
@@ -34,7 +34,7 @@ sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
   },
 
   [FeatureFlagProviderEnum.LAUNCHDARKLY]: {
-    integrationName: `LaunchDarklyIntegration`,
+    integrationName: 'LaunchDarklyIntegration',
     makeConfigureCode: (dsn: string) => `import sentry_sdk
 from sentry_sdk.integrations.launchdarkly import LaunchDarklyIntegration
 import ldclient
@@ -54,7 +54,7 @@ sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
   },
 
   [FeatureFlagProviderEnum.OPENFEATURE]: {
-    integrationName: `OpenFeatureIntegration`,
+    integrationName: 'OpenFeatureIntegration',
     makeConfigureCode: (dsn: string) => `import sentry_sdk
 from sentry_sdk.integrations.openfeature import OpenFeatureIntegration
 from openfeature import api
@@ -74,7 +74,7 @@ sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
   },
 
   [FeatureFlagProviderEnum.STATSIG]: {
-    integrationName: `StatsigIntegration`,
+    integrationName: 'StatsigIntegration',
     makeConfigureCode: (dsn: string) => `import sentry_sdk
 from sentry_sdk.integrations.statsig import StatsigIntegration
 from statsig.statsig_user import StatsigUser
@@ -97,7 +97,7 @@ sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
   },
 
   [FeatureFlagProviderEnum.UNLEASH]: {
-    integrationName: `UnleashIntegration`,
+    integrationName: 'UnleashIntegration',
     makeConfigureCode: (dsn: string) => `import sentry_sdk
 from sentry_sdk.integrations.unleash import UnleashIntegration
 from UnleashClient import UnleashClient
@@ -144,7 +144,7 @@ export const featureFlag: OnboardingConfig = {
             type: 'text',
             text:
               featureFlagOptions.integration === FeatureFlagProviderEnum.GENERIC
-                ? `You don't need an integration for a generic usecase. Simply use this API after initializing Sentry.`
+                ? "You don't need an integration for a generic usecase. Simply use this API after initializing Sentry."
                 : tct('Add [name] to your integrations list.', {
                     name: <code>{integrationName}</code>,
                   }),

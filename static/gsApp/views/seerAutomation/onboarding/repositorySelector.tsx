@@ -146,7 +146,7 @@ export function RepositorySelector() {
               hasAccess ? (
                 <Text density="comfortable">
                   {tct(
-                    `Can't find a repository? [link:Manage your GitHub integration] and ensure you have granted access to the correct repositories.`,
+                    "Can't find a repository? [link:Manage your GitHub integration] and ensure you have granted access to the correct repositories.",
                     {
                       link: (
                         <IntegrationButton

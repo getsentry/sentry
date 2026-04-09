@@ -142,7 +142,7 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     }
 
     // shouldn't happen (issue_id required)
-    return isLoading ? `Inspecting issue...` : `Inspected issue`;
+    return isLoading ? 'Inspecting issue...' : 'Inspected issue';
   },
 
   get_event_details: (args, isLoading, resultMetadata) => {
@@ -168,7 +168,7 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     }
 
     // shouldn't happen (either event_id or issue_id required)
-    return isLoading ? `Analyzing event...` : `Analyzed event`;
+    return isLoading ? 'Analyzing event...' : 'Analyzed event';
   },
 
   code_search: (args, isLoading) => {

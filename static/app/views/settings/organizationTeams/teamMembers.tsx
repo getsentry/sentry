@@ -87,7 +87,7 @@ function AddMemberDropdown({
   const debouncedMemberQuery = useDebouncedValue(memberQuery, 50);
   const {data: orgMembers = [], isFetching: isOrgMembersFetching} = useApiQuery<Member[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/members/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/members/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {

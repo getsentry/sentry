@@ -77,7 +77,7 @@ function WhatsNewContent({
       setApiQueryData<Broadcast[]>(
         queryClient,
         [
-          getApiUrl(`/organizations/$organizationIdOrSlug/broadcasts/`, {
+          getApiUrl('/organizations/$organizationIdOrSlug/broadcasts/', {
             path: {organizationIdOrSlug: organization.slug},
           }),
           {query: {show: 'latest', limit: '3'}},
@@ -193,7 +193,7 @@ export function PrimaryNavigationWhatsNew() {
   const organization = useOrganization();
   const {isPending, data: broadcasts} = useApiQuery<Broadcast[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/broadcasts/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/broadcasts/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: {show: 'latest', limit: '3'}},

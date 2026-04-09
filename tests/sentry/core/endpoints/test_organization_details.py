@@ -2234,7 +2234,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
             assert self.has_2fa.has_2fa()
 
     def assert_2fa_email_equal(self, outbox, expected):
-        invite_url_regex = re.compile(r"http://.*/accept/[0-9]+/[a-f0-9]+/")
+        invite_url_regex = re.compile(r"http://.*/accept/[^/]+/[0-9]+/[a-f0-9]+/")
         assert len(outbox) == len(expected)
         assert sorted(email.to[0] for email in outbox) == sorted(expected)
         for email in outbox:

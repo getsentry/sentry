@@ -186,7 +186,7 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
             {
               label: 'Labels',
               required: false,
-              choices: [['bug', `bug`]],
+              choices: [['bug', 'bug']],
               default: undefined,
               type: 'select',
               multiple: true,
@@ -198,7 +198,7 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
 
       await renderTicketRuleModal();
       expect(
-        screen.queryAllByText(`Could not fetch saved option for Labels. Please reselect.`)
+        screen.queryAllByText('Could not fetch saved option for Labels. Please reselect.')
       ).toHaveLength(0);
       await selectEvent.select(
         screen.getByRole('textbox', {name: 'Issue Type'}),

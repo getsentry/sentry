@@ -52,6 +52,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
                 "name": "sentry",
                 "identifier": "getsentry/sentry",
                 "default_branch": "master",
+                "external_id": "12345",
             },
         ]
 
@@ -162,6 +163,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
                 "name": "sentry",
                 "identifier": "getsentry/sentry",
                 "default_branch": "master",
+                "external_id": "12345",
             },
         ]
 
@@ -273,6 +275,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
                 "name": "sentry",
                 "identifier": "getsentry/sentry",
                 "default_branch": "master",
+                "external_id": "12345",
             },
         ]
 

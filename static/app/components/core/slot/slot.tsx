@@ -226,7 +226,7 @@ function makeSlotProvider<T extends Slot>(
     return <context.Provider value={contextValue}>{children}</context.Provider>;
   }
 
-  SlotProvider.displayName = `Slot.Provider`;
+  SlotProvider.displayName = 'Slot.Provider';
   return SlotProvider as (props: SlotProviderProps) => React.ReactNode;
 }
 

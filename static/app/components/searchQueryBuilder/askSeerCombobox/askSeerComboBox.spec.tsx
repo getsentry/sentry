@@ -25,7 +25,7 @@ const askSeerMutationOptions = mutationOptions({
       status: string;
       unsupported_reason: string | null;
     }>({
-      url: `/organizations/org-slug/trace-explorer-ai/query/`,
+      url: '/organizations/org-slug/trace-explorer-ai/query/',
       method: 'POST',
       data: {},
     });

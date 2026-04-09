@@ -98,7 +98,7 @@ function makeIntegrationQueryKey({
   orgSlug: string;
 }): ApiQueryKey {
   return [
-    getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
       path: {organizationIdOrSlug: orgSlug},
     }),
     {
@@ -129,7 +129,7 @@ export default function IntegrationDetailedView() {
     isError: isInformationError,
   } = useApiQuery<IntegrationInformation>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/config/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
@@ -245,7 +245,7 @@ export default function IntegrationDetailedView() {
         });
         queryClient.invalidateQueries({
           queryKey: [
-            getApiUrl(`/organizations/$organizationIdOrSlug/config/integrations/`, {
+            getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
               path: {organizationIdOrSlug: organization.slug},
             }),
           ],

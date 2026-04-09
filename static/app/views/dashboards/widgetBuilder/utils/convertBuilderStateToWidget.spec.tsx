@@ -37,7 +37,9 @@ describe('convertBuilderStateToWidget', () => {
           selectedAggregate: undefined,
         },
       ],
+      legendType: null,
       thresholds: undefined,
+      axisRange: undefined,
     });
   });
 
@@ -297,5 +299,31 @@ describe('convertBuilderStateToWidget', () => {
       thresholds: undefined,
       axisRange: undefined,
     });
+  });
+
+  it('sends null legendType when legend breakdown is not set', () => {
+    const mockState: WidgetBuilderState = {
+      dataset: WidgetType.ERRORS,
+      displayType: DisplayType.LINE,
+      legendType: undefined,
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    // legendType must be null (not undefined) so it survives JSON serialization
+    // and the backend clears the previously saved value
+    expect(widget.legendType).toBeNull();
+  });
+
+  it('preserves breakdown legendType when set', () => {
+    const mockState: WidgetBuilderState = {
+      dataset: WidgetType.ERRORS,
+      displayType: DisplayType.LINE,
+      legendType: 'breakdown',
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.legendType).toBe('breakdown');
   });
 });

@@ -86,7 +86,7 @@ window.sentryOnLoad = function () {
         {
           type: 'text',
           text: tct(
-            `For a full list of User Feedback configuration options, [link:read the docs].`,
+            'For a full list of User Feedback configuration options, [link:read the docs].',
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/platforms/javascript/user-feedback/configuration/" />

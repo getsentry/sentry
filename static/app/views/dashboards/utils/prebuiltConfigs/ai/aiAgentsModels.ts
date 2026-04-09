@@ -23,11 +23,11 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           name: '',
           conditions: AI_GENERATIONS_FILTER,
           fields: [
-            SpanFields.GEN_AI_REQUEST_MODEL,
+            SpanFields.GEN_AI_RESPONSE_MODEL,
             `sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`,
           ],
           aggregates: [`sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`],
-          columns: [SpanFields.GEN_AI_REQUEST_MODEL],
+          columns: [SpanFields.GEN_AI_RESPONSE_MODEL],
           fieldAliases: [t('Model'), t('Total Cost')],
           orderby: `-sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`,
         },
@@ -46,11 +46,11 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           name: '',
           conditions: AI_GENERATIONS_FILTER,
           fields: [
-            SpanFields.GEN_AI_REQUEST_MODEL,
+            SpanFields.GEN_AI_RESPONSE_MODEL,
             `sum(${SpanFields.GEN_AI_USAGE_TOTAL_TOKENS})`,
           ],
           aggregates: [`sum(${SpanFields.GEN_AI_USAGE_TOTAL_TOKENS})`],
-          columns: [SpanFields.GEN_AI_REQUEST_MODEL],
+          columns: [SpanFields.GEN_AI_RESPONSE_MODEL],
           fieldAliases: [t('Model'), t('Total Tokens')],
           orderby: `-sum(${SpanFields.GEN_AI_USAGE_TOTAL_TOKENS})`,
         },
@@ -108,7 +108,7 @@ const MODELS_TABLE = {
       name: '',
       conditions: AI_GENERATIONS_FILTER,
       fields: [
-        SpanFields.GEN_AI_REQUEST_MODEL,
+        SpanFields.GEN_AI_RESPONSE_MODEL,
         'count()',
         'equation|count_if(span.status,equals,internal_error)',
         `avg(${SpanFields.SPAN_DURATION})`,
@@ -130,7 +130,7 @@ const MODELS_TABLE = {
         `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS})`,
         `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING})`,
       ],
-      columns: [SpanFields.GEN_AI_REQUEST_MODEL],
+      columns: [SpanFields.GEN_AI_RESPONSE_MODEL],
       fieldAliases: [
         t('Model'),
         t('Requests'),
@@ -164,8 +164,8 @@ export const AI_AGENTS_MODELS_PREBUILT_CONFIG: PrebuiltDashboard = {
       {
         dataset: WidgetType.SPANS,
         tag: {
-          key: 'gen_ai.request.model',
-          name: 'gen_ai.request.model',
+          key: 'gen_ai.response.model',
+          name: 'gen_ai.response.model',
           kind: FieldKind.TAG,
         },
         value: '',

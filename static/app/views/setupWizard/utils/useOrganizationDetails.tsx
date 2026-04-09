@@ -10,7 +10,7 @@ export function useOrganizationDetails({
 }) {
   return useQuery({
     queryKey: [
-      getApiUrl(`/organizations/$organizationIdOrSlug/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/', {
         path: {organizationIdOrSlug: organization?.slug!},
       }),
       {

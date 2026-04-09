@@ -47,7 +47,7 @@ function makeDebugFilesQueryKey({
   query: {cursor: string | undefined; query: string | undefined};
 }): ApiQueryKey {
   return [
-    getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/`, {
+    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/', {
       path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
     }),
     {query},
@@ -62,7 +62,7 @@ function makeSymbolSourcesQueryKey({
   platform?: string;
 }): ApiQueryKey {
   return [
-    getApiUrl(`/organizations/$organizationIdOrSlug/builtin-symbol-sources/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/builtin-symbol-sources/', {
       path: {organizationIdOrSlug: orgSlug},
     }),
     {query: {platform}},

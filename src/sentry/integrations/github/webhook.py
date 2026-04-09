@@ -13,6 +13,7 @@ from typing import Any, Protocol
 import orjson
 import sentry_sdk
 from dateutil.parser import parse as parse_date
+from django.conf import settings
 from django.db import IntegrityError, router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
@@ -1158,6 +1159,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
                 "type": IntegrationProviderSlug.GITHUB.value,
             },
             silo="region" if SiloMode.get_current_mode() == SiloMode.CELL else "control",
+            is_dev=settings.IS_DEV,
         )
 
         return HttpResponse(status=204)

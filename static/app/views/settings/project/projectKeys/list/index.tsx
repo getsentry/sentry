@@ -51,7 +51,7 @@ export default function ProjectKeys() {
     getResponseHeader,
   } = useApiQuery<ProjectKey[]>(
     [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/`, {
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/', {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
       }),
       {

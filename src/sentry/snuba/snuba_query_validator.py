@@ -9,7 +9,6 @@ from rest_framework import serializers
 from snuba_sdk import Column, Condition, Entity, Limit, Op
 
 from sentry import features
-from sentry.api.serializers.rest_framework import EnvironmentField
 from sentry.exceptions import (
     IncompatibleMetricsQuery,
     InvalidSearchQuery,
@@ -23,6 +22,7 @@ from sentry.incidents.logic import (
     translate_aggregate_field,
 )
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
+from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.search.eap.constants import VALID_GRANULARITIES
 from sentry.search.eap.trace_metrics.validator import validate_trace_metrics_aggregate
@@ -90,7 +90,11 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
     query = serializers.CharField(required=True, allow_blank=True)
     aggregate = serializers.CharField(required=True)
     time_window = serializers.IntegerField(required=True)
-    environment = EnvironmentField(required=True, allow_null=True)
+    environment = serializers.CharField(
+        required=True,
+        allow_null=True,
+        max_length=64,
+    )
     event_types = serializers.ListField(
         child=serializers.CharField(),
     )
@@ -123,6 +127,23 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         # if false, time_window is interpreted as minutes.
         # TODO: only accept time_window in seconds once AlertRuleSerializer is removed
         self.time_window_seconds = timeWindowSeconds
+
+    def validate_environment(self, value: str | None) -> Environment | None:
+        """
+        This is not using the `EnvironmentField` so we can inline create new envs
+        inline when creating alerts. The use case is when a new environment is needed
+        for an alert, but there haven't been any events ingested yet.
+        """
+        if value is None:
+            return None
+
+        try:
+            return Environment.get_or_create(
+                project=self.context["project"],
+                name=value,
+            )
+        except Exception:
+            raise serializers.ValidationError("Failed to retrieve or create environment.")
 
     def validate_aggregate(self, aggregate: str) -> str:
         """

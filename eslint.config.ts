@@ -405,6 +405,7 @@ export default typescript.config([
       'prefer-promise-reject-errors': 'off', // Disabled in favor of @typescript-eslint/prefer-promise-reject-errors
       'object-shorthand': ['error', 'properties'],
       'prefer-arrow-callback': ['error', {allowNamedFunctions: true}],
+      quotes: ['error', 'single', {avoidEscape: true, allowTemplateLiterals: false}],
       radix: 'error',
       'require-await': 'off', // Disabled in favor of @typescript-eslint/require-await
       'spaced-comment': [

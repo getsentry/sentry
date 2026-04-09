@@ -449,7 +449,7 @@ export function DataScrubFormModal({
                           {containsRootDeepWildcard(sourceValue) && (
                             <Alert variant="warning" style={{marginTop: '8px'}}>
                               {t(
-                                `Deep wildcards ('**') apply to all datasets unless negated (eg. ** || !$logs.**)`
+                                "Deep wildcards ('**') apply to all datasets unless negated (eg. ** || !$logs.**)"
                               )}
                             </Alert>
                           )}

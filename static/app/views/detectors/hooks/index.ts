@@ -1,16 +1,30 @@
+import {queryOptions} from '@tanstack/react-query';
+
 import {t} from 'sentry/locale';
 import {AlertStore} from 'sentry/stores/alertStore';
+import type {Organization} from 'sentry/types/organization';
 import {
   type BaseDetectorUpdatePayload,
   type Detector,
+  type UptimeDetector,
 } from 'sentry/types/workflowEngine/detectors';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-interface UseDetectorsQueryKeyOptions {
+interface DetectorTypeMap {
+  uptime: UptimeDetector;
+}
+
+type DetectorByType<T extends keyof DetectorTypeMap | undefined> =
+  T extends keyof DetectorTypeMap ? DetectorTypeMap[T] : Detector;
+
+interface UseDetectorsApiOptionsParams<
+  TType extends keyof DetectorTypeMap | undefined = undefined,
+> {
   cursor?: string;
   ids?: string[];
   /**
@@ -23,84 +37,73 @@ interface UseDetectorsQueryKeyOptions {
   projects?: number[];
   query?: string;
   sortBy?: string;
+  /**
+   * When set, the query automatically includes `type:{value}` and
+   * the return type narrows to the matching detector subtype.
+   */
+  type?: TType;
 }
 
 const createDetectorQuery = (
   query: string | undefined,
-  options: {includeIssueStreamDetectors: boolean}
+  options: {includeIssueStreamDetectors: boolean; type?: string}
 ) => {
-  if (options.includeIssueStreamDetectors) {
-    return query;
+  const parts: string[] = [];
+  if (!options.includeIssueStreamDetectors) {
+    parts.push('!type:issue_stream');
   }
-
-  return `!type:issue_stream ${query ?? ''}`.trim();
+  if (options.type) {
+    parts.push(`type:${options.type}`);
+  }
+  if (query) {
+    parts.push(query);
+  }
+  return parts.join(' ') || undefined;
 };
 
-export const makeDetectorListQueryKey = ({
-  orgSlug,
-  query,
-  sortBy,
-  projects,
-  limit,
-  cursor,
-  ids,
-  includeIssueStreamDetectors = false,
-}: {
-  orgSlug: string;
-  cursor?: string;
-  ids?: string[];
-  includeIssueStreamDetectors?: boolean;
-  limit?: number;
-  projects?: number[];
-  query?: string;
-  sortBy?: string;
-}): ApiQueryKey => [
-  getApiUrl('/organizations/$organizationIdOrSlug/detectors/', {
-    path: {organizationIdOrSlug: orgSlug},
-  }),
+export function detectorListApiOptions<
+  TType extends keyof DetectorTypeMap | undefined = undefined,
+>(
+  organization: Organization,
   {
-    query: {
-      query: createDetectorQuery(query, {includeIssueStreamDetectors}),
-      sortBy,
-      project: projects,
-      per_page: limit,
-      cursor,
-      id: ids,
-    },
-  },
-];
-
-export function useDetectorsQuery<T extends Detector = Detector>(
-  {
-    ids,
     query,
     sortBy,
     projects,
     limit,
     cursor,
-    includeIssueStreamDetectors,
-  }: UseDetectorsQueryKeyOptions = {},
-  queryOptions: Partial<UseApiQueryOptions<T[]>> = {}
+    ids,
+    type,
+    includeIssueStreamDetectors = false,
+  }: UseDetectorsApiOptionsParams<TType> = {} as UseDetectorsApiOptionsParams<TType>
 ) {
-  const org = useOrganization();
+  return queryOptions({
+    ...apiOptions.as<Array<DetectorByType<TType>>>()(
+      '/organizations/$organizationIdOrSlug/detectors/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {
+          query: createDetectorQuery(query, {includeIssueStreamDetectors, type}),
+          sortBy,
+          project: projects,
+          per_page: limit,
+          cursor,
+          id: ids,
+        },
+        staleTime: 0,
+      }
+    ),
+    retry: false,
+  });
+}
 
-  return useApiQuery<T[]>(
-    makeDetectorListQueryKey({
-      orgSlug: org.slug,
-      query,
-      sortBy,
-      projects,
-      limit,
-      cursor,
-      ids,
-      includeIssueStreamDetectors,
-    }),
-    {
-      staleTime: 0,
-      retry: false,
-      ...queryOptions,
-    }
-  );
+/**
+ * Returns a query key prefix that matches all detector list queries
+ * regardless of filters. Use with `invalidateQueries` after mutations.
+ */
+export function allDetectorListsQueryKey(organization: Organization) {
+  return detectorListApiOptions(organization, {
+    includeIssueStreamDetectors: true,
+  }).queryKey;
 }
 
 export function useCreateDetector<T extends Detector = Detector>() {
@@ -124,11 +127,7 @@ export function useCreateDetector<T extends Detector = Detector>() {
       ),
     onSuccess: _ => {
       queryClient.invalidateQueries({
-        queryKey: [
-          getApiUrl('/organizations/$organizationIdOrSlug/detectors/', {
-            path: {organizationIdOrSlug: org.slug},
-          }),
-        ],
+        queryKey: allDetectorListsQueryKey(org),
       });
     },
     onError: _ => {
@@ -155,11 +154,7 @@ export function useUpdateDetector<T extends Detector = Detector>() {
       ),
     onSuccess: (_, data) => {
       queryClient.invalidateQueries({
-        queryKey: [
-          getApiUrl('/organizations/$organizationIdOrSlug/detectors/', {
-            path: {organizationIdOrSlug: org.slug},
-          }),
-        ],
+        queryKey: allDetectorListsQueryKey(org),
       });
       queryClient.invalidateQueries({
         queryKey: [
@@ -189,13 +184,13 @@ export const makeDetectorDetailsQueryKey = ({
 
 export function useDetectorQuery<T extends Detector = Detector>(
   detectorId: string,
-  queryOptions: Partial<UseApiQueryOptions<T>> = {}
+  options: Partial<UseApiQueryOptions<T>> = {}
 ) {
   const org = useOrganization();
 
   return useApiQuery<T>(makeDetectorDetailsQueryKey({orgSlug: org.slug, detectorId}), {
     staleTime: 0,
     retry: false,
-    ...queryOptions,
+    ...options,
   });
 }
