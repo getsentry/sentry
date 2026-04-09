@@ -26,7 +26,7 @@ import {closeModal} from 'sentry/actionCreators/modal';
 import * as modalActions from 'sentry/actionCreators/modal';
 import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
-import {CMDKAction, CMDKGroup} from 'sentry/components/commandPalette/ui/cmdk';
+import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import type {CMDKActionData} from 'sentry/components/commandPalette/ui/cmdk';
 import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
 import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
@@ -43,9 +43,9 @@ function ActionsToJSX({actions}: {actions: CommandPaletteAction[]}) {
       {actions.map((action, i) => {
         if ('actions' in action) {
           return (
-            <CMDKGroup key={i} display={action.display} keywords={action.keywords}>
+            <CMDKAction key={i} display={action.display} keywords={action.keywords}>
               <ActionsToJSX actions={action.actions} />
-            </CMDKGroup>
+            </CMDKAction>
           );
         }
         if ('to' in action) {

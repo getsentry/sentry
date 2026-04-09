@@ -46,7 +46,7 @@ import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useStarredIssueViews';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 
-import {CMDKAction, CMDKGroup} from './cmdk';
+import {CMDKAction} from './cmdk';
 import {CommandPaletteSlot} from './commandPaletteSlot';
 
 const DSN_ICONS: React.ReactElement[] = [
@@ -82,8 +82,8 @@ export function GlobalCommandPaletteActions() {
 
   return (
     <CommandPaletteSlot name="global">
-      <CMDKGroup display={{label: t('Go to...')}}>
-        <CMDKGroup display={{label: t('Issues'), icon: <IconIssues />}}>
+      <CMDKAction display={{label: t('Go to...')}}>
+        <CMDKAction display={{label: t('Issues'), icon: <IconIssues />}}>
           <CMDKAction display={{label: t('Feed')}} to={`${prefix}/issues/`} />
           {Object.values(ISSUE_TAXONOMY_CONFIG).map(config => (
             <CMDKAction
@@ -104,9 +104,9 @@ export function GlobalCommandPaletteActions() {
               to={`${prefix}/issues/views/${starredView.id}/`}
             />
           ))}
-        </CMDKGroup>
+        </CMDKAction>
 
-        <CMDKGroup display={{label: t('Explore'), icon: <IconCompass />}}>
+        <CMDKAction display={{label: t('Explore'), icon: <IconCompass />}}>
           <CMDKAction display={{label: t('Traces')}} to={`${prefix}/explore/traces/`} />
           {organization.features.includes('ourlogs-enabled') && (
             <CMDKAction display={{label: t('Logs')}} to={`${prefix}/explore/logs/`} />
@@ -135,14 +135,14 @@ export function GlobalCommandPaletteActions() {
             display={{label: t('All Queries')}}
             to={`${prefix}/explore/saved-queries/`}
           />
-        </CMDKGroup>
+        </CMDKAction>
 
-        <CMDKGroup display={{label: t('Dashboards'), icon: <IconDashboard />}}>
+        <CMDKAction display={{label: t('Dashboards'), icon: <IconDashboard />}}>
           <CMDKAction
             display={{label: t('All Dashboards')}}
             to={`${prefix}/dashboards/`}
           />
-          <CMDKGroup display={{label: t('Starred Dashboards'), icon: <IconStar />}}>
+          <CMDKAction display={{label: t('Starred Dashboards'), icon: <IconStar />}}>
             {starredDashboards.map(dashboard => (
               <CMDKAction
                 key={dashboard.id}
@@ -150,11 +150,11 @@ export function GlobalCommandPaletteActions() {
                 to={`${prefix}/dashboard/${dashboard.id}/`}
               />
             ))}
-          </CMDKGroup>
-        </CMDKGroup>
+          </CMDKAction>
+        </CMDKAction>
 
         {organization.features.includes('performance-view') && (
-          <CMDKGroup display={{label: t('Insights'), icon: <IconGraph type="area" />}}>
+          <CMDKAction display={{label: t('Insights'), icon: <IconGraph type="area" />}}>
             <CMDKAction
               display={{label: t('Frontend')}}
               to={`${prefix}/insights/${FRONTEND_LANDING_SUB_PATH}/`}
@@ -186,18 +186,18 @@ export function GlobalCommandPaletteActions() {
               display={{label: t('All Projects')}}
               to={`${prefix}/insights/projects/`}
             />
-          </CMDKGroup>
+          </CMDKAction>
         )}
 
-        <CMDKGroup display={{label: t('Settings'), icon: <IconSettings />}}>
+        <CMDKAction display={{label: t('Settings'), icon: <IconSettings />}}>
           {getUserOrgNavigationConfiguration().flatMap(section =>
             section.items.map(item => (
               <CMDKAction key={item.path} display={{label: item.title}} to={item.path} />
             ))
           )}
-        </CMDKGroup>
+        </CMDKAction>
 
-        <CMDKGroup display={{label: t('Project Settings'), icon: <IconSettings />}}>
+        <CMDKAction display={{label: t('Project Settings'), icon: <IconSettings />}}>
           {projects.map(project => (
             <CMDKAction
               key={project.id}
@@ -208,10 +208,10 @@ export function GlobalCommandPaletteActions() {
               to={`/settings/${organization.slug}/projects/${project.slug}/`}
             />
           ))}
-        </CMDKGroup>
-      </CMDKGroup>
+        </CMDKAction>
+      </CMDKAction>
 
-      <CMDKGroup display={{label: t('Add')}}>
+      <CMDKAction display={{label: t('Add')}}>
         <CMDKAction
           display={{label: t('Create Dashboard'), icon: <IconAdd />}}
           keywords={[t('add dashboard')]}
@@ -232,10 +232,10 @@ export function GlobalCommandPaletteActions() {
           keywords={[t('team invite')]}
           onAction={openInviteMembersModal}
         />
-      </CMDKGroup>
+      </CMDKAction>
 
-      <CMDKGroup display={{label: t('DSN')}} keywords={[t('client keys')]}>
-        <CMDKGroup
+      <CMDKAction display={{label: t('DSN')}} keywords={[t('client keys')]}>
+        <CMDKAction
           display={{label: t('Project DSN Keys'), icon: <IconLock locked />}}
           keywords={[t('client keys'), t('dsn keys')]}
         >
@@ -250,9 +250,9 @@ export function GlobalCommandPaletteActions() {
               to={`/settings/${organization.slug}/projects/${project.slug}/keys/`}
             />
           ))}
-        </CMDKGroup>
+        </CMDKAction>
         {hasDsnLookup && (
-          <CMDKGroup
+          <CMDKAction
             display={{
               label: t('Reverse DSN lookup'),
               details: t(
@@ -287,11 +287,11 @@ export function GlobalCommandPaletteActions() {
             {(data: CommandPaletteAsyncResult[]) =>
               data.map((item, i) => renderAsyncResult(item, i))
             }
-          </CMDKGroup>
+          </CMDKAction>
         )}
-      </CMDKGroup>
+      </CMDKAction>
 
-      <CMDKGroup display={{label: t('Help')}}>
+      <CMDKAction display={{label: t('Help')}}>
         <CMDKAction
           display={{label: t('Open Documentation'), icon: <IconDocs />}}
           onAction={() => window.open('https://docs.sentry.io', '_blank', 'noreferrer')}
@@ -314,7 +314,7 @@ export function GlobalCommandPaletteActions() {
             window.open('https://sentry.io/changelog/', '_blank', 'noreferrer')
           }
         />
-        <CMDKGroup
+        <CMDKAction
           display={{label: t('Search Results')}}
           resource={(query: string): CMDKQueryOptions => {
             return queryOptions({
@@ -353,11 +353,11 @@ export function GlobalCommandPaletteActions() {
           {(data: CommandPaletteAsyncResult[]) =>
             data.map((item, i) => renderAsyncResult(item, i))
           }
-        </CMDKGroup>
-      </CMDKGroup>
+        </CMDKAction>
+      </CMDKAction>
 
-      <CMDKGroup display={{label: t('Interface')}}>
-        <CMDKGroup display={{label: t('Change Color Theme'), icon: <IconSettings />}}>
+      <CMDKAction display={{label: t('Interface')}}>
+        <CMDKAction display={{label: t('Change Color Theme'), icon: <IconSettings />}}>
           <CMDKAction
             display={{label: t('System')}}
             onAction={async () => {
@@ -382,8 +382,8 @@ export function GlobalCommandPaletteActions() {
               addSuccessMessage(t('Theme preference saved: Dark'));
             }}
           />
-        </CMDKGroup>
-      </CMDKGroup>
+        </CMDKAction>
+      </CMDKAction>
     </CommandPaletteSlot>
   );
 }

@@ -26,7 +26,7 @@ interface CMDKActionDataBase {
 }
 
 interface CMDKActionDataTo extends CMDKActionDataBase {
-  to: string;
+  to: LocationDescriptor;
 }
 
 interface CMDKActionDataOnAction extends CMDKActionDataBase {
@@ -50,7 +50,7 @@ export const CMDKCollection = makeCollection<CMDKActionData>();
 
 /**
  * Root provider for the command palette. Wrap the component tree that
- * contains CMDKGroup/CMDKAction registrations and the CommandPalette UI.
+ * contains CMDKAction registrations and the CommandPalette UI.
  */
 export function CommandPaletteProvider({children}: {children: React.ReactNode}) {
   return (
@@ -62,25 +62,39 @@ export function CommandPaletteProvider({children}: {children: React.ReactNode}) 
   );
 }
 
-interface CMDKGroupProps {
+interface CMDKActionProps {
   display: DisplayProps;
   children?: React.ReactNode | ((data: CommandPaletteAsyncResult[]) => React.ReactNode);
   keywords?: string[];
+  onAction?: () => void;
   resource?: (query: string) => CMDKQueryOptions;
+  to?: LocationDescriptor;
 }
 
-type CMDKActionProps =
-  | {display: DisplayProps; to: LocationDescriptor; keywords?: string[]}
-  | {display: DisplayProps; onAction: () => void; keywords?: string[]};
-
 /**
- * Registers a node in the collection and propagates its key to children via
- * GroupContext. When a `resource` prop is provided, fetches data using the
- * current query and passes results to a render-prop children function.
+ * Registers a node in the collection. A node becomes a group when it has
+ * children — they register under this node as their parent. Provide `to` for
+ * navigation, `onAction` for a callback, or `resource` with a render-prop
+ * children function to fetch and populate async results.
  */
-export function CMDKGroup({display, keywords, resource, children}: CMDKGroupProps) {
+export function CMDKAction({
+  display,
+  keywords,
+  children,
+  to,
+  onAction,
+  resource,
+}: CMDKActionProps) {
   const ref = CommandPaletteSlot.useSlotOutletRef();
-  const key = CMDKCollection.useRegisterNode({display, keywords, resource, ref});
+
+  const nodeData: CMDKActionData =
+    to === undefined
+      ? onAction === undefined
+        ? {display, keywords, ref, resource}
+        : {display, keywords, ref, onAction}
+      : {display, keywords, ref, to};
+
+  const key = CMDKCollection.useRegisterNode(nodeData);
   const {query} = useCommandPaletteState();
 
   const resourceOptions = resource
@@ -91,6 +105,10 @@ export function CMDKGroup({display, keywords, resource, children}: CMDKGroupProp
     enabled: !!resource && (resourceOptions.enabled ?? true),
   });
 
+  if (!children) {
+    return null;
+  }
+
   const resolvedChildren =
     typeof children === 'function' ? (data ? children(data) : null) : children;
 
@@ -99,13 +117,4 @@ export function CMDKGroup({display, keywords, resource, children}: CMDKGroupProp
       {resolvedChildren}
     </CMDKCollection.Context.Provider>
   );
-}
-
-/**
- * Registers a leaf action node in the collection.
- */
-export function CMDKAction(props: CMDKActionProps) {
-  const ref = CommandPaletteSlot.useSlotOutletRef();
-  CMDKCollection.useRegisterNode({...props, ref});
-  return null;
 }
