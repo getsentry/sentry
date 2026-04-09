@@ -110,8 +110,10 @@ describe('ScmRepoSelector', () => {
 
     await userEvent.type(screen.getByRole('textbox'), 'get');
 
-    expect(await screen.findByText('sentry')).toBeInTheDocument();
-    expect(screen.getByText('relay')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'sentry'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'relay'})).toBeInTheDocument();
   });
 
   it('shows selected repo value when one is in context', () => {
@@ -151,10 +153,8 @@ describe('ScmRepoSelector', () => {
       wrapper: makeOnboardingWrapper(),
     });
 
-    // Type a search term that differs from the option label to avoid
-    // matching both the hidden auto-sizer div and the menu option.
     await userEvent.type(screen.getByRole('textbox'), 'get');
-    await userEvent.click(await screen.findByText('sentry'));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'sentry'}));
 
     await waitFor(() => expect(reposLookup).toHaveBeenCalled());
   });
@@ -205,12 +205,14 @@ describe('ScmRepoSelector', () => {
     await userEvent.type(screen.getByRole('textbox'), 'get');
 
     // Wait for search results to arrive
-    expect(await screen.findByText('relay')).toBeInTheDocument();
-    expect(screen.getByText('sentry')).toBeInTheDocument();
+    expect(await screen.findByRole('menuitemradio', {name: 'relay'})).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'sentry'})).toBeInTheDocument();
 
     // If the options-prepend logic fires incorrectly, it adds an extra option
     // with label 'getsentry/sentry' (selectedRepository.name) alongside the
     // search result option with label 'sentry' (repo.name).
-    expect(screen.queryByText('getsentry/sentry')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'getsentry/sentry'})
+    ).not.toBeInTheDocument();
   });
 });
