@@ -1128,7 +1128,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_tool_errors_counted(self) -> None:
         """Test that toolErrors counts only failed tool spans"""
-        now = before_now(days=22).replace(microsecond=0)
+        now = before_now(days=35).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
