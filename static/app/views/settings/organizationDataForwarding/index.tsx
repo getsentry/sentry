@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 
-import {FeatureBadge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -103,7 +102,6 @@ export default function OrganizationDataForwarding() {
           <Flex direction="column" gap="sm">
             <Flex align="center" gap="lg">
               <Heading as="h1">{t('Data Forwarding')}</Heading>
-              <FeatureBadge type="new" />
             </Flex>
             <Text variant="muted">
               {tct(
