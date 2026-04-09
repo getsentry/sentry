@@ -23,7 +23,7 @@ jest.mock('sentry/components/commandPalette/ui/commandPaletteGlobalActions', () 
   GlobalCommandPaletteActions: () => null,
 }));
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
   CMDKAction,
@@ -109,5 +109,51 @@ describe('CommandPaletteModal', () => {
     expect(closeModalSpy).not.toHaveBeenCalled();
     // Secondary action is now visible
     expect(await screen.findByRole('option', {name: 'Child Action'})).toBeInTheDocument();
+  });
+
+  it('opens external links in a new tab', async () => {
+    const closeModalSpy = jest.fn();
+    const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+
+    render(
+      <CommandPaletteProvider>
+        <CommandPaletteSlot name="task">
+          <CMDKAction to="https://docs.sentry.io" display={{label: 'External Link'}} />
+        </CommandPaletteSlot>
+        <CommandPaletteModal {...makeRenderProps(closeModalSpy)} />
+      </CommandPaletteProvider>
+    );
+
+    await userEvent.click(await screen.findByRole('option', {name: 'External Link'}));
+
+    expect(openSpy).toHaveBeenCalledWith(
+      'https://docs.sentry.io',
+      '_blank',
+      'noreferrer'
+    );
+    expect(closeModalSpy).toHaveBeenCalledTimes(1);
+    openSpy.mockRestore();
+  });
+
+  it('opens internal links in a new tab when shift is held', async () => {
+    const closeModalSpy = jest.fn();
+    const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+
+    render(
+      <CommandPaletteProvider>
+        <CommandPaletteSlot name="task">
+          <CMDKAction to="/target/" display={{label: 'Internal Link'}} />
+        </CommandPaletteSlot>
+        <CommandPaletteModal {...makeRenderProps(closeModalSpy)} />
+      </CommandPaletteProvider>
+    );
+
+    const option = await screen.findByRole('option', {name: 'Internal Link'});
+    fireEvent.mouseDown(option, {shiftKey: true});
+    fireEvent.click(option, {shiftKey: true});
+
+    expect(openSpy).toHaveBeenCalledWith('/target/', '_blank', 'noreferrer');
+    expect(closeModalSpy).toHaveBeenCalledTimes(1);
+    openSpy.mockRestore();
   });
 });
