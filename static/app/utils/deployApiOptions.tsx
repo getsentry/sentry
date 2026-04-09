@@ -4,9 +4,11 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 export function deployApiOptions({
   orgSlug,
   releaseVersion,
+  query,
 }: {
   orgSlug: string;
   releaseVersion: string;
+  query?: Record<'project', unknown>;
 }) {
   return apiOptions.as<Deploy[]>()(
     '/organizations/$organizationIdOrSlug/releases/$version/deploys/',
@@ -15,6 +17,7 @@ export function deployApiOptions({
         organizationIdOrSlug: orgSlug,
         version: releaseVersion,
       },
+      query,
       staleTime: Infinity,
     }
   );

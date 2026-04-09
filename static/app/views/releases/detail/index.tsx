@@ -27,6 +27,7 @@ import type {
 } from 'sentry/types/release';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {deployApiOptions} from 'sentry/utils/deployApiOptions';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -73,13 +74,6 @@ function ReleasesDetail({
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const location = useLocation();
-  const deploysPath = getApiUrl(
-    '/organizations/$organizationIdOrSlug/releases/$version/deploys/',
-    {
-      path: {organizationIdOrSlug: organization.slug, version: params.release},
-    }
-  );
-
   const {
     data: release,
     refetch: refetchRelease,
@@ -104,8 +98,12 @@ function ReleasesDetail({
     refetch: refetchDeploys,
     isPending: isDeploysPending,
     error: deploysError,
-  } = useApiQuery<Deploy[]>([deploysPath, {query: {project: location.query.project}}], {
-    staleTime: Infinity,
+  } = useQuery({
+    ...deployApiOptions({
+      orgSlug: organization.slug,
+      releaseVersion: params.release,
+      query: {project: location.query.project},
+    }),
     enabled: isDeploysEnabled,
   });
 
