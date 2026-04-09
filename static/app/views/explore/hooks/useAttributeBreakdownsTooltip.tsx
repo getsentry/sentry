@@ -83,6 +83,7 @@ export function useAttributeBreakdownsTooltip({
 }: Params): TooltipOption {
   const [frozenPosition, setFrozenPosition] = useState<[number, number] | null>(null);
   const tooltipParamsRef = useRef<TooltipComponentFormatterCallbackParams | null>(null);
+  const tooltipValueRef = useRef<string>('');
 
   // This effect runs on load and when the frozen position changes.
   // - If frozen position is set, trigger a re-render of the tooltip with frozen position to show the
@@ -110,6 +111,7 @@ export function useAttributeBreakdownsTooltip({
       if (frozenPosition) {
         setFrozenPosition(null);
         tooltipParamsRef.current = null;
+        tooltipValueRef.current = '';
       } else {
         // If the tooltip is not frozen, set the frozen position to the current pixel point.
         setFrozenPosition(pixelPoint);
@@ -128,6 +130,7 @@ export function useAttributeBreakdownsTooltip({
       }
 
       tooltipParamsRef.current = null;
+      tooltipValueRef.current = '';
       setFrozenPosition(null);
     };
 
@@ -206,6 +209,8 @@ export function useAttributeBreakdownsTooltip({
         // including the tooltip actions placeholder.
         if (!frozenPosition) {
           tooltipParamsRef.current = params;
+          tooltipValueRef.current =
+            (Array.isArray(params) ? params[0]?.name : params.name) ?? '';
 
           const actionsPlaceholder = actions?.htmlRenderer
             ? `
@@ -233,8 +238,9 @@ export function useAttributeBreakdownsTooltip({
         // If the tooltip is frozen, use the cached tooltip params and
         // return the formatted content, including the tooltip actions.
         const p = tooltipParamsRef.current;
-        const value = (Array.isArray(p) ? p[0]?.name : p.name) ?? '';
-        return wrapContent(formatter(p) + (actions?.htmlRenderer(value) ?? ''));
+        return wrapContent(
+          formatter(p) + (actions?.htmlRenderer(tooltipValueRef.current) ?? '')
+        );
       },
       position(
         point: [number, number],
@@ -256,7 +262,7 @@ export function useAttributeBreakdownsTooltip({
         return [x, y];
       },
     }),
-    [frozenPosition, chartWidth, formatter, actions, tooltipParamsRef]
+    [frozenPosition, chartWidth, formatter, actions, tooltipParamsRef, tooltipValueRef]
   );
 
   return tooltipConfig;
