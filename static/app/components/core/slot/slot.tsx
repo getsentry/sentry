@@ -121,9 +121,12 @@ type SlotModule<T extends Slot> = React.FunctionComponent<SlotConsumerProps<T>> 
   Provider: React.ComponentType<SlotProviderProps>;
 };
 
-function makeSlotConsumer<T extends Slot>(
-  context: React.Context<SlotContextValue<T> | null>
-) {
+function makeSlotConsumer<T extends Slot>(options: {
+  context: React.Context<SlotContextValue<T> | null>;
+  providers?: React.ComponentType<{children: React.ReactNode}>;
+}) {
+  const {context, providers: Providers} = options;
+
   function SlotConsumer(props: SlotConsumerProps<T>): React.ReactNode {
     const ctx = useContext(context);
     if (!ctx) {
@@ -138,11 +141,13 @@ function makeSlotConsumer<T extends Slot>(
     }, [dispatch, name]);
 
     const element = state[name]?.element;
+    const content = Providers ? <Providers>{props.children}</Providers> : props.children;
+
     if (!element) {
       // Render in place as a fallback when no target element is registered yet
-      return props.children;
+      return content;
     }
-    return createPortal(props.children, element);
+    return createPortal(content, element);
   }
 
   SlotConsumer.displayName = 'Slot.Consumer';
@@ -230,13 +235,19 @@ function makeSlotProvider<T extends Slot>(
   return SlotProvider as (props: SlotProviderProps) => React.ReactNode;
 }
 
-export function slot<T extends readonly Slot[]>(names: T): SlotModule<T[number]> {
+export function slot<T extends readonly Slot[]>(
+  names: T,
+  options?: {providers?: React.ComponentType<{children: React.ReactNode}>}
+): SlotModule<T[number]> {
   type SlotName = T[number];
 
   const SlotContext = createContext<SlotContextValue<SlotName> | null>(null);
   const OutletNameContext = createContext<SlotName | null>(null);
 
-  const Slot = makeSlotConsumer<SlotName>(SlotContext) as SlotModule<SlotName>;
+  const Slot = makeSlotConsumer<SlotName>({
+    context: SlotContext,
+    providers: options?.providers,
+  }) as SlotModule<SlotName>;
   Slot.Provider = makeSlotProvider<SlotName>(SlotContext);
   Slot.Outlet = makeSlotOutlet<SlotName>(SlotContext, OutletNameContext);
   Slot.Fallback = makeSlotFallback<SlotName>(SlotContext, OutletNameContext);

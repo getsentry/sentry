@@ -683,7 +683,6 @@ function ManageDashboards() {
                                     trigger={triggerProps => (
                                       <Button
                                         {...triggerProps}
-                                        size="sm"
                                         data-test-id="dashboard-create"
                                         priority="primary"
                                         icon={<IconAdd />}
@@ -702,7 +701,6 @@ function ManageDashboards() {
                                   limitMessage,
                                 }) => (
                                   <Button
-                                    size="sm"
                                     data-test-id="dashboard-create"
                                     onClick={event => {
                                       event.preventDefault();
@@ -727,7 +725,6 @@ function ManageDashboards() {
                         </Feature>
                         <Feature features="dashboards-import">
                           <Button
-                            size="sm"
                             onClick={() => {
                               openImportDashboardFromFileModal({
                                 organization,

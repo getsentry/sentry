@@ -290,7 +290,6 @@ export function TransactionHeader({
                 !metricsCardinality?.isLoading &&
                 !deprecateTransactionAlerts(organization) ? (
                   <CreateAlertFromViewButton
-                    size="sm"
                     eventView={eventView}
                     organization={organization}
                     projects={projects}

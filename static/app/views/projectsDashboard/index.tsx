@@ -245,7 +245,6 @@ function Dashboard() {
         {hasPageFrameFeature ? (
           <TopBar.Slot name="actions">
             <LinkButton
-              size="sm"
               icon={<IconUser />}
               tooltipProps={{
                 title: canJoinTeam
@@ -259,7 +258,6 @@ function Dashboard() {
               {t('Join a Team')}
             </LinkButton>
             <LinkButton
-              size="sm"
               priority="primary"
               disabled={!canUserCreateProject}
               tooltipProps={{

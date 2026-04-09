@@ -57,11 +57,7 @@ export function ContinuousProfileHeader({transaction}: ContinuousProfileHeader) 
         <Fragment>
           {transactionTarget && (
             <TopBar.Slot name="actions">
-              <LinkButton
-                size="sm"
-                onClick={handleGoToTransaction}
-                to={transactionTarget}
-              >
+              <LinkButton onClick={handleGoToTransaction} to={transactionTarget}>
                 {t('Go to Trace')}
               </LinkButton>
             </TopBar.Slot>
