@@ -866,7 +866,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
     @patch("sentry.data_export.models.ExportedData.email_success")
     def test_explore_logs_jsonl_full_dataset_rich_fields(self, emailer: MagicMock) -> None:
         """
-        Wide logs JSONL export: POST data-export creates ExportedData;
+        Wide logs JSONL: two rows, export_limit above row count, batch_size 1 or 2.
         """
         shared_attrs = {
             "environment": "prod",
@@ -1003,53 +1003,57 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
             kwargs={"organization_id_or_slug": self.org.slug},
         )
         self.login_as(self.user)
-        with self.feature("organizations:discover-query"):
-            response = self.client.post(
-                url,
-                data=json.dumps(request_body),
-                content_type="application/json",
-            )
-        assert response.status_code == 201, response.content
-        response_payload = json.loads(response.content)
-        de = ExportedData.objects.get(id=response_payload["id"])
-        assert de.user_id == self.user.id
-        assert de.query_type == ExportQueryType.EXPLORE
-        assert de.export_format == OutputMode.JSONL.value
-        assert de.query_info["dataset"] == "logs"
+        for batch_size in (1, 2):
+            with self.subTest(batch_size=batch_size):
+                with self.feature("organizations:discover-query"):
+                    response = self.client.post(
+                        url,
+                        data=json.dumps(request_body),
+                        content_type="application/json",
+                    )
+                assert response.status_code == 201, response.content
+                response_payload = json.loads(response.content)
+                de = ExportedData.objects.get(id=response_payload["id"])
+                assert de.user_id == self.user.id
+                assert de.query_type == ExportQueryType.EXPLORE
+                assert de.export_format == OutputMode.JSONL.value
+                assert de.query_info["dataset"] == "logs"
 
-        with self.tasks():
-            assemble_download(de.id, batch_size=1, export_limit=len(expected_rows))
+                with self.tasks():
+                    assemble_download(de.id, batch_size=batch_size, export_limit=100)
 
-        de = ExportedData.objects.get(id=de.id)
-        assert de.date_finished is not None
-        file = de._get_file()
-        assert isinstance(file, File)
-        assert file.headers == {"Content-Type": "application/x-ndjson"}
+                de = ExportedData.objects.get(id=de.id)
+                assert de.date_finished is not None
+                file = de._get_file()
+                assert isinstance(file, File)
+                assert file.headers == {"Content-Type": "application/x-ndjson"}
 
-        with file.getfile() as f:
-            content = f.read().strip()
-        lines = [ln for ln in content.split(b"\n") if ln]
-        assert len(lines) == 2
+                with file.getfile() as f:
+                    content = f.read().strip()
+                lines = [ln for ln in content.split(b"\n") if ln]
+                assert len(lines) == 2
 
-        rows = [json.loads(ln.decode("utf-8")) for ln in lines]
-        rows_by_agent = {row["user_agent"]: row for row in rows}
+                rows = [json.loads(ln.decode("utf-8")) for ln in lines]
+                rows_by_agent = {row["user_agent"]: row for row in rows}
 
-        def assert_row_equals_export(
-            actual: dict[str, object], expected: dict[str, object]
-        ) -> None:
-            for key, exp in expected.items():
-                assert key in actual, f"missing column {key!r}; got {sorted(actual)}"
-                got = actual[key]
-                if isinstance(exp, (int, float)) and isinstance(got, (int, float)):
-                    assert float(got) == float(exp), (key, got, exp)
-                else:
-                    assert got == exp, (key, got, exp)
-            extra = set(actual) - set(expected) - ignored_row_keys
-            assert not extra, f"unexpected columns: {sorted(extra)}"
+                def assert_row_equals_export(
+                    actual: dict[str, object], expected: dict[str, object]
+                ) -> None:
+                    for key, exp in expected.items():
+                        assert key in actual, f"missing column {key!r}; got {sorted(actual)}"
+                        got = actual[key]
+                        if isinstance(exp, (int, float)) and isinstance(got, (int, float)):
+                            assert float(got) == float(exp), (key, got, exp)
+                        else:
+                            assert got == exp, (key, got, exp)
+                    extra = set(actual) - set(expected) - ignored_row_keys
+                    assert not extra, f"unexpected columns: {sorted(extra)}"
 
-        assert set(rows_by_agent.keys()) == set(expected_rows_by_agent.keys())
-        for user_agent in rows_by_agent.keys():
-            assert_row_equals_export(rows_by_agent[user_agent], expected_rows_by_agent[user_agent])
+                assert set(rows_by_agent.keys()) == set(expected_rows_by_agent.keys())
+                for user_agent in rows_by_agent.keys():
+                    assert_row_equals_export(
+                        rows_by_agent[user_agent], expected_rows_by_agent[user_agent]
+                    )
         assert emailer.called
 
     @patch("sentry.data_export.models.ExportedData.email_success")

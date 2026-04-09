@@ -89,6 +89,7 @@ def assemble_download(
     export_retries: int = 3,
     *,
     page_token: str | None = None,
+    last_emitted_item_id_hex: str | None = None,
     **kwargs: Any,
 ) -> None:
     # The API response to export the data contains the ID which you can use
@@ -134,6 +135,7 @@ def assemble_download(
                 environment_id,
                 output_mode,
                 page_token_b64=page_token,
+                last_emitted_item_id_hex=last_emitted_item_id_hex,
             )
 
             with tempfile.TemporaryFile(mode="w+b") as tf:
@@ -170,11 +172,25 @@ def assemble_download(
                     fragment_offset += len(rows)
                     next_offset = offset + fragment_offset
 
+                    partial_batch = len(rows) < batch_size
+                    # Wide JSONL trace export uses Snuba page_token, not row offset. Stopping only
+                    # because we got fewer than batch_size rows would skip remaining pages when Snuba
+                    # still returns a continuation token (or when the next fragment fills the page).
+                    trace_partial_ok = (
+                        isinstance(processor, TraceItemFullExportProcessor)
+                        and processor.page_token is not None
+                    )
                     if (
                         not rows
-                        or len(rows) < batch_size
+                        or (partial_batch and not trace_partial_ok)
                         # the batch may exceed MAX_BATCH_SIZE but immediately stops
                         or tf.tell() - starting_pos >= MAX_BATCH_SIZE
+                        # TraceItemFullExportProcessor ignores offset; the next fragment would repeat
+                        # the first page if Snuba did not return a continuation token.
+                        or (
+                            isinstance(processor, TraceItemFullExportProcessor)
+                            and processor.page_token is None
+                        )
                     ):
                         break
 
@@ -194,6 +210,7 @@ def assemble_download(
                         "environment_id": environment_id,
                         "export_retries": export_retries - 1,
                         "page_token": page_token,
+                        "last_emitted_item_id_hex": last_emitted_item_id_hex,
                     },
                 )
             else:
@@ -226,23 +243,38 @@ def assemble_download(
                 )
                 return data_export.email_failure(message="Internal processing failure")
         else:
-            if (
-                rows
-                and len(rows) >= batch_size
-                and new_bytes_written
+            cont_kwargs: dict[str, Any] = {
+                "export_limit": export_limit,
+                "batch_size": batch_size,
+                "offset": next_offset,
+                "bytes_written": bytes_written,
+                "environment_id": environment_id,
+                "export_retries": export_retries,
+                "page_token": _page_token_b64_from_processor(processor),
+            }
+            if isinstance(processor, TraceItemFullExportProcessor):
+                cont_kwargs["last_emitted_item_id_hex"] = processor.last_emitted_item_id_hex
+
+            should_continue = (
+                new_bytes_written
                 and next_offset < export_limit
-            ):
+                and (
+                    (
+                        isinstance(processor, TraceItemFullExportProcessor)
+                        and processor.page_token is not None
+                    )
+                    or (
+                        not isinstance(processor, TraceItemFullExportProcessor)
+                        and rows
+                        and len(rows) >= batch_size
+                    )
+                )
+            )
+
+            if should_continue:
                 assemble_download.apply_async(
                     args=[data_export_id],
-                    kwargs={
-                        "export_limit": export_limit,
-                        "batch_size": batch_size,
-                        "offset": next_offset,
-                        "bytes_written": bytes_written,
-                        "environment_id": environment_id,
-                        "export_retries": export_retries,
-                        "page_token": _page_token_b64_from_processor(processor),
-                    },
+                    kwargs=cont_kwargs,
                 )
             else:
                 metrics.distribution("dataexport.row_count", next_offset, sample_rate=1.0)
@@ -258,6 +290,7 @@ def get_processor(
     output_mode: OutputMode,
     *,
     page_token_b64: str | None = None,
+    last_emitted_item_id_hex: str | None = None,
 ) -> IssuesByTagProcessor | DiscoverProcessor | ExploreProcessor | TraceItemFullExportProcessor:
     try:
         if data_export.query_type == ExportQueryType.ISSUES_BY_TAG:
@@ -287,6 +320,7 @@ def get_processor(
                     organization=data_export.organization,
                     output_mode=output_mode,
                     page_token=page_token,
+                    last_emitted_item_id_hex=last_emitted_item_id_hex,
                 )
             return ExploreProcessor(
                 explore_query=data_export.query_info,

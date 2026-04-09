@@ -82,21 +82,21 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
         elif not isinstance(base_fields, list):
             base_fields = [base_fields]
 
-        is_jsonl_logs_export = (
+        is_jsonl_trace_item_full_export = (
             query_type == ExportQueryType.EXPLORE_STR
-            and query_info.get("dataset") == "logs"
             and export_format == OutputMode.JSONL.value
+            and len(base_fields) == 0
         )
 
         if len(base_fields) > MAX_FIELDS:
             detail = f"You can export up to {MAX_FIELDS} fields at a time. Please delete some and try again."
             raise serializers.ValidationError(detail)
         elif len(base_fields) == 0:
-            if not is_jsonl_logs_export:
+            if not is_jsonl_trace_item_full_export:
                 raise serializers.ValidationError("at least one field is required to export")
 
         if "query" not in query_info:
-            if is_jsonl_logs_export:
+            if is_jsonl_trace_item_full_export:
                 query_info["query"] = ""
             else:
                 raise serializers.ValidationError(
@@ -210,10 +210,10 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
             )
             query_info = self._validate_dataset(query_type, query_info)
             explore_output_mode = OutputMode.from_value(export_format)
-            is_full_jsonl_logs_export = (
-                query_info.get("dataset") == "logs" and export_format == OutputMode.JSONL.value
+            is_full_jsonl_trace_item_export = (
+                export_format == OutputMode.JSONL.value and len(query_info.get("field", [])) == 0
             )
-            if not is_full_jsonl_logs_export:
+            if not is_full_jsonl_trace_item_export:
                 try:
                     explore_processor = ExploreProcessor(
                         explore_query=query_info,
