@@ -224,7 +224,7 @@ class OrganizationIntegrationReposTest(APITestCase):
         response = self.client.get(self.path, format="json", data={"accessibleOnly": "true"})
 
         assert response.status_code == 200, response.content
-        get_repositories.assert_called_once_with(None, accessible_only=True, use_cache=True)
+        get_repositories.assert_called_once_with(None, accessible_only=True, use_cache=False)
 
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_repositories", return_value=[]

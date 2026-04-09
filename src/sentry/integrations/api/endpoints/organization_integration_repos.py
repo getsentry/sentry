@@ -72,7 +72,9 @@ class OrganizationIntegrationReposEndpoint(CellOrganizationIntegrationBaseEndpoi
 
             try:
                 repositories = install.get_repositories(
-                    search, accessible_only=accessible_only, use_cache=accessible_only
+                    search,
+                    accessible_only=accessible_only,
+                    use_cache=accessible_only and bool(search),
                 )
             except (IntegrationError, IdentityNotValid) as e:
                 return self.respond({"detail": str(e)}, status=400)
