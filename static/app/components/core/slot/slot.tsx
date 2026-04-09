@@ -140,8 +140,6 @@ function makeSlotConsumer<T extends Slot>(
       return () => dispatch({type: 'decrement counter', name});
     }, [dispatch, name]);
 
-    const element = state[name]?.element;
-
     // Provide outletNameContext from the consumer so that portaled children
     // (which don't descend through the outlet in the component tree) can still
     // read which slot they belong to via useSlotOutletRef.
@@ -151,10 +149,12 @@ function makeSlotConsumer<T extends Slot>(
       </outletNameContext.Provider>
     );
 
+    const element = state[name]?.element;
+
     if (!element) {
-      // Render in place as a fallback when no target element is registered yet
-      return wrappedChildren;
+      return null;
     }
+
     return createPortal(wrappedChildren, element);
   }
 
