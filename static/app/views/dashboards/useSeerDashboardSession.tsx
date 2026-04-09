@@ -3,22 +3,46 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {makeSeerExplorerQueryKey} from 'sentry/views/seerExplorer/utils';
 
 import {extractDashboardFromSession, statusIsTerminal} from './createFromSeerUtils';
-import type {Widget} from './types';
+import type {DashboardDetails, Widget} from './types';
 
 const POLL_INTERVAL_MS = 500;
 const POST_COMPLETE_POLL_MS = 5000;
 
+async function startDashboardEditSession(
+  orgSlug: string,
+  message: string,
+  dashboard: Pick<DashboardDetails, 'title' | 'widgets'>
+): Promise<number> {
+  const url = getApiUrl('/organizations/$organizationIdOrSlug/dashboards/generate/', {
+    path: {organizationIdOrSlug: orgSlug},
+  });
+  const response = await fetchMutation<{run_id: string}>({
+    url,
+    method: 'POST',
+    data: {
+      prompt: message,
+      current_dashboard: {
+        title: dashboard.title,
+        widgets: dashboard.widgets,
+      },
+    },
+  });
+  return Number(response.run_id);
+}
+
 interface UseSeerDashboardSessionOptions {
   onDashboardUpdate: (data: {title: string; widgets: Widget[]}) => void;
-  seerRunId: number | null;
+  dashboard?: Pick<DashboardDetails, 'title' | 'widgets'>;
   enabled?: boolean;
   onPostCompletePollEnd?: () => void;
+  seerRunId?: number | null;
 }
 
 interface UseSeerDashboardSessionResult {
@@ -34,13 +58,17 @@ interface UseSeerDashboardSessionResult {
  * detecting terminal-state transitions, and sending follow-up messages.
  */
 export function useSeerDashboardSession({
-  seerRunId,
+  seerRunId: externalSeerRunId,
+  dashboard,
   onDashboardUpdate,
   enabled = true,
   onPostCompletePollEnd,
 }: UseSeerDashboardSessionOptions): UseSeerDashboardSessionResult {
   const organization = useOrganization();
   const queryClient = useQueryClient();
+
+  const [internalRunId, setInternalRunId] = useState<number | null>(null);
+  const seerRunId = externalSeerRunId ?? internalRunId;
 
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -106,26 +134,41 @@ export function useSeerDashboardSession({
 
   const sendFollowUpMessage = useCallback(
     async (message: string) => {
-      if (!seerRunId) {
+      if (!seerRunId && !dashboard) {
         return;
       }
       setIsUpdating(true);
       completedAtRef.current = null;
+      const errorMessage = t('Failed to send message');
       try {
-        const queryKey = makeSeerExplorerQueryKey(organization.slug, seerRunId);
-        const {url} = parseQueryKey(queryKey);
-        await fetchMutation({
-          url,
-          method: 'POST',
-          data: {query: message},
-        });
-        queryClient.invalidateQueries({queryKey});
+        if (!seerRunId && dashboard) {
+          // No session exists yet and an initial dashboard is provided, start a new Seer session
+          const runId = await startDashboardEditSession(
+            organization.slug,
+            message,
+            dashboard
+          );
+          if (!runId) {
+            throw new Error('Failed to start dashboard editing session');
+          }
+          setInternalRunId(runId);
+        } else {
+          // A session exists, send the message to the existing session
+          const queryKey = makeSeerExplorerQueryKey(organization.slug, seerRunId);
+          const {url} = parseQueryKey(queryKey);
+          await fetchMutation({
+            url,
+            method: 'POST',
+            data: {query: message},
+          });
+          queryClient.invalidateQueries({queryKey});
+        }
       } catch {
         setIsUpdating(false);
-        addErrorMessage(t('Failed to send message'));
+        addErrorMessage(errorMessage);
       }
     },
-    [organization.slug, queryClient, seerRunId]
+    [organization.slug, queryClient, seerRunId, dashboard]
   );
 
   return {

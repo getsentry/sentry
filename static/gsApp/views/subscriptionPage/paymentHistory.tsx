@@ -55,7 +55,7 @@ function PaymentHistory() {
     getResponseHeader,
   } = useApiQuery<InvoiceBase[]>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/invoices/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/invoices/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {

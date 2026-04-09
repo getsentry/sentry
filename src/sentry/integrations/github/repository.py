@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationInstallation
@@ -15,10 +15,13 @@ from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.plugins.providers.integration_repository import RepositoryConfig
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
+if TYPE_CHECKING:
+    from sentry.integrations.github.integration import GitHubIntegration  # NOQA
+
 WEBHOOK_EVENTS = ["push", "pull_request"]
 
 
-class GitHubRepositoryProvider(IntegrationRepositoryProvider):
+class GitHubRepositoryProvider(IntegrationRepositoryProvider["GitHubIntegration"]):
     name = "GitHub"
     repo_provider = IntegrationProviderSlug.GITHUB.value
 
@@ -46,7 +49,7 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):
         client = installation.get_client()
 
         repo = self._validate_repo(client, installation, config["identifier"])
-        config["external_id"] = str(repo["id"])
+        config["external_id"] = installation.get_repo_external_id(repo)
         config["integration_id"] = installation.model.id
 
         return config

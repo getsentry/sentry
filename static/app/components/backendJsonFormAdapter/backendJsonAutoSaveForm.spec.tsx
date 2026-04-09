@@ -2,17 +2,17 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {BackendJsonFormAdapter} from './';
+import {BackendJsonAutoSaveForm} from './backendJsonAutoSaveForm';
 
 const org = OrganizationFixture();
 const mutationOptions = {
   mutationFn: jest.fn().mockResolvedValue({}),
 };
 
-describe('BackendJsonFormAdapter', () => {
+describe('BackendJsonAutoSaveForm', () => {
   it('renders boolean field as Switch', () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={{
           name: 'sync_enabled',
           type: 'boolean',
@@ -31,7 +31,7 @@ describe('BackendJsonFormAdapter', () => {
 
   it('renders text field as Input', () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={{
           name: 'webhook_url',
           type: 'string',
@@ -51,7 +51,7 @@ describe('BackendJsonFormAdapter', () => {
 
   it('renders select field with options', () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={{
           name: 'priority',
           type: 'select',
@@ -75,7 +75,7 @@ describe('BackendJsonFormAdapter', () => {
 
   it('renders table field with add button', () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={{
           name: 'table_field',
           type: 'table',
@@ -93,7 +93,7 @@ describe('BackendJsonFormAdapter', () => {
 
   it('boolean toggle triggers POST', async () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={{
           name: 'sync_enabled',
           type: 'boolean',
@@ -118,7 +118,7 @@ describe('BackendJsonFormAdapter', () => {
 
   it('handles disabled fields', () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={{
           name: 'sync_enabled',
           type: 'boolean',

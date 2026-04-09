@@ -18,7 +18,7 @@ export function useGenerateIssueViewTitle({
   const organization = useOrganization();
   return useApiQuery<GenerateIssueViewTitleResponse>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/issue-view-title/generate/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/issue-view-title/generate/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {

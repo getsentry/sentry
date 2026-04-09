@@ -24,7 +24,6 @@ from sentry.models.repository import Repository
 from sentry.models.repositorysettings import RepositorySettings
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.tasks.organization_contributors import assign_seat_to_organization_contributor
-from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -121,10 +120,9 @@ def track_contributor_seat(
     if not should_increment_contributor_seat(organization, repo, contributor):
         return
 
-    metrics.incr(
+    logger.info(
         "scm.webhook.organization_contributor.should_create",
-        sample_rate=1.0,
-        tags={"provider": provider},
+        extra={"provider": provider},
     )
 
     locked_contributor = None

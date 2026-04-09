@@ -31,7 +31,7 @@ describe('HTTPDomainSummaryPage', () => {
       pathname: `/organizations/${organization.slug}/insights/backend/http/domains/`,
       query: {domain: '*.sentry.dev', statsPeriod: '10d', transactionsCursor: '0:20:0'},
     },
-    route: `/organizations/:orgId/insights/backend/http/domains/`,
+    route: '/organizations/:orgId/insights/backend/http/domains/',
   };
 
   jest.mocked(useReleaseStats).mockReturnValue({
@@ -57,7 +57,7 @@ describe('HTTPDomainSummaryPage', () => {
     });
 
     regionFilterRequestMock = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/events/`,
+      url: '/organizations/org-slug/events/',
       method: 'GET',
       match: [
         MockApiClient.matchQuery({

@@ -50,7 +50,7 @@ export function renderWithOnboardingLayout<
       pathname: `/organizations/${organization.slug}/projects/${project.slug}/getting-started/`,
       query: selectedOptions,
     },
-    route: `/organizations/:orgId/projects/:projectId/getting-started/`,
+    route: '/organizations/:orgId/projects/:projectId/getting-started/',
   };
 
   const projectKey = 'test-project-key-id';

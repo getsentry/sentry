@@ -35,14 +35,14 @@ describe('GroupEventAttachments', () => {
     location: {
       pathname: `/organizations/${organization.slug}/issues/${groupId}/attachments/`,
     },
-    route: `/organizations/:orgId/issues/:groupId/attachments/`,
+    route: '/organizations/:orgId/issues/:groupId/attachments/',
   };
   const screenshotRouterConfig: RouterConfig = {
     location: {
       pathname: `/organizations/${organization.slug}/issues/${groupId}/attachments/`,
       query: {attachmentFilter: 'screenshot'},
     },
-    route: `/organizations/:orgId/issues/:groupId/attachments/`,
+    route: '/organizations/:orgId/issues/:groupId/attachments/',
   };
   let project: Project;
   let getAttachmentsMock: jest.Mock;
@@ -176,7 +176,7 @@ describe('GroupEventAttachments', () => {
             environment: ['staging'],
           },
         },
-        route: `/organizations/:orgId/issues/:groupId/attachments/`,
+        route: '/organizations/:orgId/issues/:groupId/attachments/',
       },
       organization,
     });

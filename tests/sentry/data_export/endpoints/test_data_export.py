@@ -98,7 +98,7 @@ class DataExportTest(APITestCase):
             "dateExpired": None,
             "query": {
                 "type": payload["query_type"],
-                "info": payload["query_info"],
+                "info": data_export.query_info,
             },
             "status": ExportStatus.Early,
             "checksum": None,
@@ -188,15 +188,13 @@ class DataExportTest(APITestCase):
 
     def test_export_invalid_fields(self) -> None:
         """
-        Ensures that if a field is requested with the wrong parameters, the corresponding
-        error message is returned
+        Ensures that if a field is requested with the wrong parameters, validation fails
+        without exposing internal parse error details.
         """
         payload = self.make_payload("discover", {"field": ["min()"]})
         with self.feature("organizations:discover-query"):
             response = self.get_error_response(self.org.slug, status_code=400, **payload)
-        assert response.data == {
-            "non_field_errors": ["min: expected 1 argument(s) but got 0 argument(s)"]
-        }
+        assert response.data == {"non_field_errors": ["Invalid search query."]}
 
     @freeze_time("2020-02-27 12:07:37")
     def test_export_invalid_date_params(self) -> None:
@@ -207,7 +205,7 @@ class DataExportTest(APITestCase):
         payload = self.make_payload("discover", {"statsPeriod": "shrug"})
         with self.feature("organizations:discover-query"):
             response = self.get_error_response(self.org.slug, status_code=400, **payload)
-        assert response.data == {"non_field_errors": ["Invalid statsPeriod: 'shrug'"]}
+        assert response.data == {"non_field_errors": ["Invalid date parameters."]}
 
         payload = self.make_payload(
             "discover",
@@ -218,7 +216,7 @@ class DataExportTest(APITestCase):
         )
         with self.feature("organizations:discover-query"):
             response = self.get_error_response(self.org.slug, status_code=400, **payload)
-        assert response.data == {"non_field_errors": ["shrug is not a valid ISO8601 date query"]}
+        assert response.data == {"non_field_errors": ["Invalid date parameters."]}
 
         payload = self.make_payload(
             "discover",
@@ -229,7 +227,7 @@ class DataExportTest(APITestCase):
         )
         with self.feature("organizations:discover-query"):
             response = self.get_error_response(self.org.slug, status_code=400, **payload)
-        assert response.data == {"non_field_errors": ["shrug is not a valid ISO8601 date query"]}
+        assert response.data == {"non_field_errors": ["Invalid date parameters."]}
 
     @freeze_time("2020-05-19 14:00:00")
     def test_converts_stats_period(self) -> None:
@@ -299,7 +297,7 @@ class DataExportTest(APITestCase):
         payload = self.make_payload("discover", {"query": "foo:"})
         with self.feature("organizations:discover-query"):
             response = self.get_error_response(self.org.slug, status_code=400, **payload)
-        assert response.data == {"non_field_errors": ["Empty string after 'foo:'"]}
+        assert response.data == {"non_field_errors": ["Invalid search query."]}
 
     @freeze_time("2020-05-19 14:00:00")
     def test_export_resolves_empty_project(self) -> None:
@@ -475,7 +473,7 @@ class DataExportTest(APITestCase):
         with self.feature("organizations:discover-query"):
             response = self.get_error_response(self.org.slug, status_code=400, **payload)
         assert response.data == {
-            "non_field_errors": ["invalid_dataset is not supported for csv exports"]
+            "non_field_errors": ["invalid_dataset is not supported for exports"]
         }
 
     def test_explore_valid_dataset_spans(self) -> None:
@@ -506,6 +504,13 @@ class DataExportTest(APITestCase):
         assert query_info["field"] == ["message", "timestamp"]
         assert query_info["dataset"] == "logs"
 
+    def test_explore_valid_jsonl_format(self) -> None:
+        payload = self.make_payload("explore", {"format": "jsonl"})
+        with self.feature("organizations:discover-query"):
+            response = self.get_success_response(self.org.slug, status_code=201, **payload)
+        data_export = ExportedData.objects.get(id=response.data["id"])
+        assert data_export.query_info["format"] == "jsonl"
+
     @freeze_time("2020-02-27 12:07:37")
     def test_explore_export_invalid_date_params(self) -> None:
         """
@@ -515,7 +520,7 @@ class DataExportTest(APITestCase):
         payload = self.make_payload("explore", {"statsPeriod": "shrug"})
         with self.feature("organizations:discover-query"):
             response = self.get_error_response(self.org.slug, status_code=400, **payload)
-        assert response.data == {"non_field_errors": ["Invalid statsPeriod: 'shrug'"]}
+        assert response.data == {"non_field_errors": ["Invalid date parameters."]}
 
         payload = self.make_payload(
             "explore",
@@ -526,7 +531,7 @@ class DataExportTest(APITestCase):
         )
         with self.feature("organizations:discover-query"):
             response = self.get_error_response(self.org.slug, status_code=400, **payload)
-        assert response.data == {"non_field_errors": ["shrug is not a valid ISO8601 date query"]}
+        assert response.data == {"non_field_errors": ["Invalid date parameters."]}
 
         payload = self.make_payload(
             "explore",
@@ -537,7 +542,7 @@ class DataExportTest(APITestCase):
         )
         with self.feature("organizations:discover-query"):
             response = self.get_error_response(self.org.slug, status_code=400, **payload)
-        assert response.data == {"non_field_errors": ["shrug is not a valid ISO8601 date query"]}
+        assert response.data == {"non_field_errors": ["Invalid date parameters."]}
 
     @freeze_time("2020-05-19 14:00:00")
     def test_explore_converts_stats_period(self) -> None:
@@ -651,20 +656,27 @@ class DataExportTest(APITestCase):
         """
         Tests that explore queries handle sort parameters correctly
         """
-        payload = self.make_payload("explore", {"sort": ["-timestamp", "span_id"]})
+        payload = self.make_payload(
+            "explore",
+            {"field": ["span_id", "timestamp"], "sort": ["-timestamp", "span_id"]},
+        )
         with self.feature("organizations:discover-query"):
             response = self.get_success_response(self.org.slug, status_code=201, **payload)
         data_export = ExportedData.objects.get(id=response.data["id"])
         query_info = data_export.query_info
+        assert query_info["field"] == ["span_id", "timestamp"]
         assert query_info["sort"] == ["-timestamp", "span_id"]
 
     def test_explore_with_single_sort_string(self) -> None:
         """
         Tests that explore queries handle single sort string parameters correctly
         """
-        payload = self.make_payload("explore", {"sort": "-timestamp"})
+        payload = self.make_payload(
+            "explore", {"field": ["span_id", "timestamp"], "sort": "-timestamp"}
+        )
         with self.feature("organizations:discover-query"):
             response = self.get_success_response(self.org.slug, status_code=201, **payload)
         data_export = ExportedData.objects.get(id=response.data["id"])
         query_info = data_export.query_info
+        assert query_info["field"] == ["span_id", "timestamp"]
         assert query_info["sort"] == ["-timestamp"]

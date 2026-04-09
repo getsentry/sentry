@@ -7,7 +7,7 @@ describe('safeURL', () => {
     globalThis.URL = nativeConstructor;
   });
 
-  describe(`invalid argument types`, () => {
+  describe('invalid argument types', () => {
     it('does not throw on unknown input', () => {
       expect(() => safeURL('/')).not.toThrow();
       expect(() => safeURL('/', 'bad_base')).not.toThrow();
@@ -24,7 +24,7 @@ describe('safeURL', () => {
     });
   });
 
-  describe(`valid argument values`, () => {
+  describe('valid argument values', () => {
     it('returns a new URL object', () => {
       expect(safeURL('https://example.com')).toBeInstanceOf(URL);
       expect(safeURL('/path', 'http://example.com')).toBeInstanceOf(URL);

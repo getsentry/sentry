@@ -53,7 +53,7 @@ describe('StreamlinedGroupHeader', () => {
         body: {},
       });
       MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/repos/`,
+        url: '/organizations/org-slug/repos/',
         body: {},
       });
       MockApiClient.addMockResponse({

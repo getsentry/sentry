@@ -48,7 +48,7 @@ describe('EventNavigation', () => {
     window.open = jest.fn();
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/events/event-id/actionable-items/`,
+      url: '/projects/org-slug/project-slug/events/event-id/actionable-items/',
       body: {
         errors: [],
       },
@@ -90,7 +90,7 @@ describe('EventNavigation', () => {
 
   it('shows processing issue button if there is an event error', async () => {
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/events/event-id/actionable-items/`,
+      url: '/projects/org-slug/project-slug/events/event-id/actionable-items/',
       body: {
         errors: [
           {

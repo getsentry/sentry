@@ -35,7 +35,7 @@ export function ProjectDetails() {
   }>();
   const {data, isPending, isError} = useApiQuery<Project>(
     [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/`, {
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
         path: {organizationIdOrSlug: orgId, projectIdOrSlug: projectId},
       }),
     ],

@@ -130,7 +130,7 @@ export default function UptimeAlertDetails() {
               {
                 label: t('Alerts'),
                 to: makeAlertsPathname({
-                  path: `/rules/`,
+                  path: '/rules/',
                   organization,
                 }),
               },

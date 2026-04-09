@@ -42,17 +42,15 @@ export function MetricInfoTabs({
 
   const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
 
-  const size = hasMetricsUIRefresh ? 'md' : 'xs';
-
   return (
     <TabStateProvider<Mode>
       value={queryParamsMode}
       onChange={mode => {
         setAggregatesMode(mode);
       }}
-      size={size}
+      size={hasMetricsUIRefresh ? 'md' : 'xs'}
     >
-      {(orientation === 'right' || visualize.visible) && (
+      {orientation === 'right' || visualize.visible ? (
         <Flex direction="row" justify="between" align="center" paddingRight="xl">
           <TabListWrapper orientation={orientation}>
             <TabList variant="floating">
@@ -66,8 +64,8 @@ export function MetricInfoTabs({
           </TabListWrapper>
           {additionalActions}
         </Flex>
-      )}
-      {visualize.visible && !contentsHidden && (
+      ) : null}
+      {visualize.visible && !contentsHidden ? (
         <BodyContainer>
           <StyledTabPanels>
             <TabPanels.Item key={Mode.AGGREGATE}>
@@ -84,7 +82,7 @@ export function MetricInfoTabs({
             </TabPanels.Item>
           </StyledTabPanels>
         </BodyContainer>
-      )}
+      ) : null}
     </TabStateProvider>
   );
 }

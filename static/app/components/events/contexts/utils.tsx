@@ -133,6 +133,7 @@ export function getRelativeTimeFromEventDateCreated(
 
 type KnownDataDetails = Omit<KeyValueListDataItem, 'key'> | undefined;
 
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 export function getKnownData<Data, DataType>({
   data,
   knownDataTypes,
@@ -579,4 +580,5 @@ const RelativeTime = styled('span')`
   margin-left: ${p => p.theme.space.xs};
 `;
 
-export const CONTEXT_DOCS_LINK = `https://docs.sentry.io/platform-redirect/?next=/enriching-events/context/`;
+export const CONTEXT_DOCS_LINK =
+  'https://docs.sentry.io/platform-redirect/?next=/enriching-events/context/';

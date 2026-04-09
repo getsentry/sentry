@@ -214,7 +214,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
   const handleSubmitSuccess = useCallback(
     (resp: Project) => {
       const projectSettingsQueryKey: ApiQueryKey = [
-        getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/`, {
+        getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
           path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
         }),
       ];

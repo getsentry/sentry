@@ -176,7 +176,7 @@ export function GroupList({
   const hasLogicBoolean = useMemo(
     () =>
       parsedQuery
-        ? treeResultLocator<boolean>({
+        ? treeResultLocator({
             tree: parsedQuery,
             noResultValue: false,
             visitorTest: ({token, returnResult}) => {

@@ -82,7 +82,7 @@ function computeOriginFromArrow(
     case 'right':
       return {originX: 0, originY: y ? `${y}px` : '50%'};
     default:
-      return {originX: `50%`, originY: '50%'};
+      return {originX: '50%', originY: '50%'};
   }
 }
 

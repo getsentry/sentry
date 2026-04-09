@@ -55,7 +55,7 @@ export function DetailsHeader({
 
   const duplicateLink = {
     pathname: makeAlertsPathname({
-      path: `/new/metric/`,
+      path: '/new/metric/',
       organization,
     }),
     query: {
@@ -88,7 +88,7 @@ export function DetailsHeader({
             {
               label: t('Alerts'),
               to: makeAlertsPathname({
-                path: `/rules/`,
+                path: '/rules/',
                 organization,
               }),
             },
