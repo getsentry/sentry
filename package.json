@@ -280,7 +280,6 @@
     "jest-environment-jsdom": "30.3.0",
     "jest-fail-on-console": "3.3.4",
     "jest-junit": "16.0.0",
-    "jsdom": "29.0.2",
     "knip": "6.3.1",
     "odiff-bin": "^4.3.2",
     "oxfmt": "^0.41.0",

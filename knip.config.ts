@@ -76,6 +76,7 @@ const config: KnipConfig = {
     'core-js',
     'tslib', // subdependency of many packages, declare the latest version
     'jest-environment-jsdom', // used as testEnvironment in jest config
+    'jsdom', // knip thinks we need this because of jest-environment jsdom
     'swc-plugin-component-annotate', // used in rspack config, needs better knip plugin
     '@swc/plugin-emotion', // used in rspack config, needs better knip plugin
     'buffer', // rspack.ProvidePlugin, needs better knip plugin
