@@ -480,6 +480,15 @@ function flattenActions(
       results.push({...node, listItemType: isGroup ? 'section' : 'action'});
       if (isGroup) {
         for (const child of node.children) {
+          const childIsGroup = child.children.length > 0;
+          if (
+            !childIsGroup &&
+            'resource' in child &&
+            !('to' in child) &&
+            !('onAction' in child)
+          ) {
+            continue;
+          }
           results.push({...child, listItemType: 'action'});
         }
       }
@@ -529,6 +538,11 @@ function flattenActions(
           )
           .map(c => ({...c, listItemType: 'action' as const})),
       ];
+    }
+    // Skip resource nodes with no children — they are async group containers that
+    // returned 0 results and have no executable action of their own.
+    if ('resource' in item && !('to' in item) && !('onAction' in item)) {
+      return [];
     }
     return scores.get(item.key)?.score.matched ? [{...item, listItemType: 'action'}] : [];
   });
