@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -13,7 +15,7 @@ import {EntryType} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-const ANDROID_NATIVE_SDK_PREFIX = 'sentry.native.android';
+const ANDROID_NATIVE_SDK_NAME = 'sentry.native.android';
 const TOMBSTONES_DOCS_URL =
   'https://docs.sentry.io/platforms/android/configuration/tombstones/';
 
@@ -46,7 +48,7 @@ function hasSignalHandlerMechanism(event: Event): boolean {
 }
 
 function isAndroidNativeSdk(event: Event): boolean {
-  return event.sdk?.name?.startsWith(ANDROID_NATIVE_SDK_PREFIX) ?? false;
+  return event.sdk?.name === ANDROID_NATIVE_SDK_NAME;
 }
 
 export function shouldShowTombstonesBanner(event: Event): boolean {
@@ -75,13 +77,13 @@ export function AndroidNativeTombstonesBanner({event, projectId}: Props) {
 
   return (
     <BannerWrapper>
-      <div>
-        <BannerTitle>{t('Enable Tombstone Collection')}</BannerTitle>
-        <BannerDescription>
+      <Flex direction="column" gap="md">
+        <Heading as="h4">{t('Enable Tombstone Collection')}</Heading>
+        <Text as="p" style={{maxWidth: 460}}>
           {t(
             'This native crash was captured via the Android NDK integration only. Enable Tombstone collection in your application to get richer crash reports with more context, including additional thread information, better stack traces and more.'
           )}
-        </BannerDescription>
+        </Text>
         <CodeBlock
           tabs={[
             {label: 'AndroidManifest.xml', value: 'manifest'},
@@ -109,7 +111,7 @@ export function AndroidNativeTombstonesBanner({event, projectId}: Props) {
         >
           {t('Learn More')}
         </LinkButton>
-      </div>
+      </Flex>
       <CloseDropdownMenu
         position="bottom-end"
         triggerProps={{
@@ -159,17 +161,6 @@ const BannerWrapper = styled('div')`
     ${p => p.theme.tokens.background.secondary} 70%,
     ${p => p.theme.tokens.background.secondary} 100%
   );
-`;
-
-const BannerTitle = styled('div')`
-  font-size: ${p => p.theme.font.size.xl};
-  margin-bottom: ${p => p.theme.space.md};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const BannerDescription = styled('div')`
-  margin-bottom: ${p => p.theme.space.lg};
-  max-width: 460px;
 `;
 
 const CloseDropdownMenu = styled(DropdownMenu)`
