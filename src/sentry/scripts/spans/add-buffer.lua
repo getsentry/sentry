@@ -28,7 +28,8 @@ ARGS:
 - set_timeout -- int
 - byte_count -- int -- The total number of bytes in the subsegment.
 - max_segment_bytes -- int -- Maximum allowed ingested bytes for a segment. 0 means no limit.
-- salt -- str -- Salt to add to the segment key to avoid collisions.
+- salt -- str -- Unique identifier for this subsegment. When the segment exceeds max_segment_bytes, this subsegment
+                 is detached into its own segment keyed by salt. Empty string disables this behavior.
 - *span_id -- str[] -- The span ids in the subsegment.
 
 RETURNS:

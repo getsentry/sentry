@@ -32,9 +32,16 @@ Segments are flushed out to `buffered-spans` topic under two conditions:
 
 Now how does that look like in Redis? For each incoming span, we:
 
-1. Store the span payload in a payload key:
-   "span-buf:s:{project_id:trace_id:span_id}:span_id". Each subsegment
-   gets its own key, distributed across Redis cluster nodes.
+1. Store the span payload in a payload key. Each subsegment gets its own key,
+   distributed across Redis cluster nodes.
+   a. When segment size enforcement is disabled, the key uses the parent_span_id to
+   determine where to write span payloads to.
+   Key: `span-buf:s:{project_id:trace_id:parent_span_id}:parent_span_id`
+   b. When segment size enforcement is enabled, the key uses a unique salt per
+   subsegment. This allows us to skip merging the subsegment into the parent segment
+   and not lose any data, since the subsegment will become its own separate segment
+   and be flushed out independently.
+   Key: `span-buf:s:{project_id:trace_id:salt}:salt`
 2. The Lua script (add-buffer.lua) receives the span IDs and:
    a. Follows redirects from parent_span_id (hashmap at
       "span-buf:ssr:{project_id:trace_id}") to find the segment root.
@@ -42,6 +49,9 @@ Now how does that look like in Redis? For each incoming span, we:
    c. Merges member-keys indexes and counters (ingested count, byte count)
       from span IDs that were previously separate segment roots into the
       current segment root.
+   d. If segment size enforcement is enabled and the segment exceeds
+      max_segment_bytes, detaches the subsegment into its own segment
+      keyed by the salt.
 3. To a "global queue", we write the segment key, sorted by timeout.
 
 Eventually, flushing cronjob looks at that global queue, and removes all timed
@@ -57,6 +67,22 @@ consumer reads and writes to shards that correspond to its own assigned
 partitions. This means that extra care needs to be taken when recreating topics
 or using spillover topics, especially when their new partition count is lower
 than the original topic.
+
+Segment size enforcement:
+
+Segments can grow unboundedly as spans arrive. To prevent oversized segments from
+consuming excessive memory during flush, the buffer enforces a maximum byte limit
+per segment (controlled by `spans.buffer.max-segment-bytes` and gated behind
+`spans.buffer.enforce-segment-size`).
+
+Each subsegment is assigned a unique salt (UUID). The Lua script tracks cumulative
+ingested bytes per segment via `span-buf:ibc` keys. If adding a subsegment would
+push the segment over the byte limit, the script detaches it into a new segment
+keyed by the salt instead of merging it into the parent. The detached segment is
+independently tracked and flushed.
+
+During flush, segments that exceed `max-segment-bytes` are chunked into multiple
+Kafka messages to stay within downstream size limits.
 
 Glossary for types of keys:
 
