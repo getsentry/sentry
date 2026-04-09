@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
 from typing import Any
 
 from django.db import router, transaction
@@ -13,7 +12,7 @@ from sentry.preprod.integration_utils import get_commit_context_client
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.vcs.pr_comments.snapshot_templates import format_snapshot_pr_comment
-from sentry.preprod.vcs.pr_comments.tasks import _get_error_type
+from sentry.preprod.vcs.pr_comments.tasks import find_existing_comment_id, save_pr_comment_result
 from sentry.preprod.vcs.status_checks.snapshots.tasks import (
     FAIL_ON_ADDED_OPTION_KEY,
     FAIL_ON_REMOVED_OPTION_KEY,
@@ -175,7 +174,7 @@ def create_preprod_snapshot_pr_comment_task(
             approvals_map=approvals_map,
         )
 
-        existing_comment_id = _find_existing_comment_id(all_for_pr)
+        existing_comment_id = find_existing_comment_id(all_for_pr, "snapshots")
 
         try:
             if existing_comment_id:
@@ -210,47 +209,10 @@ def create_preprod_snapshot_pr_comment_task(
             if isinstance(e, ApiError):
                 extra["status_code"] = e.code
             logger.exception("preprod.snapshot_pr_comments.create.failed", extra=extra)
-            _save_pr_comment_result(cc, success=False, error=e)
+            save_pr_comment_result(cc, "snapshots", success=False, error=e)
             api_error = e
         else:
-            _save_pr_comment_result(cc, success=True, comment_id=comment_id)
+            save_pr_comment_result(cc, "snapshots", success=True, comment_id=comment_id)
 
     if api_error is not None:
         raise api_error
-
-
-def _find_existing_comment_id(
-    comparisons: Sequence[CommitComparison],
-) -> str | None:
-    for cc in comparisons:
-        extras = cc.extras or {}
-        comment_id = extras.get("pr_comments", {}).get("snapshots", {}).get("comment_id")
-        if comment_id:
-            return str(comment_id)
-    return None
-
-
-def _save_pr_comment_result(
-    commit_comparison: CommitComparison,
-    success: bool,
-    comment_id: str | None = None,
-    error: Exception | None = None,
-) -> None:
-    extras = commit_comparison.extras or {}
-
-    # Preserve the existing comment_id on failure so retries use
-    # update_comment instead of creating a duplicate.
-    if not comment_id:
-        existing = extras.get("pr_comments", {}).get("snapshots", {})
-        comment_id = existing.get("comment_id")
-
-    result: dict[str, Any] = {"success": success}
-    if comment_id:
-        result["comment_id"] = comment_id
-    if not success:
-        result["error_type"] = _get_error_type(error)
-
-    pr_comments = extras.setdefault("pr_comments", {})
-    pr_comments["snapshots"] = result
-    commit_comparison.extras = extras
-    commit_comparison.save(update_fields=["extras"])
