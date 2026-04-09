@@ -1,3 +1,5 @@
+import {useQuery} from '@tanstack/react-query';
+
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {findBestThread} from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
@@ -19,8 +21,7 @@ import {EntryType} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {semverCompare} from 'sentry/utils/versions/semverCompare';
 
@@ -226,27 +227,24 @@ export const useFetchProguardMappingFiles = ({
     data: proguardMappingFiles,
     isSuccess,
     isPending,
-  } = useApiQuery<DebugFile[]>(
-    [
-      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/', {
+  } = useQuery({
+    ...apiOptions.as<DebugFile[]>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/',
+      {
         path: {
           organizationIdOrSlug: organization.slug,
           projectIdOrSlug: project.slug,
         },
-      }),
-      {
         query: {
           query: proGuardImageUuid,
           file_formats: 'proguard',
         },
-      },
-    ],
-    {
-      staleTime: Infinity,
-      enabled: shouldFetch,
-      retry: false,
-    }
-  );
+        staleTime: Infinity,
+      }
+    ),
+    enabled: shouldFetch,
+    retry: false,
+  });
 
   function getProguardErrorsFromMappingFiles(): EventErrorData[] {
     if (isShare) {
