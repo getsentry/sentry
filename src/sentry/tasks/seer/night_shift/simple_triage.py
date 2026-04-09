@@ -4,14 +4,12 @@ import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from django.db.models import F
-
-from sentry.models.group import Group, GroupStatus
+from sentry import search
+from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.models.project import Project
 from sentry.seer.autofix.utils import is_issue_category_eligible
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
 from sentry.types.group import PriorityLevel
-from sentry.utils.iterators import chunked
 
 logger = logging.getLogger("sentry.tasks.seer.night_shift")
 
@@ -49,37 +47,36 @@ def fixability_score_strategy(
     projects: Sequence[Project],
 ) -> list[ScoredCandidate]:
     """
-    Rank issues by existing fixability score with times_seen as tiebreaker.
-    Simple baseline — doesn't require any additional LLM calls.
+    Fetch top recommended unresolved issues that haven't been triaged by Seer yet,
+    then re-rank by fixability score. Doesn't require any additional LLM calls.
     """
-    all_candidates: list[ScoredCandidate] = []
+    result = search.backend.query(
+        projects=projects,
+        sort_by="recommended",
+        limit=NIGHT_SHIFT_ISSUE_FETCH_LIMIT,
+        search_filters=[
+            SearchFilter(SearchKey("status"), "=", SearchValue("unresolved")),
+            SearchFilter(SearchKey("issue.seer_last_run"), "=", SearchValue("")),
+        ],
+        referrer="seer.night_shift.fixability_score_strategy",
+    )
 
-    for project_id_batch in chunked(projects, 100):
-        groups = Group.objects.filter(
-            project_id__in=[p.id for p in project_id_batch],
-            status=GroupStatus.UNRESOLVED,
-            seer_autofix_last_triggered__isnull=True,
-            seer_explorer_autofix_last_triggered__isnull=True,
-        ).order_by(
-            F("seer_fixability_score").desc(nulls_last=True),
-            F("times_seen").desc(),
-        )[:NIGHT_SHIFT_ISSUE_FETCH_LIMIT]
+    candidates: list[ScoredCandidate] = []
+    for group in result.results:
+        if not is_issue_category_eligible(group):
+            continue
 
-        for group in groups:
-            if not is_issue_category_eligible(group):
-                continue
-
-            all_candidates.append(
-                ScoredCandidate(
-                    group=group,
-                    fixability=group.seer_fixability_score or 0.0,
-                    times_seen=group.times_seen,
-                    severity=(group.priority or 0) / PriorityLevel.HIGH,
-                )
+        candidates.append(
+            ScoredCandidate(
+                group=group,
+                fixability=group.seer_fixability_score or 0.0,
+                times_seen=group.times_seen,
+                severity=(group.priority or 0) / PriorityLevel.HIGH,
             )
+        )
 
-    all_candidates.sort(reverse=True)
-    return all_candidates[:NIGHT_SHIFT_MAX_CANDIDATES]
+    candidates.sort(reverse=True)
+    return candidates[:NIGHT_SHIFT_MAX_CANDIDATES]
 
 
 def priority_label(priority: int | None) -> str | None:
