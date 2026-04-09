@@ -59,6 +59,18 @@ class SentryMetricsBackend(MetricsBackend):
             sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
         sentry_metrics.incr(name, amount=int(value), tags=tags, sample_rate=sample_rate)
 
+    def gauge(
+        self,
+        key: str,
+        value: float,
+        instance: str | None = None,
+        tags: Tags | None = None,
+        sample_rate: float = 1,
+        unit: str | None = None,
+        stacklevel: int = 0,
+    ) -> None:
+        return sentry_metrics.gauge(key, value, tags=tags)
+
     def distribution(
         self,
         name: str,
