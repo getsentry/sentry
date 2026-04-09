@@ -1,0 +1,90 @@
+name: classify test services
+
+on:
+  workflow_dispatch:
+
+jobs:
+  classify:
+    name: classify (${{ matrix.instance }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        instance:
+          [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
+
+    env:
+      MATRIX_INSTANCE_TOTAL: 22
+      TEST_GROUP_STRATEGY: roundrobin
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        with:
+          mode: backend-ci
+
+      - name: Run tests with classification
+        env:
+          PYTEST_ADDOPTS: '${{ env.PYTEST_ADDOPTS }} --classify-services --classification-output=test-service-classification.json'
+        run: |
+          python3 -b -m pytest tests \
+            --ignore tests/acceptance \
+            --ignore tests/apidocs \
+            --ignore tests/js \
+            --ignore tests/tools \
+            || true
+
+      - name: Upload classification report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: classification-shard-${{ matrix.instance }}
+          path: test-service-classification.json
+          retention-days: 90
+
+  merge-reports:
+    name: merge classification reports
+    needs: classify
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: classification-shard-*
+          path: shards/
+
+      - name: Merge shard reports
+        run: |
+          python3 - <<'SCRIPT'
+          import json
+          from collections import defaultdict
+          from pathlib import Path
+
+          merged = defaultdict(set)
+          shard_dirs = sorted(Path("shards").iterdir())
+
+          for shard_dir in shard_dirs:
+              report = shard_dir / "test-service-classification.json"
+              if report.exists():
+                  for tid, svcs in json.loads(report.read_text()).get("tests", {}).items():
+                      merged[tid].update(svcs)
+
+          Path("test-service-classification.json").write_text(json.dumps(
+              {"total_tests": len(merged), "tests": {k: sorted(v) for k, v in sorted(merged.items())}},
+              indent=2,
+          ) + "\n")
+          print(f"Merged {len(merged)} tests from {len(shard_dirs)} shards")
+          SCRIPT
+
+      - name: Upload merged report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: test-service-classification
+          path: test-service-classification.json
+          retention-days: 90
