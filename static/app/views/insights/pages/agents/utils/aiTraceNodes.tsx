@@ -139,6 +139,40 @@ export function getNumberAttr(node: AITraceSpanNode, field: string): number | un
   return undefined;
 }
 
+const MAX_TOOL_INPUT_PREVIEW_LENGTH = 80;
+
+/**
+ * Parses tool input JSON and returns the value of the first key.
+ * Used to show a preview of the tool input next to the tool name.
+ */
+export function getFirstToolInputValue(node: AITraceSpanNode): string | undefined {
+  const toolInput =
+    getStringAttr(node, 'gen_ai.tool.call.arguments') ||
+    getStringAttr(node, 'gen_ai.tool.input');
+  if (!toolInput) {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(toolInput);
+    if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+      const firstKey = Object.keys(parsed)[0];
+      if (firstKey !== undefined) {
+        const value = parsed[firstKey];
+        const str = typeof value === 'string' ? value : JSON.stringify(value);
+        if (str.length > MAX_TOOL_INPUT_PREVIEW_LENGTH) {
+          return str.slice(0, MAX_TOOL_INPUT_PREVIEW_LENGTH) + '\u2026';
+        }
+        return str;
+      }
+    }
+  } catch {
+    // Invalid JSON, return undefined
+  }
+
+  return undefined;
+}
+
 export function hasError(node: AITraceSpanNode): boolean {
   if (node.errors.size > 0) {
     return true;
