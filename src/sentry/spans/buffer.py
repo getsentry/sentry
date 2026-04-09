@@ -276,9 +276,9 @@ class SpansBuffer:
             for key, subsegment in trees.items():
                 if max_spans_per_evalsha > 0 and len(subsegment) > max_spans_per_evalsha:
                     for chunk in itertools.batched(subsegment, max_spans_per_evalsha):
-                        tree_items.append((key, uuid.uuid4().hex, list(chunk)))
+                        tree_items.append(Subsegment(key, uuid.uuid4().hex, list(chunk)))
                 else:
-                    tree_items.append((key, uuid.uuid4().hex, subsegment))
+                    tree_items.append(Subsegment(key, uuid.uuid4().hex, subsegment))
 
             tree_batches: Sequence[Sequence[Subsegment]]
             if pipeline_batch_size > 0:
