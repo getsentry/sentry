@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -20,6 +21,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -38,7 +40,7 @@ import {useCrossEventQueries} from 'sentry/views/explore/hooks/useCrossEventQuer
 import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
-import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTracesTable';
+import {useExploreTracesTableApiOptions} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {
@@ -217,15 +219,19 @@ function SpanTabContentSection({
       ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
     },
   });
-  const tracesTableResult = useExploreTracesTable({
-    query,
-    limit,
+  const tracesTableQuery = useQuery({
+    ...useExploreTracesTableApiOptions({
+      query,
+      limit,
+      queryExtras: {
+        caseInsensitive,
+        ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
+      },
+    }),
+    select: selectJsonWithHeaders,
     enabled: isReady && queryType === 'traces',
-    queryExtras: {
-      caseInsensitive,
-      ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
-    },
   });
+  const tracesTableResult = {result: tracesTableQuery};
 
   const {result: timeseriesResult, samplingMode: timeseriesSamplingMode} =
     useExploreTimeseries({

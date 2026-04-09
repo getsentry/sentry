@@ -401,7 +401,7 @@ function useTrackAnalytics({
       'timestamp',
     ];
     const resultMissingRoot =
-      tracesTableResult?.result?.data?.data?.filter(trace => !defined(trace.name))
+      tracesTableResult?.result?.data?.json?.data?.filter(trace => !defined(trace.name))
         .length ?? 0;
     const gaveSeerConsent = organization.hideAiFeatures
       ? 'gen_ai_features_disabled'
@@ -417,7 +417,7 @@ function useTrackAnalytics({
       columns,
       columns_count: columns.length,
       query_status,
-      result_length: tracesTableResult.result.data?.data?.length || 0,
+      result_length: tracesTableResult.result.data?.json?.data?.length || 0,
       result_missing_root: resultMissingRoot,
       user_queries: search.formatString(),
       user_queries_count: search.tokens.length,
@@ -452,7 +452,7 @@ function useTrackAnalytics({
     timeseriesResult.data,
     timeseriesResult.isPending,
     title,
-    tracesTableResult?.result.data?.data,
+    tracesTableResult?.result.data?.json?.data,
     tracesTableResult?.result?.isPending,
     tracesTableResultDefined,
     visualizes,
