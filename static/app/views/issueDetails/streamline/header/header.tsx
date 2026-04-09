@@ -86,11 +86,14 @@ export function StreamlinedGroupHeader({event, group, project}: GroupHeaderProps
 
   const hasFeedbackForm =
     group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY ||
-    group.issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS;
+    group.issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS ||
+    group.issueType === IssueType.LLM_DETECTED_EXPERIMENTAL_V2;
   const feedbackSource =
     group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY
       ? 'issue_details_query_injection'
-      : 'issue_details_n_plus_one_api_calls';
+      : group.issueType === IssueType.LLM_DETECTED_EXPERIMENTAL_V2
+        ? 'issue_details_llm_detected_experimental_v2'
+        : 'issue_details_n_plus_one_api_calls';
   const {feedback} = useFeedbackSDKIntegration();
   const hasPageFrameFeature = useHasPageFrameFeature();
 
