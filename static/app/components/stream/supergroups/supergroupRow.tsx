@@ -26,6 +26,7 @@ import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 
 interface SupergroupRowProps {
   matchedGroupIds: string[];
+  query: string;
   supergroup: SupergroupDetail;
   aggregatedStats?: AggregatedSupergroupStats | null;
   memberList?: IndexedMembersByProject;
@@ -36,6 +37,7 @@ export function SupergroupRow({
   matchedGroupIds,
   aggregatedStats,
   memberList,
+  query,
 }: SupergroupRowProps) {
   const matchedCount = matchedGroupIds.length;
   const {openDrawer, isDrawerOpen} = useDrawer();
@@ -46,8 +48,8 @@ export function SupergroupRow({
       () => (
         <SupergroupDetailDrawer
           supergroup={supergroup}
-          matchedGroupIds={matchedGroupIds}
           memberList={memberList}
+          query={query}
         />
       ),
       {
@@ -85,20 +87,16 @@ export function SupergroupRow({
         />
       </IconArea>
       <Summary>
-        {supergroup.error_type ? (
-          <Text size="md" bold ellipsis>
-            {supergroup.error_type}
-          </Text>
-        ) : null}
-        <Text size="sm" variant="muted" ellipsis>
+        <Text size="md" bold ellipsis>
           {supergroup.title}
         </Text>
+        <Text size="sm" variant="muted" ellipsis>
+          {supergroup.error_type}
+        </Text>
         <MetaRow>
-          {supergroup.code_area ? (
-            <Text size="sm" variant="muted" ellipsis>
-              {supergroup.code_area}
-            </Text>
-          ) : null}
+          <Text size="sm" variant="muted" ellipsis>
+            {supergroup.code_area}
+          </Text>
           {supergroup.code_area && matchedCount > 0 ? <Dot /> : null}
           {matchedCount > 0 ? (
             <Text

@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -27,16 +27,14 @@ import {
 } from 'sentry/components/stream/group';
 import {IconChevron, IconFocus} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SupergroupFeedback} from 'sentry/views/issueList/supergroups/supergroupFeedback';
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
-
-const PAGE_SIZE = 20;
 
 const DRAWER_COLUMNS: GroupListColumn[] = [
   'event',
@@ -47,15 +45,15 @@ const DRAWER_COLUMNS: GroupListColumn[] = [
 ];
 
 interface SupergroupDetailDrawerProps {
-  matchedGroupIds: string[];
   supergroup: SupergroupDetail;
   memberList?: IndexedMembersByProject;
+  query?: string;
 }
 
 export function SupergroupDetailDrawer({
   supergroup,
-  matchedGroupIds,
   memberList,
+  query,
 }: SupergroupDetailDrawerProps) {
   return (
     <Fragment>
@@ -127,8 +125,8 @@ export function SupergroupDetailDrawer({
           <Container padding="xl 2xl">
             <SupergroupIssueList
               groupIds={supergroup.group_ids}
-              matchedGroupIds={matchedGroupIds}
               memberList={memberList}
+              query={query}
             />
           </Container>
         )}
@@ -137,121 +135,136 @@ export function SupergroupDetailDrawer({
   );
 }
 
+const PAGE_SIZE = 25;
+
 function SupergroupIssueList({
   groupIds,
-  matchedGroupIds,
   memberList,
+  query,
 }: {
   groupIds: number[];
-  matchedGroupIds: string[];
   memberList?: IndexedMembersByProject;
+  query?: string;
 }) {
   const organization = useOrganization();
+  const location = useLocation();
   const [page, setPage] = useState(0);
 
-  // Sort: matched first, then other loaded groups, then unloaded
-  const {sortedGroupIds, loadedIds} = useMemo(() => {
-    const matched: number[] = [];
-    const loaded: number[] = [];
-    const cachedIds = new Set<string>();
-    const unloaded: number[] = [];
+  const hasQuery = query !== undefined;
+  const issueIdFilter = `issue.id:[${groupIds.join(',')}]`;
+  const totalPages = Math.ceil(groupIds.length / PAGE_SIZE);
+  const pageGroupIds = groupIds.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-    for (const id of groupIds) {
-      const strId = String(id);
-      if (GroupStore.get(strId)) {
-        cachedIds.add(strId);
-        if (matchedGroupIds.includes(strId)) {
-          matched.push(id);
-        } else {
-          loaded.push(id);
-        }
-      } else {
-        unloaded.push(id);
-      }
-    }
+  const {project, environment, statsPeriod, start, end} = location.query;
 
-    return {sortedGroupIds: [...matched, ...loaded, ...unloaded], loadedIds: cachedIds};
-  }, [groupIds, matchedGroupIds]);
-
-  const totalPages = Math.ceil(sortedGroupIds.length / PAGE_SIZE);
-  const pageGroupIds = sortedGroupIds.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-  const pageUnloadedIds = pageGroupIds.filter(id => !loadedIds.has(String(id)));
-
-  const {data: fetchedGroups, isPending} = useApiQuery<Group[]>(
+  // Fetch all groups on this page
+  const {data: allGroups, isPending: allPending} = useApiQuery<Group[]>(
     [
       getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
         query: {
-          group: pageUnloadedIds.map(String),
+          query: issueIdFilter,
           project: ALL_ACCESS_PROJECTS,
+          limit: PAGE_SIZE,
         },
       },
     ],
-    {
-      staleTime: 30_000,
-      enabled: pageUnloadedIds.length > 0,
-    }
+    {staleTime: 30_000}
   );
+
+  // Search with the stream query to find which ones match
+  const {data: matchedGroups, isPending: matchPending} = useApiQuery<Group[]>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {
+        query: {
+          project,
+          environment,
+          statsPeriod,
+          start,
+          end,
+          query: `${query} ${issueIdFilter}`,
+          limit: groupIds.length,
+        },
+      },
+    ],
+    {staleTime: 30_000, enabled: hasQuery}
+  );
+
+  const isPending = allPending || (hasQuery && matchPending);
+
+  if (isPending) {
+    return (
+      <PanelContainer>
+        <GroupListHeader withChart={false} withColumns={DRAWER_COLUMNS} />
+        <PanelBody>
+          {pageGroupIds.map(id => (
+            <PlaceholderRow key={id}>
+              <Placeholder height="82px" />
+            </PlaceholderRow>
+          ))}
+        </PanelBody>
+      </PanelContainer>
+    );
+  }
+
+  const matchedIds = new Set(matchedGroups?.map(g => g.id));
+  const groupMap = new Map(allGroups?.map(g => [g.id, g]));
+
+  // Sort: matched first, then the rest
+  const sortedGroups = [...pageGroupIds]
+    .map(id => groupMap.get(String(id)))
+    .filter((g): g is Group => g !== undefined)
+    .sort((a, b) => {
+      const aMatched = matchedIds.has(a.id);
+      const bMatched = matchedIds.has(b.id);
+      if (aMatched !== bMatched) {
+        return aMatched ? -1 : 1;
+      }
+      return 0;
+    });
 
   return (
     <Fragment>
-      {matchedGroupIds.length > 0 && (
+      {matchedIds.size > 0 && (
         <Flex align="center" gap="xs" padding="0 0 md 0">
           <MatchedIndicator />
           <Text size="sm" variant="muted">
-            {t('Visible in current results')}
+            {t('Matches current filters')}
           </Text>
         </Flex>
       )}
       <PanelContainer>
         <GroupListHeader withChart={false} withColumns={DRAWER_COLUMNS} />
         <PanelBody>
-          {pageGroupIds.map(id => {
-            const strId = String(id);
-            const group =
-              (GroupStore.get(strId) as Group | undefined) ??
-              fetchedGroups?.find(g => g.id === strId);
-
-            if (group) {
-              const members = memberList?.[group.project?.slug]
-                ? memberList[group.project.slug]
-                : undefined;
-              return (
-                <HighlightableRow
-                  key={group.id}
-                  highlighted={matchedGroupIds.includes(group.id)}
-                >
-                  <StreamGroup
-                    group={group}
-                    canSelect={false}
-                    withChart={false}
-                    withColumns={DRAWER_COLUMNS}
-                    memberList={members}
-                    statsPeriod={DEFAULT_STREAM_GROUP_STATS_PERIOD}
-                    source="supergroup-drawer"
-                  />
-                </HighlightableRow>
-              );
-            }
-
-            if (isPending) {
-              return (
-                <PlaceholderRow key={strId}>
-                  <Placeholder height="82px" />
-                </PlaceholderRow>
-              );
-            }
-
-            return null;
+          {sortedGroups.map(group => {
+            const members = memberList?.[group.project?.slug]
+              ? memberList[group.project.slug]
+              : undefined;
+            return (
+              <HighlightableRow key={group.id} highlighted={matchedIds.has(group.id)}>
+                <StreamGroup
+                  group={group}
+                  canSelect={false}
+                  withChart={false}
+                  withColumns={DRAWER_COLUMNS}
+                  memberList={members}
+                  statsPeriod={DEFAULT_STREAM_GROUP_STATS_PERIOD}
+                  source="supergroup-drawer"
+                />
+              </HighlightableRow>
+            );
           })}
         </PanelBody>
       </PanelContainer>
       {totalPages > 1 && (
         <Flex justify="end" align="center" gap="sm" padding="md 0">
           <Text size="sm" variant="muted">
-            {`${page * PAGE_SIZE + 1}-${Math.min((page + 1) * PAGE_SIZE, sortedGroupIds.length)} of ${sortedGroupIds.length}`}
+            {`${page * PAGE_SIZE + 1}-${Math.min((page + 1) * PAGE_SIZE, groupIds.length)} of ${groupIds.length}`}
           </Text>
           <Flex gap="xs">
             <Button
