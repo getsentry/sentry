@@ -48,7 +48,7 @@ export default function ProjectOwnership() {
   const {project} = useProjectSettingsOutlet();
 
   const ownershipQueryKey: ApiQueryKey = [
-    getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/ownership/`, {
+    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/ownership/', {
       path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
     }),
   ];
@@ -59,7 +59,7 @@ export default function ProjectOwnership() {
   } = useApiQuery<IssueOwnership>(ownershipQueryKey, {staleTime: Infinity});
 
   const codeownersQueryKey: ApiQueryKey = [
-    getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/codeowners/`, {
+    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/codeowners/', {
       path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
     }),
     {query: {expand: ['codeMapping', 'ownershipSyntax']}},
@@ -180,7 +180,7 @@ export default function ProjectOwnership() {
         />
         <TextBlock>
           {tct(
-            `Auto-assign issues to users and teams. To learn more, [link:read the docs].`,
+            'Auto-assign issues to users and teams. To learn more, [link:read the docs].',
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />

@@ -454,7 +454,7 @@ export class SourceField extends Component<Props, State> {
 const Wrapper = styled('div')<{hideCaret?: boolean}>`
   position: relative;
   width: 100%;
-  ${p => p.hideCaret && `caret-color: transparent;`}
+  ${p => p.hideCaret && 'caret-color: transparent;'}
 `;
 
 const StyledInput = styled(Input)`

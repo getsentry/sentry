@@ -131,7 +131,7 @@ class BaseDateRange extends Component<Props, State> {
       organization: organization ?? null,
       field_changed: 'start',
       time: startTime,
-      path: getRouteStringFromRoutes(router.routes),
+      path: getRouteStringFromRoutes({routes: router.routes}),
     });
 
     onChange({
@@ -160,7 +160,7 @@ class BaseDateRange extends Component<Props, State> {
       organization: organization ?? null,
       field_changed: 'end',
       time: endTime,
-      path: getRouteStringFromRoutes(router.routes),
+      path: getRouteStringFromRoutes({routes: router.routes}),
     });
 
     onChange({

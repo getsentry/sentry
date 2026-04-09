@@ -52,6 +52,7 @@ export function useSuperGroups(groupIds: string[]): {
     {
       staleTime: 30_000,
       enabled,
+      retry: false,
       placeholderData: previousData => {
         if (!previousData) {
           return undefined;

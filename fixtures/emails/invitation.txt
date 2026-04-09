@@ -4,7 +4,7 @@ Your teammates at Example are using Sentry to catch errors, crush latency issues
 
 Looks like they need your help. You've been invited to join them:
 
-http://testserver/accept/1/None/
+http://testserver/accept/example/1/None/
 
 Heads up: this invite link is just for you. Don't share it unless you want random strangers fixing your bugs.
 

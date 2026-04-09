@@ -21,7 +21,10 @@ from sentry.integrations.perforce.client import PerforceClient
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
-from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.source_code_management.repository import (
+    RepositoryInfo,
+    RepositoryIntegration,
+)
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView
@@ -164,7 +167,7 @@ class PerforceInstallationForm(forms.Form):
         return web_url
 
 
-class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
+class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIntegration):
     """
     Integration for P4 Core version control system.
     Provides stacktrace linking to depot files and suspect commit detection.
@@ -183,6 +186,11 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
     ):
         super().__init__(model=model, organization_id=organization_id)
         self._client: PerforceClient | None = None
+
+    def get_repo_external_id(self, repo: Mapping[str, Any]) -> str:
+        raise NotImplementedError(
+            "Perforce external_id is derived from the depot path, not the API response"
+        )
 
     def get_client(self) -> PerforceClient:
         """Get the Perforce client instance."""
@@ -353,7 +361,7 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         query: str | None = None,
         page_number_limit: int | None = None,
         accessible_only: bool = False,
-    ) -> list[dict[str, Any]]:
+    ) -> list[RepositoryInfo]:
         """
         Get list of depots/streams from Perforce server.
 
@@ -368,7 +376,7 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
             client = self.get_client()
             depots = client.get_depots()
 
-            repositories = []
+            repositories: list[RepositoryInfo] = []
             for depot in depots:
                 depot_name = depot["name"]
                 depot_path = f"//{depot_name}"
@@ -381,6 +389,7 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
                     {
                         "name": depot_name,
                         "identifier": depot_path,
+                        "external_id": "",  # Perforce derives external_id from the user-provided depot path, not the API response
                         "default_branch": None,  # Perforce uses depot paths, not branch refs
                     }
                 )

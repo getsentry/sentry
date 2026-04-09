@@ -839,3 +839,73 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             }
         )
         assert response.status_code == 400, response.content
+
+    def test_per_second_formula_with_arbitrary_search_term(self) -> None:
+        # Store 6 trace metrics over a 10 minute period
+        self.store_eap_items(
+            [
+                self.create_trace_metric(
+                    "test_metric", 1.0, "counter", attributes={"release": "abcdef"}
+                )
+                for _ in range(6)
+            ]
+        )
+        # Store one more without the attribute
+        self.store_eap_items(
+            [self.create_trace_metric("test_metric", 1.0, "counter") for _ in range(6)]
+        )
+
+        response = self.do_request(
+            {
+                "metricName": "test_metric",
+                "metricType": "counter",
+                "field": ["per_second_if(`release:abcdef`,value)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert (
+            data[0]["per_second_if(`release:abcdef`,value)"] == 0.01
+        )  # Over ten minute period, 6 events / 600 seconds = 0.01 events per second
+        assert meta["fields"]["per_second_if(`release:abcdef`,value)"] == "rate"
+        assert meta["units"]["per_second_if(`release:abcdef`,value)"] == "1/second"
+        assert meta["dataset"] == "tracemetrics"
+
+    def test_per_minute_formula_with_arbitrary_search_term(self) -> None:
+        # Store 6 trace metrics over a 10 minute period
+        self.store_eap_items(
+            [
+                self.create_trace_metric(
+                    "test_metric", 1.0, "counter", attributes={"release": "abcdef"}
+                )
+                for _ in range(6)
+            ]
+        )
+        # Store one more without the attribute
+        self.store_eap_items(
+            [self.create_trace_metric("test_metric", 1.0, "counter") for _ in range(6)]
+        )
+
+        response = self.do_request(
+            {
+                "metricName": "test_metric",
+                "metricType": "counter",
+                "field": ["per_minute_if(`release:abcdef`,value)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["per_minute_if(`release:abcdef`,value)"] == 0.6
+        assert meta["fields"]["per_minute_if(`release:abcdef`,value)"] == "rate"
+        assert meta["units"]["per_minute_if(`release:abcdef`,value)"] == "1/minute"
+        assert meta["dataset"] == "tracemetrics"

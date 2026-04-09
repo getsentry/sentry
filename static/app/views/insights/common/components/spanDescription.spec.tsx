@@ -110,7 +110,7 @@ describe('DatabaseSpanDescription', () => {
   });
 
   it('correctly formats and displays MongoDB queries', async () => {
-    const sampleMongoDBQuery = `{"a": "?", "insert": "documents"}`;
+    const sampleMongoDBQuery = '{"a": "?", "insert": "documents"}';
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,

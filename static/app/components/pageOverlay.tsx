@@ -157,8 +157,8 @@ export function PageOverlay({
       // Absolute position the container, this avoids the browser having to reflow
       // the component
       wrapperRef.current.style.position = 'absolute';
-      wrapperRef.current.style.left = `0px`;
-      wrapperRef.current.style.top = `0px`;
+      wrapperRef.current.style.left = '0px';
+      wrapperRef.current.style.top = '0px';
 
       const mainRect = contentRef.current.getBoundingClientRect();
       const anchorRect = anchorRef.current.getBoundingClientRect();

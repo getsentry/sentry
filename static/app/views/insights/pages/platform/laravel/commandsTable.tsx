@@ -144,7 +144,7 @@ function CommandCell({command}: {command: string}) {
       },
     ],
     query: `span.op:console.command* command:${command}`,
-    sort: `-count(span.duration)`,
+    sort: '-count(span.duration)',
   });
   return <Link to={link}>{command}</Link>;
 }

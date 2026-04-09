@@ -8,11 +8,12 @@ from sentry import audit_log
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.github.tasks.sync_repos import sync_repos_for_org
+from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegrationProvider
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 
 
@@ -218,3 +219,44 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
 
         with self.feature("organizations:github-repo-auto-sync"), pytest.raises(RetryTaskError):
             sync_repos_for_org(self.oi.id)
+
+
+@control_silo_test
+class SyncReposForOrgGHETestCase(TestCase):
+    @patch("sentry.integrations.github.client.GitHubBaseClient.get_repos")
+    def test_creates_new_repos_for_ghe(self, mock_get_repos: MagicMock) -> None:
+        GitHubEnterpriseIntegrationProvider().setup()
+
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="35.232.149.196:12345",
+            provider="github_enterprise",
+            metadata={
+                "domain_name": "35.232.149.196/testorg",
+                "installation_id": "12345",
+                "installation": {
+                    "id": "2",
+                    "private_key": "private_key",
+                    "verify_ssl": True,
+                },
+            },
+        )
+        oi = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=integration
+        )
+
+        mock_get_repos.return_value = [
+            {"id": 1, "full_name": "testorg/repo1"},
+            {"id": 2, "full_name": "testorg/repo2"},
+        ]
+
+        with self.feature(
+            ["organizations:github-repo-auto-sync", "organizations:github-repo-auto-sync-apply"]
+        ):
+            sync_repos_for_org(oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repos = Repository.objects.filter(organization_id=self.organization.id).order_by("name")
+
+        assert len(repos) == 2
+        assert repos[0].provider == "integrations:github_enterprise"

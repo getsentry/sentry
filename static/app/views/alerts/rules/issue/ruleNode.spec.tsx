@@ -277,7 +277,7 @@ describe('RuleNode', () => {
     it('remove deprecated category options', async () => {
       renderRuleNode(
         {
-          label: `The issue's category is equal to {value}`,
+          label: "The issue's category is equal to {value}",
           name: 'Issue Category',
           formFields: {
             value: {

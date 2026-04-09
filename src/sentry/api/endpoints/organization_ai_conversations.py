@@ -17,6 +17,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers.rest_framework import OrganizationAIConversationsSerializer
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
+from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.constants import NON_FAILURE_STATUS
@@ -341,7 +342,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     ) -> TableQuery:
         return TableQuery(
             name="aggregations",
-            query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}]",
+            query_string=build_escaped_term_filter("gen_ai.conversation.id", conversation_ids),
             selected_columns=[
                 "gen_ai.conversation.id",
                 "failure_count()",
@@ -365,7 +366,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     ) -> TableQuery:
         return TableQuery(
             name="enrichment",
-            query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}] has:gen_ai.operation.type",
+            query_string=f"{build_escaped_term_filter('gen_ai.conversation.id', conversation_ids)} has:gen_ai.operation.type",
             selected_columns=[
                 "gen_ai.conversation.id",
                 "gen_ai.operation.type",
@@ -392,7 +393,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     ) -> TableQuery:
         return TableQuery(
             name="first_last_io",
-            query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}] gen_ai.operation.type:ai_client",
+            query_string=f"{build_escaped_term_filter('gen_ai.conversation.id', conversation_ids)} gen_ai.operation.type:ai_client",
             selected_columns=[
                 "gen_ai.conversation.id",
                 "gen_ai.input.messages",

@@ -159,7 +159,7 @@ const formFields: Field[] = [
 
 const getThresholdQueryKey = (orgSlug: string, projectSlug: string): ApiQueryKey => [
   getApiUrl(
-    `/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/`,
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/',
     {
       path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
     }
@@ -171,7 +171,7 @@ const getPerformanceIssueSettingsQueryKey = (
   projectSlug: string
 ): ApiQueryKey => [
   getApiUrl(
-    `/projects/$organizationIdOrSlug/$projectIdOrSlug/performance-issues/configure/`,
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance-issues/configure/',
     {
       path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
     }
@@ -223,7 +223,7 @@ export function ProjectPerformance() {
   } = useApiQuery<any>(
     [
       getApiUrl(
-        `/projects/$organizationIdOrSlug/$projectIdOrSlug/performance/configure/`,
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance/configure/',
         {
           path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
         }

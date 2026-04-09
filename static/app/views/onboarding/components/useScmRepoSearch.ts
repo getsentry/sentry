@@ -18,7 +18,7 @@ export function useScmRepoSearch(integrationId: string, selectedRepo?: Repositor
   const searchQuery = useQuery({
     queryKey: [
       getApiUrl(
-        `/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/`,
+        '/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/',
         {
           path: {
             organizationIdOrSlug: organization.slug,

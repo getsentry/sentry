@@ -40,7 +40,7 @@ export default function ProjectProguard() {
     refetch: fetchData,
   } = useApiQuery<DebugFile[]>(
     [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/`, {
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/', {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
       }),
       {
@@ -112,7 +112,7 @@ export default function ProjectProguard() {
 
       <TextBlock>
         {tct(
-          `ProGuard mapping files are used to convert minified classes, methods and field names into a human readable format. To learn more about proguard mapping files, [link: read the docs].`,
+          'ProGuard mapping files are used to convert minified classes, methods and field names into a human readable format. To learn more about proguard mapping files, [link: read the docs].',
           {
             link: (
               <ExternalLink href="https://docs.sentry.io/platforms/android/proguard/" />

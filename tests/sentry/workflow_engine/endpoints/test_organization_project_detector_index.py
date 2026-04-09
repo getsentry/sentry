@@ -337,6 +337,47 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
         )
         assert response.data == {"name": ["This field is required."]}
 
+    def test_eap_invalid_time_window_rejected(self) -> None:
+        data = {**self.valid_data}
+        data["dataSources"] = [
+            {
+                "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                "dataset": Dataset.EventsAnalyticsPlatform.value,
+                "query": "span.op:http.client",
+                "aggregate": "count()",
+                "timeWindow": 60,  # 60 seconds — below the 300-second EAP floor
+                "environment": self.environment.name,
+                "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+            }
+        ]
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            **data,
+            status_code=400,
+        )
+        assert "Invalid Time Window" in str(response.data)
+
+        # 450 seconds is above the floor but not a valid granularity
+        data["dataSources"][0]["timeWindow"] = 450
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            **data,
+            status_code=400,
+        )
+        assert "Invalid Time Window" in str(response.data)
+
+        # 300 seconds (5 minutes) is the smallest valid EAP window
+        data["dataSources"][0]["timeWindow"] = 300
+        with self.tasks():
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                **data,
+                status_code=201,
+            )
+
 
 @cell_silo_test
 class OrganizationProjectDetectorIndexMonitorPostTest(APITestCase):

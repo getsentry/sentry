@@ -153,7 +153,7 @@ function MergeAccounts() {
         <SettingsPageHeader title={t('Merge Accounts')} />
         <div>
           {t(
-            `Only one account was found with your primary email address. You're all set.`
+            "Only one account was found with your primary email address. You're all set."
           )}
         </div>
       </Fragment>
@@ -166,7 +166,7 @@ function MergeAccounts() {
       <SettingsPageHeader title={t('Merge Accounts')} />
       <List symbol="colored-numeric">
         <StyledListItem>{t('Generate Verification Code')}</StyledListItem>
-        <div>{t(`Check your email for your code. You'll need it in Step 3.`)}</div>
+        <div>{t("Check your email for your code. You'll need it in Step 3.")}</div>
         <ButtonSection>
           <Button
             priority="primary"
@@ -241,11 +241,11 @@ function AccountSelection({users, onSelect, selectedUsers}: AccountSelectionProp
           }
         )}
       </TextBlock>
-      <TextBlock>{t(`Your currently active account:`)}</TextBlock>
+      <TextBlock>{t('Your currently active account:')}</TextBlock>
       <IsPrimaryUserContext value>
         <Users users={currentAccount} onSelect={onSelect} selectedUsers={selectedUsers} />
       </IsPrimaryUserContext>
-      <TextBlock>{t(`Your other accounts:`)}</TextBlock>
+      <TextBlock>{t('Your other accounts:')}</TextBlock>
       <IsPrimaryUserContext value={false}>
         <Users users={otherAccounts} onSelect={onSelect} selectedUsers={selectedUsers} />
       </IsPrimaryUserContext>

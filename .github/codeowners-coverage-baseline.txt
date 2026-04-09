@@ -591,7 +591,6 @@ static/app/components/events/breadcrumbs/testUtils.tsx
 static/app/components/events/breadcrumbs/utils.tsx
 static/app/components/events/device.tsx
 static/app/components/events/errorLevel.tsx
-static/app/components/events/eventAnnotation.tsx
 static/app/components/events/eventAttachmentActions.tsx
 static/app/components/events/eventAttachments.spec.tsx
 static/app/components/events/eventAttachments.tsx

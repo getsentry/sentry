@@ -195,13 +195,16 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 if link_type is None or args is None:
                     continue
 
+                feature_flag = {
+                    LinkType.DISCOVER: "organizations:discover-basic",
+                    LinkType.EXPLORE: "organizations:data-browsing-widget-unfurl",
+                }.get(link_type)
+
                 if (
                     organization
-                    and link_type == LinkType.DISCOVER
+                    and feature_flag
                     and not slack_request.has_identity
-                    and features.has(
-                        "organizations:discover-basic", organization, actor=request.user
-                    )
+                    and features.has(feature_flag, organization, actor=request.user)
                 ):
                     try:
                         analytics.record(
@@ -276,7 +279,13 @@ class SlackEventEndpoint(SlackDMEndpoint):
             sentry_sdk.set_tag("organization.slug", organization.slug)
         identity_user = slack_request.get_identity_user()
         if identity_user:
-            sentry_sdk.set_tag("user.email", identity_user.email)
+            sentry_sdk.set_user(
+                {
+                    "id": str(identity_user.id),
+                    "email": identity_user.email,
+                    "username": identity_user.username,
+                }
+            )
 
         logger_params = {
             "integration_id": slack_request.integration.id,

@@ -61,7 +61,7 @@ export const useResourcePagesQuery = (
       fields: [
         'transaction',
         'epm()',
-        `avg(span.self_time)`,
+        'avg(span.self_time)',
         `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
         RESOURCE_RENDER_BLOCKING_STATUS,
       ],

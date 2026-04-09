@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {CaptureContext} from '@sentry/core';
 import * as Sentry from '@sentry/react';
@@ -20,6 +21,7 @@ import {
   getToolSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
+import {getTokenBreakdown} from 'sentry/views/insights/pages/agents/utils/tokenBreakdown';
 import {SpanFields} from 'sentry/views/insights/types';
 import {tryParseJsonRecursive} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
@@ -356,42 +358,6 @@ function HighlightedTools({
   );
 }
 
-// Per our and OTel conventions, input_tokens includes cached and output_tokens includes
-// reasoning. Some providers don't do this, so we detect the gap and adjust as a fallback.
-function getDisplayInputTokens(
-  inputTokens: number,
-  cachedTokens: number,
-  outputTokens: number,
-  totalTokens: number
-): number {
-  if (cachedTokens <= 0) {
-    return inputTokens;
-  }
-  const without = inputTokens + outputTokens;
-  const withCached = without + cachedTokens;
-  if (Math.abs(withCached - totalTokens) < Math.abs(without - totalTokens)) {
-    return inputTokens + cachedTokens;
-  }
-  return inputTokens;
-}
-
-function getDisplayOutputTokens(
-  displayInput: number,
-  outputTokens: number,
-  reasoningTokens: number,
-  totalTokens: number
-): number {
-  if (reasoningTokens <= 0) {
-    return outputTokens;
-  }
-  const without = displayInput + outputTokens;
-  const withReasoning = without + reasoningTokens;
-  if (Math.abs(withReasoning - totalTokens) < Math.abs(without - totalTokens)) {
-    return outputTokens + reasoningTokens;
-  }
-  return outputTokens;
-}
-
 function HighlightedTokenAttributes({
   inputTokens,
   cachedTokens,
@@ -405,50 +371,54 @@ function HighlightedTokenAttributes({
   reasoningTokens: number;
   totalTokens: number;
 }) {
-  const effectiveCached = isNaN(cachedTokens) ? 0 : cachedTokens;
-  const effectiveReasoning = isNaN(reasoningTokens) ? 0 : reasoningTokens;
-
-  const displayInput = getDisplayInputTokens(
+  const breakdown = getTokenBreakdown({
     inputTokens,
-    effectiveCached,
+    cachedTokens,
     outputTokens,
-    totalTokens
-  );
-  const displayOutput = getDisplayOutputTokens(
-    displayInput,
-    outputTokens,
-    effectiveReasoning,
-    totalTokens
-  );
+    reasoningTokens,
+    totalTokens,
+  });
+
+  const hasCached = breakdown.cached > 0;
 
   return (
     <Tooltip
       title={
         <TokensTooltipTitle>
           <span>{t('Input')}</span>
-          <span>{inputTokens.toString()}</span>
-          <SubTextCell>{t('Cached')}</SubTextCell>
-          <SubTextCell>{effectiveCached.toString()}</SubTextCell>
+          <span>{breakdown.netNewInput.toLocaleString()}</span>
+          {hasCached && (
+            <Fragment>
+              <span>{t('Cached')}</span>
+              <span>{breakdown.cached.toLocaleString()}</span>
+            </Fragment>
+          )}
           <span>{t('Output')}</span>
-          <span>{outputTokens.toString()}</span>
-          <SubTextCell>{t('Reasoning')}</SubTextCell>
-          <SubTextCell>{effectiveReasoning.toString()}</SubTextCell>
+          <span>{breakdown.output.toLocaleString()}</span>
           <span>{t('Total')}</span>
-          <span>{totalTokens.toString()}</span>
+          <span>{breakdown.total.toLocaleString()}</span>
         </TokensTooltipTitle>
       }
     >
       <TokensSpan>
         <span>
-          <Count value={displayInput.toString()} /> {t('in')}
+          <Count value={breakdown.netNewInput} /> {t('in')}
         </span>
+        {hasCached && (
+          <Fragment>
+            <span>+</span>
+            <span>
+              <Count value={breakdown.cached} /> {t('cached')}
+            </span>
+          </Fragment>
+        )}
         <span>+</span>
         <span>
-          <Count value={displayOutput.toString()} /> {t('out')}
+          <Count value={breakdown.output} /> {t('out')}
         </span>
         <span>=</span>
         <span>
-          <Count value={totalTokens.toString()} /> {t('total')}
+          <Count value={breakdown.total} /> {t('total')}
         </span>
       </TokensSpan>
     </Tooltip>
@@ -465,11 +435,6 @@ const TokensTooltipTitle = styled('div')`
     text-align: right;
   }
   gap: ${p => p.theme.space.xs};
-`;
-
-const SubTextCell = styled('span')`
-  margin-left: ${p => p.theme.space.md};
-  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TokensSpan = styled('span')`

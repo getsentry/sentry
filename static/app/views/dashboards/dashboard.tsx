@@ -129,7 +129,7 @@ function DashboardInner({
   // Push dashboard metadata into the LLM context tree for Seer Explorer.
   useLLMContext({
     contextHint:
-      'This is a Sentry dashboard. The dateRange, environments, and projects below are global page filters that scope every widget query. Each child widget node contains its own query config that can be used with the telemetry_live_search tool to fetch or drill into its data.',
+      'This is a Sentry dashboard. The dateRange, environments, and projects below are global page filters that scope every widget query. Each child widget node contains its own query config that can be used with tools like telemetry_live_search and telemetry_index_list_nodes to fetch data for that widget and dig deeper. Based on the user question, data might be needed from multiple widgets.',
     title: dashboard.title,
     widgetCount: dashboard.widgets.length,
     filters: dashboard.filters,

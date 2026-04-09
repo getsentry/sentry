@@ -20,7 +20,7 @@ export default function OrganizationRepositories() {
       <SettingsPageHeader
         title={t('Repositories')}
         subtitle={tct(
-          `Integrate with a [scm:Source Code Management] provider and then connect repositories with Sentry. Connecting a repo to a project enables [suspect_commits:Suspect Commits] on issues, [suggested_assignees:Suggested Assignees] based on code owners, the ability to mark an issue [resolved_via_commit:Resolved via Commit or PR], and is a requirement for [seer:Seer].`,
+          'Integrate with a [scm:Source Code Management] provider and then connect repositories with Sentry. Connecting a repo to a project enables [suspect_commits:Suspect Commits] on issues, [suggested_assignees:Suggested Assignees] based on code owners, the ability to mark an issue [resolved_via_commit:Resolved via Commit or PR], and is a requirement for [seer:Seer].',
           {
             scm: (
               <ExternalLink href="https://docs.sentry.io/organization/getting-started/#source-code-management" />
