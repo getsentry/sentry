@@ -273,6 +273,8 @@ class SeerExplorerClient:
         user_auth_token = (
             create_explorer_api_token(self.user, self.organization)
             if self.enable_code_mode_tools
+            and self.user
+            and not isinstance(self.user, AnonymousUser)
             else None
         )
 
@@ -380,6 +382,8 @@ class SeerExplorerClient:
         user_auth_token = (
             create_explorer_api_token(self.user, self.organization)
             if self.enable_code_mode_tools
+            and self.user
+            and not isinstance(self.user, AnonymousUser)
             else None
         )
 
