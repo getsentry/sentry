@@ -38,8 +38,8 @@ if TYPE_CHECKING:
     from sentry.seer.entrypoints.slack.entrypoint import SlackThreadDetails
 
 
-# TTL for the "missing scope footer already shown" cache key (24 hours).
-MISSING_SCOPE_FOOTER_CACHE_TIMEOUT = 60 * 60 * 24
+# TTL for the "missing scope footer already shown" cache key (1 hour).
+MISSING_SCOPE_FOOTER_CACHE_TIMEOUT = 60 * 60
 
 logger = logging.getLogger(__name__)
 
