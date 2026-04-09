@@ -1,4 +1,4 @@
-from django.db.models import Model, Q, QuerySet, Subquery, TextField
+from django.db.models import BigIntegerField, Model, Q, QuerySet
 from django.db.models.functions import Cast
 
 from sentry.api.event_search import SearchFilter
@@ -22,19 +22,21 @@ def exclude_disallowed_metric_detectors(
     if not disallowed_datasets:
         return queryset
 
-    disallowed_sub_str_ids = (
-        QuerySubscription.objects.filter(
-            snuba_query__dataset__in=disallowed_datasets,
-            project__organization=organization,
+    # Cast DataSource.source_id (string) to int so the subquery can use
+    # the index on QuerySubscription.id.
+    return (
+        queryset.annotate(
+            _ds_source_int=Cast("data_sources__source_id", output_field=BigIntegerField())
         )
-        .annotate(str_id=Cast("id", output_field=TextField()))
-        .values("str_id")
-    )
-
-    return queryset.exclude(
-        type=MetricIssue.slug,
-        data_sources__type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
-        data_sources__source_id__in=Subquery(disallowed_sub_str_ids),
+        .exclude(
+            type=MetricIssue.slug,
+            data_sources__type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+            _ds_source_int__in=QuerySubscription.objects.filter(
+                snuba_query__dataset__in=disallowed_datasets,
+                project__organization=organization,
+            ).values_list("id", flat=True),
+        )
+        .distinct()
     )
 
 

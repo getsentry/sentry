@@ -23,11 +23,13 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.apidocs.parameters import DetectorParams, GlobalParams
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.metric_issue_detector import fetch_snuba_query, schedule_update_project_config
+from sentry.incidents.metric_issue_detector import schedule_update_project_config
 from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.issues import grouptype
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.snuba.models import SnubaQuery
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import DetectorSerializer
 from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
@@ -37,17 +39,31 @@ from sentry.workflow_engine.endpoints.validators.utils import (
     can_edit_detector,
     get_unknown_detector_type_error,
 )
-from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models import DataSource, Detector
 
 
 def _check_metric_detector_allowed(detector: Detector, organization: Organization) -> None:
     """Raise ResourceDoesNotExist if this is a metric detector the org is not entitled to."""
     if detector.type != MetricIssue.slug:
         return
-    snuba_query = fetch_snuba_query(detector)
-    if snuba_query is None:
+
+    # Look up DataSource -> QuerySubscription -> SnubaQuery in two queries
+    # (source_id is a TextField, so no FK/select_related).
+    ds = DataSource.objects.filter(
+        detector=detector,
+        type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+    ).first()
+    if ds is None:
         return
-    if not is_metric_subscription_allowed(snuba_query.dataset, organization):
+
+    dataset = (
+        SnubaQuery.objects.filter(subscriptions__id=ds.source_id)
+        .values_list("dataset", flat=True)
+        .first()
+    )
+    if dataset is None:
+        return
+    if not is_metric_subscription_allowed(dataset, organization):
         raise ResourceDoesNotExist
 
 

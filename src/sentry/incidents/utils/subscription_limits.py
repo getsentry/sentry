@@ -6,6 +6,16 @@ from sentry import features, options
 from sentry.models.organization import Organization
 from sentry.snuba.dataset import Dataset
 
+# Complete set of feature flags checked by is_metric_subscription_allowed.
+# Enabling all of these allows every gated dataset. Used by tests to avoid
+# coupling to individual dataset→feature mappings.
+METRIC_SUBSCRIPTION_FEATURE_FLAGS: dict[str, bool] = {
+    "organizations:incidents": True,
+    "organizations:performance-view": True,
+    "organizations:visibility-explore-view": True,
+    "organizations:on-demand-metrics-extraction": True,
+}
+
 
 def is_metric_subscription_allowed(dataset: str, organization: Organization) -> bool:
     """
