@@ -849,7 +849,7 @@ export function useMetricsPanelAnalytics({
     isVisualizeFunction(visualize)
       ? (visualize.parsedFunction?.name ?? '')
       : isVisualizeEquation(visualize)
-        ? 'equation'
+        ? visualize.expression.text
         : ''
   );
 
