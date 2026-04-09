@@ -237,13 +237,20 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         channel_info = conversation_data.get("channel", {})
         is_channel = channel_info.get("is_channel", False)
         is_private = channel_info.get("is_private", False)
+        is_im = channel_info.get("is_im", False)
+
+        # DMs and assistant threads: the bot is a participant and can
+        # always read its own conversation history.
+        if is_im:
+            return True
 
         if is_channel and is_private:
             return SlackScope.GROUPS_HISTORY in installed_scope_set
         if is_channel:
             return SlackScope.CHANNELS_HISTORY in installed_scope_set
 
-        # shouldn't reach here unless channel_info is empty (most likely an api error), since a mention webhook should only come from channels
+        # Shouldn't reach here unless channel_info is empty (most likely
+        # an API error or an unrecognized conversation type).
         return False
 
     def get_conversations_info(
