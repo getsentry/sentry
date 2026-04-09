@@ -129,7 +129,7 @@ export function useAttributeBreakdownsTooltip({
         el = el.parentElement;
       }
 
-      tooltipParamsRef.current = null;
+      tooltipContentRef.current = null;
       tooltipValueRef.current = '';
       setFrozenPosition(null);
     };
