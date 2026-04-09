@@ -295,7 +295,7 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
             'performance_score(measurements.score.total)',
             'opportunity_score(measurements.score.total)',
           ],
-          orderby: '-equation|opportunity_score(measurements.score.total)',
+          orderby: '-opportunity_score(measurements.score.total)',
           fieldAliases: [
             t('Pages'),
             t('Project'),
