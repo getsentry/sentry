@@ -39,7 +39,11 @@ import {
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualizeEquation,
+  isVisualizeFunction,
+  Visualize,
+} from 'sentry/views/explore/queryParams/visualize';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {
   combineConfidenceForSeries,
@@ -841,7 +845,13 @@ export function useMetricsPanelAnalytics({
   const query = useQueryParamsQuery();
   const groupBys = useQueryParamsGroupBys();
   const visualize = useMetricVisualize();
-  const aggregateFunctionBox = useBox(visualize.parsedFunction?.name ?? '');
+  const aggregateFunctionBox = useBox(
+    isVisualizeFunction(visualize)
+      ? (visualize.parsedFunction?.name ?? '')
+      : isVisualizeEquation(visualize)
+        ? visualize.expression.text
+        : ''
+  );
 
   const tableError =
     mode === Mode.AGGREGATE
