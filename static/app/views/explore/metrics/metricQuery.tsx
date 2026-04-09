@@ -3,6 +3,7 @@ import type {Location} from 'history';
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {SORTABLE_SAMPLE_COLUMNS} from 'sentry/views/explore/metrics/types';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {validateAggregateSort} from 'sentry/views/explore/queryParams/aggregateSortBy';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
@@ -234,6 +235,7 @@ function parseSortBys(value: unknown, fields: string[]): Sort[] {
       typeof v === 'object' &&
       'field' in v &&
       typeof v.field === 'string' &&
+      SORTABLE_SAMPLE_COLUMNS.has(v.field) &&
       'kind' in v &&
       (v.kind === 'asc' || v.kind === 'desc')
   );

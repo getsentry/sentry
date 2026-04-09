@@ -9,6 +9,7 @@ import {
   StyledSimpleTableHeaderCell,
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 import {
+  SORTABLE_SAMPLE_COLUMNS,
   TraceMetricKnownFieldKey,
   VirtualTableSampleColumnKey,
   type SampleTableColumnKey,
@@ -18,11 +19,6 @@ import {
   useQueryParamsSortBys,
   useSetQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
-
-const SORTABLE_COLUMNS = new Set<SampleTableColumnKey>([
-  TraceMetricKnownFieldKey.METRIC_VALUE,
-  TraceMetricKnownFieldKey.TIMESTAMP,
-]);
 
 interface MetricsSamplesTableHeaderProps {
   columns: SampleTableColumnKey[];
@@ -76,7 +72,7 @@ function FieldHeaderCellWrapper({
   const columnType = getMetricTableColumnType(field);
   const label = getFieldLabel(field);
   const hasPadding = field !== VirtualTableSampleColumnKey.EXPAND_ROW;
-  const canSort = SORTABLE_COLUMNS.has(field);
+  const canSort = SORTABLE_SAMPLE_COLUMNS.has(field);
 
   function handleSortClick() {
     const kind = sort === 'desc' ? 'asc' : 'desc';

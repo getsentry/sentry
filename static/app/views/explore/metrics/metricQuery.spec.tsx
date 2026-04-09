@@ -155,6 +155,22 @@ describe('decodeMetricsQueryParams', () => {
     expect(result?.queryParams.sortBys).toEqual([{field: 'timestamp', kind: 'desc'}]);
   });
 
+  it('falls back to default sortBys when field is not sortable', () => {
+    const json = JSON.stringify({
+      metric: {name: 'test_metric', type: 'counter'},
+      query: '',
+      aggregateFields: [{yAxes: ['sum(value,test_metric,counter,-)']}],
+      aggregateSortBys: [],
+      sortBys: [{field: 'arbitrary_field', kind: 'desc'}],
+      mode: 'samples',
+    });
+
+    const result = decodeMetricsQueryParams(json);
+
+    expect(result).not.toBeNull();
+    expect(result?.queryParams.sortBys).toEqual([{field: 'timestamp', kind: 'desc'}]);
+  });
+
   it('falls back to default sortBys when format is invalid', () => {
     const json = JSON.stringify({
       metric: {name: 'test_metric', type: 'counter'},
