@@ -1,7 +1,8 @@
+import {skipToken, useQuery} from '@tanstack/react-query';
+
 import type {Repository} from 'sentry/types/integrations';
 import type {PlatformKey} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchDataQuery, useQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export interface DetectedPlatform {
@@ -23,27 +24,21 @@ export function useScmPlatformDetection(repository: Repository | undefined) {
   const repoId = repository?.id;
   const isSupported = repository?.provider.id === SUPPORTED_PROVIDER;
 
-  const query = useQuery({
-    queryKey: [
-      getApiUrl('/organizations/$organizationIdOrSlug/repos/$repoId/platforms/', {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          repoId: repoId!,
-        },
-      }),
-      {method: 'GET'},
-    ] as const,
-    queryFn: async context => {
-      return fetchDataQuery<PlatformDetectionResponse>(context);
-    },
-    staleTime: 30_000,
-    enabled: !!repoId && isSupported,
-  });
-
-  const {data} = query;
+  const query = useQuery(
+    apiOptions.as<PlatformDetectionResponse>()(
+      '/organizations/$organizationIdOrSlug/repos/$repoId/platforms/',
+      {
+        path:
+          repoId && isSupported
+            ? {organizationIdOrSlug: organization.slug, repoId}
+            : skipToken,
+        staleTime: 30_000,
+      }
+    )
+  );
 
   return {
-    detectedPlatforms: data?.[0]?.platforms ?? [],
+    detectedPlatforms: query.data?.platforms ?? [],
     // Use isLoading so that disabled queries (non-GitHub providers)
     // report false instead of the idle-pending state.
     isPending: query.isLoading,
