@@ -3,6 +3,7 @@ import type {ReactNode} from 'react';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {
   StyledSimpleTableHeader,
   StyledSimpleTableHeaderCell,
@@ -13,7 +14,15 @@ import {
   type SampleTableColumnKey,
 } from 'sentry/views/explore/metrics/types';
 import {getMetricTableColumnType} from 'sentry/views/explore/metrics/utils';
-import {useQueryParamsSortBys} from 'sentry/views/explore/queryParams/context';
+import {
+  useQueryParamsSortBys,
+  useSetQueryParamsSortBys,
+} from 'sentry/views/explore/queryParams/context';
+
+const NON_SORTABLE_COLUMNS = new Set<SampleTableColumnKey>([
+  VirtualTableSampleColumnKey.EXPAND_ROW,
+  VirtualTableSampleColumnKey.PROJECT_BADGE,
+]);
 
 interface MetricsSamplesTableHeaderProps {
   columns: SampleTableColumnKey[];
@@ -25,6 +34,7 @@ export function MetricsSamplesTableHeader({
   embedded,
 }: MetricsSamplesTableHeaderProps) {
   const sorts = useQueryParamsSortBys();
+  const setSorts = useSetQueryParamsSortBys();
 
   return (
     <StyledSimpleTableHeader>
@@ -37,6 +47,7 @@ export function MetricsSamplesTableHeader({
             field={field}
             index={i}
             sort={sorts.find(s => s.field === field)?.kind}
+            setSorts={setSorts}
             embedded={embedded}
           >
             {label}
@@ -52,23 +63,32 @@ function FieldHeaderCellWrapper({
   children,
   index,
   sort,
+  setSorts,
   embedded = false,
 }: {
   children: ReactNode;
   field: SampleTableColumnKey;
   index: number;
+  setSorts: (sorts: Sort[]) => void;
   embedded?: boolean;
   sort?: 'asc' | 'desc';
 }) {
   const columnType = getMetricTableColumnType(field);
   const label = getFieldLabel(field);
   const hasPadding = field !== VirtualTableSampleColumnKey.EXPAND_ROW;
+  const canSort = !NON_SORTABLE_COLUMNS.has(field);
+
+  function handleSortClick() {
+    const kind = sort === 'desc' ? 'asc' : 'desc';
+    setSorts([{field, kind}]);
+  }
 
   if (columnType === 'metric_value') {
     return (
       <StyledSimpleTableHeaderCell
         key={index}
         sort={sort}
+        handleSortClick={canSort ? handleSortClick : undefined}
         style={{
           justifyContent: 'flex-end',
           paddingRight: 'calc(12px + 15px)', // 12px is the padding of the cell, 15px is the width of the scrollbar.
@@ -86,6 +106,7 @@ function FieldHeaderCellWrapper({
     <StyledSimpleTableHeaderCell
       key={index}
       sort={sort}
+      handleSortClick={canSort ? handleSortClick : undefined}
       noPadding={!hasPadding}
       embedded={embedded}
     >
