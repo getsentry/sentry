@@ -145,7 +145,10 @@ export function getMetricsUrlFromSavedQueryUrl({
         mode: queryItem.mode,
         query: queryItem.query,
         aggregateFields,
-        aggregateSortBys: decodeSorts(queryItem.orderby) || [],
+        aggregateSortBys: queryItem.aggregateOrderby
+          ? decodeSorts(queryItem.aggregateOrderby)
+          : undefined,
+        sortBys: queryItem.orderby ? decodeSorts(queryItem.orderby) : undefined,
       }),
     };
   });
