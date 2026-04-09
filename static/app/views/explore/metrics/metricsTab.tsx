@@ -20,9 +20,11 @@ import {
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {useMetricsAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
-import {useHasMetricEquations} from 'sentry/views/explore/metrics/hooks/useHasMetricEquations';
 import {MetricPanel} from 'sentry/views/explore/metrics/metricPanel';
-import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
+import {
+  canUseMetricsEquations,
+  canUseMetricsUIRefresh,
+} from 'sentry/views/explore/metrics/metricsFlags';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
 import {MetricSaveAs} from 'sentry/views/explore/metrics/metricToolbar/metricSaveAs';
@@ -78,7 +80,7 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
   const metricQueries = useMultiMetricsQueryParams();
   const addMetricQuery = useAddMetricQuery();
   const addEquationQuery = useAddMetricQuery({type: 'equation'});
-  const hasEquations = useHasMetricEquations();
+  const hasEquations = canUseMetricsEquations(organization);
 
   if (canUseMetricsUIRefresh(organization)) {
     return (
@@ -141,7 +143,7 @@ function MetricsQueryBuilderSection() {
   const metricQueries = useMultiMetricsQueryParams();
   const addMetricQuery = useAddMetricQuery();
   const addEquationQuery = useAddMetricQuery({type: 'equation'});
-  const hasEquations = useHasMetricEquations();
+  const hasEquations = canUseMetricsEquations(organization);
   const references = useMemo(() => {
     return new Set(
       metricQueries
@@ -206,7 +208,7 @@ function MetricsTabBodySection() {
     enabled: true,
   });
   const addEquationQuery = useAddMetricQuery({type: 'equation'});
-  const hasEquations = useHasMetricEquations();
+  const hasEquations = canUseMetricsEquations(organization);
   useMetricsAnalytics({
     interval,
     metricQueries,

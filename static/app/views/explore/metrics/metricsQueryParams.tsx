@@ -3,8 +3,9 @@ import {useCallback, useMemo} from 'react';
 
 import {defined} from 'sentry/utils';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
-import {useHasMetricEquations} from 'sentry/views/explore/metrics/hooks/useHasMetricEquations';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {defaultQuery, type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {canUseMetricsEquations} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   MetricsFrozenContextProvider,
   type MetricsFrozenForTracesProviderProps,
@@ -120,8 +121,9 @@ function getUpdatedValue<T>(
 }
 
 export function useMetricVisualize(): Visualize {
+  const organization = useOrganization();
   const visualizes = useQueryParamsVisualizes();
-  const hasEquations = useHasMetricEquations();
+  const hasEquations = canUseMetricsEquations(organization);
   if (
     visualizes.length > 0 &&
     (isVisualizeFunction(visualizes[0]!) ||
@@ -133,8 +135,9 @@ export function useMetricVisualize(): Visualize {
 }
 
 export function useMetricVisualizes(): readonly Visualize[] {
+  const organization = useOrganization();
   const visualizes = useQueryParamsVisualizes();
-  const hasEquations = useHasMetricEquations();
+  const hasEquations = canUseMetricsEquations(organization);
   if (
     visualizes.length > 0 &&
     visualizes.every(

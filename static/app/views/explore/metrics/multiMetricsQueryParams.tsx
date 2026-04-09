@@ -6,11 +6,11 @@ import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   DEFAULT_YAXIS_BY_TYPE,
   OPTIONS_BY_TYPE,
 } from 'sentry/views/explore/metrics/constants';
-import {useHasMetricEquations} from 'sentry/views/explore/metrics/hooks/useHasMetricEquations';
 import {
   decodeMetricsQueryParams,
   defaultMetricQuery,
@@ -19,6 +19,7 @@ import {
   type MetricQuery,
   type TraceMetric,
 } from 'sentry/views/explore/metrics/metricQuery';
+import {canUseMetricsEquations} from 'sentry/views/explore/metrics/metricsFlags';
 import {updateVisualizeYAxis} from 'sentry/views/explore/metrics/utils';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
@@ -191,9 +192,10 @@ export function useAddMetricQuery({
 }: {type?: 'aggregate' | 'equation'} = {}) {
   const location = useLocation();
   const navigate = useNavigate();
+  const organization = useOrganization();
   const {metricQueries}: {metricQueries: BaseMetricQuery[]} =
     useMultiMetricsQueryParamsContext();
-  const hasEquations = useHasMetricEquations();
+  const hasEquations = canUseMetricsEquations(organization);
 
   return function () {
     const target = {...location, query: {...location.query}};
