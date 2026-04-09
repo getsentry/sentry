@@ -196,7 +196,7 @@ class SeerExplorerClient:
         intelligence_level: Literal["low", "medium", "high"] = "medium",
         is_interactive: bool = False,
         enable_coding: bool = False,
-        enable_mcp_tools: bool = False,
+        enable_code_mode_tools: bool = False,
         max_iterations: int | None = None,
     ):
         self.organization = organization
@@ -208,7 +208,7 @@ class SeerExplorerClient:
         self.category_key = category_key
         self.category_value = category_value
         self.is_interactive = is_interactive
-        self.enable_mcp_tools = enable_mcp_tools
+        self.enable_code_mode_tools = enable_code_mode_tools
         self.max_iterations = max_iterations
 
         if enable_coding and not organization.get_option("sentry:enable_seer_coding", True):
@@ -281,7 +281,7 @@ class SeerExplorerClient:
             intelligence_level=self.intelligence_level,
             is_interactive=self.is_interactive,
             enable_coding=self.enable_coding,
-            enable_mcp_tools=self.enable_mcp_tools,
+            enable_code_mode_tools=self.enable_code_mode_tools,
             user_auth_token=user_org_context.get("user_auth_token"),
         )
 
@@ -391,7 +391,7 @@ class SeerExplorerClient:
             page_name=page_name,
             is_interactive=self.is_interactive,
             enable_coding=self.enable_coding,
-            enable_mcp_tools=self.enable_mcp_tools,
+            enable_code_mode_tools=self.enable_code_mode_tools,
             user_auth_token=user_org_context.get("user_auth_token"),
         )
 

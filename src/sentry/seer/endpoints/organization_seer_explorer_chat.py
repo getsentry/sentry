@@ -172,15 +172,15 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
             ) and features.has(
                 "organizations:seer-explorer-chat-coding", organization, actor=request.user
             )
-            enable_mcp_tools = features.has(
-                "organizations:seer-explorer-mcp-tools", organization, actor=request.user
+            enable_code_mode_tools = features.has(
+                "organizations:seer-explorer-code-mode-tools", organization, actor=request.user
             )
             client = SeerExplorerClient(
                 organization,
                 request.user,
                 is_interactive=True,
                 enable_coding=enable_coding,
-                enable_mcp_tools=enable_mcp_tools,
+                enable_code_mode_tools=enable_code_mode_tools,
             )
             if run_id:
                 # Continue existing conversation
