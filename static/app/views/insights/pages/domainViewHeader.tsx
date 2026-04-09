@@ -67,7 +67,6 @@ export function DomainViewHeader({
   const isLaravelInsightsAvailable = useIsLaravelInsightsAvailable();
   const isNextJsInsightsAvailable = useIsNextJsInsightsAvailable();
   const {view, isInOverviewPage} = useDomainViewFilters();
-  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const isLaravelInsights = isLaravelInsightsAvailable && isInOverviewPage;
   const isNextJsInsights = isNextJsInsightsAvailable && isInOverviewPage;

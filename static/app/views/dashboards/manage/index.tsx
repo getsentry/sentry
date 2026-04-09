@@ -175,7 +175,6 @@ function ManageDashboards() {
 
   const areAiFeaturesAllowed =
     !organization.hideAiFeatures && organization.features.includes('gen-ai-features');
-  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const [showTemplates, setShowTemplatesLocal] = useLocalStorageState(
     SHOW_TEMPLATES_KEY,
