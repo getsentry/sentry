@@ -227,7 +227,7 @@ export function GlobalCommandPaletteActions() {
           <CMDKAction
             display={{label: t('Open _admin'), icon: <IconOpen />}}
             keywords={[t('superuser')]}
-            to="/_admin/"
+            onAction={() => window.open('/_admin/', '_blank', 'noreferrer')}
           />
           <CMDKAction
             display={{
@@ -235,7 +235,13 @@ export function GlobalCommandPaletteActions() {
               icon: <IconOpen />,
             }}
             keywords={[t('superuser')]}
-            to={`/_admin/customers/${organization.slug}/`}
+            onAction={() =>
+              window.open(
+                `/_admin/customers/${organization.slug}/`,
+                '_blank',
+                'noreferrer'
+              )
+            }
           />
           {!isActiveSuperuser() && (
             <CMDKAction
