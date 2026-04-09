@@ -26,6 +26,7 @@ import {
   IconIssues,
   IconList,
   IconLock,
+  IconOpen,
   IconSearch,
   IconSettings,
   IconStar,
@@ -224,20 +225,21 @@ export function GlobalCommandPaletteActions() {
       {user.isStaff && (
         <CMDKAction display={{label: t('Admin')}}>
           <CMDKAction
-            display={{label: t('Open _admin')}}
+            display={{label: t('Open _admin'), icon: <IconOpen />}}
             keywords={[t('superuser')]}
             to="/_admin/"
           />
           <CMDKAction
             display={{
               label: t('Open %s in _admin', organization.name),
+              icon: <IconOpen />,
             }}
             keywords={[t('superuser')]}
             to={`/_admin/customers/${organization.slug}/`}
           />
           {!isActiveSuperuser() && (
             <CMDKAction
-              display={{label: t('Open Superuser Modal')}}
+              display={{label: t('Open Superuser Modal'), icon: <IconLock locked />}}
               keywords={[t('superuser')]}
               onAction={() => openSudo({isSuperuser: true, needsReload: true})}
             />
@@ -344,7 +346,7 @@ export function GlobalCommandPaletteActions() {
           to="https://github.com/getsentry/sentry"
         />
         <CMDKAction
-          display={{label: t('View Changelog')}}
+          display={{label: t('View Changelog'), icon: <IconOpen />}}
           to="https://sentry.io/changelog/"
         />
         <CMDKAction
