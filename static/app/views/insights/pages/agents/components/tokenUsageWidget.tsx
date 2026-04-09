@@ -154,7 +154,7 @@ export function TokenUsageWidget() {
               ],
               groupBy: ['gen_ai.response.model'],
               query: fullQuery,
-              sort: `-sum(gen_ai.usage.total_tokens)`,
+              sort: '-sum(gen_ai.usage.total_tokens)',
               interval: pageFilterChartParams.interval,
             }}
             onOpenFullScreen={() => {

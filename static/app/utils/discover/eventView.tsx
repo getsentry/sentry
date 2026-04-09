@@ -1275,7 +1275,7 @@ export class EventView {
 
     return {
       pathname: makeDiscoverPathname({
-        path: `/results/`,
+        path: '/results/',
         organization,
       }),
       query: cloneDeep(output),

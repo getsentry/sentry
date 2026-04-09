@@ -254,7 +254,13 @@ export default function CronDetectorsList() {
           </InsightsRedirectNotice>
           <DetectorListHeader showTimeRangeSelector showTypeFilter={false} />
           <GlobalMonitorProcessingErrors project={selectedProjects} />
-          <DetectorListContent {...detectorListQuery} emptyState={<CronEmptyState />} />
+          <DetectorListContent
+            isError={detectorListQuery.isError}
+            isLoading={detectorListQuery.isLoading}
+            isSuccess={detectorListQuery.isSuccess}
+            data={detectorListQuery.data}
+            emptyState={<CronEmptyState />}
+          />
         </WorkflowEngineListLayout>
       </SentryDocumentTitle>
     </MonitorViewContext.Provider>

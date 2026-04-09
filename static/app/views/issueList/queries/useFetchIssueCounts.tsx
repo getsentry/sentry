@@ -18,7 +18,7 @@ const makeFetchIssueCounts = ({
   orgSlug,
   ...requestParams
 }: FetchIssueCountsParameters): ApiQueryKey => [
-  getApiUrl(`/organizations/$organizationIdOrSlug/issues-count/`, {
+  getApiUrl('/organizations/$organizationIdOrSlug/issues-count/', {
     path: {organizationIdOrSlug: orgSlug},
   }),
   {

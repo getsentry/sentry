@@ -10,7 +10,7 @@ export function useReleaseDetails(
   const organization = useOrganization();
   return useApiQuery<ReleaseWithHealth>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/releases/$version/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/releases/$version/', {
         path: {organizationIdOrSlug: organization.slug, version: release},
       }),
       {

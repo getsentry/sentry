@@ -48,7 +48,7 @@ describe('Data Scrubbing', () => {
         screen.getByRole('link', {name: 'full documentation on data scrubbing'})
       ).toHaveAttribute(
         'href',
-        `https://docs.sentry.io/product/data-management-settings/scrubbing/advanced-datascrubbing/`
+        'https://docs.sentry.io/product/data-management-settings/scrubbing/advanced-datascrubbing/'
       );
 
       // Body
@@ -57,7 +57,7 @@ describe('Data Scrubbing', () => {
       // Actions
       expect(screen.getByRole('button', {name: 'Read Docs'})).toHaveAttribute(
         'href',
-        `https://docs.sentry.io/product/data-management-settings/scrubbing/advanced-datascrubbing/`
+        'https://docs.sentry.io/product/data-management-settings/scrubbing/advanced-datascrubbing/'
       );
       expect(screen.getByRole('button', {name: 'Add Rule'})).toBeEnabled();
     });

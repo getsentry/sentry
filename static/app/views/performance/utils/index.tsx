@@ -365,7 +365,7 @@ export function usePerformanceGeneralProjectSettings(projectId?: number) {
   return useApiQuery<{enable_images: boolean}>(
     [
       getApiUrl(
-        `/projects/$organizationIdOrSlug/$projectIdOrSlug/performance/configure/`,
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance/configure/',
         {
           path: {
             organizationIdOrSlug: organization.slug,

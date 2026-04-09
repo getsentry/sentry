@@ -13,16 +13,16 @@ describe('ResultsSearchQueryBuilder', () => {
   beforeEach(() => {
     organization = OrganizationFixture();
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/recent-searches/`,
+      url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/recent-searches/`,
+      url: '/organizations/org-slug/recent-searches/',
       body: [],
       method: 'POST',
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/tags/`,
+      url: '/organizations/org-slug/tags/',
       body: [{key: 'transaction', name: 'transaction', kind: FieldKind.FIELD}],
     });
   });

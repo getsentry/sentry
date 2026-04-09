@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from typing import Any, NamedTuple
 
 from sentry.integrations.services.integration import RpcOrganizationIntegration
+from sentry.integrations.source_code_management.repository import RepositoryInfo
 from sentry.issues.auto_source_code_config.utils.platform import get_supported_extensions
 from sentry.shared_integrations.exceptions import ApiConflictError, ApiError, IntegrationError
 from sentry.utils import metrics
@@ -51,7 +52,7 @@ class RepoTreesIntegration(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
+    def get_repositories(self, query: str | None = None) -> list[RepositoryInfo]:
         raise NotImplementedError
 
     @property
@@ -89,8 +90,8 @@ class RepoTreesIntegration(ABC):
             repositories = [
                 # Do not use RepoAndBranch so it stores in the cache as a simple dict
                 {
-                    "full_name": repo_info["identifier"],
-                    "default_branch": repo_info["default_branch"],
+                    "full_name": str(repo_info["identifier"]),
+                    "default_branch": repo_info.get("default_branch") or "",
                 }
                 for repo_info in self.get_repositories()
                 if not repo_info.get("archived")

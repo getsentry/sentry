@@ -17,7 +17,7 @@ export function useBillingConfig({organization, subscription}: UseBillingConfigP
       : UPSELL_TIER;
   return useApiQuery<BillingConfig>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/billing-config/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/billing-config/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: {tier: upsellTier}},

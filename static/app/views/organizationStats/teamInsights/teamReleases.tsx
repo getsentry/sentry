@@ -58,7 +58,7 @@ export function TeamReleases({
     refetch: refetchPeriodReleases,
   } = useApiQuery<ProjectReleaseCount>(
     [
-      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/release-count/`, {
+      getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/release-count/', {
         path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
       }),
       {
@@ -77,7 +77,7 @@ export function TeamReleases({
     refetch: refetchWeekReleases,
   } = useApiQuery<ProjectReleaseCount>(
     [
-      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/release-count/`, {
+      getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/release-count/', {
         path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
       }),
       {

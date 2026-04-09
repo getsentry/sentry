@@ -154,11 +154,11 @@ describe('Performance Transaction Events Content', () => {
       body: {measurements: false},
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/recent-searches/`,
+      url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/tags/`,
+      url: '/organizations/org-slug/tags/',
       body: [],
     });
     initialData = initializeData();

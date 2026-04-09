@@ -23,8 +23,26 @@ type PathParamOptions<TApiPath extends string> =
     ? {path?: never}
     : {path: Record<ExtractPathParams<TApiPath>, string | number> | SkipToken};
 
+function isObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
 function stripUndefinedValues(obj: Record<string, unknown>): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined));
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value === undefined) {
+      continue;
+    }
+    if (isObject(value)) {
+      const stripped = stripUndefinedValues(value);
+      if (Object.keys(stripped).length > 0) {
+        result[key] = stripped;
+      }
+      continue;
+    }
+    result[key] = value;
+  }
+  return result;
 }
 
 const selectJson = <TData>(data: ApiResponse<TData>) => data.json;

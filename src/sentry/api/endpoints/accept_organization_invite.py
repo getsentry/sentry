@@ -204,7 +204,14 @@ class AcceptOrganizationInvite(Endpoint):
             # When SSO is required do *not* set a next_url to return to accept
             # invite. The invite will be accepted after SSO is completed.
             url = (
-                reverse("sentry-accept-invite", args=[member_id, token])
+                reverse(
+                    "sentry-organization-accept-invite",
+                    kwargs={
+                        "organization_slug": invite_context.organization.slug,
+                        "member_id": member_id,
+                        "token": token,
+                    },
+                )
                 if not auth_provider
                 else "/"
             )

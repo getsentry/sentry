@@ -467,7 +467,7 @@ const SampleWidgetCard = styled(motion.div)`
   }
 `;
 
-const DraggableWidgetContainer = styled(`div`)`
+const DraggableWidgetContainer = styled('div')`
   align-content: center;
   z-index: ${p => p.theme.zIndex.initial};
   position: relative;

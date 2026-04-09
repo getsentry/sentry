@@ -86,7 +86,7 @@ function MemberStatus({
 }
 
 const getMemberQueryKey = (orgSlug: string, memberId: string): ApiQueryKey => [
-  getApiUrl(`/organizations/$organizationIdOrSlug/members/$memberId/`, {
+  getApiUrl('/organizations/$organizationIdOrSlug/members/$memberId/', {
     path: {organizationIdOrSlug: orgSlug, memberId},
   }),
 ];

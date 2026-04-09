@@ -19,7 +19,7 @@ describe('DatabaseLandingPage', () => {
       pathname: `/organizations/${organization.slug}/insights/backend/database/`,
       query: {statsPeriod: '10d'},
     },
-    route: `/organizations/:orgId/insights/backend/database/`,
+    route: '/organizations/:orgId/insights/backend/database/',
   };
 
   let spanListRequestMock: jest.Mock;

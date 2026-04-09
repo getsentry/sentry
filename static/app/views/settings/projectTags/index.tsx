@@ -53,7 +53,7 @@ export default function ProjectTags() {
     isError,
   } = useApiQuery<TagWithTopValues[]>(
     [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/`, {
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/', {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
       }),
     ],
@@ -69,7 +69,7 @@ export default function ProjectTags() {
       setApiQueryData<TagWithTopValues[]>(
         queryClient,
         [
-          getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/`, {
+          getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/', {
             path: {
               organizationIdOrSlug: organization.slug,
               projectIdOrSlug: project.slug,

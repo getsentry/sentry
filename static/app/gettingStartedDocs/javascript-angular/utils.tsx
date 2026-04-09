@@ -41,11 +41,11 @@ const getIntegrations = (params: Params): string[] => {
   const integrations = [];
 
   if (params.isPerformanceSelected) {
-    integrations.push(`Sentry.browserTracingIntegration()`);
+    integrations.push('Sentry.browserTracingIntegration()');
   }
 
   if (params.isProfilingSelected) {
-    integrations.push(`Sentry.browserProfilingIntegration()`);
+    integrations.push('Sentry.browserProfilingIntegration()');
   }
 
   if (params.isReplaySelected) {

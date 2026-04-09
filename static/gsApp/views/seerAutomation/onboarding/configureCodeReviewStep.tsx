@@ -151,14 +151,14 @@ export function ConfigureCodeReviewStep() {
           <PanelBody>
             <PanelDescription>
               <Flex direction="column" gap="lg">
-                <Text>{t(`You've successfully connected to GitHub!`)}</Text>
+                <Text>{t("You've successfully connected to GitHub!")}</Text>
                 <Separator orientation="horizontal" border="muted" />
 
                 <Flex direction="column" gap="sm">
                   <Text bold>{t('AI Code Review')}</Text>
                   <Text variant="muted" density="comfortable">
                     {t(
-                      `For all selected repositories below, Seer's AI Code Review will be run to review your PRs and flag potential bugs. `
+                      "For all selected repositories below, Seer's AI Code Review will be run to review your PRs and flag potential bugs. "
                     )}
                   </Text>
                 </Flex>

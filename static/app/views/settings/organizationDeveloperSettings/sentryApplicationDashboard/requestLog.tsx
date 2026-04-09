@@ -128,7 +128,7 @@ function makeRequestLogQueryKey(
   query: Record<string, string>
 ): ApiQueryKey {
   return [
-    getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/webhook-requests/`, {
+    getApiUrl('/sentry-apps/$sentryAppIdOrSlug/webhook-requests/', {
       path: {sentryAppIdOrSlug: slug},
     }),
     {query},

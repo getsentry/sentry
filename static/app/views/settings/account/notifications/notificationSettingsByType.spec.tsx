@@ -49,7 +49,7 @@ function renderMockRequests({
   });
 
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/projects/`,
+    url: '/organizations/org-slug/projects/',
     method: 'GET',
     body: [
       {
@@ -173,7 +173,7 @@ describe('NotificationSettingsByType', () => {
     await selectEvent.select(screen.getByText('Value\u2026'), 'On');
 
     const addSettingMock = MockApiClient.addMockResponse({
-      url: `/users/me/notification-options/`,
+      url: '/users/me/notification-options/',
       method: 'PUT',
       body: {
         id: '7',
@@ -190,7 +190,7 @@ describe('NotificationSettingsByType', () => {
 
     // check it hits delete
     const deleteSettingMock = MockApiClient.addMockResponse({
-      url: `/users/me/notification-options/7/`,
+      url: '/users/me/notification-options/7/',
       method: 'DELETE',
       body: {},
     });
@@ -210,7 +210,7 @@ describe('NotificationSettingsByType', () => {
       ],
     });
     const editSettingMock = MockApiClient.addMockResponse({
-      url: `/users/me/notification-options/`,
+      url: '/users/me/notification-options/',
       method: 'PUT',
       body: {
         id: '7',
@@ -252,7 +252,7 @@ describe('NotificationSettingsByType', () => {
       ],
     });
     const changeProvidersMock = MockApiClient.addMockResponse({
-      url: `/users/me/notification-providers/`,
+      url: '/users/me/notification-providers/',
       method: 'PUT',
       body: [],
     });
@@ -290,7 +290,7 @@ describe('NotificationSettingsByType', () => {
     expect(await screen.findAllByText('Spend Notifications')).toHaveLength(2);
 
     const editSettingMock = MockApiClient.addMockResponse({
-      url: `/users/me/notification-options/`,
+      url: '/users/me/notification-options/',
       method: 'PUT',
       body: {
         id: '7',
@@ -352,7 +352,7 @@ describe('NotificationSettingsByType', () => {
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
 
     const editSettingMock = MockApiClient.addMockResponse({
-      url: `/users/me/notification-options/`,
+      url: '/users/me/notification-options/',
       method: 'PUT',
       body: {
         id: '7',
@@ -466,7 +466,7 @@ describe('NotificationSettingsByType', () => {
     expect(screen.getByText('Seer Budget')).toBeInTheDocument();
 
     const editSettingMock = MockApiClient.addMockResponse({
-      url: `/users/me/notification-options/`,
+      url: '/users/me/notification-options/',
       method: 'PUT',
       body: {
         id: '7',

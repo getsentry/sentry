@@ -40,7 +40,7 @@ describe('FeatureFlagDrawer', () => {
       body: {data: []},
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/1/tags/`,
+      url: '/organizations/org-slug/issues/1/tags/',
       body: TagsFixture(),
     });
   });
