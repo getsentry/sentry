@@ -861,6 +861,16 @@ class DashboardDetail extends Component<Props, State> {
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
               trackAnalytics('dashboards2.create.complete', {organization});
+              const seerRunId = location.query?.seerRunId;
+              if (seerRunId) {
+                Sentry.metrics.count('dashboards.seer.create.save', 1, {
+                  attributes: {
+                    organization_slug: organization.slug,
+                    dashboard_id: newDashboard.id,
+                    seer_run_id: seerRunId,
+                  },
+                });
+              }
               this.setState(
                 {
                   dashboardState: DashboardState.VIEW,
