@@ -11,6 +11,10 @@ from sentry import audit_log
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.logic import (
+    DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER,
+    get_alert_resolution,
+)
 from sentry.incidents.metric_issue_detector import (
     MetricIssueComparisonConditionValidator,
     MetricIssueDetectorValidator,
@@ -254,6 +258,11 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         assert condition.condition_result == DetectorPriorityLevel.HIGH
 
         return detector
+
+    def get_snuba_query(self, detector: Detector) -> SnubaQuery:
+        data_source = DataSource.objects.get(detector=detector)
+        query_sub = QuerySubscription.objects.get(id=data_source.source_id)
+        return query_sub.snuba_query
 
     def assert_validated(self, detector):
         detector = Detector.objects.get(id=detector.id)
@@ -745,6 +754,176 @@ class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
             query_sub_count.snuba_query.aggregate
             == "count(metric.name,metric_name_two,distribution,-)"
         )
+
+
+class TestMetricAlertsResolution(TestMetricAlertsDetectorValidator):
+    """Tests that resolution is computed correctly via get_alert_resolution."""
+
+    @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
+    def test_create_static_small_window_uses_default_resolution(
+        self, mock_audit: mock.MagicMock, mock_schedule: mock.MagicMock
+    ) -> None:
+        """A 10-minute static detector should get 1-minute resolution (default)."""
+        data = {
+            **self.valid_data,
+            "dataSources": [
+                {
+                    **self.valid_data["dataSources"][0],
+                    "timeWindow": 600,  # 10 minutes in seconds
+                }
+            ],
+        }
+        validator = MetricIssueDetectorValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        with self.tasks():
+            detector = validator.save()
+
+        snuba_query = self.get_snuba_query(detector)
+        expected = get_alert_resolution(10, self.project.organization).total_seconds()
+        assert snuba_query.resolution == expected
+
+    @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
+    def test_create_static_large_window_uses_scaled_resolution(
+        self, mock_audit: mock.MagicMock, mock_schedule: mock.MagicMock
+    ) -> None:
+        """A 60-minute static detector should get 3-minute resolution."""
+        data = {
+            **self.valid_data,
+            "dataSources": [
+                {
+                    **self.valid_data["dataSources"][0],
+                    "timeWindow": 3600,  # 60 minutes in seconds
+                }
+            ],
+        }
+        validator = MetricIssueDetectorValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        with self.tasks():
+            detector = validator.save()
+
+        snuba_query = self.get_snuba_query(detector)
+        expected = get_alert_resolution(60, self.project.organization).total_seconds()
+        assert snuba_query.resolution == expected
+        assert snuba_query.resolution == 180  # 3 minutes in seconds
+
+    @mock.patch("sentry.seer.anomaly_detection.store_data_workflow_engine.make_store_data_request")
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
+    def test_create_dynamic_resolution_equals_time_window(
+        self, mock_audit: mock.MagicMock, mock_seer_request: mock.MagicMock
+    ) -> None:
+        """Dynamic detectors should use resolution == time_window."""
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        detector = self.create_dynamic_detector()
+
+        snuba_query = self.get_snuba_query(detector)
+        assert snuba_query.resolution == snuba_query.time_window
+
+    @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
+    def test_create_percent_resolution_doubled(
+        self, mock_audit: mock.MagicMock, mock_schedule: mock.MagicMock
+    ) -> None:
+        """Percent (comparison) detectors should double the resolution."""
+        data = {
+            **self.valid_data,
+            "dataSources": [
+                {
+                    **self.valid_data["dataSources"][0],
+                    "timeWindow": 3600,  # 60 minutes
+                }
+            ],
+            "config": {
+                "thresholdPeriod": 1,
+                "detectionType": AlertRuleDetectionType.PERCENT.value,
+                "comparisonDelta": 86400,
+            },
+        }
+        validator = MetricIssueDetectorValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        with self.tasks():
+            detector = validator.save()
+
+        snuba_query = self.get_snuba_query(detector)
+        base_resolution = get_alert_resolution(60, self.project.organization)
+        expected = (base_resolution * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER).total_seconds()
+        assert snuba_query.resolution == expected
+        assert snuba_query.resolution == 360  # 3 min * 2 = 6 minutes in seconds
+
+    @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
+    def test_update_time_window_recalculates_resolution(
+        self, mock_audit: mock.MagicMock, mock_schedule: mock.MagicMock
+    ) -> None:
+        """Changing time_window on update should recalculate resolution."""
+        detector = self.create_static_detector()
+        snuba_query = self.get_snuba_query(detector)
+        old_resolution = snuba_query.resolution
+
+        # Update to a larger time window (24 hours = 1440 minutes)
+        update_data = {
+            **self.valid_data,
+            "dataSources": [
+                {
+                    **self.valid_data["dataSources"][0],
+                    "timeWindow": 86400,  # 1440 minutes in seconds
+                }
+            ],
+        }
+        update_validator = MetricIssueDetectorValidator(
+            instance=detector, data=update_data, context=self.context, partial=True
+        )
+        assert update_validator.is_valid(), update_validator.errors
+        update_validator.save()
+
+        snuba_query.refresh_from_db()
+        expected = get_alert_resolution(1440, self.project.organization).total_seconds()
+        assert snuba_query.resolution == expected
+        assert snuba_query.resolution == 900  # 15 minutes in seconds
+        assert snuba_query.resolution != old_resolution
+
+    @mock.patch("sentry.seer.anomaly_detection.store_data_workflow_engine.make_store_data_request")
+    @mock.patch("sentry.seer.anomaly_detection.delete_rule.delete_rule_in_seer")
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
+    def test_update_detection_type_change_recalculates_resolution(
+        self,
+        mock_audit: mock.MagicMock,
+        mock_seer_delete: mock.MagicMock,
+        mock_seer_store: mock.MagicMock,
+    ) -> None:
+        """Changing detection_type without data_sources should still recalculate resolution."""
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_store.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        mock_seer_delete.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        detector = self.create_dynamic_detector()
+        snuba_query = self.get_snuba_query(detector)
+        # Dynamic: resolution == time_window
+        assert snuba_query.resolution == snuba_query.time_window
+
+        # Change to static without changing data sources
+        update_data = {
+            **self.valid_data,
+            "config": {
+                "thresholdPeriod": 1,
+                "detectionType": AlertRuleDetectionType.STATIC.value,
+            },
+        }
+        update_validator = MetricIssueDetectorValidator(
+            instance=detector, data=update_data, context=self.context, partial=True
+        )
+        assert update_validator.is_valid(), update_validator.errors
+        update_validator.save()
+
+        snuba_query.refresh_from_db()
+        time_window_minutes = snuba_query.time_window // 60
+        expected = get_alert_resolution(
+            time_window_minutes, self.project.organization
+        ).total_seconds()
+        assert snuba_query.resolution == expected
 
 
 class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator):
