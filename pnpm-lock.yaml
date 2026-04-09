@@ -604,9 +604,6 @@ importers:
       '@types/d3-zoom':
         specifier: ^3.0.8
         version: 3.0.8
-      '@types/estree':
-        specifier: 1.0.8
-        version: 1.0.8
       '@types/gettext-parser':
         specifier: 8.0.0
         version: 8.0.0
