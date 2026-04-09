@@ -239,6 +239,7 @@ class OrganizationIndexEndpoint(Endpoint):
             elif request.auth.organization_id is not None:
                 queryset = queryset.filter(organization_id=request.auth.organization_id)
         elif not (is_active_superuser(request) and request.GET.get("show") == "all"):
+            assert request.user.id is not None
             queryset = queryset.filter(
                 organization_id__in=OrganizationMemberMapping.objects.filter(
                     user_id=request.user.id
