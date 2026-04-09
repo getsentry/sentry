@@ -8,9 +8,9 @@ from typing import Any, TypedDict
 
 import orjson
 import sentry_sdk
+from django.core.cache import cache
 from requests import PreparedRequest
 
-from sentry.cache import default_cache
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import (
     create_blame_query,
@@ -570,13 +570,13 @@ class GitHubBaseClient(
         the cache payload small.
         """
         cache_key = f"github:accessible_repos:{self.integration.id}"
-        cached = default_cache.get(cache_key)
+        cached = cache.get(cache_key)
         if cached is not None:
             return cached
 
         all_repos = self.get_repos()
         repos = [{k: r.get(k) for k in self._CACHED_REPO_FIELDS} for r in all_repos]
-        default_cache.set(cache_key, repos, ttl)
+        cache.set(cache_key, repos, ttl)
         return repos
 
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:
