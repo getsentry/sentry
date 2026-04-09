@@ -45,7 +45,11 @@ function CronDetectorForm({detector}: {detector?: CronDetector}) {
   return (
     <Stack gap="2xl" maxWidth={theme.breakpoints.xl}>
       {!detector && <InstrumentationGuide />}
-      <Stack display={showingPlatformGuide ? 'none' : 'flex'} gap="2xl">
+      <Stack
+        data-test-id="form-sections"
+        style={showingPlatformGuide ? {display: 'none'} : undefined}
+        gap="2xl"
+      >
         {dataSource?.queryObj.isUpserting && (
           <Alert variant="warning">
             {t(
