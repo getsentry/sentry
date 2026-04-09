@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timezone
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -16,10 +16,12 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
 from sentry.seer.endpoints.seer_rpc import (
+    bulk_get_project_preferences,
     check_repository_integrations_status,
     generate_request_signature,
     get_attributes_for_span,
     get_github_enterprise_integration_config,
+    get_project_preferences,
     get_repo_installation_id,
     has_repo_code_mappings,
     trigger_coding_agent_launch,
@@ -1483,6 +1485,67 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         assert result == {"error": "integration_not_found"}
+
+    @patch("sentry.seer.endpoints.seer_rpc.read_preference_from_sentry_db")
+    def test_get_project_preferences_returns_preference(self, mock_read: Any) -> None:
+        project = self.create_project(organization=self.organization)
+        mock_read.return_value = MagicMock(
+            dict=MagicMock(return_value={"project_id": project.id, "repositories": []})
+        )
+        result = get_project_preferences(
+            organization_id=self.organization.id,
+            project_id=project.id,
+        )
+        assert result == {"project_id": project.id, "repositories": []}
+        mock_read.assert_called_once()
+
+    @patch("sentry.seer.endpoints.seer_rpc.read_preference_from_sentry_db")
+    def test_get_project_preferences_returns_none_when_no_preference(self, mock_read: Any) -> None:
+        project = self.create_project(organization=self.organization)
+        mock_read.return_value = None
+        result = get_project_preferences(
+            organization_id=self.organization.id,
+            project_id=project.id,
+        )
+        assert result is None
+
+    def test_get_project_preferences_returns_none_for_nonexistent_project(self) -> None:
+        result = get_project_preferences(
+            organization_id=self.organization.id,
+            project_id=999999,
+        )
+        assert result is None
+
+    @patch("sentry.seer.endpoints.seer_rpc.bulk_read_preferences_from_sentry_db")
+    def test_bulk_get_project_preferences_returns_preferences(self, mock_bulk_read: Any) -> None:
+        project1 = self.create_project(organization=self.organization)
+        project2 = self.create_project(organization=self.organization)
+        mock_bulk_read.return_value = {
+            project1.id: MagicMock(
+                dict=MagicMock(return_value={"project_id": project1.id, "repositories": []})
+            ),
+            project2.id: None,
+        }
+        result = bulk_get_project_preferences(
+            organization_id=self.organization.id,
+            project_ids=[project1.id, project2.id],
+        )
+        assert result == {
+            str(project1.id): {"project_id": project1.id, "repositories": []},
+            str(project2.id): None,
+        }
+        mock_bulk_read.assert_called_once_with(self.organization.id, [project1.id, project2.id])
+
+    @patch("sentry.seer.endpoints.seer_rpc.bulk_read_preferences_from_sentry_db")
+    def test_bulk_get_project_preferences_returns_empty_for_no_projects(
+        self, mock_bulk_read: Any
+    ) -> None:
+        mock_bulk_read.return_value = {}
+        result = bulk_get_project_preferences(
+            organization_id=self.organization.id,
+            project_ids=[],
+        )
+        assert result == {}
 
 
 class TestTriggerCodingAgentLaunch:

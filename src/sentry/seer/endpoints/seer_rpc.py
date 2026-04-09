@@ -869,15 +869,18 @@ def get_project_preferences(*, organization_id: int, project_id: int) -> dict | 
     except Project.DoesNotExist:
         return None
 
-    pref = read_preference_from_sentry_db(project)
-    if pref is None:
+    preference = read_preference_from_sentry_db(project)
+    if preference is None:
         return None
-    return pref.dict()
+    return preference.dict()
 
 
 def bulk_get_project_preferences(*, organization_id: int, project_ids: list[int]) -> dict:
-    prefs = bulk_read_preferences_from_sentry_db(organization_id, project_ids)
-    return {str(project_id): pref.dict() if pref else None for project_id, pref in prefs.items()}
+    preferences = bulk_read_preferences_from_sentry_db(organization_id, project_ids)
+    return {
+        str(project_id): preference.dict() if preference else None
+        for project_id, preference in preferences.items()
+    }
 
 
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized
