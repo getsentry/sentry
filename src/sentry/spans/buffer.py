@@ -724,7 +724,6 @@ class SpansBuffer:
 
         payloads: dict[SegmentKey, list[bytes]] = {key: [] for key in segment_keys}
         payload_keys_map: dict[SegmentKey, list[PayloadKey]] = {key: [] for key in segment_keys}
-        sizes: dict[SegmentKey, int] = {key: 0 for key in segment_keys}
         self._last_decompress_latency_ms = 0
         decompress_latency_ms = 0.0
 
@@ -753,7 +752,7 @@ class SpansBuffer:
 
         dropped_segments: set[SegmentKey] = set()
 
-        def _add_spans(key: SegmentKey, raw_data: bytes) -> bool:
+        def _add_spans(key: SegmentKey, raw_data: bytes):
             """
             Decompress and add spans to the segment.
             """
@@ -762,11 +761,7 @@ class SpansBuffer:
             decompress_start = time.monotonic()
             decompressed = self._decompress_batch(raw_data)
             decompress_latency_ms += (time.monotonic() - decompress_start) * 1000
-
-            sizes[key] = sizes.get(key, 0) + sum(len(span) for span in decompressed)
             payloads[key].extend(decompressed)
-
-            return True
 
         while cursors:
             with self.client.pipeline(transaction=False) as p:
@@ -783,15 +778,11 @@ class SpansBuffer:
                     cursors.pop(key, None)
                     continue
 
-                size_exceeded = False
                 for scan_value in scan_values:
                     if segment_key in payloads:
-                        if not _add_spans(segment_key, scan_value):
-                            size_exceeded = True
+                        _add_spans(segment_key, scan_value)
 
-                if size_exceeded:
-                    cursors.pop(key, None)
-                elif cursor == 0:
+                if cursor == 0:
                     del cursors[key]
                 else:
                     cursors[key] = cursor
