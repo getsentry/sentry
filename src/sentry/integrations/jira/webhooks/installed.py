@@ -44,7 +44,14 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
                 lifecycle.record_failure(ProjectManagementFailuresReason.INSTALLATION_STATE_MISSING)
                 return self.respond(status=status.HTTP_400_BAD_REQUEST)
 
-            key_id = jwt.peek_header(token).get("kid")
+            try:
+                key_id = jwt.peek_header(token).get("kid")
+            except DecodeError:
+                lifecycle.record_halt(halt_reason="Failed to fetch key id")
+                return self.respond(
+                    {"detail": "Failed to fetch key id"}, status=status.HTTP_400_BAD_REQUEST
+                )
+
             lifecycle.add_extras(
                 {
                     "key_id": key_id,
