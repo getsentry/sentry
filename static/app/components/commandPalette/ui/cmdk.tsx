@@ -1,10 +1,8 @@
 import {useQuery} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
 
-import type {
-  CMDKQueryOptions,
-  CommandPaletteAsyncResult,
-} from 'sentry/components/commandPalette/types';
+import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
+import type {CMDKQueryOptions} from 'sentry/components/commandPalette/types';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 
 import {makeCollection} from './collection';
@@ -64,7 +62,7 @@ export function CommandPaletteProvider({children}: {children: React.ReactNode}) 
 
 interface CMDKActionProps {
   display: DisplayProps;
-  children?: React.ReactNode | ((data: CommandPaletteAsyncResult[]) => React.ReactNode);
+  children?: React.ReactNode | ((data: CommandPaletteAction[]) => React.ReactNode);
   keywords?: string[];
   onAction?: () => void;
   resource?: (query: string) => CMDKQueryOptions;

@@ -24,7 +24,6 @@ jest.mock('@tanstack/react-virtual', () => ({
 
 import {closeModal} from 'sentry/actionCreators/modal';
 import * as modalActions from 'sentry/actionCreators/modal';
-import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import type {CMDKActionData} from 'sentry/components/commandPalette/ui/cmdk';
@@ -33,54 +32,7 @@ import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-/**
- * Converts the old-style CommandPaletteAction[] fixture format into the new
- * JSX registration components so tests don't need to be fully rewritten.
- */
-function ActionsToJSX({actions}: {actions: CommandPaletteAction[]}) {
-  return (
-    <Fragment>
-      {actions.map((action, i) => {
-        if ('actions' in action) {
-          return (
-            <CMDKAction key={i} display={action.display} keywords={action.keywords}>
-              <ActionsToJSX actions={action.actions} />
-            </CMDKAction>
-          );
-        }
-        if ('to' in action) {
-          return (
-            <CMDKAction
-              key={i}
-              display={action.display}
-              to={action.to}
-              keywords={action.keywords}
-            />
-          );
-        }
-        if ('onAction' in action) {
-          return (
-            <CMDKAction
-              key={i}
-              display={action.display}
-              onAction={action.onAction}
-              keywords={action.keywords}
-            />
-          );
-        }
-        return null;
-      })}
-    </Fragment>
-  );
-}
-
-function GlobalActionsComponent({
-  actions,
-  children,
-}: {
-  actions: CommandPaletteAction[];
-  children?: React.ReactNode;
-}) {
+function GlobalActionsComponent({children}: {children?: React.ReactNode}) {
   const navigate = useNavigate();
 
   const handleAction = useCallback(
@@ -97,40 +49,27 @@ function GlobalActionsComponent({
 
   return (
     <CommandPaletteProvider>
-      <ActionsToJSX actions={actions} />
-      <CommandPalette onAction={handleAction}>{children}</CommandPalette>
+      {children}
+      <CommandPalette onAction={handleAction} />
     </CommandPaletteProvider>
   );
 }
 
 const onChild = jest.fn();
 
-const allActions: CommandPaletteAction[] = [
-  {
-    to: '/target/',
-    display: {
-      label: 'Go to route',
-    },
-  },
-  {
-    to: '/other/',
-    display: {label: 'Other'},
-  },
-  {
-    display: {label: 'Parent Label'},
-    actions: [
-      {
-        display: {label: 'Parent Group Action'},
-        actions: [
-          {
-            onAction: onChild,
-            display: {label: 'Child Action'},
-          },
-        ],
-      },
-    ],
-  },
-];
+function AllActions() {
+  return (
+    <Fragment>
+      <CMDKAction to="/target/" display={{label: 'Go to route'}} />
+      <CMDKAction to="/other/" display={{label: 'Other'}} />
+      <CMDKAction display={{label: 'Parent Label'}}>
+        <CMDKAction display={{label: 'Parent Group Action'}}>
+          <CMDKAction onAction={onChild} display={{label: 'Child Action'}} />
+        </CMDKAction>
+      </CMDKAction>
+    </Fragment>
+  );
+}
 
 describe('CommandPalette', () => {
   beforeEach(() => {
@@ -139,7 +78,11 @@ describe('CommandPalette', () => {
 
   it('clicking a link item navigates and closes modal', async () => {
     const closeSpy = jest.spyOn(modalActions, 'closeModal');
-    const {router} = render(<GlobalActionsComponent actions={allActions} />);
+    const {router} = render(
+      <GlobalActionsComponent>
+        <AllActions />
+      </GlobalActionsComponent>
+    );
     await userEvent.click(await screen.findByRole('option', {name: 'Go to route'}));
 
     await waitFor(() => expect(router.location.pathname).toBe('/target/'));
@@ -148,7 +91,11 @@ describe('CommandPalette', () => {
 
   it('ArrowDown to a link item then Enter navigates and closes modal', async () => {
     const closeSpy = jest.spyOn(modalActions, 'closeModal');
-    const {router} = render(<GlobalActionsComponent actions={allActions} />);
+    const {router} = render(
+      <GlobalActionsComponent>
+        <AllActions />
+      </GlobalActionsComponent>
+    );
     await screen.findByRole('textbox', {name: 'Search commands'});
     // First item should already be highlighted, arrow down will go highlight "other"
     await userEvent.keyboard('{ArrowDown}{Enter}');
@@ -159,7 +106,11 @@ describe('CommandPalette', () => {
 
   it('clicking action with children shows sub-items, backspace returns', async () => {
     const closeSpy = jest.spyOn(modalActions, 'closeModal');
-    render(<GlobalActionsComponent actions={allActions} />);
+    render(
+      <GlobalActionsComponent>
+        <AllActions />
+      </GlobalActionsComponent>
+    );
 
     // Open children
     await userEvent.click(
@@ -191,7 +142,11 @@ describe('CommandPalette', () => {
 
   it('clicking child sub-item runs onAction and closes modal', async () => {
     const closeSpy = jest.spyOn(modalActions, 'closeModal');
-    render(<GlobalActionsComponent actions={allActions} />);
+    render(
+      <GlobalActionsComponent>
+        <AllActions />
+      </GlobalActionsComponent>
+    );
     await userEvent.click(
       await screen.findByRole('option', {name: 'Parent Group Action'})
     );
@@ -203,7 +158,11 @@ describe('CommandPalette', () => {
 
   describe('search', () => {
     it('typing a query filters results to matching items only', async () => {
-      render(<GlobalActionsComponent actions={allActions} />);
+      render(
+        <GlobalActionsComponent>
+          <AllActions />
+        </GlobalActionsComponent>
+      );
       const input = await screen.findByRole('textbox', {name: 'Search commands'});
       await userEvent.type(input, 'route');
 
@@ -217,7 +176,11 @@ describe('CommandPalette', () => {
     });
 
     it('non-matching items are not shown', async () => {
-      render(<GlobalActionsComponent actions={allActions} />);
+      render(
+        <GlobalActionsComponent>
+          <AllActions />
+        </GlobalActionsComponent>
+      );
       const input = await screen.findByRole('textbox', {name: 'Search commands'});
       await userEvent.type(input, 'xyzzy');
 
@@ -225,7 +188,11 @@ describe('CommandPalette', () => {
     });
 
     it('clearing the query restores all top-level items', async () => {
-      render(<GlobalActionsComponent actions={allActions} />);
+      render(
+        <GlobalActionsComponent>
+          <AllActions />
+        </GlobalActionsComponent>
+      );
       const input = await screen.findByRole('textbox', {name: 'Search commands'});
       await userEvent.type(input, 'route');
       expect(
@@ -242,7 +209,11 @@ describe('CommandPalette', () => {
     });
 
     it('child actions are not shown when query is empty', async () => {
-      render(<GlobalActionsComponent actions={allActions} />);
+      render(
+        <GlobalActionsComponent>
+          <AllActions />
+        </GlobalActionsComponent>
+      );
       await screen.findByRole('option', {name: 'Parent Group Action'});
 
       expect(
@@ -251,7 +222,11 @@ describe('CommandPalette', () => {
     });
 
     it('child actions are directly searchable without drilling into the group', async () => {
-      render(<GlobalActionsComponent actions={allActions} />);
+      render(
+        <GlobalActionsComponent>
+          <AllActions />
+        </GlobalActionsComponent>
+      );
       const input = await screen.findByRole('textbox', {name: 'Search commands'});
       await userEvent.type(input, 'child');
 
@@ -261,7 +236,11 @@ describe('CommandPalette', () => {
     });
 
     it('preserves spaces in typed query', async () => {
-      render(<GlobalActionsComponent actions={allActions} />);
+      render(
+        <GlobalActionsComponent>
+          <AllActions />
+        </GlobalActionsComponent>
+      );
       const input = await screen.findByRole('textbox', {name: 'Search commands'});
       await userEvent.type(input, 'test query');
 
@@ -269,7 +248,11 @@ describe('CommandPalette', () => {
     });
 
     it('search is case-insensitive', async () => {
-      render(<GlobalActionsComponent actions={allActions} />);
+      render(
+        <GlobalActionsComponent>
+          <AllActions />
+        </GlobalActionsComponent>
+      );
       const input = await screen.findByRole('textbox', {name: 'Search commands'});
       await userEvent.type(input, 'ROUTE');
 
@@ -279,17 +262,12 @@ describe('CommandPalette', () => {
     });
 
     it('actions are ranked by match quality — better matches appear first', async () => {
-      const actions: CommandPaletteAction[] = [
-        {
-          to: '/a/',
-          display: {label: 'Something with issues buried'},
-        },
-        {
-          to: '/b/',
-          display: {label: 'Issues'},
-        },
-      ];
-      render(<GlobalActionsComponent actions={actions} />);
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction to="/a/" display={{label: 'Something with issues buried'}} />
+          <CMDKAction to="/b/" display={{label: 'Issues'}} />
+        </GlobalActionsComponent>
+      );
       const input = await screen.findByRole('textbox', {name: 'Search commands'});
       await userEvent.type(input, 'issues');
 
@@ -301,17 +279,14 @@ describe('CommandPalette', () => {
     });
 
     it('top-level actions rank before child actions when both match the query', async () => {
-      const actions: CommandPaletteAction[] = [
-        {
-          display: {label: 'Group'},
-          actions: [{to: '/child/', display: {label: 'Issues child'}}],
-        },
-        {
-          to: '/top/',
-          display: {label: 'Issues'},
-        },
-      ];
-      render(<GlobalActionsComponent actions={actions} />);
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction display={{label: 'Group'}}>
+            <CMDKAction to="/child/" display={{label: 'Issues child'}} />
+          </CMDKAction>
+          <CMDKAction to="/top/" display={{label: 'Issues'}} />
+        </GlobalActionsComponent>
+      );
       const input = await screen.findByRole('textbox', {name: 'Search commands'});
       await userEvent.type(input, 'issues');
 
@@ -323,14 +298,15 @@ describe('CommandPalette', () => {
     });
 
     it('actions with matching keywords are included in results', async () => {
-      const actions: CommandPaletteAction[] = [
-        {
-          to: '/shortcuts/',
-          display: {label: 'Keyboard shortcuts'},
-          keywords: ['hotkeys', 'keybindings'],
-        },
-      ];
-      render(<GlobalActionsComponent actions={actions} />);
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction
+            to="/shortcuts/"
+            display={{label: 'Keyboard shortcuts'}}
+            keywords={['hotkeys', 'keybindings']}
+          />
+        </GlobalActionsComponent>
+      );
       const input = await screen.findByRole('textbox', {name: 'Search commands'});
       await userEvent.type(input, 'hotkeys');
 
@@ -340,16 +316,14 @@ describe('CommandPalette', () => {
     });
 
     it("searching within a drilled-in group filters that group's children", async () => {
-      const actions: CommandPaletteAction[] = [
-        {
-          display: {label: 'Theme'},
-          actions: [
-            {onAction: jest.fn(), display: {label: 'Light'}},
-            {onAction: jest.fn(), display: {label: 'Dark'}},
-          ],
-        },
-      ];
-      render(<GlobalActionsComponent actions={actions} />);
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction display={{label: 'Theme'}}>
+            <CMDKAction onAction={jest.fn()} display={{label: 'Light'}} />
+            <CMDKAction onAction={jest.fn()} display={{label: 'Dark'}} />
+          </CMDKAction>
+        </GlobalActionsComponent>
+      );
 
       // Drill into the group
       await userEvent.click(await screen.findByRole('option', {name: 'Theme'}));
@@ -424,7 +398,11 @@ describe('CommandPalette', () => {
 
   describe('query restoration', () => {
     it('drilling into a group clears the active query', async () => {
-      render(<GlobalActionsComponent actions={allActions} />);
+      render(
+        <GlobalActionsComponent>
+          <AllActions />
+        </GlobalActionsComponent>
+      );
       const input = await screen.findByRole('textbox', {name: 'Search commands'});
 
       // Type a query that shows the group in search results
@@ -438,7 +416,11 @@ describe('CommandPalette', () => {
     });
 
     it('Backspace from a drilled group restores the query that was active before drilling in', async () => {
-      render(<GlobalActionsComponent actions={allActions} />);
+      render(
+        <GlobalActionsComponent>
+          <AllActions />
+        </GlobalActionsComponent>
+      );
       const input = await screen.findByRole('textbox', {name: 'Search commands'});
 
       // Type a query, then drill into the group that appears in search results
@@ -455,7 +437,11 @@ describe('CommandPalette', () => {
     });
 
     it('clicking the back button from a drilled group restores the query that was active before drilling in', async () => {
-      render(<GlobalActionsComponent actions={allActions} />);
+      render(
+        <GlobalActionsComponent>
+          <AllActions />
+        </GlobalActionsComponent>
+      );
       const input = await screen.findByRole('textbox', {name: 'Search commands'});
 
       // Type a query, then drill into the group that appears in search results

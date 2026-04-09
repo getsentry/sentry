@@ -8,7 +8,7 @@ import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
 import type {
   CMDKQueryOptions,
-  CommandPaletteAsyncResult,
+  CommandPaletteAction,
 } from 'sentry/components/commandPalette/types';
 import {
   DSN_PATTERN,
@@ -61,7 +61,7 @@ const DSN_ICONS: React.ReactElement[] = [
 
 const helpSearch = new SentryGlobalSearch(['docs', 'develop']);
 
-function renderAsyncResult(item: CommandPaletteAsyncResult, index: number) {
+function renderAsyncResult(item: CommandPaletteAction, index: number) {
   if ('to' in item) {
     return <CMDKAction key={index} display={item.display} to={item.to} />;
   }
@@ -295,9 +295,7 @@ export function GlobalCommandPaletteActions() {
               });
             }}
           >
-            {(data: CommandPaletteAsyncResult[]) =>
-              data.map((item, i) => renderAsyncResult(item, i))
-            }
+            {data => data.map((item, i) => renderAsyncResult(item, i))}
           </CMDKAction>
         )}
       </CMDKAction>
@@ -337,7 +335,7 @@ export function GlobalCommandPaletteActions() {
                   {analyticsTags: ['source:command-palette']}
                 ),
               select: data => {
-                const results: CommandPaletteAsyncResult[] = [];
+                const results = [];
                 for (const index of data) {
                   for (const hit of index.hits.slice(0, 3)) {
                     results.push({
@@ -361,9 +359,7 @@ export function GlobalCommandPaletteActions() {
             });
           }}
         >
-          {(data: CommandPaletteAsyncResult[]) =>
-            data.map((item, i) => renderAsyncResult(item, i))
-          }
+          {data => data.map((item, i) => renderAsyncResult(item, i))}
         </CMDKAction>
       </CMDKAction>
 

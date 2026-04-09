@@ -16,19 +16,7 @@ interface Action {
   keywords?: string[];
 }
 
-/**
- * Actions that can be returned from an async resource query.
- */
-export type CommandPaletteAsyncResult =
-  | CommandPaletteActionLink
-  | CommandPaletteActionCallback;
-
-export type CMDKQueryOptions = UseQueryOptions<
-  any,
-  Error,
-  CommandPaletteAsyncResult[],
-  any
->;
+export type CMDKQueryOptions = UseQueryOptions<any, Error, CommandPaletteAction[], any>;
 
 export interface CommandPaletteActionLink extends Action {
   /** Navigate to a route when selected */
