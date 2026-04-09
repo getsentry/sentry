@@ -511,18 +511,17 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
     ) -> None:
         """Clear automation_handoff from project preferences after integration is not found."""
         try:
-            preference_response = get_project_seer_preferences(project.id)
-            if preference_response and preference_response.preference:
-                updated_preference = preference_response.preference.copy(
-                    update={"automation_handoff": None}
-                )
+            preference = get_project_seer_preferences(project.id).preference
+            if preference:
+                updated_preference = preference.copy(update={"automation_handoff": None})
                 set_project_seer_preference(updated_preference)
 
                 if features.has("organizations:seer-project-settings-dual-write", organization):
                     try:
-                        validated_pref = SeerProjectPreference.validate(updated_preference)
-                        resolved_pref = resolve_repository_ids(organization.id, [validated_pref])
-                        write_preference_to_sentry_db(project, resolved_pref[0])
+                        resolved_preference = resolve_repository_ids(
+                            organization.id, [SeerProjectPreference.validate(updated_preference)]
+                        )[0]
+                        write_preference_to_sentry_db(project, resolved_preference)
                     except Exception:
                         logger.exception(
                             "seer.write_preferences.failed",

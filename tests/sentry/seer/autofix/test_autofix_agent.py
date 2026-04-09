@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from rest_framework.exceptions import PermissionDenied
@@ -625,7 +625,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
         """Test handoff with None preference response returns failure."""
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
-        mock_get_prefs.return_value = None
+        mock_get_prefs.return_value = Mock(preference=None)
 
         result = trigger_coding_agent_handoff(
             group=self.group,

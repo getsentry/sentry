@@ -1,5 +1,5 @@
 from typing import TypedDict
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from sentry.seer.autofix.autofix_agent import AutofixStep
 from sentry.seer.autofix.constants import AutofixReferrer
@@ -275,7 +275,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
     def test_maybe_continue_pipeline_continues_to_next_step(self, mock_trigger, mock_get_prefs):
         """Continues to next step when not at stopping point."""
         # No handoff configured - should continue with normal pipeline
-        mock_get_prefs.return_value = None
+        mock_get_prefs.return_value = Mock(preference=None)
 
         state = run_state(
             blocks=[root_cause_memory_block()],

@@ -684,6 +684,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert response.data["detail"] == "Invalid repository"
         mock_request.assert_not_called()
 
+    @patch("sentry.seer.endpoints.project_seer_preferences.make_set_project_preference_request")
     def test_post_rejects_unsupported_repo_provider(self, mock_request: MagicMock) -> None:
         request_data = {
             "repositories": [
