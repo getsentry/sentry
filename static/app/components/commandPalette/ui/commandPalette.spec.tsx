@@ -1,12 +1,6 @@
 import {Fragment, useCallback} from 'react';
 
-import {
-  fireEvent,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 jest.unmock('lodash/debounce');
 
@@ -121,26 +115,6 @@ describe('CommandPalette', () => {
     await userEvent.keyboard('{ArrowDown}{Enter}');
 
     await waitFor(() => expect(router.location.pathname).toBe('/other/'));
-    expect(closeSpy).toHaveBeenCalledTimes(1);
-  });
-
-  it('shift-clicking an internal link forwards modifier keys and closes modal', async () => {
-    const closeSpy = jest.spyOn(modalActions, 'closeModal');
-    const onAction = jest.fn();
-
-    render(
-      <GlobalActionsComponent onAction={onAction}>
-        <CMDKAction to="/target/" display={{label: 'Go to route'}} />
-      </GlobalActionsComponent>
-    );
-
-    const option = await screen.findByRole('option', {name: 'Go to route'});
-    fireEvent.mouseDown(option, {shiftKey: true});
-    fireEvent.click(option, {shiftKey: true});
-
-    expect(onAction).toHaveBeenCalledWith(expect.objectContaining({to: '/target/'}), {
-      modifierKeys: {shiftKey: true},
-    });
     expect(closeSpy).toHaveBeenCalledTimes(1);
   });
 

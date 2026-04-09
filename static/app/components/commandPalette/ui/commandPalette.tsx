@@ -426,12 +426,6 @@ export function CommandPalette(props: CommandPaletteProps) {
             aria-label={t('Search results')}
             selectionMode="none"
             shouldUseVirtualFocus
-            onMouseDownCapture={e => {
-              modifierKeysRef.current = {shiftKey: e.shiftKey};
-            }}
-            onClickCapture={e => {
-              modifierKeysRef.current = {shiftKey: e.shiftKey};
-            }}
             onAction={key => {
               onActionSelection(key, {
                 modifierKeys: modifierKeysRef.current,
