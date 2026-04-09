@@ -198,6 +198,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
                 {
                     "org_slug": "org1",
                     "query": QueryDict("yAxis=avg(span.duration)&project=1&statsPeriod=24h"),
+                    "chart_type": None,
                 },
             ),
         ),
@@ -208,6 +209,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
                 {
                     "org_slug": "org1",
                     "query": QueryDict("yAxis=count(span.duration)&statsPeriod=24h"),
+                    "chart_type": None,
                 },
             ),
         ),
@@ -1669,3 +1671,57 @@ class UnfurlTest(TestCase):
             unfurls[url]
             == SlackDiscoverMessageBuilder(title="Explore Traces", chart_url="chart-url").build()
         )
+
+    @patch(
+        "sentry.integrations.slack.unfurl.explore.client.get",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_with_visualize_chart_type(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        # visualize param with chartType=0 (bar)
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?visualize=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%2C%22chartType%22%3A0%7D&project={self.project.id}&statsPeriod=24h"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        assert link_type == LinkType.EXPLORE
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert len(unfurls) == 1
+        assert len(mock_generate_chart.mock_calls) == 1
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert chart_data["type"] == "bar"
+
+    @patch(
+        "sentry.integrations.slack.unfurl.explore.client.get",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_without_chart_type_omits_type(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D&project={self.project.id}&statsPeriod=24h"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert len(unfurls) == 1
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert "type" not in chart_data
