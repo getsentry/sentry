@@ -11,7 +11,6 @@ from django.db import router, transaction
 from django.utils import timezone
 from taskbroker_client.retry import Retry
 
-from sentry import features
 from sentry.constants import DataCategory
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
@@ -28,7 +27,6 @@ from sentry.preprod.models import (
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
 )
-from sentry.preprod.producer import PreprodFeature, produce_preprod_artifact_to_kafka
 from sentry.preprod.quotas import (
     has_installable_quota,
     has_size_quota,
@@ -165,14 +163,9 @@ def assemble_preprod_artifact(
         except Exception:
             pass
 
-    if features.has("organizations:launchpad-taskbroker-rollout", organization):
-        taskbroker_dispatched = dispatch_taskbroker(project_id, org_id, artifact_id)
-        if not taskbroker_dispatched:
-            return
-    else:
-        kafka_dispatched = _dispatch_kafka(project_id, org_id, artifact_id, checksum)
-        if not kafka_dispatched:
-            return
+    taskbroker_dispatched = dispatch_taskbroker(project_id, org_id, artifact_id)
+    if not taskbroker_dispatched:
+        return
 
     logger.info(
         "Finished preprod artifact dispatch",
@@ -974,47 +967,6 @@ def detect_expired_preprod_artifacts() -> None:
             + expired_size_comparisons_count,
         },
     )
-
-
-def _dispatch_kafka(project_id: int, org_id: int, artifact_id: int, checksum: str) -> bool:
-    # Note: requested_features is no longer used for filtering - all features are
-    # requested here, and the actual quota/filter checks happen in the update endpoint
-    # (project_preprod_artifact_update.py) after preprocessing completes.
-    try:
-        produce_preprod_artifact_to_kafka(
-            project_id=project_id,
-            organization_id=org_id,
-            artifact_id=artifact_id,
-            requested_features=[
-                PreprodFeature.SIZE_ANALYSIS,
-                PreprodFeature.BUILD_DISTRIBUTION,
-            ],
-        )
-        return True
-    except Exception as e:
-        user_friendly_error_message = "Failed to dispatch preprod artifact event for analysis"
-        sentry_sdk.capture_exception(e)
-        logger.exception(
-            user_friendly_error_message,
-            extra={
-                "project_id": project_id,
-                "organization_id": org_id,
-                "checksum": checksum,
-                "preprod_artifact_id": artifact_id,
-            },
-        )
-        PreprodArtifact.objects.filter(id=artifact_id).update(
-            state=PreprodArtifact.ArtifactState.FAILED,
-            error_code=PreprodArtifact.ErrorCode.ARTIFACT_PROCESSING_ERROR,
-            error_message=user_friendly_error_message,
-        )
-        create_preprod_status_check_task.apply_async(
-            kwargs={
-                "preprod_artifact_id": artifact_id,
-                "caller": "assemble_dispatch_error",
-            }
-        )
-        return False
 
 
 def dispatch_taskbroker(project_id: int, org_id: int, artifact_id: int) -> bool:
