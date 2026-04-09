@@ -82,7 +82,7 @@ export function useAttributeBreakdownsTooltip({
   actions,
 }: Params): TooltipOption {
   const [frozenPosition, setFrozenPosition] = useState<[number, number] | null>(null);
-  const tooltipParamsRef = useRef<TooltipComponentFormatterCallbackParams | null>(null);
+  const tooltipContentRef = useRef<string | null>(null);
   const tooltipValueRef = useRef<string>('');
 
   // This effect runs on load and when the frozen position changes.
@@ -110,7 +110,7 @@ export function useAttributeBreakdownsTooltip({
       // If the tooltip is frozen, toggle the frozen state and reset the tooltip params.
       if (frozenPosition) {
         setFrozenPosition(null);
-        tooltipParamsRef.current = null;
+        tooltipContentRef.current = null;
         tooltipValueRef.current = '';
       } else {
         // If the tooltip is not frozen, set the frozen position to the current pixel point.
@@ -208,9 +208,12 @@ export function useAttributeBreakdownsTooltip({
         // If the tooltip is NOT frozen, set the tooltip params and return the formatted content,
         // including the tooltip actions placeholder.
         if (!frozenPosition) {
-          tooltipParamsRef.current = params;
-          tooltipValueRef.current =
+          const formattedContent = formatter(params);
+          const tooltipValue =
             (Array.isArray(params) ? params[0]?.name : params.name) ?? '';
+
+          tooltipContentRef.current = formattedContent;
+          tooltipValueRef.current = tooltipValue;
 
           const actionsPlaceholder = actions?.htmlRenderer
             ? `
@@ -228,18 +231,23 @@ export function useAttributeBreakdownsTooltip({
         `.trim()
             : '';
 
-          return wrapContent(formatter(params) + actionsPlaceholder);
+          return wrapContent(formattedContent + actionsPlaceholder);
         }
 
-        if (!tooltipParamsRef.current) {
+        const frozenTooltipContent = tooltipContentRef.current ?? formatter(params);
+        const frozenTooltipValue =
+          tooltipValueRef.current ??
+          (Array.isArray(params) ? params[0]?.name : params.name) ??
+          '';
+
+        if (!frozenTooltipContent) {
           return wrapContent('\u2014');
         }
 
-        // If the tooltip is frozen, use the cached tooltip params and
-        // return the formatted content, including the tooltip actions.
-        const p = tooltipParamsRef.current;
+        // If the tooltip is frozen, use the cached tooltip content and
+        // append the tooltip actions based on the cached value.
         return wrapContent(
-          formatter(p) + (actions?.htmlRenderer(tooltipValueRef.current) ?? '')
+          frozenTooltipContent + (actions?.htmlRenderer(frozenTooltipValue) ?? '')
         );
       },
       position(
@@ -262,7 +270,7 @@ export function useAttributeBreakdownsTooltip({
         return [x, y];
       },
     }),
-    [frozenPosition, chartWidth, formatter, actions, tooltipParamsRef, tooltipValueRef]
+    [frozenPosition, chartWidth, formatter, actions, tooltipContentRef, tooltipValueRef]
   );
 
   return tooltipConfig;
