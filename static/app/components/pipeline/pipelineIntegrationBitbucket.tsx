@@ -86,6 +86,7 @@ export const bitbucketIntegrationPipeline = {
   provider: 'bitbucket',
   actionTitle: t('Installing Bitbucket Integration'),
   getCompletionData: pipelineComplete<IntegrationWithConfig>,
+  completionView: null,
   steps: [
     {
       stepId: 'authorize',

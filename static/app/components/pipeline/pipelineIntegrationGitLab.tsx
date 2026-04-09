@@ -279,6 +279,7 @@ export const gitlabIntegrationPipeline = {
   provider: 'gitlab',
   actionTitle: t('Installing GitLab Integration'),
   getCompletionData: pipelineComplete<IntegrationWithConfig>,
+  completionView: null,
   steps: [
     {
       stepId: 'installation_config',
