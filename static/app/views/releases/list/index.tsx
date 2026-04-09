@@ -36,7 +36,7 @@ import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {FieldKey} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -429,10 +429,9 @@ export default function ReleasesList() {
     if (!releasesError) {
       return null;
     }
-    const requestError = releasesError as RequestError;
-    if (requestError.status === 400) {
+    if (releasesError instanceof RequestError && releasesError.status === 400) {
       // eslint-disable-next-line @typescript-eslint/no-base-to-string
-      return String(requestError.responseJSON?.detail);
+      return String(releasesError.responseJSON?.detail);
     }
     return t('There was an error loading releases');
   }, [releasesError]);
