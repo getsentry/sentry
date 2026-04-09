@@ -57,6 +57,14 @@ MINIMUM_REQUESTS = 200
 JWT_AUTH_ROUTES = ("/app/installations", "access_tokens")
 
 
+class CachedRepo(TypedDict):
+    id: int
+    name: str
+    full_name: str
+    default_branch: str | None
+    archived: bool | None
+
+
 class GithubRateLimitInfo:
     def __init__(self, info: dict[str, int]) -> None:
         self.limit = info["limit"]
@@ -550,13 +558,6 @@ class GitHubBaseClient(
                 page_number_limit=page_number_limit,
             )
 
-    class CachedRepo(TypedDict):
-        id: int
-        name: str
-        full_name: str
-        default_branch: str | None
-        archived: bool | None
-
     def get_accessible_repos_cached(self, ttl: int = 300) -> list[CachedRepo]:
         """
         Return all repos accessible to this installation.
@@ -572,7 +573,7 @@ class GitHubBaseClient(
             return cached
 
         all_repos = self.get_repos()
-        repos: list[GitHubBaseClient.CachedRepo] = [
+        repos: list[CachedRepo] = [
             {
                 "id": r["id"],
                 "name": r["name"],
