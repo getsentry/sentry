@@ -52,6 +52,7 @@ export const selectJsonWithHeaders = <TData>(
 ): ApiResponse<TData> => data;
 
 function _apiOptions<
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
   TManualData = never,
   TApiPath extends KnownApiUrls = KnownApiUrls,
   // todo: infer the actual data type from the ApiMapping
@@ -87,6 +88,7 @@ function parsePageParam<TQueryFnData = unknown>(dir: 'previous' | 'next') {
 }
 
 function _apiOptionsInfinite<
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
   TManualData = never,
   TApiPath extends KnownApiUrls = KnownApiUrls,
   // todo: infer the actual data type from the ApiMapping
