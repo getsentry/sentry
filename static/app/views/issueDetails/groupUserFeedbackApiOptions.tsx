@@ -3,7 +3,7 @@ import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {QueryParamValue} from 'sentry/utils/useLocation';
 
-interface UseGroupUserFeedbackProps {
+interface GroupUserFeedbackProps {
   groupId: string;
   query: {
     cursor?: QueryParamValue;
@@ -12,7 +12,7 @@ interface UseGroupUserFeedbackProps {
 
 export function groupUserFeedbackApiOptions(
   organization: Organization,
-  {groupId, query}: UseGroupUserFeedbackProps
+  {groupId, query}: GroupUserFeedbackProps
 ) {
   return apiOptions.as<UserReport[]>()(
     '/organizations/$organizationIdOrSlug/issues/$issueId/user-reports/',
