@@ -7,6 +7,7 @@ from typing import Any, NotRequired, TypedDict
 
 import orjson
 import pydantic
+import sentry_sdk
 from django.conf import settings
 from django.db import router, transaction
 from pydantic import BaseModel
@@ -677,12 +678,15 @@ def bulk_write_preferences_to_sentry_db(
 
 def build_repo_definition_from_project_repo(
     seer_project_repo: SeerProjectRepository,
-) -> SeerRepoDefinition:
-    """Build a SeerRepoDefinition from a SeerProjectRepository with its joined Repository."""
+) -> SeerRepoDefinition | None:
+    """Build a SeerRepoDefinition from a SeerProjectRepository with its joined Repository.
+
+    Returns None if Repository name is invalid."""
     repo = seer_project_repo.repository
     repo_name_sections = repo.name.split("/")
     if len(repo_name_sections) < 2:
-        raise ValueError(f"Invalid repository name format: {repo.name}")
+        sentry_sdk.capture_exception(ValueError(f"Invalid repository name format: {repo.name}"))
+        return None
 
     return SeerRepoDefinition(
         repository_id=repo.id,
@@ -734,8 +738,9 @@ def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference | 
         .prefetch_related("branch_overrides")
     )
     repo_definitions = [
-        build_repo_definition_from_project_repo(project_repo)
+        repo_def
         for project_repo in seer_project_repo_qs
+        if (repo_def := build_repo_definition_from_project_repo(project_repo)) is not None
     ]
 
     has_configured_options = any(
@@ -770,9 +775,9 @@ def bulk_read_preferences_from_sentry_db(
         .select_related("repository")
         .prefetch_related("branch_overrides")
     ):
-        repo_definitions_by_project[project_repo.project_id].append(
-            build_repo_definition_from_project_repo(project_repo)
-        )
+        repo_def = build_repo_definition_from_project_repo(project_repo)
+        if repo_def is not None:
+            repo_definitions_by_project[project_repo.project_id].append(repo_def)
 
     # get_value_bulk_id returns None for missing options, unlike project.get_option
     # which automatically falls back to the registered well-known key default.
