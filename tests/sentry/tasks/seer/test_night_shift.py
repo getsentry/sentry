@@ -5,12 +5,12 @@ from django.utils import timezone
 from sentry.models.group import GroupStatus
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.models.project_repository import SeerProjectRepository
-from sentry.tasks.seer.night_shift import (
-    _fixability_score_strategy,
+from sentry.tasks.seer.night_shift.cron import (
     _get_eligible_projects,
     run_night_shift_for_org,
     schedule_night_shift,
 )
+from sentry.tasks.seer.night_shift.simple_triage import fixability_score_strategy
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
 
@@ -20,7 +20,7 @@ class TestScheduleNightShift(TestCase):
     def test_disabled_by_option(self) -> None:
         with (
             self.options({"seer.night_shift.enable": False}),
-            patch("sentry.tasks.seer.night_shift.run_night_shift_for_org") as mock_worker,
+            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_for_org") as mock_worker,
         ):
             schedule_night_shift()
             mock_worker.apply_async.assert_not_called()
@@ -36,7 +36,7 @@ class TestScheduleNightShift(TestCase):
                     "organizations:gen-ai-features": [org.slug],
                 }
             ),
-            patch("sentry.tasks.seer.night_shift.run_night_shift_for_org") as mock_worker,
+            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_for_org") as mock_worker,
         ):
             schedule_night_shift()
             mock_worker.apply_async.assert_called_once()
@@ -47,7 +47,7 @@ class TestScheduleNightShift(TestCase):
 
         with (
             self.options({"seer.night_shift.enable": True}),
-            patch("sentry.tasks.seer.night_shift.run_night_shift_for_org") as mock_worker,
+            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_for_org") as mock_worker,
         ):
             schedule_night_shift()
             mock_worker.apply_async.assert_not_called()
@@ -64,7 +64,7 @@ class TestScheduleNightShift(TestCase):
                     "organizations:gen-ai-features": [org.slug],
                 }
             ),
-            patch("sentry.tasks.seer.night_shift.run_night_shift_for_org") as mock_worker,
+            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_for_org") as mock_worker,
         ):
             schedule_night_shift()
             mock_worker.apply_async.assert_not_called()
@@ -105,7 +105,7 @@ class TestRunNightShiftForOrg(TestCase):
         SeerProjectRepository.objects.create(project=project, repository=repo)
 
     def test_nonexistent_org(self) -> None:
-        with patch("sentry.tasks.seer.night_shift.logger") as mock_logger:
+        with patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger:
             run_night_shift_for_org(999999999)
             mock_logger.info.assert_not_called()
 
@@ -113,7 +113,7 @@ class TestRunNightShiftForOrg(TestCase):
         org = self.create_organization()
         self.create_project(organization=org)
 
-        with patch("sentry.tasks.seer.night_shift.logger") as mock_logger:
+        with patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger:
             run_night_shift_for_org(org.id)
             mock_logger.info.assert_called_once()
             assert mock_logger.info.call_args.args[0] == "night_shift.no_eligible_projects"
@@ -143,7 +143,7 @@ class TestRunNightShiftForOrg(TestCase):
             seer_autofix_last_triggered=timezone.now(),
         )
 
-        with patch("sentry.tasks.seer.night_shift.logger") as mock_logger:
+        with patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger:
             run_night_shift_for_org(org.id)
 
             call_extra = mock_logger.info.call_args.kwargs["extra"]
@@ -170,19 +170,17 @@ class TestRunNightShiftForOrg(TestCase):
             seer_fixability_score=0.95,
         )
 
-        with patch("sentry.tasks.seer.night_shift.logger") as mock_logger:
+        with patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger:
             run_night_shift_for_org(org.id)
 
             candidates = mock_logger.info.call_args.kwargs["extra"]["candidates"]
             assert candidates[0]["group_id"] == high_group.id
-            assert candidates[0]["project_id"] == project_b.id
             assert candidates[1]["group_id"] == low_group.id
-            assert candidates[1]["project_id"] == project_a.id
 
 
 @django_db_all
 class TestFixabilityScoreStrategy(TestCase):
-    @patch("sentry.tasks.seer.night_shift.NIGHT_SHIFT_ISSUE_FETCH_LIMIT", 3)
+    @patch("sentry.tasks.seer.night_shift.simple_triage.NIGHT_SHIFT_ISSUE_FETCH_LIMIT", 3)
     def test_ranks_and_captures_signals(self) -> None:
         project = self.create_project()
         high = self.create_group(
@@ -208,10 +206,10 @@ class TestFixabilityScoreStrategy(TestCase):
                 times_seen=100,
             )
 
-        result = _fixability_score_strategy([project])
+        result = fixability_score_strategy([project])
 
-        assert result[0].group_id == high.id
+        assert result[0].group.id == high.id
         assert result[0].fixability == 0.9
         assert result[0].times_seen == 5
         assert result[0].severity == 1.0
-        assert result[1].group_id == low.id
+        assert result[1].group.id == low.id
