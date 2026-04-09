@@ -3,24 +3,18 @@ import type {ReactNode} from 'react';
 import {LinkButton} from '@sentry/scraps/button';
 import {InlineCode} from '@sentry/scraps/code';
 import {Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import type {
   SourceMapDebugBlueThunderResponse,
-  useSourceMapDebugQuery,
+  SourceMapDebugQueryResult,
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 
-function getDiagnosisMessage(
-  data: SourceMapDebugBlueThunderResponse | undefined
-): ReactNode | null {
-  if (!data) {
-    return null;
-  }
-
+function getDiagnosisMessage(data: SourceMapDebugBlueThunderResponse): ReactNode | null {
   const release = data.release ? (
     <InlineCode variant="neutral">{data.release}</InlineCode>
   ) : null;
@@ -127,7 +121,7 @@ function getDiagnosisMessage(
 
   if (!data.project_has_some_artifact_bundle && !data.release_has_some_artifact) {
     return (
-      <Stack gap="sm">
+      <Stack gap="lg">
         <Text>
           {release
             ? tct(
@@ -136,23 +130,31 @@ function getDiagnosisMessage(
               )
             : t('No source map artifacts have been uploaded for this project.')}
         </Text>
-        <LinkButton
-          size="sm"
-          icon={<IconOpen />}
-          external
-          href="https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/"
-        >
-          {t('Upload Instructions')}
-        </LinkButton>
+        <div>
+          <LinkButton
+            size="sm"
+            icon={<IconOpen />}
+            external
+            href="https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/"
+          >
+            {t('Upload Instructions')}
+          </LinkButton>
+        </div>
       </Stack>
     );
   }
 
-  return null;
+  return (
+    <Text>
+      {t(
+        'Source maps appear to be configured but Sentry could not pinpoint the exact issue.'
+      )}
+    </Text>
+  );
 }
 
 interface DiagnosisSectionProps {
-  sourceMapQuery: ReturnType<typeof useSourceMapDebugQuery>;
+  sourceMapQuery: SourceMapDebugQueryResult;
 }
 
 export function DiagnosisSection({sourceMapQuery}: DiagnosisSectionProps) {
@@ -170,23 +172,12 @@ export function DiagnosisSection({sourceMapQuery}: DiagnosisSectionProps) {
       );
     }
 
-    const message = getDiagnosisMessage(data);
-    return (
-      message ?? (
-        <Text>
-          {t(
-            'Source maps appear to be configured but Sentry could not pinpoint the exact issue.'
-          )}
-        </Text>
-      )
-    );
+    return getDiagnosisMessage(data);
   }
 
   return (
-    <Stack gap="md" padding="lg">
-      <Text size="lg" bold>
-        {t('Diagnosis')}
-      </Text>
+    <Stack gap="lg" padding="lg">
+      <Heading as="h3">{t('Diagnosis')}</Heading>
       {renderContent()}
     </Stack>
   );

@@ -2,7 +2,8 @@ import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfac
 import type {Event} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface SourceMapDebugBlueThunderResponseFrame {
@@ -49,11 +50,16 @@ export interface SourceMapDebugBlueThunderResponse {
   min_debug_id_sdk_version?: string | null;
 }
 
+export type SourceMapDebugQueryResult = UseApiQueryResult<
+  SourceMapDebugBlueThunderResponse,
+  RequestError
+>;
+
 export function useSourceMapDebugQuery(
   projectSlug: string,
   eventId: string,
   sdkName: string | null = null
-) {
+): SourceMapDebugQueryResult {
   const organization = useOrganization({allowNull: true});
   const isSdkThatShouldShowSourceMapsDebugger =
     sdkName?.startsWith('sentry.javascript.') ?? false;
