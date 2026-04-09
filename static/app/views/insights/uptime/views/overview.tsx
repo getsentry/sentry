@@ -87,7 +87,7 @@ export default function UptimeOverview() {
           <TopBar.Slot name="actions">
             <LinkButton
               priority="primary"
-              to={makeAlertsPathname({path: `/new/uptime/`, organization})}
+              to={makeAlertsPathname({path: '/new/uptime/', organization})}
               icon={<IconAdd />}
               disabled={!canCreateAlert}
               tooltipProps={{title: canCreateAlert ? undefined : permissionTooltipText}}
@@ -102,7 +102,7 @@ export default function UptimeOverview() {
               <LinkButton
                 size="sm"
                 priority="primary"
-                to={makeAlertsPathname({path: `/new/uptime/`, organization})}
+                to={makeAlertsPathname({path: '/new/uptime/', organization})}
                 icon={<IconAdd />}
                 disabled={!canCreateAlert}
                 tooltipProps={{title: canCreateAlert ? undefined : permissionTooltipText}}
@@ -172,7 +172,7 @@ export default function UptimeOverview() {
                   <LinkButton
                     size="sm"
                     priority="primary"
-                    to={makeAlertsPathname({path: `/new/uptime/`, organization})}
+                    to={makeAlertsPathname({path: '/new/uptime/', organization})}
                     icon={<IconAdd />}
                   >
                     {t('Add Uptime Monitor')}

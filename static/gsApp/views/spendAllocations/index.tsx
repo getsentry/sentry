@@ -394,7 +394,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
       />
       <div>
         {tct(
-          `Allocate a portion of your subscription's reserved quota to your projects and guarantee a minimum volume for them. Read the [docsLink: docs]`,
+          "Allocate a portion of your subscription's reserved quota to your projects and guarantee a minimum volume for them. Read the [docsLink: docs]",
           {
             docsLink: (
               <ExternalLink href="https://docs.sentry.io/pricing/quotas/spend-allocation/" />

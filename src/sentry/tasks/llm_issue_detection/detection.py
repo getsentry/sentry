@@ -84,8 +84,6 @@ class DetectedIssue(BaseModel):
     missing_telemetry: str | None = Field(None, max_length=MAX_LLM_FIELD_LENGTH)
     offender_span_ids: list[str]
     transaction_name: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
-    category: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
-    subcategory: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     verification_reason: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     group_for_fingerprint: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     project_id: int | None = None

@@ -89,6 +89,7 @@ import {DiscoverQueryPageSource} from 'sentry/views/performance/utils';
 import {PrebuiltDashboardOnboardingGate} from './components/prebuiltDashboardOnboardingGate';
 import {Controls} from './controls';
 import {Dashboard} from './dashboard';
+import {DashboardEditSeerChat} from './dashboardEditSeerChat';
 import {DEFAULT_STATS_PERIOD} from './data';
 import {FiltersBar} from './filtersBar';
 import {
@@ -188,7 +189,7 @@ function getDashboardLocation({
 
   const commonPath = defined(dashboardId)
     ? `/dashboard/${dashboardId}/`
-    : `/dashboards/new/`;
+    : '/dashboards/new/';
 
   const dashboardUrl = USING_CUSTOMER_DOMAIN
     ? commonPath
@@ -422,7 +423,7 @@ class DashboardDetail extends Component<Props, State> {
     if (USING_CUSTOMER_DOMAIN) {
       widgetBuilderRoutes.push(
         ...[
-          `/dashboards/new/widget-builder/widget/new/`,
+          '/dashboards/new/widget-builder/widget/new/',
           `/dashboards/new/widget-builder/widget/${widgetIndex}/edit/`,
           `/dashboard/${dashboardId}/widget-builder/widget/new/`,
           `/dashboard/${dashboardId}/widget-builder/widget/${widgetIndex}/edit/`,
@@ -963,6 +964,23 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
+  handleSeerDashboardUpdate = ({
+    title,
+    widgets,
+  }: Pick<DashboardDetails, 'title' | 'widgets'>) => {
+    this.setState(state => {
+      const dashboard = cloneDashboard(state.modifiedDashboard ?? this.props.dashboard);
+      return {
+        widgetLimitReached: widgets.length >= MAX_WIDGETS,
+        modifiedDashboard: {
+          ...dashboard,
+          widgets,
+          ...(title === undefined ? {} : {title}),
+        },
+      };
+    });
+  };
+
   handleUpdateEditStateWidgets = (widgets: Widget[]) => {
     this.setState(state => {
       const modifiedDashboard = {
@@ -1334,6 +1352,18 @@ class DashboardDetail extends Component<Props, State> {
                               dashboard={modifiedDashboard ?? dashboard}
                               onSave={this.handleSaveWidget}
                             />
+                            {dashboardState === DashboardState.EDIT &&
+                              organization.features.includes(
+                                'dashboards-ai-generate-edit'
+                              ) &&
+                              organization.features.includes(
+                                'dashboards-ai-generate'
+                              ) && (
+                                <DashboardEditSeerChat
+                                  dashboard={modifiedDashboard ?? dashboard}
+                                  onDashboardUpdate={this.handleSeerDashboardUpdate}
+                                />
+                              )}
                           </Fragment>
                         </MEPSettingProvider>
                       )}

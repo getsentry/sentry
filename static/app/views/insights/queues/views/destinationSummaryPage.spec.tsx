@@ -23,7 +23,7 @@ describe('destinationSummaryPage', () => {
       pathname: `/organizations/${organization.slug}/insights/backend/queues/destination/`,
       query: {statsPeriod: '10d', project: project.id},
     },
-    route: `/organizations/:orgId/insights/backend/queues/destination/`,
+    route: '/organizations/:orgId/insights/backend/queues/destination/',
   };
 
   jest.mocked(useReleaseStats).mockReturnValue({

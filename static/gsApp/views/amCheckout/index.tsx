@@ -776,7 +776,7 @@ function AMCheckout(props: Props) {
             {showAnnualTerms && (
               <Text size="xs" align="center" variant="muted">
                 {tct(
-                  `Annual subscriptions require a one-year non-cancellable commitment. By using Sentry you agree to our [terms: Terms of Service].`,
+                  'Annual subscriptions require a one-year non-cancellable commitment. By using Sentry you agree to our [terms: Terms of Service].',
                   {terms: <a href="https://sentry.io/terms/" />}
                 )}
               </Text>

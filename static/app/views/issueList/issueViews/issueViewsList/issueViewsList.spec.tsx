@@ -69,7 +69,7 @@ describe('IssueViewsList', () => {
     expect(await screen.findByText('Foo')).toBeInTheDocument();
     expect(screen.getByText('Foo')).toHaveAttribute(
       'href',
-      `/organizations/org-slug/issues/views/1/`
+      '/organizations/org-slug/issues/views/1/'
     );
     expect(screen.getByText(textWithMarkupMatcher('foo is bar'))).toBeInTheDocument();
     expect(screen.getByText('env1')).toBeInTheDocument();
@@ -78,7 +78,7 @@ describe('IssueViewsList', () => {
     expect(await screen.findByText('Bar')).toBeInTheDocument();
     expect(screen.getByText('Bar')).toHaveAttribute(
       'href',
-      `/organizations/org-slug/issues/views/2/`
+      '/organizations/org-slug/issues/views/2/'
     );
     expect(screen.getByText(textWithMarkupMatcher('bar is baz'))).toBeInTheDocument();
     expect(screen.getByText('My Projects')).toBeInTheDocument();

@@ -96,7 +96,7 @@ export function RelocationOnboarding() {
     setExistingRelocationState(LoadingState.FETCHING);
     return Promise.all(
       regions.map(region =>
-        api.requestPromise(`/relocations/`, {
+        api.requestPromise('/relocations/', {
           method: 'GET',
           host: region.url,
         })
@@ -152,7 +152,7 @@ export function RelocationOnboarding() {
     setPublicKeysState(LoadingState.FETCHING);
     return Promise.all(
       regions.map(region =>
-        api.requestPromise(`/publickeys/relocations/`, {
+        api.requestPromise('/publickeys/relocations/', {
           method: 'GET',
           host: region.url,
         })

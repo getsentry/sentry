@@ -9,12 +9,12 @@ import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDeta
 
 export const TRACE_COUNT_FORMATTER = Intl.NumberFormat(undefined, {notation: 'compact'});
 
-export const TRACE_RIGHT_COLUMN_EVEN_CLASSNAME = `TraceRightColumn`;
+export const TRACE_RIGHT_COLUMN_EVEN_CLASSNAME = 'TraceRightColumn';
 export const TRACE_RIGHT_COLUMN_ODD_CLASSNAME = [
   TRACE_RIGHT_COLUMN_EVEN_CLASSNAME,
   'Odd',
 ].join(' ');
-export const TRACE_CHILDREN_COUNT_WRAPPER_CLASSNAME = `TraceChildrenCountWrapper`;
+export const TRACE_CHILDREN_COUNT_WRAPPER_CLASSNAME = 'TraceChildrenCountWrapper';
 export const TRACE_CHILDREN_COUNT_WRAPPER_ORPHANED_CLASSNAME = [
   TRACE_CHILDREN_COUNT_WRAPPER_CLASSNAME,
   'Orphaned',

@@ -405,6 +405,45 @@ class TestSkipEnrichmentKillswitch(TestCase):
 
         mock_enrich.assert_called_once()
 
+    @mock.patch(
+        "sentry.spans.consumers.process_segments.message.TreeEnricher.enrich_spans",
+        wraps=None,
+    )
+    def test_skip_enrichment_flag(self, mock_enrich: mock.MagicMock) -> None:
+        """Test that enrichment is skipped when skip_enrichment=True is passed."""
+        segment_span = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+        )
+        child_span = build_mock_span(
+            project_id=self.project.id,
+            parent_span_id=segment_span["span_id"],
+        )
+
+        processed_spans = process_segment([child_span, segment_span], skip_enrichment=True)
+
+        mock_enrich.assert_not_called()
+        assert len(processed_spans) == 2
+
+    @mock.patch(
+        "sentry.spans.consumers.process_segments.message.TreeEnricher.enrich_spans",
+    )
+    def test_no_skip_enrichment_when_flag_is_false(self, mock_enrich: mock.MagicMock) -> None:
+        """Test that enrichment runs normally when skip_enrichment=False."""
+        mock_enrich.return_value = (None, [])
+        segment_span = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+        )
+        child_span = build_mock_span(
+            project_id=self.project.id,
+            parent_span_id=segment_span["span_id"],
+        )
+
+        process_segment([child_span, segment_span], skip_enrichment=False)
+
+        mock_enrich.assert_called_once()
+
 
 @exclude_experimental_detectors
 class TestSegmentDropKillswitch(TestCase):

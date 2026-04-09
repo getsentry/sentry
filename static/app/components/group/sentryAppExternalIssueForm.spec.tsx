@@ -33,7 +33,7 @@ describe('SentryAppExternalIssueForm', () => {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/1/external-issues/`,
+      url: '/organizations/org-slug/issues/1/external-issues/',
       body: [],
     });
   });
@@ -170,7 +170,7 @@ describe('SentryAppExternalIssueForm Async Field', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/1/external-issues/`,
+      url: '/organizations/org-slug/issues/1/external-issues/',
       body: [],
     });
   });
@@ -221,7 +221,7 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/1/external-issues/`,
+      url: '/organizations/org-slug/issues/1/external-issues/',
       body: [],
     });
   });

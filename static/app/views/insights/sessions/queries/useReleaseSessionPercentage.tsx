@@ -55,7 +55,7 @@ export function useReleaseSessionPercentage({pageFilters}: {pageFilters?: PageFi
           })),
           meta: {
             fields: {
-              [`session_percent`]: 'percentage' as const,
+              ['session_percent']: 'percentage' as const,
               time: 'date' as const,
             },
             units: {},

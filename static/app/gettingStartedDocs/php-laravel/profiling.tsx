@@ -37,7 +37,7 @@ export const profiling: OnboardingConfig = {
         {
           type: 'code',
           language: 'bash',
-          code: `composer require sentry/sentry-laravel`,
+          code: 'composer require sentry/sentry-laravel',
         },
         {
           type: 'text',

@@ -67,7 +67,7 @@ const makeIntegrationQuery = (
   integrationId: string
 ): ApiQueryKey => {
   return [
-    getApiUrl(`/organizations/$organizationIdOrSlug/integrations/$integrationId/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/integrations/$integrationId/', {
       path: {organizationIdOrSlug: organization.slug, integrationId},
     }),
   ];
@@ -75,7 +75,7 @@ const makeIntegrationQuery = (
 
 const makePluginQuery = (organization: Organization): ApiQueryKey => {
   return [
-    getApiUrl(`/organizations/$organizationIdOrSlug/plugins/configs/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/plugins/configs/', {
       path: {organizationIdOrSlug: organization.slug},
     }),
   ];
@@ -103,7 +103,7 @@ function ConfigureIntegration() {
     providers: IntegrationProvider[];
   }>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/config/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],

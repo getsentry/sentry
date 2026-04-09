@@ -155,7 +155,7 @@ function DiscoverLanding() {
   const savedQueriesPageLinks = savedQueriesResponse?.headers.Link;
 
   const to = makeDiscoverPathname({
-    path: `/homepage/`,
+    path: '/homepage/',
     organization,
   });
 

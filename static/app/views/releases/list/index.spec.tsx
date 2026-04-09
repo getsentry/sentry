@@ -82,7 +82,7 @@ describe('ReleasesList', () => {
     });
 
     sessionApiMock = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/sessions/`,
+      url: '/organizations/org-slug/sessions/',
       body: null,
     });
 
@@ -99,6 +99,10 @@ describe('ReleasesList', () => {
       url: `/organizations/${organization.slug}/trace-items/attributes/validate/`,
       method: 'POST',
       body: {attributes: {}},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/builds/`,
+      body: [],
     });
   });
 

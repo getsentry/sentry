@@ -64,7 +64,7 @@ export function ReleaseHeader({
         ),
       }),
       textValue: t('Commits %s', formatAbbreviatedNumber(commitCount)),
-      to: `commits/`,
+      to: 'commits/',
     },
     {
       title: tct('Files Changed [count]', {
@@ -75,7 +75,7 @@ export function ReleaseHeader({
         ),
       }),
       textValue: t('Files Changed %s', formatAbbreviatedNumber(commitFilesChanged)),
-      to: `files-changed/`,
+      to: 'files-changed/',
     },
   ];
 
@@ -100,7 +100,7 @@ export function ReleaseHeader({
         ),
     }),
     textValue: t('Mobile Builds %s', numberOfMobileBuilds),
-    to: `builds/`,
+    to: 'builds/',
   };
 
   if (

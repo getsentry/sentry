@@ -64,7 +64,7 @@ import {
   useTransactionsDeprecationWarning,
 } from './widgetCardContextMenu';
 import {WidgetFrame} from './widgetFrame';
-import {getWidgetQueryLLMHint} from './widgetLLMContext';
+import {getWidgetQueryLLMHint, readableConditions} from './widgetLLMContext';
 
 export type OnDataFetchedParams = {
   tableResults?: TableDataWithTitle[];
@@ -165,7 +165,7 @@ function WidgetCard(props: Props) {
     queryHint: getWidgetQueryLLMHint(resolvedDisplayType),
     queries: props.widget.queries.map(q => ({
       name: q.name,
-      conditions: q.conditions,
+      conditions: readableConditions(q.conditions),
       aggregates: q.aggregates,
       columns: q.columns,
       orderby: q.orderby,
@@ -531,7 +531,7 @@ function useTimeRangeWarning({widget}: {widget: TWidget}) {
     (retentionLimitDate && statsPeriodToEnd && retentionLimitDate > statsPeriodToEnd)
   ) {
     return tct(
-      `You've selected a time range longer than the retention period for some datasets. Data older than [numDays] days may be unavailable.`,
+      "You've selected a time range longer than the retention period for some datasets. Data older than [numDays] days may be unavailable.",
       {
         numDays: retentionLimitDays,
       }

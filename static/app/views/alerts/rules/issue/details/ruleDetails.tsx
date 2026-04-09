@@ -282,7 +282,7 @@ export default function AlertRuleDetails() {
 
   const duplicateLink = {
     pathname: makeAlertsPathname({
-      path: `/new/issue/`,
+      path: '/new/issue/',
       organization,
     }),
     query: {
@@ -406,7 +406,7 @@ export default function AlertRuleDetails() {
                 {
                   label: t('Alerts'),
                   to: makeAlertsPathname({
-                    path: `/rules/`,
+                    path: '/rules/',
                     organization,
                   }),
                 },
@@ -516,12 +516,14 @@ export default function AlertRuleDetails() {
               <Alert.Container>
                 {rule.snoozeForEveryone ? (
                   <Alert variant="info">
-                    {tct(
-                      "[creator] muted this alert for everyone so you won't get these notifications in the future.",
-                      {
-                        creator: rule.snoozeCreatedBy,
-                      }
-                    )}
+                    {rule.snoozeCreatedBy
+                      ? tct(
+                          "[creator] muted this alert for everyone so you won't get these notifications in the future.",
+                          {creator: rule.snoozeCreatedBy}
+                        )
+                      : t(
+                          "This alert has been muted for everyone so you won't get these notifications in the future."
+                        )}
                   </Alert>
                 ) : (
                   <UserSnoozeDeprecationBanner projectId={project.id} />

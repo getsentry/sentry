@@ -38,17 +38,17 @@ export function UserDetails() {
   const queryClient = useQueryClient();
 
   const makeFetchUserQueryKey = (): ApiQueryKey => [
-    getApiUrl(`/users/$userId/`, {
+    getApiUrl('/users/$userId/', {
       path: {userId},
     }),
   ];
   const makeFetchUserIdentitiesQueryKey = (): ApiQueryKey => [
-    getApiUrl(`/users/$userId/user-identities/`, {
+    getApiUrl('/users/$userId/user-identities/', {
       path: {userId},
     }),
   ];
   const makeFetchTokensQueryKey = (): ApiQueryKey => [
-    getApiUrl(`/api-tokens/`),
+    getApiUrl('/api-tokens/'),
     {query: {userId}},
   ];
 
