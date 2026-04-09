@@ -44,9 +44,9 @@ export function useScmPlatformDetection(repository: Repository | undefined) {
 
   return {
     detectedPlatforms: data?.[0]?.platforms ?? [],
-    // Use isLoading (isPending && isFetching) so that disabled queries
-    // (non-GitHub providers) report false instead of the idle-pending state.
-    isPending: query.isPending && query.fetchStatus !== 'idle',
+    // Use isLoading so that disabled queries (non-GitHub providers)
+    // report false instead of the idle-pending state.
+    isPending: query.isLoading,
     isError: query.isError,
   };
 }
