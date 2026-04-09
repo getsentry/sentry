@@ -23,7 +23,7 @@ jest.mock('sentry/components/commandPalette/ui/commandPaletteGlobalActions', () 
   GlobalCommandPaletteActions: () => null,
 }));
 
-import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
   CMDKAction,
@@ -135,7 +135,7 @@ describe('CommandPaletteModal', () => {
     openSpy.mockRestore();
   });
 
-  it('opens internal links in a new tab when shift is held', async () => {
+  it('opens internal links in a new tab when shift-enter is used', async () => {
     const closeModalSpy = jest.fn();
     const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
 
@@ -148,9 +148,8 @@ describe('CommandPaletteModal', () => {
       </CommandPaletteProvider>
     );
 
-    const option = await screen.findByRole('option', {name: 'Internal Link'});
-    fireEvent.mouseDown(option, {shiftKey: true});
-    fireEvent.click(option, {shiftKey: true});
+    await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.keyboard('{Shift>}{Enter}{/Shift}');
 
     expect(openSpy).toHaveBeenCalledWith('/target/', '_blank', 'noreferrer');
     expect(closeModalSpy).toHaveBeenCalledTimes(1);
