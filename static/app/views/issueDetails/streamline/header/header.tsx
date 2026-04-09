@@ -94,6 +94,13 @@ export function StreamlinedGroupHeader({event, group, project}: GroupHeaderProps
   const {feedback} = useFeedbackSDKIntegration();
   const hasPageFrameFeature = useHasPageFrameFeature();
 
+  const feedbackOptions = {
+    messagePlaceholder: t('Please provide feedback on the issue Sentry detected.'),
+    tags: {
+      ['feedback.source']: feedbackSource,
+    },
+  };
+
   const statusProps = getBadgeProperties(group.status, group.substatus);
   const issueTypeConfig = getConfigForIssueType(group, project);
 
@@ -154,14 +161,7 @@ export function StreamlinedGroupHeader({event, group, project}: GroupHeaderProps
                 <TopBar.Slot name="feedback">
                   <FeedbackButton
                     aria-label={t('Give feedback on the issue Sentry detected')}
-                    feedbackOptions={{
-                      messagePlaceholder: t(
-                        'Please provide feedback on the issue Sentry detected.'
-                      ),
-                      tags: {
-                        ['feedback.source']: feedbackSource,
-                      },
-                    }}
+                    feedbackOptions={feedbackOptions}
                   >
                     {null}
                   </FeedbackButton>
@@ -170,14 +170,7 @@ export function StreamlinedGroupHeader({event, group, project}: GroupHeaderProps
                 <FeedbackButton
                   aria-label={t('Give feedback on the issue Sentry detected')}
                   size="xs"
-                  feedbackOptions={{
-                    messagePlaceholder: t(
-                      'Please provide feedback on the issue Sentry detected.'
-                    ),
-                    tags: {
-                      ['feedback.source']: feedbackSource,
-                    },
-                  }}
+                  feedbackOptions={feedbackOptions}
                 />
               )
             ) : (
