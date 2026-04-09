@@ -1,6 +1,12 @@
+import {WidgetFixture} from 'sentry-fixture/widget';
+
 import {DisplayType} from 'sentry/views/dashboards/types';
 
-import {getWidgetQueryLLMHint, readableConditions} from './widgetLLMContext';
+import {
+  getQueryHintLegend,
+  getWidgetQueryLLMHint,
+  readableConditions,
+} from './widgetLLMContext';
 
 describe('getWidgetQueryLLMHint', () => {
   it.each([
@@ -18,12 +24,49 @@ describe('getWidgetQueryLLMHint', () => {
   it('returns single number hint for BIG_NUMBER', () => {
     expect(getWidgetQueryLLMHint(DisplayType.BIG_NUMBER)).toContain('single number');
     expect(getWidgetQueryLLMHint(DisplayType.BIG_NUMBER)).toContain(
-      'current value is included below'
+      'current value is included in each widget'
     );
   });
 
   it('returns generic hint for unknown types', () => {
     expect(getWidgetQueryLLMHint(DisplayType.WHEEL)).toContain('shows data');
+  });
+});
+
+describe('getQueryHintLegend', () => {
+  it('returns hints keyed by display type', () => {
+    const widgets = [
+      WidgetFixture({displayType: DisplayType.BAR}),
+      WidgetFixture({displayType: DisplayType.BIG_NUMBER}),
+    ];
+    const legend = getQueryHintLegend(widgets);
+    expect(Object.keys(legend)).toEqual(
+      expect.arrayContaining([DisplayType.BAR, DisplayType.BIG_NUMBER])
+    );
+    expect(Object.keys(legend)).toHaveLength(2);
+  });
+
+  it('only includes display types present in the widget list', () => {
+    const widgets = [WidgetFixture({displayType: DisplayType.TABLE})];
+    const legend = getQueryHintLegend(widgets);
+    expect(Object.keys(legend)).toEqual([DisplayType.TABLE]);
+  });
+
+  it('deduplicates multiple widgets of the same type', () => {
+    const widgets = [
+      WidgetFixture({displayType: DisplayType.BAR}),
+      WidgetFixture({displayType: DisplayType.BAR}),
+      WidgetFixture({displayType: DisplayType.BAR}),
+    ];
+    const legend = getQueryHintLegend(widgets);
+    expect(Object.keys(legend)).toEqual([DisplayType.BAR]);
+  });
+
+  it('resolves TOP_N to AREA', () => {
+    const widgets = [WidgetFixture({displayType: DisplayType.TOP_N})];
+    const legend = getQueryHintLegend(widgets);
+    expect(Object.keys(legend)).toEqual([DisplayType.AREA]);
+    expect(legend[DisplayType.AREA]).toContain('timeseries chart');
   });
 });
 
