@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -20,6 +19,7 @@ import {
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {useMetricsAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
+import {useMetricReferences} from 'sentry/views/explore/metrics/hooks/useMetricReferences';
 import {MetricPanel} from 'sentry/views/explore/metrics/metricPanel';
 import {
   canUseMetricsEquations,
@@ -37,8 +37,6 @@ import {
   FilterBarWithSaveAsContainer,
   StyledPageFilterBar,
 } from 'sentry/views/explore/metrics/styles';
-import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
-import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 
 const MAX_METRICS_ALLOWED = 8;
 export const METRICS_CHART_GROUP = 'metrics-charts-group';
@@ -144,16 +142,7 @@ function MetricsQueryBuilderSection() {
   const addMetricQuery = useAddMetricQuery();
   const addEquationQuery = useAddMetricQuery({type: 'equation'});
   const hasEquations = canUseMetricsEquations(organization);
-  const references = useMemo(() => {
-    return new Set(
-      metricQueries
-        .map((metricQuery, queryIndex) => ({metricQuery, queryIndex}))
-        .filter(({metricQuery}) =>
-          metricQuery.queryParams.visualizes.some(isVisualizeFunction)
-        )
-        .map(({queryIndex}) => getVisualizeLabel(queryIndex))
-    );
-  }, [metricQueries]);
+  const references = useMetricReferences();
 
   if (canUseMetricsUIRefresh(organization)) {
     return null;
@@ -215,17 +204,7 @@ function MetricsTabBodySection() {
     areToolbarsLoading,
     isMetricOptionsEmpty,
   });
-
-  const references = useMemo(() => {
-    return new Set(
-      metricQueries
-        .map((metricQuery, queryIndex) => ({metricQuery, queryIndex}))
-        .filter(({metricQuery}) =>
-          metricQuery.queryParams.visualizes.some(isVisualizeFunction)
-        )
-        .map(({queryIndex}) => getVisualizeLabel(queryIndex))
-    );
-  }, [metricQueries]);
+  const references = useMetricReferences();
 
   if (canUseMetricsUIRefresh(organization)) {
     return (
