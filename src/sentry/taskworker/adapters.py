@@ -65,10 +65,13 @@ class SentryMetricsBackend(MetricsBackend):
         value: float,
         instance: str | None = None,
         tags: Tags | None = None,
-        sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+        sample_rate: float | None = None,
         unit: str | None = None,
         stacklevel: int = 0,
     ) -> None:
+        if sample_rate is None:
+            sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
+
         return sentry_metrics.gauge(
             key,
             value,
