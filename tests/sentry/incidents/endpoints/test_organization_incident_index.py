@@ -4,6 +4,7 @@ from functools import cached_property
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
+from sentry.constants import ObjectStatus
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import update_incident_status
@@ -27,7 +28,7 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_metric_data_conditions,
     migrate_resolve_threshold_data_condition,
 )
-from sentry.workflow_engine.models import DetectorGroup, IncidentGroupOpenPeriod
+from sentry.workflow_engine.models import Detector, DetectorGroup, IncidentGroupOpenPeriod
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -444,3 +445,39 @@ class WorkflowEngineIncidentListTest(APITestCase):
         )
 
         assert len(resp_empty.data) == 0
+
+    @with_feature(
+        [
+            "organizations:incidents",
+            "organizations:performance-view",
+            "organizations:workflow-engine-rule-serializers",
+        ]
+    )
+    def test_filter_by_alert_rule_excludes_pending_deletion_detector(self) -> None:
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+
+        alert_rule = self.create_alert_rule()
+        trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
+        _, _, _, detector, _, _, _, _ = migrate_alert_rule(alert_rule)
+        migrate_metric_data_conditions(trigger)
+        migrate_resolve_threshold_data_condition(alert_rule)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            group = self.create_group(type=MetricIssue.type_id, project=self.project)
+            group.priority = PriorityLevel.HIGH.value
+            group.save()
+            DetectorGroup.objects.create(detector=detector, group=group)
+
+        # Verify the incident shows up before deletion
+        resp = self.get_success_response(self.organization.slug, alertRule=str(alert_rule.id))
+        assert len(resp.data) == 1
+
+        # Mark the detector as pending deletion (bypass custom manager)
+        Detector.objects_for_deletion.filter(id=detector.id).update(
+            status=ObjectStatus.PENDING_DELETION
+        )
+
+        # The alert rule filter should no longer find this detector
+        resp = self.get_success_response(self.organization.slug, alertRule=str(alert_rule.id))
+        assert len(resp.data) == 0
