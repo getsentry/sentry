@@ -8,6 +8,7 @@ import {StackTraceContent} from 'sentry/components/events/interfaces/crashConten
 import {StackTraceContentPanel} from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
+import {IssueFrameActions} from 'sentry/components/stackTrace/issueStackTrace/issueFrameActions';
 import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTraceContext';
 import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
 import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
@@ -314,7 +315,11 @@ export function SpanProfileDetails({
             }}
             maxDepth={MAX_STACK_DEPTH}
           >
-            <StackTraceFrames borderless frameContextComponent={FrameContent} />
+            <StackTraceFrames
+              borderless
+              frameActionsComponent={IssueFrameActions}
+              frameContextComponent={FrameContent}
+            />
           </StackTraceProvider>
         </StackTraceViewStateProvider>
       ) : (
