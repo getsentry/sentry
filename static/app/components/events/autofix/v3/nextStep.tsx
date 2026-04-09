@@ -345,7 +345,7 @@ function NextStepTemplate({
           {codingAgentIntegrations === undefined ? null : (
             <DropdownMenu
               items={codingAgentOptions}
-              isDisabled={isProcessing}
+              isDisabled={false}
               trigger={(triggerProps, isOpen) => (
                 <Button
                   {...triggerProps}
