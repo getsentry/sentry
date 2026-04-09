@@ -204,7 +204,7 @@ function AuthenticationActions({inviteDetails}: {inviteDetails: InviteDetails}) 
 
 function AcceptOrganizationInvite() {
   const api = useApi({persistInFlight: true});
-  const params = useParams<{memberId: string; token: string; orgId: string}>();
+  const params = useParams<{memberId: string; orgId: string; token: string}>();
 
   const {
     data: inviteDetails,
