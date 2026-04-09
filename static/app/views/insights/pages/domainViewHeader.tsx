@@ -29,6 +29,8 @@ import {
   isModuleVisible,
 } from 'sentry/views/insights/pages/utils';
 import {ModuleName} from 'sentry/views/insights/types';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export type Props = {
   domainBaseUrl: string;
@@ -64,6 +66,7 @@ export function DomainViewHeader({
   const isLaravelInsightsAvailable = useIsLaravelInsightsAvailable();
   const isNextJsInsightsAvailable = useIsNextJsInsightsAvailable();
   const {view, isInOverviewPage} = useDomainViewFilters();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const isLaravelInsights = isLaravelInsightsAvailable && isInOverviewPage;
   const isNextJsInsights = isNextJsInsightsAvailable && isInOverviewPage;
@@ -135,7 +138,13 @@ export function DomainViewHeader({
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <Grid flow="column" align="center" gap="md">
-            <FeedbackButton feedbackOptions={feedbackOptions} />
+            {hasPageFrameFeature ? (
+              <TopBar.Slot name="feedback">
+                <FeedbackButton feedbackOptions={feedbackOptions}>{null}</FeedbackButton>
+              </TopBar.Slot>
+            ) : (
+              <FeedbackButton feedbackOptions={feedbackOptions} />
+            )}
             {additonalHeaderActions}
           </Grid>
         </Layout.HeaderActions>

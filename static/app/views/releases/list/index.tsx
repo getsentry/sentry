@@ -42,6 +42,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
 import {ReleaseArchivedNotice} from 'sentry/views/releases/detail/overview/releaseArchivedNotice';
 import {MobileBuilds} from 'sentry/views/releases/list/mobileBuilds';
@@ -108,9 +110,17 @@ function makeReleaseListQueryKey({
   ];
 }
 
+const releasesFeedbackOptions = {
+  messagePlaceholder: t('How can we improve the Releases experience?'),
+  tags: {
+    ['feedback.source']: 'releases-list-header',
+  },
+};
+
 export default function ReleasesList() {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
   const location = useLocation();
@@ -447,16 +457,15 @@ export default function ReleasesList() {
                   </Layout.Title>
                 </Layout.HeaderContent>
                 <Layout.HeaderActions>
-                  <FeedbackButton
-                    feedbackOptions={{
-                      messagePlaceholder: t(
-                        'How can we improve the Releases experience?'
-                      ),
-                      tags: {
-                        ['feedback.source']: 'releases-list-header',
-                      },
-                    }}
-                  />
+                  {hasPageFrameFeature ? (
+                    <TopBar.Slot name="feedback">
+                      <FeedbackButton feedbackOptions={releasesFeedbackOptions}>
+                        {null}
+                      </FeedbackButton>
+                    </TopBar.Slot>
+                  ) : (
+                    <FeedbackButton feedbackOptions={releasesFeedbackOptions} />
+                  )}
                 </Layout.HeaderActions>
               </Flex>
 

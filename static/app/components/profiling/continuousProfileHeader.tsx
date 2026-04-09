@@ -13,6 +13,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 interface ContinuousProfileHeader {
   transaction: Event | null;
@@ -21,6 +23,7 @@ interface ContinuousProfileHeader {
 export function ContinuousProfileHeader({transaction}: ContinuousProfileHeader) {
   const location = useLocation();
   const organization = useOrganization();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   // @TODO add breadcrumbs when other views are implemented
   const breadCrumbs = useMemo((): ProfilingBreadcrumbsProps['trails'] => {
@@ -51,7 +54,13 @@ export function ContinuousProfileHeader({transaction}: ContinuousProfileHeader) 
         </SmallerProfilingBreadcrumbsWrapper>
       </SmallerHeaderContent>
       <StyledHeaderActions>
-        <FeedbackButton />
+        {hasPageFrameFeature ? (
+          <TopBar.Slot name="feedback">
+            <FeedbackButton>{null}</FeedbackButton>
+          </TopBar.Slot>
+        ) : (
+          <FeedbackButton />
+        )}
         {transactionTarget && (
           <LinkButton size="sm" onClick={handleGoToTransaction} to={transactionTarget}>
             {t('Go to Trace')}
