@@ -100,9 +100,7 @@ export default function OrganizationDataForwarding() {
       <Flex direction="column" gap="lg">
         <Flex align="center" justify="between" gap="2xl">
           <Flex direction="column" gap="sm">
-            <Flex align="center" gap="lg">
-              <Heading as="h1">{t('Data Forwarding')}</Heading>
-            </Flex>
+            <Heading as="h1">{t('Data Forwarding')}</Heading>
             <Text variant="muted">
               {tct(
                 'Pipe your Sentry error events into other business intelligence tools. Learn more about this feature in our [link:docs].',
