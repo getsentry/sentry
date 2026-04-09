@@ -86,10 +86,10 @@ export function RepositoryProjectPathConfigModal({
   const repoOptions = repos.map(({name, id}) => ({value: id, label: name}));
 
   const endpoint = existingConfig
-    ? getApiUrl(`/organizations/$organizationIdOrSlug/code-mappings/$configId/`, {
+    ? getApiUrl('/organizations/$organizationIdOrSlug/code-mappings/$configId/', {
         path: {organizationIdOrSlug: organization.slug, configId: existingConfig.id},
       })
-    : getApiUrl(`/organizations/$organizationIdOrSlug/code-mappings/`, {
+    : getApiUrl('/organizations/$organizationIdOrSlug/code-mappings/', {
         path: {organizationIdOrSlug: organization.slug},
       });
 

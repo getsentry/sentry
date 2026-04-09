@@ -1094,6 +1094,7 @@ class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
         mock_get_serialized_event.assert_not_called()
 
 
+@with_feature("organizations:seer-project-settings-dual-write")
 class TestResolveProjectPreference(TestCase):
     def setUp(self) -> None:
         super().setUp()

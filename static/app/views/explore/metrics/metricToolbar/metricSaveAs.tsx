@@ -5,7 +5,11 @@ import {t} from 'sentry/locale';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useSaveAsMetricItems} from 'sentry/views/explore/metrics/useSaveAsMetricItems';
 
-export function MetricSaveAs() {
+interface MetricSaveAsProps {
+  size?: 'sm' | 'md';
+}
+
+export function MetricSaveAs({size = 'sm'}: MetricSaveAsProps) {
   const [interval] = useChartInterval();
   const items = useSaveAsMetricItems({interval});
 
@@ -16,7 +20,7 @@ export function MetricSaveAs() {
   if (items.length === 1 && 'onAction' in items[0]! && !('children' in items[0])) {
     const item = items[0];
     return (
-      <Button size="sm" onClick={item.onAction} aria-label={item.textValue}>
+      <Button size={size} onClick={item.onAction} aria-label={item.textValue}>
         {t('Save as')}…
       </Button>
     );
@@ -28,7 +32,7 @@ export function MetricSaveAs() {
       trigger={triggerProps => (
         <Button
           {...triggerProps}
-          size="sm"
+          size={size}
           aria-label={t('Save as')}
           onClick={e => {
             e.stopPropagation();

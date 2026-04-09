@@ -4,6 +4,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {mergeProps} from '@react-aria/utils';
+import {motion} from 'framer-motion';
 import type {LocationDescriptor} from 'history';
 import type {DistributedOmit} from 'type-fest';
 
@@ -757,11 +758,19 @@ export function usePrimaryNavigationButtonOverlay(props: UseOverlayProps = {}) {
  */
 function PrimaryNavigationButtonOverlay(props: PrimaryNavigationButtonOverlayProps) {
   const theme = useTheme();
+  const {layout} = usePrimaryNavigation();
+  const isDesktop = layout !== 'mobile';
 
   return createPortal(
     <FocusScope restoreFocus autoFocus>
       <PositionWrapper zIndex={theme.zIndex.modal} {...props.overlayProps}>
-        <ScrollableOverlay>{props.children}</ScrollableOverlay>
+        <motion.div
+          initial={isDesktop ? {opacity: 0, scale: 0.98} : undefined}
+          animate={isDesktop ? {opacity: 1, scale: 1} : undefined}
+          transition={isDesktop ? theme.motion.framer.enter.moderate : undefined}
+        >
+          <ScrollableOverlay>{props.children}</ScrollableOverlay>
+        </motion.div>
       </PositionWrapper>
     </FocusScope>,
     document.body

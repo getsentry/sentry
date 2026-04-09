@@ -601,6 +601,8 @@ def trigger_coding_agent_launch(
             integration_id=integration_id,
             run_id=run_id,
             trigger_source=AutofixTriggerSource(trigger_source),
+            initiator="seer_agent",
+            referrer="seer_rpc.trigger_coding_agent_launch",
         )
         return {"success": True}
     except IntegrationNotFound:

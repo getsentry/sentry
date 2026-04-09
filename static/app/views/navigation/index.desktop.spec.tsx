@@ -105,27 +105,27 @@ function setupMocks() {
   ConfigStore.set('customerDomain', null);
 
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/broadcasts/`,
+    url: '/organizations/org-slug/broadcasts/',
     body: [],
   });
   MockApiClient.addMockResponse({
-    url: `/assistant/`,
+    url: '/assistant/',
     body: [],
   });
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/group-search-views/starred/`,
+    url: '/organizations/org-slug/group-search-views/starred/',
     body: [GroupSearchViewFixture({name: 'Starred View 1'})],
   });
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/issues-count/`,
+    url: '/organizations/org-slug/issues-count/',
     body: {},
   });
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/explore/saved/`,
+    url: '/organizations/org-slug/explore/saved/',
     body: [],
   });
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/dashboards/`,
+    url: '/organizations/org-slug/dashboards/',
     body: [
       // This ensures that we test the "All Projects", "My projects", "multiple projects" icons
       DashboardListItemFixture({id: '1', title: 'All projects', projects: []}),
@@ -362,9 +362,9 @@ describe('desktop navigation', () => {
           [`${ORG}/monitors/crons/`, 'Monitors', 'Crons'],
           [`${ORG}/monitors/alerts/`, 'Monitors', 'Alerts'],
           // Settings
-          [`/settings/org-slug/`, 'Settings', 'General Settings'],
+          ['/settings/org-slug/', 'Settings', 'General Settings'],
           [
-            `/settings/org-slug/projects/project-slug/teams/`,
+            '/settings/org-slug/projects/project-slug/teams/',
             'Settings',
             'Project Teams',
             '/settings/:orgId/projects/:projectId/teams/',

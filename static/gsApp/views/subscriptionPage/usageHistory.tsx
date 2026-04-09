@@ -97,7 +97,7 @@ function UsageHistory({subscription}: Props) {
     getResponseHeader,
   } = useApiQuery<BillingHistory[]>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/history/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/history/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {

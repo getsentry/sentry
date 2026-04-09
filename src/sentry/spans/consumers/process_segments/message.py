@@ -50,7 +50,7 @@ outcome_aggregator = OutcomeAggregator()
 
 @metrics.wraps("spans.consumers.process_segments.process_segment")
 def process_segment(
-    unprocessed_spans: list[SpanEvent], skip_produce: bool = False
+    unprocessed_spans: list[SpanEvent], skip_produce: bool = False, skip_enrichment: bool = False
 ) -> list[CompatibleSpan]:
     sample_rate = (
         settings.SENTRY_PROCESS_SEGMENTS_TRANSACTIONS_SAMPLE_RATE
@@ -62,13 +62,16 @@ def process_segment(
             "sample_rate": sample_rate,
         },
     ):
-        return _process_segment(unprocessed_spans, skip_produce)
+        return _process_segment(unprocessed_spans, skip_produce, skip_enrichment)
 
 
 def _process_segment(
-    unprocessed_spans: list[SpanEvent], skip_produce: bool
+    unprocessed_spans: list[SpanEvent], skip_produce: bool, skip_enrichment: bool
 ) -> list[CompatibleSpan]:
     _verify_compatibility(unprocessed_spans)
+
+    if skip_enrichment:
+        return [make_compatible(span) for span in unprocessed_spans]
 
     if unprocessed_spans:
         project_id = unprocessed_spans[0].get("project_id")

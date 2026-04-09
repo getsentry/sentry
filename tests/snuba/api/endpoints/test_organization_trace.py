@@ -18,6 +18,7 @@ from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.search.events.types import SnubaParams
+from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import _run_errors_query_eap
 from sentry.testutils.cases import OccurrenceTestCase, SnubaTestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -413,6 +414,47 @@ class OrganizationEventsTraceEndpointTest(
         assert error_event_1["event_id"] in [error.event_id, error_2.event_id]
         assert error_event_2["event_id"] in [error.event_id, error_2.event_id]
         assert error_event_1["event_id"] != error_event_2["event_id"]
+
+    @mock.patch("sentry.snuba.trace.metrics")
+    def test_emits_metric_for_error_on_ok_span(self, mock_metrics) -> None:
+        self.load_trace()
+        _, start = self.get_start_end_from_day_ago(123)
+        root_span_id = self.root_event.data["contexts"]["trace"]["span_id"]
+        error_data = load_data(
+            "javascript",
+            timestamp=start,
+        )
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": root_span_id,
+        }
+        error_data["tags"] = [["transaction", "/transaction/gen1-0"]]
+        self.store_event(error_data, project_id=self.gen1_project.id)
+
+        original_run_trace_query = Spans.run_trace_query
+
+        def patched_run_trace_query(**kwargs):
+            spans = original_run_trace_query(**kwargs)
+            for span in spans:
+                if span["id"] == root_span_id:
+                    span["span.status"] = "ok"
+            return spans
+
+        with (
+            self.feature(self.FEATURES),
+            mock.patch.object(Spans, "run_trace_query", side_effect=patched_run_trace_query),
+        ):
+            response = self.client_get(
+                data={"timestamp": self.day_ago},
+            )
+        assert response.status_code == 200, response.content
+
+        mock_metrics.incr.assert_any_call(
+            "performance.trace.span_with_errors_ok_status",
+            sample_rate=0.01,
+            tags=mock.ANY,
+        )
 
     def test_with_performance_issues(self) -> None:
         self.load_trace()

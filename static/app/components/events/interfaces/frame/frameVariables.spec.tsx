@@ -18,7 +18,7 @@ describe('Frame Variables', () => {
     });
     const initialRouterConfig = {
       location: {
-        pathname: `/organizations/org-slug/issues/1/`,
+        pathname: '/organizations/org-slug/issues/1/',
         query: {project: project.id},
       },
       route: '/organizations/:orgId/issues/:groupId/',

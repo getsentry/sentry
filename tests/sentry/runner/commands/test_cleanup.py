@@ -9,6 +9,7 @@ import pytest
 from sentry.constants import ObjectStatus
 from sentry.models.files.file import File
 from sentry.models.group import Group
+from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity
 from sentry.runner.commands.cleanup import (
     _cleanup,
     generate_bulk_query_deletes,
@@ -234,13 +235,15 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
 
 
 class RemoveCrossProjectBulkQueryModelsTest(TestCase):
-    def test_removes_workflow_fire_history(self) -> None:
+    def test_removes_cross_project_models(self) -> None:
         bulk_query_deletes = generate_bulk_query_deletes()
         models_before = {m for m, _, _ in bulk_query_deletes}
+        assert GroupOpenPeriodActivity in models_before
         assert WorkflowFireHistory in models_before
 
         remove_cross_project_bulk_query_models(bulk_query_deletes)
         models_after = {m for m, _, _ in bulk_query_deletes}
+        assert GroupOpenPeriodActivity not in models_after
         assert WorkflowFireHistory not in models_after
 
 

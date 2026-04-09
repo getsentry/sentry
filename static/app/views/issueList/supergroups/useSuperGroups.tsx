@@ -45,12 +45,14 @@ export function useSuperGroups(groupIds: string[]): {
       {
         query: {
           group_id: requestedGroupIds,
+          status: 'unresolved',
         },
       },
     ],
     {
       staleTime: 30_000,
       enabled,
+      retry: false,
       placeholderData: previousData => {
         if (!previousData) {
           return undefined;
@@ -67,6 +69,9 @@ export function useSuperGroups(groupIds: string[]): {
     }
     const result: SupergroupLookup = Object.fromEntries(groupIds.map(id => [id, null]));
     for (const sg of response.data) {
+      if (sg.group_ids.length <= 1) {
+        continue;
+      }
       for (const groupId of sg.group_ids) {
         result[String(groupId)] = sg;
       }

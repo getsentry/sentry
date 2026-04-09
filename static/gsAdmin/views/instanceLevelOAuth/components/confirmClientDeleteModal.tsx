@@ -24,7 +24,7 @@ export function ConfirmClientDeleteModal({Body, Header, clientID, name}: Props) 
         method: 'DELETE',
       });
       addSuccessMessage(`Client "${name}" deleted successfully`);
-      browserHistory.push(`/_admin/instance-level-oauth/`);
+      browserHistory.push('/_admin/instance-level-oauth/');
     } catch (err) {
       const message = 'Unable to load client data';
       handleXhrErrorResponse(message, err as RequestError);

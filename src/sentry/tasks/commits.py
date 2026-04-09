@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 import sentry_sdk
 from django.urls import reverse
 from sentry_sdk import set_tag
 from taskbroker_client.retry import Retry
 
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.integrations.source_code_management.metrics import (
@@ -28,13 +31,23 @@ from sentry.taskworker.namespaces import issues_tasks
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
+from sentry.utils.cache import cache
 from sentry.utils.email import MessageBuilder
+from sentry.utils.hashlib import hash_values
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
 
+GITHUB_FETCH_COMMITS_COMPARE_CACHE_FEATURE = (
+    "organizations:integrations-github-fetch-commits-compare-cache"
+)
+GITHUB_FETCH_COMMITS_COMPARE_CACHE_TTL_SECONDS = 120
+GITHUB_CACHEABLE_REPOSITORY_PROVIDERS = frozenset(
+    ("integrations:github", "integrations:github_enterprise")
+)
 
-def generate_invalid_identity_email(identity, commit_failure=False):
+
+def generate_invalid_identity_email(identity: Any, commit_failure: bool = False) -> MessageBuilder:
     new_context = {
         "identity": identity,
         "auth_url": absolute_uri(reverse("socialauth_associate", args=[identity.provider])),
@@ -49,7 +62,9 @@ def generate_invalid_identity_email(identity, commit_failure=False):
     )
 
 
-def generate_fetch_commits_error_email(release, repo, error_message):
+def generate_fetch_commits_error_email(
+    release: Release, repo: Repository, error_message: str
+) -> MessageBuilder:
     new_context = {"release": release, "error_message": error_message, "repo": repo}
 
     return MessageBuilder(
@@ -63,13 +78,110 @@ def generate_fetch_commits_error_email(release, repo, error_message):
 # we're future proofing this function a bit so it could be used with other code
 
 
-def handle_invalid_identity(identity, commit_failure=False):
+def handle_invalid_identity(identity: Any, commit_failure: bool = False) -> None:
     # email the user
     msg = generate_invalid_identity_email(identity, commit_failure)
     msg.send_async(to=[identity.user.email])
 
     # now remove the identity, as its invalid
     identity.delete()
+
+
+def get_github_compare_commits_cache_key(
+    organization_id: int,
+    repository_id: int,
+    provider: str | None,
+    start_sha: str | None,
+    end_sha: str,
+) -> str:
+    digest = hash_values(
+        [organization_id, repository_id, provider or "", start_sha or "", end_sha],
+        seed="fetch-commits:compare-commits",
+    )
+    return f"fetch-commits:compare-commits:v1:{digest}"
+
+
+def fetch_compare_commits(
+    *,
+    cache_enabled: bool,
+    repo: Repository,
+    provider: Any,
+    is_integration_repo_provider: bool,
+    start_sha: str | None,
+    end_sha: str,
+    user: RpcUser | None,
+    lifecycle: Any,
+) -> list[dict[str, Any]]:
+    if cache_enabled:
+        cache_key = get_github_compare_commits_cache_key(
+            repo.organization_id, repo.id, repo.provider, start_sha, end_sha
+        )
+        cached_repo_commits = cache.get(cache_key)
+        lifecycle.add_extra("compare_commits_cache_enabled", True)
+        if cached_repo_commits is not None:
+            lifecycle.add_extra("compare_commits_cache_hit", True)
+            return cached_repo_commits
+
+        lifecycle.add_extra("compare_commits_cache_hit", False)
+    else:
+        lifecycle.add_extra("compare_commits_cache_enabled", False)
+
+    if is_integration_repo_provider:
+        repo_commits = provider.compare_commits(repo, start_sha, end_sha)
+    else:
+        # XXX: This only works for plugins that support actor context
+        repo_commits = provider.compare_commits(repo, start_sha, end_sha, actor=user)
+
+    if cache_enabled:
+        cache.set(
+            cache_key,
+            repo_commits,
+            GITHUB_FETCH_COMMITS_COMPARE_CACHE_TTL_SECONDS,
+        )
+    return repo_commits
+
+
+def get_repo_and_provider_for_ref(
+    *,
+    release: Release,
+    ref: Mapping[str, str],
+    user_id: int,
+) -> tuple[Repository, Any, bool, str] | None:
+    repo = (
+        Repository.objects.filter(
+            organization_id=release.organization_id,
+            name=ref["repository"],
+            status=ObjectStatus.ACTIVE,
+        )
+        .order_by("-pk")
+        .first()
+    )
+    if not repo:
+        logger.info(
+            "repository.missing",
+            extra={
+                "organization_id": release.organization_id,
+                "user_id": user_id,
+                "repository": ref["repository"],
+            },
+        )
+        return None
+
+    is_integration_repo_provider = is_integration_provider(repo.provider)
+    binding_key = (
+        "integration-repository.provider" if is_integration_repo_provider else "repository.provider"
+    )
+    try:
+        provider_cls = bindings.get(binding_key).get(repo.provider)
+    except KeyError:
+        return None
+
+    provider = provider_cls(id=repo.provider)
+    provider_key = (
+        provider_cls.repo_provider if is_integration_repo_provider else provider_cls.auth_provider
+    )
+
+    return repo, provider, is_integration_repo_provider, provider_key
 
 
 @instrumented_task(
@@ -80,9 +192,14 @@ def handle_invalid_identity(identity, commit_failure=False):
     silo_mode=SiloMode.CELL,
 )
 @retry(exclude=(Release.DoesNotExist, User.DoesNotExist))
-def fetch_commits(release_id: int, user_id: int, refs, prev_release_id=None, **kwargs):
-    # TODO(dcramer): this function could use some cleanup/refactoring as it's a bit unwieldy
-    commit_list = []
+def fetch_commits(
+    release_id: int,
+    user_id: int,
+    refs: Sequence[Mapping[str, str]],
+    prev_release_id: int | None = None,
+    **kwargs: Any,
+) -> None:
+    commit_list: list[dict[str, Any]] = []
 
     release = Release.objects.get(id=release_id)
     set_tag("organization.slug", release.organization.slug)
@@ -97,37 +214,16 @@ def fetch_commits(release_id: int, user_id: int, refs, prev_release_id=None, **k
         except Release.DoesNotExist:
             pass
 
-    for ref in refs:
-        repo = (
-            Repository.objects.filter(
-                organization_id=release.organization_id,
-                name=ref["repository"],
-                status=ObjectStatus.ACTIVE,
-            )
-            .order_by("-pk")
-            .first()
-        )
-        if not repo:
-            logger.info(
-                "repository.missing",
-                extra={
-                    "organization_id": release.organization_id,
-                    "user_id": user_id,
-                    "repository": ref["repository"],
-                },
-            )
-            continue
+    organization = release.organization
+    github_compare_commits_cache_feature_enabled = features.has(
+        GITHUB_FETCH_COMMITS_COMPARE_CACHE_FEATURE, organization, actor=user
+    )
 
-        is_integration_repo_provider = is_integration_provider(repo.provider)
-        binding_key = (
-            "integration-repository.provider"
-            if is_integration_repo_provider
-            else "repository.provider"
-        )
-        try:
-            provider_cls = bindings.get(binding_key).get(repo.provider)
-        except KeyError:
+    for ref in refs:
+        resolved = get_repo_and_provider_for_ref(release=release, ref=ref, user_id=user_id)
+        if resolved is None:
             continue
+        repo, provider, is_integration_repo_provider, provider_key = resolved
 
         # if previous commit isn't provided, try to get from
         # previous release otherwise, try to get
@@ -146,13 +242,6 @@ def fetch_commits(release_id: int, user_id: int, refs, prev_release_id=None, **k
                 pass
 
         end_sha = ref["commit"]
-        provider = provider_cls(id=repo.provider)
-
-        provider_key = (
-            provider_cls.repo_provider
-            if is_integration_repo_provider
-            else provider_cls.auth_provider
-        )
 
         with SCMIntegrationInteractionEvent(
             SCMIntegrationInteractionType.COMPARE_COMMITS,
@@ -171,10 +260,23 @@ def fetch_commits(release_id: int, user_id: int, refs, prev_release_id=None, **k
                 }
             )
             try:
-                if is_integration_repo_provider:
-                    repo_commits = provider.compare_commits(repo, start_sha, end_sha)
-                else:
-                    repo_commits = provider.compare_commits(repo, start_sha, end_sha, actor=user)
+                provider_name = repo.provider
+                compare_commits_cache_enabled = (
+                    github_compare_commits_cache_feature_enabled
+                    and isinstance(provider_name, str)
+                    and provider_name in GITHUB_CACHEABLE_REPOSITORY_PROVIDERS
+                    and start_sha is not None
+                )
+                repo_commits = fetch_compare_commits(
+                    cache_enabled=compare_commits_cache_enabled,
+                    repo=repo,
+                    provider=provider,
+                    is_integration_repo_provider=is_integration_repo_provider,
+                    start_sha=start_sha,
+                    end_sha=end_sha,
+                    user=user,
+                    lifecycle=lifecycle,
+                )
             except NotImplementedError:
                 pass
             except IntegrationResourceNotFoundError:
@@ -277,11 +379,11 @@ def fetch_commits(release_id: int, user_id: int, refs, prev_release_id=None, **k
         Deploy.notify_if_ready(deploy_id, fetch_complete=True)
 
 
-def is_integration_provider(provider):
-    return provider and provider.startswith("integrations:")
+def is_integration_provider(provider: str | None) -> bool:
+    return bool(provider and provider.startswith("integrations:"))
 
 
-def get_emails_for_user_or_org(user: RpcUser | None, orgId: int):
+def get_emails_for_user_or_org(user: RpcUser | None, orgId: int) -> list[str]:
     emails: list[str] = []
     if not user:
         return []

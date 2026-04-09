@@ -9,9 +9,11 @@ from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.environment import Environment
 from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.search.utils import _HACKY_INVALID_USER
+from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -23,7 +25,12 @@ from sentry.uptime.types import (
     DATA_SOURCE_UPTIME_SUBSCRIPTION,
 )
 from sentry.workflow_engine.endpoints.organization_detector_index import convert_assignee_values
-from sentry.workflow_engine.models import DataConditionGroup, Detector
+from sentry.workflow_engine.migration_helpers.alert_rule import dual_write_alert_rule
+from sentry.workflow_engine.models import (
+    AlertRuleDetector,
+    DataConditionGroup,
+    Detector,
+)
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
@@ -1369,3 +1376,30 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
         )
 
         self.assert_unaffected_detectors([self.detector, error_detector])
+
+    def test_delete_dual_written_detector_cleans_up_alert_rule(self) -> None:
+        alert_rule = self.create_alert_rule(
+            organization=self.organization,
+            projects=[self.project],
+        )
+        self.create_alert_rule_trigger(alert_rule=alert_rule)
+        dual_write_alert_rule(alert_rule)
+
+        detector = AlertRuleDetector.objects.get(alert_rule_id=alert_rule.id).detector
+        snuba_query = alert_rule.snuba_query
+        subscription = QuerySubscription.objects.get(snuba_query=snuba_query)
+
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                qs_params={"id": str(detector.id)},
+                status_code=204,
+            )
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Detector.objects.filter(id=detector.id).exists()
+        assert not AlertRule.objects.filter(id=alert_rule.id).exists()
+        assert not QuerySubscription.objects.filter(id=subscription.id).exists()
+        assert not SnubaQuery.objects.filter(id=snuba_query.id).exists()

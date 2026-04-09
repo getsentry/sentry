@@ -154,7 +154,7 @@ describe('Onboarding Setup Docs', () => {
                 ],
               },
             },
-            route: `/onboarding/:orgId/setup-docs/`,
+            route: '/onboarding/:orgId/setup-docs/',
           },
         }
       );
@@ -199,7 +199,7 @@ describe('Onboarding Setup Docs', () => {
               pathname: `/onboarding/${organization.slug}/setup-docs/`,
               query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
             },
-            route: `/onboarding/:orgId/setup-docs/`,
+            route: '/onboarding/:orgId/setup-docs/',
           },
         }
       );
@@ -240,7 +240,7 @@ describe('Onboarding Setup Docs', () => {
               pathname: `/onboarding/${organization.slug}/setup-docs/`,
               query: {product: [ProductSolution.SESSION_REPLAY]},
             },
-            route: `/onboarding/:orgId/setup-docs/`,
+            route: '/onboarding/:orgId/setup-docs/',
           },
         }
       );
@@ -281,7 +281,7 @@ describe('Onboarding Setup Docs', () => {
               pathname: `/onboarding/${organization.slug}/setup-docs/`,
               query: {product: []},
             },
-            route: `/onboarding/:orgId/setup-docs/`,
+            route: '/onboarding/:orgId/setup-docs/',
           },
         }
       );
@@ -341,7 +341,7 @@ describe('Onboarding Setup Docs', () => {
                 installationMode: 'auto',
               },
             },
-            route: `/onboarding/:orgId/setup-docs/`,
+            route: '/onboarding/:orgId/setup-docs/',
           },
         }
       );

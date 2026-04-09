@@ -8,6 +8,7 @@ from .sentry_apps import (
     regenerate_service_hooks_for_installation,
     send_alert_webhook,
     send_alert_webhook_v2,
+    send_metric_alert_webhook,
     send_resource_change_webhook,
     workflow_notification,
 )
@@ -26,4 +27,5 @@ __all__ = (
     "send_alert_webhook_v2",
     "send_resource_change_webhook",
     "workflow_notification",
+    "send_metric_alert_webhook",
 )

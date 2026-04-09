@@ -710,7 +710,7 @@ const DatasetRow = styled('div')`
 `;
 
 const FilterRow = styled('div')<{disabled: boolean}>`
-  ${p => (p.disabled ? `opacity: 0.6;` : '')}
+  ${p => (p.disabled ? 'opacity: 0.6;' : '')}
 `;
 
 const StyledSelectField = styled(SelectField)`
@@ -794,7 +794,7 @@ const IntervalField = styled(SelectField)`
 `;
 
 const DisabledSection = styled('div')<{disabled: boolean}>`
-  ${p => (p.disabled ? `opacity: 0.6;` : '')}
+  ${p => (p.disabled ? 'opacity: 0.6;' : '')}
 `;
 
 const PriorityLabel = styled('span')`

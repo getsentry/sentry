@@ -35,6 +35,7 @@ import {defined, escape} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
+import {useIsShortViewport} from 'sentry/utils/useIsShortViewport';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
@@ -134,6 +135,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // have the same difference in `timestamp`s) even though this is rare, since
   // the backend zerofills the data
 
+  const isShortViewport = useIsShortViewport();
   const chartRef = useRef<ReactEchartsRef | null>(null);
   const unregisterRef = useRef<(() => void) | null>(null);
   const {register: registerWithWidgetSyncContext, groupName} = useWidgetSyncContext();
@@ -245,8 +247,11 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const axisRangeProp = getAxisRange(props.axisRange) ?? 'auto';
 
+  const yAxisSplitNumber = isShortViewport ? 2 : 5;
+
   const leftYAxis = TimeSeriesWidgetYAxis(
     {
+      splitNumber: yAxisSplitNumber,
       axisLabel: {
         formatter: (value: number) =>
           formatYAxisValue(value, leftYAxisType, unitForType[leftYAxisType] ?? undefined),
@@ -260,6 +265,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const rightYAxis = rightYAxisType
     ? TimeSeriesWidgetYAxis(
         {
+          splitNumber: yAxisSplitNumber,
           axisLabel: {
             formatter: (value: number) =>
               formatYAxisValue(

@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from datetime import datetime, timezone
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from django.core.cache import cache
 from django.urls import reverse
@@ -15,8 +17,13 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
 
+if TYPE_CHECKING:
+    from sentry.integrations.bitbucket_server.integration import BitbucketServerIntegration  # NOQA
 
-class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
+
+class BitbucketServerRepositoryProvider(
+    IntegrationRepositoryProvider["BitbucketServerIntegration"]
+):
     name = "Bitbucket Server"
     repo_provider = IntegrationProviderSlug.BITBUCKET_SERVER.value
 
@@ -29,7 +36,7 @@ class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
         except Exception as e:
             installation.raise_error(e)
         else:
-            config["external_id"] = str(repo["id"])
+            config["external_id"] = installation.get_repo_external_id(repo)
             config["name"] = repo["project"]["key"] + "/" + repo["name"]
             config["project"] = repo["project"]["key"]
             config["repo"] = repo["name"]

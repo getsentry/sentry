@@ -3,7 +3,8 @@ import {useResizeObserver} from '@react-aria/utils';
 
 import type {EventTag, EventTagWithMeta} from 'sentry/types/event';
 
-export const TAGS_DOCS_LINK = `https://docs.sentry.io/platform-redirect/?next=/enriching-events/tags`;
+export const TAGS_DOCS_LINK =
+  'https://docs.sentry.io/platform-redirect/?next=/enriching-events/tags';
 
 export enum TagFilter {
   ALL = 'All',
