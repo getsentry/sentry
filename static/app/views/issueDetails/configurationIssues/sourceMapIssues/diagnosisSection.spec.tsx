@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {useSourceMapDebugQuery} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 
@@ -41,12 +42,6 @@ const MOCKED_SOURCE_MAP_DEBUG_RESPONSE = {
   sdk_debug_id_support: 'not-supported',
   has_scraping_data: false,
 };
-
-// tct embeds React nodes (InlineCode) that break text nodes, so match via
-// textContent of the rendered element rather than a single text string.
-function matchByTextContent(expected: string) {
-  return (_: string, el: Element | null) => el?.textContent === expected;
-}
 
 describe('DiagnosisSection', () => {
   const organization = OrganizationFixture();
@@ -90,7 +85,7 @@ describe('DiagnosisSection', () => {
 
     expect(
       await screen.findByText(
-        matchByTextContent(
+        textWithMarkupMatcher(
           'No source map artifacts have been uploaded for this project in release 2.5.0.'
         )
       )
@@ -127,7 +122,7 @@ describe('DiagnosisSection', () => {
 
     expect(
       await screen.findByText(
-        matchByTextContent(
+        textWithMarkupMatcher(
           'The source file ~/static/app.min.js was found but the dist value does not match the uploaded artifact.'
         )
       )
@@ -164,7 +159,7 @@ describe('DiagnosisSection', () => {
 
     expect(
       await screen.findByText(
-        matchByTextContent(
+        textWithMarkupMatcher(
           'The source map app.min.js.map was found but the dist value does not match the uploaded artifact.'
         )
       )
@@ -201,7 +196,7 @@ describe('DiagnosisSection', () => {
 
     expect(
       await screen.findByText(
-        matchByTextContent(
+        textWithMarkupMatcher(
           'The source file ~/static/app.min.js could not be found in any uploaded artifact bundle. No source map reference was detected.'
         )
       )
@@ -238,7 +233,7 @@ describe('DiagnosisSection', () => {
 
     expect(
       await screen.findByText(
-        matchByTextContent(
+        textWithMarkupMatcher(
           'The source map referenced by ~/static/app.min.js points to app.min.js.map, but no matching artifact was found.'
         )
       )
@@ -276,7 +271,7 @@ describe('DiagnosisSection', () => {
 
     expect(
       await screen.findByText(
-        matchByTextContent(
+        textWithMarkupMatcher(
           'Sentry could not fetch the source file at https://example.com/app.js: not_found.'
         )
       )
@@ -314,7 +309,7 @@ describe('DiagnosisSection', () => {
 
     expect(
       await screen.findByText(
-        matchByTextContent(
+        textWithMarkupMatcher(
           'Sentry could not fetch the source map at https://example.com/app.js.map: timeout.'
         )
       )
