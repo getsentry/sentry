@@ -82,7 +82,9 @@ from sentry.seer.autofix.coding_agent import (
 )
 from sentry.seer.autofix.utils import (
     AutofixTriggerSource,
+    bulk_read_preferences_from_sentry_db,
     get_project_seer_preferences,
+    read_preference_from_sentry_db,
     resolve_repository_ids,
     write_preference_to_sentry_db,
 )
@@ -861,6 +863,23 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
     return {"integration_ids": integration_ids}
 
 
+def get_project_preferences(*, organization_id: int, project_id: int) -> dict | None:
+    try:
+        project = Project.objects.get(id=project_id, organization_id=organization_id)
+    except Project.DoesNotExist:
+        return None
+
+    pref = read_preference_from_sentry_db(project)
+    if pref is None:
+        return None
+    return pref.dict()
+
+
+def bulk_get_project_preferences(*, organization_id: int, project_ids: list[int]) -> dict:
+    prefs = bulk_read_preferences_from_sentry_db(organization_id, project_ids)
+    return {str(project_id): pref.dict() if pref else None for project_id, pref in prefs.items()}
+
+
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     # Common to Seer features
     "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
@@ -877,6 +896,8 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "send_seer_webhook": send_seer_webhook,
     "get_attributes_for_span": get_attributes_for_span,
     "trigger_coding_agent_launch": trigger_coding_agent_launch,
+    "get_project_preferences": get_project_preferences,
+    "bulk_get_project_preferences": bulk_get_project_preferences,
     #
     # Bug prediction
     "has_repo_code_mappings": has_repo_code_mappings,
