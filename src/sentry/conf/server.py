@@ -2692,7 +2692,6 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "shared-resources-usage": "default",
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
-    "preprod-artifact-events": "default",
     # Taskworker topics
     "taskworker": "default",
     "taskworker-dlq": "default",
@@ -3026,8 +3025,6 @@ SENTRY_PROFILE_FUNCTIONS_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_CHUNKS_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_OCCURRENCES_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_EAP_FUTURES_MAX_LIMIT = 10000
-
-SENTRY_PREPROD_ARTIFACT_EVENTS_FUTURES_MAX_LIMIT = 10000
 
 # How long we should wait for a gateway proxy request to return before giving up
 GATEWAY_PROXY_TIMEOUT: int | None = (
