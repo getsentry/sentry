@@ -557,9 +557,6 @@ class GitHubBaseClient(
         default_branch: str | None
         archived: bool | None
 
-    # Fields from the GitHub API response needed by get_repositories().
-    _CACHED_REPO_FIELDS = ("id", "name", "full_name", "default_branch", "archived")
-
     def get_accessible_repos_cached(self, ttl: int = 300) -> list[CachedRepo]:
         """
         Return all repos accessible to this installation.
@@ -575,7 +572,16 @@ class GitHubBaseClient(
             return cached
 
         all_repos = self.get_repos()
-        repos = [{k: r.get(k) for k in self._CACHED_REPO_FIELDS} for r in all_repos]
+        repos: list[GitHubBaseClient.CachedRepo] = [
+            {
+                "id": r["id"],
+                "name": r["name"],
+                "full_name": r["full_name"],
+                "default_branch": r.get("default_branch"),
+                "archived": r.get("archived"),
+            }
+            for r in all_repos
+        ]
         cache.set(cache_key, repos, ttl)
         return repos
 
