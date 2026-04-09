@@ -31,12 +31,12 @@ import type {TagCollection} from 'sentry/types/group';
 import type {Release} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {FieldKey} from 'sentry/utils/fields';
-import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -71,7 +71,7 @@ const RELEASE_FILTER_KEYS = [
   return acc;
 }, {});
 
-function makeReleaseListQueryKey({
+function makeReleaseListApiOptions({
   organizationSlug,
   location,
   activeSort,
@@ -81,31 +81,28 @@ function makeReleaseListQueryKey({
   organizationSlug: string;
   activeSort?: ReleasesSortOption;
   activeStatus?: ReleasesStatusOption;
-}): ApiQueryKey {
-  const query = {
-    project: location.query.project,
-    environment: location.query.environment,
-    cursor: location.query.cursor,
-    query: location.query.query,
-    sort: location.query.sort,
-    summaryStatsPeriod: validateSummaryStatsPeriod(
-      decodeScalar(location.query.statsPeriod)
-    ),
-    per_page: 20,
-    flatten: activeSort === ReleasesSortOption.DATE ? 0 : 1,
-    adoptionStages: 1,
-    status:
-      activeStatus === ReleasesStatusOption.ARCHIVED
-        ? ReleaseStatus.ARCHIVED
-        : ReleaseStatus.ACTIVE,
-  };
-
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/releases/', {
-      path: {organizationIdOrSlug: organizationSlug},
-    }),
-    {query},
-  ];
+}) {
+  return apiOptions.as<Release[]>()('/organizations/$organizationIdOrSlug/releases/', {
+    path: {organizationIdOrSlug: organizationSlug},
+    query: {
+      project: location.query.project,
+      environment: location.query.environment,
+      cursor: location.query.cursor,
+      query: location.query.query,
+      sort: location.query.sort,
+      summaryStatsPeriod: validateSummaryStatsPeriod(
+        decodeScalar(location.query.statsPeriod)
+      ),
+      per_page: 20,
+      flatten: activeSort === ReleasesSortOption.DATE ? 0 : 1,
+      adoptionStages: 1,
+      status:
+        activeStatus === ReleasesStatusOption.ARCHIVED
+          ? ReleaseStatus.ARCHIVED
+          : ReleaseStatus.ACTIVE,
+    },
+    staleTime: Infinity,
+  });
 }
 
 export default function ReleasesList() {
@@ -185,20 +182,22 @@ export default function ReleasesList() {
   }, [location.query]);
 
   const {
-    data: releases = [],
+    data: releasesResponse,
     isPending: isReleasesPending,
     isRefetching: isReleasesRefetching,
     error: releasesError,
-    getResponseHeader: getReleasesResponseHeader,
-  } = useApiQuery<Release[]>(
-    makeReleaseListQueryKey({
+  } = useQuery({
+    ...makeReleaseListApiOptions({
       organizationSlug: organization.slug,
       location,
       activeSort,
       activeStatus,
     }),
-    {staleTime: Infinity, placeholderData: prev => prev}
-  );
+    select: selectJsonWithHeaders,
+    placeholderData: keepPreviousData,
+  });
+
+  const releases = useMemo(() => releasesResponse?.json ?? [], [releasesResponse?.json]);
 
   useEffect(() => {
     /**
@@ -414,15 +413,16 @@ export default function ReleasesList() {
     // Has no releases
     !releases?.length
   );
-  const releasesPageLinks = getReleasesResponseHeader?.('Link');
+  const releasesPageLinks = releasesResponse?.headers.Link;
 
   const releasesErrorMessage = useMemo(() => {
     if (!releasesError) {
       return null;
     }
-    if (releasesError?.status === 400) {
+    const requestError = releasesError as RequestError;
+    if (requestError.status === 400) {
       // eslint-disable-next-line @typescript-eslint/no-base-to-string
-      return String(releasesError?.responseJSON?.detail);
+      return String(requestError.responseJSON?.detail);
     }
     return t('There was an error loading releases');
   }, [releasesError]);

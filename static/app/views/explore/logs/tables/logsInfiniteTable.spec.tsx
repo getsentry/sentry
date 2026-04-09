@@ -32,7 +32,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 jest.mock('sentry/utils/useLocation');
 const mockUseLocation = jest.mocked(useLocation);
 
-jest.mock('sentry/utils/useRelease', () => ({
+jest.mock('sentry/utils/releaseApiOptions', () => ({
   useRelease: jest.fn().mockReturnValue({
     data: {
       id: 10,

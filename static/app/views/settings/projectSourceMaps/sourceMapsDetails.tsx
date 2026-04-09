@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
@@ -20,8 +21,7 @@ import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {Artifact, Release} from 'sentry/types/release';
 import type {DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useApi} from 'sentry/utils/useApi';
@@ -120,88 +120,67 @@ export function SourceMapsDetails({bundleId, project}: Props) {
   const query = decodeScalar(location.query.query);
   const cursor = decodeScalar(location.query.cursor);
 
-  // endpoints
-  const artifactsEndpoint = getApiUrl(
-    '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/$version/files/',
-    {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        projectIdOrSlug: project.slug,
-        version: bundleId,
-      },
-    }
-  );
-  const debugIdBundlesArtifactsEndpoint = getApiUrl(
-    '/projects/$organizationIdOrSlug/$projectIdOrSlug/artifact-bundles/$bundleId/files/',
-    {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        projectIdOrSlug: project.slug,
-        bundleId,
-      },
-    }
-  );
-
   const isDebugIdBundle = isUUID(bundleId);
 
-  const {
-    data: artifactsData,
-    getResponseHeader: artifactsHeaders,
-    isPending: artifactsLoading,
-  } = useApiQuery<Artifact[]>(
-    [
-      artifactsEndpoint,
+  const {data: artifactsResponse, isPending: artifactsLoading} = useQuery({
+    ...apiOptions.as<Artifact[]>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/$version/files/',
       {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: project.slug,
+          version: bundleId,
+        },
         query: {query, cursor},
-      },
-    ],
-    {
-      staleTime: 0,
-      placeholderData: keepPreviousData,
-      enabled: !isDebugIdBundle,
-    }
-  );
+        staleTime: 0,
+      }
+    ),
+    select: selectJsonWithHeaders,
+    placeholderData: keepPreviousData,
+    enabled: !isDebugIdBundle,
+  });
+
+  const artifactsData = artifactsResponse?.json;
 
   const {
-    data: debugIdBundlesArtifacts,
-    getResponseHeader: debugIdBundlesArtifactsHeaders,
+    data: debugIdBundlesArtifactsResponse,
     isPending: debugIdBundlesArtifactsLoading,
-  } = useApiQuery<DebugIdBundleArtifact>(
-    [
-      debugIdBundlesArtifactsEndpoint,
+  } = useQuery({
+    ...apiOptions.as<DebugIdBundleArtifact>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/artifact-bundles/$bundleId/files/',
       {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: project.slug,
+          bundleId,
+        },
         query: {query, cursor},
-      },
-    ],
-    {
-      staleTime: 0,
-      placeholderData: keepPreviousData,
-      enabled: isDebugIdBundle,
-    }
-  );
+        staleTime: 0,
+      }
+    ),
+    select: selectJsonWithHeaders,
+    placeholderData: keepPreviousData,
+    enabled: isDebugIdBundle,
+  });
+
+  const debugIdBundlesArtifacts = debugIdBundlesArtifactsResponse?.json;
 
   const releaseVersions = debugIdBundlesArtifacts?.associations.map(
     association => `"${association.release}"`
   );
 
-  const {data: releasesData, isPending: releasesLoading} = useApiQuery<Release[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/releases/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          project: [project.id],
-          query: `release:[${releaseVersions?.join(',')}]`,
-        },
+  const {data: releasesData, isPending: releasesLoading} = useQuery({
+    ...apiOptions.as<Release[]>()('/organizations/$organizationIdOrSlug/releases/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        project: [project.id],
+        query: `release:[${releaseVersions?.join(',')}]`,
       },
-    ],
-    {
       staleTime: Infinity,
-      retry: false,
-      enabled: !!releaseVersions?.length,
-    }
-  );
+    }),
+    retry: false,
+    enabled: !!releaseVersions?.length,
+  });
 
   const debugIdBundlesArtifactsData = useMemo(() => {
     if (releasesLoading) {
@@ -363,8 +342,8 @@ export function SourceMapsDetails({bundleId, project}: Props) {
       <Pagination
         pageLinks={
           isDebugIdBundle
-            ? (debugIdBundlesArtifactsHeaders?.('Link') ?? '')
-            : (artifactsHeaders?.('Link') ?? '')
+            ? (debugIdBundlesArtifactsResponse?.headers.Link ?? '')
+            : (artifactsResponse?.headers.Link ?? '')
         }
       />
     </Fragment>
