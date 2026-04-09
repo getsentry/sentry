@@ -12,6 +12,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {unreachable} from 'sentry/utils/unreachable';
 
 import {ChoiceMapperDropdown, ChoiceMapperTable} from './choiceMapperAdapter';
 import {ProjectMapperAddRow, ProjectMapperTable} from './projectMapperAdapter';
@@ -489,6 +490,7 @@ export function BackendJsonSubmitForm({
                       );
                     }
                     default:
+                      unreachable(field);
                       return null;
                   }
                 }}
