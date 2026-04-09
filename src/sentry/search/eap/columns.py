@@ -160,6 +160,7 @@ class VirtualColumnDefinition:
     constructor: Callable[[SnubaParams, Any], VirtualColumnContext]
     # Need a type for the attributes endpoint
     search_type: constants.SearchType
+    secondary_alias: bool = False
     # Allows additional processing to the term after its been resolved
     term_resolver: (
         Callable[

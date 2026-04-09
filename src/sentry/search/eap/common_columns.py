@@ -13,6 +13,7 @@ _PROJECT_VIRTUAL_CONTEXTS: dict[str, VirtualColumnDefinition] = {
         term_resolver=project_term_resolver,
         filter_column="project.id",
         search_type="string",
+        secondary_alias=key != "project",
     )
     for key in constants.PROJECT_FIELDS
 }
