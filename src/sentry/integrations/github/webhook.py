@@ -13,6 +13,7 @@ from typing import Any, Protocol
 import orjson
 import sentry_sdk
 from dateutil.parser import parse as parse_date
+from django.conf import settings
 from django.db import IntegrityError, router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
@@ -30,6 +31,7 @@ from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.github.webhook_types import (
     GITHUB_WEBHOOK_TYPE_HEADER_KEY,
     GithubWebhookType,
+    InstallationRepositoriesEvent,
 )
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.services.integration.model import (
@@ -43,6 +45,7 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
+from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
@@ -262,14 +265,15 @@ class GitHubWebhook(SCMWebhook, ABC):
 
             for repo in repos.exclude(status=ObjectStatus.HIDDEN):
                 self.update_repo_data(repo, event)
-                self._handle(
-                    github_event=github_event,
-                    integration=integration,
-                    event=event,
-                    organization=orgs[repo.organization_id],
-                    repo=repo,
-                    github_delivery_id=github_delivery_id,
-                )
+                with webhook_viewer_context(repo.organization_id):
+                    self._handle(
+                        github_event=github_event,
+                        integration=integration,
+                        event=event,
+                        organization=orgs[repo.organization_id],
+                        repo=repo,
+                        github_delivery_id=github_delivery_id,
+                    )
 
     def update_repo_data(self, repo: Repository, event: Mapping[str, Any]) -> None:
         """
@@ -416,6 +420,57 @@ class InstallationEventWebhook(GitHubWebhook):
                     "organization_ids": list(org_ids),
                 }
             )
+
+
+class InstallationRepositoriesEventWebhook(GitHubWebhook):
+    """
+    Handles installation_repositories events when repos are added to or
+    removed from the GitHub App installation. Runs in control silo.
+
+    https://docs.github.com/en/webhooks/webhook-events-and-payloads#installation_repositories
+    """
+
+    EVENT_TYPE = IntegrationWebhookEventType.INSTALLATION_REPOSITORIES
+
+    def __call__(  # type: ignore[override]
+        self, event: InstallationRepositoriesEvent, host: str | None = None, **kwargs: Any
+    ) -> None:
+        external_id = get_github_external_id(event=event, host=host)
+        if external_id is None:
+            return
+
+        result = integration_service.organization_contexts(
+            provider=self.provider,
+            external_id=external_id,
+        )
+        integration = result.integration
+
+        if integration is None:
+            logger.warning(
+                "github.installation_repositories.missing_integration",
+                extra={"external_id": str(external_id)},
+            )
+            return
+
+        action = event["action"]
+        repos_added = event["repositories_added"]
+        repos_removed = event["repositories_removed"]
+        repository_selection = event["repository_selection"]
+
+        if not repos_added and not repos_removed:
+            return
+
+        from .tasks.sync_repos_on_install_change import sync_repos_on_install_change
+
+        sync_repos_on_install_change.apply_async(
+            kwargs={
+                "integration_id": integration.id,
+                "action": action,
+                "repos_added": repos_added,
+                "repos_removed": repos_removed,
+                "repository_selection": repository_selection,
+            }
+        )
 
 
 class PushEventWebhook(GitHubWebhook):
@@ -958,6 +1013,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
     _handlers: dict[GithubWebhookType, type[GitHubWebhook]] = {
         GithubWebhookType.CHECK_RUN: CheckRunEventWebhook,
         GithubWebhookType.INSTALLATION: InstallationEventWebhook,
+        GithubWebhookType.INSTALLATION_REPOSITORIES: InstallationRepositoriesEventWebhook,
         GithubWebhookType.ISSUE: IssuesEventWebhook,
         GithubWebhookType.ISSUE_COMMENT: IssueCommentEventWebhook,
         GithubWebhookType.PULL_REQUEST: PullRequestEventWebhook,
@@ -1103,6 +1159,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
                 "type": IntegrationProviderSlug.GITHUB.value,
             },
             silo="region" if SiloMode.get_current_mode() == SiloMode.CELL else "control",
+            is_dev=settings.IS_DEV,
         )
 
         return HttpResponse(status=204)

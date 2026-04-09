@@ -130,7 +130,7 @@ def create_preprod_pr_comment_task(
             return
 
         existing_comment_id = _find_existing_comment_id(all_for_pr)
-        comment_body = format_pr_comment(installable_siblings)
+        comment_body = format_pr_comment(installable_siblings, project=artifact.project)
 
         try:
             if existing_comment_id:

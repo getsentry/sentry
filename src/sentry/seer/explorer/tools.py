@@ -371,7 +371,9 @@ def execute_trace_table_query(
         raise
 
 
-def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
+def get_trace_waterfall(
+    trace_id: str, organization_id: int, additional_attributes: list[str] | None = None
+) -> EAPTrace | None:
     """
     Get the full span waterfall and connected errors for a trace.
 
@@ -382,6 +384,8 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
     Returns:
         The spans and errors in the trace, along with the full 32-character trace ID.
     """
+    if additional_attributes is None:
+        additional_attributes = ["span.status_code"]
 
     try:
         organization = Organization.objects.get(id=organization_id)
@@ -416,7 +420,7 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
     events = query_trace_data(
         snuba_params,
         full_trace_id,
-        additional_attributes=["span.status_code"],
+        additional_attributes=additional_attributes,
         referrer=Referrer.SEER_EXPLORER_TOOLS,
         organization=organization,
     )
@@ -428,8 +432,10 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
     )
 
 
-def rpc_get_trace_waterfall(trace_id: str, organization_id: int) -> dict[str, Any]:
-    trace = get_trace_waterfall(trace_id, organization_id)
+def rpc_get_trace_waterfall(
+    trace_id: str, organization_id: int, additional_attributes: list[str] | None = None
+) -> dict[str, Any]:
+    trace = get_trace_waterfall(trace_id, organization_id, additional_attributes)
     return trace.dict() if trace else {}
 
 

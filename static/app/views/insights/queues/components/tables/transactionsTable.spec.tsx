@@ -19,7 +19,7 @@ describe('transactionsTable', () => {
       pathname: `/organizations/${organization.slug}/insights/queues/`,
       query: {statsPeriod: '10d', project: '1'},
     },
-    route: `/organizations/:orgId/insights/queues/`,
+    route: '/organizations/:orgId/insights/queues/',
   };
 
   beforeEach(() => {

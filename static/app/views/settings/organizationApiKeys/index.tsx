@@ -35,7 +35,7 @@ function OrganizationApiKeys() {
     refetch,
   } = useApiQuery<DeprecatedApiKey[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/api-keys/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/api-keys/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
@@ -61,7 +61,7 @@ function OrganizationApiKeys() {
       setApiQueryData<DeprecatedApiKey[]>(
         queryClient,
         [
-          getApiUrl(`/organizations/$organizationIdOrSlug/api-keys/`, {
+          getApiUrl('/organizations/$organizationIdOrSlug/api-keys/', {
             path: {organizationIdOrSlug: organization.slug},
           }),
         ],

@@ -90,7 +90,7 @@ const setupMockRequests = (
     },
   });
   MockApiClient.addMockResponse({
-    url: `/projects/org-slug/project-slug/performance/configure/`,
+    url: '/projects/org-slug/project-slug/performance/configure/',
     method: 'GET',
     body: {
       enable_images: enableImages,

@@ -103,7 +103,7 @@ type Props = {
 export function ReleasesPromo({organization, project}: Props) {
   const {data, isPending} = useApiQuery<SentryApp[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/sentry-apps/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/sentry-apps/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: {status: 'internal'}},

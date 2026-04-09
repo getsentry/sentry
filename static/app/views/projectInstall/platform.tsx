@@ -113,7 +113,7 @@ export function ProjectInstallPlatform({project, platform}: Props) {
                 <Alert.Container>
                   <StyledAlert variant="info">
                     {t(
-                      `Your selected platform supports performance, but your organization does not have performance enabled.`
+                      'Your selected platform supports performance, but your organization does not have performance enabled.'
                     )}
                   </StyledAlert>
                 </Alert.Container>

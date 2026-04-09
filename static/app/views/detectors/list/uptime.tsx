@@ -33,7 +33,7 @@ function VisualizationCell({detector}: {detector: UptimeDetector}) {
   const uptimeDetectorId = detector.id;
 
   const elementRef = useRef<HTMLDivElement>(null);
-  const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const {width: containerWidth} = useDimensions({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 1000);
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
@@ -105,7 +105,7 @@ export default function UptimeDetectorsList() {
     <MonitorViewContext.Provider value={contextValue}>
       <SentryDocumentTitle title={TITLE}>
         <WorkflowEngineListLayout
-          actions={<DetectorListActions />}
+          actions={<DetectorListActions detectorType="uptime_domain_failure" />}
           title={TITLE}
           description={DESCRIPTION}
           docsUrl={DOCS_URL}
@@ -114,7 +114,12 @@ export default function UptimeDetectorsList() {
             {t('Uptime monitors have been moved from Insights to Monitors.')}
           </InsightsRedirectNotice>
           <DetectorListHeader showTimeRangeSelector showTypeFilter={false} />
-          <DetectorListContent {...detectorListQuery} />
+          <DetectorListContent
+            isError={detectorListQuery.isError}
+            isLoading={detectorListQuery.isLoading}
+            isSuccess={detectorListQuery.isSuccess}
+            data={detectorListQuery.data}
+          />
         </WorkflowEngineListLayout>
       </SentryDocumentTitle>
     </MonitorViewContext.Provider>

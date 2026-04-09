@@ -31,6 +31,7 @@ from sentry.seer.autofix.utils import (
     default_seer_project_preference,
     resolve_repository_ids,
 )
+from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.models import SeerProjectPreference, SeerRepoDefinition
 from sentry.seer.utils import filter_repo_by_provider
 
@@ -66,6 +67,14 @@ class RepositorySerializer(CamelSnakeSerializer):
     instructions = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     base_commit_sha = serializers.CharField(required=False, allow_null=True)
     provider_raw = serializers.CharField(required=False, allow_null=True)
+
+    def validate_provider(self, value):
+        if value not in SEER_SUPPORTED_SCM_PROVIDERS:
+            supported = ", ".join(sorted(SEER_SUPPORTED_SCM_PROVIDERS))
+            raise serializers.ValidationError(
+                f'"{value}" is not a supported Seer provider. Supported providers: {supported}'
+            )
+        return value
 
     def validate_branch_overrides(self, value):
         if not value:
@@ -246,7 +255,9 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
         :pparam string organization_id_or_slug: the id or slug of the organization.
         :auth: required
         """
-        serializer = SeerAutofixSettingsPostSerializer(data=request.data)
+        serializer = SeerAutofixSettingsPostSerializer(
+            data=request.data, context={"organization": organization}
+        )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 

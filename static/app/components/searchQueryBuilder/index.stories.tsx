@@ -771,7 +771,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
         <p>
           The suggestions will be the values for the provided keys. The following example,
           will show suggestions for the <code>id</code> key when the user types a value
-          that matches the regex pattern <code>{`/^[0-9]{3}$/`}</code>.
+          that matches the regex pattern <code>{'/^[0-9]{3}$/'}</code>.
         </p>
         <SearchQueryBuilder
           initialQuery=""
@@ -811,7 +811,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
         <p>
           The raw search will be replaced with option(s) in the dropdown. The options will
           be the values for the provided keys. The following example shows the prop set as{' '}
-          <code>{`replaceRawSearchKeys={['span.description']}`}</code>.
+          <code>{"replaceRawSearchKeys={['span.description']}"}</code>.
         </p>
         <SearchQueryBuilder
           initialQuery=""
@@ -823,7 +823,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
         />
         <p>
           You can also pass multiple values in the prop to replace multiple keys.{' '}
-          <code>{`replaceRawSearchKeys={['span.op', 'span.description']}`}</code>.
+          <code>{"replaceRawSearchKeys={['span.op', 'span.description']}"}</code>.
         </p>
         <SearchQueryBuilder
           initialQuery=""

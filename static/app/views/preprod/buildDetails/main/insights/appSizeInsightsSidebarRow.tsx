@@ -38,7 +38,7 @@ export function formatUpside(percentage: number): string {
     return `-${formatPercentage(percentage, 1)}`;
   }
   // Format smaller than 0.001 (so 0.1%) as "(~0%)"
-  return `~0%`;
+  return '~0%';
 }
 
 const INSIGHTS_WITH_MORE_INFO_MODAL = [

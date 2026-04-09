@@ -391,6 +391,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "sentry.middleware.auth.AuthenticationMiddleware",
+    "sentry.middleware.viewer_context.ViewerContextMiddleware",
     "sentry.middleware.ai_agent.AIAgentMiddleware",
     "sentry.middleware.integrations.IntegrationControlMiddleware",
     APIGW_MIDDLEWARE,
@@ -770,10 +771,6 @@ SENTRY_CELLS: list[CellConfig] = []
 # Mapping of localities (e.g. "us", "de") to their constituent cells (e.g. "us1", "us2")
 SENTRY_LOCALITIES: list[LocalityConfig] = []
 
-# TODO(cells): Superceded by SENTRY_LOCAL_CELL and SENTRY_CELLS. Remove once migration is complete.
-SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
-SENTRY_REGION_CONFIG: list[CellConfig] = []
-
 # Shared secret used to sign cross-region RPC requests.
 RPC_SHARED_SECRET: list[str] | None = None
 
@@ -881,6 +878,9 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.github.tasks.codecov_account_unlink",
     "sentry.integrations.github.tasks.link_all_repos",
     "sentry.integrations.github.tasks.pr_comment",
+    "sentry.integrations.github.tasks.sync_repos",
+    "sentry.integrations.github.tasks.sync_repos_on_install_change",
+    "sentry.integrations.source_code_management.sync_repos",
     "sentry.integrations.gitlab.tasks",
     "sentry.integrations.jira.tasks",
     "sentry.integrations.opsgenie.tasks",
@@ -991,6 +991,8 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.workflow_engine.tasks.cleanup",
     "sentry.tasks.seer.explorer_index",
     "sentry.tasks.seer.context_engine_index",
+    "sentry.tasks.seer.lightweight_rca_cluster",
+    "sentry.tasks.seer.night_shift",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
@@ -1013,6 +1015,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "flush-delayed-workflows": {
         "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
         "schedule": timedelta(seconds=15),
+    },
+    "prune-old-open-period-activity": {
+        "task": "workflow_engine:sentry.workflow_engine.tasks.cleanup.prune_old_open_period_activity",
+        "schedule": timedelta(minutes=2),
     },
     "resolve-stale-sourcemap-detectors": {
         "task": "workflow_engine:sentry.processing_errors.tasks.resolve_stale_sourcemap_detectors",
@@ -1169,6 +1175,11 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         # Run once a month at midnight
         "schedule": crontab("0", "0", "*", "1", "*"),
     },
+    "seer-night-shift": {
+        "task": "seer:sentry.tasks.seer.night_shift.schedule_night_shift",
+        # Run daily at 10:00 AM UTC (2/3 AM Pacific)
+        "schedule": crontab("0", "10", "*", "*", "*"),
+    },
     "refresh-artifact-bundles-in-use": {
         "task": "attachments:sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
         "schedule": crontab("*/1", "*", "*", "*", "*"),
@@ -1247,6 +1258,10 @@ TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {
     "fetch-release-registry-data-control": {
         "task": "sdk.control:sentry.tasks.release_registry.fetch_release_registry_data_control",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
+    },
+    "scm-repo-sync-beat": {
+        "task": "integrations.control:sentry.integrations.source_code_management.sync_repos.scm_repo_sync_beat",
+        "schedule": timedelta(minutes=1),
     },
 }
 
@@ -2677,7 +2692,6 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "shared-resources-usage": "default",
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
-    "preprod-artifact-events": "default",
     # Taskworker topics
     "taskworker": "default",
     "taskworker-dlq": "default",
@@ -2803,7 +2817,7 @@ DEFAULT_GROUPING_CONFIG = FALL_2025_GROUPING_CONFIG
 BETA_GROUPING_CONFIG = ""
 
 # How long the migration phase for grouping lasts
-SENTRY_GROUPING_CONFIG_TRANSITION_DURATION = 30 * 24 * 3600  # 30 days
+SENTRY_GROUPING_CONFIG_TRANSITION_DURATION = 90 * 24 * 3600  # 90 days, until groups age out
 
 SENTRY_USE_GRANIAN = True
 
@@ -3011,8 +3025,6 @@ SENTRY_PROFILE_FUNCTIONS_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_CHUNKS_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_OCCURRENCES_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_EAP_FUTURES_MAX_LIMIT = 10000
-
-SENTRY_PREPROD_ARTIFACT_EVENTS_FUTURES_MAX_LIMIT = 10000
 
 # How long we should wait for a gateway proxy request to return before giving up
 GATEWAY_PROXY_TIMEOUT: int | None = (
@@ -3271,9 +3283,6 @@ if SILO_DEVSERVER:
         }
     ]
     SENTRY_MONOLITH_REGION = SENTRY_CELLS[0]["name"]
-
-    # TODO(cells): remove after getsentry updated
-    SENTRY_REGION_CONFIG = SENTRY_CELLS
 
     # Cross region RPC authentication
     RPC_SHARED_SECRET = [

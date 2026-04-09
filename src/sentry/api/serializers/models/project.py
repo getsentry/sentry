@@ -53,7 +53,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
 if TYPE_CHECKING:
-    from sentry.api.serializers.models.organization import OrganizationSerializerResponse
+    from sentry.api.serializers.models.organization import OrganizationSummarySerializerResponse
 
 STATUS_LABELS = {
     ObjectStatus.ACTIVE: "active",
@@ -951,7 +951,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     secondaryGroupingExpiry: int
     secondaryGroupingConfig: str | None
     fingerprintingRules: str
-    organization: OrganizationSerializerResponse
+    organization: OrganizationSummarySerializerResponse
     plugins: list[Plugin]
     platforms: list[str]
     processingIssues: int

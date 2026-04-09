@@ -18,7 +18,7 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
       id: 'score-breakdown-chart',
       title: t('Score Breakdown'),
       description: t(
-        `Each Web Vital score contributes a different amount to the total score. Refer to the Performance Score wheel for total contribution.`
+        'Each Web Vital score contributes a different amount to the total score. Refer to the Performance Score wheel for total contribution.'
       ),
       displayType: DisplayType.AREA,
       widgetType: WidgetType.SPANS,
@@ -279,7 +279,7 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          conditions: `has:measurements.lcp`,
+          conditions: 'has:measurements.lcp',
           fields: [
             'project',
             'trace',
@@ -321,7 +321,7 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          conditions: `has:measurements.inp`,
+          conditions: 'has:measurements.inp',
           fields: [
             'project',
             'trace',
@@ -361,7 +361,7 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          conditions: `has:measurements.cls`,
+          conditions: 'has:measurements.cls',
           fields: [
             'project',
             'trace',
@@ -401,7 +401,7 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          conditions: `span.op:pageload`,
+          conditions: 'span.op:pageload',
           fields: ['count()'],
           aggregates: ['count()'],
           columns: [],
@@ -425,7 +425,8 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          conditions: `span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press]`,
+          conditions:
+            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press]',
           fields: ['count()'],
           aggregates: ['count()'],
           columns: [],

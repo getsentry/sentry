@@ -42,7 +42,7 @@ export function SetupMessagingIntegrationButton({
 
   const messagingIntegrationsQuery = useApiQuery<OrganizationIntegration[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: {integrationType: 'messaging'}},
@@ -52,7 +52,7 @@ export function SetupMessagingIntegrationButton({
 
   const integrationProvidersQuery = useApiQueries<{providers: IntegrationProvider[]}>(
     providerKeys.map((providerKey: string) => [
-      getApiUrl(`/organizations/$organizationIdOrSlug/config/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: {provider_key: providerKey}},

@@ -31,7 +31,7 @@ replays: 0007_organizationmember_replay_access
 
 seer: 0005_delete_seerorganizationsettings
 
-sentry: 1062_backfill_eventattachment_date_expires
+sentry: 1066_add_export_format_in_data_export_obj
 
 social_auth: 0003_social_auth_json_field
 
@@ -39,4 +39,4 @@ tempest: 0003_use_encrypted_char_field
 
 uptime: 0055_backfill_2xx_status_assertion
 
-workflow_engine: 0111_add_workflowfirehistory_date_added_index
+workflow_engine: 0112_drop_redundant_error_detector_workflows

@@ -19,7 +19,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
         {
           type: 'text',
           text: tct(
-            `Install the Sentry Capacitor SDK as a dependency using [code:npm] or [code:yarn], alongside the Sentry [siblingName:] SDK:`,
+            'Install the Sentry Capacitor SDK as a dependency using [code:npm] or [code:yarn], alongside the Sentry [siblingName:] SDK:',
             {
               code: <code />,
               siblingName: getSiblingName(params.platformOptions.siblingOption),
@@ -50,7 +50,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
         {
           type: 'text',
           text: tct(
-            `The version of the Sentry [siblingName:] SDK must match with the version referred by Sentry Capacitor. To check which version of the Sentry [siblingName:] SDK is installed, use the following command: [code:npm info @sentry/capacitor peerDependencies]`,
+            'The version of the Sentry [siblingName:] SDK must match with the version referred by Sentry Capacitor. To check which version of the Sentry [siblingName:] SDK is installed, use the following command: [code:npm info @sentry/capacitor peerDependencies]',
             {
               code: <code />,
               siblingName: getSiblingName(params.platformOptions.siblingOption),
@@ -87,7 +87,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
             {
               label: 'JavaScript',
               language: 'javascript',
-              code: `myUndefinedFunction();`,
+              code: 'myUndefinedFunction();',
             },
           ],
         },

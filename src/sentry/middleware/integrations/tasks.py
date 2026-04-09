@@ -123,10 +123,9 @@ class _AsyncSlackDispatcher(_AsyncCellDispatcher):
 def convert_to_async_slack_response(
     payload: dict[str, Any],
     response_url: str,
-    cell_names: list[str] | None = None,  # TODO(cells): make required once region_names is removed
-    region_names: list[str] | None = None,  # TODO(cells): remove after queue drains
+    cell_names: list[str],
 ) -> None:
-    _AsyncSlackDispatcher(payload, response_url).dispatch(cell_names or region_names or [])
+    _AsyncSlackDispatcher(payload, response_url).dispatch(cell_names)
 
 
 class _AsyncDiscordDispatcher(_AsyncCellDispatcher):
@@ -151,8 +150,7 @@ class _AsyncDiscordDispatcher(_AsyncCellDispatcher):
 def convert_to_async_discord_response(
     payload: dict[str, Any],
     response_url: str,
-    cell_names: list[str] | None = None,  # TODO(cells): make required once region_names is removed
-    region_names: list[str] | None = None,  # TODO(cells): remove after queue drains
+    cell_names: list[str],
 ) -> None:
     """
     This task asks relevant cell silos for response data to send asynchronously to Discord. It
@@ -161,9 +159,7 @@ def convert_to_async_discord_response(
 
     In the event this task finishes prior to returning the above type, the outbound post will fail.
     """
-    response = _AsyncDiscordDispatcher(payload, response_url).dispatch(
-        cell_names or region_names or []
-    )
+    response = _AsyncDiscordDispatcher(payload, response_url).dispatch(cell_names)
 
     if response is not None and response.status_code == status.HTTP_404_NOT_FOUND:
         raise Exception("Discord hook is not ready.")

@@ -459,12 +459,16 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   }
 
   findChild<ChildType extends BaseNode = BaseNode>(
-    predicate: (child: BaseNode) => boolean
+    predicate: (child: BaseNode) => child is ChildType
+  ): ChildType | null;
+  findChild(predicate: (child: BaseNode) => boolean): BaseNode | null;
+  findChild<ChildType extends BaseNode = BaseNode>(
+    predicate: (child: BaseNode) => child is ChildType
   ): ChildType | null {
     let result: ChildType | null = null;
     this.traverseChildren(node => {
       if (predicate(node)) {
-        result = node as ChildType;
+        result = node;
         return true;
       }
       return undefined;
@@ -473,12 +477,16 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   }
 
   findAllChildren<ChildType extends BaseNode = BaseNode>(
-    predicate: (child: BaseNode) => boolean
+    predicate: (child: BaseNode) => child is ChildType
+  ): ChildType[];
+  findAllChildren(predicate: (child: BaseNode) => boolean): BaseNode[];
+  findAllChildren<ChildType extends BaseNode = BaseNode>(
+    predicate: (child: BaseNode) => child is ChildType
   ): ChildType[] {
     const results: ChildType[] = [];
     this.traverseChildren(node => {
       if (predicate(node)) {
-        results.push(node as ChildType);
+        results.push(node);
       }
     });
     return results;
@@ -488,9 +496,13 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     this.traverseChildren(callback);
   }
 
-  findParent<ChildType extends BaseNode = BaseNode>(
-    predicate: (parent: BaseNode) => boolean
-  ): ChildType | null {
+  findParent<ParentType extends BaseNode = BaseNode>(
+    predicate: (parent: BaseNode) => parent is ParentType
+  ): ParentType | null;
+  findParent(predicate: (parent: BaseNode) => boolean): BaseNode | null;
+  findParent<ParentType extends BaseNode = BaseNode>(
+    predicate: (parent: BaseNode) => parent is ParentType
+  ): ParentType | null {
     const visited = new Set<BaseNode>();
     visited.add(this);
 
@@ -503,7 +515,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
       visited.add(current);
 
       if (predicate(current)) {
-        return current as ChildType;
+        return current;
       }
       current = current.parent;
     }
@@ -525,11 +537,13 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   }
 
   findParentNodeStoreTransaction(): TransactionNode | null {
-    return this.findParent<TransactionNode>(p => isTransactionNode(p));
+    return this.findParent(p => isTransactionNode(p));
   }
 
   findParentEapTransaction(): EapSpanNode | null {
-    return this.findParent<EapSpanNode>(p => isEAPSpanNode(p) && p.value.is_transaction);
+    return this.findParent(
+      (p): p is EapSpanNode => isEAPSpanNode(p) && p.value.is_transaction
+    );
   }
 
   expand(expanding: boolean, tree: TraceTree): boolean {

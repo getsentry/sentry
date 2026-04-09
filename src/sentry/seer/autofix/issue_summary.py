@@ -45,7 +45,7 @@ from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
     make_summarize_issue_request,
 )
-from sentry.seer.supergroups.lightweight_rca import trigger_lightweight_rca
+from sentry.seer.supergroups.explorer_lightweight_rca import trigger_explorer_lightweight_rca
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.base import instrumented_task
@@ -226,10 +226,10 @@ def _trigger_autofix_task(
                 stopping_point=stopping_point,
             )
             try:
-                trigger_lightweight_rca(group)
+                trigger_explorer_lightweight_rca(group)
             except Exception:
                 logger.exception(
-                    "lightweight_rca.trigger_error_in_trigger_autofix_task",
+                    "explorer_lightweight_rca.trigger_error_in_trigger_autofix_task",
                     extra={"group_id": group_id},
                 )
         else:
@@ -428,16 +428,15 @@ def run_automation(
         return
 
     # Check event count for ALERT source with seat-based tier
-    if is_seer_seat_based_tier_enabled(group.organization):
-        if source == SeerAutomationSource.ALERT:
-            # Use times_seen_with_pending if available (set by post_process), otherwise fall back
-            times_seen = (
-                group.times_seen_with_pending
-                if hasattr(group, "_times_seen_pending")
-                else group.times_seen
-            )
-            if times_seen < AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD:
-                return
+    if is_seer_seat_based_tier_enabled(group.organization) and source == SeerAutomationSource.ALERT:
+        # Use times_seen_with_pending if available (set by post_process), otherwise fall back
+        times_seen = (
+            group.times_seen_with_pending
+            if hasattr(group, "_times_seen_pending")
+            else group.times_seen
+        )
+        if times_seen < AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD:
+            return
 
     user_id = user.id if user else None
     auto_run_source = auto_run_source_map.get(source, "unknown_source")

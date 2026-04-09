@@ -1,11 +1,12 @@
 import {ActorFixture} from 'sentry-fixture/actor';
 import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {GroupMetaRow} from 'sentry/components/groupMetaRow';
-import {GroupStatus} from 'sentry/types/group';
+import {GroupStatus, IssueCategory} from 'sentry/types/group';
 
 describe('GroupMetaRow', () => {
   it('renders last and first seen', () => {
@@ -106,6 +107,32 @@ describe('GroupMetaRow', () => {
     expect(screen.getByText('Assigned to Assignee Name')).toBeInTheDocument();
   });
 
+  it('should only make one replay-count API request', async () => {
+    const organization = OrganizationFixture({
+      features: ['session-replay'],
+    });
+    const mockReplayCount = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replay-count/`,
+      body: {groupId: 5},
+    });
+
+    render(
+      <GroupMetaRow
+        data={GroupFixture({
+          project: ProjectFixture({id: 'projectId', platform: 'javascript'}),
+          id: 'groupId',
+          issueCategory: IssueCategory.ERROR,
+          lastSeen: '2017-07-25T22:56:12Z',
+          firstSeen: '2017-07-01T02:06:02Z',
+        })}
+      />,
+      {organization}
+    );
+
+    expect(await screen.findByLabelText('replay-count')).toBeInTheDocument();
+    expect(mockReplayCount).toHaveBeenCalledTimes(1);
+  });
+
   it('details subscription reason when mentioned', () => {
     render(
       <GroupMetaRow
@@ -122,7 +149,7 @@ describe('GroupMetaRow', () => {
 
     expect(screen.getByRole('link', {name: '14'})).toHaveAttribute(
       'href',
-      `/organizations/org-slug/issues/groupId/activity/?filter=comments`
+      '/organizations/org-slug/issues/groupId/activity/?filter=comments'
     );
   });
 });

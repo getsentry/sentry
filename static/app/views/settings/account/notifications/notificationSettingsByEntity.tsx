@@ -81,7 +81,7 @@ export function NotificationSettingsByEntity({
     refetch,
   } = useApiQuery<Project[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/projects/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
         path: {organizationIdOrSlug: orgSlug!},
       }),
       {

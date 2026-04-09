@@ -61,12 +61,12 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          fields: [`epm()`],
-          aggregates: [`epm()`],
+          fields: ['epm()'],
+          aggregates: ['epm()'],
           columns: [],
           fieldAliases: [],
           conditions: BASE_QUERY.formatString(),
-          orderby: `-epm()`,
+          orderby: '-epm()',
         },
       ],
       widgetType: WidgetType.SPANS,
@@ -136,7 +136,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: ['p75(span.duration)'],
           aggregates: ['p75(span.duration)'],
           columns: [SpanFields.NORMALIZED_DESCRIPTION],
-          orderby: `-sum(span.duration)`,
+          orderby: '-sum(span.duration)',
           linkedDashboards: [
             {
               dashboardId: '-1',
@@ -162,7 +162,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: ['p75(span.duration)'],
           aggregates: ['p75(span.duration)'],
           columns: [SpanFields.SPAN_DOMAIN],
-          orderby: `-sum(span.duration)`,
+          orderby: '-sum(span.duration)',
           linkedDashboards: [
             {dashboardId: '-1', field: SpanFields.SPAN_DOMAIN, staticDashboardId: 5},
           ],

@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
+import {slot, withSlots} from '@sentry/scraps/slot';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IconSeer} from 'sentry/icons';
@@ -12,10 +13,14 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
 import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
-import {NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME} from './constants';
-import {PRIMARY_HEADER_HEIGHT} from './constants';
+import {
+  NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
+  PRIMARY_HEADER_HEIGHT,
+} from './constants';
 
-export function TopBar() {
+const Slot = slot(['title', 'actions', 'feedback'] as const);
+
+function TopBarContent() {
   const theme = useTheme();
   const organization = useOrganization({allowNull: true});
   const hasPageFrame = useHasPageFrameFeature();
@@ -39,29 +44,45 @@ export function TopBar() {
       position="sticky"
       borderBottom="primary"
       top={0}
-      // Keep the top bar in a cascade slightly below the sidebar panel so that when the sidebar panel
-      // is in the hover preview state, the top bar does not sit over it.
       style={{
         zIndex: theme.zIndex.sidebarPanel - 1,
       }}
     >
       <SizeProvider size="sm">
-        {/* @TODO(JonasBadalic): Implement breadcrumbs here */}
-        <Flex />
-        <Flex align="center" gap="md">
+        <Slot.Outlet name="title">
+          {props => <Flex {...props} align="center" gap="sm" />}
+        </Slot.Outlet>
+
+        <Flex align="center" gap="sm">
+          <Slot.Outlet name="actions">
+            {props => <Flex {...props} align="center" gap="sm" />}
+          </Slot.Outlet>
+
           {organization && isSeerExplorerEnabled(organization) ? (
             <Button icon={<IconSeer />} onClick={openExplorerPanel}>
               {t('Ask Seer')}
             </Button>
           ) : null}
-          <FeedbackButton
-            aria-label={t('Give Feedback')}
-            feedbackOptions={{tags: {'feedback.source': 'top_navigation'}}}
-          >
-            {null}
-          </FeedbackButton>
+
+          <Slot.Outlet name="feedback">
+            {props => (
+              <Flex {...props}>
+                {/* If no component registers a feedback button, show the default one */}
+                <Slot.Fallback>
+                  <FeedbackButton
+                    aria-label={t('Give Feedback')}
+                    feedbackOptions={{tags: {'feedback.source': 'top_navigation'}}}
+                  >
+                    {null}
+                  </FeedbackButton>
+                </Slot.Fallback>
+              </Flex>
+            )}
+          </Slot.Outlet>
         </Flex>
       </SizeProvider>
     </Flex>
   );
 }
+
+export const TopBar = withSlots(TopBarContent, Slot);

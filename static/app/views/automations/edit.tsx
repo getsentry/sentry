@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/react';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import type {FieldValue} from 'sentry/components/forms/model';
 import {FormModel} from 'sentry/components/forms/model';
@@ -168,7 +169,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       const formData = await resolveDetectorIdsForProjects({
         formData: data as AutomationFormData,
         onSubmitError,
-        orgSlug: organization.slug,
+        organization,
         projectIds: data.projectIds,
         queryClient,
       });
@@ -187,6 +188,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
           ...newAutomationData,
         });
         onSubmitSuccess(formModel?.getData() ?? data);
+        addSuccessMessage(t('Alert updated'));
         trackAnalytics('automation.updated', {
           organization,
           ...analyticsPayload,

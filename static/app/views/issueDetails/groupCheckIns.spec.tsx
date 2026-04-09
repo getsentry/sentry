@@ -32,7 +32,7 @@ describe('GroupCheckIns', () => {
     location: {
       pathname: `/organizations/${organization.slug}/issues/${group.id}/check-ins/`,
     },
-    route: `/organizations/:orgId/issues/:groupId/check-ins/`,
+    route: '/organizations/:orgId/issues/:groupId/check-ins/',
   };
 
   beforeEach(() => {

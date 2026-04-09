@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import classNames from 'classnames';
-import {motion, type HTMLMotionProps} from 'framer-motion';
+import {motion, type HTMLMotionProps, type Transition} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -11,7 +11,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconCheckmark, IconRefresh, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {testableTransition} from 'sentry/utils/testableTransition';
 import type {Theme} from 'sentry/utils/theme';
 
 interface ToastProps {
@@ -55,11 +54,11 @@ const TOAST_TRANSITION = {
   initial: {opacity: 0, y: 70},
   animate: {opacity: 1, y: 0},
   exit: {opacity: 0, y: 70},
-  transition: testableTransition({
+  transition: {
     type: 'spring',
     stiffness: 450,
     damping: 25,
-  }),
+  } satisfies Transition,
 };
 
 function ToastIcon({type}: {type: Indicator['type']}) {

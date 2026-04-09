@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import logging
+from enum import StrEnum
 from typing import Any, NotRequired, TypedDict
 from urllib.parse import urlparse
 
@@ -11,6 +12,7 @@ from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics
+from sentry.viewer_context import ViewerContext, get_viewer_context
 
 
 class SeerViewerContext(TypedDict, total=False):
@@ -47,6 +49,68 @@ seer_grouping_default_connection_pool = connection_from_url(
 )
 
 
+def _resolve_viewer_context(
+    explicit: SeerViewerContext | None = None,
+) -> ViewerContext | None:
+    """Merge explicit SeerViewerContext with the contextvar.
+
+    Converts the legacy SeerViewerContext into a ViewerContext, then merges
+    with the contextvar. Explicit non-None fields win. On disagreement,
+    logs a warning and strips the token for safety.
+    """
+    vc = get_viewer_context()
+
+    if explicit is None and vc is None:
+        return None
+    if explicit is None:
+        return vc
+
+    explicit_vc = ViewerContext(
+        organization_id=explicit.get("organization_id"),
+        user_id=explicit.get("user_id"),
+    )
+
+    if vc is None:
+        return explicit_vc
+
+    has_mismatch = False
+    org_id = vc.organization_id
+    user_id = vc.user_id
+
+    if explicit_vc.organization_id is not None:
+        if org_id is not None and org_id != explicit_vc.organization_id:
+            logger.warning(
+                "seer.viewer_context_mismatch",
+                extra={
+                    "field": "organization_id",
+                    "contextvar": org_id,
+                    "explicit": explicit_vc.organization_id,
+                },
+            )
+            has_mismatch = True
+        org_id = explicit_vc.organization_id
+
+    if explicit_vc.user_id is not None:
+        if user_id is not None and user_id != explicit_vc.user_id:
+            logger.warning(
+                "seer.viewer_context_mismatch",
+                extra={
+                    "field": "user_id",
+                    "contextvar": user_id,
+                    "explicit": explicit_vc.user_id,
+                },
+            )
+            has_mismatch = True
+        user_id = explicit_vc.user_id
+
+    return ViewerContext(
+        organization_id=org_id,
+        user_id=user_id,
+        actor_type=vc.actor_type,
+        token=None if has_mismatch else vc.token,
+    )
+
+
 @sentry_sdk.tracing.trace
 def make_signed_seer_api_request(
     connection_pool: HTTPConnectionPool,
@@ -72,10 +136,11 @@ def make_signed_seer_api_request(
         **auth_headers,
     }
 
-    if viewer_context:
+    resolved = _resolve_viewer_context(viewer_context)
+    if resolved:
         if settings.SEER_API_SHARED_SECRET:
             try:
-                context_bytes = orjson.dumps(viewer_context)
+                context_bytes = orjson.dumps(resolved.serialize())
                 context_signature = sign_viewer_context(context_bytes)
                 headers["X-Viewer-Context"] = context_bytes.decode("utf-8")
                 headers["X-Viewer-Context-Signature"] = context_signature
@@ -128,6 +193,16 @@ class RemoveRepositoryRequest(TypedDict):
     repo_external_id: str
 
 
+class RepoIdentifier(TypedDict):
+    repo_provider: str
+    repo_external_id: str
+
+
+class BulkRemoveRepositoriesRequest(TypedDict):
+    organization_id: int
+    repositories: list[RepoIdentifier]
+
+
 class ExplorerIndexProject(TypedDict):
     org_id: int
     project_id: int
@@ -150,6 +225,35 @@ class LlmGenerateRequest(TypedDict):
     temperature: float
     max_tokens: int
     response_schema: NotRequired[dict[str, Any]]
+
+
+class RepoDetails(TypedDict):
+    project_ids: list[int]
+    provider: str
+    owner: str
+    name: str
+    external_id: str
+    languages: list[str]
+    integration_id: NotRequired[str | None]
+
+
+class ExplorerIndexOrgRepoRequest(TypedDict):
+    org_id: int
+    repos: list[RepoDetails]
+
+
+def make_org_repo_knowledge_index_request(
+    body: ExplorerIndexOrgRepoRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/automation/explorer/index/org-repo-knowledge",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
 
 
 def make_org_project_knowledge_index_request(
@@ -188,6 +292,20 @@ def make_remove_repository_request(
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v1/project-preference/remove-repository",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+def make_bulk_remove_repositories_request(
+    body: BulkRemoveRepositoriesRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/project-preference/bulk-remove-repositories",
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
@@ -252,6 +370,11 @@ class SummarizeIssueRequest(TypedDict):
     experiment_variant: NotRequired[str | None]
 
 
+class RCASource(StrEnum):
+    EXPLORER = "EXPLORER"
+    LIGHTWEIGHT = "LIGHTWEIGHT"
+
+
 class SupergroupsEmbeddingRequest(TypedDict):
     organization_id: int
     group_id: int
@@ -259,21 +382,40 @@ class SupergroupsEmbeddingRequest(TypedDict):
     artifact_data: dict[str, Any]
 
 
-class SupergroupsListRequest(TypedDict):
+class LightweightRCAClusterRequest(TypedDict):
+    group_id: int
+    issue: dict[str, Any]
+    organization_slug: str
     organization_id: int
-    offset: NotRequired[int | None]
-    limit: NotRequired[int | None]
-    project_ids: NotRequired[list[int] | None]
+    project_id: int
 
 
 class SupergroupsGetRequest(TypedDict):
     organization_id: int
     supergroup_id: int
+    rca_source: str
 
 
 class SupergroupsGetByGroupIdsRequest(TypedDict):
     organization_id: int
     group_ids: list[int]
+    rca_source: str
+
+
+class SupergroupDetailData(TypedDict):
+    id: int
+    title: str
+    summary: str
+    error_type: str
+    code_area: str
+    group_ids: list[int]
+    project_ids: list[int]
+    created_at: str
+    updated_at: str
+
+
+class SupergroupsByGroupIdsResponse(TypedDict):
+    data: list[SupergroupDetailData]
 
 
 class ServiceMapUpdateRequest(TypedDict):
@@ -375,15 +517,15 @@ def make_supergroups_embedding_request(
     )
 
 
-def make_supergroups_list_request(
-    body: SupergroupsListRequest,
-    viewer_context: SeerViewerContext,
+def make_lightweight_rca_cluster_request(
+    body: LightweightRCAClusterRequest,
     timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
-        "/v0/issues/supergroups/list",
-        body=orjson.dumps(body),
+        "/v0/issues/supergroups/cluster-lightweight",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         timeout=timeout,
         viewer_context=viewer_context,
     )

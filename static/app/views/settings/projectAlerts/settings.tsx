@@ -29,7 +29,7 @@ function makeFetchProjectPluginsQueryKey(
   projectSlug: string
 ): ApiQueryKey {
   return [
-    getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/plugins/`, {
+    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/plugins/', {
       path: {organizationIdOrSlug: organizationSlug, projectIdOrSlug: projectSlug},
     }),
   ];
@@ -64,7 +64,7 @@ export default function ProjectAlertSettings() {
           <LinkButton
             to={{
               pathname: makeAlertsPathname({
-                path: `/rules/`,
+                path: '/rules/',
                 organization,
               }),
               query: {project: project?.id},

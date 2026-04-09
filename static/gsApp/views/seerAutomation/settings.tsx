@@ -79,7 +79,7 @@ export function SeerAutomationSettings() {
       <SettingsPageHeader
         title={t('Seer Overview')}
         subtitle={tct(
-          `Configure how Seer works with your codebase. Seer includes [autofix:Autofix] and [code_review:Code Review]. Autofix will triage your Issues as they are created, and can automatically send them to a coding agent for Root Cause Analysis, Solution generation, and PR creation. Code Review will review your pull requests to detect issues before they happen. [docs:Read the docs] to learn what Seer can do.`,
+          'Configure how Seer works with your codebase. Seer includes [autofix:Autofix] and [code_review:Code Review]. Autofix will triage your Issues as they are created, and can automatically send them to a coding agent for Root Cause Analysis, Solution generation, and PR creation. Code Review will review your pull requests to detect issues before they happen. [docs:Read the docs] to learn what Seer can do.',
           {
             autofix: (
               <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#root-cause-analysis" />
@@ -94,14 +94,13 @@ export function SeerAutomationSettings() {
         )}
       />
       <SeerSettingsPageContent>
-        <SCMOverviewSection
-          {...scmOverviewData}
-          canWrite={canWrite}
-          organizationSlug={organization.slug}
-        />
-
         {showSeerOverview ? (
-          <Fragment>
+          <div>
+            <SCMOverviewSection
+              {...scmOverviewData}
+              canWrite={canWrite}
+              organizationSlug={organization.slug}
+            />
             <AutofixOverviewSection
               {...autofixOverviewData}
               canWrite={canWrite}
@@ -112,9 +111,14 @@ export function SeerAutomationSettings() {
               canWrite={canWrite}
               organization={organization}
             />
-          </Fragment>
+          </div>
         ) : (
           <Fragment>
+            <SCMOverviewSection
+              {...scmOverviewData}
+              canWrite={canWrite}
+              organizationSlug={organization.slug}
+            />
             <FieldGroup
               title={
                 <Flex gap="md">

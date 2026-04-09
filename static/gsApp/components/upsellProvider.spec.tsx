@@ -41,7 +41,7 @@ describe('UpsellProvider', () => {
 
     // might re-load the org/sub after a trial starts
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/`,
+      url: '/organizations/org-slug/',
       body: org,
     });
 

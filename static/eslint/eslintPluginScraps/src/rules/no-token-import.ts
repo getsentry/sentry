@@ -29,7 +29,7 @@ export const noTokenImport = ESLintUtils.RuleCreator.withoutDocs({
     },
     schema: [],
     messages: {
-      forbidden: `Do not import scraps tokens directly - prefer using theme tokens.`,
+      forbidden: 'Do not import scraps tokens directly - prefer using theme tokens.',
     },
   },
   create(context) {

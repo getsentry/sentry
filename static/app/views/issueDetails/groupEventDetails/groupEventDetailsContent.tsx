@@ -37,7 +37,6 @@ import {HighlightsDataSection} from 'sentry/components/events/highlights/highlig
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
-import {CronTimelineSection} from 'sentry/components/events/interfaces/crons/cronTimelineSection';
 import {Csp} from 'sentry/components/events/interfaces/csp';
 import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
 import {Exception} from 'sentry/components/events/interfaces/exception';
@@ -52,7 +51,6 @@ import {StackTrace} from 'sentry/components/events/interfaces/stackTrace';
 import {Template} from 'sentry/components/events/interfaces/template';
 import {Threads} from 'sentry/components/events/interfaces/threads';
 import {UptimeAssertionsSection} from 'sentry/components/events/interfaces/uptime/uptimeAssertionsSection';
-import {UptimeDataSection} from 'sentry/components/events/interfaces/uptime/uptimeDataSection';
 import {MetricsSection} from 'sentry/components/events/metrics/metricsSection';
 import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';
 import {EventPackageData} from 'sentry/components/events/packageData';
@@ -78,6 +76,7 @@ import {
 } from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {SourceMapIssueDetails} from 'sentry/views/issueDetails/configurationIssues/sourceMapIssues/sourceMapIssueDetails';
 import {MetricIssuesSection} from 'sentry/views/issueDetails/metricIssues/metricIssuesSection';
 import {
   getHangProfileData,
@@ -159,6 +158,10 @@ export function EventDetailsContent({
 
   const issueTypeConfig = getConfigForIssueType(group, group.project);
 
+  if (group.issueType === IssueType.SOURCEMAP_CONFIGURATION) {
+    return <SourceMapIssueDetails group={group} event={event} project={project} />;
+  }
+
   return (
     <Fragment>
       {hasStreamlinedUI && (
@@ -217,16 +220,6 @@ export function EventDetailsContent({
             />
           ) : null}
         </InterimSection>
-      )}
-      {!hasStreamlinedUI && group.issueType === IssueType.UPTIME_DOMAIN_FAILURE && (
-        <UptimeDataSection event={event} project={project} group={group} />
-      )}
-      {!hasStreamlinedUI && group.issueType === IssueType.MONITOR_CHECK_IN_FAILURE && (
-        <CronTimelineSection
-          event={event}
-          organization={organization}
-          project={project}
-        />
       )}
       {(event.contexts?.metric_alert?.alert_rule_id ||
         event?.occurrence?.evidenceData?.alertId) && (

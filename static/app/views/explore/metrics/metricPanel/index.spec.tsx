@@ -5,8 +5,9 @@ import {
   initializeTraceMetricsTest,
 } from 'sentry-fixture/tracemetrics';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
+import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
 import {MetricPanel} from 'sentry/views/explore/metrics/metricPanel';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
@@ -43,9 +44,7 @@ function setupMocks(orgSlug: string) {
   MockApiClient.addMockResponse({
     url: `/organizations/${orgSlug}/events-timeseries/`,
     method: 'GET',
-    body: {
-      timeSeries: [TimeSeriesFixture()],
-    },
+    body: {timeSeries: [TimeSeriesFixture()]},
   });
 
   // Catch-all for /events/ requests not matched by specific referrer mocks
@@ -158,12 +157,40 @@ describe('MetricPanel', () => {
         additionalWrapper: createWrapper({queryParams, traceMetric}),
       });
 
-      await waitFor(() => {
-        expect(screen.getByTestId('metric-panel')).toBeInTheDocument();
-      });
-
+      expect(await screen.findByTestId('metric-panel')).toBeInTheDocument();
       // The visualize label badge ("A") should NOT be present
       expect(screen.queryByText('A')).not.toBeInTheDocument();
+    });
+
+    it('renders the refreshed samples column order', async () => {
+      const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
+
+      render(
+        <MetricsSamplesTable overrideTableData={[metricFixtures.detailedFixtures[0]!]} />,
+        {organization, additionalWrapper: createWrapper({queryParams, traceMetric})}
+      );
+
+      const samplesTable = await screen.findByRole('table');
+      const columnHeaders = await within(samplesTable).findAllByRole('columnheader');
+      expect(columnHeaders.map(header => header.textContent?.trim() ?? '')).toEqual([
+        '',
+        'Trace ID',
+        'Project',
+        'Value',
+        'Timestamp',
+      ]);
+    });
+
+    it('renders refreshed project and relative timestamp cells', async () => {
+      const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
+
+      render(
+        <MetricsSamplesTable overrideTableData={[metricFixtures.detailedFixtures[0]!]} />,
+        {organization, additionalWrapper: createWrapper({queryParams, traceMetric})}
+      );
+
+      expect(await screen.findByText(project.slug)).toBeInTheDocument();
+      expect(screen.getAllByText(/ago$/).length).toBeGreaterThan(0);
     });
   });
 
@@ -228,29 +255,13 @@ describe('MetricPanel', () => {
       expect(await screen.findByText('A')).toBeInTheDocument();
     });
 
-    it('does not render telemetry column headers in the samples table', async () => {
-      render(<MetricPanel traceMetric={traceMetric} queryIndex={0} />, {
-        organization,
-        additionalWrapper: createWrapper({queryParams, traceMetric}),
-      });
-
-      // Wait for the samples table to render
-      expect(await screen.findByText('Timestamp')).toBeInTheDocument();
-
-      expect(screen.queryByText('Logs')).not.toBeInTheDocument();
-      expect(screen.queryByText('Spans')).not.toBeInTheDocument();
-      expect(screen.queryByText('Errors')).not.toBeInTheDocument();
-    });
-
     it('does not render orientation controls', async () => {
       render(<MetricPanel traceMetric={traceMetric} queryIndex={0} />, {
         organization,
         additionalWrapper: createWrapper({queryParams, traceMetric}),
       });
 
-      await waitFor(() => {
-        expect(screen.getByTestId('metric-panel')).toBeInTheDocument();
-      });
+      expect(await screen.findByTestId('metric-panel')).toBeInTheDocument();
 
       // Orientation controls should NOT be present in the refreshed UI
       expect(

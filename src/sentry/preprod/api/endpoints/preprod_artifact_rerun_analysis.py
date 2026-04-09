@@ -22,8 +22,8 @@ from sentry.preprod.models import (
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
 )
-from sentry.preprod.producer import PreprodFeature, produce_preprod_artifact_to_kafka
-from sentry.preprod.quotas import should_run_distribution, should_run_size
+from sentry.preprod.quotas import should_run_size
+from sentry.preprod.tasks import dispatch_taskbroker
 
 logger = logging.getLogger(__name__)
 
@@ -64,41 +64,15 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
 
         organization = head_artifact.project.organization
 
-        # Empty list is valid - triggers default processing behavior
-        requested_features: list[PreprodFeature] = []
-
         run_size, _ = should_run_size(head_artifact, actor=request.user)
         if run_size:
-            requested_features.append(PreprodFeature.SIZE_ANALYSIS)
-
-        run_distribution, _ = should_run_distribution(head_artifact, actor=request.user)
-        if run_distribution:
-            requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
-
-        if PreprodFeature.SIZE_ANALYSIS in requested_features:
             cleanup_old_metrics(head_artifact)
         reset_artifact_data(head_artifact)
 
-        try:
-            produce_preprod_artifact_to_kafka(
-                project_id=head_artifact.project.id,
-                organization_id=organization.id,
-                artifact_id=head_artifact_id,
-                requested_features=requested_features,
-            )
-        except Exception:
-            logger.exception(
-                "preprod_artifact.rerun_analysis.kafka_error",
-                extra={
-                    "artifact_id": head_artifact_id,
-                    "user_id": request.user.id,
-                    "organization_id": organization.id,
-                    "project_id": head_artifact.project.id,
-                },
-            )
+        if not dispatch_taskbroker(head_artifact.project.id, organization.id, head_artifact_id):
             return Response(
                 {
-                    "error": f"Failed to queue analysis for artifact {head_artifact_id}",
+                    "detail": f"Failed to queue analysis for artifact {head_artifact_id}",
                 },
                 status=500,
             )
@@ -141,14 +115,14 @@ class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
         try:
             data = orjson.loads(request.body)
         except (orjson.JSONDecodeError, TypeError):
-            return Response({"error": "Invalid JSON body"}, status=400)
+            return Response({"detail": "Invalid JSON body"}, status=400)
 
         preprod_artifact_id = data.get("preprod_artifact_id")
         try:
             preprod_artifact_id = int(preprod_artifact_id)
         except (ValueError, TypeError):
             return Response(
-                {"error": "preprod_artifact_id is required and must be a valid integer"},
+                {"detail": "preprod_artifact_id is required and must be a valid integer"},
                 status=400,
             )
 
@@ -156,7 +130,7 @@ class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
             preprod_artifact = PreprodArtifact.objects.get(id=preprod_artifact_id)
         except PreprodArtifact.DoesNotExist:
             return Response(
-                {"error": f"Preprod artifact {preprod_artifact_id} not found"}, status=404
+                {"detail": f"Preprod artifact {preprod_artifact_id} not found"}, status=404
             )
 
         analytics.record(
@@ -171,31 +145,13 @@ class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
         cleanup_stats = cleanup_old_metrics(preprod_artifact)
         reset_artifact_data(preprod_artifact)
 
-        try:
-            # Admin endpoint bypasses quota checks and requests all features
-            produce_preprod_artifact_to_kafka(
-                project_id=preprod_artifact.project.id,
-                organization_id=preprod_artifact.project.organization_id,
-                artifact_id=preprod_artifact_id,
-                requested_features=[
-                    PreprodFeature.SIZE_ANALYSIS,
-                    PreprodFeature.BUILD_DISTRIBUTION,
-                ],
-            )
-        except Exception as e:
-            logger.exception(
-                "preprod_artifact.admin_rerun_analysis.kafka_error",
-                extra={
-                    "artifact_id": preprod_artifact_id,
-                    "user_id": request.user.id,
-                    "organization_id": preprod_artifact.project.organization_id,
-                    "project_id": preprod_artifact.project.id,
-                    "error": str(e),
-                },
-            )
+        organization = preprod_artifact.project.organization
+        if not dispatch_taskbroker(
+            preprod_artifact.project.id, organization.id, preprod_artifact_id
+        ):
             return Response(
                 {
-                    "error": f"Failed to queue analysis for artifact {preprod_artifact_id}",
+                    "detail": f"Failed to queue analysis for artifact {preprod_artifact_id}",
                 },
                 status=500,
             )
@@ -218,6 +174,101 @@ class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
         )
 
 
+@internal_cell_silo_endpoint
+class PreprodArtifactAdminBatchRerunAnalysisEndpoint(Endpoint):
+    owner = ApiOwner.EMERGE_TOOLS
+    permission_classes = (StaffPermission,)
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+    }
+
+    def post(self, request: Request) -> Response:
+        try:
+            data = orjson.loads(request.body)
+        except (orjson.JSONDecodeError, TypeError):
+            return Response({"detail": "Invalid JSON body"}, status=400)
+
+        raw_ids = data.get("artifact_ids", [])
+        if not isinstance(raw_ids, list) or not raw_ids:
+            return Response(
+                {"detail": "artifact_ids is required and must be a non-empty list"},
+                status=400,
+            )
+
+        try:
+            artifact_ids = list(dict.fromkeys(int(aid) for aid in raw_ids))
+        except (ValueError, TypeError):
+            return Response(
+                {"detail": "artifact_ids must be a list of integers"},
+                status=400,
+            )
+
+        if len(artifact_ids) > 100:
+            return Response(
+                {"detail": "Cannot rerun analysis for more than 100 artifacts at once"},
+                status=400,
+            )
+
+        artifacts = list(
+            PreprodArtifact.objects.select_related("project__organization").filter(
+                id__in=artifact_ids
+            )
+        )
+        artifacts_by_id = {a.id: a for a in artifacts}
+
+        missing_ids = set(artifact_ids) - set(artifacts_by_id.keys())
+        if missing_ids:
+            return Response(
+                {"detail": f"Artifacts not found: {sorted(missing_ids)}"},
+                status=404,
+            )
+
+        results: list[dict[str, object]] = []
+        for artifact_id in artifact_ids:
+            artifact = artifacts_by_id[artifact_id]
+            organization = artifact.project.organization
+
+            analytics.record(
+                PreprodArtifactApiRerunAnalysisEvent(
+                    organization_id=organization.id,
+                    project_id=artifact.project.id,
+                    user_id=request.user.id,
+                    artifact_id=str(artifact_id),
+                )
+            )
+
+            cleanup_stats = cleanup_old_metrics(artifact)
+            reset_artifact_data(artifact)
+
+            dispatched = dispatch_taskbroker(artifact.project.id, organization.id, artifact_id)
+            if not dispatched:
+                artifact.refresh_from_db()
+
+            result: dict[str, object] = {
+                "artifact_id": str(artifact_id),
+                "success": dispatched,
+                "new_state": artifact.state,
+                "cleanup_stats": asdict(cleanup_stats),
+            }
+            if not dispatched:
+                result["detail"] = "Cleanup completed but dispatch failed"
+            results.append(result)
+
+            if dispatched:
+                logger.info(
+                    "preprod_artifact.admin_batch_rerun_analysis",
+                    extra={
+                        "artifact_id": artifact_id,
+                        "user_id": request.user.id,
+                        "organization_id": organization.id,
+                        "project_id": artifact.project.id,
+                        "cleanup_stats": asdict(cleanup_stats),
+                    },
+                )
+
+        return Response({"results": results})
+
+
 def cleanup_old_metrics(preprod_artifact: PreprodArtifact) -> CleanupStats:
     """Deletes old size metrics and comparisons associated with an artifact along with any associated files."""
 
@@ -228,14 +279,10 @@ def cleanup_old_metrics(preprod_artifact: PreprodArtifact) -> CleanupStats:
         PreprodArtifactSizeMetrics.objects.filter(preprod_artifact=preprod_artifact)
     )
 
-    file_ids_to_delete = []
-
     if size_metrics:
         size_metric_ids = [sm.id for sm in size_metrics]
 
-        for size_metric in size_metrics:
-            if size_metric.analysis_file_id:
-                file_ids_to_delete.append(size_metric.analysis_file_id)
+        file_ids_to_delete = [sm.analysis_file_id for sm in size_metrics if sm.analysis_file_id]
 
         comparisons = PreprodArtifactSizeComparison.objects.filter(
             head_size_analysis_id__in=size_metric_ids
@@ -253,10 +300,9 @@ def cleanup_old_metrics(preprod_artifact: PreprodArtifact) -> CleanupStats:
                 id__in=size_metric_ids
             ).delete()
 
-        if file_ids_to_delete:
-            for file in File.objects.filter(id__in=file_ids_to_delete):
-                file.delete()
-                stats.files_total_deleted += 1
+        for file in File.objects.filter(id__in=file_ids_to_delete):
+            file.delete()
+            stats.files_total_deleted += 1
 
     PreprodArtifactSizeMetrics.objects.create(
         preprod_artifact=preprod_artifact,

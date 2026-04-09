@@ -1,11 +1,19 @@
 import dataclasses
+import logging
 import re
-from collections import OrderedDict, defaultdict
+from collections import Counter, OrderedDict, defaultdict
 from collections.abc import Sequence
 from ipaddress import ip_address, ip_interface, ip_network
-from typing import Callable
+from typing import Any, Callable
 
 from sentry.utils import metrics
+
+logger = logging.getLogger("sentry.events.grouping")
+
+
+# Counter for logging a set amount of example data. Not meant to be used directly. (Use the
+# `_log_example_data` helper instead.)
+LOGGING_COUNTER: Counter[str] = Counter()
 
 # Function parameterization regexes can specify to provide a customized replacement string. Can also
 # be used to do conditional replacement, by returning the original value in cases where replacement
@@ -13,13 +21,27 @@ from sentry.utils import metrics
 ParameterizationReplacementFunction = Callable[[str], str]
 
 
+# Log examples, up to the given limit.
+def _log_example_data(
+    key: str,  # Key used for tracking log count and in logger `event` string
+    extra: dict[str, Any],  # Extra data to add to the log (should include example data)
+    limit: int = 100,  # Number of logs to be gathered per deployment
+) -> None:
+    # Note: In a multi-threaded environment, it's possible to run into a race condition where
+    # multiple threads are simultaneously logging what should theoretically be the last example. As
+    # result, we may end up logging a few more examples than the given limit. To fix this, we'd need
+    # to wrap everything here in a lock, but given that a few extra logs don't hurt anything, it's
+    # not worth blocking ingest by doing so.
+    if LOGGING_COUNTER[key] < limit:
+        logger.info(f"grouping.parameterization.{key}", extra=extra)
+        LOGGING_COUNTER[key] += 1
+
+
 @dataclasses.dataclass
 class ParameterizationRegex:
     name: str  # name of the pattern (also used as group name in combined regex)
     raw_pattern: str  # regex pattern w/o matching group name
     raw_pattern_experimental: str | None = None
-    lookbehind: str | None = None  # positive lookbehind prefix if needed
-    lookahead: str | None = None  # positive lookahead postfix if needed
     # Function which takes the matched value and returns the replacement value.
     replacement_callback: ParameterizationReplacementFunction | None = None
 
@@ -38,11 +60,9 @@ class ParameterizationRegex:
 
     def _get_pattern(self, raw_pattern: str) -> str:
         """
-        Returns the regex pattern with a named matching group and lookbehind/lookahead if needed.
+        Returns the regex pattern inside of a named matching group.
         """
-        prefix = rf"(?<={self.lookbehind})" if self.lookbehind else ""
-        postfix = rf"(?={self.lookahead})" if self.lookahead else ""
-        return rf"{prefix}(?P<{self.name}>{raw_pattern}){postfix}"
+        return rf"(?P<{self.name}>{raw_pattern})"
 
 
 def is_valid_ip(maybe_ip_str: str) -> bool:
@@ -311,23 +331,25 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
     ParameterizationRegex(
         name="quoted_str",
         raw_pattern=r"""
-            '([^']+)' | "([^"]+)"
+            # Lookbehind to ensure we'll only match the value half of `<key>=<value>`-type key-value
+            # pairs, rather than all quoted strings
+            (?<=[=])
+            (
+                '([^']+)' |
+                "([^"]+)"
+            )
         """,
-        # Using an `=` lookbehind guarantees we'll only match the value half of key-value pairs,
-        # rather than all quoted strings
-        lookbehind="=",
     ),
     ParameterizationRegex(
         name="bool",
         raw_pattern=r"""
-            True |
-            true |
-            False |
-            false
+            # Lookbehind to ensure we'll only match the value half of `<key>=<value>`-type key-value
+            # pairs, rather than all instances of the words 'true' and 'false'
+            (?<=[=])
+            (
+                True | true | False | false
+            )
         """,
-        # Using an `=` lookbehind guarantees we'll only match the value half of key-value pairs,
-        # rather than all instances of the words 'true' and 'false'.
-        lookbehind="=",
     ),
 ]
 
@@ -401,6 +423,9 @@ class Parameterizer:
         replacement_counts: defaultdict[str, int] = defaultdict(int)
         # Track whether any regex matches don't lead to a replacement
         found_false_positive = False
+        # Flag allowing us to only count false positives during the main parameterization, not the
+        # fallback run
+        emit_false_positive_metric = True
 
         def _handle_regex_match(match: re.Match[str]) -> str:
             # Ensure we're dealing with the flag from the outer scope, rather than shadowing it
@@ -435,6 +460,20 @@ class Parameterizer:
             else:
                 found_false_positive = True
 
+                # This is only true during the main combo-regex parameterization, not during
+                # fallback, so that we don't double-count these occurrences
+                if emit_false_positive_metric:
+                    # Track the number of false positive matches, and what pattern produced them. We
+                    # can compare this to the same key's `grouping.value_parameterized` metric below
+                    # to see how often our maybe-matches pan out to be actual matches.
+                    metrics.incr(
+                        "grouping.parameterization_false_positive", tags={"key": matched_key}
+                    )
+                    # TODO: Remove this once we have enough sample data
+                    _log_example_data(
+                        "ip_false_positive", extra={"input_str": input_str, "value": orig_value}
+                    )
+
             return replacement_string
 
         with metrics.timer(
@@ -453,6 +492,9 @@ class Parameterizer:
                 # Reset values before applying the patterns again
                 replacement_counts = defaultdict(int)
                 parameterized = input_str
+
+                # Prevent double-counting of false positives
+                emit_false_positive_metric = False
 
                 # Apply patterns one by one, with no short-circuiting
                 for regex_key, regex in self.compiled_regexes_by_name.items():

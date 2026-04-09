@@ -21,6 +21,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.seer.autofix.utils import (
     CodingAgentResult,
     CodingAgentStatus,
@@ -58,7 +59,8 @@ class CursorWebhookEndpoint(Endpoint):
             logger.warning("cursor_webhook.invalid_signature")
             raise PermissionDenied("Invalid signature")
 
-        self._process_webhook(payload)
+        with webhook_viewer_context(organization_id):
+            self._process_webhook(payload)
         logger.info("cursor_webhook.success", extra={"event_type": event_type})
         return self.respond(status=204)
 

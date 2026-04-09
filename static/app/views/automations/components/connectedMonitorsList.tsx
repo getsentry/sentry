@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 
@@ -12,11 +13,13 @@ import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
 import {t, tct} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseCursor} from 'sentry/utils/cursor';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
 import {DetectorAssigneeCell} from 'sentry/views/detectors/components/detectorListTable/detectorAssigneeCell';
 import {DetectorTypeCell} from 'sentry/views/detectors/components/detectorListTable/detectorTypeCell';
-import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
+import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 
 const DEFAULT_DETECTORS_PER_PAGE = 10;
 
@@ -80,29 +83,25 @@ export function ConnectedMonitorsList({
   projectIds,
   ...props
 }: Props) {
+  const organization = useOrganization();
   const canEdit = Boolean(connectedDetectorIds && typeof toggleConnected === 'function');
 
-  const {
-    data: detectors,
-    isLoading,
-    isError,
-    isSuccess,
-    getResponseHeader,
-  } = useDetectorsQuery(
-    {
+  const {data, isLoading, isError, isSuccess} = useQuery({
+    ...detectorListApiOptions(organization, {
       ids: detectorIds ?? undefined,
       limit: limit ?? undefined,
       cursor,
       query,
       includeIssueStreamDetectors: true,
       projects: projectIds,
-    },
-    {enabled: detectorIds === null || detectorIds.length > 0}
-  );
+    }),
+    select: selectJsonWithHeaders,
+    enabled: detectorIds === null || detectorIds.length > 0,
+  });
 
-  const pageLinks = getResponseHeader?.('Link');
-  const totalCount = getResponseHeader?.('X-Hits');
-  const totalCountInt = totalCount ? parseInt(totalCount, 10) : 0;
+  const detectors = data?.json;
+  const pageLinks = data?.headers.Link;
+  const totalCountInt = data?.headers['X-Hits'] ?? 0;
 
   const paginationCaption = useMemo(() => {
     if (isLoading || !detectors || detectors?.length === 0 || limit === null) {
@@ -148,13 +147,13 @@ export function ConnectedMonitorsList({
           />
         )}
         {isError && <LoadingError />}
-        {((isSuccess && detectors.length === 0) ||
+        {((isSuccess && detectors?.length === 0) ||
           (detectorIds !== null && detectorIds.length === 0)) && (
           <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
         )}
         {isSuccess &&
           (detectorIds === null || detectorIds.length > 0) &&
-          detectors.map(detector => (
+          detectors?.map(detector => (
             <SimpleTable.Row key={detector.id}>
               <SimpleTable.RowCell>
                 <DetectorLink detector={detector} openInNewTab={openInNewTab} />

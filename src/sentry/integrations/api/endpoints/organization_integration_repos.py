@@ -22,6 +22,7 @@ class IntegrationRepository(TypedDict):
     identifier: str
     isInstalled: bool
     defaultBranch: str | None
+    externalId: str
 
 
 @cell_silo_endpoint
@@ -49,6 +50,10 @@ class OrganizationIntegrationReposEndpoint(CellOrganizationIntegrationBaseEndpoi
         :qparam string search: Name fragment to search repositories by.
         :qparam bool installableOnly: If true, return only repositories that can be installed.
                                       If false or not provided, return all repositories.
+        :qparam bool accessibleOnly: If true, only return repositories that the integration
+                                     installation has access to, filtering locally instead of
+                                     using the provider's search API which may return results
+                                     beyond the installation's scope.
         """
         integration = self.get_integration(organization.id, integration_id)
 
@@ -63,8 +68,11 @@ class OrganizationIntegrationReposEndpoint(CellOrganizationIntegrationBaseEndpoi
         install = integration.get_installation(organization_id=organization.id)
 
         if isinstance(install, RepositoryIntegration):
+            search = request.GET.get("search")
+            accessible_only = request.GET.get("accessibleOnly", "false").lower() == "true"
+
             try:
-                repositories = install.get_repositories(request.GET.get("search"))
+                repositories = install.get_repositories(search, accessible_only=accessible_only)
             except (IntegrationError, IdentityNotValid) as e:
                 return self.respond({"detail": str(e)}, status=400)
 
@@ -78,6 +86,7 @@ class OrganizationIntegrationReposEndpoint(CellOrganizationIntegrationBaseEndpoi
                     identifier=repo["identifier"],
                     defaultBranch=repo.get("default_branch"),
                     isInstalled=repo["identifier"] in installed_repo_names,
+                    externalId=repo["external_id"],
                 )
                 for repo in repositories
                 if not installable_only or repo["identifier"] not in installed_repo_names

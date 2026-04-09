@@ -1351,7 +1351,7 @@ export class VirtualizedViewManager {
 
       if (i < start_indicator || i > end_indicator) {
         entry.ref.style.opacity = '0';
-        label.style.opacity = `0`;
+        label.style.opacity = '0';
         continue;
       }
 
@@ -1406,7 +1406,7 @@ export class VirtualizedViewManager {
 
       indicator_label_right = clamped_label_transform + label_width;
 
-      label.style.opacity = `1`;
+      label.style.opacity = '1';
       label.style.transform = `translateX(${clamp(clamped_label_transform, -1, indicator_max)}px)`;
 
       entry.ref.style.opacity = '1';
@@ -1561,7 +1561,7 @@ export class VirtualizedViewManager {
     if (first && last) {
       first.style.opacity = '1';
       last.style.opacity = '1';
-      first.style.transform = `translateX(0)`;
+      first.style.transform = 'translateX(0)';
 
       // 43 px offset is the width of a 0.00ms label, since we usually anchor the label to the right
       // side of the indicator, we need to offset it by the width of the label to make it look like

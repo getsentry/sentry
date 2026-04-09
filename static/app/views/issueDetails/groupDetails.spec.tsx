@@ -86,7 +86,7 @@ describe('groupDetails', () => {
     act(() => ProjectsStore.loadInitialData(defaultInit.projects));
 
     MockApiClient.addMockResponse({
-      url: `/assistant/`,
+      url: '/assistant/',
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -335,7 +335,7 @@ describe('groupDetails', () => {
 
   it('renders error when project does not exist', async () => {
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/other-project-slug/issues/`,
+      url: '/projects/org-slug/other-project-slug/issues/',
       method: 'PUT',
     });
     MockApiClient.addMockResponse({

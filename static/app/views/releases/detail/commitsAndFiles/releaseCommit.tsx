@@ -39,7 +39,7 @@ export function ReleaseCommit({commit}: ReleaseCommitProps) {
 
       if (!commit.author?.email) {
         Sentry.captureException(
-          new Error(`Commit author has no email or id, invite flow is broken.`)
+          new Error('Commit author has no email or id, invite flow is broken.')
         );
         return;
       }

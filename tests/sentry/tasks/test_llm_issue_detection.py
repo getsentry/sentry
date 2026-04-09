@@ -89,8 +89,6 @@ class LLMIssueDetectionTest(TestCase):
             offender_span_ids=["span_1", "span_2"],
             trace_id="abc123xyz",
             transaction_name="test_transaction",
-            subcategory="Connection Pool Exhaustion",
-            category="Database",
             verification_reason="Problem is correctly identified",
             group_for_fingerprint="Slow Database Query",
         )
@@ -156,8 +154,6 @@ class LLMIssueDetectionTest(TestCase):
             offender_span_ids=[],
             trace_id="trace456",
             transaction_name="GET /api",
-            subcategory="N+1",
-            category="Performance",
             verification_reason="Verified",
             group_for_fingerprint="N+1 Database Queries",
         )
