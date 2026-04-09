@@ -682,6 +682,7 @@ module = [
   "sentry.tasks.beacon",
   "sentry.tasks.codeowners.*",
   "sentry.tasks.commit_context",
+  "sentry.tasks.commits",
   "sentry.tasks.on_demand_metrics",
   "sentry.tasks.post_process",
   "sentry.tasks.reprocessing2",
