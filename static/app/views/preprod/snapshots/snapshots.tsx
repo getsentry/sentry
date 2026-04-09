@@ -76,7 +76,7 @@ export default function SnapshotsPage() {
   const [showOverlay, setShowOverlay] = useState(true);
   const [overlayColor, setOverlayColor] = useState<string>(() => {
     const palette = theme.chart.getColorPalette(10);
-    return palette.at(-1) ?? '#67C800';
+    return palette.at(-5) ?? palette[0];
   });
   const [diffMode, setDiffMode] = useState<DiffMode>('split');
 
