@@ -9,6 +9,7 @@ from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.seer.autofix.utils import is_issue_category_eligible
+from sentry.snuba.referrer import Referrer
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
 from sentry.types.group import PriorityLevel
 
@@ -59,7 +60,7 @@ def fixability_score_strategy(
             SearchFilter(SearchKey("status"), "=", SearchValue([GroupStatus.UNRESOLVED])),
             SearchFilter(SearchKey("issue.seer_last_run"), "=", SearchValue("")),
         ],
-        referrer="seer.night_shift.fixability_score_strategy",
+        referrer=Referrer.SEER_NIGHT_SHIFT_FIXABILITY_SCORE_STRATEGY.value,
     )
 
     candidates: list[ScoredCandidate] = []
