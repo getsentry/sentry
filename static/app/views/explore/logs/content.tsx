@@ -135,7 +135,7 @@ function LogsHeader() {
         <Fragment>
           {defined(onboardingProject) && (
             <TopBar.Slot name="actions">
-              <SetupLogsButton />
+              <SetupLogsButton size={undefined} />
             </TopBar.Slot>
           )}
           <TopBar.Slot name="feedback">
@@ -158,6 +158,7 @@ function SetupLogsButton() {
   const organization = useOrganization();
   const projects = useProjects();
   const pageFilters = usePageFilters();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   let project = projects.projects?.[0];
 
   const filtered = projects.projects?.filter(p =>
@@ -181,7 +182,7 @@ function SetupLogsButton() {
       priority="primary"
       href="https://docs.sentry.io/product/explore/logs/getting-started/"
       external
-      size="sm"
+      size={hasPageFrameFeature ? undefined : 'xs'}
       onClick={() => {
         trackAnalytics('logs.explorer.setup_button_clicked', {
           organization,
