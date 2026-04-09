@@ -474,6 +474,7 @@ module = [
   "sentry.identity.vsts_extension.*",
   "sentry.incidents.endpoints.bases",
   "sentry.incidents.handlers.*",
+  "sentry.incidents.metric_issue_detector",
   "sentry.incidents.utils.*",
   "sentry.ingest.slicing",
   "sentry.insights.migrations.*",
