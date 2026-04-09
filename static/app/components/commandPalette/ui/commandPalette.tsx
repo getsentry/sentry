@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useLayoutEffect, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef} from 'react';
 import {preload} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -263,7 +263,25 @@ export function CommandPalette(props: CommandPaletteProps) {
   );
 
   const resultsListRef = useRef<HTMLDivElement>(null);
-  const openInNewTabRef = useRef(false);
+  const modifierKeysRef = useRef({shiftKey: false});
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      modifierKeysRef.current = {shiftKey: event.shiftKey};
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      modifierKeysRef.current = {shiftKey: event.shiftKey};
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
 
   const debouncedQuery = useDebouncedValue(state.query, 300);
 
@@ -409,16 +427,16 @@ export function CommandPalette(props: CommandPaletteProps) {
             selectionMode="none"
             shouldUseVirtualFocus
             onMouseDownCapture={e => {
-              openInNewTabRef.current = e.shiftKey;
+              modifierKeysRef.current = {shiftKey: e.shiftKey};
             }}
             onClickCapture={e => {
-              openInNewTabRef.current = e.shiftKey;
+              modifierKeysRef.current = {shiftKey: e.shiftKey};
             }}
             onAction={key => {
               onActionSelection(key, {
-                modifierKeys: {shiftKey: openInNewTabRef.current},
+                modifierKeys: modifierKeysRef.current,
               });
-              openInNewTabRef.current = false;
+              modifierKeysRef.current = {shiftKey: false};
             }}
           />
         </ResultsList>
