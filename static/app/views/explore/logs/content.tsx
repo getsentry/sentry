@@ -135,7 +135,7 @@ function LogsHeader() {
         <Fragment>
           {defined(onboardingProject) && (
             <TopBar.Slot name="actions">
-              <SetupLogsButton size={undefined} />
+              <SetupLogsButton />
             </TopBar.Slot>
           )}
           <TopBar.Slot name="feedback">
