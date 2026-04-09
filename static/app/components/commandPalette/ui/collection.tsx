@@ -20,7 +20,7 @@ export type CollectionTreeNode<T> = {
   parent: string | null;
 } & T;
 
-export interface CollectionStore<T> {
+interface CollectionStore<T> {
   getSnapshot: () => Map<string, StoredNode<T>>;
   register: (node: StoredNode<T>) => void;
   subscribe: (callback: () => void) => () => void;
@@ -28,7 +28,7 @@ export interface CollectionStore<T> {
   unregister: (key: string) => void;
 }
 
-export interface CollectionInstance<T> {
+interface CollectionInstance<T> {
   Context: React.Context<string | null>;
   Provider: (props: {children: React.ReactNode}) => React.ReactElement;
   useRegisterNode: (data: T) => string;
