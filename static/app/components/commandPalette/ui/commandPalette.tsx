@@ -7,6 +7,7 @@ import {mergeProps} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useTreeState} from '@react-stately/tree';
 import {AnimatePresence, motion} from 'framer-motion';
+import type {LocationDescriptor} from 'history';
 
 import errorIllustration from 'sentry-images/spot/computer-missing.svg';
 
@@ -29,9 +30,10 @@ import {
 import {useCommandPaletteAnalytics} from 'sentry/components/commandPalette/useCommandPaletteAnalytics';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconArrow, IconClose, IconSearch} from 'sentry/icons';
+import {IconArrow, IconClose, IconLink, IconOpen, IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
+import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
 import {fzf} from 'sentry/utils/search/fzf';
 import type {Theme} from 'sentry/utils/theme';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -39,6 +41,22 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 const MotionButton = motion.create(Button);
 const MotionIconSearch = motion.create(IconSearch);
 const MotionContainer = motion.create(Container);
+
+function getLocationHref(to: LocationDescriptor): string {
+  const resolved = locationDescriptorToTo(to);
+
+  if (typeof resolved === 'string') {
+    return resolved;
+  }
+
+  return `${resolved.pathname ?? ''}${resolved.search ?? ''}${resolved.hash ?? ''}`;
+}
+
+function isExternalLocation(to: LocationDescriptor): boolean {
+  const currentUrl = new URL(window.location.href);
+  const targetUrl = new URL(getLocationHref(to), currentUrl.href);
+  return targetUrl.origin !== currentUrl.origin;
+}
 
 function makeLeadingItemAnimation(theme: Theme) {
   return {
@@ -64,7 +82,10 @@ type CMDKFlatItem = CollectionTreeNode<CMDKActionData> & {
 };
 
 interface CommandPaletteProps {
-  onAction: (action: CollectionTreeNode<CMDKActionData>) => void;
+  onAction: (
+    action: CollectionTreeNode<CMDKActionData>,
+    options?: {modifierKeys?: {shiftKey: boolean}}
+  ) => void;
 }
 
 export function CommandPalette(props: CommandPaletteProps) {
@@ -200,7 +221,12 @@ export function CommandPalette(props: CommandPaletteProps) {
   });
 
   const onActionSelection = useCallback(
-    (key: string | number | null) => {
+    (
+      key: string | number | null,
+      options?: {
+        modifierKeys?: {shiftKey: boolean};
+      }
+    ) => {
       const action = actions.find(a => a.key === key);
       if (!action) {
         return;
@@ -211,9 +237,9 @@ export function CommandPalette(props: CommandPaletteProps) {
       if (action.children.length > 0) {
         analytics.recordGroupAction(action, resultIndex);
         if ('onAction' in action) {
-          // Run the primary callback before drilling into the secondary actions.
-          // The modal only owns navigation and close behavior for leaf actions.
-          action.onAction();
+          // Invoke the callback but keep the modal open so users can select
+          // secondary actions from the children that follow.
+          props.onAction(action, options);
         }
         dispatch({type: 'push action', key: action.key, label: action.display.label});
         return;
@@ -231,12 +257,13 @@ export function CommandPalette(props: CommandPaletteProps) {
 
       analytics.recordAction(action, resultIndex, '');
       dispatch({type: 'trigger action'});
-      props.onAction(action);
+      props.onAction(action, options);
     },
     [actions, analytics, dispatch, props]
   );
 
   const resultsListRef = useRef<HTMLDivElement>(null);
+  const openInNewTabRef = useRef(false);
 
   const debouncedQuery = useDebouncedValue(state.query, 300);
 
@@ -328,7 +355,9 @@ export function CommandPalette(props: CommandPaletteProps) {
                       }
 
                       if (e.key === 'Enter' || e.key === 'Tab') {
-                        onActionSelection(treeState.selectionManager.focusedKey);
+                        onActionSelection(treeState.selectionManager.focusedKey, {
+                          modifierKeys: {shiftKey: e.shiftKey},
+                        });
                         return;
                       }
                     },
@@ -379,7 +408,18 @@ export function CommandPalette(props: CommandPaletteProps) {
             aria-label={t('Search results')}
             selectionMode="none"
             shouldUseVirtualFocus
-            onAction={onActionSelection}
+            onMouseDownCapture={e => {
+              openInNewTabRef.current = e.shiftKey;
+            }}
+            onClickCapture={e => {
+              openInNewTabRef.current = e.shiftKey;
+            }}
+            onAction={key => {
+              onActionSelection(key, {
+                modifierKeys: {shiftKey: openInNewTabRef.current},
+              });
+              openInNewTabRef.current = false;
+            }}
           />
         </ResultsList>
       )}
@@ -544,6 +584,20 @@ function flattenActions(
 }
 
 function makeMenuItemFromAction(action: CMDKFlatItem): CommandPaletteActionMenuItem {
+  const isExternal = 'to' in action ? isExternalLocation(action.to) : false;
+  const trailingItems =
+    'to' in action ? (
+      <Flex
+        align="center"
+        data-link-type={isExternal ? 'external' : 'internal'}
+        data-test-id="command-palette-link-indicator"
+      >
+        <IconDefaultsProvider size="xs" variant="muted">
+          {isExternal ? <IconOpen /> : <IconLink />}
+        </IconDefaultsProvider>
+      </Flex>
+    ) : undefined;
+
   return {
     key: action.key,
     label: action.display.label,
@@ -561,6 +615,7 @@ function makeMenuItemFromAction(action: CMDKFlatItem): CommandPaletteActionMenuI
         <IconDefaultsProvider size="sm">{action.display.icon}</IconDefaultsProvider>
       </Flex>
     ),
+    trailingItems,
     children: [],
     hideCheck: true,
   };

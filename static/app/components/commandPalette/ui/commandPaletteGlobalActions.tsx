@@ -26,7 +26,6 @@ import {
   IconIssues,
   IconList,
   IconLock,
-  IconOpen,
   IconSearch,
   IconSettings,
   IconStar,
@@ -225,27 +224,20 @@ export function GlobalCommandPaletteActions() {
       {user.isStaff && (
         <CMDKAction display={{label: t('Admin')}}>
           <CMDKAction
-            display={{label: t('Open _admin'), icon: <IconOpen />}}
+            display={{label: t('Open _admin')}}
             keywords={[t('superuser')]}
-            onAction={() => window.open('/_admin/', '_blank', 'noreferrer')}
+            to="/_admin/"
           />
           <CMDKAction
             display={{
               label: t('Open %s in _admin', organization.name),
-              icon: <IconOpen />,
             }}
             keywords={[t('superuser')]}
-            onAction={() =>
-              window.open(
-                `/_admin/customers/${organization.slug}/`,
-                '_blank',
-                'noreferrer'
-              )
-            }
+            to={`/_admin/customers/${organization.slug}/`}
           />
           {!isActiveSuperuser() && (
             <CMDKAction
-              display={{label: t('Open Superuser Modal'), icon: <IconLock locked />}}
+              display={{label: t('Open Superuser Modal')}}
               keywords={[t('superuser')]}
               onAction={() => openSudo({isSuperuser: true, needsReload: true})}
             />
@@ -344,25 +336,19 @@ export function GlobalCommandPaletteActions() {
       <CMDKAction display={{label: t('Help')}}>
         <CMDKAction
           display={{label: t('Open Documentation'), icon: <IconDocs />}}
-          onAction={() => window.open('https://docs.sentry.io', '_blank', 'noreferrer')}
+          to="https://docs.sentry.io"
         />
         <CMDKAction
           display={{label: t('Join Discord'), icon: <IconDiscord />}}
-          onAction={() =>
-            window.open('https://discord.gg/sentry', '_blank', 'noreferrer')
-          }
+          to="https://discord.gg/sentry"
         />
         <CMDKAction
           display={{label: t('Open GitHub Repository'), icon: <IconGithub />}}
-          onAction={() =>
-            window.open('https://github.com/getsentry/sentry', '_blank', 'noreferrer')
-          }
+          to="https://github.com/getsentry/sentry"
         />
         <CMDKAction
-          display={{label: t('View Changelog'), icon: <IconOpen />}}
-          onAction={() =>
-            window.open('https://sentry.io/changelog/', '_blank', 'noreferrer')
-          }
+          display={{label: t('View Changelog')}}
+          to="https://sentry.io/changelog/"
         />
         <CMDKAction
           display={{label: t('Search Results')}}
@@ -391,7 +377,7 @@ export function GlobalCommandPaletteActions() {
                       keywords: [hit.context?.context1, hit.context?.context2].filter(
                         (v): v is string => typeof v === 'string'
                       ),
-                      onAction: () => window.open(hit.url, '_blank', 'noreferrer'),
+                      to: hit.url,
                     });
                   }
                 }

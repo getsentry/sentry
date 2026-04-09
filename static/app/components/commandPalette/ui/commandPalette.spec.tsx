@@ -1,4 +1,5 @@
 import {Fragment, useCallback} from 'react';
+import type {LocationDescriptor} from 'history';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -30,15 +31,39 @@ import type {CMDKActionData} from 'sentry/components/commandPalette/ui/cmdk';
 import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
 import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
+import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
 import {useNavigate} from 'sentry/utils/useNavigate';
+
+function getLocationHref(to: LocationDescriptor): string {
+  const resolved = locationDescriptorToTo(to);
+
+  if (typeof resolved === 'string') {
+    return resolved;
+  }
+
+  return `${resolved.pathname ?? ''}${resolved.search ?? ''}${resolved.hash ?? ''}`;
+}
+
+function isExternalLocation(to: LocationDescriptor): boolean {
+  const currentUrl = new URL(window.location.href);
+  const targetUrl = new URL(getLocationHref(to), currentUrl.href);
+  return targetUrl.origin !== currentUrl.origin;
+}
 
 function GlobalActionsComponent({children}: {children?: React.ReactNode}) {
   const navigate = useNavigate();
 
   const handleAction = useCallback(
-    (action: CollectionTreeNode<CMDKActionData>) => {
+    (
+      action: CollectionTreeNode<CMDKActionData>,
+      options?: {modifierKeys?: {shiftKey: boolean}}
+    ) => {
       if ('to' in action) {
-        navigate(action.to);
+        if (isExternalLocation(action.to) || options?.modifierKeys?.shiftKey) {
+          window.open(getLocationHref(action.to), '_blank', 'noreferrer');
+        } else {
+          navigate(action.to);
+        }
       } else if ('onAction' in action) {
         action.onAction();
       }
@@ -102,6 +127,87 @@ describe('CommandPalette', () => {
 
     await waitFor(() => expect(router.location.pathname).toBe('/other/'));
     expect(closeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('clicking a target blank to action opens an anchor and closes modal', async () => {
+    const closeSpy = jest.spyOn(modalActions, 'closeModal');
+    const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction to="https://docs.sentry.io" display={{label: 'Open docs'}} />
+      </GlobalActionsComponent>
+    );
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Open docs'}));
+
+    expect(openSpy).toHaveBeenCalledWith(
+      'https://docs.sentry.io',
+      '_blank',
+      'noreferrer'
+    );
+    expect(closeSpy).toHaveBeenCalledTimes(1);
+    openSpy.mockRestore();
+  });
+
+  it('shift-clicking an internal link opens it in a new tab and closes modal', async () => {
+    const closeSpy = jest.spyOn(modalActions, 'closeModal');
+    const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+    const {router} = render(
+      <GlobalActionsComponent>
+        <CMDKAction to="/target/" display={{label: 'Go to route'}} />
+      </GlobalActionsComponent>
+    );
+    const initialPathname = router.location.pathname;
+
+    await userEvent.keyboard('{Shift>}');
+    await userEvent.click(await screen.findByRole('option', {name: 'Go to route'}));
+    await userEvent.keyboard('{/Shift}');
+
+    expect(openSpy).toHaveBeenCalledWith('/target/', '_blank', 'noreferrer');
+    expect(router.location.pathname).toBe(initialPathname);
+    expect(closeSpy).toHaveBeenCalledTimes(1);
+    openSpy.mockRestore();
+  });
+
+  it('shift-enter on an internal link opens it in a new tab and closes modal', async () => {
+    const closeSpy = jest.spyOn(modalActions, 'closeModal');
+    const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+    const {router} = render(
+      <GlobalActionsComponent>
+        <CMDKAction to="/target/" display={{label: 'Go to route'}} />
+      </GlobalActionsComponent>
+    );
+    const initialPathname = router.location.pathname;
+
+    await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.keyboard('{Shift>}{Enter}{/Shift}');
+
+    expect(openSpy).toHaveBeenCalledWith('/target/', '_blank', 'noreferrer');
+    expect(router.location.pathname).toBe(initialPathname);
+    expect(closeSpy).toHaveBeenCalledTimes(1);
+    openSpy.mockRestore();
+  });
+
+  it('shows internal and external trailing link indicators for link actions', async () => {
+    render(
+      <GlobalActionsComponent>
+        <Fragment>
+          <CMDKAction to="/target/" display={{label: 'Internal'}} />
+          <CMDKAction to="https://docs.sentry.io" display={{label: 'External'}} />
+        </Fragment>
+      </GlobalActionsComponent>
+    );
+
+    const internalAction = await screen.findByRole('option', {name: 'Internal'});
+    const externalAction = await screen.findByRole('option', {name: 'External'});
+
+    expect(
+      internalAction.querySelector('[data-test-id="command-palette-link-indicator"]')
+    ).toHaveAttribute('data-link-type', 'internal');
+    expect(
+      externalAction.querySelector('[data-test-id="command-palette-link-indicator"]')
+    ).toHaveAttribute('data-link-type', 'external');
   });
 
   it('clicking action with children shows sub-items, backspace returns', async () => {
