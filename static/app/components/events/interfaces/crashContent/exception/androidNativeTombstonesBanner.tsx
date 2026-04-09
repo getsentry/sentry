@@ -151,7 +151,7 @@ export function AndroidNativeTombstonesBanner({event, projectId}: Props) {
   }
 
   const activeTab =
-    sdkConfig.tabs.find(tab => tab.value === codeTab) ?? sdkConfig.tabs[0];
+    sdkConfig.tabs.find(tab => tab.value === codeTab) ?? sdkConfig.tabs[0]!;
 
   return (
     <BannerWrapper>
