@@ -807,6 +807,7 @@ def trigger_autofix(
     # Resolve the project preference from Seer, or bootstrap one from code mapping repos.
     # On success, preference.repositories becomes the source of truth for repos
     # (even if empty — matching Seer's behavior of unconditionally using preference repos).
+    # On failure, we fall back to the original code mapping repos above.
     preference = _resolve_project_preference(group.organization, group.project, code_mappings_repos)
     if preference:
         repos = [repo.dict() for repo in preference.repositories]
