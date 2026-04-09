@@ -92,6 +92,7 @@ class SentryMetricsBackend(MetricsBackend):
     ) -> None:
         if sample_rate is None:
             sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
+
         sentry_metrics.distribution(
             name, value=value, tags=tags, unit=unit, sample_rate=sample_rate
         )
