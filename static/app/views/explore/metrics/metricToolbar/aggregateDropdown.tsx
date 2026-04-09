@@ -29,16 +29,15 @@ export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
   const visualizes = useMetricVisualizes();
   const setMetricVisualizes = useSetMetricVisualizes();
 
-  if (!isVisualizeFunction(visualize)) {
-    return null;
-  }
-
   const groups = GROUPED_OPTIONS_BY_TYPE[traceMetric.type] ?? [];
   const selectedNames = new Set(
     visualizes.map(v => (isVisualizeFunction(v) ? (v.parsedFunction?.name ?? '') : ''))
   );
 
   function handleChange(selectedOptions: Array<SelectOption<string>>) {
+    if (!isVisualizeFunction(visualize)) {
+      return;
+    }
     if (selectedOptions.length === 0) {
       setMetricVisualizes([
         updateVisualizeYAxis(

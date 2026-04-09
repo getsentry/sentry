@@ -34,8 +34,8 @@ const TWO_MINUTE_DELAY = 120;
 
 interface MetricPanelProps {
   queryIndex: number;
-  references: Set<string>;
   traceMetric: TraceMetric;
+  references?: Set<string>;
 }
 
 export function MetricPanel({traceMetric, queryIndex, references}: MetricPanelProps) {

@@ -27,8 +27,8 @@ import {
 
 interface MetricToolbarProps {
   queryIndex: number;
-  references: Set<string>;
   traceMetric: TraceMetric;
+  references?: Set<string>;
 }
 
 export function MetricToolbar({traceMetric, queryIndex, references}: MetricToolbarProps) {
