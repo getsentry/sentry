@@ -365,13 +365,13 @@ class StatusActionTest(APITestCase):
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_action_submitted_sets_viewer_context(self, verify: MagicMock) -> None:
         """ViewerContext is set with org_id and actor_type=INTEGRATION during action handling."""
-        from sentry.viewer_context import ActorType, get_viewer_context
+        from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
 
-        captured_contexts: list = []
+        captured_contexts: list[ViewerContext | None] = []
 
         original_refresh = Group.refresh_from_db
 
-        def capturing_refresh(self_group, *args, **kwargs):
+        def capturing_refresh(self_group: object, *args: object, **kwargs: object) -> None:
             captured_contexts.append(get_viewer_context())
             return original_refresh(self_group, *args, **kwargs)
 

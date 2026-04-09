@@ -618,7 +618,7 @@ class MsTeamsWebhookTest(APITestCase):
         self, mock_time: MagicMock, mock_decode: MagicMock
     ) -> None:
         """ViewerContext is set with org_id and actor_type=INTEGRATION during member removal."""
-        from sentry.viewer_context import ActorType, get_viewer_context
+        from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_provider_integration(external_id=team_id, provider="msteams")
@@ -626,13 +626,13 @@ class MsTeamsWebhookTest(APITestCase):
                 organization_id=self.organization.id, integration=integration
             )
 
-        captured_contexts: list = []
+        captured_contexts: list[ViewerContext | None] = []
 
         original_create_audit_entry = __import__(
             "sentry.utils.audit", fromlist=["create_audit_entry"]
         ).create_audit_entry
 
-        def capturing_create_audit_entry(*args, **kwargs):
+        def capturing_create_audit_entry(*args: object, **kwargs: object) -> object:
             captured_contexts.append(get_viewer_context())
             return original_create_audit_entry(*args, **kwargs)
 
