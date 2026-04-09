@@ -42,6 +42,8 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
         selected_columns: list[str] | None,
         equations: list[str] | None,
     ) -> TraceItemFilter | None:
+        """While we also add the metric conditions inside -if combinators for each aggregate, adding it to the top level
+        where should help clickhouse prune more rows"""
         aggregate_all_metrics = False
         selected_metrics: set[TraceMetric] = set()
         columns: set[str] = set()
