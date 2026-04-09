@@ -321,7 +321,6 @@ def collect_user_org_context(
             extra={
                 "user_id": user.id,
                 "org_id": organization.id,
-                "token_prefix": user_auth_token[:12] + "..." if user_auth_token else None,
                 "expires_at": str(token.expires_at),
             },
         )

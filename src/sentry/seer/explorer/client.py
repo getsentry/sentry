@@ -285,15 +285,6 @@ class SeerExplorerClient:
             user_auth_token=user_org_context.get("user_auth_token"),
         )
 
-        _token = user_org_context.get("user_auth_token")
-        logger.info(
-            "seer_explorer.start_run.auth_token",
-            extra={
-                "has_token": _token is not None,
-                "token_prefix": _token[:12] + "..." if _token else None,
-            },
-        )
-
         if self.max_iterations is not None:
             chat_body["max_iterations"] = self.max_iterations
 
