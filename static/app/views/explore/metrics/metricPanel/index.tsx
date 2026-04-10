@@ -21,7 +21,6 @@ import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMe
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
 import {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
 import {useTableOrientationControl} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
-import {MetricInfoTabList} from 'sentry/views/explore/metrics/metricInfoTabs';
 import {SideBySideOrientation} from 'sentry/views/explore/metrics/metricPanel/sideBySideOrientation';
 import {StackedOrientation} from 'sentry/views/explore/metrics/metricPanel/stackedOrientation';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -209,18 +208,15 @@ function DnDPlaceholder({
             ) : null}
           </Placeholder>
         </Container>
-        <Stack height="100%" padding="md" paddingLeft="0">
-          <Container paddingBottom="md">
-            <MetricInfoTabList orientation="right" contentsHidden />
-          </Container>
-          <Placeholder style={{flex: 1, flexShrink: 1, minHeight: 0}}>
+        <Container padding="md" paddingLeft="0">
+          <Placeholder height="100%">
             {isDragging ? (
               <Text>
                 {t("We gotta hide the tables too, they're also pretty expensive.")}
               </Text>
             ) : null}
           </Placeholder>
-        </Stack>
+        </Container>
       </Grid>
     </Container>
   );

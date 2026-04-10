@@ -42,11 +42,11 @@ export function useSortableMetricQueries() {
     });
 
     // Prune stale entries for queries that no longer exist.
-    idMapRef.current.keys().forEach(key => {
+    for (const key of idMapRef.current.keys()) {
       if (!activeKeys.has(key)) {
         idMapRef.current.delete(key);
       }
-    });
+    }
 
     return items;
   }, [metricQueries]);
