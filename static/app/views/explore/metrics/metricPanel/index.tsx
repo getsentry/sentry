@@ -1,4 +1,4 @@
-import {useRef, useState} from 'react';
+import {useLayoutEffect, useRef, useState} from 'react';
 import type {SyntheticListenerMap} from '@dnd-kit/core/dist/hooks/utilities';
 
 import {Container, Stack} from '@sentry/scraps/layout';
@@ -36,14 +36,13 @@ import {
 const RESULT_LIMIT = 50;
 const TWO_MINUTE_DELAY = 120;
 
-interface MetricPanelProps {
+interface MetricPanelProps extends React.HTMLAttributes<HTMLDivElement> {
   queryIndex: number;
   traceMetric: TraceMetric;
   dragListeners?: SyntheticListenerMap;
   isAnyDragging?: boolean;
   ref?: React.Ref<HTMLDivElement>;
   references?: Set<string>;
-  style?: React.CSSProperties;
 }
 
 export function MetricPanel({
@@ -54,6 +53,7 @@ export function MetricPanel({
   isAnyDragging,
   style,
   ref,
+  ...rest
 }: MetricPanelProps) {
   const organization = useOrganization();
   const {
@@ -108,15 +108,17 @@ export function MetricPanel({
   const contentRef = useRef<HTMLDivElement>(null);
   const contentHeightRef = useRef<number | null>(null);
 
-  // Capture the content height whenever the content is rendered so the
-  // placeholder can match it exactly and avoid layout shift during drag.
-  if (!isAnyDragging && contentRef.current) {
-    contentHeightRef.current = contentRef.current.offsetHeight;
-  }
+  // Capture the content height after layout so the placeholder can match it
+  // exactly and avoid layout shift during drag.
+  useLayoutEffect(() => {
+    if (!isAnyDragging && contentRef.current) {
+      contentHeightRef.current = contentRef.current.offsetHeight;
+    }
+  });
 
   if (hasMetricsUIRefresh) {
     return (
-      <Panel ref={ref} style={style} data-test-id="metric-panel">
+      <Panel ref={ref} style={style} {...rest} data-test-id="metric-panel">
         <PanelBody>
           <Stack gap="sm">
             <Container paddingBottom={visualize.visible ? undefined : 'sm'}>

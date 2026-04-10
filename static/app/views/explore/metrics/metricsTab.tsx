@@ -39,6 +39,7 @@ import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {useMetricReferences} from 'sentry/views/explore/metrics/hooks/useMetricReferences';
 import {MetricPanel} from 'sentry/views/explore/metrics/metricPanel';
 import {SortableMetricPanel} from 'sentry/views/explore/metrics/metricPanel/sortableMetricPanel';
+import {encodeMetricQueryParams} from 'sentry/views/explore/metrics/metricQuery';
 import {
   canUseMetricsEquations,
   canUseMetricsUIRefresh,
@@ -212,20 +213,27 @@ function useSortableMetricQueries() {
   const reorderMetricQueries = useReorderMetricQueries();
   const [isDragging, setIsDragging] = useState(false);
 
-  const uniqueIdsRef = useRef<string[]>([]);
-  uniqueIdsRef.current.length = Math.min(
-    uniqueIdsRef.current.length,
-    metricQueries.length
+  // Map from encoded query identity → stable unique ID. This correctly
+  // handles deletions and mid-list insertions (unlike an index-based array).
+  const idMapRef = useRef<Map<string, string>>(new Map());
+  const sortableItems = metricQueries.map((metricQuery, i) => {
+    const key = encodeMetricQueryParams(metricQuery);
+    let uid = idMapRef.current.get(key);
+    if (!uid) {
+      uid = uniqueId();
+      idMapRef.current.set(key, uid);
+    }
+    return {id: i + 1, uniqueId: uid, metricQuery};
+  });
+  // Prune stale entries for queries that no longer exist.
+  const activeKeys = new Set(
+    sortableItems.map(item => encodeMetricQueryParams(item.metricQuery))
   );
-  while (uniqueIdsRef.current.length < metricQueries.length) {
-    uniqueIdsRef.current.push(uniqueId());
+  for (const key of idMapRef.current.keys()) {
+    if (!activeKeys.has(key)) {
+      idMapRef.current.delete(key);
+    }
   }
-
-  const sortableItems = metricQueries.map((metricQuery, i) => ({
-    id: i + 1,
-    uniqueId: uniqueIdsRef.current[i]!,
-    metricQuery,
-  }));
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -248,7 +256,6 @@ function useSortableMetricQueries() {
         if (oldIndex < 0 || newIndex < 0) {
           return;
         }
-        uniqueIdsRef.current = arrayMove(uniqueIdsRef.current, oldIndex, newIndex);
         reorderMetricQueries(arrayMove([...metricQueries], oldIndex, newIndex));
       }
     },
