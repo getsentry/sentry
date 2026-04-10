@@ -795,21 +795,6 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option("filters:react-hydration-errors", "1")
         assert project.get_option("filters:chunk-load-error", "1")
 
-        self.project.update_option(
-            "relay.cardinality-limiter.limits",
-            [
-                {
-                    "limit": {
-                        "id": "project-override-custom",
-                        "window": {"windowSeconds": 3600, "granularitySeconds": 600},
-                        "limit": 1000,
-                        "namespace": "custom",
-                        "scope": "name",
-                    }
-                }
-            ],
-        )
-
     def test_preprod_snapshot_pr_comments_option(self) -> None:
         self.get_success_response(
             self.org_slug, self.proj_slug, preprodSnapshotPrCommentsEnabled=False
