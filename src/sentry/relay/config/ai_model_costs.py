@@ -12,18 +12,18 @@ type ModelId = str
 
 
 # Legacy cache key for AI model costs (v2 flat format)
-# TODO: Remove once all consumers have migrated to LLM_MODEL_METADATA_CACHE_KEY
+# TODO(constantinius): Remove once all consumers have migrated to AI_MODEL_METADATA_CACHE_KEY
 AI_MODEL_COSTS_CACHE_KEY = "ai-model-costs:v2"
 AI_MODEL_COSTS_CACHE_TTL = 30 * 24 * 60 * 60
 
 # Cache key for storing LLM model metadata (v1 nested format)
-LLM_MODEL_METADATA_CACHE_KEY = "llm-model-metadata:v1"
+AI_MODEL_METADATA_CACHE_KEY = "ai-model-metadata:v1"
 # Cache timeout: 30 days (we re-fetch every 30 minutes, so this provides more than enough overlap)
-LLM_MODEL_METADATA_CACHE_TTL = 30 * 24 * 60 * 60
+AI_MODEL_METADATA_CACHE_TTL = 30 * 24 * 60 * 60
 
 
 class AIModelCostV2(TypedDict):
-    """Legacy flat format. TODO: Remove once all consumers have migrated."""
+    """Legacy flat format. TODO(constantinius): Remove once all consumers have migrated."""
 
     inputPerToken: float
     outputPerToken: float
@@ -33,13 +33,13 @@ class AIModelCostV2(TypedDict):
 
 
 class AIModelCosts(TypedDict):
-    """Legacy config type. TODO: Remove once all consumers have migrated."""
+    """Legacy config type. TODO(constantinius): Remove once all consumers have migrated."""
 
     version: Required[int]
     models: Required[dict[ModelId, AIModelCostV2]]
 
 
-class LLMModelCost(TypedDict):
+class AIModelCost(TypedDict):
     inputPerToken: float
     outputPerToken: float
     outputReasoningPerToken: float
@@ -47,20 +47,20 @@ class LLMModelCost(TypedDict):
     inputCacheWritePerToken: float
 
 
-class LLMModelMetadata(TypedDict, total=False):
-    costs: Required[LLMModelCost]
+class AIModelMetadata(TypedDict, total=False):
+    costs: Required[AIModelCost]
     contextSize: int
 
 
-class LLMModelMetadataConfig(TypedDict):
+class AIModelMetadataConfig(TypedDict):
     version: Required[int]
-    models: Required[dict[ModelId, LLMModelMetadata]]
+    models: Required[dict[ModelId, AIModelMetadata]]
 
 
 def ai_model_costs_config() -> AIModelCosts | None:
     """
     Legacy: Get AI model costs configuration.
-    TODO: Remove once all consumers have migrated to llm_model_metadata_config.
+    TODO(constantinius): Remove once all consumers have migrated to ai_model_metadata_config.
     """
     if settings.SENTRY_AIR_GAP:
         return None
@@ -75,19 +75,19 @@ def ai_model_costs_config() -> AIModelCosts | None:
     return None
 
 
-def llm_model_metadata_config() -> LLMModelMetadataConfig | None:
+def ai_model_metadata_config() -> AIModelMetadataConfig | None:
     """
     Get LLM model metadata configuration.
     LLM model metadata is set in cache by a cron job,
     if there is no metadata, it should be investigated why.
 
     Returns:
-        LLMModelMetadataConfig containing cost and context size information for LLM models
+        AIModelMetadataConfig containing cost and context size information for LLM models
     """
     if settings.SENTRY_AIR_GAP:
         return None
 
-    cached_metadata = cache.get(LLM_MODEL_METADATA_CACHE_KEY)
+    cached_metadata = cache.get(AI_MODEL_METADATA_CACHE_KEY)
     if cached_metadata is not None:
         return cached_metadata
 

@@ -8,13 +8,13 @@ from sentry.http import safe_urlopen
 from sentry.relay.config.ai_model_costs import (
     AI_MODEL_COSTS_CACHE_KEY,
     AI_MODEL_COSTS_CACHE_TTL,
-    LLM_MODEL_METADATA_CACHE_KEY,
-    LLM_MODEL_METADATA_CACHE_TTL,
+    AI_MODEL_METADATA_CACHE_KEY,
+    AI_MODEL_METADATA_CACHE_TTL,
+    AIModelCost,
     AIModelCosts,
     AIModelCostV2,
-    LLMModelCost,
-    LLMModelMetadata,
-    LLMModelMetadataConfig,
+    AIModelMetadata,
+    AIModelMetadataConfig,
     ModelId,
 )
 from sentry.silo.base import SiloMode
@@ -75,12 +75,14 @@ def _create_prefix_glob_model_name(model_id: str) -> str:
     return f"*{model_id}"
 
 
-def _add_glob_model_names[T](models_dict: dict[ModelId, T]) -> None:
+def _add_glob_model_names(models_dict: dict[ModelId, AIModelCostV2]) -> None:
     """
     Add glob versions of model names to the models dictionary.
 
     For each model, it creates a normalized model name, and a prefix glob version of
     the model name.
+
+
 
     Args:
         models_dict: The dictionary of models to add glob versions to
@@ -99,19 +101,85 @@ def _add_glob_model_names[T](models_dict: dict[ModelId, T]) -> None:
             models_dict[prefix_glob_name] = models_dict[normalized_model_id]
 
 
-# ---------------------------------------------------------------------------
-# Shared raw data fetching
-# ---------------------------------------------------------------------------
+@instrumented_task(
+    name="sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
+    namespace=ai_agent_monitoring_tasks,
+    processing_deadline_duration=35,
+    expires=30,
+    silo_mode=SiloMode.CELL,
+)
+def fetch_ai_model_costs() -> None:
+    """
+    Fetch AI model costs from OpenRouter and models.dev APIs and store them in cache.
 
-# Raw parsed model data from APIs (provider-stripped model_id + raw dict)
-type RawModelEntry = tuple[str, dict[str, Any]]
+    This task fetches model pricing data from both sources and converts it to
+    the AIModelCostV2 format for use by Sentry's LLM cost tracking.
+    OpenRouter prices take precedence over models.dev prices.
+    """
+
+    # this task shouldn't be run in an air gap environment
+    if settings.SENTRY_AIR_GAP:
+        return
+
+    models_dict: dict[ModelId, AIModelCostV2] = {}
+
+    # Fetch from OpenRouter API (takes precedence)
+    try:
+        openrouter_models = _fetch_openrouter_models()
+        models_dict.update(openrouter_models)
+    except Exception as e:
+        logger.warning(
+            "Failed to fetch AI model costs from OpenRouter API", extra={"error": str(e)}
+        )
+        # re-raise to fail the task
+        raise
+
+    # Fetch from models.dev API (only add models not already present)
+    try:
+        models_dev_models = _fetch_models_dev_models()
+        # Only add models that don't already exist (OpenRouter takes precedence)
+        for model_id, model_cost in models_dev_models.items():
+            if model_id not in models_dict:
+                models_dict[model_id] = model_cost
+
+    except Exception as e:
+        logger.warning(
+            "Failed to fetch AI model costs from models.dev API", extra={"error": str(e)}
+        )
+        # re-raise to fail the task
+        raise
+
+    # Add glob versions of model names for flexible matching
+    _add_glob_model_names(models_dict)
+
+    ai_model_costs: AIModelCosts = {"version": 2, "models": models_dict}
+    cache.set(AI_MODEL_COSTS_CACHE_KEY, ai_model_costs, AI_MODEL_COSTS_CACHE_TTL)
 
 
-def _fetch_openrouter_raw() -> list[RawModelEntry]:
-    """Fetch raw model entries from OpenRouter API."""
+def _fetch_openrouter_models() -> dict[ModelId, AIModelCostV2]:
+    """Fetch model costs from OpenRouter API
+    Example response:
+    {
+        "data": [
+            {
+                "id": "openai/gpt-4o-mini",
+                "name": "OpenAI: GPT-4o Mini",
+                "context_length": 1000000,
+                "pricing": {
+                    "prompt": "0.0000003",
+                    "completion": "0.00000165",
+                    "internal_reasoning": "0.0000003",
+                    "input_cache_read": "0.0000003",
+                    "input_cache_write": "0.00000125",
+                },
+            },
+        ]
+    }
+    """
     response = safe_urlopen(OPENROUTER_MODELS_API_URL)
     response.raise_for_status()
 
+    # Parse the response
     data = response.json()
 
     if not isinstance(data, dict) or "data" not in data:
@@ -121,7 +189,9 @@ def _fetch_openrouter_raw() -> list[RawModelEntry]:
     if not isinstance(models_data, list):
         raise ValueError("Invalid OpenRouter response format: 'data' field is not a list")
 
-    entries: list[RawModelEntry] = []
+    # Convert to AIModelCostV2 format
+    models_dict: dict[ModelId, AIModelCostV2] = {}
+
     for model_data in models_data:
         if not isinstance(model_data, dict):
             continue
@@ -130,26 +200,67 @@ def _fetch_openrouter_raw() -> list[RawModelEntry]:
         if not model_id:
             continue
 
-        # Strip provider prefix (e.g. openai/gpt-4o-mini -> gpt-4o-mini)
+        # OpenRouter includes provider name in the model ID, e.g. openai/gpt-4o-mini
+        # We need to extract the model name, since our SDKs only send the model name
+        # (e.g. gpt-4o-mini)
         if "/" in model_id:
             model_id = model_id.split("/", maxsplit=1)[1]
 
-        entries.append((model_id, model_data))
+        pricing = model_data.get("pricing", {})
 
-    return entries
+        # Convert pricing data to AIModelCostV2 format
+        # OpenRouter provides costs as strings, we need to convert to float
+        try:
+            ai_model_cost = AIModelCostV2(
+                inputPerToken=safe_float_conversion(pricing.get("prompt")),
+                outputPerToken=safe_float_conversion(pricing.get("completion")),
+                outputReasoningPerToken=safe_float_conversion(pricing.get("internal_reasoning")),
+                inputCachedPerToken=safe_float_conversion(pricing.get("input_cache_read")),
+                inputCacheWritePerToken=safe_float_conversion(pricing.get("input_cache_write")),
+            )
+
+            models_dict[model_id] = ai_model_cost
+
+        except (ValueError, TypeError) as e:
+            logger.warning(
+                "fetch_ai_model_costs.openrouter_model_parse_error",
+                extra={"model_id": model_id, "error": str(e)},
+            )
+            continue
+
+    return models_dict
 
 
-def _fetch_models_dev_raw() -> list[RawModelEntry]:
-    """Fetch raw model entries from models.dev API."""
+def _fetch_models_dev_models() -> dict[ModelId, AIModelCostV2]:
+    """Fetch model costs from models.dev API
+    Example response:
+    {
+        "openai": {
+            "models": {
+                "gpt-4": {
+                    "cost": {
+                        "input": 0.0000003,
+                        "output": 0.00000165,
+                        "cache_read": 0.0000003,
+                        "cache_write": 0.00000125,
+                    }
+                }
+            }
+        }
+    }
+
+    """
     response = safe_urlopen(MODELS_DEV_API_URL)
     response.raise_for_status()
 
+    # Parse the response
     data = response.json()
 
     if not isinstance(data, dict):
         raise ValueError("Invalid models.dev response format: expected dict")
 
-    entries: list[RawModelEntry] = []
+    models_dict: dict[ModelId, AIModelCostV2] = {}
+
     for provider_name, provider_data in data.items():
         if not isinstance(provider_data, dict):
             continue
@@ -164,225 +275,40 @@ def _fetch_models_dev_raw() -> list[RawModelEntry]:
 
             cost_data = model_data.get("cost", {})
             if not isinstance(cost_data, dict) or not cost_data:
+                # Skip models with no cost data or empty cost data
                 continue
 
-            # Strip provider prefix
+            # models.dev may include provider name in the model ID, e.g. google/gemini-2.0-flash-001
+            # We need to extract the model name, since our SDKs only send the model name
+            # (e.g. gemini-2.0-flash-001)
             if "/" in model_id:
                 model_id = model_id.split("/", maxsplit=1)[1]
 
-            # Attach provider_name for logging
-            model_data_with_provider = {**model_data, "_provider": provider_name}
-            entries.append((model_id, model_data_with_provider))
+            # Convert pricing data to AIModelCostV2 format
+            # models.dev provides costs as numbers, but for extra safety convert to our format
+            try:
+                ai_model_cost = AIModelCostV2(
+                    inputPerToken=safe_float_conversion(cost_data.get("input"))
+                    / 1000000,  # models.dev have prices per 1M tokens
+                    outputPerToken=safe_float_conversion(cost_data.get("output"))
+                    / 1000000,  # models.dev have price per 1M tokens
+                    outputReasoningPerToken=0.0,  # models.dev doesn't provide reasoning costs
+                    inputCachedPerToken=safe_float_conversion(cost_data.get("cache_read"))
+                    / 1000000,  # models.dev have price per 1M tokens
+                    inputCacheWritePerToken=safe_float_conversion(cost_data.get("cache_write"))
+                    / 1000000,  # models.dev have price per 1M tokens
+                )
 
-    return entries
+                models_dict[model_id] = ai_model_cost
 
+            except (ValueError, TypeError) as e:
+                logger.warning(
+                    "fetch_ai_model_costs.models_dev_model_parse_error",
+                    extra={"model_id": model_id, "provider": provider_name, "error": str(e)},
+                )
+                continue
 
-# ---------------------------------------------------------------------------
-# Legacy task: fetch_ai_model_costs (flat AIModelCostV2 format)
-# TODO: Remove once all consumers have migrated to fetch_llm_model_metadata
-# ---------------------------------------------------------------------------
-
-
-def _openrouter_entry_to_cost(model_id: str, model_data: dict) -> AIModelCostV2 | None:
-    """Convert an OpenRouter raw entry to the legacy flat AIModelCostV2 format."""
-    pricing = model_data.get("pricing", {})
-    try:
-        return AIModelCostV2(
-            inputPerToken=safe_float_conversion(pricing.get("prompt")),
-            outputPerToken=safe_float_conversion(pricing.get("completion")),
-            outputReasoningPerToken=safe_float_conversion(pricing.get("internal_reasoning")),
-            inputCachedPerToken=safe_float_conversion(pricing.get("input_cache_read")),
-            inputCacheWritePerToken=safe_float_conversion(pricing.get("input_cache_write")),
-        )
-    except (ValueError, TypeError) as e:
-        logger.warning(
-            "fetch_ai_model_costs.openrouter_model_parse_error",
-            extra={"model_id": model_id, "error": str(e)},
-        )
-        return None
-
-
-def _models_dev_entry_to_cost(model_id: str, model_data: dict) -> AIModelCostV2 | None:
-    """Convert a models.dev raw entry to the legacy flat AIModelCostV2 format."""
-    cost_data = model_data.get("cost", {})
-    provider_name = model_data.get("_provider", "unknown")
-    try:
-        return AIModelCostV2(
-            inputPerToken=safe_float_conversion(cost_data.get("input")) / 1000000,
-            outputPerToken=safe_float_conversion(cost_data.get("output")) / 1000000,
-            outputReasoningPerToken=0.0,
-            inputCachedPerToken=safe_float_conversion(cost_data.get("cache_read")) / 1000000,
-            inputCacheWritePerToken=safe_float_conversion(cost_data.get("cache_write")) / 1000000,
-        )
-    except (ValueError, TypeError) as e:
-        logger.warning(
-            "fetch_ai_model_costs.models_dev_model_parse_error",
-            extra={"model_id": model_id, "provider": provider_name, "error": str(e)},
-        )
-        return None
-
-
-@instrumented_task(
-    name="sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
-    namespace=ai_agent_monitoring_tasks,
-    processing_deadline_duration=35,
-    expires=30,
-    silo_mode=SiloMode.CELL,
-)
-def fetch_ai_model_costs() -> None:
-    """
-    Legacy task: fetch AI model costs and store them in the flat AIModelCostV2 format.
-    TODO: Remove once all consumers have migrated to fetch_llm_model_metadata.
-    """
-    if settings.SENTRY_AIR_GAP:
-        return
-
-    models_dict: dict[ModelId, AIModelCostV2] = {}
-
-    try:
-        for model_id, model_data in _fetch_openrouter_raw():
-            cost = _openrouter_entry_to_cost(model_id, model_data)
-            if cost is not None:
-                models_dict[model_id] = cost
-    except Exception as e:
-        logger.warning(
-            "Failed to fetch AI model costs from OpenRouter API", extra={"error": str(e)}
-        )
-        raise
-
-    try:
-        for model_id, model_data in _fetch_models_dev_raw():
-            if model_id not in models_dict:
-                cost = _models_dev_entry_to_cost(model_id, model_data)
-                if cost is not None:
-                    models_dict[model_id] = cost
-    except Exception as e:
-        logger.warning(
-            "Failed to fetch AI model costs from models.dev API", extra={"error": str(e)}
-        )
-        raise
-
-    _add_glob_model_names(models_dict)
-
-    ai_model_costs: AIModelCosts = {"version": 2, "models": models_dict}
-    cache.set(AI_MODEL_COSTS_CACHE_KEY, ai_model_costs, AI_MODEL_COSTS_CACHE_TTL)
-
-
-# ---------------------------------------------------------------------------
-# New task: fetch_llm_model_metadata (nested LLMModelMetadata format)
-# ---------------------------------------------------------------------------
-
-
-def _openrouter_entry_to_metadata(model_id: str, model_data: dict) -> LLMModelMetadata | None:
-    """Convert an OpenRouter raw entry to LLMModelMetadata."""
-    pricing = model_data.get("pricing", {})
-    try:
-        model_cost = LLMModelCost(
-            inputPerToken=safe_float_conversion(pricing.get("prompt")),
-            outputPerToken=safe_float_conversion(pricing.get("completion")),
-            outputReasoningPerToken=safe_float_conversion(pricing.get("internal_reasoning")),
-            inputCachedPerToken=safe_float_conversion(pricing.get("input_cache_read")),
-            inputCacheWritePerToken=safe_float_conversion(pricing.get("input_cache_write")),
-        )
-
-        metadata = LLMModelMetadata(costs=model_cost)
-
-        context_length = model_data.get("context_length")
-        if isinstance(context_length, int) and context_length > 0:
-            metadata["contextSize"] = context_length
-
-        return metadata
-    except (ValueError, TypeError) as e:
-        logger.warning(
-            "fetch_llm_model_metadata.openrouter_model_parse_error",
-            extra={"model_id": model_id, "error": str(e)},
-        )
-        return None
-
-
-def _models_dev_entry_to_metadata(model_id: str, model_data: dict) -> LLMModelMetadata | None:
-    """Convert a models.dev raw entry to LLMModelMetadata."""
-    cost_data = model_data.get("cost", {})
-    provider_name = model_data.get("_provider", "unknown")
-    try:
-        model_cost = LLMModelCost(
-            inputPerToken=safe_float_conversion(cost_data.get("input")) / 1000000,
-            outputPerToken=safe_float_conversion(cost_data.get("output")) / 1000000,
-            outputReasoningPerToken=0.0,
-            inputCachedPerToken=safe_float_conversion(cost_data.get("cache_read")) / 1000000,
-            inputCacheWritePerToken=safe_float_conversion(cost_data.get("cache_write")) / 1000000,
-        )
-
-        metadata = LLMModelMetadata(costs=model_cost)
-
-        limit_data = model_data.get("limit", {})
-        if isinstance(limit_data, dict):
-            context_size = limit_data.get("context")
-            if isinstance(context_size, int) and context_size > 0:
-                metadata["contextSize"] = context_size
-
-        return metadata
-    except (ValueError, TypeError) as e:
-        logger.warning(
-            "fetch_llm_model_metadata.models_dev_model_parse_error",
-            extra={"model_id": model_id, "provider": provider_name, "error": str(e)},
-        )
-        return None
-
-
-@instrumented_task(
-    name="sentry.tasks.ai_agent_monitoring.fetch_llm_model_metadata",
-    namespace=ai_agent_monitoring_tasks,
-    processing_deadline_duration=35,
-    expires=30,
-    silo_mode=SiloMode.CELL,
-)
-def fetch_llm_model_metadata() -> None:
-    """
-    Fetch LLM model metadata (costs, context size) from OpenRouter and models.dev APIs
-    and store them in cache.
-
-    This task fetches model pricing and context size data from both sources and
-    converts it to the LLMModelMetadata format for use by Sentry's LLM cost tracking.
-    OpenRouter data takes precedence over models.dev data.
-    """
-    if settings.SENTRY_AIR_GAP:
-        return
-
-    models_dict: dict[ModelId, LLMModelMetadata] = {}
-
-    try:
-        for model_id, model_data in _fetch_openrouter_raw():
-            metadata = _openrouter_entry_to_metadata(model_id, model_data)
-            if metadata is not None:
-                models_dict[model_id] = metadata
-    except Exception as e:
-        logger.warning(
-            "Failed to fetch LLM model metadata from OpenRouter API", extra={"error": str(e)}
-        )
-        raise
-
-    try:
-        for model_id, model_data in _fetch_models_dev_raw():
-            if model_id not in models_dict:
-                metadata = _models_dev_entry_to_metadata(model_id, model_data)
-                if metadata is not None:
-                    models_dict[model_id] = metadata
-    except Exception as e:
-        logger.warning(
-            "Failed to fetch LLM model metadata from models.dev API", extra={"error": str(e)}
-        )
-        raise
-
-    _add_glob_model_names(models_dict)
-
-    metadata_config: LLMModelMetadataConfig = {"version": 1, "models": models_dict}
-    cache.set(LLM_MODEL_METADATA_CACHE_KEY, metadata_config, LLM_MODEL_METADATA_CACHE_TTL)
-
-
-# ---------------------------------------------------------------------------
-# Utilities
-# ---------------------------------------------------------------------------
+    return models_dict
 
 
 def safe_float_conversion(value: Any) -> float:
@@ -408,3 +334,243 @@ def safe_float_conversion(value: Any) -> float:
             return 0.0
 
     return 0.0
+
+
+# ---------------------------------------------------------------------------
+# New task: fetch_ai_model_metadata
+# Fetches model costs + context size into the new AIModelMetadata format.
+# Runs alongside fetch_ai_model_costs during the migration period.
+# ---------------------------------------------------------------------------
+
+
+def _add_glob_model_names_metadata(models_dict: dict[ModelId, AIModelMetadata]) -> None:
+    """Add glob versions of model names to the metadata models dictionary."""
+    model_ids = list(models_dict.keys())
+
+    for model_id in model_ids:
+        normalized_model_id = _normalize_model_id(model_id)
+        if normalized_model_id != model_id and normalized_model_id not in models_dict:
+            models_dict[normalized_model_id] = models_dict[model_id]
+
+        prefix_glob_name = _create_prefix_glob_model_name(normalized_model_id)
+        if prefix_glob_name not in models_dict:
+            models_dict[prefix_glob_name] = models_dict[normalized_model_id]
+
+
+@instrumented_task(
+    name="sentry.tasks.ai_agent_monitoring.fetch_ai_model_metadata",
+    namespace=ai_agent_monitoring_tasks,
+    processing_deadline_duration=35,
+    expires=30,
+    silo_mode=SiloMode.CELL,
+)
+def fetch_ai_model_metadata() -> None:
+    """
+    Fetch LLM model metadata (costs, context size) from OpenRouter and models.dev APIs
+    and store them in cache.
+
+    This task fetches model pricing and context size data from both sources and
+    converts it to the AIModelMetadata format.
+    OpenRouter data takes precedence over models.dev data.
+    """
+    if settings.SENTRY_AIR_GAP:
+        return
+
+    models_dict: dict[ModelId, AIModelMetadata] = {}
+
+    # Fetch from OpenRouter API (takes precedence)
+    try:
+        openrouter_models = _fetch_openrouter_models_metadata()
+        models_dict.update(openrouter_models)
+    except Exception as e:
+        logger.warning(
+            "Failed to fetch LLM model metadata from OpenRouter API", extra={"error": str(e)}
+        )
+        raise
+
+    # Fetch from models.dev API (only add models not already present)
+    try:
+        models_dev_models = _fetch_models_dev_models_metadata()
+        for model_id, model_metadata in models_dev_models.items():
+            if model_id not in models_dict:
+                models_dict[model_id] = model_metadata
+    except Exception as e:
+        logger.warning(
+            "Failed to fetch LLM model metadata from models.dev API", extra={"error": str(e)}
+        )
+        raise
+
+    # Add glob versions of model names for flexible matching
+    _add_glob_model_names_metadata(models_dict)
+
+    metadata_config: AIModelMetadataConfig = {"version": 1, "models": models_dict}
+    cache.set(AI_MODEL_METADATA_CACHE_KEY, metadata_config, AI_MODEL_METADATA_CACHE_TTL)
+
+
+def _fetch_openrouter_models_metadata() -> dict[ModelId, AIModelMetadata]:
+    """Fetch model metadata from OpenRouter API.
+
+    Example response:
+    {
+        "data": [
+            {
+                "id": "openai/gpt-4o-mini",
+                "name": "OpenAI: GPT-4o Mini",
+                "context_length": 1000000,
+                "pricing": {
+                    "prompt": "0.0000003",
+                    "completion": "0.00000165",
+                    "internal_reasoning": "0.0000003",
+                    "input_cache_read": "0.0000003",
+                    "input_cache_write": "0.00000125",
+                },
+            },
+        ]
+    }
+    """
+    response = safe_urlopen(OPENROUTER_MODELS_API_URL)
+    response.raise_for_status()
+
+    data = response.json()
+
+    if not isinstance(data, dict) or "data" not in data:
+        raise ValueError("Invalid OpenRouter response format: missing 'data' field")
+
+    models_data = data["data"]
+    if not isinstance(models_data, list):
+        raise ValueError("Invalid OpenRouter response format: 'data' field is not a list")
+
+    models_dict: dict[ModelId, AIModelMetadata] = {}
+
+    for model_data in models_data:
+        if not isinstance(model_data, dict):
+            continue
+
+        model_id = model_data.get("id")
+        if not model_id:
+            continue
+
+        # OpenRouter includes provider name in the model ID, e.g. openai/gpt-4o-mini
+        # We need to extract the model name, since our SDKs only send the model name
+        # (e.g. gpt-4o-mini)
+        if "/" in model_id:
+            model_id = model_id.split("/", maxsplit=1)[1]
+
+        pricing = model_data.get("pricing", {})
+
+        # OpenRouter provides costs as strings, we need to convert to float
+        try:
+            model_cost = AIModelCost(
+                inputPerToken=safe_float_conversion(pricing.get("prompt")),
+                outputPerToken=safe_float_conversion(pricing.get("completion")),
+                outputReasoningPerToken=safe_float_conversion(pricing.get("internal_reasoning")),
+                inputCachedPerToken=safe_float_conversion(pricing.get("input_cache_read")),
+                inputCacheWritePerToken=safe_float_conversion(pricing.get("input_cache_write")),
+            )
+
+            metadata = AIModelMetadata(costs=model_cost)
+
+            context_length = model_data.get("context_length")
+            if isinstance(context_length, int) and context_length > 0:
+                metadata["contextSize"] = context_length
+
+            models_dict[model_id] = metadata
+
+        except (ValueError, TypeError) as e:
+            logger.warning(
+                "fetch_ai_model_metadata.openrouter_model_parse_error",
+                extra={"model_id": model_id, "error": str(e)},
+            )
+            continue
+
+    return models_dict
+
+
+def _fetch_models_dev_models_metadata() -> dict[ModelId, AIModelMetadata]:
+    """Fetch model metadata from models.dev API.
+
+    Example response:
+    {
+        "openai": {
+            "models": {
+                "gpt-4": {
+                    "cost": {
+                        "input": 0.0000003,
+                        "output": 0.00000165,
+                        "cache_read": 0.0000003,
+                        "cache_write": 0.00000125,
+                    },
+                    "limit": {
+                        "context": 128000,
+                        "output": 16384,
+                    }
+                }
+            }
+        }
+    }
+    """
+    response = safe_urlopen(MODELS_DEV_API_URL)
+    response.raise_for_status()
+
+    data = response.json()
+
+    if not isinstance(data, dict):
+        raise ValueError("Invalid models.dev response format: expected dict")
+
+    models_dict: dict[ModelId, AIModelMetadata] = {}
+
+    for provider_name, provider_data in data.items():
+        if not isinstance(provider_data, dict):
+            continue
+
+        models = provider_data.get("models", {})
+        if not isinstance(models, dict):
+            continue
+
+        for model_id, model_data in models.items():
+            if not isinstance(model_data, dict):
+                continue
+
+            cost_data = model_data.get("cost", {})
+            if not isinstance(cost_data, dict) or not cost_data:
+                # Skip models with no cost data or empty cost data
+                continue
+
+            # models.dev may include provider name in the model ID, e.g. google/gemini-2.0-flash-001
+            # We need to extract the model name, since our SDKs only send the model name
+            # (e.g. gemini-2.0-flash-001)
+            if "/" in model_id:
+                model_id = model_id.split("/", maxsplit=1)[1]
+
+            # models.dev provides costs as numbers, but for extra safety convert to our format
+            try:
+                model_cost = AIModelCost(
+                    inputPerToken=safe_float_conversion(cost_data.get("input"))
+                    / 1000000,  # models.dev have prices per 1M tokens
+                    outputPerToken=safe_float_conversion(cost_data.get("output"))
+                    / 1000000,  # models.dev have price per 1M tokens
+                    outputReasoningPerToken=0.0,  # models.dev doesn't provide reasoning costs
+                    inputCachedPerToken=safe_float_conversion(cost_data.get("cache_read"))
+                    / 1000000,  # models.dev have price per 1M tokens
+                    inputCacheWritePerToken=safe_float_conversion(cost_data.get("cache_write"))
+                    / 1000000,  # models.dev have price per 1M tokens
+                )
+
+                metadata = AIModelMetadata(costs=model_cost)
+
+                limit_data = model_data.get("limit", {})
+                if isinstance(limit_data, dict):
+                    context_size = limit_data.get("context")
+                    if isinstance(context_size, int) and context_size > 0:
+                        metadata["contextSize"] = context_size
+
+                models_dict[model_id] = metadata
+
+            except (ValueError, TypeError) as e:
+                logger.warning(
+                    "fetch_ai_model_metadata.models_dev_model_parse_error",
+                    extra={"model_id": model_id, "provider": provider_name, "error": str(e)},
+                )
+                continue
+
+    return models_dict

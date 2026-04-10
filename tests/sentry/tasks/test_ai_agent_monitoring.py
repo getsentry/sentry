@@ -3,24 +3,24 @@ import responses
 
 from sentry.relay.config.ai_model_costs import (
     AI_MODEL_COSTS_CACHE_KEY,
-    LLM_MODEL_METADATA_CACHE_KEY,
-    LLMModelMetadataConfig,
+    AI_MODEL_METADATA_CACHE_KEY,
+    AIModelMetadataConfig,
 )
 from sentry.tasks.ai_agent_monitoring import (
     MODELS_DEV_API_URL,
     OPENROUTER_MODELS_API_URL,
     fetch_ai_model_costs,
-    fetch_llm_model_metadata,
+    fetch_ai_model_metadata,
 )
 from sentry.testutils.cases import TestCase
 from sentry.utils.cache import cache
 
 
-def _get_metadata_from_cache() -> LLMModelMetadataConfig | None:
+def _get_metadata_from_cache() -> AIModelMetadataConfig | None:
     """
     Utility function to retrieve LLM model metadata from cache.
     """
-    return cache.get(LLM_MODEL_METADATA_CACHE_KEY)
+    return cache.get(AI_MODEL_METADATA_CACHE_KEY)
 
 
 def _get_legacy_costs_from_cache():
@@ -185,11 +185,11 @@ MOCK_MODELS_DEV_API_RESPONSE = {
 }
 
 
-class FetchLLMModelMetadataTest(TestCase):
+class FetchAIModelMetadataTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         # Clear cache before each test
-        cache.delete(LLM_MODEL_METADATA_CACHE_KEY)
+        cache.delete(AI_MODEL_METADATA_CACHE_KEY)
         cache.delete(AI_MODEL_COSTS_CACHE_KEY)
 
     def _mock_openrouter_api_response(self, mock_response: dict):
@@ -209,12 +209,12 @@ class FetchLLMModelMetadataTest(TestCase):
         )
 
     @responses.activate
-    def test_fetch_llm_model_metadata_success_both_apis(self) -> None:
+    def test_fetch_ai_model_metadata_success_both_apis(self) -> None:
         """Test successful fetching and caching from both APIs"""
         self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
         self._mock_models_dev_api_response(MOCK_MODELS_DEV_API_RESPONSE)
 
-        fetch_llm_model_metadata()
+        fetch_ai_model_metadata()
 
         # Verify the data was cached correctly
         cached_data = _get_metadata_from_cache()
@@ -271,13 +271,13 @@ class FetchLLMModelMetadataTest(TestCase):
         assert gemini_flash.get("contextSize") == 1048576  # models.dev limit.context
 
     @responses.activate
-    def test_fetch_llm_model_metadata_success_openrouter_only(self) -> None:
+    def test_fetch_ai_model_metadata_success_openrouter_only(self) -> None:
         """Test successful fetching when only OpenRouter succeeds"""
         self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
         # Also mock models.dev to return empty response to avoid real network call
         self._mock_models_dev_api_response({})
 
-        fetch_llm_model_metadata()
+        fetch_ai_model_metadata()
 
         # Verify the data was cached correctly
         cached_data = _get_metadata_from_cache()
@@ -307,7 +307,7 @@ class FetchLLMModelMetadataTest(TestCase):
         assert gpt5.get("contextSize") == 128000
 
     @responses.activate
-    def test_fetch_llm_model_metadata_missing_pricing(self) -> None:
+    def test_fetch_ai_model_metadata_missing_pricing(self) -> None:
         """Test handling of models with missing pricing data"""
         mock_openrouter_response = {
             "data": [
@@ -351,7 +351,7 @@ class FetchLLMModelMetadataTest(TestCase):
         self._mock_openrouter_api_response(mock_openrouter_response)
         self._mock_models_dev_api_response(mock_models_dev_response)
 
-        fetch_llm_model_metadata()
+        fetch_ai_model_metadata()
 
         # Verify only valid models are cached
         cached_data = _get_metadata_from_cache()
@@ -392,7 +392,7 @@ class FetchLLMModelMetadataTest(TestCase):
         assert models_dev["costs"]["inputCacheWritePerToken"] == 0.0
 
     @responses.activate
-    def test_fetch_llm_model_metadata_openrouter_invalid_response(self) -> None:
+    def test_fetch_ai_model_metadata_openrouter_invalid_response(self) -> None:
         """Test handling of invalid OpenRouter API response format"""
         # Invalid response - missing 'data' field
         mock_response = {"invalid": "response"}
@@ -400,14 +400,14 @@ class FetchLLMModelMetadataTest(TestCase):
         self._mock_openrouter_api_response(mock_response)
 
         with pytest.raises(ValueError, match="Invalid OpenRouter response format"):
-            fetch_llm_model_metadata()
+            fetch_ai_model_metadata()
 
         # Verify nothing was cached
         cached_data = _get_metadata_from_cache()
         assert cached_data is None
 
     @responses.activate
-    def test_fetch_llm_model_metadata_models_dev_invalid_response(self) -> None:
+    def test_fetch_ai_model_metadata_models_dev_invalid_response(self) -> None:
         """Test handling of invalid models.dev API response format"""
         # Valid OpenRouter response
         self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
@@ -421,14 +421,14 @@ class FetchLLMModelMetadataTest(TestCase):
         )
 
         with pytest.raises(ValueError, match="Invalid models.dev response format"):
-            fetch_llm_model_metadata()
+            fetch_ai_model_metadata()
 
         # Verify nothing was cached due to models.dev failure
         cached_data = _get_metadata_from_cache()
         assert cached_data is None
 
     @responses.activate
-    def test_fetch_llm_model_metadata_openrouter_http_error(self) -> None:
+    def test_fetch_ai_model_metadata_openrouter_http_error(self) -> None:
         """Test handling of OpenRouter HTTP errors"""
         responses.add(
             responses.GET,
@@ -437,14 +437,14 @@ class FetchLLMModelMetadataTest(TestCase):
         )
 
         with pytest.raises(Exception):
-            fetch_llm_model_metadata()
+            fetch_ai_model_metadata()
 
         # Verify nothing was cached
         cached_data = _get_metadata_from_cache()
         assert cached_data is None
 
     @responses.activate
-    def test_fetch_llm_model_metadata_models_dev_http_error(self) -> None:
+    def test_fetch_ai_model_metadata_models_dev_http_error(self) -> None:
         """Test handling of models.dev HTTP errors"""
         # Valid OpenRouter response
         self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
@@ -457,14 +457,14 @@ class FetchLLMModelMetadataTest(TestCase):
         )
 
         with pytest.raises(Exception):
-            fetch_llm_model_metadata()
+            fetch_ai_model_metadata()
 
         # Verify nothing was cached due to models.dev failure
         cached_data = _get_metadata_from_cache()
         assert cached_data is None
 
     @responses.activate
-    def test_fetch_llm_model_metadata_timeout(self) -> None:
+    def test_fetch_ai_model_metadata_timeout(self) -> None:
         """Test handling of request timeout"""
         import requests
 
@@ -475,7 +475,7 @@ class FetchLLMModelMetadataTest(TestCase):
         )
 
         with pytest.raises(requests.exceptions.Timeout):
-            fetch_llm_model_metadata()
+            fetch_ai_model_metadata()
 
         # Verify nothing was cached
         cached_data = _get_metadata_from_cache()
@@ -487,7 +487,7 @@ class FetchLLMModelMetadataTest(TestCase):
         assert cached_data is None
 
     @responses.activate
-    def test_fetch_llm_model_metadata_with_normalized_and_prefix_glob_names(self) -> None:
+    def test_fetch_ai_model_metadata_with_normalized_and_prefix_glob_names(self) -> None:
         """Test that normalized and prefix glob versions of model names are added correctly"""
         # Mock responses with models that have dates/versions that should be normalized
         mock_openrouter_response = {
@@ -538,7 +538,7 @@ class FetchLLMModelMetadataTest(TestCase):
         self._mock_openrouter_api_response(mock_openrouter_response)
         self._mock_models_dev_api_response(mock_models_dev_response)
 
-        fetch_llm_model_metadata()
+        fetch_ai_model_metadata()
 
         # Verify the data was cached correctly
         cached_data = _get_metadata_from_cache()
@@ -632,12 +632,12 @@ class FetchLLMModelMetadataTest(TestCase):
         )
 
     @responses.activate
-    def test_fetch_llm_model_metadata_does_not_write_legacy_cache(self) -> None:
+    def test_fetch_ai_model_metadata_does_not_write_legacy_cache(self) -> None:
         """Test that the new task only writes the new cache, not the legacy one"""
         self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
         self._mock_models_dev_api_response(MOCK_MODELS_DEV_API_RESPONSE)
 
-        fetch_llm_model_metadata()
+        fetch_ai_model_metadata()
 
         # New cache should be populated
         new_data = _get_metadata_from_cache()
