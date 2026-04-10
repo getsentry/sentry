@@ -97,12 +97,12 @@ function ReplayDetailsContent() {
     <Fragment>
       <Flex direction="column">
         <Flex
-          borderBottom="secondary"
+          borderBottom={hasPageFrame ? undefined : 'secondary'}
           justify="between"
           align="center"
           gap="md"
           wrap="wrap"
-          padding={hasPageFrame ? {sm: 'sm lg', md: 'md xl'} : 'sm lg'}
+          padding={hasPageFrame ? '0' : 'sm lg'}
         >
           {hasPageFrame ? (
             <TopBar.Slot name="title">
