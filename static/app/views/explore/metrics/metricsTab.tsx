@@ -1,3 +1,19 @@
+import {useCallback, useRef, useState} from 'react';
+import type {DragEndEvent} from '@dnd-kit/core';
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -8,6 +24,7 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {t} from 'sentry/locale';
+import {uniqueId} from 'sentry/utils/guid';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
@@ -21,6 +38,7 @@ import {useMetricsAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {useMetricReferences} from 'sentry/views/explore/metrics/hooks/useMetricReferences';
 import {MetricPanel} from 'sentry/views/explore/metrics/metricPanel';
+import {SortableMetricPanel} from 'sentry/views/explore/metrics/metricPanel/sortableMetricPanel';
 import {
   canUseMetricsEquations,
   canUseMetricsUIRefresh,
@@ -32,6 +50,7 @@ import {
   MultiMetricsQueryParamsProvider,
   useAddMetricQuery,
   useMultiMetricsQueryParams,
+  useReorderMetricQueries,
 } from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {
   FilterBarWithSaveAsContainer,
@@ -188,6 +207,61 @@ function MetricsQueryBuilderSection() {
   );
 }
 
+function useSortableMetricQueries() {
+  const metricQueries = useMultiMetricsQueryParams();
+  const reorderMetricQueries = useReorderMetricQueries();
+  const [isDragging, setIsDragging] = useState(false);
+
+  const uniqueIdsRef = useRef<string[]>([]);
+  uniqueIdsRef.current.length = Math.min(
+    uniqueIdsRef.current.length,
+    metricQueries.length
+  );
+  while (uniqueIdsRef.current.length < metricQueries.length) {
+    uniqueIdsRef.current.push(uniqueId());
+  }
+
+  const sortableItems = metricQueries.map((metricQuery, i) => ({
+    id: i + 1,
+    uniqueId: uniqueIdsRef.current[i]!,
+    metricQuery,
+  }));
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const onDragStart = useCallback(() => {
+    setIsDragging(true);
+  }, []);
+
+  const onDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      setIsDragging(false);
+      const {active, over} = event;
+      if (active.id !== over?.id) {
+        const oldIndex = sortableItems.findIndex(({id}) => id === active.id);
+        const newIndex = sortableItems.findIndex(({id}) => id === over?.id);
+        if (oldIndex < 0 || newIndex < 0) {
+          return;
+        }
+        uniqueIdsRef.current = arrayMove(uniqueIdsRef.current, oldIndex, newIndex);
+        reorderMetricQueries(arrayMove([...metricQueries], oldIndex, newIndex));
+      }
+    },
+    [sortableItems, metricQueries, reorderMetricQueries]
+  );
+
+  const onDragCancel = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  return {sortableItems, sensors, onDragStart, onDragEnd, onDragCancel, isDragging};
+}
+
 function MetricsTabBodySection() {
   const organization = useOrganization();
   const metricQueries = useMultiMetricsQueryParams();
@@ -205,30 +279,47 @@ function MetricsTabBodySection() {
     isMetricOptionsEmpty,
   });
   const references = useMetricReferences();
+  const {sortableItems, sensors, onDragStart, onDragEnd, onDragCancel, isDragging} =
+    useSortableMetricQueries();
 
   if (canUseMetricsUIRefresh(organization)) {
     return (
       <ExploreContentSection>
         <Stack>
           <WidgetSyncContextProvider groupName={METRICS_CHART_GROUP}>
-            {metricQueries.map((metricQuery, index) => {
-              return (
-                <MetricsQueryParamsProvider
-                  key={`queryPanel-${index}`}
-                  queryParams={metricQuery.queryParams}
-                  setQueryParams={metricQuery.setQueryParams}
-                  traceMetric={metricQuery.metric}
-                  setTraceMetric={metricQuery.setTraceMetric}
-                  removeMetric={metricQuery.removeMetric}
-                >
-                  <MetricPanel
-                    traceMetric={metricQuery.metric}
-                    queryIndex={index}
-                    references={references}
-                  />
-                </MetricsQueryParamsProvider>
-              );
-            })}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragStart={onDragStart}
+              onDragEnd={onDragEnd}
+              onDragCancel={onDragCancel}
+            >
+              <SortableContext
+                items={sortableItems}
+                strategy={verticalListSortingStrategy}
+              >
+                {sortableItems.map(({id, uniqueId: uid, metricQuery}, index) => {
+                  return (
+                    <MetricsQueryParamsProvider
+                      key={uid}
+                      queryParams={metricQuery.queryParams}
+                      setQueryParams={metricQuery.setQueryParams}
+                      traceMetric={metricQuery.metric}
+                      setTraceMetric={metricQuery.setTraceMetric}
+                      removeMetric={metricQuery.removeMetric}
+                    >
+                      <SortableMetricPanel
+                        sortableId={id}
+                        traceMetric={metricQuery.metric}
+                        queryIndex={index}
+                        references={references}
+                        isAnyDragging={isDragging}
+                      />
+                    </MetricsQueryParamsProvider>
+                  );
+                })}
+              </SortableContext>
+            </DndContext>
             <Flex gap="sm" direction="row">
               <ToolbarVisualizeAddChart
                 add={addMetricQuery}
