@@ -77,7 +77,6 @@ describe('DiagnosisSection', () => {
     MockApiClient.addMockResponse({
       url: apiUrl,
       body: SourceMapDebugResponseFixture({
-        project_has_some_artifact_bundle: true,
         exceptions: [
           {
             frames: [
@@ -107,7 +106,6 @@ describe('DiagnosisSection', () => {
     MockApiClient.addMockResponse({
       url: apiUrl,
       body: SourceMapDebugResponseFixture({
-        project_has_some_artifact_bundle: true,
         exceptions: [
           {
             frames: [
@@ -138,7 +136,6 @@ describe('DiagnosisSection', () => {
     MockApiClient.addMockResponse({
       url: apiUrl,
       body: SourceMapDebugResponseFixture({
-        project_has_some_artifact_bundle: true,
         exceptions: [
           {
             frames: [
@@ -168,7 +165,6 @@ describe('DiagnosisSection', () => {
     MockApiClient.addMockResponse({
       url: apiUrl,
       body: SourceMapDebugResponseFixture({
-        project_has_some_artifact_bundle: true,
         exceptions: [
           {
             frames: [
@@ -199,8 +195,6 @@ describe('DiagnosisSection', () => {
     MockApiClient.addMockResponse({
       url: apiUrl,
       body: SourceMapDebugResponseFixture({
-        project_has_some_artifact_bundle: true,
-        has_scraping_data: true,
         exceptions: [
           {
             frames: [
