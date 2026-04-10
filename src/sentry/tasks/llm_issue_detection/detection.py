@@ -282,6 +282,10 @@ def detect_llm_issues_for_project(project_id: int) -> None:
     if not has_access:
         return
 
+    perf_settings = project.get_option("sentry:performance_issue_settings")
+    if not perf_settings.get("llm_issue_detection_enabled", True):
+        return
+
     evidence_traces = get_project_top_transaction_traces_for_llm_detection(
         project_id, limit=TRANSACTION_BATCH_SIZE, start_time_delta_minutes=START_TIME_DELTA_MINUTES
     )

@@ -19,6 +19,7 @@ from sentry.issue_detection.performance_detection import (
 )
 from sentry.issues.grouptype import (
     GroupType,
+    LLMDetectedExperimentalGroupTypeV2,
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceConsecutiveHTTPQueriesGroupType,
     PerformanceDBMainThreadGroupType,
@@ -85,6 +86,7 @@ class ConfigurableThresholds(Enum):
     SQL_INJECTION_QUERY_VALUE_LENGTH = "sql_injection_query_value_length_threshold"
     WEB_VITALS = "web_vitals_detection_enabled"
     WEB_VITALS_COUNT = "web_vitals_count"
+    LLM_ISSUE_DETECTION = "llm_issue_detection_enabled"
 
 
 project_settings_to_group_map: dict[str, type[GroupType]] = {
@@ -103,6 +105,7 @@ project_settings_to_group_map: dict[str, type[GroupType]] = {
     InternalProjectOptions.FUNCTION_DURATION_REGRESSION.value: ProfileFunctionRegressionType,
     ConfigurableThresholds.DB_QUERY_INJECTION.value: QueryInjectionVulnerabilityGroupType,
     ConfigurableThresholds.WEB_VITALS.value: WebVitalsGroup,
+    ConfigurableThresholds.LLM_ISSUE_DETECTION.value: LLMDetectedExperimentalGroupTypeV2,
 }
 """
 A mapping of the management settings to the group type that the detector spawns.
@@ -125,6 +128,7 @@ thresholds_to_manage_map: dict[str, str] = {
     ConfigurableThresholds.HTTP_OVERHEAD_REQUEST_DELAY.value: ConfigurableThresholds.HTTP_OVERHEAD.value,
     ConfigurableThresholds.SQL_INJECTION_QUERY_VALUE_LENGTH.value: ConfigurableThresholds.DB_QUERY_INJECTION.value,
     ConfigurableThresholds.WEB_VITALS_COUNT.value: ConfigurableThresholds.WEB_VITALS.value,
+    ConfigurableThresholds.LLM_ISSUE_DETECTION.value: ConfigurableThresholds.LLM_ISSUE_DETECTION.value,
 }
 """
 A mapping of threshold setting to the parent setting that manages it's detection.
@@ -199,6 +203,7 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
     function_duration_regression_detection_enabled = serializers.BooleanField(required=False)
     db_query_injection_detection_enabled = serializers.BooleanField(required=False)
     web_vitals_detection_enabled = serializers.BooleanField(required=False)
+    llm_issue_detection_enabled = serializers.BooleanField(required=False)
     sql_injection_query_value_length_threshold = serializers.IntegerField(
         required=False, min_value=3, max_value=10
     )
