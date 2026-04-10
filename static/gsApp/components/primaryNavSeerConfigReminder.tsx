@@ -134,6 +134,7 @@ function useReminderCopywriting() {
     ...bulkAutofixAutomationSettingsInfiniteOptions({
       organization,
     }),
+    enabled: hasSeatBasedSeer,
     staleTime: 60_000,
     select: ({pages}) => pages.flatMap(page => page.json),
   });
