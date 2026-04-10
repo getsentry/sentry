@@ -78,7 +78,7 @@ SNAPSHOT_POST_REQUEST_SCHEMA: dict[str, Any] = {
             "additionalProperties": ImageMetadata.schema(),
             "maxProperties": 50000,
         },
-        "diff_threshold": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+        "diff_threshold": {"type": "number", "minimum": 0.0, "exclusiveMaximum": 1.0},
         **VCS_SCHEMA_PROPERTIES,
     },
     "required": ["app_id", "images"],
