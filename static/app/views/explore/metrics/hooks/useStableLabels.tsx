@@ -77,7 +77,7 @@ function parseEquationIndex(label: string): number {
  * When the ref length doesn't match the query count (fresh load or external
  * navigation), labels are reassigned sequentially.
  */
-export function useStableLabelIndices(queries: BaseMetricQuery[]) {
+export function useStableLabels(queries: BaseMetricQuery[]) {
   const labelsRef = useRef<string[]>([]);
 
   if (labelsRef.current.length !== queries.length) {

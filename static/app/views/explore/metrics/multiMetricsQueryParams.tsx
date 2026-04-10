@@ -13,8 +13,8 @@ import {
 } from 'sentry/views/explore/metrics/constants';
 import {
   getNextLabel,
-  useStableLabelIndices,
-} from 'sentry/views/explore/metrics/hooks/useStableLabelIndices';
+  useStableLabels,
+} from 'sentry/views/explore/metrics/hooks/useStableLabels';
 import {
   decodeMetricsQueryParams,
   defaultMetricQuery,
@@ -60,7 +60,7 @@ export function MultiMetricsQueryParamsProvider({
   const location = useLocation();
   const navigate = useNavigate();
   const rawQueries = getMultiMetricsQueryParamsFromLocation(location, allowUpTo);
-  const labels = useStableLabelIndices(rawQueries);
+  const labels = useStableLabels(rawQueries);
 
   const value = useMemo(() => {
     const metricQueries = rawQueries.map((query, i) => ({
