@@ -66,7 +66,8 @@ def send_search_agent_start_request(
     strategy: str = "Traces",
     user_email: str | None = None,
     timezone: str | None = None,
-    options: dict[str, Any] | None = None,
+    model_name: str | None = None,
+    metric_context: dict[str, Any] | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> dict[str, Any]:
     """
@@ -83,6 +84,12 @@ def send_search_agent_start_request(
         body["user_email"] = user_email
     if timezone:
         body["timezone"] = timezone
+
+    options: dict[str, Any] = {}
+    if model_name is not None:
+        options["model_name"] = model_name
+    if metric_context is not None:
+        options["metric_context"] = metric_context
     if options:
         body["options"] = options
 
@@ -124,6 +131,8 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
         natural_language_query = validated_data["natural_language_query"]
         strategy = validated_data.get("strategy", "Traces")
         options = validated_data.get("options") or {}
+        model_name = options.get("model_name")
+        metric_context = options.get("metric_context")
 
         projects = self.get_projects(
             request, organization, project_ids=set(validated_data["project_ids"])
@@ -175,7 +184,8 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
                 strategy=strategy,
                 user_email=user_email,
                 timezone=timezone,
-                options=options if options else None,
+                model_name=model_name,
+                metric_context=metric_context,
                 viewer_context=viewer_context,
             )
 
