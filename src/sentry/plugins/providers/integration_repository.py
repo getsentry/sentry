@@ -165,11 +165,10 @@ class IntegrationRepositoryProvider(Generic[InstT]):
                     "old_provider": repo.provider,
                 },
             )
-            # update from params
+            # update from params, merging config to preserve keys like webhook_id
+            repo.config = {**repo.config, **(repo_update_params.get("config") or {})}
             for field_name, field_value in repo_update_params.items():
-                if field_name == "config":
-                    repo.config = {**repo.config, **field_value}
-                else:
+                if field_name != "config":
                     setattr(repo, field_name, field_value)
             # also update the status if it was in a bad state
             repo.status = ObjectStatus.ACTIVE
@@ -209,11 +208,10 @@ class IntegrationRepositoryProvider(Generic[InstT]):
     def _update_repository(self, repo: RpcRepository, config: RepositoryConfig):
         repo.status = ObjectStatus.ACTIVE
 
+        new_config = config.get("config") or {}
+        repo.config = {**repo.config, **new_config}
         for field_name, field_value in config.items():
-            if field_name == "config":
-                # Merge to preserve keys like webhook_id that are set by on_create_repository
-                repo.config = {**repo.config, **field_value}
-            else:
+            if field_name != "config":
                 setattr(repo, field_name, field_value)
         return repo
 
