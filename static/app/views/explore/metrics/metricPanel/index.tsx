@@ -1,9 +1,13 @@
-import {useState} from 'react';
+import {useRef, useState} from 'react';
+import type {SyntheticListenerMap} from '@dnd-kit/core/dist/hooks/utilities';
 
 import {Container, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
+import {Placeholder} from 'sentry/components/placeholder';
+import {t} from 'sentry/locale';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
@@ -35,10 +39,22 @@ const TWO_MINUTE_DELAY = 120;
 interface MetricPanelProps {
   queryIndex: number;
   traceMetric: TraceMetric;
+  dragListeners?: SyntheticListenerMap;
+  isAnyDragging?: boolean;
+  ref?: React.Ref<HTMLDivElement>;
   references?: Set<string>;
+  style?: React.CSSProperties;
 }
 
-export function MetricPanel({traceMetric, queryIndex, references}: MetricPanelProps) {
+export function MetricPanel({
+  traceMetric,
+  queryIndex,
+  references,
+  dragListeners,
+  isAnyDragging,
+  style,
+  ref,
+}: MetricPanelProps) {
   const organization = useOrganization();
   const {
     orientation,
@@ -89,9 +105,18 @@ export function MetricPanel({traceMetric, queryIndex, references}: MetricPanelPr
     panelIndex: queryIndex,
   });
 
+  const contentRef = useRef<HTMLDivElement>(null);
+  const contentHeightRef = useRef<number | null>(null);
+
+  // Capture the content height whenever the content is rendered so the
+  // placeholder can match it exactly and avoid layout shift during drag.
+  if (!isAnyDragging && contentRef.current) {
+    contentHeightRef.current = contentRef.current.offsetHeight;
+  }
+
   if (hasMetricsUIRefresh) {
     return (
-      <Panel data-test-id="metric-panel">
+      <Panel ref={ref} style={style} data-test-id="metric-panel">
         <PanelBody>
           <Stack gap="sm">
             <Container paddingBottom={visualize.visible ? undefined : 'sm'}>
@@ -99,18 +124,37 @@ export function MetricPanel({traceMetric, queryIndex, references}: MetricPanelPr
                 traceMetric={traceMetric}
                 queryIndex={queryIndex}
                 references={references}
+                dragListeners={dragListeners}
               />
             </Container>
             {visualize.visible ? (
-              <SideBySideOrientation
-                timeseriesResult={timeseriesResult}
-                traceMetric={traceMetric}
-                setOrientation={setUserPreferenceOrientation}
-                orientation={orientation}
-                infoContentHidden={infoContentHidden}
-                setInfoContentHidden={setInfoContentHidden}
-                isMetricOptionsEmpty={isMetricOptionsEmpty}
-              />
+              isAnyDragging ? (
+                <Container padding="md">
+                  <Placeholder
+                    height={
+                      contentHeightRef.current ? `${contentHeightRef.current}px` : '200px'
+                    }
+                  >
+                    <Text variant="muted">
+                      {t(
+                        'Hold on to your butts! Charts are tucked away while you reorder. Too expensive to drag along for the ride.'
+                      )}
+                    </Text>
+                  </Placeholder>
+                </Container>
+              ) : (
+                <div ref={contentRef}>
+                  <SideBySideOrientation
+                    timeseriesResult={timeseriesResult}
+                    traceMetric={traceMetric}
+                    setOrientation={setUserPreferenceOrientation}
+                    orientation={orientation}
+                    infoContentHidden={infoContentHidden}
+                    setInfoContentHidden={setInfoContentHidden}
+                    isMetricOptionsEmpty={isMetricOptionsEmpty}
+                  />
+                </div>
+              )
             ) : null}
           </Stack>
         </PanelBody>

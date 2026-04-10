@@ -1,9 +1,11 @@
 import {Fragment, useCallback} from 'react';
+import type {SyntheticListenerMap} from '@dnd-kit/core/dist/hooks/utilities';
 
 import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
+import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -28,10 +30,16 @@ import {
 interface MetricToolbarProps {
   queryIndex: number;
   traceMetric: TraceMetric;
+  dragListeners?: SyntheticListenerMap;
   references?: Set<string>;
 }
 
-export function MetricToolbar({traceMetric, queryIndex, references}: MetricToolbarProps) {
+export function MetricToolbar({
+  traceMetric,
+  queryIndex,
+  references,
+  dragListeners,
+}: MetricToolbarProps) {
   const organization = useOrganization();
   const metricQueries = useMultiMetricsQueryParams();
   const visualize = useMetricVisualize();
@@ -61,14 +69,19 @@ export function MetricToolbar({traceMetric, queryIndex, references}: MetricToolb
         gap="md"
         columns={
           isVisualizeFunction(visualize)
-            ? `auto 2fr 3fr 6fr ${canRemoveMetric ? '24px' : '0'}`
-            : `auto 1fr ${canRemoveMetric ? '24px' : '0'}`
+            ? `auto auto 2fr 3fr 6fr ${canRemoveMetric ? '24px' : '0'}`
+            : `auto auto 1fr ${canRemoveMetric ? '24px' : '0'}`
         }
         data-test-id="metric-toolbar"
-        paddingLeft="lg"
+        paddingLeft="md"
         paddingRight="lg"
         paddingTop="md"
       >
+        {dragListeners ? (
+          <DragReorderButton iconSize="sm" {...dragListeners} />
+        ) : (
+          <span />
+        )}
         <VisualizeLabel
           index={queryIndex}
           visualize={visualize}
