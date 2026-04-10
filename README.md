@@ -5,7 +5,8 @@
     </a>
   </p>
   <p align="center">
-    Users and logs provide clues. Sentry provides answers.
+    Users 
+    and logs provide clues. Sentry provides answers.
   </p>
 </p>
 
