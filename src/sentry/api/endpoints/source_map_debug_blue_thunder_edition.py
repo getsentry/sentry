@@ -212,14 +212,14 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
         has_uploaded_some_artifact_with_a_debug_id = bool(
             debug_ids_with_uploaded_source_file or debug_ids_with_uploaded_source_map
         ) or (
-            DebugIdArtifactBundle.objects.filter(
-                organization_id=project.organization_id,
+            ProjectArtifactBundle.objects.filter(
+                project_id=project.id,
             )
             .filter(
                 Exists(
-                    ProjectArtifactBundle.objects.filter(
+                    DebugIdArtifactBundle.objects.filter(
                         artifact_bundle_id=OuterRef("artifact_bundle_id"),
-                        project_id=project.id,
+                        organization_id=project.organization_id,
                     )
                 )
             )
