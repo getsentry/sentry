@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -72,11 +73,8 @@ def is_autofix_enabled(organization: Organization) -> bool:
     if not project_ids:
         return False
 
-    try:
-        preferences = bulk_get_project_preferences(organization.id, project_ids)
-        return any(pref and pref.get("repositories") for pref in preferences.values())
-    except SeerApiError:
-        return False
+    preferences = bulk_get_project_preferences(organization.id, project_ids)
+    return any(pref and pref.get("repositories") for pref in preferences.values())
 
 
 @cell_silo_endpoint
@@ -102,7 +100,19 @@ class OrganizationSeerOnboardingCheck(OrganizationEndpoint):
         """Check if the organization has completed Seer onboarding/configuration."""
         has_scm_integration = has_supported_scm_integration(organization.id)
         code_review_enabled = is_code_review_enabled(organization.id)
-        autofix_enabled = is_autofix_enabled(organization)
+
+        try:
+            autofix_enabled = is_autofix_enabled(organization)
+        except SeerApiError as e:
+            logger.exception(
+                "seer.onboarding_check.autofix_check_error",
+                extra={"organization_id": organization.id, "status_code": e.status},
+            )
+            return Response(
+                {"detail": "Failed to check autofix status"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
         needs_config_reminder = is_in_seer_config_reminder_list(organization)
         is_seer_configured = has_scm_integration and (code_review_enabled or autofix_enabled)
 

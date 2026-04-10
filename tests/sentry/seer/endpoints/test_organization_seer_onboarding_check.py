@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from sentry.constants import ObjectStatus
 from sentry.seer.endpoints.organization_seer_onboarding_check import (
     has_supported_scm_integration,
@@ -243,9 +245,10 @@ class TestIsAutofixEnabledSeerApi(TestCase):
         assert is_autofix_enabled(self.organization)
 
     @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
-    def test_api_error_returns_false(self, mock_bulk_get: MagicMock) -> None:
+    def test_api_error_raises(self, mock_bulk_get: MagicMock) -> None:
         mock_bulk_get.side_effect = SeerApiError("error", 500)
-        assert not is_autofix_enabled(self.organization)
+        with pytest.raises(SeerApiError):
+            is_autofix_enabled(self.organization)
 
     @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
     def test_inactive_project_excluded(self, mock_bulk_get: MagicMock) -> None:
@@ -496,6 +499,14 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
                 "needsConfigReminder": False,
                 "isSeerConfigured": False,
             }
+
+    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
+    def test_seer_api_error_returns_500(self, mock_bulk_get: MagicMock) -> None:
+        mock_bulk_get.side_effect = SeerApiError("error", 500)
+        response = self.get_response(self.organization.slug)
+
+        assert response.status_code == 500
+        assert response.data == {"detail": "Failed to check autofix status"}
 
     @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
     def test_config_reminder_with_complete_setup(self, mock_bulk_get: MagicMock) -> None:
