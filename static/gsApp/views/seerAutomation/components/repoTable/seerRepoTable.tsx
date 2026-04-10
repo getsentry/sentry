@@ -11,7 +11,7 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {organizationRepositoriesInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
+import {organizationRepositoriesWithSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {
   isSeerSupportedProvider,
   useSeerSupportedProviderIds,
@@ -60,7 +60,7 @@ export function SeerRepoTable() {
 
   const supportedProviderIds = useSeerSupportedProviderIds();
 
-  const queryOptions = organizationRepositoriesInfiniteOptions({
+  const queryOptions = organizationRepositoriesWithSettingsInfiniteOptions({
     organization,
     query: {per_page: 100, query: searchTerm, sort},
   });

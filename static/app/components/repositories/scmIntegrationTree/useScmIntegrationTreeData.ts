@@ -1,6 +1,6 @@
 import {useEffect, useMemo} from 'react';
 
-import {organizationRepositoriesInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
+import {organizationRepositoriesWithSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {organizationConfigIntegrationsQueryOptions} from 'sentry/components/repositories/scmIntegrationTree/organizationConfigIntegrationsQueryOptions';
 import type {
   IntegrationProvider,
@@ -21,7 +21,9 @@ type ScmIntegrationTreeData = {
   refetchIntegrations: () => void;
   reposByIntegrationId: Record<string, IntegrationRepository[]>;
   reposPendingByIntegrationId: Record<string, boolean>;
-  reposQueryOptions: ReturnType<typeof organizationRepositoriesInfiniteOptions>;
+  reposQueryOptions: ReturnType<
+    typeof organizationRepositoriesWithSettingsInfiniteOptions
+  >;
   scmIntegrations: OrganizationIntegration[];
   scmProviders: IntegrationProvider[];
 };
@@ -64,7 +66,7 @@ export function useScmIntegrationTreeData(): ScmIntegrationTreeData {
   );
 
   // 3. Fetch already-connected repos, auto-paginate to get all
-  const reposQueryOptions = organizationRepositoriesInfiniteOptions({
+  const reposQueryOptions = organizationRepositoriesWithSettingsInfiniteOptions({
     organization,
     staleTime: 0,
   });

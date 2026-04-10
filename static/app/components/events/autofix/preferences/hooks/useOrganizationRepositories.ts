@@ -64,7 +64,7 @@ export function useOrganizationRepositories({query = {}} = {} as Props) {
   );
 }
 
-export function organizationRepositoriesInfiniteOptions({
+export function organizationRepositoriesWithSettingsInfiniteOptions({
   organization,
   query,
   staleTime,
