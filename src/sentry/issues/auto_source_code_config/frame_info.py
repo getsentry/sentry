@@ -29,7 +29,7 @@ UNSUPPORTED_FRAME_PATH_PATTERN = re.compile(r"^[\[<]|https?://", re.IGNORECASE)
 
 def create_frame_info(frame: Mapping[str, Any], platform: str | None = None) -> FrameInfo:
     """Factory function to create the appropriate FrameInfo instance."""
-    source_roots_resolver = noop_source_roots_resolver
+    source_roots_resolver: SourceRootsResolver = noop_source_roots_resolver
     if platform and supported_platform(platform):
         platform_config = PlatformConfig(platform)
         source_roots_resolver = platform_config.get_source_roots_resolver()
