@@ -518,7 +518,9 @@ function flattenActions(
 
   const flattened = collected.flatMap((item): CMDKFlatItem[] => {
     if (item.children.length > 0) {
-      const matched = item.children.filter(c => scores.get(c.key)?.score.matched);
+      const matched = item.children.filter(
+        c => scores.get(c.key)?.score.matched && !isEmptyResourceNode(c)
+      );
       if (!matched.length) return [];
       return [
         // Suffix the header key so a group used as both a section header and

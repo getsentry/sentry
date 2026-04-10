@@ -701,6 +701,35 @@ describe('CommandPalette', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('is omitted from search mode when nested inside a group whose label matches the query', async () => {
+      render(
+        <CommandPaletteProvider>
+          <CMDKAction display={{label: 'Navigate'}}>
+            <CMDKAction display={{label: 'Async Resource'}} resource={emptyResource}>
+              {data =>
+                data.map((_, i) => (
+                  <CMDKAction key={i} to="/x/" display={{label: 'Result'}} />
+                ))
+              }
+            </CMDKAction>
+          </CMDKAction>
+          <CMDKAction display={{label: 'Other'}} onAction={jest.fn()} />
+          <CommandPalette onAction={jest.fn()} />
+        </CommandPaletteProvider>
+      );
+
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'navigate');
+
+      // Wait for search to take effect — 'Other' should be filtered out since it doesn't match
+      await waitFor(() => {
+        expect(screen.queryByRole('option', {name: 'Other'})).not.toBeInTheDocument();
+      });
+      expect(
+        screen.queryByRole('option', {name: 'Async Resource'})
+      ).not.toBeInTheDocument();
+    });
+
     it('is omitted from search mode even when the label matches the query', async () => {
       render(
         <CommandPaletteProvider>
