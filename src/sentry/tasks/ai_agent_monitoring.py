@@ -97,19 +97,20 @@ def _add_glob_model_names(models_dict: dict[ModelId, AIModelCostV2]) -> None:
 
 
 @instrumented_task(
-    name="sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
+    name="sentry.tasks.ai_agent_monitoring.fetch_ai_model_info",
     namespace=ai_agent_monitoring_tasks,
     processing_deadline_duration=35,
     expires=30,
     silo_mode=SiloMode.CELL,
 )
-def fetch_ai_model_costs() -> None:
+def fetch_ai_model_info() -> None:
     """
-    Fetch AI model costs from OpenRouter and models.dev APIs and store them in cache.
+    Fetch AI model info (costs, context size) from OpenRouter and models.dev APIs
+    and store them in cache.
 
-    This task fetches model pricing data from both sources and converts it to
-    the AIModelCostV2 format for use by Sentry's LLM cost tracking.
-    OpenRouter prices take precedence over models.dev prices.
+    This task fetches model pricing and context size data from both sources and
+    converts it to the AIModelCostV2 format for use by Sentry's LLM cost tracking.
+    OpenRouter data takes precedence over models.dev data.
     """
 
     # this task shouldn't be run in an air gap environment
@@ -214,11 +215,15 @@ def _fetch_openrouter_models() -> dict[ModelId, AIModelCostV2]:
                 inputCacheWritePerToken=safe_float_conversion(pricing.get("input_cache_write")),
             )
 
+            context_length = model_data.get("context_length")
+            if isinstance(context_length, int) and context_length > 0:
+                ai_model_cost["contextSize"] = context_length
+
             models_dict[model_id] = ai_model_cost
 
         except (ValueError, TypeError) as e:
             logger.warning(
-                "fetch_ai_model_costs.openrouter_model_parse_error",
+                "fetch_ai_model_info.openrouter_model_parse_error",
                 extra={"model_id": model_id, "error": str(e)},
             )
             continue
@@ -294,11 +299,17 @@ def _fetch_models_dev_models() -> dict[ModelId, AIModelCostV2]:
                     / 1000000,  # models.dev have price per 1M tokens
                 )
 
+                limit_data = model_data.get("limit", {})
+                if isinstance(limit_data, dict):
+                    context_size = limit_data.get("context")
+                    if isinstance(context_size, int) and context_size > 0:
+                        ai_model_cost["contextSize"] = context_size
+
                 models_dict[model_id] = ai_model_cost
 
             except (ValueError, TypeError) as e:
                 logger.warning(
-                    "fetch_ai_model_costs.models_dev_model_parse_error",
+                    "fetch_ai_model_info.models_dev_model_parse_error",
                     extra={"model_id": model_id, "provider": provider_name, "error": str(e)},
                 )
                 continue

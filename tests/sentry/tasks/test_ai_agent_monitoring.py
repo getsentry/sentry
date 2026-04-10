@@ -5,7 +5,7 @@ from sentry.relay.config.ai_model_costs import AI_MODEL_COSTS_CACHE_KEY, AIModel
 from sentry.tasks.ai_agent_monitoring import (
     MODELS_DEV_API_URL,
     OPENROUTER_MODELS_API_URL,
-    fetch_ai_model_costs,
+    fetch_ai_model_info,
 )
 from sentry.testutils.cases import TestCase
 from sentry.utils.cache import cache
@@ -121,7 +121,11 @@ MOCK_MODELS_DEV_API_RESPONSE = {
                     "output": 1.6 * 1000000,  # models.dev have prices per 1M tokens
                     "cache_read": 0.1 * 1000000,  # models.dev have prices per 1M tokens
                     "cache_write": 0.2 * 1000000,  # models.dev have prices per 1M tokens
-                }
+                },
+                "limit": {
+                    "context": 1048576,
+                    "output": 32768,
+                },
             },
             "gpt-4": {  # This should be skipped since it exists in OpenRouter
                 "cost": {
@@ -129,7 +133,11 @@ MOCK_MODELS_DEV_API_RESPONSE = {
                     "output": 0.2 * 1000000,  # models.dev have prices per 1M tokens
                     "cache_read": 0.05 * 1000000,  # models.dev have prices per 1M tokens
                     "cache_write": 0.15 * 1000000,  # models.dev have prices per 1M tokens
-                }
+                },
+                "limit": {
+                    "context": 8192,
+                    "output": 4096,
+                },
             },
         }
     },
@@ -141,7 +149,11 @@ MOCK_MODELS_DEV_API_RESPONSE = {
                     "output": 10 * 1000000,  # models.dev have prices per 1M tokens
                     "cache_read": 0.31 * 1000000,  # models.dev have prices per 1M tokens
                     "cache_write": 0.62 * 1000000,  # models.dev have prices per 1M tokens
-                }
+                },
+                "limit": {
+                    "context": 1048576,
+                    "output": 65536,
+                },
             },
             "google/gemini-2.0-flash-001": {  # Test provider prefix stripping
                 "cost": {
@@ -149,7 +161,11 @@ MOCK_MODELS_DEV_API_RESPONSE = {
                     "output": 0.3 * 1000000,  # models.dev have prices per 1M tokens
                     "cache_read": 0.01875 * 1000000,  # models.dev have prices per 1M tokens
                     "cache_write": 0.0375 * 1000000,  # models.dev have prices per 1M tokens
-                }
+                },
+                "limit": {
+                    "context": 1048576,
+                    "output": 8192,
+                },
             },
         }
     },
@@ -180,12 +196,12 @@ class FetchAIModelCostsTest(TestCase):
         )
 
     @responses.activate
-    def test_fetch_ai_model_costs_success_both_apis(self) -> None:
+    def test_fetch_ai_model_info_success_both_apis(self) -> None:
         """Test successful fetching and caching from both APIs"""
         self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
         self._mock_models_dev_api_response(MOCK_MODELS_DEV_API_RESPONSE)
 
-        fetch_ai_model_costs()
+        fetch_ai_model_info()
 
         # Verify the data was cached correctly
         cached_data = _get_ai_model_costs_from_cache()
@@ -204,6 +220,7 @@ class FetchAIModelCostsTest(TestCase):
         assert gpt4_model.get("outputReasoningPerToken") == 0.0
         assert gpt4_model.get("inputCachedPerToken") == 0.0000015
         assert gpt4_model.get("inputCacheWritePerToken") == 0.00001875
+        assert gpt4_model.get("contextSize") == 1000000  # OpenRouter context_length
 
         gpt5_model = models["gpt-5"]
         assert gpt5_model.get("inputPerToken") == 0.00000055
@@ -211,6 +228,7 @@ class FetchAIModelCostsTest(TestCase):
         assert gpt5_model.get("outputReasoningPerToken") == 0.00000055
         assert gpt5_model.get("inputCachedPerToken") == 0.00000055
         assert gpt5_model.get("inputCacheWritePerToken") == 0.000006875
+        assert gpt5_model.get("contextSize") == 128000  # OpenRouter context_length
 
         # Check models.dev models
         gpt41_mini_model = models["gpt-4.1-mini"]
@@ -221,6 +239,7 @@ class FetchAIModelCostsTest(TestCase):
         )  # models.dev doesn't provide this
         assert gpt41_mini_model.get("inputCachedPerToken") == 0.1
         assert gpt41_mini_model.get("inputCacheWritePerToken") == 0.2
+        assert gpt41_mini_model.get("contextSize") == 1048576  # models.dev limit.context
 
         gemini_model = models["gemini-2.5-pro"]
         assert gemini_model.get("inputPerToken") == 1.25
@@ -228,6 +247,7 @@ class FetchAIModelCostsTest(TestCase):
         assert gemini_model.get("outputReasoningPerToken") == 0.0
         assert gemini_model.get("inputCachedPerToken") == 0.31
         assert gemini_model.get("inputCacheWritePerToken") == 0.62
+        assert gemini_model.get("contextSize") == 1048576  # models.dev limit.context
 
         # Check models.dev model with provider prefix (should be stripped)
         gemini_flash_model = models["gemini-2.0-flash-001"]
@@ -236,15 +256,16 @@ class FetchAIModelCostsTest(TestCase):
         assert gemini_flash_model.get("outputReasoningPerToken") == 0.0
         assert gemini_flash_model.get("inputCachedPerToken") == 0.01875
         assert gemini_flash_model.get("inputCacheWritePerToken") == 0.0375
+        assert gemini_flash_model.get("contextSize") == 1048576  # models.dev limit.context
 
     @responses.activate
-    def test_fetch_ai_model_costs_success_openrouter_only(self) -> None:
+    def test_fetch_ai_model_info_success_openrouter_only(self) -> None:
         """Test successful fetching when only OpenRouter succeeds"""
         self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
         # Also mock models.dev to return empty response to avoid real network call
         self._mock_models_dev_api_response({})
 
-        fetch_ai_model_costs()
+        fetch_ai_model_info()
 
         # Verify the data was cached correctly
         cached_data = _get_ai_model_costs_from_cache()
@@ -263,6 +284,7 @@ class FetchAIModelCostsTest(TestCase):
         assert gpt4_model.get("outputReasoningPerToken") == 0.0
         assert gpt4_model.get("inputCachedPerToken") == 0.0000015
         assert gpt4_model.get("inputCacheWritePerToken") == 0.00001875
+        assert gpt4_model.get("contextSize") == 1000000
 
         # Check second model with all pricing fields
         gpt5_model = models["gpt-5"]
@@ -271,9 +293,10 @@ class FetchAIModelCostsTest(TestCase):
         assert gpt5_model.get("outputReasoningPerToken") == 0.00000055
         assert gpt5_model.get("inputCachedPerToken") == 0.00000055
         assert gpt5_model.get("inputCacheWritePerToken") == 0.000006875
+        assert gpt5_model.get("contextSize") == 128000
 
     @responses.activate
-    def test_fetch_ai_model_costs_missing_pricing(self) -> None:
+    def test_fetch_ai_model_info_missing_pricing(self) -> None:
         """Test handling of models with missing pricing data"""
         mock_openrouter_response = {
             "data": [
@@ -317,7 +340,7 @@ class FetchAIModelCostsTest(TestCase):
         self._mock_openrouter_api_response(mock_openrouter_response)
         self._mock_models_dev_api_response(mock_models_dev_response)
 
-        fetch_ai_model_costs()
+        fetch_ai_model_info()
 
         # Verify only valid models are cached
         cached_data = _get_ai_model_costs_from_cache()
@@ -332,6 +355,7 @@ class FetchAIModelCostsTest(TestCase):
         assert gpt4_model.get("outputReasoningPerToken") == 0.0  # Missing should default to 0.0
         assert gpt4_model.get("inputCachedPerToken") == 0.0
         assert gpt4_model.get("inputCacheWritePerToken") == 0.0
+        assert "contextSize" not in gpt4_model  # No context_length in response
 
         # Check model with invalid pricing (should default to 0.0)
         another_model = models["another-model"]
@@ -352,11 +376,12 @@ class FetchAIModelCostsTest(TestCase):
         assert models_dev_model.get("inputPerToken") == 0.1
         assert models_dev_model.get("outputPerToken") == 0.2
         assert models_dev_model.get("outputReasoningPerToken") == 0.0
+        assert "contextSize" not in models_dev_model  # No limit.context in response
         assert models_dev_model.get("inputCachedPerToken") == 0.0
         assert models_dev_model.get("inputCacheWritePerToken") == 0.0
 
     @responses.activate
-    def test_fetch_ai_model_costs_openrouter_invalid_response(self) -> None:
+    def test_fetch_ai_model_info_openrouter_invalid_response(self) -> None:
         """Test handling of invalid OpenRouter API response format"""
         # Invalid response - missing 'data' field
         mock_response = {"invalid": "response"}
@@ -364,14 +389,14 @@ class FetchAIModelCostsTest(TestCase):
         self._mock_openrouter_api_response(mock_response)
 
         with pytest.raises(ValueError, match="Invalid OpenRouter response format"):
-            fetch_ai_model_costs()
+            fetch_ai_model_info()
 
         # Verify nothing was cached
         cached_data = _get_ai_model_costs_from_cache()
         assert cached_data is None
 
     @responses.activate
-    def test_fetch_ai_model_costs_models_dev_invalid_response(self) -> None:
+    def test_fetch_ai_model_info_models_dev_invalid_response(self) -> None:
         """Test handling of invalid models.dev API response format"""
         # Valid OpenRouter response
         self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
@@ -385,14 +410,14 @@ class FetchAIModelCostsTest(TestCase):
         )
 
         with pytest.raises(ValueError, match="Invalid models.dev response format"):
-            fetch_ai_model_costs()
+            fetch_ai_model_info()
 
         # Verify nothing was cached due to models.dev failure
         cached_data = _get_ai_model_costs_from_cache()
         assert cached_data is None
 
     @responses.activate
-    def test_fetch_ai_model_costs_openrouter_http_error(self) -> None:
+    def test_fetch_ai_model_info_openrouter_http_error(self) -> None:
         """Test handling of OpenRouter HTTP errors"""
         responses.add(
             responses.GET,
@@ -401,14 +426,14 @@ class FetchAIModelCostsTest(TestCase):
         )
 
         with pytest.raises(Exception):
-            fetch_ai_model_costs()
+            fetch_ai_model_info()
 
         # Verify nothing was cached
         cached_data = _get_ai_model_costs_from_cache()
         assert cached_data is None
 
     @responses.activate
-    def test_fetch_ai_model_costs_models_dev_http_error(self) -> None:
+    def test_fetch_ai_model_info_models_dev_http_error(self) -> None:
         """Test handling of models.dev HTTP errors"""
         # Valid OpenRouter response
         self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
@@ -421,14 +446,14 @@ class FetchAIModelCostsTest(TestCase):
         )
 
         with pytest.raises(Exception):
-            fetch_ai_model_costs()
+            fetch_ai_model_info()
 
         # Verify nothing was cached due to models.dev failure
         cached_data = _get_ai_model_costs_from_cache()
         assert cached_data is None
 
     @responses.activate
-    def test_fetch_ai_model_costs_timeout(self) -> None:
+    def test_fetch_ai_model_info_timeout(self) -> None:
         """Test handling of request timeout"""
         import requests
 
@@ -439,7 +464,7 @@ class FetchAIModelCostsTest(TestCase):
         )
 
         with pytest.raises(requests.exceptions.Timeout):
-            fetch_ai_model_costs()
+            fetch_ai_model_info()
 
         # Verify nothing was cached
         cached_data = _get_ai_model_costs_from_cache()
@@ -451,7 +476,7 @@ class FetchAIModelCostsTest(TestCase):
         assert cached_data is None
 
     @responses.activate
-    def test_fetch_ai_model_costs_with_normalized_and_prefix_glob_names(self) -> None:
+    def test_fetch_ai_model_info_with_normalized_and_prefix_glob_names(self) -> None:
         """Test that normalized and prefix glob versions of model names are added correctly"""
         # Mock responses with models that have dates/versions that should be normalized
         mock_openrouter_response = {
@@ -502,7 +527,7 @@ class FetchAIModelCostsTest(TestCase):
         self._mock_openrouter_api_response(mock_openrouter_response)
         self._mock_models_dev_api_response(mock_models_dev_response)
 
-        fetch_ai_model_costs()
+        fetch_ai_model_info()
 
         # Verify the data was cached correctly
         cached_data = _get_ai_model_costs_from_cache()

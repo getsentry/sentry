@@ -17,12 +17,13 @@ AI_MODEL_COSTS_CACHE_KEY = "ai-model-costs:v2"
 AI_MODEL_COSTS_CACHE_TTL = 30 * 24 * 60 * 60
 
 
-class AIModelCostV2(TypedDict):
-    inputPerToken: float
-    outputPerToken: float
-    outputReasoningPerToken: float
-    inputCachedPerToken: float
-    inputCacheWritePerToken: float
+class AIModelCostV2(TypedDict, total=False):
+    inputPerToken: Required[float]
+    outputPerToken: Required[float]
+    outputReasoningPerToken: Required[float]
+    inputCachedPerToken: Required[float]
+    inputCacheWritePerToken: Required[float]
+    contextSize: int
 
 
 class AIModelCosts(TypedDict):

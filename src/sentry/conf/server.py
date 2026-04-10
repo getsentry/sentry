@@ -1200,8 +1200,8 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "relocation:sentry.relocation.transfer.find_relocation_transfer_region",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
     },
-    "fetch-ai-model-costs": {
-        "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
+    "fetch-ai-model-info": {
+        "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_info",
         "schedule": crontab("*/30", "*", "*", "*", "*"),
     },
     "llm-issue-detection": {
