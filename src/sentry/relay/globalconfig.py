@@ -1,12 +1,7 @@
 from typing import Any, TypedDict
 
 import sentry.options
-from sentry.relay.config.ai_model_costs import (
-    AIModelCosts,
-    LLMModelMetadataConfig,
-    ai_model_costs_config,
-    llm_model_metadata_config,
-)
+from sentry.relay.config.ai_model_costs import AIModelCosts, ai_model_costs_config
 from sentry.relay.config.measurements import MeasurementsConfig, get_measurements_config
 from sentry.relay.config.metric_extraction import (
     MetricExtractionGroups,
@@ -45,8 +40,7 @@ class SpanOpDefaults(TypedDict):
 
 class GlobalConfig(TypedDict, total=False):
     measurements: MeasurementsConfig
-    aiModelCosts: AIModelCosts | None  # TODO: Remove once all consumers use llmModelMetadata
-    llmModelMetadata: LLMModelMetadataConfig | None
+    aiModelCosts: AIModelCosts | None
     metricExtraction: MetricExtractionGroups
     filters: GenericFiltersConfig | None
     spanOpDefaults: SpanOpDefaults
@@ -85,8 +79,7 @@ def get_global_config() -> GlobalConfig:
 
     global_config: GlobalConfig = {
         "measurements": get_measurements_config(),
-        "aiModelCosts": ai_model_costs_config(),  # TODO: Remove once all consumers use llmModelMetadata
-        "llmModelMetadata": llm_model_metadata_config(),
+        "aiModelCosts": ai_model_costs_config(),
         "metricExtraction": global_metric_extraction_groups(),
         "spanOpDefaults": span_op_defaults(),
     }
