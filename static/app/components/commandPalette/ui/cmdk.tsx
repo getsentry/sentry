@@ -32,6 +32,7 @@ interface CMDKActionDataOnAction extends CMDKActionDataBase {
 }
 
 interface CMDKActionDataResource extends CMDKActionDataBase {
+  prompt?: string;
   resource?: (query: string) => CMDKQueryOptions;
 }
 
@@ -72,6 +73,7 @@ interface CMDKActionProps {
   children?: React.ReactNode | ((data: CommandPaletteAction[]) => React.ReactNode);
   keywords?: string[];
   onAction?: () => void;
+  prompt?: string;
   resource?: (query: string) => CMDKQueryOptions;
   to?: LocationDescriptor;
 }
@@ -88,6 +90,7 @@ export function CMDKAction({
   children,
   to,
   onAction,
+  prompt,
   resource,
 }: CMDKActionProps) {
   const ref = CommandPaletteSlot.useSlotOutletRef();
@@ -95,7 +98,7 @@ export function CMDKAction({
   const nodeData: CMDKActionData =
     to === undefined
       ? onAction === undefined
-        ? {display, keywords, ref, resource}
+        ? {display, keywords, ref, resource, prompt}
         : {display, keywords, ref, onAction}
       : {display, keywords, ref, to};
 

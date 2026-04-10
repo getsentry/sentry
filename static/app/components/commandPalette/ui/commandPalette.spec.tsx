@@ -396,6 +396,96 @@ describe('CommandPalette', () => {
     });
   });
 
+  describe('prompt actions', () => {
+    // The prompt action is nested inside an outer group so that it appears as a
+    // selectable 'action' item in browse mode (top-level resource nodes with no
+    // children are filtered out by flattenActions).
+    function PromptAction() {
+      return (
+        <CMDKAction display={{label: 'DSN Tools'}}>
+          <CMDKAction
+            display={{label: 'Reverse DSN lookup'}}
+            prompt="Paste a DSN..."
+            resource={() => ({
+              queryKey: ['prompt-action-test'],
+              queryFn: () => null,
+              enabled: false,
+            })}
+          />
+        </CMDKAction>
+      );
+    }
+
+    it('clicking a prompt action pushes onto the nav stack instead of closing', async () => {
+      const closeSpy = jest.spyOn(modalActions, 'closeModal');
+      render(
+        <GlobalActionsComponent>
+          <PromptAction />
+        </GlobalActionsComponent>
+      );
+
+      await userEvent.click(
+        await screen.findByRole('option', {name: 'Reverse DSN lookup'})
+      );
+
+      expect(closeSpy).not.toHaveBeenCalled();
+    });
+
+    it('shows the prompt as the input placeholder when inside a prompt action context', async () => {
+      render(
+        <GlobalActionsComponent>
+          <PromptAction />
+        </GlobalActionsComponent>
+      );
+
+      await userEvent.click(
+        await screen.findByRole('option', {name: 'Reverse DSN lookup'})
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveAttribute(
+          'placeholder',
+          'Paste a DSN...'
+        );
+      });
+    });
+
+    it('clears the input query when entering a prompt action context', async () => {
+      render(
+        <GlobalActionsComponent>
+          <PromptAction />
+        </GlobalActionsComponent>
+      );
+
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'reverse');
+      await userEvent.click(
+        await screen.findByRole('option', {name: 'Reverse DSN lookup'})
+      );
+
+      await waitFor(() => expect(input).toHaveValue(''));
+    });
+
+    it('backspace from prompt context restores the previous query', async () => {
+      render(
+        <GlobalActionsComponent>
+          <PromptAction />
+        </GlobalActionsComponent>
+      );
+
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'reverse');
+      await userEvent.click(
+        await screen.findByRole('option', {name: 'Reverse DSN lookup'})
+      );
+      await waitFor(() => expect(input).toHaveValue(''));
+
+      await userEvent.keyboard('{Backspace}');
+
+      await waitFor(() => expect(input).toHaveValue('reverse'));
+    });
+  });
+
   describe('query restoration', () => {
     it('drilling into a group clears the active query', async () => {
       render(

@@ -309,6 +309,7 @@ export function GlobalCommandPaletteActions() {
               ),
               icon: <IconSearch />,
             }}
+            prompt={t('Paste a DSN...')}
             resource={(query: string): CMDKQueryOptions => {
               return queryOptions({
                 ...apiOptions.as<DsnLookupResponse>()(

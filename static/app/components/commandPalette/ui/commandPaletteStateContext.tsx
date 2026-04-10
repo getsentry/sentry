@@ -16,7 +16,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
  */
 export type CMDKNavStack = {
   previous: CMDKNavStack | null;
-  value: {key: string; label: string; query: string};
+  value: {key: string; label: string; query: string; prompt?: string};
 };
 
 export type CommandPaletteState = {
@@ -32,7 +32,7 @@ export type CommandPaletteAction =
   | {type: 'toggle modal'}
   | {type: 'reset'}
   | {query: string; type: 'set query'}
-  | {key: string; label: string; type: 'push action'}
+  | {key: string; label: string; type: 'push action'; prompt?: string}
   | {type: 'trigger action'}
   | {type: 'pop action'};
 
@@ -63,7 +63,12 @@ function commandPaletteReducer(
       return {
         ...state,
         action: {
-          value: {key: action.key, label: action.label, query: state.query},
+          value: {
+            key: action.key,
+            label: action.label,
+            prompt: action.prompt,
+            query: state.query,
+          },
           previous: state.action,
         },
         query: '',

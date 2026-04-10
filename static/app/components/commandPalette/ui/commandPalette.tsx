@@ -219,6 +219,16 @@ export function CommandPalette(props: CommandPaletteProps) {
         return;
       }
 
+      if ('prompt' in action && action.prompt) {
+        dispatch({
+          type: 'push action',
+          key: action.key,
+          label: action.display.label,
+          prompt: action.prompt,
+        });
+        return;
+      }
+
       analytics.recordAction(action, resultIndex, '');
       dispatch({type: 'trigger action'});
       props.onAction(action);
@@ -284,9 +294,10 @@ export function CommandPalette(props: CommandPaletteProps) {
                   value={state.query}
                   aria-label={t('Search commands')}
                   placeholder={
-                    state.action?.value.label
+                    state.action?.value.prompt ??
+                    (state.action?.value.label
                       ? t('Search inside %s...', state.action.value.label)
-                      : t('Search for commands...')
+                      : t('Search for commands...'))
                   }
                   {...mergeProps(collectionProps, {
                     onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
