@@ -17,7 +17,7 @@ export function useScmRepos(integrationId: string, selectedRepo?: Repository) {
       '/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/',
       {
         path: {organizationIdOrSlug: organization.slug, integrationId},
-        staleTime: 20_000,
+        staleTime: 60_000,
       }
     )
   );

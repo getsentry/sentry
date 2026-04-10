@@ -33,7 +33,7 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
   });
 
   // Prepend the selected repo so the Select can always resolve and display
-  // it, even when search results no longer include it.
+  // it, even when the fetched list does not include it.
   const options = useMemo(() => {
     const selectedSlug = selectedRepository?.externalSlug;
     if (!selectedSlug || dropdownItems.some(item => item.value === selectedSlug)) {
