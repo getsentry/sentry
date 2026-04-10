@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+from unittest.mock import MagicMock, patch
+
 from sentry.constants import ObjectStatus
-from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.endpoints.organization_seer_onboarding_check import (
     has_supported_scm_integration,
     is_autofix_enabled,
     is_code_review_enabled,
 )
+from sentry.seer.models.project_repository import SeerProjectRepository
+from sentry.seer.models.seer_api_models import SeerApiError
 from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.helpers import with_feature
 
 
 class TestHasSupportedScmIntegration(TestCase):
@@ -145,89 +149,115 @@ class TestIsCodeReviewEnabled(TestCase):
         assert not is_code_review_enabled(org2.id)
 
 
+@with_feature("organizations:seer-project-settings-read-from-sentry")
 class TestIsAutofixEnabled(TestCase):
     """Unit tests for is_autofix_enabled()"""
 
-    def test_no_option_set(self) -> None:
-        assert not is_autofix_enabled(self.organization.id)
+    def setUp(self) -> None:
+        super().setUp()
+        self.project = self.create_project(organization=self.organization)
 
-    def test_with_autofix_low(self) -> None:
-        self.project.update_option(
-            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.LOW.value
-        )
-        assert is_autofix_enabled(self.organization.id)
+    def test_no_repositories(self) -> None:
+        assert not is_autofix_enabled(self.organization)
 
-    def test_with_autofix_medium(self) -> None:
-        self.project.update_option(
-            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM.value
-        )
-        assert is_autofix_enabled(self.organization.id)
+    def test_with_repository(self) -> None:
+        repo = self.create_repo(project=self.project)
+        SeerProjectRepository.objects.create(project=self.project, repository=repo)
 
-    def test_with_autofix_high(self) -> None:
-        self.project.update_option(
-            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.HIGH.value
-        )
-        assert is_autofix_enabled(self.organization.id)
-
-    def test_with_autofix_off(self) -> None:
-        self.project.update_option(
-            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF.value
-        )
-        assert not is_autofix_enabled(self.organization.id)
-
-    def test_with_autofix_none(self) -> None:
-        self.project.update_option("sentry:autofix_automation_tuning", None)
-        assert not is_autofix_enabled(self.organization.id)
+        assert is_autofix_enabled(self.organization)
 
     def test_no_projects(self) -> None:
+        repo = self.create_repo(project=self.project)
+        SeerProjectRepository.objects.create(project=self.project, repository=repo)
+
         org_without_projects = self.create_organization()
-        assert not is_autofix_enabled(org_without_projects.id)
+
+        assert not is_autofix_enabled(org_without_projects)
 
     def test_inactive_project(self) -> None:
         inactive_project = self.create_project(
             organization=self.organization, status=ObjectStatus.DISABLED
         )
-        inactive_project.update_option(
-            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.HIGH.value
-        )
+        repo = self.create_repo(project=inactive_project)
+        SeerProjectRepository.objects.create(project=inactive_project, repository=repo)
 
-        assert not is_autofix_enabled(self.organization.id)
+        assert not is_autofix_enabled(self.organization)
 
     def test_multiple_projects(self) -> None:
         project1 = self.create_project(organization=self.organization)
-        project2 = self.create_project(organization=self.organization)
-        project3 = self.create_project(organization=self.organization)
+        self.create_project(organization=self.organization)
 
-        project1.update_option(
-            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM.value
-        )
-        project2.update_option(
-            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF.value
-        )
-        project3.update_option(
-            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF.value
-        )
+        repo = self.create_repo(project=project1)
+        SeerProjectRepository.objects.create(project=project1, repository=repo)
 
-        assert is_autofix_enabled(self.organization.id)
+        assert is_autofix_enabled(self.organization)
 
     def test_multiple_organizations(self) -> None:
-        org1 = self.organization
         org2 = self.create_organization()
 
-        project1 = self.create_project(organization=org1)
-        project2 = self.create_project(organization=org2)
+        project1 = self.create_project(organization=self.organization)
+        self.create_project(organization=org2)
 
-        project1.update_option(
-            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.HIGH.value
-        )
-        project2.update_option(
-            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF.value
-        )
+        repo = self.create_repo(project=project1)
+        SeerProjectRepository.objects.create(project=project1, repository=repo)
 
-        assert is_autofix_enabled(org1.id)
-        assert not is_autofix_enabled(org2.id)
+        assert is_autofix_enabled(self.organization)
+        assert not is_autofix_enabled(org2)
 
 
+class TestIsAutofixEnabledSeerApi(TestCase):
+    """Unit tests for is_autofix_enabled() without dual-read flag (calls Seer API)"""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.project = self.create_project(organization=self.organization)
+
+    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.get_project_seer_preferences")
+    def test_no_projects(self, mock_get_prefs: MagicMock) -> None:
+        org_without_projects = self.create_organization()
+        assert not is_autofix_enabled(org_without_projects)
+        mock_get_prefs.assert_not_called()
+
+    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.get_project_seer_preferences")
+    def test_project_with_repositories(self, mock_get_prefs: MagicMock) -> None:
+        mock_get_prefs.return_value = MagicMock(preference=MagicMock(repositories=[MagicMock()]))
+        assert is_autofix_enabled(self.organization)
+
+    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.get_project_seer_preferences")
+    def test_project_with_empty_repositories(self, mock_get_prefs: MagicMock) -> None:
+        mock_get_prefs.return_value = MagicMock(preference=MagicMock(repositories=[]))
+        assert not is_autofix_enabled(self.organization)
+
+    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.get_project_seer_preferences")
+    def test_project_with_no_preference(self, mock_get_prefs: MagicMock) -> None:
+        mock_get_prefs.return_value = MagicMock(preference=None)
+        assert not is_autofix_enabled(self.organization)
+
+    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.get_project_seer_preferences")
+    def test_multiple_projects(self, mock_get_prefs: MagicMock) -> None:
+        project2 = self.create_project(organization=self.organization)
+
+        def side_effect(project_id):
+            if project_id == project2.id:
+                return MagicMock(preference=MagicMock(repositories=[MagicMock()]))
+            return MagicMock(preference=None)
+
+        mock_get_prefs.side_effect = side_effect
+        assert is_autofix_enabled(self.organization)
+
+    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.get_project_seer_preferences")
+    def test_api_error_returns_false(self, mock_get_prefs: MagicMock) -> None:
+        mock_get_prefs.side_effect = SeerApiError("error", 500)
+        assert not is_autofix_enabled(self.organization)
+
+    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.get_project_seer_preferences")
+    def test_inactive_project_excluded(self, mock_get_prefs: MagicMock) -> None:
+        self.project.update(status=ObjectStatus.DISABLED)
+        assert not is_autofix_enabled(self.organization)
+        mock_get_prefs.assert_not_called()
+
+
+@patch("sentry.seer.endpoints.organization_seer_onboarding_check.get_project_seer_preferences")
 class OrganizationSeerOnboardingCheckTest(APITestCase):
     """Integration tests for the GET endpoint"""
 
@@ -236,12 +266,26 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
+        self.project = self.create_project(organization=self.organization)
 
     def get_response(self, organization_slug, **kwargs):
         url = f"/api/0/organizations/{organization_slug}/seer/onboarding-check/"
         return self.client.get(url, format="json", **kwargs)
 
-    def test_nothing_configured(self) -> None:
+    def _mock_has_repos(self, mock_get_prefs: MagicMock) -> None:
+        mock_preference = MagicMock()
+        mock_preference.repositories = [MagicMock()]
+        mock_response = MagicMock()
+        mock_response.preference = mock_preference
+        mock_get_prefs.return_value = mock_response
+
+    def _mock_no_repos(self, mock_get_prefs: MagicMock) -> None:
+        mock_response = MagicMock()
+        mock_response.preference = None
+        mock_get_prefs.return_value = mock_response
+
+    def test_nothing_configured(self, mock_get_prefs: MagicMock) -> None:
+        self._mock_no_repos(mock_get_prefs)
         response = self.get_response(self.organization.slug)
 
         assert response.status_code == 200
@@ -253,7 +297,9 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "isSeerConfigured": False,
         }
 
-    def test_all_configured(self) -> None:
+    def test_all_configured(self, mock_get_prefs: MagicMock) -> None:
+        self._mock_has_repos(mock_get_prefs)
+
         self.create_integration(
             organization=self.organization,
             provider="github",
@@ -265,10 +311,6 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
         self.create_repository_settings(
             repository=repo,
             enabled_code_review=True,
-        )
-
-        self.project.update_option(
-            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.HIGH.value
         )
 
         response = self.get_response(self.organization.slug)
@@ -282,7 +324,9 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "isSeerConfigured": True,
         }
 
-    def test_github_integration_only(self) -> None:
+    def test_github_integration_only(self, mock_get_prefs: MagicMock) -> None:
+        self._mock_no_repos(mock_get_prefs)
+
         self.create_integration(
             organization=self.organization,
             provider="github",
@@ -301,7 +345,9 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "isSeerConfigured": False,
         }
 
-    def test_code_review_enabled_only(self) -> None:
+    def test_code_review_enabled_only(self, mock_get_prefs: MagicMock) -> None:
+        self._mock_no_repos(mock_get_prefs)
+
         repo = self.create_repo(project=self.project)
         self.create_repository_settings(
             repository=repo,
@@ -319,10 +365,8 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "isSeerConfigured": False,
         }
 
-    def test_autofix_enabled_only(self) -> None:
-        self.project.update_option(
-            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.HIGH.value
-        )
+    def test_autofix_enabled_only(self, mock_get_prefs: MagicMock) -> None:
+        self._mock_has_repos(mock_get_prefs)
 
         response = self.get_response(self.organization.slug)
 
@@ -335,7 +379,9 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "isSeerConfigured": False,
         }
 
-    def test_github_and_code_review_enabled(self) -> None:
+    def test_github_and_code_review_enabled(self, mock_get_prefs: MagicMock) -> None:
+        self._mock_no_repos(mock_get_prefs)
+
         self.create_integration(
             organization=self.organization,
             provider="github",
@@ -360,16 +406,14 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "isSeerConfigured": True,
         }
 
-    def test_github_and_autofix_enabled(self) -> None:
+    def test_github_and_autofix_enabled(self, mock_get_prefs: MagicMock) -> None:
+        self._mock_has_repos(mock_get_prefs)
+
         self.create_integration(
             organization=self.organization,
             provider="github",
             name="GitHub Test",
             external_id="123",
-        )
-
-        self.project.update_option(
-            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.HIGH.value
         )
 
         response = self.get_response(self.organization.slug)
@@ -383,15 +427,13 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "isSeerConfigured": True,
         }
 
-    def test_code_review_and_autofix_enabled(self) -> None:
+    def test_code_review_and_autofix_enabled(self, mock_get_prefs: MagicMock) -> None:
+        self._mock_has_repos(mock_get_prefs)
+
         repo = self.create_repo(project=self.project)
         self.create_repository_settings(
             repository=repo,
             enabled_code_review=True,
-        )
-
-        self.project.update_option(
-            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.HIGH.value
         )
 
         response = self.get_response(self.organization.slug)
@@ -405,8 +447,10 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "isSeerConfigured": False,
         }
 
-    def test_needs_config_reminder_forces_configured(self) -> None:
+    def test_needs_config_reminder_forces_configured(self, mock_get_prefs: MagicMock) -> None:
         """When org is in force-config-reminder list, needsConfigReminder is True but isSeerConfigured follows normal logic."""
+        self._mock_no_repos(mock_get_prefs)
+
         with self.options({"seer.organizations.force-config-reminder": [self.organization.slug]}):
             response = self.get_response(self.organization.slug)
 
@@ -419,8 +463,10 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
                 "isSeerConfigured": False,
             }
 
-    def test_needs_config_reminder_with_scm_integration(self) -> None:
+    def test_needs_config_reminder_with_scm_integration(self, mock_get_prefs: MagicMock) -> None:
         """When org is in config reminder list with SCM integration but no code review/autofix, isSeerConfigured is False."""
+        self._mock_no_repos(mock_get_prefs)
+
         self.create_integration(
             organization=self.organization,
             provider="github",
@@ -440,8 +486,10 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
                 "isSeerConfigured": False,
             }
 
-    def test_not_in_config_reminder_list(self) -> None:
+    def test_not_in_config_reminder_list(self, mock_get_prefs: MagicMock) -> None:
         """When org is not in config reminder list, isSeerConfigured follows normal logic."""
+        self._mock_no_repos(mock_get_prefs)
+
         with self.options({"seer.organizations.force-config-reminder": ["other-org"]}):
             response = self.get_response(self.organization.slug)
 
@@ -454,9 +502,11 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
                 "isSeerConfigured": False,
             }
 
-    def test_config_reminder_with_complete_setup(self) -> None:
+    def test_config_reminder_with_complete_setup(self, mock_get_prefs: MagicMock) -> None:
         """Config reminder flag is independent of isSeerConfigured logic."""
         # Set up SCM and code review
+        self._mock_no_repos(mock_get_prefs)
+
         self.create_integration(
             organization=self.organization,
             provider="github",
