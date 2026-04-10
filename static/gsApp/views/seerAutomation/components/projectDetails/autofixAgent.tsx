@@ -179,7 +179,8 @@ function StoppingPointField({
       stoppingPointMutationOpts.onSuccess?.(data, variables, onMutateResult, context);
       addSuccessMessage(t('Stopping point updated'));
     },
-    onError: () => {
+    onError: (error, variables, onMutateResult, context) => {
+      stoppingPointMutationOpts.onError?.(error, variables, onMutateResult, context);
       addErrorMessage(t('Failed to update stopping point'));
     },
   });

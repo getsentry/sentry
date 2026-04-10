@@ -134,6 +134,14 @@ export function getProjectStoppingPointMutationOptions({
     project.slug
   );
 
+  function resolveStoppingPointValue(stoppingPoint: SelectValue) {
+    return stoppingPoint === 'root_cause'
+      ? ('root_cause' as const)
+      : organization.autoOpenPrs
+        ? ('open_pr' as const)
+        : ('code_changes' as const);
+  }
+
   return mutationOptions({
     mutationFn: async ({stoppingPoint}: {stoppingPoint: SelectValue}) => {
       const tuning = stoppingPoint === 'off' ? ('off' as const) : ('medium' as const);
@@ -150,22 +158,10 @@ export function getProjectStoppingPointMutationOptions({
         const repositories = preference?.repositories ?? [];
         const automationHandoff = preference?.automation_handoff;
 
-        const stoppingPointValue =
-          stoppingPoint === 'root_cause'
-            ? ('root_cause' as const)
-            : organization.autoOpenPrs
-              ? ('open_pr' as const)
-              : ('code_changes' as const);
-
         const preferencePayload = {
           repositories,
-          automated_run_stopping_point: stoppingPointValue,
-          automation_handoff: automationHandoff
-            ? {
-                ...automationHandoff,
-                auto_create_pr: stoppingPointValue === 'open_pr',
-              }
-            : automationHandoff,
+          automated_run_stopping_point: resolveStoppingPointValue(stoppingPoint),
+          automation_handoff: automationHandoff,
         };
 
         preferencePromise = fetchMutation<SeerPreferencesResponse>({
@@ -176,6 +172,28 @@ export function getProjectStoppingPointMutationOptions({
       }
 
       return await Promise.all([projectPromise, preferencePromise]);
+    },
+    onMutate: ({stoppingPoint}: {stoppingPoint: SelectValue}) => {
+      const previousProject = ProjectsStore.getById(project.id);
+      const previousPreference = getApiQueryData<SeerPreferencesResponse>(
+        queryClient,
+        seerPrefsQueryKey
+      );
+
+      const tuning = stoppingPoint === 'off' ? ('off' as const) : ('medium' as const);
+      ProjectsStore.onUpdateSuccess({...project, autofixAutomationTuning: tuning});
+
+      if (stoppingPoint !== 'off' && previousPreference?.preference) {
+        setApiQueryData<SeerPreferencesResponse>(queryClient, seerPrefsQueryKey, {
+          ...previousPreference,
+          preference: {
+            ...previousPreference.preference,
+            automated_run_stopping_point: resolveStoppingPointValue(stoppingPoint),
+          },
+        });
+      }
+
+      return {previousProject, previousPreference};
     },
     onSuccess: ([updatedProject, preferencePayload]) => {
       ProjectsStore.onUpdateSuccess(updatedProject);
@@ -195,6 +213,24 @@ export function getProjectStoppingPointMutationOptions({
             },
           });
         }
+      }
+    },
+    onError: (_error: unknown, _variables: unknown, context: unknown) => {
+      const ctx = context as
+        | {
+            previousPreference: SeerPreferencesResponse | undefined;
+            previousProject: Project | undefined;
+          }
+        | undefined;
+      if (ctx?.previousProject) {
+        ProjectsStore.onUpdateSuccess(ctx.previousProject);
+      }
+      if (ctx?.previousPreference) {
+        setApiQueryData<SeerPreferencesResponse>(
+          queryClient,
+          seerPrefsQueryKey,
+          ctx.previousPreference
+        );
       }
     },
     onSettled: () => {
