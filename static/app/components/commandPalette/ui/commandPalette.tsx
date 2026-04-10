@@ -480,13 +480,7 @@ function flattenActions(
       results.push({...node, listItemType: isGroup ? 'section' : 'action'});
       if (isGroup) {
         for (const child of node.children) {
-          const childIsGroup = child.children.length > 0;
-          if (
-            !childIsGroup &&
-            'resource' in child &&
-            !('to' in child) &&
-            !('onAction' in child)
-          ) {
+          if (isEmptyResourceNode(child)) {
             continue;
           }
           results.push({...child, listItemType: 'action'});
@@ -541,7 +535,7 @@ function flattenActions(
     }
     // Skip resource nodes with no children — they are async group containers that
     // returned 0 results and have no executable action of their own.
-    if ('resource' in item && !('to' in item) && !('onAction' in item)) {
+    if (isEmptyResourceNode(item)) {
       return [];
     }
     return scores.get(item.key)?.score.matched ? [{...item, listItemType: 'action'}] : [];
@@ -553,6 +547,15 @@ function flattenActions(
     seen.add(item.key);
     return true;
   });
+}
+
+function isEmptyResourceNode(node: CollectionTreeNode<CMDKActionData>): boolean {
+  return (
+    node.children.length === 0 &&
+    'resource' in node &&
+    !('to' in node) &&
+    !('onAction' in node)
+  );
 }
 
 function makeMenuItemFromAction(action: CMDKFlatItem): CommandPaletteActionMenuItem {
