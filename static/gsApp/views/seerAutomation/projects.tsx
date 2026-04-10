@@ -1,9 +1,8 @@
-import {ExternalLink, Link} from '@sentry/scraps/link';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {SeerProjectTable} from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTable';
@@ -11,7 +10,6 @@ import {SeerSettingsPageContent} from 'getsentry/views/seerAutomation/components
 import {SeerSettingsPageWrapper} from 'getsentry/views/seerAutomation/components/seerSettingsPageWrapper';
 
 export default function SeerAutomationProjects() {
-  const organization = useOrganization();
   return (
     <AnalyticsArea name="projects">
       <SeerSettingsPageWrapper>
@@ -26,17 +24,6 @@ export default function SeerAutomationProjects() {
               ),
               docs: (
                 <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities" />
-              ),
-
-              manageLink: (
-                <Link
-                  to={{
-                    pathname: `/settings/${organization.slug}/integrations/`,
-                    query: {category: 'coding agent'},
-                  }}
-                >
-                  {t('Manage Coding Agent Integrations')}
-                </Link>
               ),
             }
           )}
