@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import patch
 
 from sentry.integrations.messaging.metrics import SeerSlackHaltReason
@@ -5,18 +6,19 @@ from sentry.testutils.asserts import assert_halt_metric
 
 from . import SEER_EXPLORER_FEATURES, BaseEventTest
 
+ASSISTANT_THREAD: dict[str, Any] = {
+    "user_id": "U1234567890",
+    "context": {
+        "channel_id": "C1234567890",
+        "team_id": "T0123456789",
+        "enterprise_id": "E1234567890",
+    },
+    "channel_id": "D1234567890",
+    "thread_ts": "1234567890.123456",
+}
 ASSISTANT_THREAD_STARTED_EVENT = {
     "type": "assistant_thread_started",
-    "assistant_thread": {
-        "user_id": "U1234567890",
-        "context": {
-            "channel_id": "C1234567890",
-            "team_id": "T0123456789",
-            "enterprise_id": "E1234567890",
-        },
-        "channel_id": "D1234567890",
-        "thread_ts": "1234567890.123456",
-    },
+    "assistant_thread": ASSISTANT_THREAD,
     "event_ts": "1234567890.123456",
 }
 
@@ -24,9 +26,7 @@ ASSISTANT_THREAD_STARTED_EVENT = {
 class AssistantThreadStartedEventTest(BaseEventTest):
     def setUp(self):
         super().setUp()
-        self.link_identity(
-            slack_user_id=ASSISTANT_THREAD_STARTED_EVENT["assistant_thread"]["user_id"]
-        )
+        self.link_identity(slack_user_id=ASSISTANT_THREAD["user_id"])
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.set_suggested_prompts")
     def test_sends_suggested_prompts(self, mock_set_prompts):
@@ -36,12 +36,8 @@ class AssistantThreadStartedEventTest(BaseEventTest):
         assert resp.status_code == 200
         mock_set_prompts.assert_called_once()
         kwargs = mock_set_prompts.call_args[1]
-        assert (
-            kwargs["channel_id"] == ASSISTANT_THREAD_STARTED_EVENT["assistant_thread"]["channel_id"]
-        )
-        assert (
-            kwargs["thread_ts"] == ASSISTANT_THREAD_STARTED_EVENT["assistant_thread"]["thread_ts"]
-        )
+        assert kwargs["channel_id"] == ASSISTANT_THREAD["channel_id"]
+        assert kwargs["thread_ts"] == ASSISTANT_THREAD["thread_ts"]
         assert len(kwargs["prompts"]) == 4
         assert kwargs["title"]
 
