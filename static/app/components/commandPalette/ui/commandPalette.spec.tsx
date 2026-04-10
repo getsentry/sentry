@@ -461,9 +461,29 @@ describe('CommandPalette', () => {
   });
 
   describe('slot rendering', () => {
+    // Outlets live in the navigation in production; tests that exercise slot
+    // behaviour must render them explicitly so slot consumers have a target to
+    // portal into.
+    function SlotOutlets() {
+      return (
+        <div style={{display: 'none'}}>
+          <CommandPaletteSlot.Outlet name="task">
+            {p => <div {...p} />}
+          </CommandPaletteSlot.Outlet>
+          <CommandPaletteSlot.Outlet name="page">
+            {p => <div {...p} />}
+          </CommandPaletteSlot.Outlet>
+          <CommandPaletteSlot.Outlet name="global">
+            {p => <div {...p} />}
+          </CommandPaletteSlot.Outlet>
+        </div>
+      );
+    }
+
     it('task slot action is displayed in the palette', async () => {
       render(
         <CommandPaletteProvider>
+          <SlotOutlets />
           <CommandPaletteSlot name="task">
             <CMDKAction display={{label: 'Task Action'}} onAction={jest.fn()} />
           </CommandPaletteSlot>
@@ -481,6 +501,7 @@ describe('CommandPalette', () => {
       const onAction = jest.fn();
       render(
         <CommandPaletteProvider>
+          <SlotOutlets />
           <CommandPaletteSlot name="task">
             <CMDKAction display={{label: 'Task Action'}} onAction={onAction} />
           </CommandPaletteSlot>
@@ -497,6 +518,7 @@ describe('CommandPalette', () => {
     it('page slot action is displayed in the palette', async () => {
       render(
         <CommandPaletteProvider>
+          <SlotOutlets />
           <CommandPaletteSlot name="page">
             <CMDKAction display={{label: 'Page Action'}} onAction={jest.fn()} />
           </CommandPaletteSlot>
@@ -514,6 +536,7 @@ describe('CommandPalette', () => {
       const onAction = jest.fn();
       render(
         <CommandPaletteProvider>
+          <SlotOutlets />
           <CommandPaletteSlot name="page">
             <CMDKAction display={{label: 'Page Action'}} onAction={onAction} />
           </CommandPaletteSlot>
@@ -533,10 +556,11 @@ describe('CommandPalette', () => {
       //   - Page-specific actions are registered via <CommandPaletteSlot name="page">
       //
       // Expected: page slot actions appear first in the list, global actions second.
-      // The hidden outlets in CommandPaletteProvider are rendered in task→page→global
-      // DOM order, so compareDocumentPosition sorts them correctly.
+      // The outlets are rendered in task→page→global DOM order (matching navigation),
+      // so compareDocumentPosition sorts them correctly.
       render(
         <CommandPaletteProvider>
+          <SlotOutlets />
           <CommandPaletteSlot name="global">
             <CMDKAction display={{label: 'Global Action'}} onAction={jest.fn()} />
           </CommandPaletteSlot>
@@ -556,6 +580,7 @@ describe('CommandPalette', () => {
     it('task < page < global ordering when all three slots are populated', async () => {
       render(
         <CommandPaletteProvider>
+          <SlotOutlets />
           <CommandPaletteSlot name="global">
             <CMDKAction display={{label: 'Global Action'}} onAction={jest.fn()} />
           </CommandPaletteSlot>
@@ -578,8 +603,8 @@ describe('CommandPalette', () => {
 
     it('global slot actions registered outside CommandPalette are not duplicated', async () => {
       // Mirrors the real app setup where GlobalCommandPaletteActions lives in the nav
-      // (a sibling of CommandPalette, not a child), portaling into the hidden global
-      // outlet in CommandPaletteProvider. The collection registration must be idempotent.
+      // (a sibling of CommandPalette, not a child), portaling into the global outlet.
+      // The collection registration must be idempotent.
       function ActionsViaGlobalSlot() {
         return (
           <CommandPaletteSlot name="global">
@@ -591,6 +616,7 @@ describe('CommandPalette', () => {
 
       render(
         <CommandPaletteProvider>
+          <SlotOutlets />
           <ActionsViaGlobalSlot />
           <CommandPalette onAction={jest.fn()} />
         </CommandPaletteProvider>
