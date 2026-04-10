@@ -16,7 +16,6 @@ from sentry.organizations.services.organization.model import (
     RpcUserOrganizationContext,
 )
 from sentry.utils import jwt
-from sentry.utils.hashlib import md5_text
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +70,7 @@ class OrganizationIntercomJwtEndpoint(ControlSiloOrganizationEndpoint):
         now = int(datetime.datetime.now(datetime.UTC).timestamp())
         exp = now + JWT_VALIDITY_WINDOW_SECONDS
         # intercom creates chat history based on this ID so we need one per (org, user) pair
-        intercom_user_id = md5_text(f"{user.id}-{organization.id}").hexdigest()
+        intercom_user_id = f"{user.id}-{organization.id}"
 
         # Build JWT claims - user_id is required by Intercom
         claims = {

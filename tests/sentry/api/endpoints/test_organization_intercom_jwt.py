@@ -1,7 +1,6 @@
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import jwt
-from sentry.utils.hashlib import md5_text
 
 
 @control_silo_test
@@ -28,7 +27,7 @@ class OrganizationIntercomJwtEndpointTest(APITestCase):
     def test_get_jwt_success(self) -> None:
         """With feature flag and secret configured, should return JWT and user data."""
         test_secret = "test-intercom-secret-key"
-        intercom_user_id = md5_text(f"{self.user.id}-{self.organization.id}").hexdigest()
+        intercom_user_id = f"{self.user.id}-{self.organization.id}"
 
         with (
             self.feature("organizations:intercom-support"),
