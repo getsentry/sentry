@@ -22,7 +22,6 @@ import {Text} from '@sentry/scraps/text';
 import type {CMDKActionData} from 'sentry/components/commandPalette/ui/cmdk';
 import {CMDKCollection} from 'sentry/components/commandPalette/ui/cmdk';
 import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
-import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {
   useCommandPaletteDispatch,
   useCommandPaletteState,
@@ -66,7 +65,6 @@ type CMDKFlatItem = CollectionTreeNode<CMDKActionData> & {
 
 interface CommandPaletteProps {
   onAction: (action: CollectionTreeNode<CMDKActionData>) => void;
-  children?: React.ReactNode;
 }
 
 export function CommandPalette(props: CommandPaletteProps) {
@@ -350,19 +348,6 @@ export function CommandPalette(props: CommandPaletteProps) {
         </Flex>
       </Flex>
 
-      <CommandPaletteSlot.Outlet name="task">
-        {p => <div {...p} style={{display: 'contents'}} />}
-      </CommandPaletteSlot.Outlet>
-      <CommandPaletteSlot.Outlet name="page">
-        {p => <div {...p} style={{display: 'contents'}} />}
-      </CommandPaletteSlot.Outlet>
-      <CommandPaletteSlot.Outlet name="global">
-        {p => (
-          <div {...p} style={{display: 'contents'}}>
-            {props.children}
-          </div>
-        )}
-      </CommandPaletteSlot.Outlet>
       {treeState.collection.size === 0 ? (
         <CommandPaletteNoResults />
       ) : (
@@ -393,8 +378,8 @@ export function CommandPalette(props: CommandPaletteProps) {
 
 /**
  * Pre-sorts the root-level nodes by DOM position of their slot outlet element.
- * Outlets are declared in priority order inside CommandPalette (task → page → global),
- * so compareDocumentPosition gives the correct ordering for free.
+ * Outlets are rendered in task → page → global order inside CommandPaletteProvider,
+ * so compareDocumentPosition gives the correct priority ordering for free.
  * Nodes sharing the same outlet (same slot) retain their existing relative order.
  * Nodes without a slot ref are not reordered relative to each other.
  */

@@ -18,11 +18,6 @@ jest.mock('@tanstack/react-virtual', () => ({
   },
 }));
 
-// Avoid pulling in the full global actions tree (needs org context, feature flags, etc.)
-jest.mock('sentry/components/commandPalette/ui/commandPaletteGlobalActions', () => ({
-  GlobalCommandPaletteActions: () => null,
-}));
-
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
@@ -52,6 +47,25 @@ function makeRenderProps(closeModal: jest.Mock) {
   };
 }
 
+// Outlets live in the navigation in production; tests that exercise slot
+// behaviour must render them explicitly so slot consumers have a target to
+// portal into.
+function SlotOutlets() {
+  return (
+    <div style={{display: 'none'}}>
+      <CommandPaletteSlot.Outlet name="task">
+        {p => <div {...p} />}
+      </CommandPaletteSlot.Outlet>
+      <CommandPaletteSlot.Outlet name="page">
+        {p => <div {...p} />}
+      </CommandPaletteSlot.Outlet>
+      <CommandPaletteSlot.Outlet name="global">
+        {p => <div {...p} />}
+      </CommandPaletteSlot.Outlet>
+    </div>
+  );
+}
+
 describe('CommandPaletteModal', () => {
   beforeEach(() => {
     jest.resetAllMocks();
@@ -67,6 +81,7 @@ describe('CommandPaletteModal', () => {
 
     render(
       <CommandPaletteProvider>
+        <SlotOutlets />
         <CommandPaletteSlot name="task">
           <CMDKAction display={{label: 'Leaf Action'}} onAction={onActionSpy} />
         </CommandPaletteSlot>
@@ -91,6 +106,7 @@ describe('CommandPaletteModal', () => {
 
     render(
       <CommandPaletteProvider>
+        <SlotOutlets />
         <CommandPaletteSlot name="task">
           <CMDKAction display={{label: 'Outer Group'}}>
             <CMDKAction display={{label: 'Parent Action'}} onAction={onActionSpy}>
