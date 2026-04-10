@@ -699,7 +699,6 @@ class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
 
 
 class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogTestCase):
-    # Present on TraceItem / Snuba but not worth pinning (ids, times, nanosecond precision, sampling).
     def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
@@ -809,6 +808,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
         start = before_now(minutes=15).isoformat()
         end = before_now(seconds=30).isoformat()
 
+        # Present on TraceItem / Snuba but not worth pinning (ids, times, nanosecond precision, sampling).
         variable_keys = frozenset(
             {
                 "timestamp_precise",
