@@ -160,8 +160,7 @@ function makeSlotConsumer<T extends Slot>(options: {
     );
 
     if (!element) {
-      // Render in place as a fallback when no target element is registered yet
-      return content;
+      return null;
     }
 
     return createPortal(content, element);
