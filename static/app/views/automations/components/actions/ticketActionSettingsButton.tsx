@@ -46,20 +46,15 @@ export function TicketActionSettingsButton() {
     });
   };
 
-  // Find saved action data from the API response (via react-query cache).
-  // The API returns camelCase keys (additionalFields, dynamicFormFields) but
-  // the frontend writes snake_case keys (additional_fields, dynamic_form_fields)
-  // after modal submission. We need to handle both cases.
+  // Find saved action data from the API response
   const savedActionData = useMemo(() => {
-    if (!automation) {
-      return undefined;
-    }
+    if (!automation) return undefined;
+
     for (const af of automation.actionFilters) {
       const found = af.actions?.find(a => a.id === action.id);
-      if (found) {
-        return found.data;
-      }
+      if (found) return found.data;
     }
+
     return undefined;
   }, [automation, action.id]);
 
