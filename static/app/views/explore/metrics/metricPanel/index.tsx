@@ -198,7 +198,13 @@ function DnDPlaceholder({
     >
       <Grid columns="1fr 1fr" gap="xl" height="100%">
         <Placeholder height="100%">
-          {isDragging ? <Text>{t('Charts are hidden while reordering.')}</Text> : null}
+          {isDragging ? (
+            <Text>
+              {t(
+                "Charts are hidden while reordering. They're too expensive to drag along for the ride."
+              )}
+            </Text>
+          ) : null}
         </Placeholder>
         <Placeholder height="100%" />
       </Grid>
