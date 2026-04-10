@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from rest_framework.exceptions import PermissionDenied
 
-from sentry.integrations.claude_code.utils import ClaudeSessionEvent
+from sentry.integrations.claude_code.utils import ClaudeSessionEvent, ClaudeSessionEventStatus
 from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.integrations.github_copilot.models import (
     GithubCopilotArtifact,
@@ -703,7 +703,7 @@ MOCK_DJANGO_SETTINGS_PATH = "sentry.seer.autofix.coding_agent.django_settings"
 
 
 def _make_agent_event(text: str) -> ClaudeSessionEvent:
-    return ClaudeSessionEvent(type="agent", content=[{"type": "text", "text": text}])
+    return ClaudeSessionEvent(type="agent.message", content=[{"type": "text", "text": text}])
 
 
 class TestExtractResultFromEvents(TestCase):
@@ -891,7 +891,7 @@ class TestPollClaudeCodeAgents(TestCase):
         mock_client = MagicMock()
         mock_client.list_session_events.return_value = [
             {
-                "type": "agent",
+                "type": "agent.message",
                 "content": [
                     {
                         "type": "text",
@@ -899,7 +899,7 @@ class TestPollClaudeCodeAgents(TestCase):
                     }
                 ],
             },
-            {"type": "status_idle"},
+            {"type": ClaudeSessionEventStatus.IDLE},
         ]
         mock_client.build_result_from_session.return_value = MagicMock(
             pr_url="https://github.com/getsentry/sentry/pull/999"
@@ -925,8 +925,8 @@ class TestPollClaudeCodeAgents(TestCase):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
         mock_client.list_session_events.return_value = [
-            {"type": "agent", "content": [{"type": "text", "text": "Done, no PR."}]},
-            {"type": "status_idle"},
+            {"type": "agent.message", "content": [{"type": "text", "text": "Done, no PR."}]},
+            {"type": ClaudeSessionEventStatus.IDLE},
         ]
         mock_client.build_result_from_session.return_value = MagicMock(pr_url=None)
         mock_import_string.return_value = lambda **kwargs: mock_client
@@ -947,8 +947,8 @@ class TestPollClaudeCodeAgents(TestCase):
     ):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
-        # Last event is status_running — agent is already RUNNING, no update needed
-        mock_client.list_session_events.return_value = [{"type": "status_running"}]
+        # Last event is session.status_running — agent is already RUNNING, no update needed
+        mock_client.list_session_events.return_value = [{"type": ClaudeSessionEventStatus.RUNNING}]
         mock_import_string.return_value = lambda **kwargs: mock_client
 
         agents = {"claude-session-123": self._create_claude_agent()}
@@ -982,7 +982,7 @@ class TestPollClaudeCodeAgents(TestCase):
     ):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
-        mock_client.list_session_events.return_value = [{"type": "agent", "content": []}]
+        mock_client.list_session_events.return_value = [{"type": "agent.message", "content": []}]
         mock_import_string.return_value = lambda **kwargs: mock_client
 
         agents = {"claude-session-123": self._create_claude_agent(status=CodingAgentStatus.PENDING)}
@@ -996,12 +996,14 @@ class TestPollClaudeCodeAgents(TestCase):
     @patch(MOCK_UPDATE_STATE_PATH)
     @patch(MOCK_CLIENT_CLASS_PATH)
     @patch(MOCK_INTEGRATION_SERVICE_PATH)
-    def test_stays_pending_on_status_pending_event(
+    def test_stays_pending_on_status_rescheduling_event(
         self, mock_integration_service, mock_import_string, mock_update_state
     ):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
-        mock_client.list_session_events.return_value = [{"type": "status_pending"}]
+        mock_client.list_session_events.return_value = [
+            {"type": ClaudeSessionEventStatus.RESCHEDULING}
+        ]
         mock_import_string.return_value = lambda **kwargs: mock_client
 
         agents = {"claude-session-123": self._create_claude_agent(status=CodingAgentStatus.PENDING)}
@@ -1047,7 +1049,7 @@ class TestPollClaudeCodeAgents(TestCase):
 
         def make_client(**kwargs):
             client = MagicMock()
-            client.list_session_events.return_value = [{"type": "status_running"}]
+            client.list_session_events.return_value = [{"type": ClaudeSessionEventStatus.RUNNING}]
             clients[kwargs["api_key"]] = client
             return client
 
@@ -1087,7 +1089,7 @@ class TestPollClaudeCodeAgents(TestCase):
     ):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
-        mock_client.list_session_events.return_value = [{"type": "status_running"}]
+        mock_client.list_session_events.return_value = [{"type": ClaudeSessionEventStatus.RUNNING}]
         mock_import_string.return_value = lambda **kwargs: mock_client
 
         agent_a = self._create_claude_agent(agent_id="session-a")

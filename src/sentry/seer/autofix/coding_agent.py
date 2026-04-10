@@ -690,7 +690,7 @@ def poll_claude_agent(clients, agent_id, org_id, agent_state: CodingAgentState) 
 
     if (
         last_event_type == ClaudeSessionEventStatus.IDLE
-        or last_event_type == ClaudeSessionEventStatus.CLOSED
+        or last_event_type == ClaudeSessionEventStatus.TERMINATED
     ):
         new_status = CodingAgentStatus.COMPLETED
 
@@ -715,7 +715,7 @@ def poll_claude_agent(clients, agent_id, org_id, agent_state: CodingAgentState) 
             },
         )
 
-    elif last_event_type == ClaudeSessionEventStatus.PENDING:
+    elif last_event_type == ClaudeSessionEventStatus.RESCHEDULING:
         if agent_state.status != CodingAgentStatus.PENDING:
             update_coding_agent_state(agent_id=agent_id, status=CodingAgentStatus.PENDING)
 
@@ -780,7 +780,7 @@ def extract_result_from_events(events: list[ClaudeSessionEvent]) -> tuple[str | 
     branch_pattern = re.compile(r"https://github\.com/[^/]+/[^/]+/tree/[-\w./]*[-\w]")
 
     for event in reversed(events):
-        if event.type != "agent":
+        if event.type != "agent.message":
             continue
         for block in getattr(event, "content", []):
             if isinstance(block, dict) and block.get("type") == "text":
