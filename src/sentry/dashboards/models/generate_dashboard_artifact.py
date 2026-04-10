@@ -82,7 +82,7 @@ Polarity = Literal["+", "-"]
 
 
 class GeneratedWidgetThresholds(BaseModel):
-    """Color-coded thresholds for big_number and timeseries widgets. max1 and max2 define thresholds for three zones whose color meaning depends on preferred_polarity."""
+    """Color-coded thresholds for big_number, line, and area chart widgets. max1 and max2 define thresholds for three zones whose color meaning depends on preferred_polarity."""
 
     max_values: dict[str, float] = Field(
         ...,
@@ -179,7 +179,7 @@ class GeneratedWidget(BaseModel):
     interval: Intervals = Field(default="1h")
     thresholds: GeneratedWidgetThresholds | None = Field(
         default=None,
-        description="Color-coded thresholds for big_number widgets. Defines two boundaries (max1 < max2) that split the value into three color zones. Only applicable to big_number, line, anad area chart display types.",
+        description="Color-coded thresholds for big_number, line, and area chart widgets. Defines two boundaries (max1 < max2) that split the value into three color zones.",
     )
 
     @root_validator
