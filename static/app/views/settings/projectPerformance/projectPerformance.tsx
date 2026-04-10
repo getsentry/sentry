@@ -92,6 +92,7 @@ enum DetectorConfigAdmin {
   FUNCTION_DURATION_REGRESSION_ENABLED = 'function_duration_regression_detection_enabled',
   DB_QUERY_INJECTION_ENABLED = 'db_query_injection_detection_enabled',
   WEB_VITALS_ENABLED = 'web_vitals_detection_enabled',
+  LLM_ISSUE_DETECTION_ENABLED = 'llm_issue_detection_enabled',
 }
 
 export enum DetectorConfigCustomer {
@@ -590,6 +591,25 @@ export function ProjectPerformance() {
       },
       visible: hasWebVitalsSeerSuggestions,
     },
+    [IssueTitle.LLM_DETECTED_EXPERIMENTAL_V2]: {
+      name: DetectorConfigAdmin.LLM_ISSUE_DETECTION_ENABLED,
+      type: 'boolean',
+      label: t('LLM Issue Detection'),
+      defaultValue: true,
+      onChange: value => {
+        setApiQueryData<ProjectPerformanceSettings>(
+          queryClient,
+          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
+          data => ({
+            ...data!,
+            llm_issue_detection_enabled: value,
+          })
+        );
+      },
+      visible:
+        organization.features.includes('gen-ai-features') &&
+        organization.features.includes('issue-llm-detected-experimental-v2-visible'),
+    },
   };
 
   const performanceRegressionAdminFields: Field[] = [
@@ -1021,6 +1041,11 @@ export function ProjectPerformance() {
           },
         ],
         initiallyCollapsed: issueType !== IssueType.WEB_VITALS,
+      },
+      {
+        title: IssueTitle.LLM_DETECTED_EXPERIMENTAL_V2,
+        fields: [],
+        initiallyCollapsed: issueType !== IssueType.LLM_DETECTED_EXPERIMENTAL_V2,
       },
     ];
 
