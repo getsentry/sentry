@@ -2321,6 +2321,14 @@ function buildRoutes(): RouteObject[] {
             () => import('sentry/views/insights/pages/conversations/overview')
           ),
         },
+        {
+          path: ':conversationId/',
+          component: make(
+            () => import('sentry/views/insights/pages/conversations/conversationDetail')
+          ),
+        },
+        transactionSummaryRoute,
+        traceView,
       ],
     },
     {

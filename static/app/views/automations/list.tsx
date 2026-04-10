@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -10,6 +11,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {WorkflowEngineListLayout as ListLayout} from 'sentry/components/workflowEngine/layout/list';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
@@ -21,11 +23,12 @@ import {AutomationFeedbackButton} from 'sentry/views/automations/components/auto
 import {AutomationListTable} from 'sentry/views/automations/components/automationListTable';
 import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
 import {AUTOMATION_LIST_PAGE_LIMIT} from 'sentry/views/automations/constants';
-import {useAutomationsQuery} from 'sentry/views/automations/hooks';
+import {automationsApiOptions} from 'sentry/views/automations/hooks';
 import {makeAutomationCreatePathname} from 'sentry/views/automations/pathnames';
 import {AlertsRedirectNotice} from 'sentry/views/detectors/list/common/alertsRedirectNotice';
 
 export default function AutomationsList() {
+  const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
   const {selection, isReady} = usePageFilters();
@@ -43,30 +46,23 @@ export default function AutomationsList() {
   });
   const sort = sorts[0] ?? {kind: 'desc', field: 'lastTriggered'};
 
-  const {
-    data: automations,
-    isLoading,
-    isError,
-    isSuccess,
-    getResponseHeader,
-  } = useAutomationsQuery(
-    {
-      cursor,
+  const {data, isLoading, isError, isSuccess} = useQuery({
+    ...automationsApiOptions(organization, {
       query,
       sortBy: sort ? `${sort?.kind === 'asc' ? '' : '-'}${sort?.field}` : undefined,
       projects: selection.projects,
       limit: AUTOMATION_LIST_PAGE_LIMIT,
-    },
-    {enabled: isReady}
-  );
+      cursor,
+    }),
+    select: selectJsonWithHeaders,
+    enabled: isReady,
+  });
 
-  const hits = getResponseHeader?.('X-Hits') || '';
-  const hitsInt = hits ? parseInt(hits, 10) || 0 : 0;
+  const automations = data?.json;
+  const hits = data?.headers['X-Hits'] ?? 0;
   // If maxHits is not set, we assume there is no max
-  const maxHits = getResponseHeader?.('X-Max-Hits') || '';
-  const maxHitsInt = maxHits ? parseInt(maxHits, 10) || Infinity : Infinity;
-
-  const pageLinks = getResponseHeader?.('Link');
+  const maxHits = data?.headers['X-Max-Hits'] ?? Infinity;
+  const pageLinks = data?.headers.Link;
 
   const allResultsVisible = useCallback(() => {
     if (!pageLinks) {
@@ -102,7 +98,7 @@ export default function AutomationsList() {
               isError={isError}
               isSuccess={isSuccess}
               sort={sort}
-              queryCount={hitsInt > maxHitsInt ? `${maxHits}+` : hits}
+              queryCount={hits > maxHits ? `${maxHits}+` : `${hits}`}
               allResultsVisible={allResultsVisible()}
             />
           </VisuallyCompleteWithData>

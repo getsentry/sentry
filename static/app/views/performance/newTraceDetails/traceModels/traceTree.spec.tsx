@@ -776,6 +776,94 @@ describe('TraceTree', () => {
       expect(tree.build().serialize()).toMatchSnapshot();
     });
 
+    it('preserves actual parents while summarizing collapsed EAP transactions', () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'root-transaction',
+            is_transaction: true,
+            start_timestamp: start,
+            end_timestamp: start + 5,
+            children: [
+              makeEAPSpan({
+                event_id: 'span-a',
+                is_transaction: false,
+                parent_span_id: 'root-transaction',
+                start_timestamp: start + 1,
+                end_timestamp: start + 2,
+                children: [
+                  makeEAPSpan({
+                    event_id: 'child-transaction-a',
+                    is_transaction: true,
+                    parent_span_id: 'span-a',
+                    start_timestamp: start + 1.25,
+                    end_timestamp: start + 2,
+                    children: [],
+                  }),
+                ],
+              }),
+              makeEAPSpan({
+                event_id: 'span-b',
+                is_transaction: false,
+                parent_span_id: 'root-transaction',
+                start_timestamp: start + 3,
+                end_timestamp: start + 4,
+                children: [
+                  makeEAPSpan({
+                    event_id: 'child-transaction-b',
+                    is_transaction: true,
+                    parent_span_id: 'span-b',
+                    start_timestamp: start + 3.25,
+                    end_timestamp: start + 4,
+                    children: [],
+                  }),
+                ],
+              }),
+            ],
+          }),
+        ]),
+        traceOptions
+      ).build();
+
+      const rootTransaction = tree.root.findChild(n => n.id === 'root-transaction');
+      const spanA = tree.root.findChild(n => n.id === 'span-a');
+      const spanB = tree.root.findChild(n => n.id === 'span-b');
+      const childTransactionA = tree.root.findChild(n => n.id === 'child-transaction-a');
+      const childTransactionB = tree.root.findChild(n => n.id === 'child-transaction-b');
+
+      assertEAPSpanNode(rootTransaction);
+      assertEAPSpanNode(spanA);
+      assertEAPSpanNode(spanB);
+      assertEAPSpanNode(childTransactionA);
+      assertEAPSpanNode(childTransactionB);
+
+      expect(rootTransaction.children).toEqual([spanA, spanB]);
+      expect(childTransactionA.parent).toBe(spanA);
+      expect(childTransactionB.parent).toBe(spanB);
+      expect(rootTransaction.directVisibleChildren).toEqual([
+        childTransactionA,
+        childTransactionB,
+      ]);
+      const rootTransactionIndex = tree.list.indexOf(rootTransaction);
+      expect(tree.list.slice(rootTransactionIndex, rootTransactionIndex + 3)).toEqual([
+        rootTransaction,
+        childTransactionA,
+        childTransactionB,
+      ]);
+
+      rootTransaction.expand(true, tree);
+
+      expect(childTransactionA.parent).toBe(spanA);
+      expect(childTransactionB.parent).toBe(spanB);
+      expect(tree.list.slice(rootTransactionIndex, rootTransactionIndex + 5)).toEqual([
+        rootTransaction,
+        spanA,
+        childTransactionA,
+        spanB,
+        childTransactionB,
+      ]);
+    });
+
     it('collects measurements', () => {
       const tree = TraceTree.FromTrace(
         makeEAPTrace([

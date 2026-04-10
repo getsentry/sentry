@@ -54,8 +54,8 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
   const query = useQueryParamsQuery();
 
   const {result} = tracesTableResult;
-
-  const {data, isPending, isError, getResponseHeader} = result;
+  const {isPending, isError} = result;
+  const data = result.data?.json;
 
   const showErrorState = !isPending && isError;
   const showEmptyState = !isPending && !showErrorState && (data?.data?.length ?? 0) === 0;
@@ -137,7 +137,7 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
         </Container>
       </StyledPanel>
       <Pagination
-        pageLinks={getResponseHeader?.('Link')}
+        pageLinks={result.data?.headers.Link}
         paginationAnalyticsEvent={paginationAnalyticsEvent}
       />
     </Fragment>

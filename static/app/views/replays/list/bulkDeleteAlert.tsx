@@ -1,11 +1,12 @@
 import {useEffect, useRef} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {useReplayBulkDeleteAuditLog} from 'sentry/components/replays/bulkDelete/useReplayBulkDeleteAuditLog';
+import {replayBulkDeleteAuditLogApiOptions} from 'sentry/components/replays/bulkDelete/replayBulkDeleteAuditLogApiOptions';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -48,11 +49,13 @@ function useShouldRenderBulkDeleteAlert({
 
   const hasAnyInProgressRef = useRef(false);
 
-  const {data} = useReplayBulkDeleteAuditLog({
+  const {data} = useQuery({
+    ...replayBulkDeleteAuditLogApiOptions(organization, {
+      projectSlug: project?.slug ?? '',
+      query: {per_page: 10, offset: 0, referrer: analyticsArea},
+    }),
     enabled: Boolean(project && (hasWriteAccess || hasAdminAccess)),
-    projectSlug: project?.slug ?? '',
-    query: {per_page: 10, offset: 0, referrer: analyticsArea},
-    refetchIntervalMs: hasAnyInProgressRef.current ? 1_000 : 60_000,
+    refetchInterval: hasAnyInProgressRef.current ? 1_000 : 60_000,
   });
 
   useEffect(() => {

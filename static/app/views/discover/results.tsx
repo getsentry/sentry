@@ -67,7 +67,7 @@ import {
   DEFAULT_EVENT_VIEW_MAP,
 } from 'sentry/views/discover/results/data';
 import ResultsChart from 'sentry/views/discover/results/resultsChart';
-import ResultsHeader from 'sentry/views/discover/results/resultsHeader';
+import {ResultsHeaderWrapper as ResultsHeader} from 'sentry/views/discover/results/resultsHeader';
 import {ResultsSearchQueryBuilder} from 'sentry/views/discover/results/resultsSearchQueryBuilder';
 import {SampleDataAlert} from 'sentry/views/discover/results/sampleDataAlert';
 import Tags from 'sentry/views/discover/results/tags';

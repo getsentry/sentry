@@ -59,6 +59,7 @@ class BaseRepositoryIntegration(ABC):
         query: str | None = None,
         page_number_limit: int | None = None,
         accessible_only: bool = False,
+        use_cache: bool = False,
     ) -> list[RepositoryInfo]:
         """
         Get a list of available repositories for an installation
