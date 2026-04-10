@@ -122,7 +122,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
       }
     }
 
-    return collapsedChildren;
+    return collapsedChildren.sort(traceChronologicalSort);
   }
 
   get drawerTabsTitle(): string {
