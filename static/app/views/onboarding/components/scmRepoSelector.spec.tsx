@@ -11,6 +11,21 @@ import {
 
 import {ScmRepoSelector} from './scmRepoSelector';
 
+// Mock the virtualizer so all items render in JSDOM (no layout engine).
+jest.mock('@tanstack/react-virtual', () => ({
+  useVirtualizer: jest.fn(({count}) => ({
+    getVirtualItems: () =>
+      Array.from({length: count}, (_, i) => ({
+        key: i,
+        index: i,
+        start: i * 36,
+        size: 36,
+      })),
+    getTotalSize: () => count * 36,
+    measureElement: jest.fn(),
+  })),
+}));
+
 function makeOnboardingWrapper(initialState?: OnboardingSessionState) {
   return function OnboardingWrapper({children}: {children?: React.ReactNode}) {
     return (
