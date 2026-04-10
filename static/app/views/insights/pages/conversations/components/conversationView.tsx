@@ -151,7 +151,7 @@ function ConversationView({
   }
 
   return (
-    <Flex flex="1" minHeight="0">
+    <Flex flex="1" minHeight="0" overflow="hidden">
       <LeftPanel>
         <StyledTabs
           value={activeTab}
@@ -297,6 +297,9 @@ function LeftPanel({children}: {children: React.ReactNode}) {
 
 const StyledTabs = styled(Tabs)`
   min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 `;
 
 const FullWidthTabPanels = styled(TabPanels)`
