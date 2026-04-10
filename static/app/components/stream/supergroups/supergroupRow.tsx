@@ -26,7 +26,6 @@ import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 
 interface SupergroupRowProps {
   matchedGroupIds: string[];
-  query: string;
   supergroup: SupergroupDetail;
   aggregatedStats?: AggregatedSupergroupStats | null;
   memberList?: IndexedMembersByProject;
@@ -37,7 +36,6 @@ export function SupergroupRow({
   matchedGroupIds,
   aggregatedStats,
   memberList,
-  query,
 }: SupergroupRowProps) {
   const matchedCount = matchedGroupIds.length;
   const {openDrawer, isDrawerOpen} = useDrawer();
@@ -49,7 +47,7 @@ export function SupergroupRow({
         <SupergroupDetailDrawer
           supergroup={supergroup}
           memberList={memberList}
-          query={query}
+          filterWithCurrentSearch
         />
       ),
       {

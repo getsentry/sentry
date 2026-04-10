@@ -240,7 +240,6 @@ function GroupList({
             matchedGroupIds={matchingIds}
             aggregatedStats={stats}
             memberList={memberList}
-            query={query}
           />
         );
       })}

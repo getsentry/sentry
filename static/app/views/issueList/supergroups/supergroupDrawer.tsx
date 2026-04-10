@@ -46,14 +46,14 @@ const DRAWER_COLUMNS: GroupListColumn[] = [
 
 interface SupergroupDetailDrawerProps {
   supergroup: SupergroupDetail;
+  filterWithCurrentSearch?: boolean;
   memberList?: IndexedMembersByProject;
-  query?: string;
 }
 
 export function SupergroupDetailDrawer({
   supergroup,
   memberList,
-  query,
+  filterWithCurrentSearch,
 }: SupergroupDetailDrawerProps) {
   return (
     <Fragment>
@@ -126,7 +126,7 @@ export function SupergroupDetailDrawer({
             <SupergroupIssueList
               groupIds={supergroup.group_ids}
               memberList={memberList}
-              query={query}
+              filterWithCurrentSearch={filterWithCurrentSearch}
             />
           </Container>
         )}
@@ -140,22 +140,28 @@ const PAGE_SIZE = 25;
 function SupergroupIssueList({
   groupIds,
   memberList,
-  query,
+  filterWithCurrentSearch,
 }: {
   groupIds: number[];
+  filterWithCurrentSearch?: boolean;
   memberList?: IndexedMembersByProject;
-  query?: string;
 }) {
   const organization = useOrganization();
   const location = useLocation();
   const [page, setPage] = useState(0);
 
-  const hasQuery = query !== undefined;
+  const {
+    query: searchQuery,
+    project,
+    environment,
+    statsPeriod,
+    start,
+    end,
+  } = location.query;
+  const query = typeof searchQuery === 'string' ? searchQuery : '';
   const issueIdFilter = `issue.id:[${groupIds.join(',')}]`;
   const totalPages = Math.ceil(groupIds.length / PAGE_SIZE);
   const pageGroupIds = groupIds.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-
-  const {project, environment, statsPeriod, start, end} = location.query;
 
   // Fetch all groups on this page
   const {data: allGroups, isPending: allPending} = useApiQuery<Group[]>(
@@ -165,9 +171,8 @@ function SupergroupIssueList({
       }),
       {
         query: {
-          query: issueIdFilter,
+          group: pageGroupIds.map(String),
           project: ALL_ACCESS_PROJECTS,
-          limit: PAGE_SIZE,
         },
       },
     ],
@@ -192,10 +197,10 @@ function SupergroupIssueList({
         },
       },
     ],
-    {staleTime: 30_000, enabled: hasQuery}
+    {staleTime: 30_000, enabled: !!filterWithCurrentSearch}
   );
 
-  const isPending = allPending || (hasQuery && matchPending);
+  const isPending = allPending || (!!filterWithCurrentSearch && matchPending);
 
   if (isPending) {
     return (
@@ -230,14 +235,6 @@ function SupergroupIssueList({
 
   return (
     <Fragment>
-      {matchedIds.size > 0 && (
-        <Flex align="center" gap="xs" padding="0 0 md 0">
-          <MatchedIndicator />
-          <Text size="sm" variant="muted">
-            {t('Matches current filters')}
-          </Text>
-        </Flex>
-      )}
       <PanelContainer>
         <GroupListHeader withChart={false} withColumns={DRAWER_COLUMNS} />
         <PanelBody>
@@ -304,20 +301,11 @@ const PlaceholderRow = styled('div')`
   }
 `;
 
-const MatchedIndicator = styled('div')`
-  width: 3px;
-  height: 14px;
-  border-radius: 2px;
-  background: ${p => p.theme.tokens.graphics.accent.vibrant};
-  flex-shrink: 0;
-`;
-
 const HighlightableRow = styled('div')<{highlighted: boolean}>`
   ${p =>
-    p.highlighted &&
+    !p.highlighted &&
     css`
-      background: ${p.theme.tokens.background.secondary};
-      border-left: 3px solid ${p.theme.tokens.border.accent.vibrant};
+      opacity: 0.6;
     `}
 `;
 
