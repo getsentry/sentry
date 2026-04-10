@@ -4,17 +4,15 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {useApiQuery, useInfiniteQuery, useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   PrimaryNavigation,
@@ -130,29 +128,16 @@ function useReminderCopywriting() {
 
   const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
 
-  const autofixResult = useInfiniteQuery({
-    ...bulkAutofixAutomationSettingsInfiniteOptions({
-      organization,
-    }),
-    enabled: hasSeatBasedSeer,
-    staleTime: 60_000,
-    select: ({pages}) => pages.flatMap(page => page.json),
-  });
-  useFetchAllPages({result: autofixResult});
-
-  const {data: autofixSettings, isPending: isAutofixPending} = autofixResult;
-
   const {
-    isPending: isOnboardingPending,
-    isError: isOnboardingError,
-    data: onboardingData,
+    isPending,
+    isError,
+    data: data,
   } = useQuery(getSeerOnboardingCheckQueryOptions({organization, staleTime: 60_000}));
 
-  if (!hasSeatBasedSeer || isOnboardingPending || isOnboardingError || isAutofixPending) {
+  if (!hasSeatBasedSeer || isPending || isError) {
     return null;
   }
-  const {hasSupportedScmIntegration, isCodeReviewEnabled} = onboardingData;
-  const hasAutofix = autofixSettings?.some(s => s.reposCount > 0);
+  const {hasSupportedScmIntegration, isAutofixEnabled, isCodeReviewEnabled} = data;
 
   if (!hasSupportedScmIntegration) {
     return {
@@ -163,7 +148,7 @@ function useReminderCopywriting() {
     };
   }
 
-  if (!hasAutofix) {
+  if (!isAutofixEnabled) {
     return {
       title: (
         <Flex align="center" gap="sm">
