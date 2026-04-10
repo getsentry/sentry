@@ -250,18 +250,21 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             )
 
     def _get_resolution_for_window(
-        self, time_window_seconds: int, detection_type: str | None, comparison_delta: int | None
+        self,
+        time_window_seconds: int | float,
+        detection_type: str | None,
+        comparison_delta: int | float | None,
     ) -> timedelta:
         """
-        Compute the appropriate SnubaQuery resolution for a given time window,
-        mirroring the logic in create_alert_rule / update_alert_rule.
+        Compute the appropriate SnubaQuery resolution for a given time window
+        (in seconds), mirroring the logic in create_alert_rule / update_alert_rule.
         """
         organization = self.context["organization"]
 
         if detection_type == AlertRuleDetectionType.DYNAMIC:
             resolution = timedelta(seconds=time_window_seconds)
         else:
-            resolution = get_alert_resolution(time_window_seconds // 60, organization)
+            resolution = get_alert_resolution(int(time_window_seconds) // 60, organization)
             if comparison_delta is not None:
                 resolution *= DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
 
@@ -317,7 +320,10 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         return False
 
     def update_data_source(
-        self, instance: Detector, data_source: SnubaQueryDataSourceType, seer_updated: bool = False
+        self,
+        instance: Detector,
+        data_source: SnubaQueryDataSourceType,
+        seer_updated: bool = False,
     ) -> None:
         try:
             source_instance = DataSource.objects.get(detector=instance)
@@ -334,7 +340,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             except SnubaQuery.DoesNotExist:
                 raise serializers.ValidationError("SnubaQuery not found, can't update")
 
-        event_types = SnubaQueryEventType.objects.filter(snuba_query_id=snuba_query.id)
+        event_types = snuba_query.event_types
 
         if self.is_editing_transaction_dataset(snuba_query, data_source):
             raise serializers.ValidationError(
@@ -373,14 +379,14 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
         update_snuba_query(
             snuba_query=snuba_query,
-            query_type=data_source.get("query_type", snuba_query.type),
-            dataset=data_source.get("dataset", snuba_query.dataset),
+            query_type=data_source.get("query_type", SnubaQuery.Type(snuba_query.type)),
+            dataset=data_source.get("dataset", Dataset(snuba_query.dataset)),
             query=data_source.get("query", snuba_query.query),
             aggregate=data_source.get("aggregate", snuba_query.aggregate),
             time_window=timedelta(seconds=new_time_window),
             resolution=resolution,
             environment=data_source.get("environment", snuba_query.environment),
-            event_types=data_source.get("event_types", [event_type for event_type in event_types]),
+            event_types=data_source.get("event_types", event_types),
             extrapolation_mode=extrapolation_mode,
         )
 
