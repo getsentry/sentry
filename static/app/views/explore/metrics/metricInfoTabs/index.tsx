@@ -52,17 +52,8 @@ export function MetricInfoTabs({
     >
       {orientation === 'right' || visualize.visible ? (
         <Flex direction="row" justify="between" align="center" paddingRight="xl">
-          <TabListWrapper orientation={orientation}>
-            <TabList variant="floating">
-              <TabList.Item key={Mode.SAMPLES} disabled={contentsHidden}>
-                {t('Samples')}
-              </TabList.Item>
-              <TabList.Item key={Mode.AGGREGATE} disabled={contentsHidden}>
-                {t('Aggregates')}
-              </TabList.Item>
-            </TabList>
-          </TabListWrapper>
           {additionalActions}
+          <MetricInfoTabList orientation={orientation} contentsHidden={contentsHidden} />
         </Flex>
       ) : null}
       {visualize.visible && !contentsHidden ? (
@@ -84,5 +75,26 @@ export function MetricInfoTabs({
         </BodyContainer>
       ) : null}
     </TabStateProvider>
+  );
+}
+
+export function MetricInfoTabList({
+  orientation,
+  contentsHidden,
+}: {
+  orientation: TableOrientation;
+  contentsHidden?: boolean;
+}) {
+  return (
+    <TabListWrapper orientation={orientation}>
+      <TabList variant="floating">
+        <TabList.Item key={Mode.SAMPLES} disabled={contentsHidden}>
+          {t('Samples')}
+        </TabList.Item>
+        <TabList.Item key={Mode.AGGREGATE} disabled={contentsHidden}>
+          {t('Aggregates')}
+        </TabList.Item>
+      </TabList>
+    </TabListWrapper>
   );
 }

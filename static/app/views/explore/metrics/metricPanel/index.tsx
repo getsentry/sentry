@@ -21,6 +21,7 @@ import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMe
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
 import {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
 import {useTableOrientationControl} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
+import {MetricInfoTabList} from 'sentry/views/explore/metrics/metricInfoTabs';
 import {SideBySideOrientation} from 'sentry/views/explore/metrics/metricPanel/sideBySideOrientation';
 import {StackedOrientation} from 'sentry/views/explore/metrics/metricPanel/stackedOrientation';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -192,21 +193,33 @@ function DnDPlaceholder({
   isDragging: boolean | undefined;
 }) {
   return (
-    <Container
-      padding="lg md"
-      style={contentHeight ? {height: `${contentHeight}px`} : undefined}
-    >
-      <Grid columns="1fr 1fr" gap="xl" height="100%">
-        <Placeholder height="100%">
-          {isDragging ? (
-            <Text>
-              {t(
-                "Charts are hidden while reordering. They're too expensive to drag along for the ride."
-              )}
-            </Text>
-          ) : null}
-        </Placeholder>
-        <Placeholder height="100%" />
+    <Container style={contentHeight ? {height: `${contentHeight}px`} : undefined}>
+      <Grid columns="1fr 1fr" gap="sm" height="100%">
+        <Container padding="md">
+          <Placeholder height="100%">
+            {isDragging ? (
+              <Text>
+                {t(
+                  "Charts are hidden while reordering. They're too expensive to drag along for the ride."
+                )}
+              </Text>
+            ) : null}
+          </Placeholder>
+        </Container>
+        <Stack height="100%" padding="md" paddingLeft="0">
+          <Container paddingBottom="md">
+            <MetricInfoTabList orientation="right" contentsHidden />
+          </Container>
+          <Placeholder style={{flex: 1, flexShrink: 1, minHeight: 0}}>
+            {isDragging ? (
+              <Text>
+                {t(
+                  "Tables are hidden, they're also pretty expensive to drag along for the ride."
+                )}
+              </Text>
+            ) : null}
+          </Placeholder>
+        </Stack>
       </Grid>
     </Container>
   );
