@@ -37,7 +37,7 @@ export function getNextLabel(
   const queryFilter = isEquation ? isVisualizeEquation : isVisualizeFunction;
   const relevant = metricQueries.filter(q => queryFilter(q.queryParams.visualizes[0]!));
   if (relevant.length === 0) {
-    return getVisualizeLabel(0, isEquation);
+    return getVisualizeLabel(isEquation ? 1 : 0, isEquation);
   }
   const maxIndex = Math.max(
     ...relevant.map((q, i) => {
