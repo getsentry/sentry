@@ -11,7 +11,6 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {organizationRepositoriesWithSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {
   isSeerSupportedProvider,
   useSeerSupportedProviderIds,
@@ -32,6 +31,7 @@ import {
   useListItemCheckboxContext,
 } from 'sentry/utils/list/useListItemCheckboxState';
 import {useInfiniteQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {organizationRepositoriesWithSettingsInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
