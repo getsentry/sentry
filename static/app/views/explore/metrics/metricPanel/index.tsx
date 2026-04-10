@@ -196,7 +196,7 @@ function DnDPlaceholder({
       padding="lg md"
       style={contentHeight ? {height: `${contentHeight}px`} : undefined}
     >
-      <Grid columns="1fr 1fr" gap="xl" style={{height: '100%'}}>
+      <Grid columns="1fr 1fr" gap="xl" height="100%">
         <Placeholder height="100%">
           {isDragging ? <Text>{t('Charts are hidden while reordering.')}</Text> : null}
         </Placeholder>
