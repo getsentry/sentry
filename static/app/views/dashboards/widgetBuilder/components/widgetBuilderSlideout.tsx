@@ -26,6 +26,7 @@ import {IconClose} from 'sentry/icons';
 import {t, tctCode} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
+import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -70,7 +71,10 @@ import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/h
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
+import {readableConditions} from 'sentry/views/dashboards/widgetCard/widgetLLMContext';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 type WidgetBuilderSlideoutProps = {
   dashboard: DashboardDetails;
@@ -86,7 +90,7 @@ type WidgetBuilderSlideoutProps = {
   thresholdMetaState?: ThresholdMetaState;
 };
 
-export function WidgetBuilderSlideout({
+function WidgetBuilderSlideoutInner({
   onClose,
   onSave,
   onQueryConditionChange,
@@ -108,6 +112,23 @@ export function WidgetBuilderSlideout({
   const [error, setError] = useState<Record<string, any>>({});
   const theme = useTheme();
   const isEditing = useIsEditingWidget();
+
+  // Push widget builder state into the LLM context tree for Seer Explorer.
+  useLLMContext({
+    contextHint:
+      'Sentry widget builder. The user is configuring a dashboard widget. visualize is the y-axis metrics (timeseries) or the aggregate (big number/table). fields are group-by columns (timeseries) or visible columns (table). query filters the data and sort controls ordering.',
+    mode: isEditing ? 'editing' : 'creating',
+    title: state.title,
+    description: state.description,
+    dataset: state.dataset,
+    displayType: state.displayType,
+    visualize: state.yAxis?.map(generateFieldAsString),
+    fields: state.fields?.map(generateFieldAsString),
+    query: state.query?.map(readableConditions),
+    sort: state.sort?.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),
+    thresholds: state.thresholds,
+    legendAlias: state.legendAlias,
+  });
   const source = useDashboardWidgetSource();
   const {cacheBuilderState} = useCacheBuilderState();
   const {setSegmentSpanBuilderState} = useSegmentSpanWidgetState();
@@ -507,6 +528,11 @@ export function WidgetBuilderSlideout({
     </SlideOverPanel>
   );
 }
+
+export const WidgetBuilderSlideout = registerLLMContext(
+  'widget-builder',
+  WidgetBuilderSlideoutInner
+);
 
 function Section({children}: {children: React.ReactNode}) {
   return (

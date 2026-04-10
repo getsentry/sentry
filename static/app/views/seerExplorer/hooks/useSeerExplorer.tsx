@@ -52,7 +52,11 @@ type SeerExplorerChatResponse = {
 const POLL_INTERVAL = 500; // Poll every 500ms
 
 /** Routes where the LLMContext tree provides structured page context. */
-const STRUCTURED_CONTEXT_ROUTES = new Set(['/dashboard/:dashboardId/']);
+const STRUCTURED_CONTEXT_ROUTES = new Set([
+  '/dashboard/:dashboardId/',
+  '/dashboard/:dashboardId/widget-builder/widget/new/',
+  '/dashboard/:dashboardId/widget-builder/widget/:widgetIndex/edit/',
+]);
 
 const OPTIMISTIC_ASSISTANT_TEXTS = [
   'Looking around...',
