@@ -107,28 +107,28 @@ def run_night_shift_for_org(organization_id: int) -> None:
 
     try:
         candidates = agentic_triage_strategy(eligible_projects, organization)
+
+        if candidates:
+            SeerNightShiftRunIssue.objects.bulk_create(
+                [
+                    SeerNightShiftRunIssue(
+                        run=run,
+                        group=c.group,
+                        action=c.action,
+                    )
+                    for c in candidates
+                ]
+            )
     except Exception:
         logger.exception(
-            "night_shift.triage_failed",
+            "night_shift.run_failed",
             extra={
                 "organization_id": organization_id,
                 "run_id": run.id,
             },
         )
-        run.update(error_message="Triage strategy raised an exception")
+        run.update(error_message="Night shift run failed")
         return
-
-    if candidates:
-        SeerNightShiftRunIssue.objects.bulk_create(
-            [
-                SeerNightShiftRunIssue(
-                    run=run,
-                    group=c.group,
-                    action=c.action,
-                )
-                for c in candidates
-            ]
-        )
 
     logger.info(
         "night_shift.candidates_selected",

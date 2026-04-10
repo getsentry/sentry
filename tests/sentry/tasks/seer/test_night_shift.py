@@ -232,7 +232,7 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             run_night_shift_for_org(org.id)
 
         run = SeerNightShiftRun.objects.get(organization=org)
-        assert run.error_message == "Triage strategy raised an exception"
+        assert run.error_message == "Night shift run failed"
         assert not SeerNightShiftRunIssue.objects.filter(run=run).exists()
 
     def test_empty_candidates_creates_run_with_no_issues(self) -> None:
