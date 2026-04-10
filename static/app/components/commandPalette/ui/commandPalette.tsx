@@ -7,7 +7,6 @@ import {mergeProps} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useTreeState} from '@react-stately/tree';
 import {AnimatePresence, motion} from 'framer-motion';
-import type {LocationDescriptor} from 'history';
 
 import errorIllustration from 'sentry-images/spot/computer-missing.svg';
 
@@ -28,13 +27,13 @@ import {
   useCommandPaletteDispatch,
   useCommandPaletteState,
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
+import {isExternalLocation} from 'sentry/components/commandPalette/ui/locationUtils';
 import {useCommandPaletteAnalytics} from 'sentry/components/commandPalette/useCommandPaletteAnalytics';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconArrow, IconClose, IconLink, IconOpen, IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
-import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
 import {fzf} from 'sentry/utils/search/fzf';
 import type {Theme} from 'sentry/utils/theme';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -42,22 +41,6 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 const MotionButton = motion.create(Button);
 const MotionIconSearch = motion.create(IconSearch);
 const MotionContainer = motion.create(Container);
-
-function getLocationHref(to: LocationDescriptor): string {
-  const resolved = locationDescriptorToTo(to);
-
-  if (typeof resolved === 'string') {
-    return resolved;
-  }
-
-  return `${resolved.pathname ?? ''}${resolved.search ?? ''}${resolved.hash ?? ''}`;
-}
-
-function isExternalLocation(to: LocationDescriptor): boolean {
-  const currentUrl = new URL(window.location.href);
-  const targetUrl = new URL(getLocationHref(to), currentUrl.href);
-  return targetUrl.origin !== currentUrl.origin;
-}
 
 function makeLeadingItemAnimation(theme: Theme) {
   return {
