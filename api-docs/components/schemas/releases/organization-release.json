@@ -1,3 +1,17 @@
+`##User Auth Tokens
+# Create New Token
+ - Auth Tokens are tied to the logged in user, meaning they'll stop working if the user leaves the organization! 
+ - We suggest using internal integrations to create/manage tokens tied to the organization instead.
+ - Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. 
+ - They're the easiest way to get started using the API.
+ - For more information on how to use the web API, see our documentation.
+AUTH TOKEN
+89934216e1bdcb0e7d0ac4b122bf7ce1b972e06a7014d1edab0882e08ca3e4ea`
+-----=
+`SCOPES
+event:admin, event:read, org:read, project:read, project:releases, alerts:read, event:write, member:read, org:admin, project:admin, team:admin, team:write, alerts:write, member:admin, member:write, org:integrations, org:write, project:write, team:read`
+CREATED
+Aug 16, 11:42 PM`
 {
   "OrganizationRelease": {
     "type": "object",
