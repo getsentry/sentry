@@ -18,7 +18,10 @@ import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useAddMetricToDashboard} from 'sentry/views/explore/metrics/hooks/useAddMetricToDashboard';
 import {useSaveMetricsMultiQuery} from 'sentry/views/explore/metrics/hooks/useSaveMetricsMultiQuery';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
-import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualize,
+  isVisualizeEquation,
+} from 'sentry/views/explore/queryParams/visualize';
 import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -114,9 +117,10 @@ export function useSaveAsMetricItems(_options: UseSaveAsMetricItemsOptions) {
               ]
             : []),
           ...metricQueries.map((metricQuery, index) => {
+            const isEq = isVisualizeEquation(metricQuery.queryParams.visualizes[0]!);
             return {
               key: `add-to-dashboard-${index}`,
-              label: `${getVisualizeLabel(index)}: ${
+              label: `${getVisualizeLabel(metricQuery.labelIndex ?? index, isEq)}: ${
                 formatTraceMetricsFunction(
                   metricQuery.queryParams.aggregateFields
                     .filter(isVisualize)

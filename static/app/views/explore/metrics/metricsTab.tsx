@@ -29,6 +29,8 @@ import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQu
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
 import {MetricSaveAs} from 'sentry/views/explore/metrics/metricToolbar/metricSaveAs';
 import {
+  MAX_EQUATION_QUERIES,
+  MAX_METRIC_QUERIES,
   MultiMetricsQueryParamsProvider,
   useAddMetricQuery,
   useMultiMetricsQueryParams,
@@ -37,8 +39,10 @@ import {
   FilterBarWithSaveAsContainer,
   StyledPageFilterBar,
 } from 'sentry/views/explore/metrics/styles';
-
-const MAX_METRICS_ALLOWED = 8;
+import {
+  isVisualizeEquation,
+  isVisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 export const METRICS_CHART_GROUP = 'metrics-charts-group';
 
 type MetricsTabProps = {
@@ -80,6 +84,13 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
   const addEquationQuery = useAddMetricQuery({type: 'equation'});
   const hasEquations = canUseMetricsEquations(organization);
 
+  const metricCount = metricQueries.filter(
+    q => !isVisualizeEquation(q.queryParams.visualizes[0]!)
+  ).length;
+  const equationCount = metricQueries.filter(q =>
+    isVisualizeEquation(q.queryParams.visualizes[0]!)
+  ).length;
+
   if (canUseMetricsUIRefresh(organization)) {
     return (
       <ExploreBodySearch>
@@ -96,7 +107,7 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
             <Flex gap="sm" align="center">
               <ToolbarVisualizeAddChart
                 add={addMetricQuery}
-                disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
+                disabled={metricCount >= MAX_METRIC_QUERIES}
                 label={t('Add Metric')}
                 display="button"
               />
@@ -105,7 +116,7 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
                 <ToolbarVisualizeAddChart
                   display="button"
                   add={addEquationQuery}
-                  disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
+                  disabled={equationCount >= MAX_EQUATION_QUERIES}
                   label={t('Add Equation')}
                 />
               )}
@@ -144,6 +155,13 @@ function MetricsQueryBuilderSection() {
   const hasEquations = canUseMetricsEquations(organization);
   const references = useMetricReferences();
 
+  const metricCount = metricQueries.filter(
+    q => !isVisualizeEquation(q.queryParams.visualizes[0]!)
+  ).length;
+  const equationCount = metricQueries.filter(q =>
+    isVisualizeEquation(q.queryParams.visualizes[0]!)
+  ).length;
+
   if (canUseMetricsUIRefresh(organization)) {
     return null;
   }
@@ -152,9 +170,12 @@ function MetricsQueryBuilderSection() {
     <MetricsQueryBuilderContainer borderTop="primary" padding="md" style={{flexGrow: 0}}>
       <Flex direction="column" gap="lg" align="start">
         {metricQueries.map((metricQuery, index) => {
+          // The key needs to differentiate between equations and functions to
+          // avoid key collisions since the label indices can overlap
+          const key = `queryBuilder-${isVisualizeEquation(metricQuery.queryParams.visualizes[0]!) ? 'eq' : 'm'}-${metricQuery.labelIndex ?? index}`;
           return (
             <MetricsQueryParamsProvider
-              key={`queryBuilder-${index}`}
+              key={key}
               queryParams={metricQuery.queryParams}
               setQueryParams={metricQuery.setQueryParams}
               traceMetric={metricQuery.metric}
@@ -163,7 +184,7 @@ function MetricsQueryBuilderSection() {
             >
               <MetricToolbar
                 traceMetric={metricQuery.metric}
-                queryIndex={index}
+                queryIndex={metricQuery.labelIndex ?? index}
                 references={references}
               />
             </MetricsQueryParamsProvider>
@@ -172,13 +193,13 @@ function MetricsQueryBuilderSection() {
         <Flex direction="row" gap="sm" align="center" minWidth={0} width="100%">
           <ToolbarVisualizeAddChart
             add={addMetricQuery}
-            disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
+            disabled={metricCount >= MAX_METRIC_QUERIES}
             label={t('Add Metric')}
           />
           {hasEquations && (
             <ToolbarVisualizeAddChart
               add={addEquationQuery}
-              disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
+              disabled={equationCount >= MAX_EQUATION_QUERIES}
               label={t('Add Equation')}
             />
           )}
@@ -206,15 +227,25 @@ function MetricsTabBodySection() {
   });
   const references = useMetricReferences();
 
+  const metricCount = metricQueries.filter(q =>
+    isVisualizeFunction(q.queryParams.visualizes[0]!)
+  ).length;
+  const equationCount = metricQueries.filter(q =>
+    isVisualizeEquation(q.queryParams.visualizes[0]!)
+  ).length;
+
   if (canUseMetricsUIRefresh(organization)) {
     return (
       <ExploreContentSection>
         <Stack>
           <WidgetSyncContextProvider groupName={METRICS_CHART_GROUP}>
             {metricQueries.map((metricQuery, index) => {
+              // The key needs to differentiate between equations and functions to
+              // avoid key collisions since the label indices can overlap
+              const key = `queryPanel-${isVisualizeEquation(metricQuery.queryParams.visualizes[0]!) ? 'eq' : 'm'}-${metricQuery.labelIndex ?? index}`;
               return (
                 <MetricsQueryParamsProvider
-                  key={`queryPanel-${index}`}
+                  key={key}
                   queryParams={metricQuery.queryParams}
                   setQueryParams={metricQuery.setQueryParams}
                   traceMetric={metricQuery.metric}
@@ -223,7 +254,7 @@ function MetricsTabBodySection() {
                 >
                   <MetricPanel
                     traceMetric={metricQuery.metric}
-                    queryIndex={index}
+                    queryIndex={metricQuery.labelIndex ?? index}
                     references={references}
                   />
                 </MetricsQueryParamsProvider>
@@ -232,7 +263,7 @@ function MetricsTabBodySection() {
             <Flex gap="sm" direction="row">
               <ToolbarVisualizeAddChart
                 add={addMetricQuery}
-                disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
+                disabled={metricCount >= MAX_METRIC_QUERIES}
                 label={t('Add Metric')}
                 display="button"
               />
@@ -240,7 +271,7 @@ function MetricsTabBodySection() {
                 <ToolbarVisualizeAddChart
                   display="button"
                   add={addEquationQuery}
-                  disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
+                  disabled={equationCount >= MAX_EQUATION_QUERIES}
                   label={t('Add Equation')}
                 />
               )}
@@ -257,9 +288,12 @@ function MetricsTabBodySection() {
         <Stack>
           <WidgetSyncContextProvider groupName={METRICS_CHART_GROUP}>
             {metricQueries.map((metricQuery, index) => {
+              // The key needs to differentiate between equations and functions to
+              // avoid key collisions since the label indices can overlap
+              const key = `queryPanel-${isVisualizeEquation(metricQuery.queryParams.visualizes[0]!) ? 'eq' : 'm'}-${metricQuery.labelIndex ?? index}`;
               return (
                 <MetricsQueryParamsProvider
-                  key={`queryPanel-${index}`}
+                  key={key}
                   queryParams={metricQuery.queryParams}
                   setQueryParams={metricQuery.setQueryParams}
                   traceMetric={metricQuery.metric}
@@ -268,7 +302,7 @@ function MetricsTabBodySection() {
                 >
                   <MetricPanel
                     traceMetric={metricQuery.metric}
-                    queryIndex={index}
+                    queryIndex={metricQuery.labelIndex ?? index}
                     references={references}
                   />
                 </MetricsQueryParamsProvider>

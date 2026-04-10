@@ -40,7 +40,12 @@ export function MetricToolbar({traceMetric, queryIndex, references}: MetricToolb
     setVisualize(visualize.replace({visible: !visualize.visible}));
   }, [setVisualize, visualize]);
   const setTraceMetric = useSetTraceMetric();
-  const canRemoveMetric = metricQueries.length > 1;
+
+  // We need at least one metric visualized, but equations should always
+  // be removable
+  const canRemoveMetric =
+    metricQueries.filter(q => isVisualizeFunction(q.queryParams.visualizes[0]!)).length >
+      1 || isVisualizeEquation(visualize);
 
   const handleExpressionChange = useCallback(
     (newExpression: Expression) => {

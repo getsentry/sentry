@@ -251,7 +251,7 @@ describe('MetricPanel', () => {
         additionalWrapper: createWrapper({queryParams, traceMetric}),
       });
 
-      // The visualize label badge "A" (from getVisualizeLabel(0)) should be present
+      // The visualize label badge "A" (from getFunctionLabel(0)) should be present
       expect(await screen.findByText('A')).toBeInTheDocument();
     });
 

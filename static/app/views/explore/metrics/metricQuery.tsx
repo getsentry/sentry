@@ -37,6 +37,7 @@ function isTraceMetric(value: unknown): value is TraceMetric {
 export interface BaseMetricQuery {
   metric: TraceMetric;
   queryParams: ReadableQueryParams;
+  labelIndex?: number;
 }
 
 export interface MetricQuery extends BaseMetricQuery {
