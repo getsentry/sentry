@@ -450,7 +450,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
             channel_id = data.get("channel")
             text = data.get("text")
             ts = data.get("ts") or data.get("message_ts")
-            thread_ts = slack_request.thread_ts
+            thread_ts = slack_request.thread_ts or None
             lifecycle.add_extras(
                 {
                     "integration_id": slack_request.integration.id,

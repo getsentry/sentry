@@ -4,16 +4,12 @@ import orjson
 import pytest
 from slack_sdk.web import SlackResponse
 
-from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.silo.base import SiloMode
-from sentry.testutils.asserts import assert_halt_metric, assert_slo_metric
+from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import IntegratedApiTestCase
 from sentry.testutils.helpers import get_response_text
-from sentry.testutils.silo import assume_test_silo_mode
-from sentry.users.models.identity import Identity, IdentityStatus
 
-from . import SEER_EXPLORER_FEATURES, BaseEventTest
+from . import BaseEventTest
 
 MESSAGE_IM_EVENT = """{
     "type": "message",
@@ -57,6 +53,11 @@ MESSAGE_IM_BOT_EVENT = """{
 
 
 class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
+    """
+    Tests for legacy messages to bot that would be interpreted as commands.
+    This will be superceded by the explorer agentic workflow.
+    """
+
     def get_block_section_text(self, data):
         blocks = data["blocks"]
         return blocks[0]["text"]["text"], blocks[1]["text"]["text"]
@@ -100,9 +101,6 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
         """
         Test that when a user types in "link" to the DM we reply with the correct response.
         """
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
-
         resp = self.post_webhook(event_data=orjson.loads(MESSAGE_IM_EVENT_LINK))
         assert resp.status_code == 200, resp.content
 
@@ -116,15 +114,7 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
         Test that when a user who has already linked their identity types in
         "link" to the DM we reply with the correct response.
         """
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
-            Identity.objects.create(
-                external_id="UXXXXXXX1",
-                idp=idp,
-                user=self.user,
-                status=IdentityStatus.VALID,
-                scopes=[],
-            )
+        self.create_identity(user=self.user, identity_provider=self.idp, external_id="UXXXXXXX1")
 
         resp = self.post_webhook(event_data=orjson.loads(MESSAGE_IM_EVENT_LINK))
         assert resp.status_code == 200, resp.content
@@ -136,15 +126,7 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
         """
         Test that when a user types in "unlink" to the DM we reply with the correct response.
         """
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
-            Identity.objects.create(
-                external_id="UXXXXXXX1",
-                idp=idp,
-                user=self.user,
-                status=IdentityStatus.VALID,
-                scopes=[],
-            )
+        self.create_identity(user=self.user, identity_provider=self.idp, external_id="UXXXXXXX1")
 
         resp = self.post_webhook(event_data=orjson.loads(MESSAGE_IM_EVENT_UNLINK))
         assert resp.status_code == 200, resp.content
@@ -157,9 +139,6 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
         Test that when a user without an Identity types in "unlink" to the DM we
         reply with the correct response.
         """
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
-
         resp = self.post_webhook(event_data=orjson.loads(MESSAGE_IM_EVENT_UNLINK))
         assert resp.status_code == 200, resp.content
 
@@ -174,138 +153,3 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
         resp = self.post_webhook(event_data=orjson.loads(MESSAGE_IM_EVENT_NO_TEXT))
         assert resp.status_code == 200, resp.content
         assert not self.mock_post.called
-
-
-MESSAGE_IM_DM_EVENT = {
-    "type": "message",
-    "channel": "DOxxxxxx",
-    "user": "Uxxxxxxx",
-    "text": "What is causing errors in my project?",
-    "ts": "123456789.9875",
-}
-
-MESSAGE_IM_DM_EVENT_THREADED = {
-    **MESSAGE_IM_DM_EVENT,
-    "thread_ts": "123456789.0001",
-}
-
-AUTHORIZATIONS_DATA = {
-    "authorizations": [{"user_id": "U0BOT", "is_bot": True}],
-}
-
-
-class MessageIMDmAgentTest(BaseEventTest):
-    """Tests for DM messages triggering the Seer Explorer agentic workflow.
-
-    These tests require the integration to have the assistant:write scope so
-    that DMs are routed to on_prompt instead of the help message handler.
-    """
-
-    def setUp(self):
-        super().setUp()
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration.metadata["scopes"] = ["assistant:write"]
-            self.integration.save()
-
-    @pytest.fixture(autouse=True)
-    def mock_set_thread_status(self):
-        with patch(
-            "sentry.integrations.slack.integration.SlackIntegration.set_thread_status",
-        ) as self.mock_status:
-            yield
-
-    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
-    def test_dm_dispatches_task(self, mock_apply_async):
-        self.link_identity(slack_user_id="Uxxxxxxx")
-        with self.feature(SEER_EXPLORER_FEATURES):
-            resp = self.post_webhook(event_data=MESSAGE_IM_DM_EVENT, data=AUTHORIZATIONS_DATA)
-
-        assert resp.status_code == 200
-        mock_apply_async.assert_called_once()
-        kwargs = mock_apply_async.call_args[1]["kwargs"]
-        assert kwargs["integration_id"] == self.integration.id
-        assert kwargs["organization_id"] == self.organization.id
-        assert kwargs["channel_id"] == "DOxxxxxx"
-        assert kwargs["ts"] == "123456789.9875"
-        assert kwargs["thread_ts"] is None
-        assert kwargs["text"] == MESSAGE_IM_DM_EVENT["text"]
-        assert kwargs["slack_user_id"] == "Uxxxxxxx"
-        assert kwargs["bot_user_id"] == "U0BOT"
-
-    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
-    def test_dm_threaded_dispatches_task(self, mock_apply_async):
-        self.link_identity(slack_user_id="Uxxxxxxx")
-        with self.feature(SEER_EXPLORER_FEATURES):
-            resp = self.post_webhook(
-                event_data=MESSAGE_IM_DM_EVENT_THREADED, data=AUTHORIZATIONS_DATA
-            )
-
-        assert resp.status_code == 200
-        mock_apply_async.assert_called_once()
-        kwargs = mock_apply_async.call_args[1]["kwargs"]
-        assert kwargs["ts"] == "123456789.9875"
-        assert kwargs["thread_ts"] == "123456789.0001"
-
-    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
-    def test_dm_no_authorizations(self, mock_apply_async):
-        self.link_identity(slack_user_id="Uxxxxxxx")
-        with self.feature(SEER_EXPLORER_FEATURES):
-            resp = self.post_webhook(event_data=MESSAGE_IM_DM_EVENT)
-
-        assert resp.status_code == 200
-        mock_apply_async.assert_called_once()
-        kwargs = mock_apply_async.call_args[1]["kwargs"]
-        assert kwargs["bot_user_id"] == ""
-
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @patch("sentry.integrations.slack.webhooks.event.send_identity_link_prompt")
-    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
-    def test_dm_identity_not_linked(self, mock_apply_async, mock_send_link, mock_record):
-        """When no identity is linked, send a link prompt and halt."""
-        with self.feature(SEER_EXPLORER_FEATURES):
-            resp = self.post_webhook(event_data=MESSAGE_IM_DM_EVENT)
-
-        assert resp.status_code == 200
-        mock_apply_async.assert_not_called()
-        mock_send_link.assert_called_once()
-        assert mock_send_link.call_args[1]["slack_user_id"] == "Uxxxxxxx"
-        assert_halt_metric(mock_record, SeerSlackHaltReason.IDENTITY_NOT_LINKED)
-
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
-    def test_dm_feature_flag_disabled(self, mock_apply_async, mock_record):
-        """With assistant scope, DMs route to on_prompt even without the feature flag.
-        The org resolution halts because no org has Seer access enabled."""
-        self.link_identity(slack_user_id="Uxxxxxxx")
-        resp = self.post_webhook(event_data=MESSAGE_IM_DM_EVENT)
-
-        assert resp.status_code == 200
-        mock_apply_async.assert_not_called()
-        assert_halt_metric(mock_record, SeerSlackHaltReason.NO_VALID_ORGANIZATION)
-
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
-    def test_dm_no_integration(self, mock_apply_async, mock_record):
-        self.link_identity(slack_user_id="Uxxxxxxx")
-        with patch(
-            "sentry.integrations.slack.webhooks.event.integration_service.get_organization_integrations",
-            return_value=[],
-        ):
-            with self.feature(SEER_EXPLORER_FEATURES):
-                resp = self.post_webhook(event_data=MESSAGE_IM_DM_EVENT)
-
-        assert resp.status_code == 200
-        mock_apply_async.assert_not_called()
-        assert_halt_metric(mock_record, SeerSlackHaltReason.NO_VALID_INTEGRATION)
-
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
-    def test_dm_empty_text(self, mock_apply_async, mock_record):
-        self.link_identity(slack_user_id="Uxxxxxxx")
-        event_data = {**MESSAGE_IM_DM_EVENT, "text": ""}
-        with self.feature(SEER_EXPLORER_FEATURES):
-            resp = self.post_webhook(event_data=event_data)
-
-        assert resp.status_code == 200
-        mock_apply_async.assert_not_called()
-        assert_halt_metric(mock_record, SeerSlackHaltReason.MISSING_EVENT_DATA)
