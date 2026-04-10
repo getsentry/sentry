@@ -98,9 +98,6 @@ class OrganizationSeerOnboardingCheck(OrganizationEndpoint):
 
     def get(self, request: Request, organization: Organization) -> Response:
         """Check if the organization has completed Seer onboarding/configuration."""
-        has_scm_integration = has_supported_scm_integration(organization.id)
-        code_review_enabled = is_code_review_enabled(organization.id)
-
         try:
             autofix_enabled = is_autofix_enabled(organization)
         except SeerApiError as e:
@@ -112,7 +109,8 @@ class OrganizationSeerOnboardingCheck(OrganizationEndpoint):
                 {"detail": "Failed to check autofix status"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-
+        has_scm_integration = has_supported_scm_integration(organization.id)
+        code_review_enabled = is_code_review_enabled(organization.id)
         needs_config_reminder = is_in_seer_config_reminder_list(organization)
         is_seer_configured = has_scm_integration and (code_review_enabled or autofix_enabled)
 
