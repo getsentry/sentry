@@ -435,6 +435,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 errored_count=len(categorized.errored),
                 comparison_run_info=run_info,
                 approval_info=approval_info,
+                diff_threshold=manifest.diff_threshold,
             ).dict()
         )
 
