@@ -43,6 +43,7 @@ import {
   isVisualizeEquation,
   isVisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+import {getFunctionLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 export const METRICS_CHART_GROUP = 'metrics-charts-group';
 
 type MetricsTabProps = {
@@ -91,6 +92,11 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
     isVisualizeEquation(q.queryParams.visualizes[0]!)
   ).length;
 
+  // Cannot add metric queries beyond Z
+  const isAddMetricDisabled =
+    metricCount >= MAX_METRIC_QUERIES ||
+    getFunctionLabel(Math.max(...metricQueries.map(q => q.labelIndex ?? 0))) === 'Z';
+
   if (canUseMetricsUIRefresh(organization)) {
     return (
       <ExploreBodySearch>
@@ -107,7 +113,7 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
             <Flex gap="sm" align="center">
               <ToolbarVisualizeAddChart
                 add={addMetricQuery}
-                disabled={metricCount >= MAX_METRIC_QUERIES}
+                disabled={isAddMetricDisabled}
                 label={t('Add Metric')}
                 display="button"
               />
@@ -166,6 +172,11 @@ function MetricsQueryBuilderSection() {
     return null;
   }
 
+  // Cannot add metric queries beyond Z
+  const isAddMetricDisabled =
+    metricCount >= MAX_METRIC_QUERIES ||
+    getFunctionLabel(Math.max(...metricQueries.map(q => q.labelIndex ?? 0))) === 'Z';
+
   return (
     <MetricsQueryBuilderContainer borderTop="primary" padding="md" style={{flexGrow: 0}}>
       <Flex direction="column" gap="lg" align="start">
@@ -193,7 +204,7 @@ function MetricsQueryBuilderSection() {
         <Flex direction="row" gap="sm" align="center" minWidth={0} width="100%">
           <ToolbarVisualizeAddChart
             add={addMetricQuery}
-            disabled={metricCount >= MAX_METRIC_QUERIES}
+            disabled={isAddMetricDisabled}
             label={t('Add Metric')}
           />
           {hasEquations && (
@@ -234,6 +245,11 @@ function MetricsTabBodySection() {
     isVisualizeEquation(q.queryParams.visualizes[0]!)
   ).length;
 
+  // Cannot add metric queries beyond Z
+  const isAddMetricDisabled =
+    metricCount >= MAX_METRIC_QUERIES ||
+    getFunctionLabel(Math.max(...metricQueries.map(q => q.labelIndex ?? 0))) === 'Z';
+
   if (canUseMetricsUIRefresh(organization)) {
     return (
       <ExploreContentSection>
@@ -263,7 +279,7 @@ function MetricsTabBodySection() {
             <Flex gap="sm" direction="row">
               <ToolbarVisualizeAddChart
                 add={addMetricQuery}
-                disabled={metricCount >= MAX_METRIC_QUERIES}
+                disabled={isAddMetricDisabled}
                 label={t('Add Metric')}
                 display="button"
               />
