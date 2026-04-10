@@ -19,9 +19,9 @@ import {GroupListHeader} from 'sentry/components/issues/groupListHeader';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
-import {Placeholder} from 'sentry/components/placeholder';
 import {
   DEFAULT_STREAM_GROUP_STATS_PERIOD,
+  LoadingStreamGroup,
   StreamGroup,
 } from 'sentry/components/stream/group';
 import {IconChevron, IconFilter, IconFocus} from 'sentry/icons';
@@ -201,9 +201,7 @@ function SupergroupIssueList({
         <GroupListHeader withChart withColumns={DRAWER_COLUMNS} />
         <PanelBody>
           {pageGroupIds.map(id => (
-            <PlaceholderRow key={id}>
-              <Placeholder height="82px" />
-            </PlaceholderRow>
+            <LoadingStreamGroup key={id} withChart withColumns={DRAWER_COLUMNS} />
           ))}
         </PanelBody>
       </PanelContainer>
@@ -299,14 +297,6 @@ const PanelContainer = styled(Panel)`
   container-type: inline-size;
 `;
 
-const PlaceholderRow = styled('div')`
-  padding: ${p => p.theme.space.md};
-
-  &:not(:last-child) {
-    border-bottom: solid 1px ${p => p.theme.tokens.border.secondary};
-  }
-`;
-
 const IssueRow = styled('div')`
   position: relative;
 
@@ -318,7 +308,7 @@ const IssueRow = styled('div')`
 
 const MatchedIcon = styled('div')`
   position: absolute;
-  top: 22px;
+  top: 23px;
   /* Positioned after where the checkbox will go */
   left: -2px;
   transform: translateY(-50%);
