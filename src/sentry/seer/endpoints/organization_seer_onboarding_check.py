@@ -17,9 +17,9 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repositorysettings import RepositorySettings
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.seer.autofix.utils import get_project_seer_preferences
+from sentry.seer.autofix.utils import bulk_get_project_preferences
 from sentry.seer.models.project_repository import SeerProjectRepository
-from sentry.seer.models.seer_api_models import SeerApiError, SeerApiResponseValidationError
+from sentry.seer.models.seer_api_models import SeerApiError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
@@ -69,15 +69,14 @@ def is_autofix_enabled(organization: Organization) -> bool:
         ).values_list("id", flat=True)
     )
 
-    for project_id in project_ids:
-        try:
-            preference = get_project_seer_preferences(project_id).preference
-            if preference and preference.repositories:
-                return True
-        except (SeerApiError, SeerApiResponseValidationError):
-            pass
+    if not project_ids:
+        return False
 
-    return False
+    try:
+        preferences = bulk_get_project_preferences(organization.id, project_ids)
+        return any(pref and pref.get("repositories") for pref in preferences.values())
+    except SeerApiError:
+        return False
 
 
 @cell_silo_endpoint

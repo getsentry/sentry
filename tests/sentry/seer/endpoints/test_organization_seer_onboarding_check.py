@@ -212,52 +212,48 @@ class TestIsAutofixEnabledSeerApi(TestCase):
         super().setUp()
         self.project = self.create_project(organization=self.organization)
 
-    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.get_project_seer_preferences")
-    def test_no_projects(self, mock_get_prefs: MagicMock) -> None:
+    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
+    def test_no_projects(self, mock_bulk_get: MagicMock) -> None:
         org_without_projects = self.create_organization()
         assert not is_autofix_enabled(org_without_projects)
-        mock_get_prefs.assert_not_called()
+        mock_bulk_get.assert_not_called()
 
-    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.get_project_seer_preferences")
-    def test_project_with_repositories(self, mock_get_prefs: MagicMock) -> None:
-        mock_get_prefs.return_value = MagicMock(preference=MagicMock(repositories=[MagicMock()]))
+    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
+    def test_project_with_repositories(self, mock_bulk_get: MagicMock) -> None:
+        mock_bulk_get.return_value = {str(self.project.id): {"repositories": [{"name": "repo"}]}}
         assert is_autofix_enabled(self.organization)
 
-    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.get_project_seer_preferences")
-    def test_project_with_empty_repositories(self, mock_get_prefs: MagicMock) -> None:
-        mock_get_prefs.return_value = MagicMock(preference=MagicMock(repositories=[]))
+    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
+    def test_project_with_empty_repositories(self, mock_bulk_get: MagicMock) -> None:
+        mock_bulk_get.return_value = {str(self.project.id): {"repositories": []}}
         assert not is_autofix_enabled(self.organization)
 
-    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.get_project_seer_preferences")
-    def test_project_with_no_preference(self, mock_get_prefs: MagicMock) -> None:
-        mock_get_prefs.return_value = MagicMock(preference=None)
+    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
+    def test_project_with_no_preference(self, mock_bulk_get: MagicMock) -> None:
+        mock_bulk_get.return_value = {str(self.project.id): None}
         assert not is_autofix_enabled(self.organization)
 
-    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.get_project_seer_preferences")
-    def test_multiple_projects(self, mock_get_prefs: MagicMock) -> None:
+    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
+    def test_multiple_projects(self, mock_bulk_get: MagicMock) -> None:
         project2 = self.create_project(organization=self.organization)
-
-        def side_effect(project_id):
-            if project_id == project2.id:
-                return MagicMock(preference=MagicMock(repositories=[MagicMock()]))
-            return MagicMock(preference=None)
-
-        mock_get_prefs.side_effect = side_effect
+        mock_bulk_get.return_value = {
+            str(self.project.id): None,
+            str(project2.id): {"repositories": [{"name": "repo"}]},
+        }
         assert is_autofix_enabled(self.organization)
 
-    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.get_project_seer_preferences")
-    def test_api_error_returns_false(self, mock_get_prefs: MagicMock) -> None:
-        mock_get_prefs.side_effect = SeerApiError("error", 500)
+    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
+    def test_api_error_returns_false(self, mock_bulk_get: MagicMock) -> None:
+        mock_bulk_get.side_effect = SeerApiError("error", 500)
         assert not is_autofix_enabled(self.organization)
 
-    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.get_project_seer_preferences")
-    def test_inactive_project_excluded(self, mock_get_prefs: MagicMock) -> None:
+    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
+    def test_inactive_project_excluded(self, mock_bulk_get: MagicMock) -> None:
         self.project.update(status=ObjectStatus.DISABLED)
         assert not is_autofix_enabled(self.organization)
-        mock_get_prefs.assert_not_called()
+        mock_bulk_get.assert_not_called()
 
 
-@patch("sentry.seer.endpoints.organization_seer_onboarding_check.get_project_seer_preferences")
 class OrganizationSeerOnboardingCheckTest(APITestCase):
     """Integration tests for the GET endpoint"""
 
@@ -272,20 +268,9 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
         url = f"/api/0/organizations/{organization_slug}/seer/onboarding-check/"
         return self.client.get(url, format="json", **kwargs)
 
-    def _mock_has_repos(self, mock_get_prefs: MagicMock) -> None:
-        mock_preference = MagicMock()
-        mock_preference.repositories = [MagicMock()]
-        mock_response = MagicMock()
-        mock_response.preference = mock_preference
-        mock_get_prefs.return_value = mock_response
-
-    def _mock_no_repos(self, mock_get_prefs: MagicMock) -> None:
-        mock_response = MagicMock()
-        mock_response.preference = None
-        mock_get_prefs.return_value = mock_response
-
-    def test_nothing_configured(self, mock_get_prefs: MagicMock) -> None:
-        self._mock_no_repos(mock_get_prefs)
+    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
+    def test_nothing_configured(self, mock_bulk_get: MagicMock) -> None:
+        mock_bulk_get.return_value = {str(self.project.id): None}
         response = self.get_response(self.organization.slug)
 
         assert response.status_code == 200
@@ -297,8 +282,9 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "isSeerConfigured": False,
         }
 
-    def test_all_configured(self, mock_get_prefs: MagicMock) -> None:
-        self._mock_has_repos(mock_get_prefs)
+    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
+    def test_all_configured(self, mock_bulk_get: MagicMock) -> None:
+        mock_bulk_get.return_value = {str(self.project.id): {"repositories": [{"name": "repo"}]}}
 
         self.create_integration(
             organization=self.organization,
@@ -324,8 +310,9 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "isSeerConfigured": True,
         }
 
-    def test_github_integration_only(self, mock_get_prefs: MagicMock) -> None:
-        self._mock_no_repos(mock_get_prefs)
+    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
+    def test_github_integration_only(self, mock_bulk_get: MagicMock) -> None:
+        mock_bulk_get.return_value = {str(self.project.id): None}
 
         self.create_integration(
             organization=self.organization,
@@ -345,8 +332,9 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "isSeerConfigured": False,
         }
 
-    def test_code_review_enabled_only(self, mock_get_prefs: MagicMock) -> None:
-        self._mock_no_repos(mock_get_prefs)
+    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
+    def test_code_review_enabled_only(self, mock_bulk_get: MagicMock) -> None:
+        mock_bulk_get.return_value = {str(self.project.id): None}
 
         repo = self.create_repo(project=self.project)
         self.create_repository_settings(
@@ -365,8 +353,9 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "isSeerConfigured": False,
         }
 
-    def test_autofix_enabled_only(self, mock_get_prefs: MagicMock) -> None:
-        self._mock_has_repos(mock_get_prefs)
+    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
+    def test_autofix_enabled_only(self, mock_bulk_get: MagicMock) -> None:
+        mock_bulk_get.return_value = {str(self.project.id): {"repositories": [{"name": "repo"}]}}
 
         response = self.get_response(self.organization.slug)
 
@@ -379,8 +368,9 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "isSeerConfigured": False,
         }
 
-    def test_github_and_code_review_enabled(self, mock_get_prefs: MagicMock) -> None:
-        self._mock_no_repos(mock_get_prefs)
+    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
+    def test_github_and_code_review_enabled(self, mock_bulk_get: MagicMock) -> None:
+        mock_bulk_get.return_value = {str(self.project.id): None}
 
         self.create_integration(
             organization=self.organization,
@@ -406,8 +396,9 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "isSeerConfigured": True,
         }
 
-    def test_github_and_autofix_enabled(self, mock_get_prefs: MagicMock) -> None:
-        self._mock_has_repos(mock_get_prefs)
+    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
+    def test_github_and_autofix_enabled(self, mock_bulk_get: MagicMock) -> None:
+        mock_bulk_get.return_value = {str(self.project.id): {"repositories": [{"name": "repo"}]}}
 
         self.create_integration(
             organization=self.organization,
@@ -427,8 +418,9 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "isSeerConfigured": True,
         }
 
-    def test_code_review_and_autofix_enabled(self, mock_get_prefs: MagicMock) -> None:
-        self._mock_has_repos(mock_get_prefs)
+    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
+    def test_code_review_and_autofix_enabled(self, mock_bulk_get: MagicMock) -> None:
+        mock_bulk_get.return_value = {str(self.project.id): {"repositories": [{"name": "repo"}]}}
 
         repo = self.create_repo(project=self.project)
         self.create_repository_settings(
@@ -447,9 +439,10 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "isSeerConfigured": False,
         }
 
-    def test_needs_config_reminder_forces_configured(self, mock_get_prefs: MagicMock) -> None:
+    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
+    def test_needs_config_reminder_forces_configured(self, mock_bulk_get: MagicMock) -> None:
         """When org is in force-config-reminder list, needsConfigReminder is True but isSeerConfigured follows normal logic."""
-        self._mock_no_repos(mock_get_prefs)
+        mock_bulk_get.return_value = {str(self.project.id): None}
 
         with self.options({"seer.organizations.force-config-reminder": [self.organization.slug]}):
             response = self.get_response(self.organization.slug)
@@ -463,9 +456,10 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
                 "isSeerConfigured": False,
             }
 
-    def test_needs_config_reminder_with_scm_integration(self, mock_get_prefs: MagicMock) -> None:
+    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
+    def test_needs_config_reminder_with_scm_integration(self, mock_bulk_get: MagicMock) -> None:
         """When org is in config reminder list with SCM integration but no code review/autofix, isSeerConfigured is False."""
-        self._mock_no_repos(mock_get_prefs)
+        mock_bulk_get.return_value = {str(self.project.id): None}
 
         self.create_integration(
             organization=self.organization,
@@ -486,9 +480,10 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
                 "isSeerConfigured": False,
             }
 
-    def test_not_in_config_reminder_list(self, mock_get_prefs: MagicMock) -> None:
+    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
+    def test_not_in_config_reminder_list(self, mock_bulk_get: MagicMock) -> None:
         """When org is not in config reminder list, isSeerConfigured follows normal logic."""
-        self._mock_no_repos(mock_get_prefs)
+        mock_bulk_get.return_value = {str(self.project.id): None}
 
         with self.options({"seer.organizations.force-config-reminder": ["other-org"]}):
             response = self.get_response(self.organization.slug)
@@ -502,10 +497,11 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
                 "isSeerConfigured": False,
             }
 
-    def test_config_reminder_with_complete_setup(self, mock_get_prefs: MagicMock) -> None:
+    @patch("sentry.seer.endpoints.organization_seer_onboarding_check.bulk_get_project_preferences")
+    def test_config_reminder_with_complete_setup(self, mock_bulk_get: MagicMock) -> None:
         """Config reminder flag is independent of isSeerConfigured logic."""
         # Set up SCM and code review
-        self._mock_no_repos(mock_get_prefs)
+        mock_bulk_get.return_value = {str(self.project.id): None}
 
         self.create_integration(
             organization=self.organization,
