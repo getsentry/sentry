@@ -26,6 +26,7 @@ import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {
   ListItemCheckboxProvider,
   useListItemCheckboxContext,
@@ -121,6 +122,9 @@ export function SeerRepoTable() {
       });
     },
     onSettled: mutations => {
+      queryClient.invalidateQueries({
+        queryKey: getSeerOnboardingCheckQueryOptions({organization}).queryKey,
+      });
       (mutations ?? []).forEach(mutation => {
         queryClient.invalidateQueries({
           queryKey: getRepositoryWithSettingsQueryKey(organization, mutation.id),

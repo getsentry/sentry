@@ -4,14 +4,17 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, useInfiniteQuery, useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   PrimaryNavigation,
@@ -124,40 +127,70 @@ function useCanSeeReminder(organization: Organization) {
 
 function useReminderCopywriting() {
   const organization = useOrganization();
-  const {initialStep} = useSeerOnboardingStep();
-  const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
-  const hasLegacySeer = organization.features.includes('seer-added');
 
-  const descriptionByStep: Record<Steps, {description: string; title: string} | null> = {
-    [Steps.CONNECT_GITHUB]: {
+  const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
+
+  const autofixResult = useInfiniteQuery({
+    ...bulkAutofixAutomationSettingsInfiniteOptions({
+      organization,
+    }),
+    staleTime: 60_000,
+    select: ({pages}) => pages.flatMap(page => page.json),
+  });
+  useFetchAllPages({result: autofixResult});
+
+  const {data: autofixSettings, isPending: isAutofixPending} = autofixResult;
+
+  const {
+    isPending: isOnboardingPending,
+    isError: isOnboardingError,
+    data: onboardingData,
+  } = useQuery(getSeerOnboardingCheckQueryOptions({organization, staleTime: 60_000}));
+
+  if (!hasSeatBasedSeer || isOnboardingPending || isOnboardingError || isAutofixPending) {
+    return null;
+  }
+  const {hasSupportedScmIntegration, isCodeReviewEnabled} = onboardingData;
+  const hasAutofix = autofixSettings?.some(s => s.reposCount > 0);
+
+  if (!hasSupportedScmIntegration) {
+    return {
       title: t('Connect GitHub'),
       description: t(
-        'Seer is enabled, but Github is not connected. Connect your GitHub account to enable Root Cause Analysis and Code Review.'
+        'Seer is enabled, but Github is not connected. Connect your GitHub account to enable Autofix and Code Review.'
       ),
-    },
-    [Steps.SETUP_ROOT_CAUSE_ANALYSIS]: {
-      title: t('Start using Seer\u2019s Issue Autofix'),
+    };
+  }
+
+  if (!hasAutofix) {
+    return {
+      title: (
+        <Flex align="center" gap="sm">
+          <IconSeer />
+          {t('Start using Autofix')}
+        </Flex>
+      ),
       description: t(
-        'Seer is enabled but Root Cause Analysis is not configured. Configure Seer to automatically look at issues and generate code fixes.'
+        'Seer is enabled but projects are not connected to repos. Connecting your source code and run Root Cause Analysis, Solution generation, and PR creation.'
       ),
-    },
-    [Steps.SETUP_CODE_REVIEW]: {
-      title: t('Start using Seer\u2019s AI Code Review'),
+    };
+  }
+
+  if (!isCodeReviewEnabled) {
+    return {
+      title: (
+        <Flex align="center" gap="sm">
+          <IconSeer />
+          {t('Start using Code Review')}
+        </Flex>
+      ),
       description: t(
         'Seer is enabled but Code Review is not configured. Configure Seer to automatically review PRs and flag potential issues.'
       ),
-    },
-    [Steps.SETUP_DEFAULTS]: null,
-    [Steps.WRAP_UP]: null,
-  };
+    };
+  }
 
-  if (hasSeatBasedSeer) {
-    return descriptionByStep[initialStep];
-  }
-  if (hasLegacySeer) {
-    return descriptionByStep[Steps.SETUP_CODE_REVIEW];
-  }
-  return descriptionByStep[Steps.SETUP_ROOT_CAUSE_ANALYSIS];
+  return null;
 }
 
 export function PrimaryNavSeerConfigReminder() {
@@ -200,11 +233,12 @@ export function PrimaryNavSeerConfigReminder() {
       />
       {isOpen && (
         <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
-          <Stack gap="lg" padding="xl">
+          <Stack gap="xl">
             <Heading as="h3">{copy.title}</Heading>
             <Text>{copy.description}</Text>
             <Flex justify="start">
               <LinkButton
+                size="sm"
                 to={`/settings/${organization.slug}/seer/`}
                 priority="primary"
                 onClick={() => state.close()}

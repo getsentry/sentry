@@ -20,6 +20,7 @@ import {t, tct, tn} from 'sentry/locale';
 import {DEFAULT_CODE_REVIEW_TRIGGERS} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {useInfiniteQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -94,6 +95,10 @@ export function CodeReviewOverviewSection({
       if (queryKey) {
         queryClient.invalidateQueries({queryKey});
       }
+      // Invalidate the onboarding check query to get the updated settings
+      queryClient.invalidateQueries({
+        queryKey: getSeerOnboardingCheckQueryOptions({organization}).queryKey,
+      });
       (mutations ?? []).forEach(mutation => {
         // Invalidate related queries
         queryClient.invalidateQueries({
