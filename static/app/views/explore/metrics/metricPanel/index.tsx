@@ -191,15 +191,16 @@ function DnDPlaceholder({
   contentHeight: number | null;
   isDragging: boolean | undefined;
 }) {
-  const placeholderHeight = contentHeight ? `${contentHeight}px` : '200px';
-
   return (
-    <Container padding="lg md">
-      <Grid columns="1fr 1fr" gap="xl">
-        <Placeholder height={placeholderHeight}>
+    <Container
+      padding="lg md"
+      style={contentHeight ? {height: `${contentHeight}px`} : undefined}
+    >
+      <Grid columns="1fr 1fr" gap="xl" style={{height: '100%'}}>
+        <Placeholder height="100%">
           {isDragging ? <Text>{t('Charts are hidden while reordering.')}</Text> : null}
         </Placeholder>
-        <Placeholder height={placeholderHeight} />
+        <Placeholder height="100%" />
       </Grid>
     </Container>
   );
