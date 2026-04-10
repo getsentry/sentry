@@ -527,6 +527,48 @@ describe('CommandPalette', () => {
       expect(screen.queryByRole('option', {name: 'Item 4'})).not.toBeInTheDocument();
     });
 
+    it('grandchildren do not resurface individually when their parent nested group matches the search query', async () => {
+      // Regression: the old seen-set only marked direct children of a group,
+      // so grandchildren (children of nested groups) still appeared as independent
+      // flat items in search results with no limit applied.
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction display={{label: 'DSN'}}>
+            <CMDKAction display={{label: 'Project Keys'}} limit={2}>
+              <CMDKAction display={{label: 'Project Alpha'}} onAction={jest.fn()} />
+              <CMDKAction display={{label: 'Project Beta'}} onAction={jest.fn()} />
+              <CMDKAction display={{label: 'Project Gamma'}} onAction={jest.fn()} />
+              <CMDKAction display={{label: 'Project Delta'}} onAction={jest.fn()} />
+            </CMDKAction>
+          </CMDKAction>
+        </GlobalActionsComponent>
+      );
+
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      // "Project" matches both the nested group label "Project Keys" and all four items.
+      await userEvent.type(input, 'Project');
+
+      // "Project Keys" should appear as a flat action under "DSN" (click to drill in).
+      expect(
+        await screen.findByRole('option', {name: 'Project Keys'})
+      ).toBeInTheDocument();
+
+      // Individual project items must NOT surface as standalone options — they are
+      // grandchildren and should only be accessible by drilling into "Project Keys".
+      expect(
+        screen.queryByRole('option', {name: 'Project Alpha'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'Project Beta'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'Project Gamma'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'Project Delta'})
+      ).not.toBeInTheDocument();
+    });
+
     it('limit is applied after search for async resource results', async () => {
       const actions = makeActions(6);
 

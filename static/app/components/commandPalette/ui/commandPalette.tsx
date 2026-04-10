@@ -459,6 +459,16 @@ function scoreTree(
   }
 }
 
+function markSubtreeSeen(
+  node: CollectionTreeNode<CMDKActionData>,
+  seen: Set<string>
+): void {
+  seen.add(node.key);
+  for (const child of node.children) {
+    markSubtreeSeen(child, seen);
+  }
+}
+
 function flattenActions(
   nodes: Array<CollectionTreeNode<CMDKActionData>>,
   scores: Map<
@@ -532,10 +542,11 @@ function flattenActions(
       );
       const limitedMatches =
         item.limit === undefined ? sortedMatches : sortedMatches.slice(0, item.limit);
-      // Mark every child as seen — including those beyond the limit — so they
-      // cannot appear as independent flat items after the group is processed.
+      // Mark every child and their entire subtrees as seen — including those
+      // beyond the limit — so neither over-limit children nor any of their
+      // nested descendants can resurface as independent flat items later.
       for (const child of item.children) {
-        seen.add(child.key);
+        markSubtreeSeen(child, seen);
       }
       return [
         // Suffix the header key so a group used as both a section header and
