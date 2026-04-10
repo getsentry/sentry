@@ -27,7 +27,6 @@ from .errors import (
 )
 from .frame_info import FrameInfo, create_frame_info
 from .integration_utils import InstallationNotFoundError, get_installation
-from .utils.java import find_java_source_roots
 from .utils.misc import get_straight_path_prefix_end_index
 
 logger = logging.getLogger(__name__)
@@ -228,7 +227,8 @@ class CodeMappingTreesHelper:
             return []
 
         if len(matched_files) > 1 and not all(
-            find_java_source_roots(source_path, repo_tree.files) for source_path in matched_files
+            frame_filename.has_source_roots_override(source_path, repo_tree.files)
+            for source_path in matched_files
         ):
             return []
 
@@ -465,13 +465,11 @@ def find_roots(
             # "Packaged" logic
             # e.g. stack_path: some_package/src/foo.py -> source_path: src/foo.py
             source_prefix = source_path.rpartition(stack_path)[0]
-
-            if java_source_roots := find_java_source_roots(source_path, repo_files):
-                return java_source_roots
-
-            return (
-                f"{stack_root}{frame_filename.stack_root}/".replace("//", "/"),
-                f"{source_prefix}{frame_filename.stack_root}/".replace("//", "/"),
+            return frame_filename.resolve_source_roots(
+                source_path=source_path,
+                source_prefix=source_prefix,
+                stack_root_prefix=stack_root,
+                repo_files=repo_files,
             )
     elif stack_path.endswith(source_path):
         stack_prefix = stack_path.rpartition(source_path)[0]

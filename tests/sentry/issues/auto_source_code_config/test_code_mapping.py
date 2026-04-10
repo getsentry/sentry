@@ -349,6 +349,22 @@ class TestDerivedCodeMappings(TestCase):
             ]
         )
 
+    def test_multiple_matches_with_java_source_markers_do_not_enable_path_based_frames(
+        self,
+    ) -> None:
+        repo_tree = RepoTree(
+            self.foo_repo,
+            files=[
+                "module-a/src/main/java/foo/bar.py",
+                "module-b/src/main/java/foo/bar.py",
+            ],
+        )
+        helper = CodeMappingTreesHelper({self.foo_repo.name: repo_tree})
+
+        code_mappings = helper.generate_code_mappings([{"filename": "foo/bar.py"}])
+
+        assert code_mappings == []
+
     def test_find_roots_starts_with_period_slash(self) -> None:
         stacktrace_root, source_path = find_roots(
             create_frame_info({"filename": "./app/foo.tsx"}), "static/app/foo.tsx"
@@ -519,6 +535,16 @@ class TestFindRootsJavaSourceRootMarkers(TestCase):
         # Falls back to frame_filename.stack_root which is "io/sentry/android/core/"
         assert stack_root == "io/sentry/android/core/"
         assert source_root == "src/io/sentry/android/core/"
+
+    def test_find_roots_non_java_source_root_marker_uses_generic_fallback(self) -> None:
+        frame = create_frame_info({"filename": "foo/bar.py"})
+        stack_root, source_root = find_roots(
+            frame,
+            "pkg/src/main/java/foo/bar.py",
+            ["pkg/src/main/java/foo/bar.py"],
+        )
+        assert stack_root == "foo/"
+        assert source_root == "pkg/src/main/java/foo/"
 
     def test_find_roots_java_generates_correct_code_mapping(self) -> None:
         frame = create_frame_info(
