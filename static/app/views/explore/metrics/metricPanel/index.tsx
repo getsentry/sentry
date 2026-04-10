@@ -196,7 +196,7 @@ function DnDPlaceholder({contentHeight, isDragging}: DnDPlaceholderProps) {
         {isDragging ? (
           <Text>
             {t(
-              'Hold on to your butts! Charts are tucked away while you reorder. Too expensive to drag along for the ride.'
+              'Charts are hidden while reordering. Too expensive to drag along for the ride.'
             )}
           </Text>
         ) : null}
