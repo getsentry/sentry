@@ -17,12 +17,13 @@ export default function CommandPaletteModal({Body, closeModal}: ModalRenderProps
       if ('to' in action) {
         navigate(normalizeUrl(action.to));
       } else if ('onAction' in action) {
-        action.onAction();
         // When the action has children, the palette will push into them so the
-        // user can select a secondary action — keep the modal open.
+        // user can select a secondary action — keep the modal open. The
+        // callback already ran when the palette delegated this selection.
         if (action.children.length > 0) {
           return;
         }
+        action.onAction();
       }
       closeModal();
     },

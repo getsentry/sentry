@@ -99,7 +99,7 @@ describe('CommandPaletteModal', () => {
     expect(closeModalSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('does not call closeModal when an action with children is selected', async () => {
+  it('invokes an expandable action callback once and keeps the modal open', async () => {
     // Actions with children push into secondary actions — the modal stays open.
     const closeModalSpy = jest.fn();
     const onActionSpy = jest.fn();
