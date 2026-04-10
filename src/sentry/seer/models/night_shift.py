@@ -50,9 +50,5 @@ class SeerNightShiftRunIssue(DefaultFieldsModel):
     class Meta:
         app_label = "seer"
         db_table = "seer_nightshiftrunissue"
-        indexes = [
-            models.Index(fields=["run"]),
-            models.Index(fields=["group"]),
-        ]
 
     __repr__ = sane_repr("run_id", "group_id", "action")
